@@ -1,0 +1,1279 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>供应商资源池 · EP 生产采购系统</title>
+<style>
+:root{
+  --p:#1677ff;--ph:#4096ff;--pl:#e6f4ff;--pa:rgba(22,119,255,.06);
+  --s:#52c41a;--sl:#f6ffed;--sa:rgba(82,196,26,.08);
+  --w:#faad14;--wl:#fffbe6;--wa:rgba(250,173,20,.08);
+  --d:#ff4d4f;--dl:#fff2f0;--da:rgba(255,77,79,.06);
+  --g50:#fafafa;--g100:#f5f5f5;--g200:#e8e8e8;--g300:#d9d9d9;
+  --g400:#bfbfbf;--g500:#8c8c8c;--g600:#595959;--g700:#434343;
+  --g800:#262626;--g900:#1f1f1f;
+  --r:10px;--rs:6px;--rl:14px;
+  --sh:0 1px 3px rgba(0,0,0,.04),0 1px 2px rgba(0,0,0,.06);
+  --shm:0 4px 12px rgba(0,0,0,.07);
+  --shl:0 8px 24px rgba(0,0,0,.09);
+  --tr:all .2s ease;
+  --nav-bg:#001529;
+  --purple:#722ed1;--purple-l:#f9f0ff;
+  --cyan:#13c2c2;--cyan-l:#e6fffb;
+  --orange:#fa8c16;--orange-l:#fff7e6;
+  --drawer-w:1100px;
+}
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif;background:#f0f2f5;color:var(--g800);line-height:1.6;font-size:13px;min-height:100vh}
+
+/* ========== Top Nav ========== */
+.topnav{background:var(--nav-bg);height:48px;display:flex;align-items:center;padding:0 16px;position:fixed;top:0;left:0;right:0;z-index:1000}
+.topnav-logo{display:flex;align-items:center;gap:8px;margin-right:24px;flex-shrink:0}
+.topnav-logo .mi{width:28px;height:28px;background:linear-gradient(135deg,#ff6700,#ff4d00);border-radius:6px;display:flex;align-items:center;justify-content:center;color:#fff;font-size:12px;font-weight:700}
+.topnav-logo span{color:#fff;font-size:14px;font-weight:600;letter-spacing:.5px;white-space:nowrap}
+.topnav-menu{display:flex;align-items:center;gap:0;flex:1;overflow-x:auto;scrollbar-width:none}
+.topnav-menu::-webkit-scrollbar{display:none}
+.topnav-item{padding:0 14px;height:48px;display:flex;align-items:center;color:rgba(255,255,255,.65);font-size:13px;cursor:pointer;white-space:nowrap;transition:all .2s;position:relative}
+.topnav-item:hover{color:#fff;background:rgba(255,255,255,.08)}
+.topnav-item.active{color:#fff;background:rgba(255,255,255,.12)}
+.topnav-item.active::after{content:'';position:absolute;bottom:0;left:8px;right:8px;height:2px;background:var(--p);border-radius:2px 2px 0 0}
+.topnav-right{display:flex;align-items:center;gap:12px;margin-left:auto;flex-shrink:0;padding-left:16px}
+.topnav-right .icon{width:32px;height:32px;border-radius:50%;display:flex;align-items:center;justify-content:center;color:rgba(255,255,255,.65);cursor:pointer;transition:all .2s;font-size:14px}
+.topnav-right .icon:hover{background:rgba(255,255,255,.1);color:#fff}
+.topnav-user{display:flex;align-items:center;gap:6px;color:rgba(255,255,255,.85);font-size:12px;cursor:pointer}
+.topnav-avatar{width:28px;height:28px;border-radius:50%;background:linear-gradient(135deg,var(--p),#4096ff);display:flex;align-items:center;justify-content:center;color:#fff;font-size:11px;font-weight:600}
+
+/* ========== Layout ========== */
+.srm-layout{display:flex;height:calc(100vh - 48px);margin-top:48px}
+.sidebar{width:240px;background:#fff;border-right:1px solid var(--g200);display:flex;flex-direction:column;flex-shrink:0;overflow:hidden}
+.sidebar-hdr{padding:16px 16px 12px;border-bottom:1px solid var(--g100)}
+.sidebar-hdr h3{font-size:14px;font-weight:700;color:var(--g900);margin-bottom:6px}
+.sidebar-hdr .search-box{display:flex;gap:6px}
+.sidebar-hdr .search-box input{flex:1;padding:6px 10px;border:1px solid var(--g300);border-radius:var(--rs);font-size:12px;outline:none}
+.sidebar-hdr .search-box input:focus{border-color:var(--p);box-shadow:0 0 0 3px rgba(22,119,255,.1)}
+.sidebar-filter{flex:1;overflow-y:auto;padding:12px 16px}
+.filter-group{margin-bottom:16px}
+.filter-group h4{font-size:11px;color:var(--g500);font-weight:600;margin-bottom:8px;text-transform:uppercase;letter-spacing:.5px}
+.filter-item{display:flex;align-items:center;gap:6px;padding:4px 0;font-size:12px;color:var(--g700);cursor:pointer;transition:var(--tr)}
+.filter-item:hover{color:var(--p)}
+.filter-item input[type="checkbox"]{accent-color:var(--p);width:14px;height:14px;cursor:pointer}
+.filter-item .fname{flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.filter-item .fcount{font-size:10px;color:var(--g400)}
+
+/* ========== Main Content ========== */
+.main-content{flex:1;overflow-y:auto;background:#f0f2f5;padding:0}
+.content-header{background:#fff;padding:16px 24px;border-bottom:1px solid var(--g200)}
+.content-title{font-size:16px;font-weight:700;color:var(--g900);margin-bottom:12px;display:flex;align-items:center;gap:8px}
+.content-tabs{display:flex;gap:0;margin-bottom:12px}
+.ctab{padding:8px 16px;font-size:13px;color:var(--g600);cursor:pointer;border-bottom:2px solid transparent;transition:var(--tr);display:flex;align-items:center;gap:6px}
+.ctab:hover{color:var(--p)}
+.ctab.active{color:var(--p);font-weight:600;border-bottom-color:var(--p)}
+.ctab .badge{font-size:10px;padding:1px 6px;border-radius:8px;background:var(--d);color:#fff;font-weight:600;min-width:18px;text-align:center}
+.content-toolbar{display:flex;align-items:center;justify-content:space-between;gap:12px}
+.search-box{display:flex;align-items:center;gap:8px}
+.search-input{width:280px;padding:6px 12px;border:1px solid var(--g300);border-radius:var(--rs);font-size:12px;transition:var(--tr)}
+.search-input:focus{outline:none;border-color:var(--p);box-shadow:0 0 0 3px rgba(22,119,255,.1)}
+.toolbar-right{display:flex;align-items:center;gap:12px}
+
+/* ========== Metrics ========== */
+.metrics-bar{display:flex;gap:16px;padding:16px 24px}
+.metric-card{flex:1;background:#fff;border:1px solid var(--g200);border-radius:var(--r);padding:14px 18px;display:flex;align-items:center;gap:12px;transition:var(--tr);cursor:pointer}
+.metric-card:hover{border-color:var(--p);box-shadow:var(--shm);transform:translateY(-1px)}
+.mc-icon{width:42px;height:42px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0}
+.mc-icon.blue{background:linear-gradient(135deg,var(--pl),#d6e8ff)}
+.mc-icon.green{background:linear-gradient(135deg,var(--sl),#d9f7be)}
+.mc-icon.orange{background:linear-gradient(135deg,var(--wl),#ffe58f)}
+.mc-icon.purple{background:linear-gradient(135deg,var(--purple-l),#efdbff)}
+.mc-icon.cyan{background:linear-gradient(135deg,var(--cyan-l),#b5f5ec)}
+.mc-icon.red{background:linear-gradient(135deg,var(--dl),#ffccc7)}
+.mc-info{display:flex;flex-direction:column}
+.mc-val{font-size:20px;font-weight:700;color:var(--g900);line-height:1.2}
+.mc-label{font-size:11px;color:var(--g500);margin-top:2px}
+
+/* ========== Supplier Table ========== */
+.supply-table-wrap{background:#fff;margin:0 24px;border-radius:var(--r);border:1px solid var(--g200);overflow:hidden}
+.supply-table{width:100%;border-collapse:collapse;min-width:1600px;font-size:12px}
+.supply-table th{background:linear-gradient(180deg,#fafafa,#f5f5f5);color:var(--g700);font-size:11px;font-weight:600;padding:11px 12px;text-align:left;border-bottom:2px solid var(--g200);border-right:1px solid var(--g100);white-space:nowrap;position:sticky;top:0;z-index:10}
+.supply-table th .sort-icon{font-size:10px;color:var(--g400);cursor:pointer;margin-left:2px}
+.supply-table td{padding:9px 12px;border-bottom:1px solid var(--g100);border-right:1px solid var(--g100);font-size:12px;vertical-align:middle}
+.supply-table tbody tr{transition:var(--tr)}
+.supply-table tbody tr:hover td{background:#f0f7ff}
+.supply-table .cell-name{color:var(--p);font-weight:500;cursor:pointer;transition:var(--tr)}
+.supply-table .cell-name:hover{color:#ff6700;text-decoration:underline}
+.supply-table .cell-code{color:var(--g500);font-size:11px}
+.supply-table .cell-email{color:var(--g600);font-size:11px}
+
+/* ========== Tags ========== */
+.tag{display:inline-block;font-size:10px;padding:2px 8px;border-radius:4px;font-weight:500;white-space:nowrap}
+.tag-blue{background:var(--pl);color:var(--p)}
+.tag-green{background:var(--sl);color:var(--s)}
+.tag-orange{background:var(--wl);color:#d46b08}
+.tag-purple{background:var(--purple-l);color:var(--purple)}
+.tag-red{background:var(--dl);color:var(--d)}
+.tag-cyan{background:var(--cyan-l);color:var(--cyan)}
+.tag-gray{background:var(--g100);color:var(--g600)}
+
+.s-dot{display:inline-block;width:7px;height:7px;border-radius:50%;margin-right:5px;flex-shrink:0}
+.s-dot.green{background:var(--s)}.s-dot.orange{background:var(--w)}.s-dot.red{background:var(--d)}.s-dot.blue{background:var(--p)}
+
+.stars{color:#f5a623;font-size:11px;white-space:nowrap}
+
+.prog-bar{display:flex;align-items:center;gap:6px}
+.prog-track{width:70px;height:5px;background:var(--g100);border-radius:3px;overflow:hidden}
+.prog-fill{height:100%;border-radius:3px}
+.prog-fill.green{background:var(--s)}.prog-fill.orange{background:var(--w)}.prog-fill.red{background:var(--d)}.prog-fill.blue{background:var(--p)}
+.prog-pct{font-size:11px;color:var(--g500);font-weight:500}
+
+/* ========== Pagination ========== */
+.pagination{display:flex;align-items:center;justify-content:flex-end;gap:6px;padding:12px 24px;font-size:12px;color:var(--g600)}
+.pagination .pg-info{margin-right:8px}
+.pagination .pg-btn{width:28px;height:28px;border:1px solid var(--g300);border-radius:4px;display:flex;align-items:center;justify-content:center;cursor:pointer;background:#fff;transition:var(--tr);font-size:12px}
+.pagination .pg-btn:hover{color:var(--p);border-color:var(--p)}
+.pagination .pg-btn.active{background:var(--p);color:#fff;border-color:var(--p)}
+.pagination .pg-btn.disabled{color:var(--g300);cursor:default;border-color:var(--g200)}
+.pagination select{padding:4px 8px;border:1px solid var(--g300);border-radius:4px;font-size:12px}
+
+/* ========== Buttons ========== */
+.btn{border:none;padding:7px 16px;border-radius:var(--rs);font-size:12px;font-weight:500;cursor:pointer;transition:var(--tr);display:inline-flex;align-items:center;gap:5px;white-space:nowrap}
+.btn:active{transform:scale(.97)}
+.btn-p{background:linear-gradient(135deg,var(--p) 0%,#4096ff 100%);color:#fff;box-shadow:0 2px 6px rgba(22,119,255,.25)}
+.btn-p:hover{box-shadow:0 4px 12px rgba(22,119,255,.35);transform:translateY(-1px)}
+.btn-o{background:#fff;color:var(--g700);border:1px solid var(--g300)}.btn-o:hover{color:var(--p);border-color:var(--p);background:var(--pa)}
+.btn-s{padding:4px 10px;font-size:11px;border-radius:4px}
+.btn-d{background:none;color:var(--d);border:none;padding:2px 6px;font-size:11px}.btn-d:hover{text-decoration:underline}
+
+/* Section Panel */
+.section{background:#fff;border-radius:var(--r);border:1px solid var(--g200);margin:0 24px 16px;overflow:hidden}
+.section-hdr{display:flex;align-items:center;justify-content:space-between;padding:14px 20px;border-bottom:1px solid var(--g100);background:linear-gradient(180deg,#fafafa,#f8f8f8)}
+.section-title{font-size:14px;font-weight:700;color:var(--g900);display:flex;align-items:center;gap:8px}
+.section-title::before{content:'';width:3px;height:16px;border-radius:2px;background:var(--p);flex-shrink:0}
+.section-body{padding:16px 20px}
+
+/* Supplier Detail Grid */
+.sp-detail-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:14px 20px}
+.sp-detail-item{display:flex;flex-direction:column;gap:3px}
+.sp-detail-label{font-size:11px;color:var(--g500);font-weight:500}
+.sp-detail-val{font-size:13px;color:var(--g800);font-weight:500}
+
+/* Insight Cards */
+.insight-row{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:16px}
+.insight-card{background:#fff;border:1px solid var(--g200);border-radius:var(--r);padding:16px;text-align:center}
+.insight-card .iv{font-size:28px;font-weight:700;color:var(--g900)}
+.insight-card .il{font-size:11px;color:var(--g500);margin-top:4px}
+.insight-card .it{font-size:10px;margin-top:4px;display:flex;align-items:center;justify-content:center;gap:3px}
+.insight-card .it.up{color:var(--s)}.insight-card .it.down{color:var(--d)}
+
+.cat-chips{display:flex;flex-wrap:wrap;gap:4px}
+.cat-chip{font-size:10px;padding:2px 6px;border-radius:4px;background:var(--g50);color:var(--g600);border:1px solid var(--g200);white-space:nowrap}
+
+/* ================================================================ */
+/*  SUPPLIER ONEPAGE DRAWER - 浅色风格 | 三栏企业级概览            */
+/* ================================================================ */
+
+.drawer-overlay{position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,.35);z-index:2000;opacity:0;pointer-events:none;transition:opacity .3s}
+.drawer-overlay.show{opacity:1;pointer-events:all}
+
+.drawer{position:fixed;top:0;right:0;bottom:0;width:var(--drawer-w);max-width:98vw;background:#fff;z-index:2001;transform:translateX(30px);opacity:0;pointer-events:none;transition:transform .35s cubic-bezier(.4,0,.2,1),opacity .3s;display:flex;flex-direction:column;box-shadow:-8px 0 32px rgba(0,0,0,.12)}
+.drawer.show{transform:translateX(0);opacity:1;pointer-events:all}
+
+.drawer-hdr{display:flex;align-items:center;justify-content:space-between;padding:14px 24px;border-bottom:1px solid var(--g200);background:#fff;flex-shrink:0}
+.drawer-hdr-left{display:flex;align-items:center;gap:12px}
+.drawer-hdr-left .supplier-avatar{width:40px;height:40px;border-radius:8px;display:flex;align-items:center;justify-content:center;color:#fff;font-size:16px;font-weight:700;flex-shrink:0}
+.drawer-hdr-info{display:flex;flex-direction:column}
+.drawer-hdr-name{font-size:16px;font-weight:700;color:var(--g900)}
+.drawer-hdr-code{font-size:11px;color:var(--g500)}
+.drawer-hdr-right{display:flex;align-items:center;gap:8px}
+.drawer-close{width:32px;height:32px;border-radius:6px;border:1px solid var(--g200);background:#fff;cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:16px;color:var(--g600);transition:var(--tr)}
+.drawer-close:hover{background:var(--dl);color:var(--d);border-color:var(--d)}
+
+.drawer-body{flex:1;overflow-y:auto;padding:20px 24px;background:var(--g50)}
+.drawer-body::-webkit-scrollbar{width:6px}
+.drawer-body::-webkit-scrollbar-thumb{background:var(--g300);border-radius:3px}
+
+/* Three-column grid inside drawer */
+.onepage-grid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:16px;min-height:100%}
+
+/* ========== Onepage Panel Card ========== */
+.op-card{background:#fff;border:1px solid var(--g200);border-radius:var(--r);overflow:hidden}
+.op-card-hdr{display:flex;align-items:center;justify-content:space-between;padding:12px 16px;border-bottom:1px solid var(--g100);background:linear-gradient(180deg,#fafafa,#f5f5f5)}
+.op-card-hdr .op-card-title{font-size:12px;font-weight:700;color:var(--g800);display:flex;align-items:center;gap:6px;text-transform:uppercase;letter-spacing:.3px}
+.op-card-hdr .op-card-title::before{content:'';width:3px;height:13px;border-radius:2px;background:var(--p);flex-shrink:0}
+.op-card-body{padding:14px 16px}
+.op-card.no-hdr{border-top:3px solid var(--p)}
+
+/* ========== Info rows ========== */
+.op-info-row{display:flex;align-items:center;padding:6px 0;border-bottom:1px solid var(--g50);gap:8px}
+.op-info-row:last-child{border-bottom:none}
+.op-info-label{font-size:11px;color:var(--g500);width:64px;flex-shrink:0}
+.op-info-val{font-size:12px;color:var(--g800);font-weight:500;flex:1}
+.op-info-val.link{color:var(--p);cursor:pointer}
+
+/* ========== Tag group ========== */
+.op-tags{display:flex;flex-wrap:wrap;gap:4px;margin-top:4px}
+
+/* ========== Chart containers ========== */
+.op-chart-wrap{display:flex;justify-content:center;align-items:center;padding:4px 0}
+.op-chart-wrap svg{width:100%;max-width:100%}
+
+/* ========== Mini table inside card ========== */
+.op-mini-table{width:100%;border-collapse:collapse;font-size:11px}
+.op-mini-table th{background:var(--g50);color:var(--g600);font-weight:600;padding:6px 8px;text-align:left;border-bottom:1px solid var(--g200);font-size:10px}
+.op-mini-table td{padding:5px 8px;border-bottom:1px solid var(--g50);color:var(--g700)}
+.op-mini-table tr:last-child td{border-bottom:none}
+
+/* ========== Financial indicator bar ========== */
+.op-fin-row{display:flex;align-items:center;padding:5px 0;gap:8px;border-bottom:1px solid var(--g50)}
+.op-fin-row:last-child{border-bottom:none}
+.op-fin-label{font-size:11px;color:var(--g600);width:72px;flex-shrink:0}
+.op-fin-bar-wrap{flex:1;display:flex;align-items:center;gap:6px}
+.op-fin-bar-track{flex:1;height:6px;background:var(--g100);border-radius:3px;overflow:hidden}
+.op-fin-bar-fill{height:100%;border-radius:3px}
+.op-fin-val{font-size:11px;font-weight:600;color:var(--g800);width:44px;text-align:right;flex-shrink:0}
+
+/* ========== Risk event list ========== */
+.op-risk-item{display:flex;gap:8px;padding:6px 0;border-bottom:1px solid var(--g50);font-size:11px}
+.op-risk-item:last-child{border-bottom:none}
+.op-risk-dot{width:6px;height:6px;border-radius:50%;margin-top:5px;flex-shrink:0}
+.op-risk-dot.red{background:var(--d)}.op-risk-dot.orange{background:var(--w)}
+.op-risk-content{flex:1;color:var(--g700);line-height:1.5}
+.op-risk-date{font-size:10px;color:var(--g500);flex-shrink:0;white-space:nowrap}
+
+/* ========== Cooperation timeline ========== */
+.op-tl-item{display:flex;gap:10px;padding:6px 0;position:relative;font-size:11px}
+.op-tl-item::before{content:'';position:absolute;left:5px;top:16px;bottom:-6px;width:1px;background:var(--g200)}
+.op-tl-item:last-child::before{display:none}
+.op-tl-dot{width:11px;height:11px;border-radius:50%;background:var(--p);flex-shrink:0;position:relative;z-index:1;margin-top:2px}
+.op-tl-dot.done{background:var(--s)}.op-tl-dot.active{background:var(--p)}.op-tl-dot.pending{background:var(--g300)}
+.op-tl-info{flex:1;display:flex;flex-direction:column}
+.op-tl-title{font-weight:500;color:var(--g800)}
+.op-tl-date{font-size:10px;color:var(--g500)}
+
+/* ========== Part filter ========== */
+.op-part-filter{display:flex;gap:6px;margin-bottom:10px}
+.op-part-filter input{flex:1;padding:6px 10px;border:1px solid var(--g300);border-radius:4px;font-size:11px;outline:none}
+.op-part-filter input:focus{border-color:var(--p)}
+.op-part-filter button{padding:6px 10px;border:1px solid var(--p);background:var(--p);color:#fff;border-radius:4px;cursor:pointer;font-size:11px}
+
+/* ========== Order stat card ========== */
+.op-stat-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:10px}
+.op-stat-item{background:var(--g50);border-radius:6px;padding:10px;text-align:center}
+.op-stat-val{font-size:18px;font-weight:700;color:var(--g800)}
+.op-stat-label{font-size:10px;color:var(--g500);margin-top:2px}
+
+/* ========== Payment terms ========== */
+.op-pay-item{display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid var(--g50);font-size:11px}
+.op-pay-item:last-child{border-bottom:none}
+.op-pay-label{color:var(--g600)}
+.op-pay-val{font-weight:500;color:var(--g800)}
+
+/* ========== Legend ========== */
+.op-legend{display:flex;flex-wrap:wrap;gap:10px;margin-top:8px;font-size:10px}
+.op-legend-item{display:flex;align-items:center;gap:4px;color:var(--g600)}
+.op-legend-dot{width:8px;height:8px;border-radius:2px;flex-shrink:0}
+
+/* ========== Summary bar at bottom ========== */
+.op-summary-bar{display:flex;gap:12px;margin-top:12px;padding:12px;background:var(--g50);border-radius:var(--rs)}
+.op-summary-item{flex:1;display:flex;flex-direction:column;align-items:center}
+.op-summary-val{font-size:15px;font-weight:700;color:var(--g900)}
+.op-summary-label{font-size:10px;color:var(--g500);margin-top:2px}
+
+/* Responsive tweak for drawer */
+@media (max-width:1200px){.drawer{width:100vw;max-width:100vw}}
+
+.highlight-orange{color:var(--orange);font-weight:600}
+.highlight-red{color:var(--d);font-weight:600}
+.highlight-green{color:var(--s);font-weight:600}
+</style>
+</head>
+<body>
+
+<!-- ==================== TOP NAV ==================== -->
+<div class="topnav">
+    <div class="topnav-logo"><div class="mi">MI</div><span>小米汽车</span></div>
+    <div class="topnav-menu">
+        <div class="topnav-item">首页</div>
+        <div class="topnav-item active">供应商资源池</div>
+        <div class="topnav-item">采购项目管理</div>
+        <div class="topnav-item">RFQ询报价管理</div>
+        <div class="topnav-item">采购定点与台账</div>
+        <div class="topnav-item">品类资源池</div>
+    </div>
+    <div class="topnav-right">
+        <div class="topnav-user"><div class="topnav-avatar">齐</div><span>齐岳</span></div>
+        <div class="icon">🔔</div>
+        <div class="icon">⚙</div>
+    </div>
+</div>
+
+<!-- ==================== LAYOUT ==================== -->
+<div class="srm-layout">
+
+<!-- Sidebar -->
+<div class="sidebar">
+    <div class="sidebar-hdr">
+        <h3>供应商资源池</h3>
+        <div class="search-box"><input type="text" placeholder="搜索供应商..."><button class="btn btn-p btn-s">🔍</button></div>
+    </div>
+    <div class="sidebar-filter">
+        <div class="filter-group">
+            <h4>资质状态</h4>
+            <label class="filter-item"><input type="checkbox" checked><span class="fname">战略合作</span><span class="fcount">18</span></label>
+            <label class="filter-item"><input type="checkbox" checked><span class="fname">正式供方</span><span class="fcount">47</span></label>
+            <label class="filter-item"><input type="checkbox" checked><span class="fname">潜在供方</span><span class="fcount">23</span></label>
+            <label class="filter-item"><input type="checkbox"><span class="fname">黑名单</span><span class="fcount">3</span></label>
+        </div>
+        <div class="filter-group">
+            <h4>品类归属</h4>
+            <label class="filter-item"><input type="checkbox" checked><span class="fname">动力电池</span><span class="fcount">15</span></label>
+            <label class="filter-item"><input type="checkbox" checked><span class="fname">电驱系统</span><span class="fcount">12</span></label>
+            <label class="filter-item"><input type="checkbox" checked><span class="fname">座椅系统</span><span class="fcount">12</span></label>
+            <label class="filter-item"><input type="checkbox" checked><span class="fname">白车身</span><span class="fcount">18</span></label>
+            <label class="filter-item"><input type="checkbox" checked><span class="fname">电子电器</span><span class="fcount">22</span></label>
+            <label class="filter-item"><input type="checkbox" checked><span class="fname">智能驾驶</span><span class="fcount">9</span></label>
+        </div>
+        <div class="filter-group">
+            <h4>风险等级</h4>
+            <label class="filter-item"><input type="checkbox"><span class="fname">⚠️ 高风险 (独供)</span><span class="fcount">6</span></label>
+            <label class="filter-item"><input type="checkbox"><span class="fname">⚡ 中风险</span><span class="fcount">14</span></label>
+            <label class="filter-item"><input type="checkbox" checked><span class="fname">✅ 低风险</span><span class="fcount">68</span></label>
+        </div>
+    </div>
+</div>
+
+<!-- Main Content -->
+<div class="main-content">
+    <div class="content-header">
+        <div class="content-title">🏭 供应商资源池 <span style="font-size:11px;color:var(--g500);font-weight:400;margin-left:4px">点击供应商名称 → 查看 OnePage 概览</span></div>
+        <div class="content-tabs">
+            <div class="ctab active">全部供应商 <span class="badge">91</span></div>
+            <div class="ctab">战略合作 <span class="badge" style="background:var(--s)">18</span></div>
+            <div class="ctab">正式供方 <span class="badge" style="background:var(--p)">47</span></div>
+            <div class="ctab">潜在供方 <span class="badge" style="background:var(--w)">23</span></div>
+            <div class="ctab">绩效看板</div>
+        </div>
+        <div class="content-toolbar">
+            <div class="search-box">
+                <input class="search-input" type="text" placeholder="供应商名称/代码/品类...">
+                <button class="btn btn-p btn-s">🔍 搜索</button>
+                <span style="font-size:12px;color:var(--p);cursor:pointer">高级搜索 →</span>
+            </div>
+            <div class="toolbar-right">
+                <button class="btn btn-o">📥 导出</button>
+                <button class="btn btn-p">+ 新增供应商</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Metrics Bar -->
+    <div class="metrics-bar">
+        <div class="metric-card"><div class="mc-icon blue">🏭</div><div class="mc-info"><div class="mc-val">91</div><div class="mc-label">供应商总数</div></div></div>
+        <div class="metric-card"><div class="mc-icon green">✅</div><div class="mc-info"><div class="mc-val">65</div><div class="mc-label">合格供应商 (战略+正式)</div></div></div>
+        <div class="metric-card"><div class="mc-icon orange">⏳</div><div class="mc-info"><div class="mc-val">23</div><div class="mc-label">潜在/审核中</div></div></div>
+        <div class="metric-card"><div class="mc-icon red">⚠️</div><div class="mc-info"><div class="mc-val">6</div><div class="mc-label">独供风险品类</div></div></div>
+        <div class="metric-card"><div class="mc-icon purple">📊</div><div class="mc-info"><div class="mc-val">86%</div><div class="mc-label">IATF认证覆盖率</div></div></div>
+        <div class="metric-card"><div class="mc-icon cyan">🔄</div><div class="mc-info"><div class="mc-val">12</div><div class="mc-label">本月资质到期</div></div></div>
+    </div>
+
+    <!-- Supplier Table -->
+    <div class="supply-table-wrap">
+        <table class="supply-table">
+            <thead>
+                <tr>
+                    <th>供应商编号 <span class="sort-icon">↕</span></th>
+                    <th>供应商名称</th>
+                    <th>资质状态</th>
+                    <th>归属品类</th>
+                    <th>体系认证</th>
+                    <th>质量评级</th>
+                    <th>成本竞争力</th>
+                    <th>交期达标率</th>
+                    <th>合作车型</th>
+                    <th>年采购额(预估)</th>
+                    <th>风险等级</th>
+                    <th>联系人</th>
+                </tr>
+            </thead>
+            <tbody>
+                <!-- 战略合作 -->
+                <tr>
+                    <td class="cell-code">SP202401001</td>
+                    <td class="cell-name" data-supplier="catl">宁德时代 (CATL)</td>
+                    <td><span class="tag tag-green">战略合作</span></td>
+                    <td><div class="cat-chips"><span class="cat-chip">动力电池</span></div></td>
+                    <td><span class="tag tag-green">IATF 16949</span></td>
+                    <td><span class="tag tag-green">A+</span></td>
+                    <td><span class="stars">★★★★★</span></td>
+                    <td><span class="prog-bar"><span class="prog-track"><span class="prog-fill green" style="width:98%"></span></span><span class="prog-pct">98%</span></span></td>
+                    <td>SU7 / MS11</td>
+                    <td>¥3.2亿</td>
+                    <td><span class="tag tag-green">✅ 低风险</span></td>
+                    <td class="cell-email">wang.li@catl.com</td>
+                </tr>
+                <tr>
+                    <td class="cell-code">SP202401002</td>
+                    <td class="cell-name" data-supplier="byd">弗迪电池 (BYD)</td>
+                    <td><span class="tag tag-green">战略合作</span></td>
+                    <td><div class="cat-chips"><span class="cat-chip">动力电池</span></div></td>
+                    <td><span class="tag tag-green">IATF 16949</span></td>
+                    <td><span class="tag tag-green">A</span></td>
+                    <td><span class="stars">★★★★★</span></td>
+                    <td><span class="prog-bar"><span class="prog-track"><span class="prog-fill green" style="width:95%"></span></span><span class="prog-pct">95%</span></span></td>
+                    <td>SU7</td>
+                    <td>¥1.5亿</td>
+                    <td><span class="tag tag-green">✅ 低风险</span></td>
+                    <td class="cell-email">zhang.wei@byd.com</td>
+                </tr>
+                <tr>
+                    <td class="cell-code">SP202402005</td>
+                    <td class="cell-name" data-supplier="yanfeng">延锋国际</td>
+                    <td><span class="tag tag-green">战略合作</span></td>
+                    <td><div class="cat-chips"><span class="cat-chip">座椅系统</span><span class="cat-chip">内饰</span></div></td>
+                    <td><span class="tag tag-green">IATF 16949</span></td>
+                    <td><span class="tag tag-green">A+</span></td>
+                    <td><span class="stars">★★★★★</span></td>
+                    <td><span class="prog-bar"><span class="prog-track"><span class="prog-fill green" style="width:97%"></span></span><span class="prog-pct">97%</span></span></td>
+                    <td>SU7 / MS11</td>
+                    <td>¥2.1亿</td>
+                    <td><span class="tag tag-green">✅ 低风险</span></td>
+                    <td class="cell-email">liu.yun@yanfeng.com</td>
+                </tr>
+                <tr>
+                    <td class="cell-code">SP202403008</td>
+                    <td class="cell-name" data-supplier="bosch">博世 (Bosch)</td>
+                    <td><span class="tag tag-green">战略合作</span></td>
+                    <td><div class="cat-chips"><span class="cat-chip">智能驾驶</span><span class="cat-chip">电驱</span></div></td>
+                    <td><span class="tag tag-green">IATF 16949</span></td>
+                    <td><span class="tag tag-green">A+</span></td>
+                    <td><span class="stars">★★★★☆</span></td>
+                    <td><span class="prog-bar"><span class="prog-track"><span class="prog-fill green" style="width:96%"></span></span><span class="prog-pct">96%</span></span></td>
+                    <td>MS11</td>
+                    <td>¥4.5亿</td>
+                    <td><span class="tag tag-green">✅ 低风险</span></td>
+                    <td class="cell-email">chen.hao@bosch.com</td>
+                </tr>
+                <!-- 正式供方 -->
+                <tr>
+                    <td class="cell-code">SP202401005</td>
+                    <td class="cell-name" data-supplier="calb">中创新航 (CALB)</td>
+                    <td><span class="tag tag-blue">正式供方</span></td>
+                    <td><div class="cat-chips"><span class="cat-chip">动力电池</span></div></td>
+                    <td><span class="tag tag-blue">IATF 16949</span></td>
+                    <td><span class="tag tag-blue">B+</span></td>
+                    <td><span class="stars">★★★★☆</span></td>
+                    <td><span class="prog-bar"><span class="prog-track"><span class="prog-fill blue" style="width:88%"></span></span><span class="prog-pct">88%</span></span></td>
+                    <td>MS11</td>
+                    <td>¥0.6亿</td>
+                    <td><span class="tag tag-green">✅ 低风险</span></td>
+                    <td class="cell-email">sun.yang@calb.com</td>
+                </tr>
+                <tr>
+                    <td class="cell-code">SP202402008</td>
+                    <td class="cell-name" data-supplier="lear">李尔 (Lear)</td>
+                    <td><span class="tag tag-blue">正式供方</span></td>
+                    <td><div class="cat-chips"><span class="cat-chip">座椅系统</span></div></td>
+                    <td><span class="tag tag-blue">IATF 16949</span></td>
+                    <td><span class="tag tag-green">A</span></td>
+                    <td><span class="stars">★★★★☆</span></td>
+                    <td><span class="prog-bar"><span class="prog-track"><span class="prog-fill green" style="width:93%"></span></span><span class="prog-pct">93%</span></span></td>
+                    <td>SU7</td>
+                    <td>¥0.8亿</td>
+                    <td><span class="tag tag-green">✅ 低风险</span></td>
+                    <td class="cell-email">huang.lei@lear.com</td>
+                </tr>
+                <tr>
+                    <td class="cell-code">SP202404012</td>
+                    <td class="cell-name" data-supplier="inovance">汇川技术</td>
+                    <td><span class="tag tag-blue">正式供方</span></td>
+                    <td><div class="cat-chips"><span class="cat-chip">电驱系统</span></div></td>
+                    <td><span class="tag tag-blue">IATF 16949</span></td>
+                    <td><span class="tag tag-blue">B+</span></td>
+                    <td><span class="stars">★★★★☆</span></td>
+                    <td><span class="prog-bar"><span class="prog-track"><span class="prog-fill blue" style="width:85%"></span></span><span class="prog-pct">85%</span></span></td>
+                    <td>SU7</td>
+                    <td>¥1.8亿</td>
+                    <td><span class="tag tag-green">✅ 低风险</span></td>
+                    <td class="cell-email">zhao.li@inovance.com</td>
+                </tr>
+                <tr>
+                    <td class="cell-code">SP202405015</td>
+                    <td class="cell-name" data-supplier="huayu">华域汽车</td>
+                    <td><span class="tag tag-blue">正式供方</span></td>
+                    <td><div class="cat-chips"><span class="cat-chip">白车身</span><span class="cat-chip">底盘</span></div></td>
+                    <td><span class="tag tag-blue">IATF 16949</span></td>
+                    <td><span class="tag tag-green">A</span></td>
+                    <td><span class="stars">★★★★☆</span></td>
+                    <td><span class="prog-bar"><span class="prog-track"><span class="prog-fill green" style="width:94%"></span></span><span class="prog-pct">94%</span></span></td>
+                    <td>SU7 / MS11</td>
+                    <td>¥2.5亿</td>
+                    <td><span class="tag tag-green">✅ 低风险</span></td>
+                    <td class="cell-email">wu.gang@huayu.com</td>
+                </tr>
+                <!-- 潜在供方 -->
+                <tr>
+                    <td class="cell-code">SP202401010</td>
+                    <td class="cell-name" data-supplier="guoxuan">国轩高科</td>
+                    <td><span class="tag tag-orange">潜在供方</span></td>
+                    <td><div class="cat-chips"><span class="cat-chip">动力电池</span></div></td>
+                    <td><span class="tag tag-orange">审核中</span></td>
+                    <td><span class="tag tag-blue">B</span></td>
+                    <td><span class="stars">★★★☆☆</span></td>
+                    <td><span class="prog-bar"><span class="prog-track"><span class="prog-fill orange" style="width:72%"></span></span><span class="prog-pct">72%</span></span></td>
+                    <td>—</td>
+                    <td>¥0亿</td>
+                    <td><span class="tag tag-orange">⚡ 中风险</span></td>
+                    <td class="cell-email">chen.jie@guoxuan.com</td>
+                </tr>
+                <tr>
+                    <td class="cell-code">SP202402012</td>
+                    <td class="cell-name" data-supplier="tiancheng">天成自控</td>
+                    <td><span class="tag tag-orange">潜在供方</span></td>
+                    <td><div class="cat-chips"><span class="cat-chip">座椅系统</span></div></td>
+                    <td><span class="tag tag-orange">审核中</span></td>
+                    <td><span class="tag tag-blue">B</span></td>
+                    <td><span class="stars">★★★☆☆</span></td>
+                    <td><span class="prog-bar"><span class="prog-track"><span class="prog-fill orange" style="width:68%"></span></span><span class="prog-pct">68%</span></span></td>
+                    <td>—</td>
+                    <td>¥0亿</td>
+                    <td><span class="tag tag-orange">⚡ 中风险</span></td>
+                    <td class="cell-email">xu.ming@tcgroup.com</td>
+                </tr>
+                <!-- 独供风险 -->
+                <tr>
+                    <td class="cell-code">SP202406020</td>
+                    <td class="cell-name" data-supplier="infineon">英飞凌 (Infineon)</td>
+                    <td><span class="tag tag-blue">正式供方</span></td>
+                    <td><div class="cat-chips"><span class="cat-chip">电子电器</span><span class="cat-chip">MCU</span></div></td>
+                    <td><span class="tag tag-green">IATF 16949</span></td>
+                    <td><span class="tag tag-green">A+</span></td>
+                    <td><span class="stars">★★★★☆</span></td>
+                    <td><span class="prog-bar"><span class="prog-track"><span class="prog-fill green" style="width:90%"></span></span><span class="prog-pct">90%</span></span></td>
+                    <td>SU7 / MS11</td>
+                    <td>¥1.2亿</td>
+                    <td><span class="tag tag-red">⚠️ 独供风险</span></td>
+                    <td class="cell-email">wang.fei@infineon.com</td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+
+    <!-- Pagination -->
+    <div class="pagination">
+        <span class="pg-info">共 91 条，第 1/5 页</span>
+        <button class="pg-btn disabled">⟨</button>
+        <button class="pg-btn active">1</button>
+        <button class="pg-btn">2</button>
+        <button class="pg-btn">3</button>
+        <button class="pg-btn">4</button>
+        <button class="pg-btn">5</button>
+        <button class="pg-btn">⟩</button>
+        <span style="margin-left:8px">跳至</span>
+        <input type="text" style="width:36px;padding:4px;border:1px solid var(--g300);border-radius:4px;font-size:12px;text-align:center" value="1">
+        <span>页</span>
+    </div>
+
+    <!-- 供应商绩效看板 Top 10 -->
+    <div class="section" style="margin:16px 24px">
+        <div class="section-hdr"><div class="section-title">📊 供应商绩效看板 Top 10</div></div>
+        <div class="section-body">
+            <div class="insight-row">
+                <div class="insight-card" style="border-top:3px solid var(--s)"><div class="iv" style="color:var(--s)">94.2%</div><div class="il">平均交期达标率</div><div class="it up">↑ 较H1 +2.1%</div></div>
+                <div class="insight-card" style="border-top:3px solid var(--p)"><div class="iv" style="color:var(--p)">88.5%</div><div class="il">平均质量合格率</div><div class="it up">↑ 较H1 +0.8%</div></div>
+                <div class="insight-card" style="border-top:3px solid var(--purple)"><div class="iv" style="color:var(--purple)">3.8分</div><div class="il">综合绩效评分</div><div class="it up">↑ 较H1 +0.2分</div></div>
+                <div class="insight-card" style="border-top:3px solid var(--w)"><div class="iv" style="color:var(--w)">2.1%</div><div class="il">年度降本达成率</div><div class="it up">↑ 完成度68%</div></div>
+            </div>
+            <table class="supply-table" style="min-width:100%">
+                <thead>
+                    <tr><th>排名</th><th>供应商</th><th>综合评分</th><th>质量</th><th>交期</th><th>成本</th><th>响应</th><th>技术</th><th>趋势</th></tr>
+                </thead>
+                <tbody>
+                    <tr><td>🥇 1</td><td class="cell-name" data-supplier="catl">宁德时代</td><td><span class="tag tag-green">95.2</span></td><td>98</td><td>98%</td><td>★★★★★</td><td>96</td><td>98</td><td>↑</td></tr>
+                    <tr><td>🥈 2</td><td class="cell-name" data-supplier="yanfeng">延锋国际</td><td><span class="tag tag-green">93.8</span></td><td>97</td><td>97%</td><td>★★★★★</td><td>95</td><td>94</td><td>↑</td></tr>
+                    <tr><td>🥉 3</td><td class="cell-name" data-supplier="bosch">博世</td><td><span class="tag tag-green">92.5</span></td><td>96</td><td>96%</td><td>★★★★☆</td><td>92</td><td>97</td><td>→</td></tr>
+                    <tr><td>4</td><td class="cell-name" data-supplier="byd">弗迪电池</td><td><span class="tag tag-blue">91.8</span></td><td>94</td><td>95%</td><td>★★★★★</td><td>90</td><td>92</td><td>↑</td></tr>
+                    <tr><td>5</td><td class="cell-name" data-supplier="huayu">华域汽车</td><td><span class="tag tag-blue">90.4</span></td><td>95</td><td>94%</td><td>★★★★☆</td><td>91</td><td>88</td><td>→</td></tr>
+                    <tr><td>6</td><td class="cell-name" data-supplier="inovance">汇川技术</td><td><span class="tag tag-blue">89.1</span></td><td>91</td><td>85%</td><td>★★★★☆</td><td>88</td><td>95</td><td>↑</td></tr>
+                    <tr><td>7</td><td class="cell-name" data-supplier="lear">李尔</td><td><span class="tag tag-blue">88.7</span></td><td>93</td><td>93%</td><td>★★★★☆</td><td>87</td><td>85</td><td>→</td></tr>
+                    <tr><td>8</td><td class="cell-name" data-supplier="calb">中创新航</td><td><span class="tag tag-orange">84.2</span></td><td>88</td><td>88%</td><td>★★★★☆</td><td>82</td><td>85</td><td>↑</td></tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+</div>
+
+<!-- ================================================================ -->
+<!--  SUPPLIER ONEPAGE DRAWER — 浅色风格 三栏概览                    -->
+<!-- ================================================================ -->
+<div class="drawer-overlay" id="drawerOverlay"></div>
+<div class="drawer" id="drawer">
+    <!-- Drawer Header -->
+    <div class="drawer-hdr">
+        <div class="drawer-hdr-left">
+            <div class="supplier-avatar" id="drawerAvatar" style="background:linear-gradient(135deg,var(--p),#4096ff)">宁</div>
+            <div class="drawer-hdr-info">
+                <div class="drawer-hdr-name" id="drawerName">宁德时代 (CATL)</div>
+                <div class="drawer-hdr-code" id="drawerCode">SP202401001 · 动力电池 · 战略合作</div>
+            </div>
+        </div>
+        <div class="drawer-hdr-right">
+            <button class="btn btn-o btn-s" onclick="alert('已导出供应商OnePage报告')">📥 导出报告</button>
+            <button class="btn btn-p btn-s">💬 发起协同</button>
+            <button class="drawer-close" id="drawerClose">✕</button>
+        </div>
+    </div>
+
+    <!-- Drawer Body — Three Columns -->
+    <div class="drawer-body">
+        <div class="onepage-grid">
+
+        <!-- ==================== COLUMN 1: 企业信息 ==================== -->
+        <div style="display:flex;flex-direction:column;gap:14px">
+
+            <!-- 企业性质 & 基础信息 -->
+            <div class="op-card">
+                <div class="op-card-hdr"><span class="op-card-title">企业基本信息</span></div>
+                <div class="op-card-body">
+                    <div class="op-info-row"><span class="op-info-label">企业性质</span><span class="op-info-val" id="spNature">民营上市公司</span></div>
+                    <div class="op-info-row"><span class="op-info-label">成立时间</span><span class="op-info-val" id="spFounded">2011-12-16</span></div>
+                    <div class="op-info-row"><span class="op-info-label">注册资本</span><span class="op-info-val" id="spCapital">¥24.4亿</span></div>
+                    <div class="op-info-row"><span class="op-info-label">员工规模</span><span class="op-info-val" id="spStaff">50,000+ 人</span></div>
+                    <div class="op-info-row"><span class="op-info-label">总部地址</span><span class="op-info-val" id="spAddr"></span></div>
+                    <div class="op-info-row"><span class="op-info-label">企业法人</span><span class="op-info-val" id="spLegal"></span></div>
+                    <div class="op-info-row"><span class="op-info-label">统一代码</span><span class="op-info-val" id="spUscode" style="font-size:10px;color:var(--g500)"></span></div>
+                    <div class="op-tags" id="spCatTags"></div>
+                </div>
+            </div>
+
+            <!-- 股权结构 (饼图) -->
+            <div class="op-card">
+                <div class="op-card-hdr"><span class="op-card-title">股权结构</span></div>
+                <div class="op-card-body">
+                    <div class="op-chart-wrap" id="equityChart"></div>
+                    <div class="op-legend" id="equityLegend"></div>
+                </div>
+            </div>
+
+            <!-- 生产场地信息 -->
+            <div class="op-card">
+                <div class="op-card-hdr"><span class="op-card-title">生产场地</span></div>
+                <div class="op-card-body">
+                    <table class="op-mini-table">
+                        <thead><tr><th>基地名称</th><th>地址</th><th>面积(㎡)</th><th>产能状态</th></tr></thead>
+                        <tbody id="spSites"></tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- 2024 TOP5客户及供货金额 (柱状图) -->
+            <div class="op-card">
+                <div class="op-card-hdr"><span class="op-card-title">2024年 TOP5 客户及供货金额</span></div>
+                <div class="op-card-body">
+                    <div class="op-chart-wrap" id="top5Chart"></div>
+                    <div class="op-legend" id="top5Legend"></div>
+                </div>
+            </div>
+
+            <!-- 供应商重点财务指标 -->
+            <div class="op-card">
+                <div class="op-card-hdr"><span class="op-card-title">重点财务指标</span></div>
+                <div class="op-card-body" id="spFinance"></div>
+            </div>
+        </div>
+
+        <!-- ==================== COLUMN 2: 绩效 & 风险 ==================== -->
+        <div style="display:flex;flex-direction:column;gap:14px">
+
+            <!-- 供应商绩效 (雷达图) -->
+            <div class="op-card">
+                <div class="op-card-hdr"><span class="op-card-title">供应商综合绩效</span></div>
+                <div class="op-card-body">
+                    <div class="op-chart-wrap" id="radarChart"></div>
+                    <div class="op-summary-bar">
+                        <div class="op-summary-item"><div class="op-summary-val highlight-green" id="spScore">95.2</div><div class="op-summary-label">综合评分</div></div>
+                        <div class="op-summary-item"><div class="op-summary-val" id="spRank">#1</div><div class="op-summary-label">排名</div></div>
+                        <div class="op-summary-item"><div class="op-summary-val highlight-green">↑</div><div class="op-summary-label">同比</div></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 供应商风险筛查 -->
+            <div class="op-card">
+                <div class="op-card-hdr"><span class="op-card-title">风险筛查结果</span></div>
+                <div class="op-card-body">
+                    <div class="op-fin-row"><span class="op-fin-label">经营风险</span><div class="op-fin-bar-wrap"><div class="op-fin-bar-track"><div class="op-fin-bar-fill" style="width:8%;background:var(--s)"></div></div><span class="op-fin-val highlight-green">低</span></div></div>
+                    <div class="op-fin-row"><span class="op-fin-label">法律诉讼</span><div class="op-fin-bar-wrap"><div class="op-fin-bar-track"><div class="op-fin-bar-fill" style="width:12%;background:var(--s)"></div></div><span class="op-fin-val highlight-green">低</span></div></div>
+                    <div class="op-fin-row"><span class="op-fin-label">行政处罚</span><div class="op-fin-bar-wrap"><div class="op-fin-bar-track"><div class="op-fin-bar-fill" style="width:5%;background:var(--s)"></div></div><span class="op-fin-val highlight-green">低</span></div></div>
+                    <div class="op-fin-row"><span class="op-fin-label">失信被执行</span><div class="op-fin-bar-wrap"><div class="op-fin-bar-track"><div class="op-fin-bar-fill" style="width:0%;background:var(--s)"></div></div><span class="op-fin-val highlight-green">无</span></div></div>
+                    <div class="op-fin-row"><span class="op-fin-label">环保处罚</span><div class="op-fin-bar-wrap"><div class="op-fin-bar-track"><div class="op-fin-bar-fill" style="width:15%;background:var(--w)"></div></div><span class="op-fin-val highlight-orange">中</span></div></div>
+                    <div class="op-fin-row"><span class="op-fin-label">股权质押</span><div class="op-fin-bar-wrap"><div class="op-fin-bar-track"><div class="op-fin-bar-fill" style="width:10%;background:var(--s)"></div></div><span class="op-fin-val highlight-green">低</span></div></div>
+                    <div style="text-align:right;margin-top:6px"><span style="font-size:10px;color:var(--p);cursor:pointer">查看更多风险项 →</span></div>
+                </div>
+            </div>
+
+            <!-- 高风险事件 -->
+            <div class="op-card">
+                <div class="op-card-hdr"><span class="op-card-title">⚠️ 高风险事件</span></div>
+                <div class="op-card-body" id="spRiskEvents">
+                    <div style="text-align:center;color:var(--g400);font-size:12px;padding:12px 0">暂无高风险事件</div>
+                </div>
+            </div>
+
+            <!-- 合作履历 -->
+            <div class="op-card">
+                <div class="op-card-hdr"><span class="op-card-title">合作履历</span></div>
+                <div class="op-card-body" id="spTimeline"></div>
+            </div>
+        </div>
+
+        <!-- ==================== COLUMN 3: 业务 & 订单 ==================== -->
+        <div style="display:flex;flex-direction:column;gap:14px">
+
+            <!-- 供应商业务金额 (折线图) -->
+            <div class="op-card">
+                <div class="op-card-hdr"><span class="op-card-title">供应商业务金额趋势</span></div>
+                <div class="op-card-body">
+                    <div class="op-chart-wrap" id="bizAmountChart"></div>
+                    <div class="op-summary-bar">
+                        <div class="op-summary-item"><div class="op-summary-val" id="spBizTotal">¥3.2亿</div><div class="op-summary-label">2025全年采购额</div></div>
+                        <div class="op-summary-item"><div class="op-summary-val highlight-green">+18.5%</div><div class="op-summary-label">YoY增长</div></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 供应商品类占比 (堆叠柱状图) -->
+            <div class="op-card">
+                <div class="op-card-hdr"><span class="op-card-title">供应商品类份额</span></div>
+                <div class="op-card-body">
+                    <div class="op-chart-wrap" id="catShareChart"></div>
+                    <div class="op-legend" id="catShareLegend"></div>
+                </div>
+            </div>
+
+            <!-- 零件名称/件号 -->
+            <div class="op-card">
+                <div class="op-card-hdr"><span class="op-card-title">零件名称 / 件号</span></div>
+                <div class="op-card-body">
+                    <div class="op-part-filter">
+                        <input type="text" placeholder="搜索零件名称/件号...">
+                        <button>搜索</button>
+                    </div>
+                    <table class="op-mini-table">
+                        <thead><tr><th>件号</th><th>零件名称</th><th>车型</th><th>状态</th></tr></thead>
+                        <tbody id="spParts"></tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- 订单数量/金额 -->
+            <div class="op-card">
+                <div class="op-card-hdr"><span class="op-card-title">订单统计</span></div>
+                <div class="op-card-body">
+                    <div class="op-stat-grid">
+                        <div class="op-stat-item"><div class="op-stat-val" id="spOrderCount">247</div><div class="op-stat-label">累计订单数</div></div>
+                        <div class="op-stat-item"><div class="op-stat-val" id="spOrderAmount">¥3.2亿</div><div class="op-stat-label">累计订单金额</div></div>
+                        <div class="op-stat-item"><div class="op-stat-val" id="spOpenOrders">38</div><div class="op-stat-label">进行中订单</div></div>
+                        <div class="op-stat-item"><div class="op-stat-val" id="spAvgOrder">¥129万</div><div class="op-stat-label">平均单笔金额</div></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 账期 -->
+            <div class="op-card">
+                <div class="op-card-hdr"><span class="op-card-title">账期信息</span></div>
+                <div class="op-card-body">
+                    <div class="op-pay-item"><span class="op-pay-label">结算方式</span><span class="op-pay-val">月结 60 天</span></div>
+                    <div class="op-pay-item"><span class="op-pay-label">当前应付</span><span class="op-pay-val" id="spPayable">¥4,280万</span></div>
+                    <div class="op-pay-item"><span class="op-pay-label">逾期金额</span><span class="op-pay-val highlight-green" id="spOverdue">¥0</span></div>
+                    <div class="op-pay-item"><span class="op-pay-label">平均回款</span><span class="op-pay-val">52 天</span></div>
+                    <div class="op-pay-item"><span class="op-pay-label">信用评级</span><span class="op-pay-val"><span class="tag tag-green">AAA</span></span></div>
+                </div>
+            </div>
+        </div>
+
+        </div><!-- /onepage-grid -->
+    </div><!-- /drawer-body -->
+</div><!-- /drawer -->
+
+<script>
+// ================================================================
+//  SUPPLIER DATA
+// ================================================================
+const suppliers = {
+    catl: {
+        name:'宁德时代 (CATL)',code:'SP202401001',short:'宁',color:'#1677ff',
+        nature:'民营上市公司',founded:'2011-12-16',capital:'¥24.4亿',staff:'50,000+ 人',
+        addr:'福建省宁德市蕉城区漳湾镇新港路2号',legal:'曾毓群',uscode:'91350900587527783P',
+        cats:['动力电池','储能系统'],
+        sites:[
+            {name:'宁德基地',addr:'福建宁德',area:'2,000,000',cap:'满产'},
+            {name:'溧阳基地',addr:'江苏溧阳',area:'1,500,000',cap:'满产'},
+            {name:'宜宾基地',addr:'四川宜宾',area:'1,200,000',cap:'爬坡'},
+            {name:'肇庆基地',addr:'广东肇庆',area:'800,000',cap:'建设期'}
+        ],
+        equity:[{name:'曾毓群',pct:23.3},{name:'黄世霖',pct:10.6},{name:'李平',pct:4.6},{name:'香港中央结算',pct:6.8},{name:'其他公众股东',pct:54.7}],
+        top5:[{name:'特斯拉',val:98},{name:'吉利',val:62},{name:'蔚来',val:48},{name:'小米',val:32},{name:'理想',val:28}],
+        finance:[
+            {name:'营业收入',val:'¥4,345亿',bar:92},
+            {name:'净利润',val:'¥467亿',bar:85},
+            {name:'毛利率',val:'22.9%',bar:68},
+            {name:'净利率',val:'10.7%',bar:55},
+            {name:'研发投入',val:'¥183亿',bar:78},
+            {name:'资产负债率',val:'45.2%',bar:62}
+        ],
+        score:95.2, rank:'#1',
+        bizData:[{m:'1月',v:21},{m:'2月',v:18},{m:'3月',v:25},{m:'4月',v:23},{m:'5月',v:28},{m:'6月',v:26},{m:'7月',v:30},{m:'8月',v:27},{m:'9月',v:32},{m:'10月',v:29},{m:'11月',v:34},{m:'12月',v:32}],
+        bizTotal:'¥3.2亿',
+        catShares:[{name:'动力电池',v:78,pct:78},{name:'储能系统',v:22,pct:22}],
+        catShareColors:['#1677ff','#52c41a'],
+        parts:[
+            {no:'BP-001-01',name:'高压电池包总成',car:'SU7',status:'量产'},
+            {no:'BP-001-02',name:'电池模组 48S1P',car:'MS11',status:'量产'},
+            {no:'BP-002-01',name:'BMS 主控板',car:'SU7',status:'量产'},
+            {no:'BP-003-01',name:'电芯单体 LF105',car:'SU7/MS11',status:'量产'},
+            {no:'BP-004-01',name:'高压连接器总成',car:'MS11',status:'试制'}
+        ],
+        orderCount:247,orderAmount:'¥3.2亿',openOrders:38,avgOrder:'¥129万',
+        payable:'¥4,280万',overdue:'¥0',
+        timeline:[
+            {title:'签署战略合作协议',date:'2021-Q3',type:'done'},
+            {title:'完成 IATF 16949 体系认证',date:'2021-Q4',type:'done'},
+            {title:'SU7 电池包定点',date:'2022-Q2',type:'done'},
+            {title:'首批 PPAP 提交通过',date:'2023-Q1',type:'done'},
+            {title:'SOP 量产启动',date:'2023-Q4',type:'done'},
+            {title:'MS11 电池模组定点',date:'2024-Q2',type:'active'},
+            {title:'新一代固态电池联合开发',date:'2025-Q3',type:'pending'}
+        ],
+        riskEvents:null
+    },
+    byd: {
+        name:'弗迪电池 (BYD)',code:'SP202401002',short:'弗',color:'#52c41a',
+        nature:'民营(比亚迪全资)',founded:'2019-05-05',capital:'¥8.0亿',staff:'18,000+ 人',
+        addr:'深圳市坪山新区比亚迪路3009号',legal:'王传福',uscode:'91440300MA5FLJXXXX',
+        cats:['动力电池'],
+        sites:[
+            {name:'深圳基地',addr:'广东深圳',area:'1,200,000',cap:'满产'},
+            {name:'重庆基地',addr:'重庆璧山',area:'800,000',cap:'满产'},
+            {name:'西安基地',addr:'陕西西安',area:'600,000',cap:'爬坡'}
+        ],
+        equity:[{name:'比亚迪股份',pct:100}],
+        top5:[{name:'比亚迪汽车',val:185},{name:'丰田',val:35},{name:'小米',val:15},{name:'福特',val:12},{name:'一汽',val:8}],
+        finance:[
+            {name:'营业收入',val:'¥685亿',bar:75},
+            {name:'净利润',val:'¥52亿',bar:62},
+            {name:'毛利率',val:'18.5%',bar:52},
+            {name:'净利率',val:'7.6%',bar:40},
+            {name:'研发投入',val:'¥38亿',bar:55},
+            {name:'资产负债率',val:'52.3%',bar:68}
+        ],
+        score:91.8, rank:'#4',
+        bizData:[{m:'1月',v:10},{m:'2月',v:9},{m:'3月',v:12},{m:'4月',v:11},{m:'5月',v:13},{m:'6月',v:12},{m:'7月',v:15},{m:'8月',v:14},{m:'9月',v:16},{m:'10月',v:14},{m:'11月',v:17},{m:'12月',v:15}],
+        bizTotal:'¥1.5亿',
+        catShares:[{name:'动力电池',v:100,pct:100}],
+        catShareColors:['#52c41a'],
+        parts:[
+            {no:'BP-010-01',name:'刀片电池包',car:'SU7',status:'量产'},
+            {no:'BP-010-02',name:'电芯单体 LFP120',car:'SU7',status:'量产'}
+        ],
+        orderCount:118,orderAmount:'¥1.5亿',openOrders:22,avgOrder:'¥127万',
+        payable:'¥1,820万',overdue:'¥0',
+        timeline:[
+            {title:'通过供应商准入审核',date:'2022-Q1',type:'done'},
+            {title:'签署正式供方协议',date:'2022-Q3',type:'done'},
+            {title:'SU7 刀片电池包定点',date:'2023-Q2',type:'done'},
+            {title:'PPAP 通过',date:'2024-Q1',type:'done'},
+            {title:'SOP 量产启动',date:'2024-Q2',type:'done'},
+            {title:'下一代高能量密度电芯洽谈',date:'2025-Q1',type:'active'}
+        ],
+        riskEvents:null
+    },
+    yanfeng: {
+        name:'延锋国际',code:'SP202402005',short:'延',color:'#722ed1',
+        nature:'中外合资',founded:'1999-03-12',capital:'¥12.0亿',staff:'30,000+ 人',
+        addr:'上海市嘉定区安亭镇安拓路56号',legal:'贾健旭',uscode:'91310000607214XXXX',
+        cats:['座椅系统','内饰系统'],
+        sites:[
+            {name:'上海总部',addr:'上海嘉定',area:'1,500,000',cap:'满产'},
+            {name:'宁波基地',addr:'浙江宁波',area:'700,000',cap:'满产'},
+            {name:'沈阳基地',addr:'辽宁沈阳',area:'500,000',cap:'满产'}
+        ],
+        equity:[{name:'华域汽车',pct:50.0},{name:'安道拓(Adient)',pct:50.0}],
+        top5:[{name:'上汽集团',val:120},{name:'特斯拉',val:65},{name:'宝马',val:42},{name:'小米',val:21},{name:'蔚来',val:18}],
+        finance:[
+            {name:'营业收入',val:'¥856亿',bar:88},
+            {name:'净利润',val:'¥38亿',bar:58},
+            {name:'毛利率',val:'15.2%',bar:46},
+            {name:'净利率',val:'4.4%',bar:28},
+            {name:'研发投入',val:'¥28亿',bar:42},
+            {name:'资产负债率',val:'48.7%',bar:65}
+        ],
+        score:93.8, rank:'#2',
+        bizData:[{m:'1月',v:15},{m:'2月',v:14},{m:'3月',v:18},{m:'4月',v:17},{m:'5月',v:20},{m:'6月',v:19},{m:'7月',v:22},{m:'8月',v:20},{m:'9月',v:23},{m:'10月',v:21},{m:'11月',v:25},{m:'12月',v:21}],
+        bizTotal:'¥2.1亿',
+        catShares:[{name:'座椅系统',v:68,pct:68},{name:'内饰系统',v:32,pct:32}],
+        catShareColors:['#722ed1','#13c2c2'],
+        parts:[
+            {no:'ST-001-01',name:'前排电动座椅总成',car:'SU7',status:'量产'},
+            {no:'ST-001-02',name:'后排座椅总成',car:'SU7',status:'量产'},
+            {no:'ST-002-01',name:'前排座椅总成',car:'MS11',status:'量产'},
+            {no:'IT-001-01',name:'仪表板总成',car:'SU7',status:'量产'}
+        ],
+        orderCount:186,orderAmount:'¥2.1亿',openOrders:31,avgOrder:'¥113万',
+        payable:'¥2,560万',overdue:'¥0',
+        timeline:[
+            {title:'签署战略合作框架',date:'2020-Q4',type:'done'},
+            {title:'IATF 认证完成',date:'2021-Q2',type:'done'},
+            {title:'SU7 座椅定点',date:'2022-Q1',type:'done'},
+            {title:'MS11 座椅定点',date:'2023-Q1',type:'done'},
+            {title:'SU7 SOP 量产',date:'2023-Q4',type:'done'},
+            {title:'MS11 座椅量产启动',date:'2024-Q3',type:'active'}
+        ],
+        riskEvents:null
+    },
+    bosch: {
+        name:'博世 (Bosch)',code:'SP202403008',short:'博',color:'#d4380d',
+        nature:'外商独资',founded:'1886-11-15',capital:'¥15.0亿',staff:'12,000+ 人(中国)',
+        addr:'上海市浦东新区金桥出口加工区',legal:'陈玉东',uscode:'913100006073XXXXXX',
+        cats:['智能驾驶','电驱系统'],
+        sites:[
+            {name:'上海总部',addr:'上海浦东',area:'500,000',cap:'满产'},
+            {name:'苏州基地',addr:'江苏苏州',area:'400,000',cap:'满产'},
+            {name:'无锡基地',addr:'江苏无锡',area:'300,000',cap:'满产'}
+        ],
+        equity:[{name:'罗伯特·博世基金会',pct:94},{name:'博世家族',pct:5},{name:'其他',pct:1}],
+        top5:[{name:'大众集团',val:150},{name:'宝马',val:95},{name:'奔驰',val:82},{name:'小米',val:45},{name:'通用',val:38}],
+        finance:[
+            {name:'营业收入(全球)',val:'¥8,976亿',bar:95},
+            {name:'净利润(全球)',val:'¥451亿',bar:82},
+            {name:'毛利率',val:'32.1%',bar:88},
+            {name:'净利率',val:'5.0%',bar:30},
+            {name:'研发投入(全球)',val:'¥735亿',bar:92},
+            {name:'资产负债率',val:'38.5%',bar:52}
+        ],
+        score:92.5, rank:'#3',
+        bizData:[{m:'1月',v:32},{m:'2月',v:28},{m:'3月',v:36},{m:'4月',v:34},{m:'5月',v:38},{m:'6月',v:35},{m:'7月',v:40},{m:'8月',v:38},{m:'9月',v:42},{m:'10月',v:39},{m:'11月',v:45},{m:'12月',v:42}],
+        bizTotal:'¥4.5亿',
+        catShares:[{name:'智能驾驶',v:62,pct:62},{name:'电驱系统',v:38,pct:38}],
+        catShareColors:['#d4380d','#1677ff'],
+        parts:[
+            {no:'AD-001-01',name:'前向雷达 ARS540',car:'MS11',status:'量产'},
+            {no:'AD-001-02',name:'域控制器 DASy',car:'MS11',status:'量产'},
+            {no:'ED-001-01',name:'驱动电机 EM600',car:'MS11',status:'试制'},
+            {no:'AD-002-01',name:'摄像头模块 MPC3',car:'MS11',status:'量产'}
+        ],
+        orderCount:312,orderAmount:'¥4.5亿',openOrders:45,avgOrder:'¥144万',
+        payable:'¥5,820万',overdue:'¥0',
+        timeline:[
+            {title:'签署战略合作协议',date:'2020-Q2',type:'done'},
+            {title:'MS11 ADAS 系统定点',date:'2022-Q4',type:'done'},
+            {title:'技术方案冻结',date:'2023-Q2',type:'done'},
+            {title:'DV 测试通过',date:'2024-Q1',type:'done'},
+            {title:'PPAP 提交',date:'2024-Q2',type:'done'},
+            {title:'MS11 SOP 量产',date:'2024-Q4',type:'done'},
+            {title:'下一代域控平台洽谈',date:'2025-Q2',type:'active'}
+        ],
+        riskEvents:[
+            {level:'orange',date:'2025-03',text:'MCU 芯片全球供应紧张，交期延长至 26 周，已启动安全库存方案'},
+            {level:'orange',date:'2025-01',text:'欧盟出口管制政策变化，部分 ADAS 组件需额外审批'}
+        ]
+    },
+    calb: {
+        name:'中创新航 (CALB)',code:'SP202401005',short:'中',color:'#1677ff',
+        nature:'国有控股',founded:'2015-12-08',capital:'¥15.0亿',staff:'12,000+ 人',
+        addr:'江苏省常州市金坛区江东大道1号',legal:'刘静瑜',uscode:'91320400MA1MCXXXXX',
+        cats:['动力电池'],
+        sites:[
+            {name:'常州基地',addr:'江苏常州金坛',area:'1,000,000',cap:'满产'},
+            {name:'厦门基地',addr:'福建厦门',area:'700,000',cap:'爬坡'}
+        ],
+        equity:[{name:'常州金坛国资',pct:28.5},{name:'中航工业',pct:25.3},{name:'广汽资本',pct:8.2},{name:'其他',pct:38.0}],
+        top5:[{name:'广汽',val:55},{name:'长安',val:38},{name:'小鹏',val:22},{name:'零跑',val:15},{name:'小米',val:6}],
+        finance:[
+            {name:'营业收入',val:'¥287亿',bar:58},
+            {name:'净利润',val:'¥8.2亿',bar:25},
+            {name:'毛利率',val:'12.8%',bar:38},
+            {name:'净利率',val:'2.9%',bar:16},
+            {name:'研发投入',val:'¥15亿',bar:30},
+            {name:'资产负债率',val:'62.5%',bar:78}
+        ],
+        score:84.2, rank:'#8',
+        bizData:[{m:'1月',v:3},{m:'2月',v:3},{m:'3月',v:4},{m:'4月',v:4},{m:'5月',v:5},{m:'6月',v:5},{m:'7月',v:6},{m:'8月',v:5},{m:'9月',v:6},{m:'10月',v:5},{m:'11月',v:7},{m:'12月',v:6}],
+        bizTotal:'¥0.6亿',
+        catShares:[{name:'动力电池',v:100,pct:100}],
+        catShareColors:['#1677ff'],
+        parts:[
+            {no:'BP-020-01',name:'NCM811 方形电芯',car:'MS11',status:'试制'},
+            {no:'BP-020-02',name:'电池模组 24S2P',car:'MS11',status:'开发'}
+        ],
+        orderCount:42,orderAmount:'¥0.6亿',openOrders:12,avgOrder:'¥143万',
+        payable:'¥580万',overdue:'¥0',
+        timeline:[
+            {title:'通过供应商准入审核',date:'2023-Q1',type:'done'},
+            {title:'签署正式供方协议',date:'2023-Q3',type:'done'},
+            {title:'MS11 电池定点',date:'2024-Q1',type:'done'},
+            {title:'A样交付测试',date:'2024-Q3',type:'active'},
+            {title:'B样验证',date:'2025-Q1',type:'pending'},
+            {title:'PPAP 计划',date:'2025-Q3',type:'pending'}
+        ],
+        riskEvents:null
+    }
+};
+const defaultSupplier = 'catl';
+
+// ================================================================
+//  DRAWER CONTROL
+// ================================================================
+const overlay = document.getElementById('drawerOverlay');
+const drawer = document.getElementById('drawer');
+
+function openDrawer(supplierKey) {
+    const sp = suppliers[supplierKey] || suppliers[defaultSupplier];
+    // Update header
+    document.getElementById('drawerAvatar').textContent = sp.short;
+    document.getElementById('drawerAvatar').style.background = 'linear-gradient(135deg,'+sp.color+',#4096ff)';
+    document.getElementById('drawerName').textContent = sp.name;
+    document.getElementById('drawerCode').textContent = sp.code + ' · ' + sp.cats.join('/') + ' · 战略合作';
+
+    // Col 1 - Basic info
+    document.getElementById('spNature').textContent = sp.nature;
+    document.getElementById('spFounded').textContent = sp.founded;
+    document.getElementById('spCapital').textContent = sp.capital;
+    document.getElementById('spStaff').textContent = sp.staff;
+    document.getElementById('spAddr').textContent = sp.addr;
+    document.getElementById('spLegal').textContent = sp.legal;
+    document.getElementById('spUscode').textContent = sp.uscode;
+    document.getElementById('spCatTags').innerHTML = sp.cats.map(c => '<span class="tag tag-blue">'+c+'</span>').join('');
+
+    // Equity pie chart
+    renderEquityPie(sp);
+    // Sites table
+    document.getElementById('spSites').innerHTML = sp.sites.map(s => '<tr><td>'+s.name+'</td><td>'+s.addr+'</td><td>'+s.area+'</td><td><span class="tag '+(s.cap==='满产'?'tag-green':s.cap==='爬坡'?'tag-orange':'tag-blue')+'">'+s.cap+'</span></td></tr>').join('');
+    // TOP5 bar chart
+    renderTop5Bar(sp);
+    // Finance
+    document.getElementById('spFinance').innerHTML = sp.finance.map(f => {
+        let barColor = f.bar > 70 ? 'var(--s)' : f.bar > 40 ? 'var(--p)' : 'var(--w)';
+        return '<div class="op-fin-row"><span class="op-fin-label">'+f.name+'</span><div class="op-fin-bar-wrap"><div class="op-fin-bar-track"><div class="op-fin-bar-fill" style="width:'+f.bar+'%;background:'+barColor+'"></div></div><span class="op-fin-val">'+f.val+'</span></div></div>';
+    }).join('');
+
+    // Col 2 - Radar chart
+    renderRadar(sp);
+    document.getElementById('spScore').textContent = sp.score;
+    document.getElementById('spRank').textContent = sp.rank;
+
+    // Risk events
+    var reDiv = document.getElementById('spRiskEvents');
+    if (sp.riskEvents) {
+        reDiv.innerHTML = sp.riskEvents.map(r => {
+            var color = r.level === 'red' ? 'var(--d)' : 'var(--w)';
+            return '<div class="op-risk-item"><div class="op-risk-dot" style="background:'+color+'"></div><div class="op-risk-content">'+r.text+'</div><div class="op-risk-date">'+r.date+'</div></div>';
+        }).join('');
+    } else {
+        reDiv.innerHTML = '<div style="text-align:center;color:var(--g400);font-size:12px;padding:12px 0">暂无高风险事件</div>';
+    }
+
+    // Timeline
+    document.getElementById('spTimeline').innerHTML = sp.timeline.map(t => {
+        var dotClass = t.type === 'done' ? 'done' : t.type === 'active' ? 'active' : 'pending';
+        return '<div class="op-tl-item"><div class="op-tl-dot '+dotClass+'"></div><div class="op-tl-info"><div class="op-tl-title">'+t.title+'</div><div class="op-tl-date">'+t.date+'</div></div></div>';
+    }).join('');
+
+    // Col 3 - Biz amount line chart
+    renderBizAmount(sp);
+    document.getElementById('spBizTotal').textContent = sp.bizTotal;
+    // Category share chart
+    renderCatShare(sp);
+    // Parts
+    document.getElementById('spParts').innerHTML = sp.parts.map(p => '<tr><td>'+p.no+'</td><td>'+p.name+'</td><td>'+p.car+'</td><td><span class="tag '+(p.status==='量产'?'tag-green':p.status==='试制'?'tag-orange':'tag-blue')+'">'+p.status+'</span></td></tr>').join('');
+    // Orders
+    document.getElementById('spOrderCount').textContent = sp.orderCount;
+    document.getElementById('spOrderAmount').textContent = sp.orderAmount;
+    document.getElementById('spOpenOrders').textContent = sp.openOrders;
+    document.getElementById('spAvgOrder').textContent = sp.avgOrder;
+    // Payment
+    document.getElementById('spPayable').textContent = sp.payable;
+    document.getElementById('spOverdue').textContent = sp.overdue;
+
+    // Show drawer
+    overlay.classList.add('show');
+    drawer.classList.add('show');
+    document.body.style.overflow = 'hidden';
+}
+
+function closeDrawer() {
+    overlay.classList.remove('show');
+    drawer.classList.remove('show');
+    document.body.style.overflow = '';
+}
+
+overlay.addEventListener('click', closeDrawer);
+document.getElementById('drawerClose').addEventListener('click', closeDrawer);
+
+// ESC key to close
+document.addEventListener('keydown', function(e){
+    if (e.key === 'Escape' && drawer.classList.contains('show')) {
+        closeDrawer();
+    }
+});
+
+// Attach click handlers to all supplier name cells
+document.querySelectorAll('.cell-name[data-supplier]').forEach(function(el){
+    el.style.cursor = 'pointer';
+    el.addEventListener('click', function(){
+        var key = this.getAttribute('data-supplier');
+        if (suppliers[key]) openDrawer(key);
+    });
+});
+
+// ================================================================
+//  CHART RENDERERS (Inline SVG)
+// ================================================================
+
+function renderEquityPie(sp) {
+    var total = sp.equity.reduce(function(s,i){return s+i.pct;},0);
+    var cx=100,cy=100,r=80, cum=0;
+    var colors = ['#1677ff','#52c41a','#faad14','#722ed1','#d9d9d9'];
+    var svg = '<svg viewBox="0 0 220 200" xmlns="http://www.w3.org/2000/svg">';
+    sp.equity.forEach(function(e,i){
+        var angle = (e.pct/total)*Math.PI*2;
+        var x1 = cx + r*Math.cos(cum);
+        var y1 = cy + r*Math.sin(cum);
+        cum += angle;
+        var x2 = cx + r*Math.cos(cum);
+        var y2 = cy + r*Math.sin(cum);
+        var large = angle > Math.PI ? 1 : 0;
+        var d = 'M'+cx+','+cy+' L'+x1+','+y1+' A'+r+','+r+' 0 '+large+',1 '+x2+','+y2+' Z';
+        svg += '<path d="'+d+'" fill="'+colors[i]+'" stroke="#fff" stroke-width="1.5"/>';
+    });
+    // Center hole (donut)
+    svg += '<circle cx="'+cx+'" cy="'+cy+'" r="42" fill="#fff"/>';
+    svg += '<text x="'+cx+'" y="'+cy+'" text-anchor="middle" dy=".3em" font-size="16" font-weight="700" fill="#262626">'+sp.equity.length+'</text>';
+    svg += '<text x="'+cx+'" y="'+(cy+18)+'" text-anchor="middle" font-size="9" fill="#8c8c8c">股东方</text>';
+    svg += '</svg>';
+    document.getElementById('equityChart').innerHTML = svg;
+    document.getElementById('equityLegend').innerHTML = sp.equity.map(function(e,i){return '<div class="op-legend-item"><div class="op-legend-dot" style="background:'+colors[i]+'"></div>'+e.name+' '+e.pct+'%</div>';}).join('');
+}
+
+function renderTop5Bar(sp) {
+    var maxV = Math.max.apply(null, sp.top5.map(function(t){return t.val;}));
+    var colors = ['#1677ff','#52c41a','#faad14','#722ed1','#13c2c2'];
+    var w=280, h=150, padL=64, padR=12, padT=12, padB=28;
+    var cw = w-padL-padR, ch = h-padT-padB;
+    var barH = 16, gap = 6;
+    var svg = '<svg viewBox="0 0 '+w+' '+h+'" xmlns="http://www.w3.org/2000/svg">';
+    sp.top5.forEach(function(t,i){
+        var y = padT + i*(barH+gap);
+        var bw = (t.val/maxV)*cw;
+        svg += '<text x="'+(padL-6)+'" y="'+(y+barH-3)+'" text-anchor="end" font-size="10" fill="#595959">'+t.name+'</text>';
+        svg += '<rect x="'+padL+'" y="'+y+'" width="'+bw+'" height="'+barH+'" rx="3" fill="'+colors[i]+'" opacity="0.85"/>';
+        svg += '<text x="'+(padL+bw+4)+'" y="'+(y+barH-3)+'" font-size="10" font-weight="600" fill="#262626">¥'+t.val+'亿</text>';
+    });
+    // grid
+    svg += '<line x1="'+padL+'" y1="'+h+'" x2="'+w+'" y2="'+h+'" stroke="#d9d9d9" stroke-width="0.5"/>';
+    svg += '</svg>';
+    document.getElementById('top5Chart').innerHTML = svg;
+    document.getElementById('top5Legend').innerHTML = '';
+}
+
+function renderRadar(sp) {
+    // Simplified radar indicator bar chart
+    var metrics = [
+        {label:'质量',val:sp.score-2+Math.random()*5},
+        {label:'交期',val:sp.score-5+Math.random()*8},
+        {label:'成本',val:sp.score-8+Math.random()*10},
+        {label:'响应',val:sp.score-3+Math.random()*6},
+        {label:'技术',val:sp.score-1+Math.random()*4},
+        {label:'体系',val:sp.score-4+Math.random()*7}
+    ];
+    var w=280,h=210,padL=52,padR=16,padT=10,padB=10;
+    var cw=w-padL-padR, ch=h-padT-padB;
+    var barH=18,gap=8;
+    var svg = '<svg viewBox="0 0 '+w+' '+h+'" xmlns="http://www.w3.org/2000/svg">';
+    // grid lines
+    for (var g=0;g<=4;g++){
+        var gx = padL + (cw/4)*g;
+        svg += '<line x1="'+gx+'" y1="'+padT+'" x2="'+gx+'" y2="'+(h-padB)+'" stroke="#f0f0f0" stroke-width="0.5"/>';
+    }
+    metrics.forEach(function(m,i){
+        var y = padT + i*(barH+gap);
+        var bw = Math.max(8,Math.min((m.val/100)*cw, cw));
+        var color = m.val>=90?'var(--s)':m.val>=80?'var(--p)':m.val>=70?'var(--w)':'var(--d)';
+        svg += '<text x="'+(padL-6)+'" y="'+(y+barH-4)+'" text-anchor="end" font-size="10" fill="#595959">'+m.label+'</text>';
+        svg += '<rect x="'+padL+'" y="'+y+'" width="'+bw+'" height="'+barH+'" rx="4" fill="'+color+'" opacity="0.8"/>';
+        svg += '<text x="'+(padL+bw+4)+'" y="'+(y+barH-4)+'" font-size="10" font-weight="600" fill="#262626">'+(m.val.toFixed(1))+'</text>';
+    });
+    // bottom horizontal line
+    svg += '<line x1="'+padL+'" y1="'+(h-padB)+'" x2="'+(w-padR)+'" y2="'+(h-padB)+'" stroke="#d9d9d9" stroke-width="0.5"/>';
+    svg += '</svg>';
+    document.getElementById('radarChart').innerHTML = svg;
+}
+
+function renderBizAmount(sp) {
+    var data = sp.bizData;
+    var w=280,h=160,padL=40,padR=12,padT=14,padB=24;
+    var cw=w-padL-padR, ch=h-padT-padB;
+    var maxV=Math.max.apply(null,data.map(function(d){return d.v;}));
+    var stepX=cw/(data.length-1);
+    var points='';
+    var fillPoints='';
+    data.forEach(function(d,i){
+        var x=padL+i*stepX;
+        var y=padT+ch-(d.v/maxV)*ch;
+        if(i===0){ points+='M';fillPoints+='M';}
+        else{ points+='L';fillPoints+='L';}
+        points+=x+','+y;
+        fillPoints+=x+','+y;
+    });
+    var svg='<svg viewBox="0 0 '+w+' '+h+'" xmlns="http://www.w3.org/2000/svg">';
+    // grid
+    for(var g=0;g<=4;g++){
+        var gy=padT+(ch/4)*g;
+        svg+='<line x1="'+padL+'" y1="'+gy+'" x2="'+(w-padR)+'" y2="'+gy+'" stroke="#f0f0f0" stroke-width="0.5"/>';
+    }
+    // area
+    svg+='<path d="'+fillPoints+'L'+(padL+(data.length-1)*stepX)+','+(padT+ch)+'L'+padL+','+(padT+ch)+'Z" fill="rgba(22,119,255,0.08)"/>';
+    // line
+    svg+='<path d="'+points+'" fill="none" stroke="var(--p)" stroke-width="2"/>';
+    // dots
+    data.forEach(function(d,i){
+        var x=padL+i*stepX;
+        var y=padT+ch-(d.v/maxV)*ch;
+        svg+='<circle cx="'+x+'" cy="'+y+'" r="3" fill="#fff" stroke="var(--p)" stroke-width="2"/>';
+        svg+='<text x="'+x+'" y="'+(y-8)+'" text-anchor="middle" font-size="9" fill="#595959">¥'+d.v+'M</text>';
+    });
+    // x labels
+    var xlabels=[0,3,6,9,11];
+    xlabels.forEach(function(i){
+        svg+='<text x="'+(padL+i*stepX)+'" y="'+(h-6)+'" text-anchor="middle" font-size="9" fill="#8c8c8c">'+data[i].m+'</text>';
+    });
+    svg+='</svg>';
+    document.getElementById('bizAmountChart').innerHTML=svg;
+}
+
+function renderCatShare(sp) {
+    var w=280,h=140,padL=12,padR=12,padT=10,padB=28;
+    var barW=(w-padL-padR-sp.catShares.length*8)/sp.catShares.length;
+    var maxV=Math.max.apply(null,sp.catShares.map(function(c){return c.v;}));
+    var svg='<svg viewBox="0 0 '+w+' '+h+'" xmlns="http://www.w3.org/2000/svg">';
+    sp.catShares.forEach(function(c,i){
+        var x=padL+i*(barW+8);
+        var bh=(c.v/maxV)*(h-padT-padB-20);
+        var y=h-padB-bh;
+        svg+='<rect x="'+x+'" y="'+y+'" width="'+barW+'" height="'+bh+'" rx="4" fill="'+sp.catShareColors[i]+'" opacity="0.85"/>';
+        svg+='<text x="'+(x+barW/2)+'" y="'+(y-4)+'" text-anchor="middle" font-size="11" font-weight="600" fill="#262626">'+c.pct+'%</text>';
+        svg+='<text x="'+(x+barW/2)+'" y="'+(h-8)+'" text-anchor="middle" font-size="9" fill="#595959">'+c.name+'</text>';
+    });
+    svg+='</svg>';
+    document.getElementById('catShareChart').innerHTML=svg;
+    document.getElementById('catShareLegend').innerHTML=sp.catShares.map(function(c,i){return '<div class="op-legend-item"><div class="op-legend-dot" style="background:'+sp.catShareColors[i]+'"></div>'+c.name+' '+c.pct+'%</div>';}).join('');
+}
+
+// ================================================================
+//  INITIALIZATION
+// ================================================================
+console.log('供应商资源池已就绪 | 点击供应商名称查看 OnePage 概览');
+console.log('已注册供应商: '+Object.keys(suppliers).join(', '));
+</script>
+
+</body>
+</html>

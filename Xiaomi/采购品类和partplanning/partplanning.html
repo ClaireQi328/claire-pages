@@ -1,0 +1,1382 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Part Planning - 车型项目</title>
+<style>
+:root{
+  --p:#1677ff;--ph:#4096ff;--pl:#e6f4ff;--pa:rgba(22,119,255,.06);
+  --s:#52c41a;--sl:#f6ffed;--sa:rgba(82,196,26,.08);
+  --w:#faad14;--wl:#fffbe6;--wa:rgba(250,173,20,.08);
+  --d:#ff4d4f;--dl:#fff2f0;--da:rgba(255,77,79,.06);
+  --g50:#fafafa;--g100:#f5f5f5;--g200:#e8e8e8;--g300:#d9d9d9;
+  --g400:#bfbfbf;--g500:#8c8c8c;--g600:#595959;--g700:#434343;
+  --g800:#262626;--g900:#1f1f1f;
+  --r:10px;--rs:6px;--rl:14px;
+  --shm:0 4px 12px rgba(0,0,0,.07);--tr:all .2s ease;
+  --nav-bg:#001529;--purple:#722ed1;--purple-l:#f9f0ff;
+  --cyan:#13c2c2;--cyan-l:#e6fffb;
+}
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif;background:#f0f2f5;color:var(--g800);line-height:1.6;font-size:13px;min-height:100vh;overflow:hidden}
+
+/* ========== Top Nav ========== */
+.topnav{background:var(--nav-bg);height:48px;display:flex;align-items:center;padding:0 16px;position:fixed;top:0;left:0;right:0;z-index:1000}
+.topnav-logo{display:flex;align-items:center;gap:8px;margin-right:24px;flex-shrink:0}
+.topnav-logo .mi{width:28px;height:28px;background:linear-gradient(135deg,#ff6700,#ff4d00);border-radius:6px;display:flex;align-items:center;justify-content:center;color:#fff;font-size:12px;font-weight:700}
+.topnav-logo span{color:#fff;font-size:14px;font-weight:600;letter-spacing:.5px;white-space:nowrap}
+.topnav-menu{display:flex;align-items:center;gap:0;flex:1;overflow-x:auto;scrollbar-width:none}
+.topnav-menu::-webkit-scrollbar{display:none}
+.topnav-item{padding:0 14px;height:48px;display:flex;align-items:center;color:rgba(255,255,255,.65);font-size:13px;cursor:pointer;white-space:nowrap;transition:all .2s;position:relative}
+.topnav-item:hover{color:#fff;background:rgba(255,255,255,.08)}
+.topnav-item.active{color:#fff;background:rgba(255,255,255,.12)}
+.topnav-item.active::after{content:'';position:absolute;bottom:0;left:8px;right:8px;height:2px;background:var(--p);border-radius:2px 2px 0 0}
+.topnav-right{display:flex;align-items:center;gap:12px;margin-left:auto;flex-shrink:0;padding-left:16px}
+.topnav-right .icon{width:32px;height:32px;border-radius:50%;display:flex;align-items:center;justify-content:center;color:rgba(255,255,255,.65);cursor:pointer;transition:all .2s;font-size:14px}
+.topnav-right .icon:hover{background:rgba(255,255,255,.1);color:#fff}
+.topnav-user{display:flex;align-items:center;gap:6px;color:rgba(255,255,255,.85);font-size:12px;cursor:pointer}
+.topnav-avatar{width:28px;height:28px;border-radius:50%;background:linear-gradient(135deg,var(--p),#4096ff);display:flex;align-items:center;justify-content:center;color:#fff;font-size:11px;font-weight:600}
+
+/* ========== Layout ========== */
+.layout{display:flex;height:calc(100vh - 48px);margin-top:48px}
+.main{flex:1;overflow:hidden;background:#f0f2f5;display:flex;flex-direction:column}
+.view{display:none;flex:1;overflow:hidden;flex-direction:column}
+.view.active{display:flex}
+.scroll{flex:1;overflow-y:auto;padding:20px 24px}
+.scroll::-webkit-scrollbar{width:6px}
+.scroll::-webkit-scrollbar-thumb{background:var(--g300);border-radius:3px}
+
+/* ========== Shared ========== */
+.page-hdr{display:flex;align-items:center;gap:10px;margin-bottom:16px;flex-wrap:wrap}
+.page-hdr .back{font-size:13px;color:var(--p);cursor:pointer;text-decoration:none;font-weight:500}
+.page-hdr .back:hover{text-decoration:underline}
+.page-hdr h2{font-size:18px;font-weight:700;color:var(--g900)}
+.page-hdr .tag{font-size:11px;padding:2px 10px;border-radius:10px;font-weight:600}
+.tag.active{background:var(--sl);color:var(--s)}
+.tag.planned{background:var(--wl);color:#d46b08}
+.tag.done{background:var(--g100);color:var(--g500)}
+.page-desc{font-size:13px;color:var(--g500);margin-bottom:20px}
+.section{background:#fff;border:1px solid var(--g200);border-radius:var(--r);margin-bottom:20px;overflow:hidden}
+.section-title{padding:12px 20px;border-bottom:1px solid var(--g100);font-size:14px;font-weight:700;color:var(--g900);background:var(--g50);display:flex;align-items:center;justify-content:space-between}
+.section-title .actions{display:flex;gap:8px}
+.btn{padding:5px 14px;border:none;border-radius:var(--rs);font-size:12px;cursor:pointer;transition:var(--tr);font-weight:500;display:inline-flex;align-items:center;gap:4px}
+.btn-p{color:#fff;background:var(--p)}.btn-p:hover{background:var(--ph)}
+.btn-o{color:var(--g600);background:#fff;border:1px solid var(--g300)}.btn-o:hover{border-color:var(--p);color:var(--p)}
+.btn-s{color:var(--g600);background:var(--g100)}.btn-s:hover{background:var(--g200)}
+.badge{font-size:10px;padding:1px 6px;border-radius:8px;font-weight:600}
+
+/* ========== Table Shared ========== */
+.tbl-wrap{overflow-x:auto}
+table.dt{width:100%;border-collapse:collapse;font-size:12px;white-space:nowrap}
+table.dt thead th{background:#fafafa;border-bottom:1px solid var(--g200);border-right:1px solid var(--g200);padding:8px 12px;text-align:left;font-weight:600;color:var(--g700);font-size:11px;min-width:60px}
+table.dt thead th:last-child{border-right:none}
+table.dt tbody td{border-bottom:1px solid var(--g100);border-right:1px solid var(--g200);padding:8px 12px;color:var(--g700)}
+table.dt tbody td:last-child{border-right:none}
+table.dt tbody tr:hover td{background:var(--pl)}
+table.dt tbody tr.total td{background:var(--g50);font-weight:700;color:var(--g900);border-top:2px solid var(--g300)}
+table.dt input[type="checkbox"]{accent-color:var(--p);width:14px;height:14px;cursor:pointer}
+table.dt .link{color:var(--p);cursor:pointer;font-weight:500}
+table.dt .link:hover{text-decoration:underline}
+table.dt .avatar{width:20px;height:20px;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;font-size:10px;font-weight:600;color:#fff;vertical-align:middle;margin-right:4px}
+table.dt .dot{display:inline-block;width:6px;height:6px;border-radius:50%;margin-right:4px}
+table.dt .dot.g{background:var(--s)}.table.dt .dot.y{background:var(--w)}.table.dt .dot.r{background:var(--d)}
+table.dt .badge-s{display:inline-flex;align-items:center;gap:3px;padding:2px 8px;border-radius:10px;font-size:10px;font-weight:600}
+.badge-s.a{background:#fff1f0;color:#cf1322;border:1px solid #ffa39e}
+.badge-s.b{background:#fff7e6;color:#d46b08;border:1px solid #ffd591}
+.badge-s.c{background:#f6ffed;color:#389e0d;border:1px solid #b7eb8f}
+.badge-s.new{background:var(--pl);color:var(--p);border:1px solid #91caff}
+.tag-b{display:inline-block;padding:1px 6px;border-radius:4px;font-size:10px;font-weight:500}
+.tag-b.interior{background:#f0f5ff;color:#2f54eb;border:1px solid #adc6ff}
+.tag-b.exterior{background:#f9f0ff;color:#722ed1;border:1px solid #d3adf7}
+.check{display:inline-flex;align-items:center;justify-content:center;width:18px;height:18px;border-radius:50%;font-size:10px}
+.check.y{background:var(--sl);color:var(--s)}.check.n{background:var(--g100);color:var(--g400)}
+
+/* ========== Info Grid ========== */
+.info-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:0}
+.info-item{padding:12px 20px;border-bottom:1px solid var(--g100);border-right:1px solid var(--g100)}
+.info-item:nth-child(3n){border-right:none}
+.info-item .il{font-size:12px;color:var(--g500);margin-bottom:2px}
+.info-item .iv{font-size:13px;color:var(--g800);font-weight:500}
+
+/* ========== Milestone ========== */
+.milestone-bar{display:flex;padding:16px 20px;position:relative;overflow-x:auto;gap:0}
+.milestone-bar::before{content:'';position:absolute;top:30px;left:20px;right:20px;height:2px;background:var(--g200)}
+.ms{flex:1;min-width:110px;text-align:center;position:relative;z-index:1}
+.ms-dot{width:12px;height:12px;border-radius:50%;border:2px solid var(--p);background:#fff;margin:0 auto 6px}
+.ms-dot.done{background:var(--p)}.ms-dot.cur{background:var(--w);border-color:var(--w);box-shadow:0 0 0 4px rgba(250,173,20,.2)}.ms-dot.wait{border-color:var(--g300)}
+.ms-l{font-size:12px;font-weight:600;color:var(--g800)}.ms-d{font-size:11px;color:var(--g500)}
+.ms-r{color:var(--d)}
+
+/* ========== Progress Table ========== */
+.prog-add{display:flex;gap:8px;padding:12px 20px;border-bottom:1px solid var(--g100);flex-wrap:wrap;align-items:center}
+.prog-add .label{font-size:11px;color:var(--g500);white-space:nowrap}
+.prog-add .note{font-size:11px;color:var(--w);background:var(--wl);padding:2px 8px;border-radius:4px;margin-left:auto}
+
+/* ========== Home Metrics ========== */
+.metrics{display:grid;grid-template-columns:repeat(4,1fr);gap:16px;margin-bottom:24px}
+.m-card{background:#fff;border:1px solid var(--g200);border-radius:var(--r);padding:20px;display:flex;align-items:center;gap:14px;transition:var(--tr);cursor:pointer}
+.m-card:hover{border-color:var(--p);box-shadow:var(--shm)}
+.m-ic{width:48px;height:48px;border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:22px;flex-shrink:0}
+.m-ic.b{background:linear-gradient(135deg,var(--pl),#d6e8ff)}
+.m-ic.g{background:linear-gradient(135deg,var(--sl),#d9f7be)}
+.m-ic.o{background:linear-gradient(135deg,var(--wl),#ffe58f)}
+.m-ic.p{background:linear-gradient(135deg,var(--purple-l),#efdbff)}
+.m-n{font-size:24px;font-weight:700;color:var(--g900);line-height:1.2}
+.m-l{font-size:12px;color:var(--g500)}
+
+/* ========== Activity ========== */
+.activity{background:#fff;border:1px solid var(--g200);border-radius:var(--r);padding:20px}
+.act-item{display:flex;align-items:flex-start;gap:12px;padding:10px 0;border-bottom:1px solid var(--g100)}
+.act-item:last-child{border-bottom:none}
+.act-dot{width:8px;height:8px;border-radius:50%;margin-top:6px;flex-shrink:0}
+.act-dot.b{background:var(--p)}.act-dot.g{background:var(--s)}.act-dot.o{background:var(--w)}.act-dot.r{background:var(--d)}
+.act-t{font-size:13px;color:var(--g700)}.act-t strong{color:var(--g900)}.act-time{font-size:11px;color:var(--g400);margin-top:2px}
+
+/* ========== Group Header ========== */
+.gh{cursor:pointer}.gh td{background:var(--g50);border-bottom:1px solid var(--g200);padding:8px 12px;font-weight:700;color:var(--g800);font-size:13px}
+.gh:hover td{background:var(--pl)}
+.gh .gh-inner{display:flex;align-items:center;gap:8px}
+.gh .gh-icon{font-size:10px;color:var(--g400);transition:transform .2s}
+.gh.collapsed .gh-icon{transform:rotate(-90deg)}
+.gh .gh-cnt{font-size:11px;color:var(--g500);font-weight:400;margin-left:4px}
+.sgh td{background:#f8f9fa;border-bottom:1px solid var(--g200);padding:6px 12px 6px 28px;font-weight:600;color:var(--g700);font-size:12px;cursor:pointer}
+.sgh:hover td{background:var(--pl)}
+.sgh .gh-inner{display:flex;align-items:center;gap:6px}
+.dr td{border-bottom:1px solid var(--g100);padding:6px 10px;color:var(--g700)}
+.dr:hover td{background:var(--pl)}
+.dr .rn{text-align:center;color:var(--g500);font-size:11px;width:40px}
+.dr .pc{color:var(--p);font-weight:500;cursor:pointer}.dr .pc:hover{text-decoration:underline}
+.collapsed-grid{display:none!important}
+.mod-wrap{display:flex;flex-direction:column;height:calc(100vh - 48px);margin-top:48px;overflow:hidden}
+.mod-wrap>.layout{flex:1;overflow:hidden}
+.mod-wrap>.page-wrap{flex:1;overflow:hidden}
+
+/* 品类管理 styles */
+.page-wrap{margin-top:48px;height:calc(100vh - 48px);display:flex;flex-direction:column;overflow:hidden}
+.content-header{background:#fff;padding:16px 24px 0;border-bottom:1px solid var(--g200);flex-shrink:0}
+.content-title-row{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px}
+.content-title{font-size:16px;font-weight:700;color:var(--g900)}
+.content-tabs{display:flex;gap:0}
+.ctab{padding:8px 16px;font-size:13px;color:var(--g600);cursor:pointer;border-bottom:2px solid transparent;transition:var(--tr);display:flex;align-items:center;gap:6px;margin-bottom:-1px}
+.ctab:hover{color:var(--p)}
+.ctab.active{color:var(--p);font-weight:600;border-bottom-color:var(--p)}
+.ctab .badge{font-size:10px;padding:1px 6px;border-radius:8px;color:#fff;font-weight:600;min-width:18px;text-align:center}
+.content-toolbar{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:12px 24px;background:#fff;border-bottom:1px solid var(--g100);flex-shrink:0}
+.toolbar-left{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.toolbar-right{display:flex;align-items:center;gap:8px}
+.search-input,.filter-sel{padding:6px 12px;border:1px solid var(--g300);border-radius:var(--rs);font-size:12px;transition:var(--tr);background:#fff}
+.search-input:focus,.filter-sel:focus{outline:none;border-color:var(--p);box-shadow:0 0 0 3px rgba(22,119,255,.1)}
+.search-input.w200{width:200px}.search-input.w260{width:260px}
+.btn{border:none;padding:7px 16px;border-radius:var(--rs);font-size:12px;font-weight:500;cursor:pointer;transition:var(--tr);display:inline-flex;align-items:center;gap:5px;white-space:nowrap}
+.btn:active{transform:scale(.97)}
+.btn-p{background:linear-gradient(135deg,var(--p) 0%,#4096ff 100%);color:#fff;box-shadow:0 2px 6px rgba(22,119,255,.25)}
+.btn-p:hover{box-shadow:0 4px 12px rgba(22,119,255,.35);transform:translateY(-1px)}
+.btn-o{background:#fff;color:var(--g700);border:1px solid var(--g300)}.btn-o:hover{color:var(--p);border-color:var(--p);background:var(--pa)}
+.btn-g{background:var(--g50);color:var(--g600);border:1px solid var(--g200)}.btn-g:hover{color:var(--p);border-color:var(--p);background:var(--pa)}
+.btn-s{padding:4px 10px;font-size:11px;border-radius:4px}
+.btn-link{color:var(--p);font-size:11px;cursor:pointer;background:none;border:none;padding:2px 4px}.btn-link:hover{text-decoration:underline}
+.btn-d{background:none;color:var(--d);border:none;padding:2px 6px;font-size:11px}.btn-d:hover{text-decoration:underline}
+.table-wrap{background:#fff;flex:1;overflow:auto}
+.dtable{width:100%;border-collapse:collapse;font-size:12px}
+.dtable th{background:linear-gradient(180deg,#fafafa,#f5f5f5);color:var(--g700);font-size:11px;font-weight:600;padding:10px 12px;text-align:left;border-bottom:1px solid var(--g200);border-right:1px solid var(--g100);white-space:nowrap;position:sticky;top:0;z-index:10}
+.dtable td{padding:9px 12px;border-bottom:1px solid var(--g100);border-right:1px solid var(--g100);font-size:12px;vertical-align:middle}
+.dtable tbody tr{transition:var(--tr)}
+.dtable tbody tr:hover td{background:#f0f7ff}
+.dtable .cl{color:var(--p);font-weight:500;cursor:pointer}.dtable .cl:hover{text-decoration:underline}
+.dtable .cc{font-family:'Consolas',monospace;font-size:11px}
+.dtable .ci{font-family:'Consolas',monospace;font-size:12px;font-weight:600;color:var(--p);cursor:pointer}.dtable .ci:hover{text-decoration:underline}
+.dtable .row-um td{background:#fffbe6}
+.tag{display:inline-block;font-size:10px;padding:2px 8px;border-radius:4px;font-weight:500;white-space:nowrap}
+.tag-b{background:var(--pl);color:var(--p)}.tag-g{background:var(--sl);color:var(--s)}.tag-o{background:var(--wl);color:#d46b08}.tag-r{background:var(--dl);color:var(--d)}.tag-p{background:#f9f0ff;color:#722ed1}.tag-c{background:#e6fffb;color:#13c2c2}.tag-x{background:var(--g100);color:var(--g600)}
+.pagination{display:flex;align-items:center;justify-content:flex-end;gap:6px;padding:12px 16px;background:#fff;border-top:1px solid var(--g200);font-size:12px;color:var(--g600)}
+.pagination .pg-info{margin-right:8px}
+.pagination .pg-btn{width:28px;height:28px;border:1px solid var(--g300);border-radius:4px;display:flex;align-items:center;justify-content:center;cursor:pointer;background:#fff;transition:var(--tr);font-size:12px}
+.pagination .pg-btn:hover{color:var(--p);border-color:var(--p)}
+.pagination .pg-btn.active{background:var(--p);color:#fff;border-color:var(--p)}
+.modal-mask{display:none;position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,.45);z-index:2000;align-items:center;justify-content:center}
+.modal-mask.show{display:flex}
+.modal{background:#fff;border-radius:var(--rl);width:720px;max-height:85vh;display:flex;flex-direction:column;box-shadow:0 8px 40px rgba(0,0,0,.18)}
+.modal.wide{width:900px}
+.modal-hdr{display:flex;align-items:center;justify-content:space-between;padding:16px 24px;border-bottom:1px solid var(--g200)}
+.modal-hdr h3{font-size:15px;font-weight:700;color:var(--g900)}
+.modal-close{background:none;border:none;font-size:20px;cursor:pointer;color:var(--g400);padding:4px 8px;border-radius:4px}.modal-close:hover{color:var(--g700);background:var(--g50)}
+.modal-body{flex:1;overflow-y:auto;padding:20px 24px}
+.modal-footer{display:flex;align-items:center;justify-content:flex-end;gap:10px;padding:14px 24px;border-top:1px solid var(--g200);background:var(--g50);border-radius:0 0 var(--rl) var(--rl)}
+.form-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px 24px}
+.form-item{display:flex;flex-direction:column;gap:6px}
+.form-item.full{grid-column:1/-1}
+.form-label{font-size:12px;color:var(--g700);font-weight:500}
+.form-label .req{color:var(--d);margin-left:2px}
+.form-input{padding:6px 10px;border:1px solid var(--g300);border-radius:var(--rs);font-size:12px;transition:var(--tr);width:100%}
+.form-input:focus{outline:none;border-color:var(--p);box-shadow:0 0 0 3px rgba(22,119,255,.1)}
+select.form-input{cursor:pointer}
+textarea.form-input{resize:vertical;min-height:60px;font-family:inherit}
+.form-hint{font-size:11px;color:var(--g500)}
+.drawer-mask{display:none;position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,.45);z-index:2000}
+.drawer-mask.show{display:block}
+.drawer{position:fixed;top:0;right:0;bottom:0;width:700px;background:#fff;z-index:2001;display:flex;flex-direction:column;box-shadow:-4px 0 20px rgba(0,0,0,.12);transform:translateX(100%);transition:transform .3s ease}
+.drawer.show{transform:translateX(0)}
+.drawer-hdr{display:flex;align-items:center;justify-content:space-between;padding:14px 24px;border-bottom:1px solid var(--g200);flex-shrink:0}
+.drawer-hdr h3{font-size:15px;font-weight:700;color:var(--g900);display:flex;align-items:center;gap:10px}
+.drawer-hdr .cat-id{background:var(--pl);color:var(--p);padding:2px 8px;border-radius:4px;font-size:12px;font-weight:600;font-family:'Consolas',monospace}
+.drawer-close{background:none;border:none;font-size:20px;cursor:pointer;color:var(--g400);padding:4px 8px;border-radius:4px}.drawer-close:hover{color:var(--g700);background:var(--g50)}
+.drawer-body{flex:1;overflow-y:auto}
+.drawer-section{border-bottom:1px solid var(--g100);padding:18px 24px}
+.drawer-section:last-child{border-bottom:none}
+.drawer-sec-title{font-size:13px;font-weight:700;color:var(--g900);margin-bottom:14px;display:flex;align-items:center;gap:8px}
+.drawer-sec-title::before{content:'';width:3px;height:14px;border-radius:2px;background:var(--p);flex-shrink:0}
+.drawer-info-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:12px 24px}
+.drawer-info-item{display:flex;flex-direction:column;gap:3px}
+.drawer-info-label{font-size:11px;color:var(--g500);font-weight:500}
+.drawer-info-val{font-size:13px;color:var(--g800);font-weight:500}
+.drawer-info-val.link{color:var(--p);cursor:pointer}.drawer-info-val.link:hover{text-decoration:underline}
+.drawer-tag-list{display:flex;flex-wrap:wrap;gap:6px}
+.drawer-tag{display:inline-flex;align-items:center;gap:4px;padding:4px 10px;border-radius:6px;font-size:12px;font-weight:500}
+.drawer-tag.blue{background:var(--pl);color:var(--p)}
+.drawer-tag.orange{background:var(--wl);color:#d46b08}
+.drawer-footer{display:flex;align-items:center;justify-content:flex-end;gap:10px;padding:14px 24px;border-top:1px solid var(--g200);background:var(--g50);flex-shrink:0}
+.view{display:none;flex:1;flex-direction:column;overflow:hidden}.view.active{display:flex}
+.sub-tabs{display:flex;gap:0;padding:0 24px;background:#fff;border-bottom:2px solid var(--g100);flex-shrink:0}
+.stab{padding:10px 20px;font-size:13px;color:var(--g600);cursor:pointer;border-bottom:2px solid transparent;margin-bottom:-2px;transition:var(--tr);white-space:nowrap}
+.stab:hover{color:var(--p)}
+.stab.active{color:var(--p);font-weight:600;border-bottom-color:var(--p)}
+.sub-view{display:none;flex:1;flex-direction:column;overflow:hidden}.sub-view.active{display:flex}
+.todo-bar{background:linear-gradient(135deg,#fffbe6,#fff7e6);border-bottom:1px solid #fde68a;padding:0 24px;flex-shrink:0;overflow:hidden;transition:max-height .3s ease}
+.todo-bar.collapsed{max-height:36px}.todo-bar.expanded{max-height:200px}
+.todo-bar-hdr{display:flex;align-items:center;justify-content:space-between;height:36px;cursor:pointer;user-select:none}
+.todo-bar-hdr .left{display:flex;align-items:center;gap:8px;font-size:13px;font-weight:600;color:var(--g900)}
+.todo-bar-hdr .left .dot{width:8px;height:8px;border-radius:50%;background:var(--d);animation:pulse 2s infinite}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}}
+.todo-bar-hdr .count{font-size:11px;padding:1px 8px;border-radius:8px;background:var(--d);color:#fff;font-weight:600}
+.todo-bar-hdr .toggle{font-size:11px;color:var(--g500);display:flex;align-items:center;gap:4px}
+.todo-bar-hdr .toggle .arr{transition:transform .2s;font-size:10px}
+.todo-bar.expanded .todo-bar-hdr .toggle .arr{transform:rotate(180deg)}
+.todo-items{padding:4px 0 8px;display:flex;flex-direction:column;gap:0}
+.todo-item{display:flex;align-items:center;gap:12px;padding:6px 0;font-size:12px;border-bottom:1px solid rgba(0,0,0,.04)}
+.todo-item:last-child{border-bottom:none}
+.todo-dot{width:6px;height:6px;border-radius:50%;flex-shrink:0}
+.todo-dot.urgent{background:var(--d)}.todo-dot.normal{background:var(--w)}.todo-dot.low{background:var(--g400)}
+.todo-text{flex:1;color:var(--g800)}.todo-text strong{font-weight:600}
+.todo-time{font-size:11px;color:var(--g400);white-space:nowrap}
+.todo-action{color:var(--p);font-size:11px;cursor:pointer;white-space:nowrap}.todo-action:hover{text-decoration:underline}
+.doc-item{display:flex;align-items:center;gap:10px;padding:10px 14px;border:1px solid var(--g200);border-radius:var(--rs);transition:var(--tr);cursor:pointer}
+.doc-item:hover{border-color:var(--p);background:var(--pl)}
+.doc-icon{font-size:20px;flex-shrink:0}
+.doc-info{flex:1;min-width:0}
+.doc-name{font-size:12px;font-weight:600;color:var(--g800);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.doc-meta{font-size:11px;color:var(--g400);margin-top:2px}
+.doc-action{color:var(--p);font-size:11px;cursor:pointer;flex-shrink:0}
+</style>
+</head>
+<body>
+
+<!-- Top Nav -->
+<div class="topnav">
+  <div class="topnav-logo"><div class="mi">MI</div><span>小米汽车 SRM</span></div>
+  <div class="topnav-menu">
+    <div class="topnav-item">工作台</div><div class="topnav-item">寻源管理</div><div class="topnav-item">合同管理</div><div class="topnav-item">SQE质量</div>
+    <div class="topnav-item active" onclick="switchModule('pp')" id="nav-pp" style="cursor:pointer">Part Planning</div>
+    <div class="topnav-item" onclick="switchModule('cat')" id="nav-cat" style="cursor:pointer">品类管理</div>
+    <div class="topnav-item">供应商管理</div><div class="topnav-item">数据分析</div>
+  </div>
+  <div class="topnav-right">
+    <div class="icon">🔔</div><div class="icon">⚙️</div>
+    <div class="topnav-user"><div class="topnav-avatar">张</div><span>张家宇</span></div>
+  </div>
+</div>
+
+<!-- ====== MODULE: Part Planning ====== -->
+<div id="mod-pp" class="mod-wrap">
+<div class="layout">
+<div class="main">
+
+<!-- ============================== -->
+<!-- VIEW 1: 平台总览              -->
+<!-- ============================== -->
+<div class="view active" id="v1">
+  <div class="scroll">
+    <div class="page-hdr"><h2>Part Planning · 平台总览</h2></div>
+    <div class="page-desc">按车型平台聚合查看 Part Planning 数据，点击平台进入项目列表</div>
+
+    <div class="metrics">
+      <div class="m-card"><div class="m-ic b">🚗</div><div><div class="m-n">6</div><div class="m-l">车型平台</div></div></div>
+      <div class="m-card"><div class="m-ic g">📦</div><div><div class="m-n">1,247</div><div class="m-l">零件总数</div></div></div>
+      <div class="m-card"><div class="m-ic o">🏭</div><div><div class="m-n">38</div><div class="m-l">供应商数量</div></div></div>
+      <div class="m-card"><div class="m-ic p">✅</div><div><div class="m-n">892</div><div class="m-l">已定点</div></div></div>
+    </div>
+
+    <div style="font-size:15px;font-weight:700;color:var(--g900);margin-bottom:16px">车型平台</div>
+    <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(340px,1fr));gap:16px;margin-bottom:32px">
+      <!-- Modena -->
+      <div class="section" style="cursor:pointer;transition:var(--tr)" onclick="showV2('Modena')" onmouseover="this.style.borderColor='var(--p)';this.style.boxShadow='var(--shm)'" onmouseout="this.style.borderColor='var(--g200)';this.style.boxShadow='none'">
+        <div style="padding:16px 20px;border-bottom:1px solid var(--g100);display:flex;align-items:center;justify-content:space-between">
+          <div style="font-size:16px;font-weight:700;color:var(--g900);display:flex;align-items:center;gap:8px">Modena <span class="tag-b" style="background:var(--pl);color:var(--p);border:1px solid #91caff">轿车</span></div>
+          <div style="font-size:12px;color:var(--g500)">3 个项目</div>
+        </div>
+        <div style="padding:16px 20px">
+          <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:16px;text-align:center">
+            <div><div style="font-size:20px;font-weight:700;color:var(--g900)">486</div><div style="font-size:11px;color:var(--g500)">零件总数</div></div>
+            <div><div style="font-size:20px;font-weight:700;color:var(--g900)">18</div><div style="font-size:11px;color:var(--g500)">供应商</div></div>
+            <div><div style="font-size:20px;font-weight:700;color:var(--g900)">312</div><div style="font-size:11px;color:var(--g500)">已定点</div></div>
+          </div>
+          <div style="display:flex;flex-direction:column;gap:6px">
+            <div style="display:flex;align-items:center;justify-content:space-between;padding:8px 12px;background:var(--g50);border-radius:var(--rs)"><span style="font-size:12px;color:var(--g700);font-weight:500">Modena 28A 国内左舵</span><div style="display:flex;align-items:center;gap:8px"><span class="badge" style="background:var(--sl);color:var(--s);font-size:10px;padding:1px 6px;border-radius:8px">进行中</span><span style="font-size:11px;color:var(--g500)">168 件</span></div></div>
+            <div style="display:flex;align-items:center;justify-content:space-between;padding:8px 12px;background:var(--g50);border-radius:var(--rs)"><span style="font-size:12px;color:var(--g700);font-weight:500">Modena 28A 海外版</span><div style="display:flex;align-items:center;gap:8px"><span class="badge" style="background:var(--wl);color:#d46b08;font-size:10px;padding:1px 6px;border-radius:8px">规划中</span><span style="font-size:11px;color:var(--g500)">156 件</span></div></div>
+            <div style="display:flex;align-items:center;justify-content:space-between;padding:8px 12px;background:var(--g50);border-radius:var(--rs)"><span style="font-size:12px;color:var(--g700);font-weight:500">Modena 29A 改款</span><div style="display:flex;align-items:center;gap:8px"><span class="badge" style="background:var(--wl);color:#d46b08;font-size:10px;padding:1px 6px;border-radius:8px">规划中</span><span style="font-size:11px;color:var(--g500)">162 件</span></div></div>
+          </div>
+        </div>
+        <div style="padding:12px 20px;border-top:1px solid var(--g100);display:flex;justify-content:space-between;align-items:center"><span style="font-size:12px;color:var(--p);font-weight:500">查看项目列表 →</span><span style="font-size:11px;color:var(--g400)">更新于 2026-06-28</span></div>
+      </div>
+      <!-- Leman -->
+      <div class="section" style="cursor:pointer;transition:var(--tr)" onclick="showV2('Leman')" onmouseover="this.style.borderColor='var(--p)';this.style.boxShadow='var(--shm)'" onmouseout="this.style.borderColor='var(--g200)';this.style.boxShadow='none'">
+        <div style="padding:16px 20px;border-bottom:1px solid var(--g100);display:flex;align-items:center;justify-content:space-between">
+          <div style="font-size:16px;font-weight:700;color:var(--g900);display:flex;align-items:center;gap:8px">Leman <span class="tag-b" style="background:var(--sl);color:var(--s);border:1px solid #b7eb8f">SUV</span></div>
+          <div style="font-size:12px;color:var(--g500)">2 个项目</div>
+        </div>
+        <div style="padding:16px 20px">
+          <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:16px;text-align:center">
+            <div><div style="font-size:20px;font-weight:700;color:var(--g900)">324</div><div style="font-size:11px;color:var(--g500)">零件总数</div></div>
+            <div><div style="font-size:20px;font-weight:700;color:var(--g900)">12</div><div style="font-size:11px;color:var(--g500)">供应商</div></div>
+            <div><div style="font-size:20px;font-weight:700;color:var(--g900)">218</div><div style="font-size:11px;color:var(--g500)">已定点</div></div>
+          </div>
+          <div style="display:flex;flex-direction:column;gap:6px">
+            <div style="display:flex;align-items:center;justify-content:space-between;padding:8px 12px;background:var(--g50);border-radius:var(--rs)"><span style="font-size:12px;color:var(--g700);font-weight:500">Leman 27A 国内版</span><div style="display:flex;align-items:center;gap:8px"><span class="badge" style="background:var(--sl);color:var(--s);font-size:10px;padding:1px 6px;border-radius:8px">进行中</span><span style="font-size:11px;color:var(--g500)">178 件</span></div></div>
+            <div style="display:flex;align-items:center;justify-content:space-between;padding:8px 12px;background:var(--g50);border-radius:var(--rs)"><span style="font-size:12px;color:var(--g700);font-weight:500">Leman 27A 北京工厂</span><div style="display:flex;align-items:center;gap:8px"><span class="badge" style="background:var(--sl);color:var(--s);font-size:10px;padding:1px 6px;border-radius:8px">进行中</span><span style="font-size:11px;color:var(--g500)">146 件</span></div></div>
+          </div>
+        </div>
+        <div style="padding:12px 20px;border-top:1px solid var(--g100);display:flex;justify-content:space-between;align-items:center"><span style="font-size:12px;color:var(--p);font-weight:500">查看项目列表 →</span><span style="font-size:11px;color:var(--g400)">更新于 2026-06-27</span></div>
+      </div>
+      <!-- Kunlun -->
+      <div class="section" style="cursor:pointer;transition:var(--tr)" onclick="showV2('Kunlun')" onmouseover="this.style.borderColor='var(--p)';this.style.boxShadow='var(--shm)'" onmouseout="this.style.borderColor='var(--g200)';this.style.boxShadow='none'">
+        <div style="padding:16px 20px;border-bottom:1px solid var(--g100);display:flex;align-items:center;justify-content:space-between">
+          <div style="font-size:16px;font-weight:700;color:var(--g900);display:flex;align-items:center;gap:8px">Kunlun <span class="tag-b" style="background:var(--sl);color:var(--s);border:1px solid #b7eb8f">SUV</span></div>
+          <div style="font-size:12px;color:var(--g500)">4 个项目</div>
+        </div>
+        <div style="padding:16px 20px">
+          <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:16px;text-align:center">
+            <div><div style="font-size:20px;font-weight:700;color:var(--g900)">198</div><div style="font-size:11px;color:var(--g500)">零件总数</div></div>
+            <div><div style="font-size:20px;font-weight:700;color:var(--g900)">8</div><div style="font-size:11px;color:var(--g500)">供应商</div></div>
+            <div><div style="font-size:20px;font-weight:700;color:var(--g900)">142</div><div style="font-size:11px;color:var(--g500)">已定点</div></div>
+          </div>
+          <div style="display:flex;flex-direction:column;gap:6px">
+            <div style="display:flex;align-items:center;justify-content:space-between;padding:8px 12px;background:var(--g50);border-radius:var(--rs)"><span style="font-size:12px;color:var(--g700);font-weight:500">Kunlun N2 北京工厂</span><div style="display:flex;align-items:center;gap:8px"><span class="badge" style="background:var(--sl);color:var(--s);font-size:10px;padding:1px 6px;border-radius:8px">进行中</span><span style="font-size:11px;color:var(--g500)">58 件</span></div></div>
+            <div style="display:flex;align-items:center;justify-content:space-between;padding:8px 12px;background:var(--g50);border-radius:var(--rs)"><span style="font-size:12px;color:var(--g700);font-weight:500">Kunlun N2 武汉工厂</span><div style="display:flex;align-items:center;gap:8px"><span class="badge" style="background:var(--sl);color:var(--s);font-size:10px;padding:1px 6px;border-radius:8px">进行中</span><span style="font-size:11px;color:var(--g500)">52 件</span></div></div>
+            <div style="display:flex;align-items:center;justify-content:space-between;padding:8px 12px;background:var(--g50);border-radius:var(--rs)"><span style="font-size:12px;color:var(--g700);font-weight:500">Kunlun N1 北京工厂</span><div style="display:flex;align-items:center;gap:8px"><span class="badge" style="background:var(--wl);color:#d46b08;font-size:10px;padding:1px 6px;border-radius:8px">规划中</span><span style="font-size:11px;color:var(--g500)">48 件</span></div></div>
+          </div>
+        </div>
+        <div style="padding:12px 20px;border-top:1px solid var(--g100);display:flex;justify-content:space-between;align-items:center"><span style="font-size:12px;color:var(--p);font-weight:500">查看项目列表 →</span><span style="font-size:11px;color:var(--g400)">更新于 2026-06-28</span></div>
+      </div>
+      <!-- MS11 -->
+      <div class="section" style="cursor:pointer;transition:var(--tr)" onclick="showV2('MS11')" onmouseover="this.style.borderColor='var(--p)';this.style.boxShadow='var(--shm)'" onmouseout="this.style.borderColor='var(--g200)';this.style.boxShadow='none'">
+        <div style="padding:16px 20px;border-bottom:1px solid var(--g100);display:flex;align-items:center;justify-content:space-between">
+          <div style="font-size:16px;font-weight:700;color:var(--g900);display:flex;align-items:center;gap:8px">MS11 <span class="tag-b" style="background:var(--pl);color:var(--p);border:1px solid #91caff">轿车</span></div>
+          <div style="font-size:12px;color:var(--g500)">1 个项目</div>
+        </div>
+        <div style="padding:16px 20px">
+          <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:16px;text-align:center">
+            <div><div style="font-size:20px;font-weight:700;color:var(--g900)">112</div><div style="font-size:11px;color:var(--g500)">零件总数</div></div>
+            <div><div style="font-size:20px;font-weight:700;color:var(--g900)">6</div><div style="font-size:11px;color:var(--g500)">供应商</div></div>
+            <div><div style="font-size:20px;font-weight:700;color:var(--g900)">98</div><div style="font-size:11px;color:var(--g500)">已定点</div></div>
+          </div>
+          <div style="display:flex;flex-direction:column;gap:6px">
+            <div style="display:flex;align-items:center;justify-content:space-between;padding:8px 12px;background:var(--g50);border-radius:var(--rs)"><span style="font-size:12px;color:var(--g700);font-weight:500">MS11 量产版</span><div style="display:flex;align-items:center;gap:8px"><span class="badge" style="background:var(--g100);color:var(--g500);font-size:10px;padding:1px 6px;border-radius:8px">已完成</span><span style="font-size:11px;color:var(--g500)">112 件</span></div></div>
+          </div>
+        </div>
+        <div style="padding:12px 20px;border-top:1px solid var(--g100);display:flex;justify-content:space-between;align-items:center"><span style="font-size:12px;color:var(--p);font-weight:500">查看项目列表 →</span><span style="font-size:11px;color:var(--g400)">更新于 2026-06-20</span></div>
+      </div>
+      <!-- MS15 -->
+      <div class="section" style="cursor:pointer;transition:var(--tr)" onclick="showV2('MS15')" onmouseover="this.style.borderColor='var(--p)';this.style.boxShadow='var(--shm)'" onmouseout="this.style.borderColor='var(--g200)';this.style.boxShadow='none'">
+        <div style="padding:16px 20px;border-bottom:1px solid var(--g100);display:flex;align-items:center;justify-content:space-between">
+          <div style="font-size:16px;font-weight:700;color:var(--g900);display:flex;align-items:center;gap:8px">MS15 <span class="tag-b" style="background:var(--pl);color:var(--p);border:1px solid #91caff">轿车</span></div>
+          <div style="font-size:12px;color:var(--g500)">2 个项目</div>
+        </div>
+        <div style="padding:16px 20px">
+          <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:16px;text-align:center">
+            <div><div style="font-size:20px;font-weight:700;color:var(--g900)">86</div><div style="font-size:11px;color:var(--g500)">零件总数</div></div>
+            <div><div style="font-size:20px;font-weight:700;color:var(--g900)">5</div><div style="font-size:11px;color:var(--g500)">供应商</div></div>
+            <div><div style="font-size:20px;font-weight:700;color:var(--g900)">62</div><div style="font-size:11px;color:var(--g500)">已定点</div></div>
+          </div>
+          <div style="display:flex;flex-direction:column;gap:6px">
+            <div style="display:flex;align-items:center;justify-content:space-between;padding:8px 12px;background:var(--g50);border-radius:var(--rs)"><span style="font-size:12px;color:var(--g700);font-weight:500">MS15 28A 国内左舵</span><div style="display:flex;align-items:center;gap:8px"><span class="badge" style="background:var(--sl);color:var(--s);font-size:10px;padding:1px 6px;border-radius:8px">进行中</span><span style="font-size:11px;color:var(--g500)">46 件</span></div></div>
+            <div style="display:flex;align-items:center;justify-content:space-between;padding:8px 12px;background:var(--g50);border-radius:var(--rs)"><span style="font-size:12px;color:var(--g700);font-weight:500">MS15 28A 海外版</span><div style="display:flex;align-items:center;gap:8px"><span class="badge" style="background:var(--wl);color:#d46b08;font-size:10px;padding:1px 6px;border-radius:8px">规划中</span><span style="font-size:11px;color:var(--g500)">40 件</span></div></div>
+          </div>
+        </div>
+        <div style="padding:12px 20px;border-top:1px solid var(--g100);display:flex;justify-content:space-between;align-items:center"><span style="font-size:12px;color:var(--p);font-weight:500">查看项目列表 →</span><span style="font-size:11px;color:var(--g400)">更新于 2026-06-28</span></div>
+      </div>
+      <!-- 其他 -->
+      <div class="section" style="cursor:pointer;transition:var(--tr)" onclick="showV2('其他')" onmouseover="this.style.borderColor='var(--p)';this.style.boxShadow='var(--shm)'" onmouseout="this.style.borderColor='var(--g200)';this.style.boxShadow='none'">
+        <div style="padding:16px 20px;border-bottom:1px solid var(--g100);display:flex;align-items:center;justify-content:space-between">
+          <div style="font-size:16px;font-weight:700;color:var(--g900);display:flex;align-items:center;gap:8px">其他平台 <span class="tag-b" style="background:var(--wl);color:#d46b08;border:1px solid #ffd591">其他</span></div>
+          <div style="font-size:12px;color:var(--g500)">2 个项目</div>
+        </div>
+        <div style="padding:16px 20px">
+          <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:16px;text-align:center">
+            <div><div style="font-size:20px;font-weight:700;color:var(--g900)">41</div><div style="font-size:11px;color:var(--g500)">零件总数</div></div>
+            <div><div style="font-size:20px;font-weight:700;color:var(--g900)">3</div><div style="font-size:11px;color:var(--g500)">供应商</div></div>
+            <div><div style="font-size:20px;font-weight:700;color:var(--g900)">28</div><div style="font-size:11px;color:var(--g500)">已定点</div></div>
+          </div>
+          <div style="display:flex;flex-direction:column;gap:6px">
+            <div style="display:flex;align-items:center;justify-content:space-between;padding:8px 12px;background:var(--g50);border-radius:var(--rs)"><span style="font-size:12px;color:var(--g700);font-weight:500">概念车项目</span><div style="display:flex;align-items:center;gap:8px"><span class="badge" style="background:var(--wl);color:#d46b08;font-size:10px;padding:1px 6px;border-radius:8px">规划中</span><span style="font-size:11px;color:var(--g500)">24 件</span></div></div>
+            <div style="display:flex;align-items:center;justify-content:space-between;padding:8px 12px;background:var(--g50);border-radius:var(--rs)"><span style="font-size:12px;color:var(--g700);font-weight:500">改装件项目</span><div style="display:flex;align-items:center;gap:8px"><span class="badge" style="background:var(--sl);color:var(--s);font-size:10px;padding:1px 6px;border-radius:8px">进行中</span><span style="font-size:11px;color:var(--g500)">17 件</span></div></div>
+          </div>
+        </div>
+        <div style="padding:12px 20px;border-top:1px solid var(--g100);display:flex;justify-content:space-between;align-items:center"><span style="font-size:12px;color:var(--p);font-weight:500">查看项目列表 →</span><span style="font-size:11px;color:var(--g400)">更新于 2026-06-25</span></div>
+      </div>
+    </div>
+
+    <div style="font-size:15px;font-weight:700;color:var(--g900);margin-bottom:16px">最近动态</div>
+    <div class="activity">
+      <div class="act-item"><div class="act-dot b"></div><div><div class="act-t"><strong>Modena 28A 国内左舵</strong> 新增 12 个零件定点</div><div class="act-time">2026-06-28 14:30</div></div></div>
+      <div class="act-item"><div class="act-dot g"></div><div><div class="act-t"><strong>Kunlun N2 北京工厂</strong> 供应商 安道拓（武汉）完成定点确认</div><div class="act-time">2026-06-28 11:20</div></div></div>
+      <div class="act-item"><div class="act-dot o"></div><div><div class="act-t"><strong>Leman 27A</strong> 8 个零件待审批（N2 阶段）</div><div class="act-time">2026-06-27 16:45</div></div></div>
+      <div class="act-item"><div class="act-dot r"></div><div><div class="act-t"><strong>MS15 28A</strong> 3 个零件定点超期预警</div><div class="act-time">2026-06-27 09:10</div></div></div>
+    </div>
+  </div>
+</div>
+
+<!-- ============================== -->
+<!-- VIEW 2: 项目列表（表格形式）   -->
+<!-- ============================== -->
+<div class="view" id="v2">
+  <div class="scroll">
+    <div class="page-hdr">
+      <a class="back" onclick="showV1()">← 返回平台总览</a>
+      <h2 id="v2-title">Modena · 项目列表</h2>
+    </div>
+
+    <!-- 1. 平台基本信息（折叠式） -->
+    <div class="section" style="margin-bottom:20px">
+      <div class="section-title" style="cursor:pointer" onclick="this.parentElement.querySelector('.info-grid').classList.toggle('collapsed-grid')">
+        <span>平台基本信息</span><span style="font-size:11px;color:var(--g400)">▼</span>
+      </div>
+      <div class="info-grid">
+        <div class="info-item"><div class="il">车型平台</div><div class="iv" id="v2-platform">Modena</div></div>
+        <div class="info-item"><div class="il">平台类型</div><div class="iv" id="v2-type">轿车</div></div>
+        <div class="info-item"><div class="il">产品平台</div><div class="iv">小米平台</div></div>
+        <div class="info-item"><div class="il">项目数量</div><div class="iv" id="v2-proj-cnt">3</div></div>
+        <div class="info-item"><div class="il">零件总数</div><div class="iv" id="v2-parts-cnt">486</div></div>
+        <div class="info-item"><div class="il">供应商数量</div><div class="iv" id="v2-sup-cnt">18</div></div>
+      </div>
+    </div>
+
+    <!-- 2. 项目卡片（进度聚合） -->
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px">
+      <div style="font-size:15px;font-weight:700;color:var(--g900)">项目列表</div>
+      <div style="display:flex;gap:8px"><button class="btn btn-o">⬇ 导出</button><button class="btn btn-p">+ 新建项目</button></div>
+    </div>
+    <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(400px,1fr));gap:16px;margin-bottom:24px">
+      <!-- Card 1 -->
+      <div class="section" style="cursor:pointer;transition:var(--tr)" onclick="showV3('Modena 28A 国内左舵','PRJ-2026-8041')" onmouseover="this.style.borderColor='var(--p)';this.style.boxShadow='var(--shm)'" onmouseout="this.style.borderColor='var(--g200)';this.style.boxShadow='none'">
+        <div style="padding:14px 20px;border-bottom:1px solid var(--g100);display:flex;align-items:center;justify-content:space-between">
+          <div>
+            <div style="font-size:15px;font-weight:700;color:var(--g900);display:flex;align-items:center;gap:8px">Modena 28A 国内左舵 <span class="tag active">进行中</span></div>
+            <div style="font-size:12px;color:var(--g500);margin-top:2px">PRJ-2026-8041 · 北京整车工厂 · M0: 2025-06-26</div>
+          </div>
+          <span class="avatar" style="background:linear-gradient(135deg,var(--p),#4096ff);width:32px;height:32px;font-size:13px">张</span>
+        </div>
+        <div style="padding:14px 20px">
+          <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:12px">
+            <div><div style="display:flex;justify-content:space-between;font-size:11px;color:var(--g500);margin-bottom:3px"><span>SOR定点</span><span style="font-weight:600;color:var(--g800)">8/12</span></div><div style="height:5px;background:var(--g200);border-radius:3px;overflow:hidden"><div style="height:100%;width:67%;background:var(--p);border-radius:3px"></div></div></div>
+            <div><div style="display:flex;justify-content:space-between;font-size:11px;color:var(--g500);margin-bottom:3px"><span>BDL评审</span><span style="font-weight:600;color:var(--g800)">10/12</span></div><div style="height:5px;background:var(--g200);border-radius:3px;overflow:hidden"><div style="height:100%;width:83%;background:var(--s);border-radius:3px"></div></div></div>
+            <div><div style="display:flex;justify-content:space-between;font-size:11px;color:var(--g500);margin-bottom:3px"><span>核价完成</span><span style="font-weight:600;color:var(--g800)">6/12</span></div><div style="height:5px;background:var(--g200);border-radius:3px;overflow:hidden"><div style="height:100%;width:50%;background:var(--w);border-radius:3px"></div></div></div>
+            <div><div style="display:flex;justify-content:space-between;font-size:11px;color:var(--g500);margin-bottom:3px"><span>合同签署</span><span style="font-weight:600;color:var(--g800)">3/12</span></div><div style="height:5px;background:var(--g200);border-radius:3px;overflow:hidden"><div style="height:100%;width:25%;background:var(--d);border-radius:3px"></div></div></div>
+          </div>
+          <div style="display:flex;gap:6px;flex-wrap:wrap">
+            <span style="font-size:11px;padding:2px 7px;border-radius:4px;background:var(--g100);color:var(--g600)">基础车型 <strong style="color:var(--g800)">5</strong></span>
+            <span style="font-size:11px;padding:2px 7px;border-radius:4px;background:var(--g100);color:var(--g600)">已定点 <strong style="color:var(--s)">8</strong></span>
+            <span style="font-size:11px;padding:2px 7px;border-radius:4px;background:var(--g100);color:var(--g600)">定点中 <strong style="color:var(--w)">2</strong></span>
+            <span style="font-size:11px;padding:2px 7px;border-radius:4px;background:var(--g100);color:var(--g600)">未定点 <strong style="color:var(--d)">2</strong></span>
+            <span style="font-size:11px;padding:2px 7px;border-radius:4px;background:var(--g100);color:var(--g600)">BDL <strong style="color:var(--s)">10</strong></span>
+            <span style="font-size:11px;padding:2px 7px;border-radius:4px;background:var(--g100);color:var(--g600)">合同 <strong style="color:var(--s)">3</strong></span>
+          </div>
+        </div>
+        <div style="padding:8px 20px;border-top:1px solid var(--g100);display:flex;justify-content:space-between;align-items:center;font-size:11px;color:var(--g500)">
+          <div style="display:flex;gap:14px"><span>PM: <strong style="color:var(--g700)">张家宇</strong></span><span>零件 <strong style="color:var(--g700)">486</strong></span><span>供应商 <strong style="color:var(--g700)">18</strong></span></div>
+          <span style="color:var(--p);font-weight:500;font-size:12px">详情 →</span>
+        </div>
+      </div>
+      <!-- Card 2 -->
+      <div class="section" style="cursor:pointer;transition:var(--tr)" onclick="showV3('Modena 28A 海外版','PRJ-2026-8042')" onmouseover="this.style.borderColor='var(--p)';this.style.boxShadow='var(--shm)'" onmouseout="this.style.borderColor='var(--g200)';this.style.boxShadow='none'">
+        <div style="padding:14px 20px;border-bottom:1px solid var(--g100);display:flex;align-items:center;justify-content:space-between">
+          <div>
+            <div style="font-size:15px;font-weight:700;color:var(--g900);display:flex;align-items:center;gap:8px">Modena 28A 海外版 <span class="tag active">进行中</span></div>
+            <div style="font-size:12px;color:var(--g500);margin-top:2px">PRJ-2026-8042 · 北京整车工厂 · M0: 2025-09-15</div>
+          </div>
+          <span class="avatar" style="background:linear-gradient(135deg,var(--p),#4096ff);width:32px;height:32px;font-size:13px">张</span>
+        </div>
+        <div style="padding:14px 20px">
+          <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:12px">
+            <div><div style="display:flex;justify-content:space-between;font-size:11px;color:var(--g500);margin-bottom:3px"><span>SOR定点</span><span style="font-weight:600;color:var(--g800)">3/8</span></div><div style="height:5px;background:var(--g200);border-radius:3px;overflow:hidden"><div style="height:100%;width:38%;background:var(--p);border-radius:3px"></div></div></div>
+            <div><div style="display:flex;justify-content:space-between;font-size:11px;color:var(--g500);margin-bottom:3px"><span>BDL评审</span><span style="font-weight:600;color:var(--g800)">5/8</span></div><div style="height:5px;background:var(--g200);border-radius:3px;overflow:hidden"><div style="height:100%;width:63%;background:var(--s);border-radius:3px"></div></div></div>
+            <div><div style="display:flex;justify-content:space-between;font-size:11px;color:var(--g500);margin-bottom:3px"><span>核价完成</span><span style="font-weight:600;color:var(--g800)">2/8</span></div><div style="height:5px;background:var(--g200);border-radius:3px;overflow:hidden"><div style="height:100%;width:25%;background:var(--w);border-radius:3px"></div></div></div>
+            <div><div style="display:flex;justify-content:space-between;font-size:11px;color:var(--g500);margin-bottom:3px"><span>合同签署</span><span style="font-weight:600;color:var(--g800)">1/8</span></div><div style="height:5px;background:var(--g200);border-radius:3px;overflow:hidden"><div style="height:100%;width:13%;background:var(--d);border-radius:3px"></div></div></div>
+          </div>
+          <div style="display:flex;gap:6px;flex-wrap:wrap">
+            <span style="font-size:11px;padding:2px 7px;border-radius:4px;background:var(--g100);color:var(--g600)">基础车型 <strong style="color:var(--g800)">4</strong></span>
+            <span style="font-size:11px;padding:2px 7px;border-radius:4px;background:var(--g100);color:var(--g600)">已定点 <strong style="color:var(--s)">3</strong></span>
+            <span style="font-size:11px;padding:2px 7px;border-radius:4px;background:var(--g100);color:var(--g600)">定点中 <strong style="color:var(--w)">2</strong></span>
+            <span style="font-size:11px;padding:2px 7px;border-radius:4px;background:var(--g100);color:var(--g600)">未定点 <strong style="color:var(--d)">3</strong></span>
+          </div>
+        </div>
+        <div style="padding:8px 20px;border-top:1px solid var(--g100);display:flex;justify-content:space-between;align-items:center;font-size:11px;color:var(--g500)">
+          <div style="display:flex;gap:14px"><span>PM: <strong style="color:var(--g700)">张家宇</strong></span><span>零件 <strong style="color:var(--g700)">156</strong></span><span>供应商 <strong style="color:var(--g700)">8</strong></span></div>
+          <span style="color:var(--p);font-weight:500;font-size:12px">详情 →</span>
+        </div>
+      </div>
+      <!-- Card 3 -->
+      <div class="section" style="cursor:pointer;transition:var(--tr)" onclick="showV3('Modena 29A 改款','PRJ-2027-9001')" onmouseover="this.style.borderColor='var(--p)';this.style.boxShadow='var(--shm)'" onmouseout="this.style.borderColor='var(--g200)';this.style.boxShadow='none'">
+        <div style="padding:14px 20px;border-bottom:1px solid var(--g100);display:flex;align-items:center;justify-content:space-between">
+          <div>
+            <div style="font-size:15px;font-weight:700;color:var(--g900);display:flex;align-items:center;gap:8px">Modena 29A 改款 <span class="tag planned">规划中</span></div>
+            <div style="font-size:12px;color:var(--g500);margin-top:2px">PRJ-2027-9001 · 北京整车工厂 · M0: 2026-03-01</div>
+          </div>
+          <span class="avatar" style="background:linear-gradient(135deg,var(--s),#73d13d);width:32px;height:32px;font-size:13px">李</span>
+        </div>
+        <div style="padding:14px 20px">
+          <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:12px">
+            <div><div style="display:flex;justify-content:space-between;font-size:11px;color:var(--g500);margin-bottom:3px"><span>SOR定点</span><span style="font-weight:600;color:var(--g800)">0/15</span></div><div style="height:5px;background:var(--g200);border-radius:3px;overflow:hidden"><div style="height:100%;width:0%;background:var(--p);border-radius:3px"></div></div></div>
+            <div><div style="display:flex;justify-content:space-between;font-size:11px;color:var(--g500);margin-bottom:3px"><span>BDL评审</span><span style="font-weight:600;color:var(--g800)">0/15</span></div><div style="height:5px;background:var(--g200);border-radius:3px;overflow:hidden"><div style="height:100%;width:0%;background:var(--s);border-radius:3px"></div></div></div>
+            <div><div style="display:flex;justify-content:space-between;font-size:11px;color:var(--g500);margin-bottom:3px"><span>核价完成</span><span style="font-weight:600;color:var(--g800)">0/15</span></div><div style="height:5px;background:var(--g200);border-radius:3px;overflow:hidden"><div style="height:100%;width:0%;background:var(--w);border-radius:3px"></div></div></div>
+            <div><div style="display:flex;justify-content:space-between;font-size:11px;color:var(--g500);margin-bottom:3px"><span>合同签署</span><span style="font-weight:600;color:var(--g800)">0/15</span></div><div style="height:5px;background:var(--g200);border-radius:3px;overflow:hidden"><div style="height:100%;width:0%;background:var(--d);border-radius:3px"></div></div></div>
+          </div>
+          <div style="display:flex;gap:6px;flex-wrap:wrap">
+            <span style="font-size:11px;padding:2px 7px;border-radius:4px;background:var(--g100);color:var(--g600)">基础车型 <strong style="color:var(--g800)">6</strong></span>
+            <span style="font-size:11px;padding:2px 7px;border-radius:4px;background:var(--g100);color:var(--g600)">已定点 <strong style="color:var(--s)">0</strong></span>
+            <span style="font-size:11px;padding:2px 7px;border-radius:4px;background:var(--g100);color:var(--g600)">未定点 <strong style="color:var(--d)">15</strong></span>
+          </div>
+        </div>
+        <div style="padding:8px 20px;border-top:1px solid var(--g100);display:flex;justify-content:space-between;align-items:center;font-size:11px;color:var(--g500)">
+          <div style="display:flex;gap:14px"><span>PM: <strong style="color:var(--g700)">李明</strong></span><span>零件 <strong style="color:var(--g700)">162</strong></span><span>供应商 <strong style="color:var(--g700)">0</strong></span></div>
+          <span style="color:var(--p);font-weight:500;font-size:12px">详情 →</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- 3. 项目详情区（可折叠） -->
+    <div style="display:flex;align-items:center;gap:8px;margin-bottom:14px;cursor:pointer" onclick="document.getElementById('v2-details').classList.toggle('collapsed-grid')">
+      <div style="font-size:15px;font-weight:700;color:var(--g900)">平台详情</div>
+      <span style="font-size:11px;color:var(--g400)">▼</span>
+    </div>
+    <div id="v2-details">
+      <!-- 节点计划 -->
+      <div class="section">
+        <div class="section-title">节点计划</div>
+        <div class="milestone-bar">
+          <div class="ms"><div class="ms-dot done"></div><div class="ms-l">KO</div><div class="ms-d">2022-05-13</div></div>
+          <div class="ms"><div class="ms-dot done"></div><div class="ms-l"><span class="ms-r">三</span> *M5</div><div class="ms-d">2022-08-19</div></div>
+          <div class="ms"><div class="ms-dot done"></div><div class="ms-l"><span class="ms-r">三</span> *M4</div><div class="ms-d">2023-03-31</div></div>
+          <div class="ms"><div class="ms-dot done"></div><div class="ms-l"><span class="ms-r">三</span> *M3</div><div class="ms-d">2023-12-01</div></div>
+          <div class="ms"><div class="ms-dot done"></div><div class="ms-l"><span class="ms-r">三</span> *M2</div><div class="ms-d">2024-09-27</div></div>
+          <div class="ms"><div class="ms-dot cur"></div><div class="ms-l"><span class="ms-r">三</span> *M1</div><div class="ms-d">2025-06-16</div></div>
+          <div class="ms"><div class="ms-dot wait"></div><div class="ms-l"><span class="ms-r">三</span> *M0</div><div class="ms-d">2025-06-26</div></div>
+        </div>
+        <div style="padding:10px 20px;border-top:1px solid var(--g100);display:flex;align-items:center;gap:8px">
+          <span style="font-size:12px;color:var(--g500)">📎 节点文档：</span>
+          <span class="btn btn-s" style="font-size:11px">+ 上传文档</span>
+          <span style="font-size:11px;color:var(--g400)">支持 .pdf / .docx / .xlsx，单文件 ≤ 20MB</span>
+        </div>
+      </div>
+
+      <!-- 项目明细 -->
+      <div class="section">
+        <div class="section-title">项目明细</div>
+        <div class="tbl-wrap">
+          <table class="dt">
+            <thead><tr><th style="width:36px"><input type="checkbox" /></th><th>项目编码</th><th>项目名称</th><th>工厂</th></tr></thead>
+            <tbody>
+              <tr><td><input type="checkbox" /></td><td>PRJ-2026-8041</td><td>Modena 28A 国内左舵</td><td>北京整车工厂</td></tr>
+              <tr><td><input type="checkbox" /></td><td>PRJ-2026-8041-BJ</td><td>Modena 28A 国内左舵（北京工厂）</td><td>北京整车工厂</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- 项目产销规划 -->
+      <div class="section">
+        <div class="section-title">
+          <span>项目产销规划</span>
+          <div class="actions">
+            <button class="btn btn-s">📥 导入</button>
+            <button class="btn btn-s">📤 导出</button>
+            <button class="btn btn-o">✏️ 修改</button>
+          </div>
+        </div>
+        <div style="padding:8px 20px;border-bottom:1px solid var(--g100);display:flex;align-items:center;gap:8px">
+          <span style="font-size:12px;color:var(--g600)">预测年份</span>
+          <select style="padding:4px 8px;border:1px solid var(--g300);border-radius:var(--rs);font-size:12px"><option>5</option><option>3</option><option>10</option></select>
+          <span style="font-size:12px;color:var(--g600);margin-left:16px">工厂</span>
+          <select style="padding:4px 8px;border:1px solid var(--g300);border-radius:var(--rs);font-size:12px"><option>全部工厂</option><option>北京整车工厂</option><option>武汉工厂</option></select>
+        </div>
+        <div class="tbl-wrap">
+          <table class="dt">
+            <thead>
+              <tr>
+                <th style="width:36px"><input type="checkbox" /></th>
+                <th>车型</th><th>基础车型编码</th><th><span style="color:var(--d)">*</span>冻结状态</th>
+                <th><span style="color:var(--d)">*</span>基础车型名称</th><th>建议销售比例(%)</th>
+                <th>2025(台)</th><th>2026(台)</th><th>2027(台)</th><th>2028(台)</th><th>2029(台)</th><th>合计(台)</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr class="total"><td></td><td>合计</td><td>--</td><td>--</td><td>--</td><td style="text-align:right">100</td><td></td><td style="text-align:right">133,600</td><td style="text-align:right">146,200</td><td style="text-align:right">142,000</td><td style="text-align:right">150,400</td><td style="text-align:right;font-weight:700">572,200</td></tr>
+              <tr><td><input type="checkbox" /></td><td>Modena</td><td>MOD-5</td><td><span class="dot g"></span>正常</td><td>Modena-5</td><td></td><td></td><td></td><td></td><td></td><td></td><td></td></tr>
+              <tr><td><input type="checkbox" /></td><td>Modena</td><td>MOD-4</td><td><span class="dot g"></span>正常</td><td>Modena-4</td><td></td><td></td><td></td><td></td><td></td><td></td><td></td></tr>
+              <tr><td><input type="checkbox" /></td><td>Modena</td><td>MOD-3</td><td><span class="dot g"></span>正常</td><td>Modena-3</td><td style="text-align:right">29.59</td><td></td><td style="text-align:right">29,590</td><td style="text-align:right">29,590</td><td style="text-align:right">29,590</td><td style="text-align:right">29,590</td><td style="text-align:right">118,360</td></tr>
+              <tr><td><input type="checkbox" /></td><td>Modena</td><td>MOD-2</td><td><span class="dot g"></span>正常</td><td>Modena-2</td><td style="text-align:right">36.04</td><td></td><td style="text-align:right">36,040</td><td style="text-align:right">36,040</td><td style="text-align:right">36,040</td><td style="text-align:right">36,040</td><td style="text-align:right">144,160</td></tr>
+              <tr><td><input type="checkbox" /></td><td>Modena</td><td>MOD-9</td><td><span class="dot g"></span>正常</td><td>Modena-9</td><td style="text-align:right">7.52</td><td></td><td style="text-align:right">7,520</td><td style="text-align:right">7,520</td><td style="text-align:right">7,520</td><td style="text-align:right">7,520</td><td style="text-align:right">30,080</td></tr>
+              <tr><td><input type="checkbox" /></td><td>Modena</td><td>MOD-2S</td><td><span class="dot g"></span>正常</td><td>Modena-2S</td><td style="text-align:right">26.85</td><td></td><td style="text-align:right">26,850</td><td style="text-align:right">26,850</td><td style="text-align:right">26,850</td><td style="text-align:right">26,850</td><td style="text-align:right">107,400</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ============================== -->
+<!-- VIEW 3: 项目详情               -->
+<!-- ============================== -->
+<div class="view" id="v3">
+  <div class="scroll">
+    <div class="page-hdr">
+      <a class="back" onclick="showV2FromV3()">← 返回项目列表</a>
+      <h2 id="v3-title">Modena 28A 国内左舵</h2>
+      <span class="tag active" id="v3-status">进行中</span>
+      <span style="font-size:16px;color:var(--g400);cursor:pointer;margin-left:4px">☆</span>
+    </div>
+
+    <!-- Tabs -->
+    <div style="display:flex;gap:0;border-bottom:2px solid var(--g200);margin-bottom:20px;overflow-x:auto;scrollbar-width:none" id="v3-tabs">
+      <div class="vtab active" onclick="switchV3Tab(this)">进度管理</div>
+      <div class="vtab" onclick="switchV3Tab(this)">零件成熟度</div>
+      <div class="vtab" onclick="switchV3Tab(this)">预测量维护</div>
+      <div class="vtab" onclick="switchV3Tab(this)">目标价维护</div>
+      <div class="vtab" onclick="switchV3Tab(this)">EWO任务清单</div>
+      <div class="vtab" onclick="switchV3Tab(this)">CWO任务清单</div>
+      <div class="vtab" onclick="switchV3Tab(this)">SWO任务清单</div>
+      <div class="vtab" onclick="switchV3Tab(this)">项目基础信息变更日志</div>
+    </div>
+    <style>.vtab{padding:10px 18px;font-size:13px;color:var(--g600);cursor:pointer;border-bottom:2px solid transparent;margin-bottom:-2px;transition:var(--tr);white-space:nowrap;flex-shrink:0}.vtab:hover{color:var(--p)}.vtab.active{color:var(--p);font-weight:600;border-bottom-color:var(--p)}</style>
+
+    <!-- Tab: 零件成熟度 -->
+    <div id="tab-maturity">
+      <div style="display:flex;justify-content:flex-end;gap:8px;margin-bottom:12px">
+        <input style="width:220px;padding:5px 10px;border:1px solid var(--g300);border-radius:var(--rs);font-size:12px" placeholder="零部件号/零部件名称" />
+        <button class="btn btn-o">🔍 高级查询</button>
+        <label style="font-size:12px;color:var(--g600);display:flex;align-items:center;gap:4px;cursor:pointer;margin-left:8px">是否有效 <input type="checkbox" checked style="accent-color:var(--p)" /></label>
+      </div>
+      <div class="section" style="margin-bottom:0">
+        <div class="section-title">
+          <span style="flex:1;text-align:center">SOR1</span>
+        </div>
+        <div class="tbl-wrap">
+          <table class="dt">
+            <thead>
+              <tr>
+                <th style="width:40px">序号</th>
+                <th style="min-width:120px">零部件</th>
+                <th style="min-width:140px">责任人</th>
+                <th style="min-width:140px">数据来源</th>
+                <th style="min-width:180px">相关属性</th>
+                <th style="min-width:100px">SOR0</th>
+                <th style="min-width:120px">初版</th>
+                <th style="min-width:160px">最新</th>
+                <th style="min-width:120px">预选供应商</th>
+                <th style="min-width:120px">询报价(第一轮)</th>
+                <th style="min-width:100px">定点</th>
+                <th style="min-width:100px">定点供应商</th>
+                <th style="min-width:100px">风险说明</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td>1</td>
+                <td style="font-weight:500">C000002956001<br><span style="font-size:11px;color:var(--g500)">前处理总成</span></td>
+                <td>研发工程师：<span class="link">胡伟</span><br>采购工程师：<br>质量工程师：<span class="link">田力伟</span></td>
+                <td>数据来源：<span style="color:var(--p)">SOR新增</span><br>加入日期：2025-05-13<br>同步MIBOM：<br>是否有效：是</td>
+                <td>首用车型：MX11<br>功能分组：智能制造<br>开发策略：<br>建议来源：</td>
+                <td>计划：<br>实际：</td>
+                <td>编号：<br><span class="link">SOR-MX11(8043)-MFG-0001</span><br>PM接收：<br>采购员接收：</td>
+                <td>计划：2025-05-12<br>实际：<br>编号：<span class="link">SOR-MX11(8043)-MFG-000...</span><br>PM接收：2025-05-13<br>采购员接收：2025-05-13</td>
+                <td>实际：2025-05-14</td>
+                <td>实际：2025-05-22<br>编号：<span class="link">RFQ-20250513-001</span></td>
+                <td>计划：2025-05-23<br>实际：<br>申请单：</td>
+                <td></td>
+                <td></td>
+              </tr>
+              <tr>
+                <td>2</td>
+                <td style="font-weight:500">C000002957001<br><span style="font-size:11px;color:var(--g500)">电泳总成</span></td>
+                <td>研发工程师：<span class="link">胡伟</span><br>采购工程师：<br>质量工程师：<span class="link">田力伟</span></td>
+                <td>数据来源：<span style="color:var(--p)">SOR新增</span><br>加入日期：2025-05-13<br>同步MIBOM：<br>是否有效：是</td>
+                <td>首用车型：MX11<br>功能分组：智能制造<br>开发策略：<br>建议来源：</td>
+                <td>计划：<br>实际：</td>
+                <td>编号：<br><span class="link">SOR-MX11(8043)-MFG-0002</span><br>PM接收：<br>采购员接收：</td>
+                <td>计划：2025-05-12<br>实际：<br>编号：<span class="link">SOR-MX11(8043)-MFG-000...</span><br>PM接收：2025-05-13<br>采购员接收：2025-05-13</td>
+                <td>实际：2025-05-14</td>
+                <td>实际：2025-05-22<br>编号：<span class="link">RFQ-20250513-002</span></td>
+                <td>计划：2025-05-23<br>实际：<br>申请单：</td>
+                <td></td>
+                <td></td>
+              </tr>
+              <tr>
+                <td>3</td>
+                <td style="font-weight:500">C000002958001<br><span style="font-size:11px;color:var(--g500)">密封胶总成</span></td>
+                <td>研发工程师：<span class="link">宋勇勇</span><br>采购工程师：<br>质量工程师：<span class="link">曹茂平</span></td>
+                <td>数据来源：<span style="color:var(--p)">SOR新增</span><br>加入日期：2025-06-11<br>同步MIBOM：<br>是否有效：是</td>
+                <td>首用车型：MX11<br>功能分组：智能制造<br>开发策略：<br>建议来源：</td>
+                <td>计划：<br>实际：</td>
+                <td>编号：<br><span class="link">SOR-MX11(8043)-MFG-0008</span><br>PM接收：<br>采购员接收：</td>
+                <td>计划：2025-06-06<br>实际：<br>编号：<span class="link">SOR-MX11(8043)-MFG-000...</span><br>PM接收：2025-06-11<br>采购员接收：2025-06-11</td>
+                <td>实际：2025-06-24</td>
+                <td>实际：2025-07-07<br>编号：<span class="link">RFQ-20250611-003</span></td>
+                <td>计划：2025-07-25<br>实际：<br>申请单：</td>
+                <td></td>
+                <td></td>
+              </tr>
+              <tr>
+                <td>4</td>
+                <td style="font-weight:500">C000002959001<br><span style="font-size:11px;color:var(--g500)">中涂总成</span></td>
+                <td>研发工程师：<span class="link">胡伟</span><br>采购工程师：<br>质量工程师：<span class="link">田力伟</span></td>
+                <td>数据来源：<span style="color:var(--p)">SOR新增</span><br>加入日期：2025-05-13<br>同步MIBOM：<br>是否有效：是</td>
+                <td>首用车型：MX11<br>功能分组：智能制造<br>开发策略：<br>建议来源：</td>
+                <td>计划：<br>实际：</td>
+                <td>编号：<br><span class="link">SOR-MX11(8043)-MFG-0003</span><br>PM接收：<br>采购员接收：</td>
+                <td>计划：2025-05-12<br>实际：2025-05-30<br>编号：<span class="link">SOR-MX11(8043)-MFG-000...</span><br>PM接收：2025-05-13<br>采购员接收：2025-05-15</td>
+                <td></td>
+                <td>实际：2025-06-05<br>编号：<span class="link">RFQ-20250522-004</span></td>
+                <td>计划：2025-05-23<br>实际：<br>申请单：</td>
+                <td></td>
+                <td></td>
+              </tr>
+              <tr>
+                <td>5</td>
+                <td style="font-weight:500">C000002961001<br><span style="font-size:11px;color:var(--g500)">清漆总成</span></td>
+                <td>研发工程师：<span class="link">胡伟</span><br>采购工程师：<br>质量工程师：<span class="link">田力伟</span></td>
+                <td>数据来源：<span style="color:var(--p)">SOR新增</span><br>加入日期：2025-05-13<br>同步MIBOM：<br>是否有效：是</td>
+                <td>首用车型：MX11<br>功能分组：智能制造<br>开发策略：<br>建议来源：</td>
+                <td>计划：<br>实际：</td>
+                <td>编号：<br><span class="link">SOR-MX11(8043)-MFG-0004</span><br>PM接收：<br>采购员接收：</td>
+                <td>计划：2025-05-12<br>实际：<br>编号：<span class="link">SOR-MX11(8043)-MFG-000...</span><br>PM接收：2025-05-13<br>采购员接收：2025-05-13</td>
+                <td>实际：2025-05-14</td>
+                <td>实际：2025-05-22<br>编号：<span class="link">RFQ-20250513-003</span></td>
+                <td>计划：2025-05-23<br>实际：<br>申请单：</td>
+                <td></td>
+                <td></td>
+              </tr>
+              <tr>
+                <td>6</td>
+                <td style="font-weight:500">C000005955001<br><span style="font-size:11px;color:var(--g500)">雅灰</span></td>
+                <td>研发工程师：<span class="link">周宗上</span><br>采购工程师：<br>质量工程师：<span class="link">田力伟</span></td>
+                <td>数据来源：<span style="color:var(--p)">SOR新增</span><br>加入日期：2025-08-06<br>同步MIBOM：<br>是否有效：是</td>
+                <td>首用车型：MS11<br>功能分组：智能制造<br>开发策略：<br>建议来源：</td>
+                <td>计划：<br>实际：</td>
+                <td>编号：<br><span class="link">SOR-MX11(8043)-MFG-0012</span><br>PM接收：<br>采购员接收：</td>
+                <td>计划：2025-06-06<br>实际：<br>编号：<span class="link">SOR-MX11(8043)-MFG-001...</span><br>PM接收：2025-06-09<br>采购员接收：2025-06-10</td>
+                <td>实际：2025-06-11</td>
+                <td>实际：2025-06-26<br>编号：<span class="link">RFQ-20250610-013</span></td>
+                <td>计划：2025-07-18<br>实际：<br>申请单：<span class="link">SCM-20250723-01...</span></td>
+                <td>0000150843<br>巴斯夫上海涂料有...</td>
+                <td></td>
+              </tr>
+              <tr>
+                <td>7</td>
+                <td style="font-weight:500">C000005956001<br><span style="font-size:11px;color:var(--g500)">迷雾紫</span></td>
+                <td>研发工程师：<span class="link">周宗上</span><br>采购工程师：<br>质量工程师：<span class="link">田力伟</span></td>
+                <td>数据来源：<span style="color:var(--p)">SOR新增</span><br>加入日期：2025-07-25<br>同步MIBOM：<br>是否有效：是</td>
+                <td>首用车型：MS11<br>功能分组：智能制造<br>开发策略：<br>建议来源：</td>
+                <td>计划：<br>实际：</td>
+                <td>编号：<br><span class="link">SOR-MX11(8043)-MFG-0011</span><br>PM接收：<br>采购员接收：</td>
+                <td>计划：2025-06-06<br>实际：<br>编号：<span class="link">SOR-MX11(8043)-MFG-001...</span><br>PM接收：2025-06-09<br>采购员接收：2025-06-09</td>
+                <td>实际：2025-06-11</td>
+                <td>实际：2025-06-26<br>编号：<span class="link">RFQ-20250609-005</span></td>
+                <td>计划：2025-07-18<br>实际：<br>申请单：<span class="link">SCM-20250723-01...</span></td>
+                <td>0000165315<br>PPG涂料(天津) ...</td>
+                <td></td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- Tab: 预测量维护 -->
+    <div id="tab-forecast" style="display:none">
+      <div class="section" style="margin-bottom:0">
+        <div class="section-title">
+          <span>预测量维护（<span style="color:var(--d)">SOR预计总量:0 零件预计总量:0</span>）</span>
+        </div>
+        <div class="tbl-wrap">
+          <table class="dt">
+            <thead>
+              <tr>
+                <th style="width:36px"><input type="checkbox" /></th>
+                <th>序号</th>
+                <th><span style="color:var(--d)">*</span>专业组</th>
+                <th>SOR包预计数量</th>
+                <th>零件预计数量</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr style="background:var(--pl)"><td><input type="checkbox" checked /></td><td>1</td><td>电子架构</td><td></td><td style="background:var(--pl)"></td></tr>
+              <tr><td><input type="checkbox" /></td><td>2</td><td>机械架构</td><td></td><td></td></tr>
+              <tr><td><input type="checkbox" /></td><td>3</td><td>上车体</td><td></td><td></td></tr>
+              <tr><td><input type="checkbox" /></td><td>4</td><td>先进动力</td><td></td><td></td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- Tab: 目标价维护 -->
+    <div id="tab-target" style="display:none">
+      <div class="section" style="margin-bottom:0">
+        <div class="section-title"><span>目标价维护</span></div>
+        <div class="tbl-wrap">
+          <table class="dt">
+            <thead>
+              <tr>
+                <th style="width:36px"><input type="checkbox" /></th>
+                <th>序号</th>
+                <th><span style="color:var(--d)">*</span>基础车型</th>
+                <th><span style="color:var(--d)">*</span>专业组</th>
+                <th>目标价</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr><td><input type="checkbox" /></td><td>1</td><td>Le Mans-1</td><td>电子架构</td><td></td></tr>
+              <tr><td><input type="checkbox" /></td><td>2</td><td>Le Mans-1</td><td>机械架构</td><td></td></tr>
+              <tr><td><input type="checkbox" /></td><td>3</td><td>Le Mans-1</td><td>上车体</td><td></td></tr>
+              <tr><td><input type="checkbox" /></td><td>4</td><td>Le Mans-1</td><td>先进动力</td><td></td></tr>
+              <tr><td><input type="checkbox" /></td><td>5</td><td>Le Mans-2</td><td>电子架构</td><td></td></tr>
+              <tr><td><input type="checkbox" /></td><td>6</td><td>Le Mans-2</td><td>机械架构</td><td></td></tr>
+              <tr><td><input type="checkbox" /></td><td>7</td><td>Le Mans-2</td><td>上车体</td><td></td></tr>
+              <tr><td><input type="checkbox" /></td><td>8</td><td>Le Mans-2</td><td>先进动力</td><td></td></tr>
+              <tr><td><input type="checkbox" /></td><td>9</td><td>Le Mans-2S</td><td>电子架构</td><td></td></tr>
+              <tr><td><input type="checkbox" /></td><td>10</td><td>Le Mans-2S</td><td>机械架构</td><td></td></tr>
+              <tr><td><input type="checkbox" /></td><td>11</td><td>Le Mans-2S</td><td>上车体</td><td></td></tr>
+              <tr><td><input type="checkbox" /></td><td>12</td><td>Le Mans-2S</td><td>先进动力</td><td></td></tr>
+              <tr><td><input type="checkbox" /></td><td>13</td><td>Le Mans-3</td><td>电子架构</td><td></td></tr>
+              <tr><td><input type="checkbox" /></td><td>14</td><td>Le Mans-3</td><td>机械架构</td><td></td></tr>
+              <tr><td><input type="checkbox" /></td><td>15</td><td>Le Mans-3</td><td>上车体</td><td></td></tr>
+              <tr><td><input type="checkbox" /></td><td>16</td><td>Le Mans-3</td><td>先进动力</td><td></td></tr>
+              <tr><td><input type="checkbox" /></td><td>17</td><td>Le Mans-4</td><td>电子架构</td><td></td></tr>
+              <tr><td><input type="checkbox" /></td><td>18</td><td>Le Mans-4</td><td>机械架构</td><td></td></tr>
+              <tr><td><input type="checkbox" /></td><td>19</td><td>Le Mans-4</td><td>上车体</td><td></td></tr>
+              <tr><td><input type="checkbox" /></td><td>20</td><td>Le Mans-4</td><td>先进动力</td><td></td></tr>
+              <tr><td><input type="checkbox" /></td><td>21</td><td>Le Mans-5</td><td>电子架构</td><td></td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- Tab: 进度管理 -->
+    <div id="tab-prog" style="display:none">
+      <div class="section">
+        <div class="section-title">
+          <span>进度管理（SOR 进度跟踪）</span>
+          <div class="actions">
+            <button class="btn btn-s">📥 导入</button>
+            <button class="btn btn-s">📤 导出</button>
+            <button class="btn btn-p">+ 新增条目</button>
+          </div>
+        </div>
+        <div class="prog-add">
+          <span class="note">💡 品类必须在表2品类清单中；采购员/SQE/DRE/采购组 系统自动带出；计划定点时间 PM 导入</span>
+        </div>
+        <div class="tbl-wrap">
+          <table class="dt">
+            <thead>
+              <tr>
+                <th style="width:36px"><input type="checkbox" /></th>
+                <th>SOR编号</th>
+                <th>SOR名称</th>
+                <th>品类</th>
+                <th>采购员</th>
+                <th>采购组</th>
+                <th>DRE</th>
+                <th>SQE</th>
+                <th>开发策略</th>
+                <th>计划定点时间</th>
+                <th>定点状态</th>
+                <th>实际定点时间</th>
+                <th>定点文档归档</th>
+                <th>关联BDL</th>
+                <th>BDL评审进度</th>
+                <th>关联RFQ</th>
+                <th>核价完成进度</th>
+                <th>合同签署进度</th>
+                <th>操作</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td><input type="checkbox" /></td>
+                <td>SOR-2026-001</td>
+                <td>前排座椅骨架总成</td>
+                <td>座椅系统</td>
+                <td><select style="padding:4px 6px;border:1px solid var(--g300);border-radius:var(--rs);font-size:12px"><option>丁鑫</option><option>刘成昆</option><option>温世林</option><option>何帅</option></select></td>
+                <td><select style="padding:4px 6px;border:1px solid var(--g300);border-radius:var(--rs);font-size:12px"><option>内饰采购组</option><option>外饰采购组</option><option>底盘采购组</option><option>电子电器采购组</option></select></td>
+                <td><select style="padding:4px 6px;border:1px solid var(--g300);border-radius:var(--rs);font-size:12px"><option>石恒宇</option><option>陈治钢</option></select></td>
+                <td><select style="padding:4px 6px;border:1px solid var(--g300);border-radius:var(--rs);font-size:12px"><option>张文敏</option><option>杨磊</option><option>杨颖晖</option><option>孙纪岳</option></select></td>
+                <td>新开发</td>
+                <td>2026-08-15</td>
+                <td><span class="badge-s a">未定点</span></td>
+                <td>--</td>
+                <td><span class="check n">—</span></td>
+                <td>BDL-2026-012</td>
+                <td><span style="color:var(--s)">已通过</span></td>
+                <td>RFQ-2026-089</td>
+                <td><span style="color:var(--s)">100%</span></td>
+                <td><span class="check n">—</span></td>
+                <td><span class="link">转派</span></td>
+              </tr>
+              <tr>
+                <td><input type="checkbox" /></td>
+                <td>SOR-2026-002</td>
+                <td>前排座椅面套</td>
+                <td>座椅系统</td>
+                <td><select style="padding:4px 6px;border:1px solid var(--g300);border-radius:var(--rs);font-size:12px"><option>丁鑫</option><option>刘成昆</option><option>温世林</option><option>何帅</option></select></td>
+                <td><select style="padding:4px 6px;border:1px solid var(--g300);border-radius:var(--rs);font-size:12px"><option>内饰采购组</option><option>外饰采购组</option><option>底盘采购组</option><option>电子电器采购组</option></select></td>
+                <td><select style="padding:4px 6px;border:1px solid var(--g300);border-radius:var(--rs);font-size:12px"><option>石恒宇</option><option>陈治钢</option></select></td>
+                <td><select style="padding:4px 6px;border:1px solid var(--g300);border-radius:var(--rs);font-size:12px"><option>张文敏</option><option>杨磊</option><option>杨颖晖</option><option>孙纪岳</option></select></td>
+                <td>新开发</td>
+                <td>2026-08-20</td>
+                <td><span class="badge-s b">定点中</span></td>
+                <td>--</td>
+                <td><span class="check n">—</span></td>
+                <td>BDL-2026-013</td>
+                <td><span style="color:var(--w)">评审中</span></td>
+                <td>RFQ-2026-090</td>
+                <td><span style="color:var(--w)">75%</span></td>
+                <td><span class="check n">—</span></td>
+                <td><span class="link">转派</span></td>
+              </tr>
+              <tr>
+                <td><input type="checkbox" /></td>
+                <td>SOR-2026-003</td>
+                <td>仪表板总成</td>
+                <td>仪表板系统</td>
+                <td><select style="padding:4px 6px;border:1px solid var(--g300);border-radius:var(--rs);font-size:12px"><option>刘成昆</option><option>丁鑫</option><option>温世林</option><option>何帅</option></select></td>
+                <td><select style="padding:4px 6px;border:1px solid var(--g300);border-radius:var(--rs);font-size:12px"><option>内饰采购组</option><option>外饰采购组</option><option>底盘采购组</option><option>电子电器采购组</option></select></td>
+                <td><select style="padding:4px 6px;border:1px solid var(--g300);border-radius:var(--rs);font-size:12px"><option>石恒宇</option><option>陈治钢</option></select></td>
+                <td><select style="padding:4px 6px;border:1px solid var(--g300);border-radius:var(--rs);font-size:12px"><option>杨磊</option><option>张文敏</option><option>杨颖晖</option><option>孙纪岳</option></select></td>
+                <td>新开发</td>
+                <td>2026-07-30</td>
+                <td><span class="badge-s a">未定点</span></td>
+                <td>--</td>
+                <td><span class="check n">—</span></td>
+                <td>BDL-2026-008</td>
+                <td><span style="color:var(--s)">已通过</span></td>
+                <td>RFQ-2026-076</td>
+                <td><span style="color:var(--s)">100%</span></td>
+                <td><span class="check n">—</span></td>
+                <td><span class="link">转派</span></td>
+              </tr>
+              <tr>
+                <td><input type="checkbox" /></td>
+                <td>SOR-2026-004</td>
+                <td>前保险杠总成</td>
+                <td>保险杠系统</td>
+                <td><select style="padding:4px 6px;border:1px solid var(--g300);border-radius:var(--rs);font-size:12px"><option>温世林</option><option>丁鑫</option><option>刘成昆</option><option>何帅</option></select></td>
+                <td><select style="padding:4px 6px;border:1px solid var(--g300);border-radius:var(--rs);font-size:12px"><option>外饰采购组</option><option>内饰采购组</option><option>底盘采购组</option><option>电子电器采购组</option></select></td>
+                <td><select style="padding:4px 6px;border:1px solid var(--g300);border-radius:var(--rs);font-size:12px"><option>陈治钢</option><option>石恒宇</option></select></td>
+                <td><select style="padding:4px 6px;border:1px solid var(--g300);border-radius:var(--rs);font-size:12px"><option>杨颖晖</option><option>张文敏</option><option>杨磊</option><option>孙纪岳</option></select></td>
+                <td>新开发</td>
+                <td>2026-09-01</td>
+                <td><span class="badge-s c">已定点</span></td>
+                <td>2026-06-20</td>
+                <td><span class="check y">✓</span></td>
+                <td>BDL-2026-015</td>
+                <td><span style="color:var(--s)">已通过</span></td>
+                <td>RFQ-2026-095</td>
+                <td><span style="color:var(--s)">100%</span></td>
+                <td><span class="link" style="color:var(--p)">FW-2026-0042</span></td>
+                <td><span class="link">转派</span></td>
+              </tr>
+              <tr>
+                <td><input type="checkbox" /></td>
+                <td>SOR-2026-005</td>
+                <td>后保险杠总成</td>
+                <td>保险杠系统</td>
+                <td><select style="padding:4px 6px;border:1px solid var(--g300);border-radius:var(--rs);font-size:12px"><option>温世林</option><option>丁鑫</option><option>刘成昆</option><option>何帅</option></select></td>
+                <td><select style="padding:4px 6px;border:1px solid var(--g300);border-radius:var(--rs);font-size:12px"><option>外饰采购组</option><option>内饰采购组</option><option>底盘采购组</option><option>电子电器采购组</option></select></td>
+                <td><select style="padding:4px 6px;border:1px solid var(--g300);border-radius:var(--rs);font-size:12px"><option>陈治钢</option><option>石恒宇</option></select></td>
+                <td><select style="padding:4px 6px;border:1px solid var(--g300);border-radius:var(--rs);font-size:12px"><option>杨颖晖</option><option>张文敏</option><option>杨磊</option><option>孙纪岳</option></select></td>
+                <td>新开发</td>
+                <td>2026-09-01</td>
+                <td><span class="badge-s c">已定点</span></td>
+                <td>2026-06-20</td>
+                <td><span class="check y">✓</span></td>
+                <td>BDL-2026-016</td>
+                <td><span style="color:var(--s)">已通过</span></td>
+                <td>RFQ-2026-096</td>
+                <td><span style="color:var(--s)">100%</span></td>
+                <td><span class="link" style="color:var(--p)">FW-2026-0042</span></td>
+                <td><span class="link">转派</span></td>
+              </tr>
+              <tr>
+                <td><input type="checkbox" /></td>
+                <td>SOR-2026-006</td>
+                <td>左后门扬声器盖板</td>
+                <td>门饰系统</td>
+                <td><select style="padding:4px 6px;border:1px solid var(--g300);border-radius:var(--rs);font-size:12px"><option>何帅</option><option>丁鑫</option><option>刘成昆</option><option>温世林</option></select></td>
+                <td><select style="padding:4px 6px;border:1px solid var(--g300);border-radius:var(--rs);font-size:12px"><option>内饰采购组</option><option>外饰采购组</option><option>底盘采购组</option><option>电子电器采购组</option></select></td>
+                <td><select style="padding:4px 6px;border:1px solid var(--g300);border-radius:var(--rs);font-size:12px"><option>石恒宇</option><option>陈治钢</option></select></td>
+                <td><select style="padding:4px 6px;border:1px solid var(--g300);border-radius:var(--rs);font-size:12px"><option>孙纪岳</option><option>张文敏</option><option>杨磊</option><option>杨颖晖</option></select></td>
+                <td>新开发</td>
+                <td>2026-08-10</td>
+                <td><span class="badge-s a">未定点</span></td>
+                <td>--</td>
+                <td><span class="check n">—</span></td>
+                <td>BDL-2026-011</td>
+                <td><span style="color:var(--w)">评审中</span></td>
+                <td>--</td>
+                <td><span style="color:var(--g400)">未开始</span></td>
+                <td><span class="check n">—</span></td>
+                <td><span class="link">转派</span></td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- Tab: EWO/CWO/SWO -->
+    <div id="tab-tasks" style="display:none">
+      <div class="section">
+        <div class="section-title">EWO 任务清单</div>
+        <div class="tbl-wrap">
+          <table class="dt">
+            <thead><tr><th style="width:36px"><input type="checkbox" /></th><th>任务编号</th><th>任务名称</th><th>状态</th><th>负责人</th><th>截止时间</th></tr></thead>
+            <tbody>
+              <tr><td><input type="checkbox" /></td><td>EWO-001</td><td>座椅骨架模具开发</td><td><span class="badge-s b">进行中</span></td><td>丁鑫</td><td>2026-09-30</td></tr>
+              <tr><td><input type="checkbox" /></td><td>EWO-002</td><td>仪表板注塑模具</td><td><span class="badge-s new">待启动</span></td><td>刘成昆</td><td>2026-10-15</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+      <div class="section">
+        <div class="section-title">CWO 任务清单</div>
+        <div class="tbl-wrap">
+          <table class="dt">
+            <thead><tr><th style="width:36px"><input type="checkbox" /></th><th>任务编号</th><th>任务名称</th><th>状态</th><th>负责人</th><th>截止时间</th></tr></thead>
+            <tbody>
+              <tr><td><input type="checkbox" /></td><td>CWO-001</td><td>前保险杠工装验收</td><td><span class="badge-s c">已完成</span></td><td>温世林</td><td>2026-06-15</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+      <div class="section">
+        <div class="section-title">SWO 任务清单</div>
+        <div class="tbl-wrap">
+          <table class="dt">
+            <thead><tr><th style="width:36px"><input type="checkbox" /></th><th>任务编号</th><th>任务名称</th><th>状态</th><th>负责人</th><th>截止时间</th></tr></thead>
+            <tbody>
+              <tr><td><input type="checkbox" /></td><td>SWO-001</td><td>样件交付确认</td><td><span class="badge-s b">进行中</span></td><td>张家宇</td><td>2026-08-01</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- Tab: 变更日志 -->
+    <div id="tab-log" style="display:none">
+      <div class="section">
+        <div class="section-title">项目基础信息变更日志</div>
+        <div class="tbl-wrap">
+          <table class="dt">
+            <thead><tr><th>变更时间</th><th>变更人</th><th>变更字段</th><th>变更前</th><th>变更后</th></tr></thead>
+            <tbody>
+              <tr><td>2026-06-25 14:30</td><td>张家宇</td><td>计划开始时间</td><td>2026-05-01</td><td>2026-06-01</td></tr>
+              <tr><td>2026-06-20 09:15</td><td>张家宇</td><td>采购项目经理</td><td>李明</td><td>张家宇</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- ============================== -->
+<!-- VIEW 4: 零件规划表             -->
+<!-- ============================== -->
+<div class="view" id="v4">
+  <div style="background:#fff;padding:12px 20px;border-bottom:1px solid var(--g200);flex-shrink:0">
+    <div style="font-size:16px;font-weight:700;color:var(--g900);display:flex;align-items:center;gap:8px">
+      <a class="back" onclick="showV3FromV4()">← 返回项目详情</a>
+      <span id="v4-title">Modena 28A · 零件规划明细</span>
+    </div>
+    <div style="display:flex;gap:0;margin-top:8px;overflow-x:auto;scrollbar-width:none">
+      <div class="vtab active" onclick="switchV3Tab(this)">全部零件 <span class="badge" style="background:var(--p);color:#fff">58</span></div>
+      <div class="vtab" onclick="switchV3Tab(this)">内饰 <span class="badge" style="background:var(--g100)">32</span></div>
+      <div class="vtab" onclick="switchV3Tab(this)">外饰 <span class="badge" style="background:var(--g100)">12</span></div>
+      <div class="vtab" onclick="switchV3Tab(this)">底盘 <span class="badge" style="background:var(--g100)">8</span></div>
+      <div class="vtab" onclick="switchV3Tab(this)">电子电器 <span class="badge" style="background:var(--g100)">6</span></div>
+    </div>
+    <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;margin-top:8px;flex-wrap:wrap">
+      <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
+        <input style="width:200px;padding:5px 10px;border:1px solid var(--g300);border-radius:var(--rs);font-size:12px" placeholder="搜索零件代号/名称/供应商..." />
+        <button class="btn btn-o">🔍 高级筛选</button>
+        <button class="btn btn-o">📦 系统分类 ▾</button>
+        <button class="btn btn-o">🏭 供应商 ▾</button>
+        <button class="btn btn-o">📅 建设状态 ▾</button>
+      </div>
+      <div style="display:flex;align-items:center;gap:10px">
+        <label style="font-size:12px;color:var(--g600);display:flex;align-items:center;gap:4px;cursor:pointer"><input type="checkbox" checked style="accent-color:var(--p)" /> 显示分组</label>
+        <button class="btn btn-o">⬇ 导出</button>
+        <button class="btn btn-p">+ 新增零件</button>
+      </div>
+    </div>
+  </div>
+  <div style="flex:1;overflow:auto">
+    <div style="background:#fff;margin:12px 16px;border-radius:var(--r);border:1px solid var(--g200);overflow:hidden">
+      <table class="dt">
+        <thead>
+          <tr>
+            <th style="width:40px">#</th>
+            <th style="min-width:110px">零件代号</th>
+            <th style="min-width:150px">零件名称</th>
+            <th style="min-width:120px">零部件编号</th>
+            <th>零件分类</th><th>专业部门</th><th>DRE</th><th>零用车型</th>
+            <th style="min-width:150px">零部件供应商</th>
+            <th>建设状态</th><th>采购状态</th><th>系统分类</th><th>系统分组</th><th>子系统分组</th>
+            <th>造型相关</th><th>系统经理</th><th>SQE/SIE</th><th>采购员</th><th>CE</th>
+            <th>KL13</th><th>KL14A</th><th>10群科指技</th><th>KL38A</th><th>N1</th><th>N2</th><th>新及设计供</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr class="gh" onclick="toggleGrp(this)"><td colspan="26"><div class="gh-inner"><span class="gh-icon">▼</span><span class="tag-b interior">内饰</span>58 条记录<span class="gh-cnt">| 唯一值 8 · 已指派 38</span></div></td></tr>
+          <tr class="sgh" onclick="toggleGrp(this)"><td colspan="26"><div class="gh-inner"><span class="gh-icon">▼</span>安道拓（武汉）汽车部件有限公司 · 9 条记录<span class="gh-cnt">| 唯一值 8 · 已指派 8</span></div></td></tr>
+          <tr class="dr"><td class="rn">1</td><td class="pc" onclick="showV3('Modena 28A 国内左舵','PRJ-2026-8041')">P00003167S001</td><td>N2-主驾座椅-非座椅-电动-4向可调-前排...</td><td>P00003167S001</td><td><span class="tag-b interior">内饰</span></td><td>内饰</td><td><span class="avatar" style="background:linear-gradient(135deg,var(--p),#4096ff)">尼</span>尼树才</td><td>KUNLUN N2</td><td>安道拓（武汉）汽车部件有限公司</td><td><span class="badge-s new">New</span></td><td><span class="badge-s a">A（长周期）</span></td><td>座椅系统</td><td>前排座椅</td><td>座椅</td><td><span class="check y">✓</span></td><td>石恒宇</td><td>张文敏</td><td>丁鑫</td><td>吴宾</td><td><span class="check y">✓</span></td><td><span class="check y">✓</span></td><td><span class="check y">✓</span></td><td><span class="check y">✓</span></td><td><span class="check y">✓</span></td><td><span class="check y">✓</span></td><td>2024/04/30</td></tr>
+          <tr class="dr"><td class="rn">2</td><td class="pc" onclick="showV3('Modena 28A 国内左舵','PRJ-2026-8041')">P000040372001</td><td>N2-副驾座椅-非座椅-电动-6向可调-前排...</td><td>P000040372001</td><td><span class="tag-b interior">内饰</span></td><td>内饰</td><td><span class="avatar" style="background:linear-gradient(135deg,var(--p),#4096ff)">尼</span>尼树才</td><td>KUNLUN N2</td><td>安道拓（武汉）汽车部件有限公司</td><td><span class="badge-s new">New</span></td><td><span class="badge-s a">A（长周期）</span></td><td>座椅系统</td><td>前排座椅</td><td>座椅</td><td><span class="check y">✓</span></td><td>石恒宇</td><td>张文敏</td><td>丁鑫</td><td>吴宾</td><td><span class="check y">✓</span></td><td><span class="check y">✓</span></td><td><span class="check y">✓</span></td><td><span class="check y">✓</span></td><td><span class="check y">✓</span></td><td><span class="check y">✓</span></td><td>2024/04/30</td></tr>
+          <tr class="dr"><td class="rn">3</td><td class="pc" onclick="showV3('Modena 28A 国内左舵','PRJ-2026-8041')">P000044618001</td><td>二排空调出风口总成-左</td><td>P000044618001</td><td><span class="tag-b interior">内饰</span></td><td>内饰</td><td><span class="avatar" style="background:linear-gradient(135deg,var(--p),#4096ff)">石</span>石美华</td><td>KUNLUN N2</td><td>安道拓（武汉）汽车部件有限公司</td><td><span class="badge-s new">New</span></td><td><span class="badge-s b">B（中周期）</span></td><td>空调系统</td><td>空调风道</td><td>出风口</td><td><span class="check n">—</span></td><td>石恒宇</td><td>张文敏</td><td>丁鑫</td><td>吴宾</td><td><span class="check y">✓</span></td><td><span class="check y">✓</span></td><td><span class="check y">✓</span></td><td><span class="check y">✓</span></td><td><span class="check y">✓</span></td><td><span class="check y">✓</span></td><td>2024/12/17</td></tr>
+          <tr class="dr"><td class="rn">4</td><td class="pc" onclick="showV3('Modena 28A 国内左舵','PRJ-2026-8041')">P000044619001</td><td>二排空调出风口总成-右</td><td>P000044619001</td><td><span class="tag-b interior">内饰</span></td><td>内饰</td><td><span class="avatar" style="background:linear-gradient(135deg,var(--p),#4096ff)">石</span>石美华</td><td>KUNLUN N2</td><td>安道拓（武汉）汽车部件有限公司</td><td><span class="badge-s new">New</span></td><td><span class="badge-s b">B（中周期）</span></td><td>空调系统</td><td>空调风道</td><td>出风口</td><td><span class="check n">—</span></td><td>石恒宇</td><td>张文敏</td><td>丁鑫</td><td>吴宾</td><td><span class="check y">✓</span></td><td><span class="check y">✓</span></td><td><span class="check y">✓</span></td><td><span class="check y">✓</span></td><td><span class="check y">✓</span></td><td><span class="check y">✓</span></td><td>2024/12/17</td></tr>
+          <tr class="dr"><td class="rn">5</td><td class="pc" onclick="showV3('Modena 28A 国内左舵','PRJ-2026-8041')">P000043545001</td><td>前排乘客座椅坐垫总成-左（含骨架）</td><td>P000043545001</td><td><span class="tag-b interior">内饰</span></td><td>内饰</td><td><span class="avatar" style="background:linear-gradient(135deg,var(--p),#4096ff)">尼</span>尼树才</td><td>KUNLUN N2</td><td>安道拓（武汉）汽车部件有限公司</td><td><span class="badge-s new">New</span></td><td><span class="badge-s b">B（中周期）</span></td><td>座椅系统</td><td>座椅骨架</td><td>坐垫</td><td><span class="check y">✓</span></td><td>石恒宇</td><td>张文敏</td><td>丁鑫</td><td>吴宾</td><td><span class="check y">✓</span></td><td><span class="check y">✓</span></td><td><span class="check y">✓</span></td><td><span class="check y">✓</span></td><td><span class="check y">✓</span></td><td><span class="check y">✓</span></td><td>2024/12/17</td></tr>
+
+          <tr class="sgh" onclick="toggleGrp(this)"><td colspan="26"><div class="gh-inner"><span class="gh-icon">▼</span>东风延锋（武汉）汽车内饰件有限公司 · 2 条记录<span class="gh-cnt">| 唯一值 2 · 已指派 2</span></div></td></tr>
+          <tr class="dr"><td class="rn">1</td><td class="pc" onclick="showV3('Modena 28A 国内左舵','PRJ-2026-8041')">P000032207001</td><td>仪表板中下饰板总成（N2）</td><td>P000032207001</td><td><span class="tag-b interior">内饰</span></td><td>内饰</td><td><span class="avatar" style="background:linear-gradient(135deg,var(--w),#ffc53d)">刘</span>刘成昆</td><td>KUNLUN N2</td><td>东风延锋（武汉）汽车内饰件有限公司</td><td><span class="badge-s new">New</span></td><td><span class="badge-s b">B（中周期）</span></td><td>仪表板系统</td><td>仪表板装饰</td><td>饰板</td><td><span class="check y">✓</span></td><td>石恒宇</td><td>张文敏</td><td>丁鑫</td><td>吴宾</td><td><span class="check y">✓</span></td><td><span class="check y">✓</span></td><td><span class="check y">✓</span></td><td><span class="check y">✓</span></td><td><span class="check y">✓</span></td><td><span class="check y">✓</span></td><td>2024/03/15</td></tr>
+
+          <tr class="gh" onclick="toggleGrp(this)"><td colspan="26"><div class="gh-inner"><span class="gh-icon">▼</span><span class="tag-b exterior">外饰</span>12 条记录<span class="gh-cnt">| 唯一值 6 · 已指派 10</span></div></td></tr>
+          <tr class="sgh" onclick="toggleGrp(this)"><td colspan="26"><div class="gh-inner"><span class="gh-icon">▼</span>安道拓（武汉）汽车部件有限公司 · 4 条记录<span class="gh-cnt">| 唯一值 4 · 已指派 4</span></div></td></tr>
+          <tr class="dr"><td class="rn">1</td><td class="pc" onclick="showV3('Modena 28A 国内左舵','PRJ-2026-8041')">P000047869001</td><td>前保险杠下格栅（N2）</td><td>P000047869001</td><td><span class="tag-b exterior">外饰</span></td><td>外饰</td><td><span class="avatar" style="background:linear-gradient(135deg,var(--cyan),#36cfc9)">陈</span>陈治钢</td><td>KUNLUN N2</td><td>安道拓（武汉）汽车部件有限公司</td><td><span class="badge-s new">New</span></td><td><span class="badge-s b">B（中周期）</span></td><td>保险杠系统</td><td>前保险杠</td><td>格栅</td><td><span class="check y">✓</span></td><td>石恒宇</td><td>杨颖晖</td><td>温世林</td><td>何帅</td><td><span class="check y">✓</span></td><td><span class="check y">✓</span></td><td><span class="check y">✓</span></td><td><span class="check y">✓</span></td><td><span class="check y">✓</span></td><td><span class="check y">✓</span></td><td>2024/03/22</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+  <div style="display:flex;align-items:center;justify-content:space-between;padding:10px 16px;background:#fff;border-top:1px solid var(--g200);font-size:12px;color:var(--g500);flex-shrink:0">
+    <div style="display:flex;gap:16px"><span>共 58 条</span><span>|</span><span>已选 0 条</span></div>
+    <div style="display:flex;align-items:center;gap:8px"><span>每页</span><select style="padding:4px 8px;border:1px solid var(--g300);border-radius:var(--rs);font-size:12px"><option>50</option><option>100</option></select><span>条</span></div>
+  </div>
+</div>
+
+</div>
+</div>
+</div>
+<!-- ====== END MODULE: Part Planning ====== -->
+
+<!-- ====== MODULE: 品类管理 ====== -->
+<div id="mod-cat" class="mod-wrap" style="display:none">
+<div class="page-wrap" style="margin-top:0;height:100vh">
+  <div class="content-header">
+    <div class="content-title-row"><div class="content-title">采购品类管理</div></div>
+    <div class="content-tabs">
+      <div class="ctab active" data-tab="cat" onclick="switchCatTab('cat')">采购品类 <span class="badge" style="background:var(--g400)">32</span></div>
+      <div class="ctab" data-tab="mvps" onclick="switchCatTab('mvps')">MVPS 映射 <span class="badge" style="background:var(--g400)">128</span></div>
+      <div class="ctab" data-tab="pool" onclick="switchCatTab('pool')">品类资源池 <span class="badge" style="background:var(--s)">45</span></div>
+    </div>
+  </div>
+  <!-- 采购品类 -->
+  <div class="view active" id="viewCat">
+    <div class="todo-bar expanded" id="todoBar"><div class="todo-bar-hdr" onclick="toggleTodo()"><div class="left"><div class="dot"></div>待办任务 <span class="count">6</span></div><div class="toggle">展开/收起 <span class="arr">▼</span></div></div><div class="todo-items" id="todoItems"></div></div>
+    <div class="content-toolbar"><div class="toolbar-left"><input type="text" class="search-input w260" placeholder="搜索品类ID / 品类名 / 供应商..."><select class="filter-sel"><option>全部专业组</option><option>电子架构</option><option>机械架构</option><option>内饰</option><option>车身外饰</option><option>增程&热管理</option><option>电池</option><option>电驱</option></select><select class="filter-sel"><option>全部品类专家</option><option>张家宇</option><option>路梦瑶</option><option>白永昌</option><option>翁伟康</option><option>李宽</option></select></div><div class="toolbar-right"><button class="btn btn-p" onclick="showCatAdd()">➕ 新增品类</button><button class="btn btn-o" onclick="showModal('importModal')">📥 导入定点供应商</button><button class="btn btn-o">📤 导出</button></div></div>
+    <div class="table-wrap"><table class="dtable" style="min-width:1200px"><thead><tr><th style="width:40px"><input type="checkbox"></th><th>品类ID</th><th>品类名</th><th>专业组</th><th>品类专家</th><th>材料品类</th><th>工艺品类</th><th>定点供应商</th><th>品类描述</th><th style="width:120px">操作</th></tr></thead><tbody id="catBody"></tbody></table><div class="pagination"><span class="pg-info">共 32 条</span><select><option>10 条/页</option><option>20 条/页</option><option>50 条/页</option></select><div class="pg-btn" style="font-size:10px">◀</div><div class="pg-btn active">1</div><div class="pg-btn">2</div><div class="pg-btn">3</div><div class="pg-btn">4</div><div class="pg-btn" style="font-size:10px">▶</div></div></div>
+  </div>
+  <!-- MVPS 映射 -->
+  <div class="view" id="viewMvps">
+    <div class="content-toolbar"><div class="toolbar-left"><input type="text" class="search-input w200" placeholder="搜索 MVPS 编码..."><select class="filter-sel"><option>全部采购品类</option><option>CAT001 座椅总成</option><option>CAT002 减振器总成</option><option>CAT003 前大灯总成</option><option>CAT004 电池系统</option><option>CAT005 驱动电机</option></select><label style="display:flex;align-items:center;gap:4px;font-size:12px;color:var(--g600);cursor:pointer"><input type="checkbox" checked onchange="renderMvps(this.checked)"> 仅显示未映射</label></div><div class="toolbar-right"><button class="btn btn-p" onclick="showModal('mvpsModal')">➕ 新增映射</button><button class="btn btn-o">📤 导出</button></div></div>
+    <div class="table-wrap"><table class="dtable" style="min-width:1000px"><thead><tr><th style="width:40px"><input type="checkbox"></th><th>MVPS 编码</th><th>结构简码</th><th>中文描述</th><th>分类</th><th>映射品类</th><th>映射状态</th><th>更新时间</th><th style="width:100px">操作</th></tr></thead><tbody id="mvpsBody"></tbody></table><div class="pagination"><span class="pg-info">共 128 条</span><select><option>10 条/页</option><option>20 条/页</option><option>50 条/页</option></select><div class="pg-btn" style="font-size:10px">◀</div><div class="pg-btn active">1</div><div class="pg-btn">2</div><div class="pg-btn">...</div><div class="pg-btn">13</div><div class="pg-btn" style="font-size:10px">▶</div></div></div>
+  </div>
+  <!-- 品类资源池 -->
+  <div class="view" id="viewPool">
+    <div class="sub-tabs"><div class="stab active" onclick="switchPool(this,'spAdmit')">资源池准入</div><div class="stab" onclick="switchPool(this,'spOnepage')">品类 OnePage</div></div>
+    <div class="sub-view active" id="spAdmit" style="overflow-y:auto">
+      <div style="padding:20px 24px 0">
+        <div style="font-size:14px;font-weight:700;color:var(--g900);margin-bottom:14px;display:flex;align-items:center;gap:8px"><span style="display:inline-block;width:3px;height:16px;border-radius:2px;background:var(--p)"></span>准入评估规则 — 五看三定</div>
+        <div style="display:flex;gap:16px;margin-bottom:20px">
+          <div style="flex:3;background:#fff;border:1px solid var(--g200);border-radius:var(--r);overflow:hidden">
+            <div style="padding:10px 16px;border-bottom:1px solid var(--g100);background:linear-gradient(180deg,#fafafa,#f8f8f8)"><div style="font-size:12px;font-weight:700;color:var(--g900);display:flex;align-items:center;gap:6px"><span style="display:inline-block;width:3px;height:12px;border-radius:2px;background:var(--p)"></span>五看 — 市场与竞争分析（0-100分）</div></div>
+            <div style="display:flex">
+              <div style="flex:1;padding:12px 8px;text-align:center;border-right:1px solid var(--g100)"><div style="font-size:18px;margin-bottom:4px">📊</div><div style="font-size:11px;font-weight:700;color:var(--g900)">看市场</div><div style="font-size:10px;color:var(--g500);line-height:1.5">市场规模<br>增长趋势<br>需求结构</div></div>
+              <div style="flex:1;padding:12px 8px;text-align:center;border-right:1px solid var(--g100)"><div style="font-size:18px;margin-bottom:4px">👥</div><div style="font-size:11px;font-weight:700;color:var(--g900)">看客户</div><div style="font-size:10px;color:var(--g500);line-height:1.5">客户需求<br>采购偏好<br>决策链路</div></div>
+              <div style="flex:1;padding:12px 8px;text-align:center;border-right:1px solid var(--g100)"><div style="font-size:18px;margin-bottom:4px">⚔️</div><div style="font-size:11px;font-weight:700;color:var(--g900)">看竞争</div><div style="font-size:10px;color:var(--g500);line-height:1.5">竞争格局<br>对手份额<br>差异化</div></div>
+              <div style="flex:1;padding:12px 8px;text-align:center;border-right:1px solid var(--g100)"><div style="font-size:18px;margin-bottom:4px">🏢</div><div style="font-size:11px;font-weight:700;color:var(--g900)">看自己</div><div style="font-size:10px;color:var(--g500);line-height:1.5">自身能力<br>资源匹配<br>成本力</div></div>
+              <div style="flex:1;padding:12px 8px;text-align:center"><div style="font-size:18px;margin-bottom:4px">🚀</div><div style="font-size:11px;font-weight:700;color:var(--g900)">看机会</div><div style="font-size:10px;color:var(--g500);line-height:1.5">进入时机<br>政策利好<br>技术窗口</div></div>
+            </div>
+          </div>
+          <div style="flex:2;background:#fff;border:1px solid var(--g200);border-radius:var(--r);overflow:hidden">
+            <div style="padding:10px 16px;border-bottom:1px solid var(--g100);background:linear-gradient(180deg,#fafafa,#f8f8f8)"><div style="font-size:12px;font-weight:700;color:var(--g900);display:flex;align-items:center;gap:6px"><span style="display:inline-block;width:3px;height:12px;border-radius:2px;background:var(--s)"></span>三定 — 战略与目标设定</div></div>
+            <div style="display:flex">
+              <div style="flex:1;padding:12px 8px;text-align:center;border-right:1px solid var(--g100)"><div style="font-size:18px;margin-bottom:4px">🎯</div><div style="font-size:11px;font-weight:700;color:var(--g900)">定战略</div><div style="font-size:10px;color:var(--g500);line-height:1.5">供应商定位<br>合作模式<br>长期愿景</div></div>
+              <div style="flex:1;padding:12px 8px;text-align:center;border-right:1px solid var(--g100)"><div style="font-size:18px;margin-bottom:4px">📈</div><div style="font-size:11px;font-weight:700;color:var(--g900)">定目标</div><div style="font-size:10px;color:var(--g500);line-height:1.5">份额目标<br>成本目标<br>质量目标</div></div>
+              <div style="flex:1;padding:12px 8px;text-align:center"><div style="font-size:18px;margin-bottom:4px">🛠️</div><div style="font-size:11px;font-weight:700;color:var(--g900)">定策略</div><div style="font-size:10px;color:var(--g500);line-height:1.5">定价策略<br>开发计划<br>风险预案</div></div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div style="padding:0 24px 20px">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">
+          <div style="font-size:14px;font-weight:700;color:var(--g900);display:flex;align-items:center;gap:8px"><span style="display:inline-block;width:3px;height:16px;border-radius:2px;background:var(--p)"></span>准入评估明细</div>
+          <div style="display:flex;gap:8px">
+            <select class="filter-sel" style="font-size:11px;padding:4px 8px"><option>全部品类</option><option>CAT001 座椅</option><option>CAT002 减振器</option><option>CAT003 前大灯</option><option>CAT004 电池</option></select>
+            <select class="filter-sel" style="font-size:11px;padding:4px 8px"><option>全部状态</option><option>已准入</option><option>审批中</option><option>待审核</option></select>
+            <button class="btn btn-p btn-s" onclick="showModal('poolAdmitModal')">➕ 准入申请</button>
+          </div>
+        </div>
+        <div style="background:#fff;border:1px solid var(--g200);border-radius:var(--r);overflow:hidden">
+          <table class="dtable" style="min-width:1500px">
+            <thead><tr>
+              <th style="width:40px"><input type="checkbox"></th>
+              <th>准入编码</th><th>采购品类</th><th>供应商</th><th>等级</th>
+              <th style="text-align:center">📊看市场</th><th style="text-align:center">👥看客户</th><th style="text-align:center">⚔️看竞争</th><th style="text-align:center">🏢看自己</th><th style="text-align:center">🚀看机会</th>
+              <th style="text-align:center">综合评分</th>
+              <th>定战略</th><th>定目标</th><th>定策略</th>
+              <th>审批流</th><th>状态</th>
+              <th style="width:100px">操作</th>
+            </tr></thead>
+            <tbody id="admitBody"></tbody>
+          </table>
+        </div>
+        <div class="pagination" style="border-radius:0 0 var(--r) var(--r)"><span class="pg-info">共 12 条</span><select><option>10 条/页</option><option>20 条/页</option></select><div class="pg-btn" style="font-size:10px">◀</div><div class="pg-btn active">1</div><div class="pg-btn">2</div><div class="pg-btn" style="font-size:10px">▶</div></div>
+      </div>
+    </div>
+    <div class="sub-view" id="spOnepage" style="overflow-y:auto">
+      <div style="padding:16px 24px 0;display:flex;align-items:center;gap:10px;flex-wrap:wrap">
+        <span style="font-size:13px;font-weight:700;color:var(--g900)">采购品类：</span>
+        <select class="filter-sel" id="onepageCatFilter" onchange="filterOnepage(this.value)"><option value="all">全部品类</option></select>
+        <select class="filter-sel" id="onepageLevelFilter"><option value="all">全部等级</option><option>战略</option><option>核心</option><option>一般</option></select>
+        <button class="btn btn-o btn-s">📤 导出</button>
+      </div>
+      <div style="padding:16px 24px 24px" id="onepageContent"></div>
+    </div>
+  </div>
+</div>
+
+<!-- Cat Modals -->
+<div class="modal-mask" id="addModal"><div class="modal"><div class="modal-hdr"><h3 id="addTitle">➕ 新增采购品类</h3><button class="modal-close" onclick="closeModal('addModal')">✕</button></div><div class="modal-body"><div class="form-grid"><div class="form-item"><div class="form-label">品类ID <span class="req">*</span></div><input type="text" class="form-input" id="fId" readonly style="font-family:'Consolas',monospace;font-weight:600;color:var(--p)"><div class="form-hint">系统自动生成</div></div><div class="form-item"><div class="form-label">品类名 <span class="req">*</span></div><input type="text" class="form-input" id="fName" placeholder="请输入品类名称"></div><div class="form-item"><div class="form-label">专业组 <span class="req">*</span></div><select class="form-input" id="fGroup"><option value="">请选择</option><option>电子架构</option><option>机械架构</option><option>内饰</option><option>车身外饰</option><option>增程&热管理</option><option>电池</option><option>电驱</option></select></div><div class="form-item"><div class="form-label">品类专家 <span class="req">*</span></div><select class="form-input" id="fExpert"><option value="">请选择（仅一位）</option><option>张家宇</option><option>路梦瑶</option><option>白永昌</option><option>翁伟康</option><option>李宽</option><option>吕金鹏</option><option>谢雪钰</option><option>刘俊俊</option><option>金铃</option></select><div class="form-hint">每个品类仅分配一位品类专家</div></div><div class="form-item"><div class="form-label">材料品类</div><select class="form-input" multiple style="min-height:56px"><option>钢</option><option>铝</option><option>铝合金</option><option>镁合金</option><option>铜</option><option>塑料</option><option>PP</option><option>ABS</option><option>PC</option><option>织物</option><option>皮革</option><option>橡胶</option><option>玻璃</option><option>电芯</option><option>硅钢片</option><option>铜线</option></select><div class="form-hint">可多选</div></div><div class="form-item"><div class="form-label">工艺品类</div><select class="form-input" multiple style="min-height:56px"><option>冲压</option><option>焊接</option><option>注塑</option><option>压铸</option><option>机加工</option><option>装配</option><option>涂装</option><option>包覆</option><option>镀铝</option><option>绕线</option><option>叠片</option></select><div class="form-hint">可多选</div></div><div class="form-item full"><div class="form-label">品类描述/说明</div><textarea class="form-input" id="fDesc" placeholder="请输入品类描述"></textarea></div></div></div><div class="modal-footer"><button class="btn btn-g" onclick="closeModal('addModal')">取消</button><button class="btn btn-p" onclick="saveCat()">确认</button></div></div></div>
+<div class="modal-mask" id="mvpsModal"><div class="modal" style="width:560px"><div class="modal-hdr"><h3>➕ 新增 MVPS 映射</h3><button class="modal-close" onclick="closeModal('mvpsModal')">✕</button></div><div class="modal-body"><div style="background:#f0f5ff;border:1px solid #b7cfff;border-radius:6px;padding:10px 14px;margin-bottom:16px;font-size:12px;color:var(--p);line-height:1.7">💡 MVPS 编码格式：<strong>XX.XX.XX</strong></div><div class="form-grid"><div class="form-item full"><div class="form-label">MVPS 编码 <span class="req">*</span></div><input type="text" class="form-input" placeholder="例如：10.10.10" style="font-family:'Consolas',monospace;font-size:14px;font-weight:600;letter-spacing:1px"></div><div class="form-item full"><div class="form-label">映射采购品类 <span class="req">*</span></div><select class="form-input"><option value="">请选择</option><option>CAT001 座椅总成</option><option>CAT002 减振器总成</option><option>CAT003 前大灯总成</option><option>CAT004 电池系统</option><option>CAT005 驱动电机</option></select></div></div></div><div class="modal-footer"><button class="btn btn-g" onclick="closeModal('mvpsModal')">取消</button><button class="btn btn-p" onclick="closeModal('mvpsModal')">确认映射</button></div></div></div>
+<div class="modal-mask" id="importModal"><div class="modal"><div class="modal-hdr"><h3>📥 批量导入定点供应商</h3><button class="modal-close" onclick="closeModal('importModal')">✕</button></div><div class="modal-body"><div style="border:2px dashed var(--g300);border-radius:var(--r);padding:40px;text-align:center;margin-bottom:16px;cursor:pointer"><div style="font-size:36px;margin-bottom:8px">📁</div><div style="font-size:14px;font-weight:600;color:var(--g800);margin-bottom:4px">点击或拖拽文件到此处上传</div><div style="font-size:12px;color:var(--g500)">支持 .xlsx / .csv 格式，单次最多 500 条</div></div><div style="font-size:12px;color:var(--g600);line-height:1.8"><div style="font-weight:600;margin-bottom:4px">📥 <a href="#" style="color:var(--p)">下载导入模板</a></div><div>模板字段：品类ID、供应商名称、供应商编码、合作等级、定点时间、SOR编号</div></div></div><div class="modal-footer"><button class="btn btn-g" onclick="closeModal('importModal')">取消</button><button class="btn btn-p">开始导入</button></div></div></div>
+<div class="modal-mask" id="poolAdmitModal"><div class="modal wide"><div class="modal-hdr"><h3>📋 资源池准入申请</h3><button class="modal-close" onclick="closeModal('poolAdmitModal')">✕</button></div><div class="modal-body">
+  <div style="background:linear-gradient(135deg,#f0f5ff,#e6f4ff);border:1px solid #b7cfff;border-radius:8px;padding:16px 20px;margin-bottom:20px"><div class="form-grid" style="gap:12px 24px">
+    <div class="form-item"><div class="form-label">准入编码</div><input type="text" class="form-input" value="ADM-2026-CAT001-001" readonly style="font-family:'Consolas',monospace;font-weight:700;color:var(--p);background:#fff"><div class="form-hint">系统自动生成</div></div>
+    <div class="form-item"><div class="form-label">申请品类 <span class="req">*</span></div><select class="form-input"><option value="">请选择品类</option><option>CAT001 座椅总成</option><option>CAT002 减振器总成</option><option>CAT003 前大灯总成</option><option>CAT004 电池系统</option><option>CAT005 驱动电机</option></select></div>
+    <div class="form-item"><div class="form-label">供应商名称 <span class="req">*</span></div><input type="text" class="form-input" placeholder="请输入供应商全称"></div>
+    <div class="form-item"><div class="form-label">合作等级 <span class="req">*</span></div><select class="form-input"><option>战略供应商</option><option>核心供应商</option><option>一般供应商</option><option>备选供应商</option></select></div>
+  </div></div>
+  <div style="font-size:13px;font-weight:700;color:var(--g900);margin-bottom:12px">五看评估</div>
+  <div class="form-grid">
+    <div class="form-item"><div class="form-label">📊 看市场 — 品类市场规模（亿元）<span class="req">*</span></div><input type="text" class="form-input" placeholder="例如：50"></div>
+    <div class="form-item"><div class="form-label">📊 看市场 — 年增长率</div><input type="text" class="form-input" placeholder="例如：15%"></div>
+    <div class="form-item"><div class="form-label">👥 看客户 — 供应商服务客户数</div><input type="text" class="form-input" placeholder="例如：8家主机厂"></div>
+    <div class="form-item"><div class="form-label">⚔️ 看竞争 — 竞争对手数量</div><input type="text" class="form-input" placeholder="例如：5"></div>
+    <div class="form-item"><div class="form-label">🏢 看自己 — 核心技术路线</div><input type="text" class="form-input" placeholder="例如：柔性座椅骨架"></div>
+    <div class="form-item"><div class="form-label">🚀 看机会 — 进入时机</div><select class="form-input"><option>最佳窗口期</option><option>合适</option><option>偏晚</option></select></div>
+  </div>
+  <div style="font-size:13px;font-weight:700;color:var(--g900);margin:16px 0 12px">三定目标</div>
+  <div class="form-grid">
+    <div class="form-item"><div class="form-label">🎯 定战略 — 合作定位 <span class="req">*</span></div><select class="form-input"><option>战略供应商</option><option>核心供应商</option><option>一般供应商</option></select></div>
+    <div class="form-item"><div class="form-label">📈 定目标 — 目标份额</div><input type="text" class="form-input" placeholder="例如：30%"></div>
+    <div class="form-item"><div class="form-label">📈 定目标 — 年降目标</div><input type="text" class="form-input" placeholder="例如：5%/年"></div>
+    <div class="form-item"><div class="form-label">🛠️ 定策略 — 定价策略</div><input type="text" class="form-input" placeholder="例如：年度议价+季度回顾"></div>
+  </div>
+</div><div class="modal-footer"><button class="btn btn-g" onclick="closeModal('poolAdmitModal')">取消</button><button class="btn btn-o">暂存</button><button class="btn btn-p">提交审批</button></div></div></div>
+
+<!-- Cat Drawers -->
+<div class="drawer-mask" id="detailMask" onclick="closeDetail()"></div>
+<div class="drawer" id="detailDrawer"><div class="drawer-hdr"><h3><span class="cat-id" id="dId">CAT001</span> <span id="dName">座椅总成</span></h3><button class="drawer-close" onclick="closeDetail()">✕</button></div><div class="drawer-body"><div class="drawer-section"><div class="drawer-sec-title">基本信息</div><div class="drawer-info-grid"><div class="drawer-info-item"><div class="drawer-info-label">品类ID</div><div class="drawer-info-val" style="font-family:'Consolas',monospace;color:var(--p)" id="diId"></div></div><div class="drawer-info-item"><div class="drawer-info-label">品类名</div><div class="drawer-info-val" id="diName"></div></div><div class="drawer-info-item"><div class="drawer-info-label">专业组</div><div class="drawer-info-val" id="diGroup"></div></div><div class="drawer-info-item"><div class="drawer-info-label">品类专家</div><div class="drawer-info-val" id="diExpert"></div></div><div class="drawer-info-item" style="grid-column:1/-1"><div class="drawer-info-label">品类描述</div><div class="drawer-info-val" id="diDesc"></div></div></div></div><div class="drawer-section"><div class="drawer-sec-title">材料品类</div><div class="drawer-tag-list" id="diMat"></div></div><div class="drawer-section"><div class="drawer-sec-title">工艺品类</div><div class="drawer-tag-list" id="diProc"></div></div><div class="drawer-section"><div class="drawer-sec-title">定点供应商</div><div class="drawer-info-grid"><div class="drawer-info-item"><div class="drawer-info-label">供应商 1</div><div class="drawer-info-val link" id="diSup1">—</div></div><div class="drawer-info-item"><div class="drawer-info-label">供应商 2</div><div class="drawer-info-val link" id="diSup2">—</div></div></div></div></div><div class="drawer-footer"><button class="btn btn-g" onclick="closeDetail()">关闭</button><button class="btn btn-o" onclick="closeDetail();setTimeout(()=>editCat(document.getElementById('dId').textContent),350)">✏️ 编辑</button></div></div>
+<div class="drawer-mask" id="poolMask" onclick="closePoolDetail()"></div>
+<div class="drawer" id="poolDrawer" style="width:740px"><div class="drawer-hdr"><h3><span class="cat-id" id="pdAdm">—</span> <span id="pdName">—</span></h3><button class="drawer-close" onclick="closePoolDetail()">✕</button></div><div class="drawer-body"><div class="drawer-section"><div class="drawer-sec-title">基本信息</div><div class="drawer-info-grid"><div class="drawer-info-item"><div class="drawer-info-label">准入编码</div><div class="drawer-info-val" style="font-family:'Consolas',monospace;color:var(--p)" id="pdAdmCode">—</div></div><div class="drawer-info-item"><div class="drawer-info-label">采购品类</div><div class="drawer-info-val" id="pdCat">—</div></div><div class="drawer-info-item"><div class="drawer-info-label">供应商名称</div><div class="drawer-info-val" id="pdSupName">—</div></div><div class="drawer-info-item"><div class="drawer-info-label">合作等级</div><div class="drawer-info-val" id="pdLevel">—</div></div><div class="drawer-info-item"><div class="drawer-info-label">准入状态</div><div class="drawer-info-val" id="pdStatus">—</div></div><div class="drawer-info-item"><div class="drawer-info-label">综合评分</div><div class="drawer-info-val" id="pdScore" style="font-size:18px;font-weight:700">—</div></div></div></div><div class="drawer-section"><div class="drawer-sec-title">五看评估</div><div id="pdScores" style="display:flex;flex-direction:column;gap:10px"></div></div><div class="drawer-section"><div class="drawer-sec-title">三定目标</div><div class="drawer-info-grid"><div class="drawer-info-item"><div class="drawer-info-label">定战略</div><div class="drawer-info-val" id="pdStrategy">—</div></div><div class="drawer-info-item"><div class="drawer-info-label">定目标</div><div class="drawer-info-val" id="pdTarget">—</div></div></div></div><div class="drawer-section"><div class="drawer-sec-title">审批流程</div><div style="display:flex;align-items:center;gap:0;margin-bottom:8px" id="pdFlow"></div></div><div class="drawer-section"><div class="drawer-sec-title">文档附件</div><div id="pdDocs" style="display:flex;flex-direction:column;gap:8px"></div></div></div><div class="drawer-footer"><button class="btn btn-g" onclick="closePoolDetail()">关闭</button><button class="btn btn-o">📤 导出评估报告</button><button class="btn btn-p">✏️ 编辑</button></div></div>
+</div>
+<!-- ====== END MODULE: 品类管理 ====== -->
+
+<script>
+function hideAll(){document.querySelectorAll('.view').forEach(v=>v.classList.remove('active'))}
+function showV1(){hideAll();document.getElementById('v1').classList.add('active')}
+function showV2(name){hideAll();document.getElementById('v2').classList.add('active');document.getElementById('v2-title').textContent=name+' · 项目列表';window._v2Name=name}
+function showV2FromV3(){showV2(window._v2Name||'Modena')}
+function showV3(name,code){hideAll();document.getElementById('v3').classList.add('active');document.getElementById('v3-title').textContent=name;document.getElementById('p-code').textContent=code;document.getElementById('p-name').textContent=name;window._v3Name=name;window._v3Code=code;['tab-maturity','tab-forecast','tab-target','tab-prog','tab-tasks','tab-log'].forEach(id=>{const e=document.getElementById(id);if(e)e.style.display='none'});document.getElementById('tab-prog').style.display='';document.querySelectorAll('#v3-tabs .vtab').forEach((t,i)=>t.classList.toggle('active',i===0))}
+function showV3FromV4(){showV3(window._v3Name||'Modena 28A 国内左舵',window._v3Code||'PRJ-2026-8041')}
+function showV4(){hideAll();document.getElementById('v4').classList.add('active');document.getElementById('v4-title').textContent=(window._v3Name||'Modena 28A')+' · 零件规划明细'}
+
+function switchV3Tab(el){
+  document.querySelectorAll('#v3-tabs .vtab').forEach(t=>t.classList.remove('active'));
+  el.classList.add('active');
+  const txt=el.textContent.trim();
+  const tabs={'tab-maturity':'零件成熟度','tab-forecast':'预测量维护','tab-target':'目标价维护','tab-prog':'进度管理','tab-tasks':'EWO','tab-log':'变更'};
+  Object.keys(tabs).forEach(id=>{
+    const el=document.getElementById(id);
+    if(!el)return;
+    if(id==='tab-tasks') el.style.display=(txt.includes('EWO')||txt.includes('CWO')||txt.includes('SWO'))?'':'none';
+    else el.style.display=txt.includes(tabs[id])?'':'none';
+  });
+}
+
+function toggleGrp(row){
+  const icon=row.querySelector('.gh-icon');
+  const collapsed=row.classList.toggle('collapsed');
+  icon.textContent=collapsed?'▶':'▼';
+  let next=row.nextElementSibling;
+  const isGroup=row.classList.contains('gh');
+  while(next&&!next.classList.contains(isGroup?'gh':'sgh')){
+    next.style.display=collapsed?'none':'';
+    next=next.nextElementSibling;
+  }
+}
+
+// Part-code click → project detail
+document.addEventListener('click',function(e){
+  const cell=e.target.closest('.pc');
+  if(!cell)return;
+  showV3('Modena 28A 国内左舵','PRJ-2026-8041');
+});
+
+/* ====== MODULE SWITCHING ====== */
+function switchModule(m){
+  document.getElementById('mod-pp').style.display=m==='pp'?'':'none';
+  document.getElementById('mod-cat').style.display=m==='cat'?'':'none';
+  document.getElementById('nav-pp').classList.toggle('active',m==='pp');
+  document.getElementById('nav-cat').classList.toggle('active',m==='cat');
+  if(m==='cat'&&!window._catInited){window._catInited=true;initCat()}
+}
+
+/* ====== 品类管理 JS ====== */
+const CAT=[{id:'CAT001',name:'座椅总成',group:'内饰',gt:'tag-b',expert:'张家宇',mat:['钢','铝','塑料','织物'],proc:['冲压','焊接','注塑'],sup:['延锋（北京）汽车座椅有限公司','北京佛吉亚汽车部件有限公司'],desc:'座椅骨架、滑轨、调角器、头枕等核心零部件'},{id:'CAT002',name:'减振器总成',group:'机械架构',gt:'tag-o',expert:'白永昌',mat:['钢','铝合金'],proc:['机加工','焊接','装配'],sup:['南京减振器厂有限公司'],desc:'被动减振器、CDC减振器、空气弹簧等'},{id:'CAT003',name:'前大灯总成',group:'车身外饰',gt:'tag-b',expert:'路梦瑶',mat:['PC','ABS','铝'],proc:['注塑','镀铝','装配'],sup:['星宇股份有限公司'],desc:'前大灯、日间行车灯、转向灯等'},{id:'CAT004',name:'电池系统',group:'电池',gt:'tag-p',expert:'翁伟康',mat:['电芯','铝壳','铜排'],proc:['叠片','封装','化成'],sup:['宁德时代新能源科技股份有限公司'],desc:'电芯模组、BMS、电池包总成等'},{id:'CAT005',name:'驱动电机',group:'电驱',gt:'tag-c',expert:'李宽',mat:['硅钢片','铜线','永磁体'],proc:['冲压','绕线','装配'],sup:['汇川技术股份有限公司'],desc:'驱动电机、电机控制器、减速器等'},{id:'CAT006',name:'门饰板总成',group:'内饰',gt:'tag-b',expert:'张家宇',mat:['PP','ABS','织物'],proc:['注塑','包覆','装配'],sup:['宁波普瑞均胜汽车电子有限公司'],desc:'前/后门门饰板装配总成、子总成等'},{id:'CAT007',name:'电驱壳体',group:'电驱',gt:'tag-c',expert:'李宽',mat:['铝合金'],proc:['压铸','机加工'],sup:['文灿集团股份有限公司'],desc:'电机壳体、减速器壳体等铝合金压铸件'},{id:'CAT008',name:'CCB镁合金',group:'机械架构',gt:'tag-o',expert:'白永昌',mat:['镁合金'],proc:['压铸','机加工'],sup:['宜安科技股份有限公司'],desc:'仪表板横梁镁合金支架等'}];
+const MVPS=[{code:'10.10.10',short:'6017',desc:'座椅骨架总成',cat:'UP',m:true,cid:'CAT001',cn:'座椅总成'},{code:'10.10.20',short:'6018',desc:'座椅滑轨总成',cat:'UP',m:true,cid:'CAT001',cn:'座椅总成'},{code:'20.05.03',short:'1205',desc:'前减振器总成',cat:'CH',m:true,cid:'CAT002',cn:'减振器总成'},{code:'40.03.01',short:'3201',desc:'前大灯总成',cat:'UP',m:true,cid:'CAT003',cn:'前大灯总成'},{code:'50.01.01',short:'5101',desc:'电池包总成',cat:'PO',m:true,cid:'CAT004',cn:'电池系统'},{code:'50.02.01',short:'5201',desc:'驱动电机总成',cat:'PO',m:true,cid:'CAT005',cn:'驱动电机'},{code:'60.01.07.01',short:'6017',desc:'左前门门饰板装配总成',cat:'UP',m:true,cid:'CAT006',cn:'门饰板总成'},{code:'50.03.01',short:'5301',desc:'电机壳体',cat:'PO',m:true,cid:'CAT007',cn:'电驱壳体'},{code:'10.20.01',short:'1201',desc:'CCB镁合金支架',cat:'LO',m:true,cid:'CAT008',cn:'CCB镁合金'},{code:'30.01.01',short:'3101',desc:'仪表板总成',cat:'UP',m:false},{code:'60.02.01',short:'6201',desc:'尾门总成',cat:'UP',m:false},{code:'20.05.01',short:'1203',desc:'后减振器总成',cat:'CH',m:false},{code:'40.03.02',short:'3202',desc:'尾灯总成',cat:'UP',m:false},{code:'30.02.01',short:'3102',desc:'副仪表板总成',cat:'UP',m:false}];
+const POOL=[{adm:'ADM-2025-CAT001-001',cat:'CAT001 座椅总成',name:'延锋（北京）汽车座椅有限公司',level:'战略',status:'已准入',flow:'已通过',s5:{m:85,t:90,c:78,s:82,o:80},total:84.3,strategy:'战略供应商',target:'份额30%',tactics:'年降5%'},{adm:'ADM-2025-CAT001-002',cat:'CAT001 座椅总成',name:'北京佛吉亚汽车部件有限公司',level:'核心',status:'已准入',flow:'已通过',s5:{m:82,t:75,c:80,s:78,o:76},total:79.0,strategy:'核心供应商',target:'份额25%',tactics:'年降3%'},{adm:'ADM-2025-CAT002-001',cat:'CAT002 减振器',name:'南京减振器厂有限公司',level:'核心',status:'已准入',flow:'已通过',s5:{m:78,t:88,c:75,s:80,o:72},total:81.5,strategy:'核心供应商',target:'份额40%',tactics:'年降4%'},{adm:'ADM-2025-CAT003-001',cat:'CAT003 前大灯',name:'星宇股份有限公司',level:'战略',status:'已准入',flow:'已通过',s5:{m:90,t:92,c:85,s:88,o:86},total:88.2,strategy:'战略供应商',target:'份额50%',tactics:'年降3%'},{adm:'ADM-2025-CAT004-001',cat:'CAT004 电池',name:'宁德时代新能源科技股份有限公司',level:'战略',status:'已准入',flow:'已通过',s5:{m:95,t:96,c:90,s:92,o:88},total:92.1,strategy:'战略供应商',target:'份额60%',tactics:'年降2%'},{adm:'ADM-2026-CAT005-001',cat:'CAT005 驱动电机',name:'汇川技术股份有限公司',level:'核心',status:'已准入',flow:'已通过',s5:{m:80,t:78,c:72,s:75,o:70},total:76.8,strategy:'核心供应商',target:'份额35%',tactics:'年降4%'},{adm:'ADM-2026-CAT004-002',cat:'CAT004 电池',name:'新旺达电子股份有限公司',level:'待评估',status:'审批中',flow:'待采购总监',s5:{m:68,t:88,c:65,s:60,o:72},total:73.7,strategy:'—',target:'—',tactics:'—'},{adm:'ADM-2026-CAT007-001',cat:'CAT007 电驱壳体',name:'文灿集团股份有限公司',level:'核心',status:'已准入',flow:'已通过',s5:{m:72,t:80,c:68,s:70,o:65},total:72.5,strategy:'核心供应商',target:'份额30%',tactics:'年降3%'},{adm:'ADM-2026-CAT008-001',cat:'CAT008 CCB镁合金',name:'宜安科技股份有限公司',level:'一般',status:'已准入',flow:'已通过',s5:{m:65,t:70,c:62,s:68,o:60},total:68.0,strategy:'一般供应商',target:'份额20%',tactics:'年降5%'},{adm:'ADM-2026-CAT001-003',cat:'CAT001 座椅总成',name:'李尔（中国）投资有限公司',level:'核心',status:'审批中',flow:'待采购经理',s5:{m:80,t:82,c:75,s:78,o:74},total:77.8,strategy:'核心供应商',target:'份额15%',tactics:'年降4%'},{adm:'ADM-2026-CAT006-001',cat:'CAT006 门饰板',name:'宁波华翔电子股份有限公司',level:'一般',status:'待审核',flow:'待品类专家',s5:{m:70,t:72,c:68,s:65,o:62},total:67.4,strategy:'一般供应商',target:'份额10%',tactics:'年降5%'},{adm:'ADM-2026-CAT003-002',cat:'CAT003 前大灯',name:'海拉（上海）汽车零部件有限公司',level:'核心',status:'已退出',flow:'已终止',s5:{m:85,t:88,c:80,s:75,o:70},total:79.6,strategy:'—',target:'—',tactics:'—'}];
+const TODO=[{t:'urgent',text:'<strong>新旺达</strong> 资源池准入评估待审批（CAT004 电池系统）',time:'今天 14:00',act:'去审批'},{t:'urgent',text:'<strong>CAT006 门饰板总成</strong> 供应商报价细项拆解率低于阈值',time:'今天 10:30',act:'去查看'},{t:'normal',text:'<strong>MVPS 30.01.01 仪表板总成</strong> 尚未映射采购品类',time:'明天',act:'去映射'},{t:'normal',text:'<strong>MVPS 60.02.01 尾门总成</strong> 尚未映射采购品类',time:'明天',act:'去映射'},{t:'normal',text:'<strong>CAT003 前大灯总成</strong> 定点供应商合同即将到期',time:'3 天内',act:'去续签'},{t:'low',text:'<strong>品类资源池</strong> Q2 准入评估报告待提交',time:'本周五',act:'去填写'}];
+
+function initCat(){renderCat();renderMvps(true);renderAdmitBody();renderTodo();renderOnepageFilter()}
+function switchCatTab(t){document.querySelectorAll('#mod-cat .ctab').forEach(x=>x.classList.remove('active'));document.querySelector('#mod-cat .ctab[data-tab="'+t+'"]').classList.add('active');document.querySelectorAll('#mod-cat .view').forEach(v=>v.classList.remove('active'));document.getElementById('view'+t.charAt(0).toUpperCase()+t.slice(1)).classList.add('active')}
+function switchPool(el,id){el.parentElement.querySelectorAll('.stab').forEach(s=>s.classList.remove('active'));el.classList.add('active');document.querySelectorAll('#viewPool .sub-view').forEach(v=>v.classList.remove('active'));document.getElementById(id).classList.add('active')}
+function toggleTodo(){const b=document.getElementById('todoBar');b.classList.toggle('expanded');b.classList.toggle('collapsed')}
+function renderTodo(){const el=document.getElementById('todoItems');if(!el)return;el.innerHTML=TODO.map(t=>'<div class="todo-item"><div class="todo-dot '+t.t+'"></div><div class="todo-text">'+t.text+'</div><div class="todo-time">'+t.time+'</div><div class="todo-action">'+t.act+'</div></div>').join('')}
+function renderCat(){const el=document.getElementById('catBody');if(!el)return;el.innerHTML=CAT.map(c=>'<tr><td><input type="checkbox"></td><td class="ci" onclick="showDetail(\''+c.id+'\')">'+c.id+'</td><td>'+c.name+'</td><td><span class="tag '+c.gt+'">'+c.group+'</span></td><td><span class="tag tag-g">'+c.expert+'</span></td><td>'+c.mat.map(m=>'<span class="tag tag-x">'+m+'</span>').join(' ')+'</td><td>'+c.proc.map(p=>'<span class="tag tag-x">'+p+'</span>').join(' ')+'</td><td style="font-size:11px;color:var(--g600);line-height:1.6">'+c.sup.join('<br>')+'</td><td style="max-width:140px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--g500)">'+c.desc+'</td><td><button class="btn-link" onclick="showDetail(\''+c.id+'\')">详情</button> <button class="btn-link" onclick="editCat(\''+c.id+'\')">编辑</button></td></tr>').join('')}
+function renderMvps(um){let d=[...MVPS];if(um)d.sort((a,b)=>a.m-b.m);const el=document.getElementById('mvpsBody');if(!el)return;el.innerHTML=d.map(v=>'<tr class="'+(!v.m?'row-um':'')+'"><td><input type="checkbox"></td><td class="cc" style="font-weight:600;color:'+(v.m?'var(--p)':'var(--g500)')+'">'+v.code+'</td><td class="cc">'+v.short+'</td><td>'+v.desc+'</td><td><span class="tag tag-'+(v.cat==='PO'?'p':v.cat==='CH'?'g':'b')+'">'+v.cat+'</span></td><td>'+(v.m?'<span class="tag tag-g">'+v.cid+' '+v.cn+'</span>':'<span class="tag tag-o">⚠ 未映射</span>')+'</td><td>'+(v.m?'<span class="tag tag-g">✓ 已映射</span>':'<span class="tag tag-o">⚠ 未映射</span>')+'</td><td style="font-size:11px;color:var(--g500)">'+(v.m?'2026-06-20':'—')+'</td><td>'+(v.m?'<button class="btn-link">编辑</button> <button class="btn-link btn-d">解绑</button>':'<button class="btn-link" style="font-weight:600">映射</button>')+'</td></tr>').join('')}
+function renderAdmitBody(){const el=document.getElementById('admitBody');if(!el)return;el.innerHTML=POOL.map(p=>{const sc=v=>v>=85?'var(--s)':v>=75?'var(--p)':'var(--w)';const st=p.status==='已准入'?'tag-g':p.status==='审批中'?'tag-o':p.status==='待审核'?'tag-b':'tag-x';return'<tr><td><input type="checkbox"></td><td class="ci" onclick="showPoolDetail(\''+p.adm+'\')">'+p.adm+'</td><td>'+p.cat+'</td><td>'+p.name+'</td><td><span class="tag tag-b">'+p.level+'</span></td><td style="text-align:center;font-weight:600;color:'+sc(p.s5.m)+'">'+p.s5.m+'</td><td style="text-align:center;font-weight:600;color:'+sc(p.s5.t)+'">'+p.s5.t+'</td><td style="text-align:center;font-weight:600;color:'+sc(p.s5.c)+'">'+p.s5.c+'</td><td style="text-align:center;font-weight:600;color:'+sc(p.s5.s)+'">'+p.s5.s+'</td><td style="text-align:center;font-weight:600;color:'+sc(p.s5.o)+'">'+p.s5.o+'</td><td style="text-align:center;font-weight:700;font-size:14px;color:'+(p.total>=85?'var(--s)':p.total>=75?'var(--p)':'var(--w)')+'">'+p.total+'</td><td>'+p.strategy+'</td><td>'+p.target+'</td><td>'+p.tactics+'</td><td style="font-size:11px">'+p.flow+'</td><td><span class="tag '+st+'">'+p.status+'</span></td><td><button class="btn-link" onclick="showPoolDetail(\''+p.adm+'\')">详情</button></td></tr>'}).join('')}
+function showDetail(id){const c=CAT.find(x=>x.id===id);if(!c)return;document.getElementById('dId').textContent=c.id;document.getElementById('dName').textContent=c.name;document.getElementById('diId').textContent=c.id;document.getElementById('diName').textContent=c.name;document.getElementById('diGroup').textContent=c.group;document.getElementById('diExpert').textContent=c.expert;document.getElementById('diDesc').textContent=c.desc;document.getElementById('diMat').innerHTML=c.mat.map(m=>'<span class="drawer-tag blue">'+m+'</span>').join('');document.getElementById('diProc').innerHTML=c.proc.map(p=>'<span class="drawer-tag orange">'+p+'</span>').join('');document.getElementById('diSup1').textContent=c.sup[0]||'—';document.getElementById('diSup2').textContent=c.sup[1]||'—';document.getElementById('detailMask').classList.add('show');document.getElementById('detailDrawer').classList.add('show')}
+function closeDetail(){document.getElementById('detailMask').classList.remove('show');document.getElementById('detailDrawer').classList.remove('show')}
+function editCat(id){showCatAdd();document.getElementById('addTitle').textContent='✏️ 编辑品类';const c=CAT.find(x=>x.id===id);if(c){document.getElementById('fId').value=c.id;document.getElementById('fName').value=c.name;document.getElementById('fGroup').value=c.group;document.getElementById('fExpert').value=c.expert;document.getElementById('fDesc').value=c.desc}}
+function showCatAdd(){document.getElementById('addTitle').textContent='➕ 新增采购品类';document.getElementById('fId').value='CAT'+String(CAT.length+1).padStart(3,'0');document.getElementById('fName').value='';document.getElementById('fGroup').value='';document.getElementById('fExpert').value='';document.getElementById('fDesc').value='';showModal('addModal')}
+function saveCat(){closeModal('addModal')}
+function showPoolDetail(adm){const p=POOL.find(x=>x.adm===adm);if(!p)return;document.getElementById('pdAdm').textContent=p.adm;document.getElementById('pdName').textContent=p.name;document.getElementById('pdAdmCode').textContent=p.adm;document.getElementById('pdCat').textContent=p.cat;document.getElementById('pdSupName').textContent=p.name;document.getElementById('pdLevel').textContent=p.level;document.getElementById('pdStatus').textContent=p.status;document.getElementById('pdScore').textContent=p.total;document.getElementById('pdScores').innerHTML=Object.entries(p.s5).map(([k,v])=>{const labels={m:'📊 看市场',t:'👥 看客户',c:'⚔️ 看竞争',s:'🏢 看自己',o:'🚀 看机会'};return'<div style="display:flex;align-items:center;gap:12px"><div style="width:120px;font-size:12px;color:var(--g600)">'+labels[k]+'</div><div style="flex:1;height:20px;background:var(--g100);border-radius:4px;overflow:hidden"><div style="height:100%;width:'+v+'%;background:'+(v>=85?'var(--s)':v>=75?'var(--p)':'var(--w)')+';border-radius:4px"></div></div><div style="width:36px;font-weight:700;font-size:13px">'+v+'</div></div>'}).join('');document.getElementById('pdStrategy').textContent=p.strategy;document.getElementById('pdTarget').textContent=p.target;document.getElementById('pdFlow').innerHTML='<div style="display:flex;align-items:center;gap:6px;font-size:12px"><span style="padding:4px 10px;border-radius:4px;background:var(--sl);color:var(--s)">'+p.flow+'</span></div>';document.getElementById('pdDocs').innerHTML='<div class="doc-item"><div class="doc-icon">📄</div><div class="doc-info"><div class="doc-name">准入评估报告_'+p.adm+'.pdf</div><div class="doc-meta">2.3 MB · 2026-06-15</div></div><div class="doc-action">下载</div></div>';document.getElementById('poolMask').classList.add('show');document.getElementById('poolDrawer').classList.add('show')}
+function closePoolDetail(){document.getElementById('poolMask').classList.remove('show');document.getElementById('poolDrawer').classList.remove('show')}
+function showModal(id){document.getElementById(id).classList.add('show')}
+function closeModal(id){document.getElementById(id).classList.remove('show')}
+function renderOnepageFilter(){const sel=document.getElementById('onepageCatFilter');if(!sel)return;CAT.forEach(c=>{const o=document.createElement('option');o.value=c.id;o.textContent=c.id+' '+c.name;sel.appendChild(o)})}
+function filterOnepage(v){}
+</script>
+</body>
+</html>

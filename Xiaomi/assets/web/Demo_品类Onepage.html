@@ -1,0 +1,988 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>小米汽车SRM系统 - 品类资源池</title>
+<style>
+:root{
+  --p:#1677ff;--ph:#4096ff;--pl:#e6f4ff;--pa:rgba(22,119,255,.06);
+  --s:#52c41a;--sl:#f6ffed;--sa:rgba(82,196,26,.08);
+  --w:#faad14;--wl:#fffbe6;--wa:rgba(250,173,20,.08);
+  --d:#ff4d4f;--dl:#fff2f0;--da:rgba(255,77,79,.06);
+  --g50:#fafafa;--g100:#f5f5f5;--g200:#e8e8e8;--g300:#d9d9d9;
+  --g400:#bfbfbf;--g500:#8c8c8c;--g600:#595959;--g700:#434343;
+  --g800:#262626;--g900:#1f1f1f;
+  --r:10px;--rs:6px;--rl:14px;
+  --sh:0 1px 3px rgba(0,0,0,.04),0 1px 2px rgba(0,0,0,.06);
+  --shm:0 4px 12px rgba(0,0,0,.07);
+  --shl:0 8px 24px rgba(0,0,0,.09);
+  --tr:all .2s ease;
+  --nav-bg:#001529;--nav-bg-light:#002140;
+  --purple:#722ed1;--purple-l:#f9f0ff;
+  --cyan:#13c2c2;--cyan-l:#e6fffb;
+}
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif;background:#f0f2f5;color:var(--g800);line-height:1.6;font-size:13px;min-height:100vh;overflow:hidden}
+
+/* ========== Top Nav ========== */
+.topnav{background:var(--nav-bg);height:48px;display:flex;align-items:center;padding:0 16px;position:fixed;top:0;left:0;right:0;z-index:1000}
+.topnav-logo{display:flex;align-items:center;gap:8px;margin-right:24px;flex-shrink:0}
+.topnav-logo .mi{width:28px;height:28px;background:linear-gradient(135deg,#ff6700,#ff4d00);border-radius:6px;display:flex;align-items:center;justify-content:center;color:#fff;font-size:12px;font-weight:700}
+.topnav-logo span{color:#fff;font-size:14px;font-weight:600;letter-spacing:.5px;white-space:nowrap}
+.topnav-menu{display:flex;align-items:center;gap:0;flex:1;overflow-x:auto;scrollbar-width:none}
+.topnav-menu::-webkit-scrollbar{display:none}
+.topnav-item{padding:0 14px;height:48px;display:flex;align-items:center;color:rgba(255,255,255,.65);font-size:13px;cursor:pointer;white-space:nowrap;transition:all .2s;position:relative}
+.topnav-item:hover{color:#fff;background:rgba(255,255,255,.08)}
+.topnav-item.active{color:#fff;background:rgba(255,255,255,.12)}
+.topnav-item.active::after{content:'';position:absolute;bottom:0;left:8px;right:8px;height:2px;background:var(--p);border-radius:2px 2px 0 0}
+.topnav-right{display:flex;align-items:center;gap:12px;margin-left:auto;flex-shrink:0;padding-left:16px}
+.topnav-right .icon{width:32px;height:32px;border-radius:50%;display:flex;align-items:center;justify-content:center;color:rgba(255,255,255,.65);cursor:pointer;transition:all .2s;font-size:14px;position:relative}
+.topnav-right .icon:hover{background:rgba(255,255,255,.1);color:#fff}
+.topnav-right .icon .dot{position:absolute;top:6px;right:6px;width:7px;height:7px;background:var(--d);border-radius:50%;border:1.5px solid var(--nav-bg)}
+.topnav-user{display:flex;align-items:center;gap:6px;color:rgba(255,255,255,.85);font-size:12px;cursor:pointer}
+.topnav-avatar{width:28px;height:28px;border-radius:50%;background:linear-gradient(135deg,var(--p),#4096ff);display:flex;align-items:center;justify-content:center;color:#fff;font-size:11px;font-weight:600}
+
+/* ========== Layout ========== */
+.srm-layout{display:flex;height:calc(100vh - 48px);margin-top:48px}
+.sidebar{width:220px;background:#fff;border-right:1px solid var(--g200);display:flex;flex-direction:column;flex-shrink:0;overflow:hidden}
+.sidebar-hdr{padding:16px;border-bottom:1px solid var(--g100)}
+.sidebar-hdr h3{font-size:14px;font-weight:700;color:var(--g900);margin-bottom:4px}
+.sidebar-hdr .count{font-size:12px;color:var(--g500)}
+.sidebar-hdr .count strong{color:var(--p);font-weight:600}
+.sp-menu{flex:1;overflow-y:auto;padding:8px 0}
+.sp-menu-item{display:flex;align-items:center;gap:10px;padding:11px 20px;font-size:13px;color:var(--g600);cursor:pointer;transition:all .15s;border-left:3px solid transparent;position:relative}
+.sp-menu-item:hover{color:var(--p);background:var(--pl)}
+.sp-menu-item.active{color:var(--p);background:var(--pl);font-weight:600;border-left-color:var(--p)}
+.sp-menu-item .mi-icon{width:20px;height:20px;border-radius:4px;display:flex;align-items:center;justify-content:center;font-size:12px;flex-shrink:0}
+.sp-menu-item .mi-icon.blue{background:var(--pl);color:var(--p)}
+.sp-menu-item .mi-icon.green{background:var(--sl);color:var(--s)}
+.sp-menu-item .mi-icon.orange{background:var(--wl);color:#d46b08}
+.sp-menu-item .mi-icon.purple{background:var(--purple-l);color:var(--purple)}
+.sp-menu-item .mi-icon.cyan{background:var(--cyan-l);color:var(--cyan)}
+.sp-menu-item .mi-icon.red{background:var(--dl);color:var(--d)}
+.sp-menu-item .mi-badge{margin-left:auto;font-size:10px;padding:1px 6px;border-radius:8px;background:var(--g100);color:var(--g500);font-weight:500}
+.sp-menu-item.active .mi-badge{background:var(--pl);color:var(--p)}
+
+/* ========== Main Content ========== */
+.main-content{flex:1;overflow-y:auto;background:#f0f2f5;padding:0}
+.content-header{background:#fff;padding:16px 24px;border-bottom:1px solid var(--g200)}
+.content-title{font-size:16px;font-weight:700;color:var(--g900);margin-bottom:12px;display:flex;align-items:center;gap:10px}
+.content-title .sub{font-size:12px;font-weight:400;color:var(--g500)}
+.content-tabs{display:flex;gap:0;margin-bottom:12px}
+.ctab{padding:8px 16px;font-size:13px;color:var(--g600);cursor:pointer;border-bottom:2px solid transparent;transition:var(--tr);display:flex;align-items:center;gap:6px}
+.ctab:hover{color:var(--p)}
+.ctab.active{color:var(--p);font-weight:600;border-bottom-color:var(--p)}
+.ctab .badge{font-size:10px;padding:1px 6px;border-radius:8px;background:var(--d);color:#fff;font-weight:600;min-width:18px;text-align:center}
+.content-toolbar{display:flex;align-items:center;justify-content:space-between;gap:12px}
+.search-box{display:flex;align-items:center;gap:8px}
+.search-input{width:260px;padding:6px 12px;border:1px solid var(--g300);border-radius:var(--rs);font-size:12px;transition:var(--tr)}
+.search-input:focus{outline:none;border-color:var(--p);box-shadow:0 0 0 3px rgba(22,119,255,.1)}
+.toolbar-right{display:flex;align-items:center;gap:10px}
+.filter-select{padding:6px 28px 6px 10px;border:1px solid var(--g300);border-radius:var(--rs);font-size:12px;color:var(--g700);background:#fff url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M0 0l5 6 5-6z' fill='%238c8c8c'/%3E%3C/svg%3E") no-repeat right 8px center;appearance:none;cursor:pointer;transition:var(--tr)}
+.filter-select:focus{outline:none;border-color:var(--p)}
+
+/* ========== Buttons ========== */
+.btn{border:none;padding:7px 16px;border-radius:var(--rs);font-size:12px;font-weight:500;cursor:pointer;transition:var(--tr);display:inline-flex;align-items:center;gap:5px;white-space:nowrap}
+.btn:active{transform:scale(.97)}
+.btn-p{background:linear-gradient(135deg,var(--p) 0%,#4096ff 100%);color:#fff;box-shadow:0 2px 6px rgba(22,119,255,.25)}
+.btn-p:hover{box-shadow:0 4px 12px rgba(22,119,255,.35);transform:translateY(-1px)}
+.btn-o{background:#fff;color:var(--g700);border:1px solid var(--g300)}.btn-o:hover{color:var(--p);border-color:var(--p);background:var(--pa)}
+.btn-g{background:var(--g50);color:var(--g600);border:1px solid var(--g200)}.btn-g:hover{color:var(--p);border-color:var(--p);background:var(--pa)}
+.btn-s{padding:4px 10px;font-size:11px;border-radius:4px;white-space:nowrap}
+.btn-d{background:none;color:var(--d);border:none;padding:2px 6px;font-size:11px;cursor:pointer}.btn-d:hover{text-decoration:underline}
+.btn-success{background:linear-gradient(135deg,var(--s),#73d13d);color:#fff;box-shadow:0 2px 6px rgba(82,196,26,.25)}.btn-success:hover{box-shadow:0 4px 12px rgba(82,196,26,.35)}
+
+/* ========== Summary Cards ========== */
+.summary-row{display:grid;grid-template-columns:repeat(5,1fr);gap:14px;padding:16px 24px}
+.summary-card{background:#fff;border-radius:var(--r);padding:16px 18px;border:1px solid rgba(0,0,0,.04);box-shadow:var(--sh);transition:var(--tr);position:relative;overflow:hidden}
+.summary-card:hover{box-shadow:var(--shm);transform:translateY(-2px)}
+.summary-card::before{content:'';position:absolute;top:0;left:0;right:0;height:3px}
+.summary-card.blue::before{background:linear-gradient(90deg,var(--p),var(--ph))}
+.summary-card.green::before{background:linear-gradient(90deg,var(--s),#73d13d)}
+.summary-card.orange::before{background:linear-gradient(90deg,var(--w),#ffc53d)}
+.summary-card.red::before{background:linear-gradient(90deg,var(--d),#ff7875)}
+.summary-card.purple::before{background:linear-gradient(90deg,var(--purple),#b37feb)}
+.sc-top{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px}
+.sc-label{font-size:12px;color:var(--g500)}
+.sc-icon{width:36px;height:36px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:16px}
+.sc-icon.blue{background:var(--pl);color:var(--p)}
+.sc-icon.green{background:var(--sl);color:var(--s)}
+.sc-icon.orange{background:var(--wl);color:var(--w)}
+.sc-icon.red{background:var(--dl);color:var(--d)}
+.sc-icon.purple{background:var(--purple-l);color:var(--purple)}
+.sc-value{font-size:24px;font-weight:700;color:var(--g900);line-height:1.2}
+.sc-sub{font-size:11px;color:var(--g500);margin-top:4px;display:flex;align-items:center;gap:4px}
+.sc-sub .up{color:var(--d)}
+.sc-sub .down{color:var(--s)}
+
+/* ========== Panels ========== */
+.sp{background:#fff;border-radius:var(--r);box-shadow:var(--sh);margin-bottom:14px;overflow:hidden;border:1px solid rgba(0,0,0,.04);transition:var(--tr)}
+.sp:hover{box-shadow:var(--shm);border-color:rgba(0,0,0,.06)}
+.sp-h{display:flex;align-items:center;justify-content:space-between;padding:13px 20px;border-bottom:1px solid var(--g100);cursor:pointer;user-select:none;transition:var(--tr)}
+.sp-h:hover{background:linear-gradient(90deg,var(--g50),#fff)}
+.sp-t{font-size:13px;font-weight:600;display:flex;align-items:center;gap:7px;color:var(--g800)}
+.sp-t .arr{font-size:10px;color:var(--g400);transition:transform .25s ease}
+.sp-t .arr.open{transform:rotate(90deg)}
+.sp-b{padding:0}
+
+/* ========== Tables ========== */
+.dt{width:100%;border-collapse:collapse;table-layout:fixed}
+.dt th{background:linear-gradient(180deg,#fafafa,#f5f5f5);color:var(--g700);font-size:11px;font-weight:600;padding:10px 12px;text-align:left;border-bottom:1px solid var(--g200);border-right:1px solid var(--g100);white-space:nowrap;position:sticky;top:0;z-index:10}
+.dt td{padding:10px 12px;border-bottom:1px solid var(--g100);border-right:1px solid var(--g100);font-size:12px;vertical-align:middle}
+.dt tbody tr{transition:var(--tr)}
+.dt tbody tr:hover td{background:#f0f7ff}
+.dt .cell-link{color:var(--p);font-weight:500;cursor:pointer}
+.dt .cell-link:hover{text-decoration:underline}
+.dt .cell-bold{font-weight:600;color:var(--g800)}
+
+/* ========== Tags ========== */
+.tag{display:inline-block;font-size:10px;padding:2px 8px;border-radius:4px;font-weight:500;white-space:nowrap}
+.tag-p{background:var(--pl);color:var(--p)}
+.tag-s{background:var(--sl);color:var(--s)}
+.tag-w{background:var(--wl);color:#d46b08}
+.tag-d{background:var(--dl);color:var(--d)}
+.tag-g{background:var(--g100);color:var(--g600)}
+.tag-o{background:#fff7e6;color:#d4380d}
+.tag-purple{background:var(--purple-l);color:var(--purple)}
+.tag-cyan{background:var(--cyan-l);color:var(--cyan)}
+
+/* ========== Content Wrapper ========== */
+.content-wrap{padding:0 24px 24px}
+.page-section{margin-top:14px}
+
+/* ========== Category Detail Panel ========== */
+.cat-detail{display:none;position:fixed;top:0;left:0;right:0;bottom:0;z-index:500;background:#f0f2f5;flex-direction:column}
+.cat-detail.active{display:flex}
+.cat-hdr{background:linear-gradient(180deg,#fff 0%,#fafcff 100%);border-bottom:1px solid var(--g200);padding:12px 24px;display:flex;align-items:center;justify-content:space-between;flex-shrink:0}
+.cat-hdr-l{display:flex;align-items:center;gap:14px}
+.cat-back{display:flex;align-items:center;gap:4px;font-size:13px;color:var(--p);cursor:pointer;padding:4px 8px;border-radius:var(--rs);transition:var(--tr)}
+.cat-back:hover{background:var(--pl)}
+.cat-hdr .cat-title{font-size:16px;font-weight:700;color:var(--g900)}
+.cat-hdr .cat-status{display:inline-flex;align-items:center;gap:5px;font-size:11px;padding:3px 10px;border-radius:12px;font-weight:500}
+.cat-hdr .cat-status.active{background:var(--sl);color:var(--s)}
+.cat-hdr .cat-status .dot{width:6px;height:6px;border-radius:50%;background:var(--s)}
+.cat-hdr-r{display:flex;gap:8px;align-items:center}
+.cat-tabs{background:#fff;border-bottom:1px solid var(--g200);padding:0 24px;flex-shrink:0}
+.cat-tabs-inner{display:flex;gap:0;overflow-x:auto;scrollbar-width:none}
+.cat-tab{padding:12px 18px;font-size:13px;color:var(--g600);cursor:pointer;border-bottom:2px solid transparent;transition:var(--tr);white-space:nowrap;display:flex;align-items:center;gap:6px}
+.cat-tab:hover{color:var(--p)}
+.cat-tab.active{color:var(--p);font-weight:600;border-bottom-color:var(--p)}
+.cat-tab .tab-badge{font-size:10px;padding:1px 6px;border-radius:8px;background:var(--g200);color:var(--g600);font-weight:600;min-width:16px;text-align:center}
+.cat-tab.active .tab-badge{background:var(--pl);color:var(--p)}
+.cat-body{flex:1;overflow-y:auto;padding:16px 24px}
+
+/* ========== Category Info Grid ========== */
+.cat-info-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:16px}
+.cat-info-card{background:#fff;border-radius:var(--r);padding:16px;border:1px solid var(--g200);transition:var(--tr)}
+.cat-info-card:hover{box-shadow:var(--shm);border-color:var(--p)}
+.cat-info-card .ci-label{font-size:11px;color:var(--g500);margin-bottom:6px;font-weight:500}
+.cat-info-card .ci-val{font-size:20px;font-weight:700;color:var(--g900);line-height:1.2}
+.cat-info-card .ci-sub{font-size:11px;color:var(--g500);margin-top:4px}
+.cat-info-card .ci-val.blue{color:var(--p)}
+.cat-info-card .ci-val.green{color:var(--s)}
+.cat-info-card .ci-val.orange{color:var(--w)}
+.cat-info-card .ci-val.purple{color:var(--purple)}
+
+/* ========== Supplier Score Bar ========== */
+.score-bar{display:flex;align-items:center;gap:8px}
+.score-bar .bar{flex:1;height:6px;background:var(--g100);border-radius:3px;overflow:hidden;min-width:60px}
+.score-bar .bar-fill{height:100%;border-radius:3px;transition:width .5s ease}
+.score-bar .bar-fill.high{background:linear-gradient(90deg,var(--s),#73d13d)}
+.score-bar .bar-fill.mid{background:linear-gradient(90deg,var(--w),#ffc53d)}
+.score-bar .bar-fill.low{background:linear-gradient(90deg,var(--d),#ff7875)}
+.score-bar .score-val{font-size:12px;font-weight:600;color:var(--g800);min-width:32px;text-align:right}
+
+/* ========== Resource Card ========== */
+.res-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:14px}
+.res-card{background:#fff;border:1px solid var(--g200);border-radius:var(--r);padding:0;overflow:hidden;transition:var(--tr)}
+.res-card:hover{border-color:var(--p);box-shadow:var(--shm)}
+.res-card-hdr{display:flex;align-items:center;justify-content:space-between;padding:14px 18px;border-bottom:1px solid var(--g100);background:linear-gradient(180deg,#fafafa,#f8f8f8)}
+.res-card-hdr .rc-name{font-size:14px;font-weight:700;color:var(--g900);display:flex;align-items:center;gap:8px}
+.res-card-hdr .rc-type{font-size:10px;padding:2px 8px;border-radius:4px;font-weight:500}
+.res-card-body{padding:14px 18px}
+.res-card-body .rc-row{display:flex;align-items:center;justify-content:space-between;padding:6px 0;font-size:12px;border-bottom:1px solid var(--g100)}
+.res-card-body .rc-row:last-child{border-bottom:none}
+.res-card-body .rc-row .label{color:var(--g600)}
+.res-card-body .rc-row .value{font-weight:600;color:var(--g800)}
+
+/* ========== Pagination ========== */
+.pagination{display:flex;align-items:center;justify-content:flex-end;gap:6px;padding:12px 16px;background:#fff;border-top:1px solid var(--g200);font-size:12px;color:var(--g600)}
+.pagination .pg-btn{width:28px;height:28px;border:1px solid var(--g300);border-radius:4px;display:flex;align-items:center;justify-content:center;cursor:pointer;background:#fff;transition:var(--tr);font-size:12px}
+.pagination .pg-btn:hover{color:var(--p);border-color:var(--p)}
+.pagination .pg-btn.active{background:var(--p);color:#fff;border-color:var(--p)}
+
+/* ========== Responsive ========== */
+@media(max-width:1400px){.summary-row{grid-template-columns:repeat(3,1fr)}.cat-info-grid{grid-template-columns:repeat(2,1fr)}}
+@media(max-width:1100px){.summary-row{grid-template-columns:repeat(2,1fr)}.res-grid{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+
+<!-- ===== Top Nav ===== -->
+<nav class="topnav">
+  <div class="topnav-logo">
+    <div class="mi">MI</div>
+    <span>小米汽车 SRM</span>
+  </div>
+  <div class="topnav-menu">
+    <div class="topnav-item">工作台</div>
+    <div class="topnav-item">供应商管理</div>
+    <div class="topnav-item">寻源管理</div>
+    <div class="topnav-item active">品类管理</div>
+    <div class="topnav-item">合同管理</div>
+    <div class="topnav-item">订单管理</div>
+    <div class="topnav-item">质量管理</div>
+    <div class="topnav-item">报表中心</div>
+  </div>
+  <div class="topnav-right">
+    <div class="icon">🔔<span class="dot"></span></div>
+    <div class="icon">✉️</div>
+    <div class="topnav-user">
+      <div class="topnav-avatar">张</div>
+      <span>张伟</span>
+    </div>
+  </div>
+</nav>
+
+<!-- ===== Layout ===== -->
+<div class="srm-layout">
+  <!-- Sidebar -->
+  <aside class="sidebar">
+    <div class="sidebar-hdr">
+      <h3>品类资源池</h3>
+      <div class="count">共 <strong>12</strong> 个品类</div>
+    </div>
+    <nav class="sp-menu">
+      <div class="sp-menu-item active">
+        <div class="mi-icon blue">🔋</div>
+        <span>三电系统</span>
+        <div class="mi-badge">3</div>
+      </div>
+      <div class="sp-menu-item">
+        <div class="mi-icon green">💺</div>
+        <span>座椅系统</span>
+        <div class="mi-badge">2</div>
+      </div>
+      <div class="sp-menu-item">
+        <div class="mi-icon orange">🔌</div>
+        <span>电子电器</span>
+        <div class="mi-badge">2</div>
+      </div>
+      <div class="sp-menu-item">
+        <div class="mi-icon purple">🚗</div>
+        <span>车身结构</span>
+        <div class="mi-badge">1</div>
+      </div>
+      <div class="sp-menu-item">
+        <div class="mi-icon cyan">⚙️</div>
+        <span>底盘系统</span>
+        <div class="mi-badge">2</div>
+      </div>
+      <div class="sp-menu-item">
+        <div class="mi-icon red">🎨</div>
+        <span>内外饰</span>
+        <div class="mi-badge">2</div>
+      </div>
+    </nav>
+  </aside>
+
+  <!-- Main Content -->
+  <main class="main-content">
+    <!-- Header -->
+    <div class="content-header">
+      <div class="content-title">
+        品类资源池
+        <span class="sub">品类供应商资源总览 · OnePage视图</span>
+      </div>
+      <div class="content-tabs">
+        <div class="ctab active">全部品类 <span class="badge">12</span></div>
+        <div class="ctab">已定点 <span class="badge" style="background:var(--s)">48</span></div>
+        <div class="ctab">开发中 <span class="badge" style="background:var(--w)">16</span></div>
+        <div class="ctab">待开发 <span class="badge" style="background:var(--g300)">8</span></div>
+      </div>
+      <div class="content-toolbar">
+        <div class="search-box">
+          <input class="search-input" placeholder="搜索品类名称 / 零件号 / 供应商..." />
+        </div>
+        <div class="toolbar-right">
+          <select class="filter-select">
+            <option>所有车型平台</option>
+            <option>SU7</option>
+            <option>SU7 Ultra</option>
+            <option>MX11 (SUV)</option>
+            <option>N3 (轿跑)</option>
+          </select>
+          <select class="filter-select">
+            <option>所有采购组</option>
+            <option>三电采购组</option>
+            <option>底盘件采购组</option>
+            <option>内外饰采购组</option>
+            <option>电子电器采购组</option>
+          </select>
+          <button class="btn btn-o">📥 导出</button>
+          <button class="btn btn-p">➕ 新增品类</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Summary Cards -->
+    <div class="summary-row">
+      <div class="summary-card blue">
+        <div class="sc-top">
+          <span class="sc-label">品类总数</span>
+          <div class="sc-icon blue">📋</div>
+        </div>
+        <div class="sc-value">12</div>
+        <div class="sc-sub">覆盖 <strong>6</strong> 大系统</div>
+      </div>
+      <div class="summary-card green">
+        <div class="sc-top">
+          <span class="sc-label">资源供应商</span>
+          <div class="sc-icon green">🏭</div>
+        </div>
+        <div class="sc-value">186</div>
+        <div class="sc-sub"><span class="down">↑ 23</span> 较上季度</div>
+      </div>
+      <div class="summary-card orange">
+        <div class="sc-top">
+          <span class="sc-label">已定点供应商</span>
+          <div class="sc-icon orange">✅</div>
+        </div>
+        <div class="sc-value">48</div>
+        <div class="sc-sub">定点率 <strong>25.8%</strong></div>
+      </div>
+      <div class="summary-card purple">
+        <div class="sc-top">
+          <span class="sc-label">RFQ进行中</span>
+          <div class="sc-icon purple">📊</div>
+        </div>
+        <div class="sc-value">16</div>
+        <div class="sc-sub">平均报价 <strong>3.2</strong> 家/RFQ</div>
+      </div>
+      <div class="summary-card red">
+        <div class="sc-top">
+          <span class="sc-label">待开发品类</span>
+          <div class="sc-icon red">🆕</div>
+        </div>
+        <div class="sc-value">8</div>
+        <div class="sc-sub">含 <strong>2</strong> 个新平台品类</div>
+      </div>
+    </div>
+
+    <div class="content-wrap">
+      <!-- ===== 品类资源总览表 ===== -->
+      <div class="page-section">
+        <div class="sp">
+          <div class="sp-h">
+            <div class="sp-t"><span class="arr open">▶</span> 品类资源总览</div>
+            <div style="display:flex;gap:6px">
+              <button class="btn btn-g btn-s">🔄 刷新</button>
+              <button class="btn btn-o btn-s">🔍 高级筛选</button>
+            </div>
+          </div>
+          <div class="sp-b" style="overflow-x:auto">
+            <table class="dt" style="min-width:1400px">
+              <thead>
+                <tr>
+                  <th style="width:50px">序号</th>
+                  <th style="width:120px">品类编码</th>
+                  <th style="width:130px">品类名称</th>
+                  <th style="width:90px">所属系统</th>
+                  <th style="width:100px">零件数量</th>
+                  <th style="width:100px">资源供应商</th>
+                  <th style="width:80px">已定点</th>
+                  <th style="width:110px">定点覆盖率</th>
+                  <th style="width:90px">RFQ进行中</th>
+                  <th style="width:110px">年度采购额</th>
+                  <th style="width:100px">负责采购员</th>
+                  <th style="width:80px">状态</th>
+                  <th style="width:100px">操作</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td>1</td>
+                  <td><span class="cell-link" onclick="showCatDetail('battery')">CAT-3E-001</span></td>
+                  <td class="cell-bold">动力电池包</td>
+                  <td><span class="tag tag-p">三电系统</span></td>
+                  <td>28</td>
+                  <td>12</td>
+                  <td>3</td>
+                  <td>
+                    <div class="score-bar">
+                      <div class="bar"><div class="bar-fill high" style="width:25%"></div></div>
+                      <span class="score-val">25%</span>
+                    </div>
+                  </td>
+                  <td>2</td>
+                  <td>¥ 42.8亿</td>
+                  <td>李明</td>
+                  <td><span class="tag tag-s">活跃</span></td>
+                  <td>
+                    <button class="btn btn-p btn-s" onclick="showCatDetail('battery')">详情</button>
+                  </td>
+                </tr>
+                <tr>
+                  <td>2</td>
+                  <td><span class="cell-link" onclick="showCatDetail('motor')">CAT-3E-002</span></td>
+                  <td class="cell-bold">驱动电机</td>
+                  <td><span class="tag tag-p">三电系统</span></td>
+                  <td>18</td>
+                  <td>8</td>
+                  <td>2</td>
+                  <td>
+                    <div class="score-bar">
+                      <div class="bar"><div class="bar-fill high" style="width:25%"></div></div>
+                      <span class="score-val">25%</span>
+                    </div>
+                  </td>
+                  <td>1</td>
+                  <td>¥ 18.6亿</td>
+                  <td>李明</td>
+                  <td><span class="tag tag-s">活跃</span></td>
+                  <td>
+                    <button class="btn btn-p btn-s" onclick="showCatDetail('motor')">详情</button>
+                  </td>
+                </tr>
+                <tr>
+                  <td>3</td>
+                  <td><span class="cell-link">CAT-3E-003</span></td>
+                  <td class="cell-bold">BMS电池管理系统</td>
+                  <td><span class="tag tag-p">三电系统</span></td>
+                  <td>15</td>
+                  <td>6</td>
+                  <td>2</td>
+                  <td>
+                    <div class="score-bar">
+                      <div class="bar"><div class="bar-fill mid" style="width:33%"></div></div>
+                      <span class="score-val">33%</span>
+                    </div>
+                  </td>
+                  <td>1</td>
+                  <td>¥ 5.2亿</td>
+                  <td>李明</td>
+                  <td><span class="tag tag-s">活跃</span></td>
+                  <td>
+                    <button class="btn btn-p btn-s">详情</button>
+                  </td>
+                </tr>
+                <tr>
+                  <td>4</td>
+                  <td><span class="cell-link" onclick="showCatDetail('seat')">CAT-SM-001</span></td>
+                  <td class="cell-bold">前排座椅总成</td>
+                  <td><span class="tag tag-s">座椅系统</span></td>
+                  <td>32</td>
+                  <td>10</td>
+                  <td>2</td>
+                  <td>
+                    <div class="score-bar">
+                      <div class="bar"><div class="bar-fill mid" style="width:20%"></div></div>
+                      <span class="score-val">20%</span>
+                    </div>
+                  </td>
+                  <td>2</td>
+                  <td>¥ 15.3亿</td>
+                  <td>王芳</td>
+                  <td><span class="tag tag-s">活跃</span></td>
+                  <td>
+                    <button class="btn btn-p btn-s" onclick="showCatDetail('seat')">详情</button>
+                  </td>
+                </tr>
+                <tr>
+                  <td>5</td>
+                  <td><span class="cell-link">CAT-SM-002</span></td>
+                  <td class="cell-bold">后排座椅总成</td>
+                  <td><span class="tag tag-s">座椅系统</span></td>
+                  <td>24</td>
+                  <td>8</td>
+                  <td>2</td>
+                  <td>
+                    <div class="score-bar">
+                      <div class="bar"><div class="bar-fill mid" style="width:25%"></div></div>
+                      <span class="score-val">25%</span>
+                    </div>
+                  </td>
+                  <td>1</td>
+                  <td>¥ 9.8亿</td>
+                  <td>王芳</td>
+                  <td><span class="tag tag-s">活跃</span></td>
+                  <td>
+                    <button class="btn btn-p btn-s">详情</button>
+                  </td>
+                </tr>
+                <tr>
+                  <td>6</td>
+                  <td><span class="cell-link">CAT-EE-001</span></td>
+                  <td class="cell-bold">智能座舱域控</td>
+                  <td><span class="tag tag-purple">电子电器</span></td>
+                  <td>22</td>
+                  <td>9</td>
+                  <td>2</td>
+                  <td>
+                    <div class="score-bar">
+                      <div class="bar"><div class="bar-fill mid" style="width:22%"></div></div>
+                      <span class="score-val">22%</span>
+                    </div>
+                  </td>
+                  <td>3</td>
+                  <td>¥ 8.7亿</td>
+                  <td>赵强</td>
+                  <td><span class="tag tag-s">活跃</span></td>
+                  <td>
+                    <button class="btn btn-p btn-s">详情</button>
+                  </td>
+                </tr>
+                <tr>
+                  <td>7</td>
+                  <td><span class="cell-link">CAT-EE-002</span></td>
+                  <td class="cell-bold">自动驾驶域控</td>
+                  <td><span class="tag tag-purple">电子电器</span></td>
+                  <td>26</td>
+                  <td>11</td>
+                  <td>1</td>
+                  <td>
+                    <div class="score-bar">
+                      <div class="bar"><div class="bar-fill low" style="width:10%"></div></div>
+                      <span class="score-val" style="color:var(--d)">10%</span>
+                    </div>
+                  </td>
+                  <td>2</td>
+                  <td>¥ 12.4亿</td>
+                  <td>赵强</td>
+                  <td><span class="tag tag-w">开发中</span></td>
+                  <td>
+                    <button class="btn btn-p btn-s">详情</button>
+                  </td>
+                </tr>
+                <tr>
+                  <td>8</td>
+                  <td><span class="cell-link">CAT-BD-001</span></td>
+                  <td class="cell-bold">车身冲压件</td>
+                  <td><span class="tag tag-o">车身结构</span></td>
+                  <td>45</td>
+                  <td>15</td>
+                  <td>6</td>
+                  <td>
+                    <div class="score-bar">
+                      <div class="bar"><div class="bar-fill high" style="width:40%"></div></div>
+                      <span class="score-val">40%</span>
+                    </div>
+                  </td>
+                  <td>0</td>
+                  <td>¥ 22.1亿</td>
+                  <td>刘洋</td>
+                  <td><span class="tag tag-s">活跃</span></td>
+                  <td>
+                    <button class="btn btn-p btn-s">详情</button>
+                  </td>
+                </tr>
+                <tr>
+                  <td>9</td>
+                  <td><span class="cell-link">CAT-CH-001</span></td>
+                  <td class="cell-bold">前悬架总成</td>
+                  <td><span class="tag tag-cyan">底盘系统</span></td>
+                  <td>16</td>
+                  <td>7</td>
+                  <td>2</td>
+                  <td>
+                    <div class="score-bar">
+                      <div class="bar"><div class="bar-fill mid" style="width:29%"></div></div>
+                      <span class="score-val">29%</span>
+                    </div>
+                  </td>
+                  <td>1</td>
+                  <td>¥ 6.5亿</td>
+                  <td>陈杰</td>
+                  <td><span class="tag tag-s">活跃</span></td>
+                  <td>
+                    <button class="btn btn-p btn-s">详情</button>
+                  </td>
+                </tr>
+                <tr>
+                  <td>10</td>
+                  <td><span class="cell-link">CAT-CH-002</span></td>
+                  <td class="cell-bold">制动系统</td>
+                  <td><span class="tag tag-cyan">底盘系统</span></td>
+                  <td>20</td>
+                  <td>9</td>
+                  <td>3</td>
+                  <td>
+                    <div class="score-bar">
+                      <div class="bar"><div class="bar-fill high" style="width:33%"></div></div>
+                      <span class="score-val">33%</span>
+                    </div>
+                  </td>
+                  <td>1</td>
+                  <td>¥ 7.8亿</td>
+                  <td>陈杰</td>
+                  <td><span class="tag tag-s">活跃</span></td>
+                  <td>
+                    <button class="btn btn-p btn-s">详情</button>
+                  </td>
+                </tr>
+                <tr>
+                  <td>11</td>
+                  <td><span class="cell-link">CAT-TR-001</span></td>
+                  <td class="cell-bold">前端模块</td>
+                  <td><span class="tag tag-d">内外饰</span></td>
+                  <td>18</td>
+                  <td>12</td>
+                  <td>5</td>
+                  <td>
+                    <div class="score-bar">
+                      <div class="bar"><div class="bar-fill high" style="width:42%"></div></div>
+                      <span class="score-val">42%</span>
+                    </div>
+                  </td>
+                  <td>1</td>
+                  <td>¥ 11.2亿</td>
+                  <td>周敏</td>
+                  <td><span class="tag tag-s">活跃</span></td>
+                  <td>
+                    <button class="btn btn-p btn-s">详情</button>
+                  </td>
+                </tr>
+                <tr>
+                  <td>12</td>
+                  <td><span class="cell-link">CAT-TR-002</span></td>
+                  <td class="cell-bold">仪表板总成</td>
+                  <td><span class="tag tag-d">内外饰</span></td>
+                  <td>22</td>
+                  <td>10</td>
+                  <td>3</td>
+                  <td>
+                    <div class="score-bar">
+                      <div class="bar"><div class="bar-fill mid" style="width:30%"></div></div>
+                      <span class="score-val">30%</span>
+                    </div>
+                  </td>
+                  <td>2</td>
+                  <td>¥ 8.9亿</td>
+                  <td>周敏</td>
+                  <td><span class="tag tag-s">活跃</span></td>
+                  <td>
+                    <button class="btn btn-p btn-s">详情</button>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+          <div class="pagination">
+            <span>共 12 条</span>
+            <div class="pg-btn active">1</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ===== 重点品类 OnePage：动力电池包 ===== -->
+      <div class="page-section">
+        <div class="sp">
+          <div class="sp-h" onclick="togglePanel(this)">
+            <div class="sp-t"><span class="arr open">▶</span> 🔋 重点品类 OnePage — 动力电池包</div>
+            <div style="display:flex;gap:6px;align-items:center">
+              <span class="tag tag-s">已定点 3家</span>
+              <span class="tag tag-w">RFQ中 2家</span>
+            </div>
+          </div>
+          <div class="sp-b">
+            <div style="padding:16px 20px">
+              <!-- 品类概览 -->
+              <div style="display:grid;grid-template-columns:repeat(5,1fr);gap:12px;margin-bottom:16px">
+                <div style="text-align:center;padding:12px;background:var(--g50);border-radius:var(--rs);border:1px solid var(--g200)">
+                  <div style="font-size:11px;color:var(--g500);margin-bottom:4px">零件总数</div>
+                  <div style="font-size:20px;font-weight:700;color:var(--g900)">28</div>
+                </div>
+                <div style="text-align:center;padding:12px;background:var(--g50);border-radius:var(--rs);border:1px solid var(--g200)">
+                  <div style="font-size:11px;color:var(--g500);margin-bottom:4px">资源供应商</div>
+                  <div style="font-size:20px;font-weight:700;color:var(--p)">12</div>
+                </div>
+                <div style="text-align:center;padding:12px;background:var(--g50);border-radius:var(--rs);border:1px solid var(--g200)">
+                  <div style="font-size:11px;color:var(--g500);margin-bottom:4px">已定点</div>
+                  <div style="font-size:20px;font-weight:700;color:var(--s)">3</div>
+                </div>
+                <div style="text-align:center;padding:12px;background:var(--g50);border-radius:var(--rs);border:1px solid var(--g200)">
+                  <div style="font-size:11px;color:var(--g500);margin-bottom:4px">年度采购额</div>
+                  <div style="font-size:20px;font-weight:700;color:var(--g900)">¥42.8亿</div>
+                </div>
+                <div style="text-align:center;padding:12px;background:var(--g50);border-radius:var(--rs);border:1px solid var(--g200)">
+                  <div style="font-size:11px;color:var(--g500);margin-bottom:4px">平均单价</div>
+                  <div style="font-size:20px;font-weight:700;color:var(--g900)">¥5.8万</div>
+                </div>
+              </div>
+              <!-- 供应商资源矩阵 -->
+              <div style="font-size:13px;font-weight:700;color:var(--g800);margin-bottom:10px;display:flex;align-items:center;gap:6px">
+                <span style="width:3px;height:14px;border-radius:2px;background:var(--p);display:inline-block"></span>
+                供应商资源矩阵
+              </div>
+              <table class="dt" style="min-width:1100px">
+                <thead>
+                  <tr>
+                    <th style="width:40px">#</th>
+                    <th style="width:140px">供应商名称</th>
+                    <th style="width:110px">供应商编码</th>
+                    <th style="width:100px">国家/地区</th>
+                    <th style="width:130px">供应零件</th>
+                    <th style="width:80px">供货状态</th>
+                    <th style="width:100px">年度份额</th>
+                    <th style="width:120px">综合评分</th>
+                    <th style="width:100px">最近报价</th>
+                    <th style="width:100px">合作年限</th>
+                    <th style="width:90px">风险等级</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td>1</td>
+                    <td><span class="cell-link">宁德时代</span></td>
+                    <td>SUP-3E-001</td>
+                    <td>🇨🇳 中国</td>
+                    <td>电芯模组、PACK总成</td>
+                    <td><span class="tag tag-s">量产供货</span></td>
+                    <td>45%</td>
+                    <td>
+                      <div class="score-bar">
+                        <div class="bar"><div class="bar-fill high" style="width:92%"></div></div>
+                        <span class="score-val" style="color:var(--s)">92</span>
+                      </div>
+                    </td>
+                    <td>¥5.2万/台</td>
+                    <td>3年</td>
+                    <td><span class="tag tag-s">低风险</span></td>
+                  </tr>
+                  <tr>
+                    <td>2</td>
+                    <td><span class="cell-link">比亚迪弗迪</span></td>
+                    <td>SUP-3E-002</td>
+                    <td>🇨🇳 中国</td>
+                    <td>刀片电池模组</td>
+                    <td><span class="tag tag-s">量产供货</span></td>
+                    <td>30%</td>
+                    <td>
+                      <div class="score-bar">
+                        <div class="bar"><div class="bar-fill high" style="width:88%"></div></div>
+                        <span class="score-val" style="color:var(--s)">88</span>
+                      </div>
+                    </td>
+                    <td>¥4.8万/台</td>
+                    <td>2年</td>
+                    <td><span class="tag tag-s">低风险</span></td>
+                  </tr>
+                  <tr>
+                    <td>3</td>
+                    <td><span class="cell-link">中创新航</span></td>
+                    <td>SUP-3E-003</td>
+                    <td>🇨🇳 中国</td>
+                    <td>方形铝壳电芯</td>
+                    <td><span class="tag tag-p">小批量</span></td>
+                    <td>15%</td>
+                    <td>
+                      <div class="score-bar">
+                        <div class="bar"><div class="bar-fill mid" style="width:78%"></div></div>
+                        <span class="score-val">78</span>
+                      </div>
+                    </td>
+                    <td>¥4.6万/台</td>
+                    <td>1年</td>
+                    <td><span class="tag tag-w">中风险</span></td>
+                  </tr>
+                  <tr>
+                    <td>4</td>
+                    <td><span class="cell-link">三星SDI</span></td>
+                    <td>SUP-3E-004</td>
+                    <td>🇰🇷 韩国</td>
+                    <td>高镍三元电芯</td>
+                    <td><span class="tag tag-w">RFQ中</span></td>
+                    <td>—</td>
+                    <td>
+                      <div class="score-bar">
+                        <div class="bar"><div class="bar-fill high" style="width:85%"></div></div>
+                        <span class="score-val">85</span>
+                      </div>
+                    </td>
+                    <td>待定</td>
+                    <td>新开发</td>
+                    <td><span class="tag tag-w">中风险</span></td>
+                  </tr>
+                  <tr>
+                    <td>5</td>
+                    <td><span class="cell-link">LG新能源</span></td>
+                    <td>SUP-3E-005</td>
+                    <td>🇰🇷 韩国</td>
+                    <td>软包电芯</td>
+                    <td><span class="tag tag-w">RFQ中</span></td>
+                    <td>—</td>
+                    <td>
+                      <div class="score-bar">
+                        <div class="bar"><div class="bar-fill high" style="width:82%"></div></div>
+                        <span class="score-val">82</span>
+                      </div>
+                    </td>
+                    <td>待定</td>
+                    <td>新开发</td>
+                    <td><span class="tag tag-d">高风险</span></td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ===== 重点品类 OnePage：前排座椅总成 ===== -->
+      <div class="page-section">
+        <div class="sp">
+          <div class="sp-h" onclick="togglePanel(this)">
+            <div class="sp-t"><span class="arr open">▶</span> 💺 重点品类 OnePage — 前排座椅总成</div>
+            <div style="display:flex;gap:6px;align-items:center">
+              <span class="tag tag-s">已定点 2家</span>
+              <span class="tag tag-w">RFQ中 2家</span>
+            </div>
+          </div>
+          <div class="sp-b">
+            <div style="padding:16px 20px">
+              <!-- 品类概览 -->
+              <div style="display:grid;grid-template-columns:repeat(5,1fr);gap:12px;margin-bottom:16px">
+                <div style="text-align:center;padding:12px;background:var(--g50);border-radius:var(--rs);border:1px solid var(--g200)">
+                  <div style="font-size:11px;color:var(--g500);margin-bottom:4px">零件总数</div>
+                  <div style="font-size:20px;font-weight:700;color:var(--g900)">32</div>
+                </div>
+                <div style="text-align:center;padding:12px;background:var(--g50);border-radius:var(--rs);border:1px solid var(--g200)">
+                  <div style="font-size:11px;color:var(--g500);margin-bottom:4px">资源供应商</div>
+                  <div style="font-size:20px;font-weight:700;color:var(--p)">10</div>
+                </div>
+                <div style="text-align:center;padding:12px;background:var(--g50);border-radius:var(--rs);border:1px solid var(--g200)">
+                  <div style="font-size:11px;color:var(--g500);margin-bottom:4px">已定点</div>
+                  <div style="font-size:20px;font-weight:700;color:var(--s)">2</div>
+                </div>
+                <div style="text-align:center;padding:12px;background:var(--g50);border-radius:var(--rs);border:1px solid var(--g200)">
+                  <div style="font-size:11px;color:var(--g500);margin-bottom:4px">年度采购额</div>
+                  <div style="font-size:20px;font-weight:700;color:var(--g900)">¥15.3亿</div>
+                </div>
+                <div style="text-align:center;padding:12px;background:var(--g50);border-radius:var(--rs);border:1px solid var(--g200)">
+                  <div style="font-size:11px;color:var(--g500);margin-bottom:4px">平均单价</div>
+                  <div style="font-size:20px;font-weight:700;color:var(--g900)">¥4,280</div>
+                </div>
+              </div>
+              <!-- 供应商资源矩阵 -->
+              <div style="font-size:13px;font-weight:700;color:var(--g800);margin-bottom:10px;display:flex;align-items:center;gap:6px">
+                <span style="width:3px;height:14px;border-radius:2px;background:var(--s);display:inline-block"></span>
+                供应商资源矩阵
+              </div>
+              <table class="dt" style="min-width:1100px">
+                <thead>
+                  <tr>
+                    <th style="width:40px">#</th>
+                    <th style="width:140px">供应商名称</th>
+                    <th style="width:110px">供应商编码</th>
+                    <th style="width:100px">国家/地区</th>
+                    <th style="width:130px">供应零件</th>
+                    <th style="width:80px">供货状态</th>
+                    <th style="width:100px">年度份额</th>
+                    <th style="width:120px">综合评分</th>
+                    <th style="width:100px">最近报价</th>
+                    <th style="width:100px">合作年限</th>
+                    <th style="width:90px">风险等级</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td>1</td>
+                    <td><span class="cell-link">延锋安道拓</span></td>
+                    <td>SUP-SM-001</td>
+                    <td>🇨🇳 中国</td>
+                    <td>前排座椅骨架、滑轨</td>
+                    <td><span class="tag tag-s">量产供货</span></td>
+                    <td>55%</td>
+                    <td>
+                      <div class="score-bar">
+                        <div class="bar"><div class="bar-fill high" style="width:90%"></div></div>
+                        <span class="score-val" style="color:var(--s)">90</span>
+                      </div>
+                    </td>
+                    <td>¥3,980/套</td>
+                    <td>3年</td>
+                    <td><span class="tag tag-s">低风险</span></td>
+                  </tr>
+                  <tr>
+                    <td>2</td>
+                    <td><span class="cell-link">佛吉亚</span></td>
+                    <td>SUP-SM-002</td>
+                    <td>🇫🇷 法国</td>
+                    <td>座椅面套、发泡</td>
+                    <td><span class="tag tag-s">量产供货</span></td>
+                    <td>35%</td>
+                    <td>
+                      <div class="score-bar">
+                        <div class="bar"><div class="bar-fill high" style="width:86%"></div></div>
+                        <span class="score-val" style="color:var(--s)">86</span>
+                      </div>
+                    </td>
+                    <td>¥4,150/套</td>
+                    <td>2年</td>
+                    <td><span class="tag tag-s">低风险</span></td>
+                  </tr>
+                  <tr>
+                    <td>3</td>
+                    <td><span class="cell-link">李尔公司</span></td>
+                    <td>SUP-SM-003</td>
+                    <td>🇺🇸 美国</td>
+                    <td>座椅总成</td>
+                    <td><span class="tag tag-w">RFQ中</span></td>
+                    <td>—</td>
+                    <td>
+                      <div class="score-bar">
+                        <div class="bar"><div class="bar-fill high" style="width:84%"></div></div>
+                        <span class="score-val">84</span>
+                      </div>
+                    </td>
+                    <td>待定</td>
+                    <td>新开发</td>
+                    <td><span class="tag tag-w">中风险</span></td>
+                  </tr>
+                  <tr>
+                    <td>4</td>
+                    <td><span class="cell-link">安道拓</span></td>
+                    <td>SUP-SM-004</td>
+                    <td>🇺🇸 美国</td>
+                    <td>座椅骨架</td>
+                    <td><span class="tag tag-w">RFQ中</span></td>
+                    <td>—</td>
+                    <td>
+                      <div class="score-bar">
+                        <div class="bar"><div class="bar-fill high" style="width:81%"></div></div>
+                        <span class="score-val">81</span>
+                      </div>
+                    </td>
+                    <td>待定</td>
+                    <td>新开发</td>
+                    <td><span class="tag tag-d">高风险</span></td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </div><!-- /content-wrap -->
+  </main>
+</div>
+
+<script>
+// 面板折叠
+function togglePanel(el){
+  const body=el.nextElementSibling;
+  const arr=el.querySelector('.arr');
+  if(body.style.display==='none'){body.style.display='block';arr.classList.add('open')}
+  else{body.style.display='none';arr.classList.remove('open')}
+}
+
+// 品类详情页（简单切换）
+function showCatDetail(type){
+  // 实际项目中会打开详情overlay
+  alert('打开品类详情：'+type);
+}
+</script>
+</body>
+</html>

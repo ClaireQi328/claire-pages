@@ -1,0 +1,830 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>P012345 上车体明细报价</title>
+<style>
+:root{--p:#1a73e8;--pl:#e8f0fe;--s:#0d904f;--sl:#e6f4ea;--w:#e37400;--wl:#fef7e0;--d:#d93025;--dl:#fce8e6;--g50:#f8f9fa;--g100:#f1f3f4;--g200:#e8eaed;--g300:#dadce0;--g400:#bdc1c6;--g500:#9aa0a6;--g600:#80868b;--g700:#5f6368;--g800:#3c4043;--g900:#202124;--r:10px;--rs:6px;--sh:0 1px 3px rgba(0,0,0,.08);--shm:0 4px 12px rgba(0,0,0,.08)}
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif;background:var(--g50);color:var(--g900);line-height:1.6;font-size:14px}
+.hdr{background:#fff;border-bottom:1px solid var(--g200);padding:14px 28px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:100}
+.hdr h1{font-size:17px;font-weight:600}.hdr h1 span{color:var(--g500);font-weight:400;margin-left:8px}
+.btn{border:none;padding:7px 18px;border-radius:var(--rs);font-size:13px;font-weight:500;cursor:pointer;transition:.2s}
+.btn-p{background:var(--p);color:#fff}.btn-p:hover{background:#1557b0}
+.btn-o{background:#fff;color:var(--p);border:1px solid var(--p)}.btn-o:hover{background:var(--pl)}
+.btn-d{background:none;color:var(--d);border:none;padding:4px 8px;font-size:12px}.btn-d:hover{text-decoration:underline}
+.btn-s{padding:5px 12px;font-size:12px;border-radius:4px}
+
+/* Step Nav */
+.snav{background:#fff;border-bottom:1px solid var(--g200);padding:0 28px}
+.snav-inner{display:flex;max-width:1400px;margin:0 auto}
+.si{display:flex;align-items:center;padding:13px 22px;font-size:13px;color:var(--g500);cursor:pointer;border-bottom:2px solid transparent;white-space:nowrap;transition:.2s}
+.si:hover{color:var(--p)}.si.a{color:var(--p);border-bottom-color:var(--p);font-weight:600}
+.si.ok::before{content:'✓';display:inline-flex;align-items:center;justify-content:center;width:16px;height:16px;background:var(--s);color:#fff;border-radius:50%;font-size:10px;margin-right:6px}
+.si .dot{width:7px;height:7px;border-radius:50%;background:var(--g300);margin-right:7px}
+.si.a .dot{background:var(--p)}.si.ok .dot{display:none}
+
+/* Main */
+.mn{max-width:1400px;margin:0 auto;padding:20px 28px}
+
+/* Toggle Section */
+.tg-sec{background:#fff;border-radius:var(--r);box-shadow:var(--sh);margin-bottom:18px;overflow:hidden}
+.tg-row{display:flex;align-items:center;padding:14px 22px;gap:14px}
+.tg-label{font-size:14px;font-weight:500;min-width:130px}.tg-label small{display:block;font-size:11px;color:var(--g500);font-weight:400;margin-top:1px}
+.tg-sw{position:relative;width:42px;height:22px;flex-shrink:0}
+.tg-sw input{opacity:0;width:0;height:0}
+.tg-sl{position:absolute;cursor:pointer;top:0;left:0;right:0;bottom:0;background:var(--g300);border-radius:22px;transition:.3s}
+.tg-sl::before{content:'';position:absolute;height:16px;width:16px;left:3px;bottom:3px;background:#fff;border-radius:50%;transition:.3s}
+.tg-sw input:checked+.tg-sl{background:var(--p)}
+.tg-sw input:checked+.tg-sl::before{transform:translateX(20px)}
+.tg-st{font-size:12px;font-weight:500;padding:2px 10px;border-radius:4px}
+.tg-st.on{background:var(--sl);color:var(--s)}.tg-st.off{background:var(--g100);color:var(--g500)}
+.tags{display:flex;gap:6px;flex-wrap:wrap}
+.tag{font-size:11px;padding:2px 8px;border-radius:4px;font-weight:500;white-space:nowrap}
+.tag-ok{background:var(--sl);color:var(--s)}.tag-nok{background:var(--dl);color:var(--d)}
+.tg-hint{font-size:11px;color:var(--g500);margin-left:auto;white-space:nowrap}
+
+/* ===== 中粗项报价模式 (OFF) ===== */
+.summary-manual{background:#fff;border-radius:var(--r);box-shadow:var(--sh);padding:24px 28px;margin-bottom:18px}
+.sm-title{font-size:16px;font-weight:600;margin-bottom:18px}
+.sm-grid{display:grid;grid-template-columns:repeat(5,1fr) auto;gap:14px;align-items:end}
+.sm-field label{display:block;font-size:12px;color:var(--g600);margin-bottom:5px}
+.sm-field input{width:100%;padding:9px 12px;border:1px solid var(--g300);border-radius:var(--rs);font-size:15px;font-weight:600;text-align:right;transition:.2s}
+.sm-field input:focus{outline:none;border-color:var(--p);box-shadow:0 0 0 2px rgba(26,115,232,.15)}
+.sm-total{text-align:center;padding:0 16px}
+.sm-total label{display:block;font-size:12px;color:var(--g600);margin-bottom:5px}
+.sm-total .val{font-size:26px;font-weight:700;color:var(--p)}
+
+/* ===== 明细模式 (ON) - Summary Cards ===== */
+.sum-cards{background:#fff;border-radius:var(--r);box-shadow:var(--sh);padding:22px 28px;margin-bottom:18px;position:relative}
+.sum-cards .sc-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:16px}
+.sum-cards .sc-title{font-size:16px;font-weight:600}
+.sc-total{font-size:28px;font-weight:700;color:var(--p);text-align:right;margin-bottom:16px}
+.sc-total .cur{font-size:18px;font-weight:500}
+.sc-grid{display:grid;grid-template-columns:repeat(5,1fr);gap:12px}
+.sc-item{border-radius:var(--rs);padding:14px;position:relative;transition:.2s;cursor:pointer;border:2px solid transparent}
+.sc-item:hover{box-shadow:var(--shm)}
+.sc-item.auto{background:var(--sl);border-color:var(--s)}
+.sc-item.over{background:#fff3e0;border-color:var(--w)}
+.sc-item.conflict{background:var(--dl);border-color:var(--d)}
+.sc-item .sc-label{font-size:11px;color:var(--g600);margin-bottom:6px;display:flex;align-items:center;gap:4px}
+.sc-item .sc-val{font-size:18px;font-weight:700}
+.sc-item .sc-val input{font-size:18px;font-weight:700;border:none;background:transparent;width:100%;text-align:center;padding:0;color:inherit}
+.sc-item .sc-val input:focus{outline:none}
+.sc-badge{font-size:9px;padding:1px 5px;border-radius:3px;font-weight:600;white-space:nowrap}
+.badge-auto{background:var(--s);color:#fff}.badge-over{background:var(--w);color:#fff}.badge-conflict{background:var(--d);color:#fff}
+.sc-actions{display:flex;gap:6px;margin-top:4px;justify-content:center}
+.sc-actions button{font-size:10px;padding:2px 6px;border-radius:3px;border:1px solid var(--g300);background:#fff;cursor:pointer;color:var(--g600)}
+.sc-actions button:hover{border-color:var(--p);color:var(--p)}
+
+/* Section Panel */
+.sp{background:#fff;border-radius:var(--r);box-shadow:var(--sh);margin-bottom:18px;overflow:hidden}
+.sp-h{display:flex;align-items:center;justify-content:space-between;padding:14px 22px;border-bottom:1px solid var(--g100)}
+.sp-t{font-size:14px;font-weight:600;display:flex;align-items:center;gap:7px}
+.sp-t .ic{width:20px;height:20px;border-radius:4px;display:inline-flex;align-items:center;justify-content:center;font-size:11px}
+.sp-b{padding:0}
+
+/* Tables */
+.dt{width:100%;border-collapse:collapse}
+.dt th{background:var(--p);color:#fff;font-size:12px;font-weight:500;padding:9px 10px;text-align:center;white-space:nowrap;border-right:1px solid rgba(255,255,255,.15)}
+.dt th:last-child{border-right:none}
+.dt td{padding:8px 10px;text-align:center;border:1px solid var(--g200);font-size:12px}
+.dt tr:hover td{background:var(--g50)}
+.dt tr.svc-row td{background:#f0f7ff}
+.fi{width:100%;padding:6px 8px;border:1px solid var(--g300);border-radius:4px;font-size:12px;text-align:center;transition:.2s}
+.fi:focus{outline:none;border-color:var(--p);box-shadow:0 0 0 2px rgba(26,115,232,.12)}
+.fi[readonly]{background:var(--g50);color:var(--g600);cursor:default}
+.fi.ro{background:var(--sl);color:var(--s);font-weight:500}
+select.fi{text-align-last:center}
+.req{color:var(--d);margin-left:1px}
+.part-tag{display:inline-block;padding:1px 6px;border-radius:3px;font-size:11px;font-weight:500}
+.part-tag.v1{background:var(--sl);color:var(--s)}
+
+/* VSM */
+.vsm{padding:32px;display:flex;align-items:center;justify-content:center;gap:0;overflow-x:auto}
+.vsm-n{display:flex;flex-direction:column;align-items:center;min-width:80px}
+.vsm-ic{width:50px;height:50px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:20px;margin-bottom:6px}
+.vsm-ic.b{background:#e3f2fd;color:#1565c0}.vsm-ic.g{background:#e8f5e9;color:#2e7d32}
+.vsm-ic.o{background:#fff3e0;color:#e65100}.vsm-ic.p{background:#f3e5f5;color:#7b1fa2}
+.vsm-ic.t{background:#e0f2f1;color:#00695c}.vsm-ic.br{background:#efebe9;color:#4e342e}
+.vsm-lb{font-size:11px;font-weight:500;color:var(--g700);text-align:center}
+.vsm-cd{font-size:10px;color:var(--g500)}
+.vsm-ar{color:var(--g400);font-size:18px;margin:0 3px;padding-bottom:24px}
+
+/* Modal */
+.mo{position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,.4);z-index:1000;display:flex;align-items:center;justify-content:center;opacity:0;pointer-events:none;transition:.2s}
+.mo.show{opacity:1;pointer-events:auto}
+.mo .mdl{background:#fff;border-radius:var(--r);box-shadow:0 10px 40px rgba(0,0,0,.15);width:400px;max-width:90vw;transform:scale(.95);transition:.2s}
+.mo.show .mdl{transform:scale(1)}
+.mo .mdl-h{padding:18px 22px 0}.mo .mdl-h h3{font-size:15px;font-weight:600}
+.mo .mdl-b{padding:14px 22px 20px;font-size:13px;color:var(--g700);line-height:1.7}
+.mo .mdl-f{padding:0 22px 18px;text-align:right}
+
+/* Transitions */
+.fade-enter{animation:fadeUp .3s ease}
+@keyframes fadeUp{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
+.detail-sections{transition:max-height .4s ease,opacity .3s ease;overflow:hidden}
+.detail-sections.hidden{max-height:0!important;opacity:0;pointer-events:none}
+.detail-sections.visible{opacity:1}
+</style>
+</head>
+<body>
+
+<!-- Header -->
+<div class="hdr">
+    <h1>P012345 <span>上车体明细报价</span></h1>
+    <button class="btn btn-p" onclick="showMo('vsm-modal')">获取最新VSM结构</button>
+</div>
+
+<!-- Step Nav -->
+<div class="snav"><div class="snav-inner">
+    <div class="si ok"><span class="dot"></span>材料工艺</div>
+    <div class="si a"><span class="dot"></span>制造费用</div>
+    <div class="si"><span class="dot"></span>模具费用</div>
+    <div class="si"><span class="dot"></span>开发费用</div>
+    <div class="si"><span class="dot"></span>物流费用</div>
+    <div class="si"><span class="dot"></span>样件费</div>
+    <div class="si"><span class="dot"></span>管理费</div>
+</div></div>
+
+<div class="mn">
+
+<!-- Toggle -->
+<div class="tg-sec">
+<div class="tg-row">
+    <div class="tg-label">打开制造费明细开关：<small>开启后基于工艺工序结构计算制造费用明细</small></div>
+    <label class="tg-sw"><input type="checkbox" id="mainToggle" onchange="toggleMode(this.checked)"><span class="tg-sl"></span></label>
+    <span class="tg-st off" id="mainStatus">未启用</span>
+    <div class="tags" id="mainTags">
+        <span class="tag tag-ok">BOM SVC 结构状态OK, V1</span>
+        <span class="tag tag-ok">SVC VSM 结构状态OK</span>
+    </div>
+    <span class="tg-hint" id="mainHint">手动填写中粗项</span>
+</div>
+</div>
+
+<!-- ===== OFF MODE: 中粗项报价 ===== -->
+<div id="modeOff" class="fade-enter">
+<div class="summary-manual">
+    <div class="sm-title">制造费用报价汇总</div>
+    <div class="sm-grid">
+        <div class="sm-field">
+            <label>设备费用 (元/EA) <span class="req">*</span></label>
+            <input type="text" id="off-equip" value="0.000" oninput="calcOffTotal()">
+        </div>
+        <div class="sm-field">
+            <label>能耗费用 (元/EA) <span class="req">*</span></label>
+            <input type="text" id="off-energy" value="0.000" oninput="calcOffTotal()">
+        </div>
+        <div class="sm-field">
+            <label>报废费用 (元/EA) <span class="req">*</span></label>
+            <input type="text" id="off-scrap" value="0.000" oninput="calcOffTotal()">
+        </div>
+        <div class="sm-field">
+            <label>耗材费用 (元/EA) <span class="req">*</span></label>
+            <input type="text" id="off-consume" value="0.000" oninput="calcOffTotal()">
+        </div>
+        <div class="sm-field">
+            <label>人工费用 (元/EA) <span class="req">*</span></label>
+            <input type="text" id="off-labor" value="0.000" oninput="calcOffTotal()">
+        </div>
+        <div class="sm-total">
+            <label>制造费总价 (元/EA)</label>
+            <div class="val" id="offTotal">¥ 0.000</div>
+        </div>
+    </div>
+</div>
+</div>
+
+<!-- ===== ON MODE: 明细报价 ===== -->
+<div id="modeOn" style="display:none">
+
+<!-- Summary Cards (Interactive) -->
+<div class="sum-cards" id="sumCards">
+    <div class="sc-head">
+        <div class="sc-title">制造费用</div>
+        <div style="display:flex;gap:8px">
+            <button class="btn btn-o btn-s" onclick="restoreAll()">一键恢复全部</button>
+        </div>
+    </div>
+    <div class="sc-total" id="scTotal"><span class="cur">¥ </span>0.000</div>
+    <div class="sc-grid" id="scGrid"></div>
+</div>
+
+<!-- 零件及工段信息 -->
+<div class="sp fade-enter">
+    <div class="sp-h"><div class="sp-t"><span class="ic" style="background:var(--pl);color:var(--p)">📦</span>零件及工段信息</div></div>
+    <div class="sp-b">
+        <table class="dt" id="partTable">
+            <thead><tr>
+                <th>零件号<span class="req">*</span></th>
+                <th>零件名称<span class="req">*</span></th>
+                <th>SVC版本</th>
+                <th>工段/线体名称<span class="req">*</span></th>
+                <th>工段/线体编号<span class="req">*</span></th>
+                <th>供应商工厂编号<span class="req">*</span></th>
+                <th>供应商工厂名称<span class="req">*</span></th>
+                <th>设备|能耗|报废|耗材|人工</th>
+                <th>维护详情</th>
+            </tr></thead>
+            <tbody id="partBody"></tbody>
+        </table>
+    </div>
+</div>
+
+<!-- 产能信息 -->
+<div class="sp fade-enter">
+    <div class="sp-h"><div class="sp-t"><span class="ic" style="background:var(--pl);color:var(--p)">⚙️</span>产能信息</div></div>
+    <div class="sp-b">
+        <table class="dt">
+            <thead><tr>
+                <th>CT生产节拍(秒)<span class="req">*</span></th>
+                <th>单个生产节拍产出数量<span class="req">*</span></th>
+                <th>OEE设计值(%)<span class="req">*</span></th>
+                <th>客户每日产能需求LCR<span class="req">*</span></th>
+                <th>达到LCR所需工时(h)</th>
+                <th>每日总工时(h)</th>
+                <th>每日承送工时(h)</th>
+                <th>空间工时(h)</th>
+            </tr></thead>
+            <tbody id="capBody"></tbody>
+        </table>
+    </div>
+</div>
+
+<!-- 设备费用 -->
+<div class="sp fade-enter">
+    <div class="sp-h"><div class="sp-t"><span class="ic" style="background:var(--pl);color:var(--p)">🔧</span>设备费用</div>
+        <button class="btn btn-p btn-s" onclick="addEquipRow()">+ 添加设备</button>
+    </div>
+    <div class="sp-b">
+        <table class="dt">
+            <thead><tr>
+                <th>设备序号<span class="req">*</span></th>
+                <th>通用设备品牌<span class="req">*</span></th>
+                <th>通用设备品号/型号</th>
+                <th>设备状态</th>
+                <th>设备原值(元)<span class="req">*</span></th>
+                <th>折旧年限(年)<span class="req">*</span></th>
+                <th>设备台数<span class="req">*</span></th>
+                <th>单个零件占地费分摊(元/EA)</th>
+                <th>单个零件设备折旧费(元/EA)</th>
+                <th>设备制造总费(元/EA)<span class="req">*</span></th>
+                <th>操作</th>
+            </tr></thead>
+            <tbody id="eqBody"></tbody>
+        </table>
+    </div>
+</div>
+
+<!-- 能耗费用 -->
+<div class="sp fade-enter">
+    <div class="sp-h"><div class="sp-t"><span class="ic" style="background:var(--pl);color:var(--p)">⚡</span>能耗费用</div>
+        <button class="btn btn-p btn-s" onclick="addEnergyRow()">+ 添加能耗</button>
+    </div>
+    <div class="sp-b">
+        <table class="dt">
+            <thead><tr>
+                <th>能耗序号<span class="req">*</span></th>
+                <th>能耗种类</th>
+                <th>能耗单位</th>
+                <th>能耗单价(元/单位)<span class="req">*</span></th>
+                <th>小时能耗(单位/h)</th>
+                <th>单个零件能耗费(元/EA)<span class="req">*</span></th>
+                <th>操作</th>
+            </tr></thead>
+            <tbody id="enBody"></tbody>
+        </table>
+    </div>
+</div>
+
+<!-- 报废费用 -->
+<div class="sp fade-enter">
+    <div class="sp-h"><div class="sp-t"><span class="ic" style="background:var(--dl);color:var(--d)">♻️</span>报废费用</div></div>
+    <div class="sp-b">
+        <table class="dt">
+            <thead><tr>
+                <th>直接物料名</th><th>直接物料编号</th><th>物料金额(元)</th>
+                <th>本工段报废(%)</th><th>报废可回收比(%)</th><th>报废费(元)</th><th>操作</th>
+            </tr></thead>
+            <tbody id="scBody"></tbody>
+        </table>
+    </div>
+</div>
+
+<!-- 耗材费用 -->
+<div class="sp fade-enter">
+    <div class="sp-h"><div class="sp-t"><span class="ic" style="background:var(--wl);color:var(--w)">🧴</span>耗材费用</div>
+        <button class="btn btn-p btn-s" onclick="addConsRow()">+ 添加耗材</button>
+    </div>
+    <div class="sp-b">
+        <table class="dt">
+            <thead><tr>
+                <th>耗材序号<span class="req">*</span></th><th>耗材名</th><th>耗材消耗量(h)</th>
+                <th>单位</th><th>耗材单价(元/单位)</th><th>耗材零件均摊(元/EA)<span class="req">*</span></th><th>操作</th>
+            </tr></thead>
+            <tbody id="coBody"></tbody>
+        </table>
+    </div>
+</div>
+
+<!-- 人工费用 -->
+<div class="sp fade-enter">
+    <div class="sp-h"><div class="sp-t"><span class="ic" style="background:#f3e5f5;color:#7b61ff">👥</span>人工费用</div></div>
+    <div class="sp-b">
+        <table class="dt">
+            <thead><tr>
+                <th>直接人员每天费用(元/每天)</th><th>间接人员每天公式(h)</th>
+                <th>间接人员费(元/小时)</th><th>直接+间接人员费(元/EA)<span class="req">*</span></th><th>操作</th>
+            </tr></thead>
+            <tbody id="lbBody"></tbody>
+        </table>
+    </div>
+</div>
+
+<!-- VSM 流程 -->
+<div class="sp fade-enter">
+    <div class="sp-h"><div class="sp-t"><span class="ic" style="background:#e0f2f1;color:#00695c">📊</span>VSM 流程</div></div>
+    <div class="vsm">
+        <div class="vsm-n"><div class="vsm-ic b">🔥</div><div class="vsm-lb">热气焊</div><div class="vsm-cd">RQH-01</div></div>
+        <div class="vsm-ar">→</div>
+        <div class="vsm-n"><div class="vsm-ic g">⚙️</div><div class="vsm-lb">扣压线</div><div class="vsm-cd">8502KY</div></div>
+        <div class="vsm-ar">→</div>
+        <div class="vsm-n"><div class="vsm-ic o">🏭</div><div class="vsm-lb">组装线</div><div class="vsm-cd">8502ZZ</div></div>
+        <div class="vsm-ar">→</div>
+        <div class="vsm-n"><div class="vsm-ic p">🔍</div><div class="vsm-lb">检验</div><div class="vsm-cd">OP180</div></div>
+        <div class="vsm-ar">→</div>
+        <div class="vsm-n"><div class="vsm-ic t">📋</div><div class="vsm-lb">GP12</div><div class="vsm-cd">OP190</div></div>
+        <div class="vsm-ar">→</div>
+        <div class="vsm-n"><div class="vsm-ic br">📦</div><div class="vsm-lb">库存</div><div class="vsm-cd">KC</div></div>
+    </div>
+</div>
+
+</div><!-- /modeOn -->
+</div><!-- /mn -->
+
+<!-- Modals -->
+<div class="mo" id="vsm-modal"><div class="mdl">
+    <div class="mdl-h"><h3>VSM版本校验</h3></div>
+    <div class="mdl-b"><p>当前VSM无更新，请在当前版本上进行更新</p><p>已获取到最新版本，请在最新版本上进行更新</p><p>无已审批通过的VSM，请手动维护制造费</p></div>
+    <div class="mdl-f"><button class="btn btn-p" onclick="hideMo('vsm-modal')">确定</button></div>
+</div></div>
+
+<div class="mo" id="block-modal"><div class="mdl">
+    <div class="mdl-h"><h3>无法打开制造明细</h3></div>
+    <div class="mdl-b"><p>SVC BOM结构或VSM 结构状态NOK，无法打开制造明细</p></div>
+    <div class="mdl-f"><button class="btn btn-p" onclick="hideMo('block-modal')">确定</button></div>
+</div></div>
+
+<script>
+// ===== SVC Data: Automotive Battery Parts =====
+const SVC_DATA = [
+    // Part 1: 电池模组壳体 - 2 lines
+    { partNo:'BT-MOD-001', partName:'电池模组壳体', svcVer:'V2',
+      line:'冲压线体A', lineCode:'LN-ST-01', factoryNo:'FAC-DG-01', factoryName:'东莞精密工厂',
+      ct:12.5, output:2, oee:85, lcr:500,
+      equipment:[
+        { brand:'XX冲压', model:'ST-200A', status:'在用', value:500000, life:10, qty:2 },
+        { brand:'YY液压', model:'HY-100', status:'在用', value:300000, life:8, qty:1 }
+      ],
+      energy:[
+        { type:'电', unit:'度', price:0.85, hourly:120 },
+        { type:'压缩空气', unit:'m³', price:0.15, hourly:50 }
+      ],
+      scrap:{ name:'铝合金板', code:'AL-6061', amount:45.0, rate:0.8, recover:75 },
+      consumable:[
+        { name:'切削液', consume:0.5, unit:'L', price:25 },
+        { name:'液压油', consume:0.2, unit:'L', price:60 }
+      ],
+      labor:{ directFee:280, indirectH:1, indirectFee:45 }
+    },
+    // Part 2: 电池汇流排 - 1 line
+    { partNo:'BT-BAR-002', partName:'电池汇流排', svcVer:'V1',
+      line:'激光焊接线', lineCode:'LN-LW-01', factoryNo:'FAC-GZ-02', factoryName:'广州焊接工厂',
+      ct:8.0, output:3, oee:88, lcr:800,
+      equipment:[
+        { brand:'大族激光', model:'HM-300', status:'在用', value:850000, life:8, qty:1 }
+      ],
+      energy:[
+        { type:'电', unit:'度', price:0.85, hourly:200 },
+        { type:'氮气', unit:'m³', price:3.5, hourly:15 }
+      ],
+      scrap:{ name:'紫铜带', code:'CU-T2', amount:62.0, rate:1.2, recover:80 },
+      consumable:[
+        { name:'保护气体', consume:1.0, unit:'m³', price:3.5 },
+        { name:'焊接滤光片', consume:0.05, unit:'片', price:120 }
+      ],
+      labor:{ directFee:320, indirectH:1, indirectFee:50 }
+    },
+    // Part 3: 冷却底板 - 2 lines
+    { partNo:'BT-CLP-003', partName:'电池冷却底板', svcVer:'V3',
+      line:'CNC加工线', lineCode:'LN-CN-01', factoryNo:'FAC-SZ-03', factoryName:'深圳精密工厂',
+      ct:18.0, output:1, oee:82, lcr:300,
+      equipment:[
+        { brand:'DMG', model:'DMU-50', status:'在用', value:1200000, life:10, qty:2 },
+        { brand:'牧野', model:'V56i', status:'在用', value:980000, life:8, qty:1 }
+      ],
+      energy:[
+        { type:'电', unit:'度', price:0.85, hourly:180 },
+        { type:'冷却水', unit:'m³', price:4.2, hourly:2.5 }
+      ],
+      scrap:{ name:'铝型材', code:'AL-6063', amount:38.0, rate:0.5, recover:70 },
+      consumable:[
+        { name:'CNC刀具', consume:0.3, unit:'把', price:350 },
+        { name:'切削液', consume:0.8, unit:'L', price:28 }
+      ],
+      labor:{ directFee:350, indirectH:2, indirectFee:42 }
+    },
+    // Part 3 Line 2: 钎焊
+    { partNo:'BT-CLP-003', partName:'电池冷却底板', svcVer:'V3',
+      line:'钎焊线体', lineCode:'LN-BZ-02', factoryNo:'FAC-SZ-03', factoryName:'深圳精密工厂',
+      ct:22.0, output:1, oee:78, lcr:300,
+      equipment:[
+        { brand:'爱科', model:'VB-400', status:'在用', value:650000, life:10, qty:1 }
+      ],
+      energy:[
+        { type:'天然气', unit:'m³', price:3.8, hourly:25 },
+        { type:'电', unit:'度', price:0.85, hourly:45 }
+      ],
+      scrap:{ name:'铝钎焊板', code:'BA-4343', amount:52.0, rate:1.5, recover:65 },
+      consumable:[
+        { name:'钎剂', consume:0.15, unit:'kg', price:85 },
+        { name:'氮气', consume:2.0, unit:'m³', price:3.5 }
+      ],
+      labor:{ directFee:300, indirectH:1, indirectFee:40 }
+    }
+];
+
+// ===== Summary field config =====
+const FIELDS = [
+    { key:'equip',  label:'设备费用',  color:'#1a73e8' },
+    { key:'energy', label:'能耗费用',  color:'#0d904f' },
+    { key:'scrap',  label:'报废费用',  color:'#d93025' },
+    { key:'consume',label:'耗材费用',  color:'#e37400' },
+    { key:'labor',  label:'人工费用',  color:'#7b61ff' }
+];
+
+// ===== State =====
+let summaryState = {}; // { equip: { display:0, auto:0, status:'auto' }, ... }
+
+// ===== Init summary state =====
+function initSummary() {
+    FIELDS.forEach(f => {
+        summaryState[f.key] = { display: 0, auto: 0, status: 'auto' };
+    });
+}
+
+// ===== Calculate auto values from SVC data =====
+function calcAutoValues() {
+    let totals = { equip:0, energy:0, scrap:0, consume:0, labor:0 };
+    let hoursPerPart = 0;
+
+    SVC_DATA.forEach(d => {
+        // Hours to meet LCR
+        const h = (d.ct * d.output * d.lcr) / (3600 * d.oee / 100);
+        hoursPerPart += h;
+
+        // Equipment depreciation per EA
+        d.equipment.forEach(eq => {
+            const annualDepr = eq.value / eq.life;
+            const deprPerEA = annualDepr * eq.qty / 365 / 24 * h / d.lcr;
+            totals.equip += deprPerEA;
+        });
+
+        // Energy per EA
+        d.energy.forEach(en => {
+            totals.energy += en.price * en.hourly * h / d.lcr;
+        });
+
+        // Scrap per EA
+        totals.scrap += d.scrap.amount * (d.scrap.rate / 100) * (1 - d.scrap.recover / 100);
+
+        // Consumable per EA
+        d.consumable.forEach(c => {
+            totals.consume += c.price * c.consume * h / d.lcr;
+        });
+
+        // Labor per EA
+        totals.labor += (d.labor.directFee + d.labor.indirectH * d.labor.indirectFee * 8) / 30 / d.lcr;
+    });
+
+    // Update auto values
+    FIELDS.forEach(f => {
+        summaryState[f.key].auto = Math.round(totals[f.key] * 1000) / 1000;
+        if (summaryState[f.key].status === 'auto') {
+            summaryState[f.key].display = summaryState[f.key].auto;
+        } else if (summaryState[f.key].status === 'overridden') {
+            summaryState[f.key].status = 'conflict';
+        }
+    });
+}
+
+// ===== Render summary cards =====
+function renderSummary() {
+    const grid = document.getElementById('scGrid');
+    grid.innerHTML = '';
+    let totalDisplay = 0;
+
+    FIELDS.forEach(f => {
+        const s = summaryState[f.key];
+        const cls = s.status === 'auto' ? 'auto' : s.status === 'overridden' ? 'over' : 'conflict';
+        const badgeCls = s.status === 'auto' ? 'badge-auto' : s.status === 'overridden' ? 'badge-over' : 'badge-conflict';
+        const badgeText = s.status === 'auto' ? '自动' : s.status === 'overridden' ? '手动覆盖' : '与明细不一致';
+
+        const div = document.createElement('div');
+        div.className = 'sc-item ' + cls;
+        div.innerHTML = `
+            <div class="sc-label">${f.label} <span class="sc-badge ${badgeCls}">${badgeText}</span></div>
+            <div class="sc-val">
+                <input type="text" value="${s.display.toFixed(3)}"
+                    onchange="manualOverride('${f.key}', this.value)"
+                    onfocus="this.select()">
+            </div>
+            ${s.status !== 'auto' ? `<div class="sc-actions"><button onclick="restoreField('${f.key}')">恢复自动计算</button></div>` : ''}
+        `;
+        grid.appendChild(div);
+        totalDisplay += s.display;
+    });
+
+    document.getElementById('scTotal').innerHTML = `<span class="cur">¥ </span>${totalDisplay.toFixed(3)}`;
+}
+
+function manualOverride(key, val) {
+    const num = parseFloat(val) || 0;
+    summaryState[key].display = Math.round(num * 1000) / 1000;
+    summaryState[key].status = 'overridden';
+    renderSummary();
+}
+
+function restoreField(key) {
+    summaryState[key].display = summaryState[key].auto;
+    summaryState[key].status = 'auto';
+    renderSummary();
+}
+
+function restoreAll() {
+    FIELDS.forEach(f => {
+        summaryState[f.key].display = summaryState[f.key].auto;
+        summaryState[f.key].status = 'auto';
+    });
+    renderSummary();
+}
+
+// ===== Render detail tables =====
+function renderParts() {
+    const body = document.getElementById('partBody');
+    body.innerHTML = '';
+    let currentPart = '';
+    SVC_DATA.forEach((d, i) => {
+        const isNewPart = d.partNo !== currentPart;
+        currentPart = d.partNo;
+        const equipCost = d.equipment.reduce((s, eq) => {
+            const h = (d.ct * d.output * d.lcr) / (3600 * d.oee / 100);
+            return s + (eq.value / eq.life) * eq.qty / 365 / 24 * h / d.lcr;
+        }, 0);
+        const enCost = d.energy.reduce((s, en) => {
+            const h = (d.ct * d.output * d.lcr) / (3600 * d.oee / 100);
+            return s + en.price * en.hourly * h / d.lcr;
+        }, 0);
+        const scCost = d.scrap.amount * (d.scrap.rate / 100) * (1 - d.scrap.recover / 100);
+        const coCost = d.consumable.reduce((s, c) => {
+            const h = (d.ct * d.output * d.lcr) / (3600 * d.oee / 100);
+            return s + c.price * c.consume * h / d.lcr;
+        }, 0);
+        const lbCost = (d.labor.directFee + d.labor.indirectH * d.labor.indirectFee * 8) / 30 / d.lcr;
+
+        const tr = document.createElement('tr');
+        tr.className = 'svc-row';
+        tr.innerHTML = `
+            <td><input class="fi" value="${d.partNo}" readonly></td>
+            <td><input class="fi" value="${d.partName}" readonly></td>
+            <td><span class="part-tag v1">${d.svcVer}</span></td>
+            <td><input class="fi" value="${d.line}"></td>
+            <td><input class="fi" value="${d.lineCode}"></td>
+            <td><input class="fi" value="${d.factoryNo}"></td>
+            <td><input class="fi" value="${d.factoryName}"></td>
+            <td style="font-size:11px;color:var(--g600);white-space:nowrap">¥${equipCost.toFixed(1)}|¥${enCost.toFixed(1)}|¥${scCost.toFixed(1)}|¥${coCost.toFixed(1)}|¥${lbCost.toFixed(1)}</td>
+            <td><button class="btn btn-p btn-s">维护详情</button></td>
+        `;
+        body.appendChild(tr);
+    });
+}
+
+function renderCapacity() {
+    const body = document.getElementById('capBody');
+    body.innerHTML = '';
+    SVC_DATA.forEach(d => {
+        const h = (d.ct * d.output * d.lcr) / (3600 * d.oee / 100);
+        const tr = document.createElement('tr');
+        tr.className = 'svc-row';
+        tr.innerHTML = `
+            <td><input class="fi" value="${d.ct}"></td>
+            <td><input class="fi" value="${d.output}"></td>
+            <td><input class="fi" value="${d.oee}"></td>
+            <td><input class="fi" value="${d.lcr}"></td>
+            <td><input class="fi ro" value="${h.toFixed(2)}" readonly></td>
+            <td><input class="fi ro" value="1" readonly></td>
+            <td><input class="fi ro" value="1" readonly></td>
+            <td><input class="fi ro" value="1" readonly></td>
+        `;
+        body.appendChild(tr);
+    });
+}
+
+function renderEquipment() {
+    const body = document.getElementById('eqBody');
+    body.innerHTML = '';
+    let eqIdx = 0;
+    SVC_DATA.forEach(d => {
+        d.equipment.forEach((eq, ei) => {
+            eqIdx++;
+            const h = (d.ct * d.output * d.lcr) / (3600 * d.oee / 100);
+            const annualDepr = eq.value / eq.life;
+            const占地 = 15.0; // placeholder
+            const deprPerEA = annualDepr * eq.qty / 365 / 24 * h / d.lcr;
+            const totalPerEA = deprPerEA +占地 * 1 / d.lcr;
+
+            const tr = document.createElement('tr');
+            tr.className = 'svc-row';
+            tr.innerHTML = `
+                <td><input class="fi" value="${ei+1}" readonly></td>
+                <td><input class="fi" value="${eq.brand}"></td>
+                <td><input class="fi" value="${eq.model}"></td>
+                <td><select class="fi"><option selected>${eq.status}</option><option>停用</option></select></td>
+                <td><input class="fi" value="${eq.value.toLocaleString()}"></td>
+                <td><input class="fi" value="${eq.life}"></td>
+                <td><input class="fi" value="${eq.qty}"></td>
+                <td><input class="fi ro" value="${占地.toFixed(2)}" readonly></td>
+                <td><input class="fi ro" value="${deprPerEA.toFixed(3)}" readonly></td>
+                <td><input class="fi ro" value="${totalPerEA.toFixed(3)}" readonly></td>
+                <td><button class="btn btn-d">删除</button></td>
+            `;
+            body.appendChild(tr);
+        });
+    });
+}
+
+function renderEnergy() {
+    const body = document.getElementById('enBody');
+    body.innerHTML = '';
+    SVC_DATA.forEach(d => {
+        d.energy.forEach((en, ei) => {
+            const h = (d.ct * d.output * d.lcr) / (3600 * d.oee / 100);
+            const costPerEA = en.price * en.hourly * h / d.lcr;
+            const tr = document.createElement('tr');
+            tr.className = 'svc-row';
+            tr.innerHTML = `
+                <td><input class="fi" value="${ei+1}" readonly></td>
+                <td><select class="fi"><option selected>${en.type}</option></select></td>
+                <td><select class="fi"><option selected>${en.unit}</option></select></td>
+                <td><input class="fi" value="${en.price}"></td>
+                <td><input class="fi" value="${en.hourly}"></td>
+                <td><input class="fi ro" value="${costPerEA.toFixed(3)}" readonly></td>
+                <td><button class="btn btn-d">删除</button></td>
+            `;
+            body.appendChild(tr);
+        });
+    });
+}
+
+function renderScrap() {
+    const body = document.getElementById('scBody');
+    body.innerHTML = '';
+    SVC_DATA.forEach(d => {
+        const scrapCost = d.scrap.amount * (d.scrap.rate / 100) * (1 - d.scrap.recover / 100);
+        const tr = document.createElement('tr');
+        tr.className = 'svc-row';
+        tr.innerHTML = `
+            <td><input class="fi" value="${d.scrap.name}"></td>
+            <td><input class="fi" value="${d.scrap.code}"></td>
+            <td><input class="fi" value="${d.scrap.amount}"></td>
+            <td><input class="fi" value="${d.scrap.rate}"></td>
+            <td><input class="fi" value="${d.scrap.recover}"></td>
+            <td><input class="fi ro" value="${scrapCost.toFixed(3)}" readonly></td>
+            <td></td>
+        `;
+        body.appendChild(tr);
+    });
+}
+
+function renderConsumable() {
+    const body = document.getElementById('coBody');
+    body.innerHTML = '';
+    SVC_DATA.forEach(d => {
+        d.consumable.forEach((c, ci) => {
+            const h = (d.ct * d.output * d.lcr) / (3600 * d.oee / 100);
+            const costPerEA = c.price * c.consume * h / d.lcr;
+            const tr = document.createElement('tr');
+            tr.className = 'svc-row';
+            tr.innerHTML = `
+                <td><input class="fi" value="${ci+1}" readonly></td>
+                <td><input class="fi" value="${c.name}"></td>
+                <td><input class="fi" value="${c.consume}"></td>
+                <td><select class="fi"><option selected>${c.unit}</option></select></td>
+                <td><input class="fi" value="${c.price}"></td>
+                <td><input class="fi ro" value="${costPerEA.toFixed(3)}" readonly></td>
+                <td><button class="btn btn-d">删除</button></td>
+            `;
+            body.appendChild(tr);
+        });
+    });
+}
+
+function renderLabor() {
+    const body = document.getElementById('lbBody');
+    body.innerHTML = '';
+    let totalH = 0;
+    SVC_DATA.forEach(d => {
+        totalH += (d.ct * d.output * d.lcr) / (3600 * d.oee / 100);
+    });
+    // Average labor across parts
+    const avgParts = SVC_DATA.length;
+    SVC_DATA.forEach(d => {
+        const costPerEA = (d.labor.directFee + d.labor.indirectH * d.labor.indirectFee * 8) / 30 / d.lcr;
+        const tr = document.createElement('tr');
+        tr.className = 'svc-row';
+        tr.innerHTML = `
+            <td><select class="fi"><option selected>¥${d.labor.directFee}/天</option></select></td>
+            <td><input class="fi" value="${d.labor.indirectH}"></td>
+            <td><select class="fi"><option selected>¥${d.labor.indirectFee}/h</option></select></td>
+            <td><input class="fi ro" value="${costPerEA.toFixed(3)}" readonly></td>
+            <td></td>
+        `;
+        body.appendChild(tr);
+    });
+}
+
+// ===== Toggle Mode =====
+function toggleMode(on) {
+    const modeOff = document.getElementById('modeOff');
+    const modeOn = document.getElementById('modeOn');
+    const status = document.getElementById('mainStatus');
+    const hint = document.getElementById('mainHint');
+
+    if (on) {
+        // Check BOM+VSM
+        const tags = document.querySelectorAll('#mainTags .tag');
+        let hasNok = false;
+        tags.forEach(t => { if (t.classList.contains('tag-nok')) hasNok = true; });
+        if (hasNok) {
+            document.getElementById('mainToggle').checked = false;
+            showMo('block-modal');
+            return;
+        }
+        modeOff.style.display = 'none';
+        modeOn.style.display = 'block';
+        status.textContent = '已启用';
+        status.className = 'tg-st on';
+        hint.textContent = '根据制造成本未变更重新自动计算';
+        renderAll();
+    } else {
+        modeOn.style.display = 'none';
+        modeOff.style.display = 'block';
+        status.textContent = '未启用';
+        status.className = 'tg-st off';
+        hint.textContent = '手动填写中粗项';
+    }
+}
+
+// ===== OFF mode total =====
+function calcOffTotal() {
+    const fields = ['off-equip','off-energy','off-scrap','off-consume','off-labor'];
+    let total = 0;
+    fields.forEach(id => {
+        total += parseFloat(document.getElementById(id).value) || 0;
+    });
+    document.getElementById('offTotal').textContent = '¥ ' + total.toFixed(3);
+}
+
+// ===== Placeholder add functions =====
+function addEquipRow() { alert('添加设备行'); }
+function addEnergyRow() { alert('添加能耗行'); }
+function addConsRow() { alert('添加耗材行'); }
+
+// ===== Modal =====
+function showMo(id) { document.getElementById(id).classList.add('show'); }
+function hideMo(id) { document.getElementById(id).classList.remove('show'); }
+document.querySelectorAll('.mo').forEach(o => {
+    o.addEventListener('click', function(e) { if (e.target === this) this.classList.remove('show'); });
+});
+
+// ===== Render all =====
+function renderAll() {
+    initSummary();
+    calcAutoValues();
+    renderSummary();
+    renderParts();
+    renderCapacity();
+    renderEquipment();
+    renderEnergy();
+    renderScrap();
+    renderConsumable();
+    renderLabor();
+}
+
+// Init on load
+initSummary();
+</script>
+</body>
+</html>
