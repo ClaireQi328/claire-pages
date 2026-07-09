@@ -1,0 +1,279 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>全部 HTML 报告 — 快速访问</title>
+<style>
+:root{--bg:#0f172a;--s1:#1e293b;--s2:#334155;--text:#e2e8f0;--muted:#94a3b8;--accent:#38bdf8;--green:#22c55e;--purple:#a78bfa;--orange:#fb923c;--pink:#f472b6}
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:-apple-system,'Segoe UI','PingFang SC','Microsoft YaHei',sans-serif;background:var(--bg);color:var(--text);line-height:1.5}
+.hero{text-align:center;padding:40px 20px 20px;background:linear-gradient(135deg,#1e293b,#0f172a)}
+.hero h1{font-size:1.8em;background:linear-gradient(135deg,var(--accent),var(--purple));-webkit-background-clip:text;-webkit-text-fill-color:transparent}
+.hero p{color:var(--muted);font-size:.9em;margin-top:6px}
+.stats{display:flex;gap:12px;justify-content:center;flex-wrap:wrap;margin:16px 0}
+.stat{background:var(--s1);padding:8px 16px;border-radius:8px;font-size:.85em;border:1px solid var(--s2)}
+.stat b{color:var(--accent)}
+.search-bar{max-width:500px;margin:16px auto;padding:0 20px}
+.search-bar input{width:100%;padding:10px 16px;border-radius:8px;border:1px solid var(--s2);background:var(--s1);color:var(--text);font-size:.95em;outline:none}
+.search-bar input:focus{border-color:var(--accent)}
+.container{max-width:1200px;margin:0 auto;padding:0 20px 40px}
+.group{margin:20px 0}
+.group-header{display:flex;align-items:center;gap:10px;padding:12px 16px;background:var(--s1);border-radius:10px;cursor:pointer;user-select:none;border:1px solid var(--s2);transition:all .2s}
+.group-header:hover{border-color:var(--accent)}
+.group-header .icon{font-size:1.2em}
+.group-header h2{font-size:1.05em;flex:1}
+.group-header .count{background:var(--s2);padding:2px 10px;border-radius:12px;font-size:.8em;color:var(--muted)}
+.group-header .arrow{transition:transform .2s;color:var(--muted)}
+.group-header.open .arrow{transform:rotate(90deg)}
+.subgroup{margin:8px 0 8px 20px;display:none}
+.group-header.open + .subgroup{display:block}
+.subgroup-title{font-size:.85em;color:var(--muted);padding:6px 0;cursor:pointer;display:flex;align-items:center;gap:6px}
+.subgroup-title::before{content:'▸';font-size:.7em;transition:transform .2s}
+.subgroup-title.open::before{transform:rotate(90deg)}
+.file-list{display:none;margin:4px 0 8px 16px}
+.subgroup-title.open + .file-list{display:block}
+.file-item{display:flex;align-items:center;gap:8px;padding:6px 12px;border-radius:6px;font-size:.88em;transition:background .15s;text-decoration:none;color:var(--text)}
+.file-item:hover{background:var(--s2)}
+.file-item .name{flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.file-item .badge{font-size:.7em;padding:1px 6px;border-radius:4px;background:var(--s2);color:var(--muted);flex-shrink:0}
+.hidden{display:none!important}
+@media(max-width:768px){.container{padding:0 12px 40px}.group-header{padding:10px 12px}}
+</style>
+</head>
+<body>
+<div class="hero">
+<h1>📚 全部 HTML 报告</h1>
+<p>Claire Vault · GitHub Pages 快速访问 · <a href="https://claireqi328.github.io/claire-pages" style="color:var(--accent)">claire-pages</a></p>
+</div>
+<div class="stats" id="stats"></div>
+<div class="search-bar"><input id="search" placeholder="🔍 搜索文件名或路径..." autofocus></div>
+<div class="container" id="container"></div>
+
+<script>
+const DATA=[
+["ByteDance","assets/web","字节分析_CBOM深度研究报告","ByteDance/assets/web/字节分析_CBOM深度研究报告.html"],
+["ByteDance","assets/web","字节分析_字节跳动云服务_横纵分析报告","ByteDance/assets/web/字节分析_字节跳动云服务_横纵分析报告.html"],
+["ByteDance","云服务","云服务全景","ByteDance/云服务/云服务全景.html"],
+["ByteDance","云服务","字节分析_CBOM深度研究报告","ByteDance/云服务/字节分析_CBOM深度研究报告.html"],
+["ByteDance","云服务","字节分析_字节跳动云服务_横纵分析报告","ByteDance/云服务/字节分析_字节跳动云服务_横纵分析报告.html"],
+["NIO","NQPP","NQPP质量评估报告","NIO/NQPP/NQPP质量评估报告.html"],
+["NIO","寻源定点","__p-data","NIO/寻源定点/__p-data.html"],
+["NIO","寻源定点","__p-data_1","NIO/寻源定点/__p-data_1.html"],
+["NIO","寻源定点/app","attachment-list","NIO/寻源定点/app/attachment-list.html"],
+["NIO","寻源定点/app","dialogs","NIO/寻源定点/app/dialogs.html"],
+["NIO","寻源定点/app","dimension","NIO/寻源定点/app/dimension.html"],
+["NIO","寻源定点/app","index","NIO/寻源定点/app/index.html"],
+["NIO","寻源定点/app","ladder-price","NIO/寻源定点/app/ladder-price.html"],
+["NIO","寻源定点/app","main","NIO/寻源定点/app/main.html"],
+["NIO","寻源定点/app","partner-evaluation","NIO/寻源定点/app/partner-evaluation.html"],
+["NIO","寻源定点/app","price-comparison","NIO/寻源定点/app/price-comparison.html"],
+["NIO","寻源定点/app","rfq-create","NIO/寻源定点/app/rfq-create.html"],
+["NIO","寻源定点/app","rfq-detail","NIO/寻源定点/app/rfq-detail.html"],
+["NIO","寻源定点/app","rfq-list","NIO/寻源定点/app/rfq-list.html"],
+["NIO","寻源定点/app","srm","NIO/寻源定点/app/srm.html"],
+["NIO","寻源定点/app","supplier-quote","NIO/寻源定点/app/supplier-quote.html"],
+["NIO","寻源定点/app","supplier-quote-list","NIO/寻源定点/app/supplier-quote-list.html"],
+["NIO","寻源定点","index","NIO/寻源定点/index.html"],
+["NIO","寻源定点","p-data____","NIO/寻源定点/p-data____.html"],
+["NIO","寻源定点","pre-rfq__","NIO/寻源定点/pre-rfq__.html"],
+["NIO","寻源定点/resources/chrome","chrome","NIO/寻源定点/resources/chrome/chrome.html"],
+["NIO","寻源定点/resources/chrome","firefox","NIO/寻源定点/resources/chrome/firefox.html"],
+["NIO","寻源定点/resources/chrome","safari","NIO/寻源定点/resources/chrome/safari.html"],
+["NIO","寻源定点/resources/css/images","images","NIO/寻源定点/resources/css/images/images.html"],
+["NIO","寻源定点/resources","Other","NIO/寻源定点/resources/Other.html"],
+["NIO","寻源定点/resources","reload","NIO/寻源定点/resources/reload.html"],
+["NIO","寻源定点","sor更新弹窗","NIO/寻源定点/sor更新弹窗.html"],
+["NIO","寻源定点","sor更新弹窗_1","NIO/寻源定点/sor更新弹窗_1.html"],
+["NIO","寻源定点","start","NIO/寻源定点/start.html"],
+["NIO","寻源定点","start_c_1","NIO/寻源定点/start_c_1.html"],
+["NIO","寻源定点","start_with_pages","NIO/寻源定点/start_with_pages.html"],
+["NIO","寻源定点","编辑rfq","NIO/寻源定点/编辑rfq.html"],
+["NIO","寻源定点","查看合作伙伴报价弹窗","NIO/寻源定点/查看合作伙伴报价弹窗.html"],
+["NIO","寻源定点","查看-物料报价","NIO/寻源定点/查看-物料报价.html"],
+["NIO","寻源定点","带交互-查看合作伙伴报价弹窗","NIO/寻源定点/带交互-查看合作伙伴报价弹窗.html"],
+["NIO","寻源定点","带交互-查看物料报价弹窗","NIO/寻源定点/带交互-查看物料报价弹窗.html"],
+["NIO","寻源定点","单价_a价","NIO/寻源定点/单价_a价.html"],
+["NIO","寻源定点","单价_b价","NIO/寻源定点/单价_b价.html"],
+["NIO","寻源定点","附件列表","NIO/寻源定点/附件列表.html"],
+["NIO","寻源定点","供应商报价列表","NIO/寻源定点/供应商报价列表.html"],
+["NIO","寻源定点","供应商参与报价","NIO/寻源定点/供应商参与报价.html"],
+["NIO","寻源定点","合作伙伴参与报价","NIO/寻源定点/合作伙伴参与报价.html"],
+["NIO","寻源定点","合作伙伴信息弹窗","NIO/寻源定点/合作伙伴信息弹窗.html"],
+["NIO","寻源定点","获取其他物料报价","NIO/寻源定点/获取其他物料报价.html"],
+["NIO","寻源定点","阶梯报价","NIO/寻源定点/阶梯报价.html"],
+["NIO","寻源定点","阶梯价","NIO/寻源定点/阶梯价.html"],
+["NIO","寻源定点","量纲","NIO/寻源定点/量纲.html"],
+["NIO","寻源定点","量纲查看弹窗","NIO/寻源定点/量纲查看弹窗.html"],
+["NIO","寻源定点","量纲查看弹窗_1","NIO/寻源定点/量纲查看弹窗_1.html"],
+["NIO","寻源定点","模具对应物料号弹窗","NIO/寻源定点/模具对应物料号弹窗.html"],
+["NIO","寻源定点","取消报价","NIO/寻源定点/取消报价.html"],
+["NIO","寻源定点","取消询报价弹窗","NIO/寻源定点/取消询报价弹窗.html"],
+["NIO","寻源定点","设置阶梯","NIO/寻源定点/设置阶梯.html"],
+["NIO","寻源定点","维护合作伙伴评估结果","NIO/寻源定点/维护合作伙伴评估结果.html"],
+["NIO","寻源定点","物料信息弹窗","NIO/寻源定点/物料信息弹窗.html"],
+["NIO","寻源定点","新增rfq","NIO/寻源定点/新增rfq.html"],
+["NIO","寻源定点","新增报价轮次","NIO/寻源定点/新增报价轮次.html"],
+["NIO","寻源定点","新增报价轮次_1","NIO/寻源定点/新增报价轮次_1.html"],
+["NIO","寻源定点","新增附件","NIO/寻源定点/新增附件.html"],
+["NIO","寻源定点","新增临时物料弹窗","NIO/寻源定点/新增临时物料弹窗.html"],
+["NIO","寻源定点","新增物料","NIO/寻源定点/新增物料.html"],
+["NIO","寻源定点","选择定点物料","NIO/寻源定点/选择定点物料.html"],
+["NIO","寻源定点","选择人员","NIO/寻源定点/选择人员.html"],
+["NIO","寻源定点","询报价列表","NIO/寻源定点/询报价列表.html"],
+["NIO","寻源定点","询报价文件下载弹窗","NIO/寻源定点/询报价文件下载弹窗.html"],
+["NIO","寻源定点","询报价详情","NIO/寻源定点/询报价详情.html"],
+["NIO","寻源定点","沿用报价包","NIO/寻源定点/沿用报价包.html"],
+["NIO","寻源定点","页面1","NIO/寻源定点/页面1.html"],
+["NIO","智能助手 Ontology","business_relationships_graph","NIO/智能助手 Ontology/business_relationships_graph.html"],
+["NIO","智能助手 Ontology","entities_visualization","NIO/智能助手 Ontology/entities_visualization.html"],
+["Self","代码练习生/福利模块","welfare-management","Self/代码练习生/福利模块/welfare-management.html"],
+["Self","供应链/E2E供应链/01-需求管理","需求管理看板","Self/供应链/E2E供应链/01-需求管理/需求管理看板.html"],
+["Self","供应链/E2E供应链/02-供应网络设计","供应网络设计看板","Self/供应链/E2E供应链/02-供应网络设计/供应网络设计看板.html"],
+["Self","供应链/E2E供应链/03-寻源定点","寻源定点管理系统","Self/供应链/E2E供应链/03-寻源定点/寻源定点管理系统.html"],
+["Self","供应链/E2E供应链/03-寻源定点","寻源定点管理系统_优化版","Self/供应链/E2E供应链/03-寻源定点/寻源定点管理系统_优化版.html"],
+["Self","供应链/E2E供应链/04-计划与排程","计划与排程看板","Self/供应链/E2E供应链/04-计划与排程/计划与排程看板.html"],
+["Self","供应链/E2E供应链/05-采购执行","采购执行看板","Self/供应链/E2E供应链/05-采购执行/采购执行看板.html"],
+["Self","供应链/E2E供应链/06-生产制造","生产制造看板","Self/供应链/E2E供应链/06-生产制造/生产制造看板.html"],
+["Self","供应链/E2E供应链/07-仓储配送","仓储配送看板","Self/供应链/E2E供应链/07-仓储配送/仓储配送看板.html"],
+["Self","供应链/E2E供应链/08-交付与售后","交付与售后看板","Self/供应链/E2E供应链/08-交付与售后/交付与售后看板.html"],
+["Self","供应链/E2E供应链/09-产销协同","供应链产销协同流程设计","Self/供应链/E2E供应链/09-产销协同/供应链产销协同流程设计.html"],
+["Self","供应链/E2E供应链/11-间接采购","间接采购商城","Self/供应链/E2E供应链/11-间接采购/间接采购商城.html"],
+["Self","供应链/E2E供应链","index","Self/供应链/E2E供应链/index.html"],
+["SJTU","999_SJTU 软件安装包/ClashX.app/...","index","SJTU/999_SJTU 软件安装包/ClashX.app/Contents/Resources/dashboard/index.html"],
+["Xiaomi","AI 分享材料","AI-Coding-Best-Practice","Xiaomi/AI 分享材料/AI-Coding-Best-Practice.html"],
+["Xiaomi","AI 分享材料","AI应用分享","Xiaomi/AI 分享材料/AI应用分享.html"],
+["Xiaomi","AI 分享材料","拆解团队黄金数据集","Xiaomi/AI 分享材料/拆解团队黄金数据集...html"],
+["Xiaomi","AI 分享材料","飞书报警平台原型_v3","Xiaomi/AI 分享材料/飞书报警平台原型_v3.html"],
+["Xiaomi","AI 分享材料","零基础到落地Builder","Xiaomi/AI 分享材料/零基础到落地Builder.html"],
+["Xiaomi","AI 分享材料","应用skill的原型","Xiaomi/AI 分享材料/应用skill的原型.html"],
+["Xiaomi","(root)","AI建设策略-Skill与MCP详细说明","Xiaomi/AI建设策略-Skill与MCP详细说明.html"],
+["Xiaomi","(root)","AI建设策略-递进路径图","Xiaomi/AI建设策略-递进路径图.html"],
+["Xiaomi","assets/web","Agent架构","Xiaomi/assets/web/Agent架构.html"],
+["Xiaomi","assets/web","bom-vsm-dashboard","Xiaomi/assets/web/bom-vsm-dashboard.html"],
+["Xiaomi","assets/web","Demo_供应商Onepage","Xiaomi/assets/web/Demo_供应商Onepage.html"],
+["Xiaomi","assets/web","Demo_品类Onepage","Xiaomi/assets/web/Demo_品类Onepage.html"],
+["Xiaomi","assets/web","EP Agent 系列 (8个)","Xiaomi/assets/web/EP Agent_*.html"],
+["Xiaomi","assets/web","Q3 立项报告 系列 (14个)","Xiaomi/assets/web/Q3 立项报告_*.html"],
+["Xiaomi","assets/web","Q3Q4项目 工作台","Xiaomi/assets/web/Q3Q4项目 工作台.html"],
+["Xiaomi","assets/web","rfq-analysis-dashboard","Xiaomi/assets/web/rfq-analysis-dashboard.html"],
+["Xiaomi","assets/web","workbench_only","Xiaomi/assets/web/workbench_only.html"],
+["Xiaomi","assets/web","报价明细成本库","Xiaomi/assets/web/报价明细成本库.html"],
+["Xiaomi","assets/web","采购Agent工作台-完整版","Xiaomi/assets/web/采购Agent工作台-完整版.html"],
+["Xiaomi","assets/web","产销协同_供应链产销协同流程设计","Xiaomi/assets/web/产销协同_供应链产销协同流程设计.html"],
+["Xiaomi","assets/web","飞书报警平台原型_v3","Xiaomi/assets/web/飞书报警平台原型_v3.html"],
+["Xiaomi","assets/web","分镜系列 (6个)","Xiaomi/assets/web/分镜*.html"],
+["Xiaomi","assets/web","福利模块_welfare-management","Xiaomi/assets/web/福利模块_welfare-management.html"],
+["Xiaomi","assets/web","工作台","Xiaomi/assets/web/工作台.html"],
+["Xiaomi","assets/web","供应商Onepage/资源池/风险管理","Xiaomi/assets/web/供应商*.html"],
+["Xiaomi","assets/web","合同线上化 (2个)","Xiaomi/assets/web/合同线上化执行_*.html"],
+["Xiaomi","assets/web","汇报演示","Xiaomi/assets/web/汇报演示.html"],
+["Xiaomi","assets/web","价格确认/框架协议","Xiaomi/assets/web/价格确认_*.html"],
+["Xiaomi","assets/web","品类Onepage/资源池","Xiaomi/assets/web/品类*.html"],
+["Xiaomi","assets/web","首页工作台","Xiaomi/assets/web/首页工作台.html"],
+["Xiaomi","assets/web","询报价系列 (7个)","Xiaomi/assets/web/询报价-*.html"],
+["Xiaomi","assets/web","样件订单自动化 (3个)","Xiaomi/assets/web/样件订单自动化_*.html"],
+["Xiaomi","EP Agent","Agent架构","Xiaomi/EP Agent/Agent架构.html"],
+["Xiaomi","EP Agent","scenario 系列 (3个)","Xiaomi/EP Agent/scenario-*.html"],
+["Xiaomi","EP Agent","supply-chain-agent-architecture","Xiaomi/EP Agent/supply-chain-agent-architecture.html"],
+["Xiaomi","EP Agent","采购Agent工作台","Xiaomi/EP Agent/采购Agent工作台.html"],
+["Xiaomi","EP Agent","多Agent协同","Xiaomi/EP Agent/多Agent协同.html"],
+["Xiaomi","EP Agent","合同管理-Agent","Xiaomi/EP Agent/合同管理-Agent.html"],
+["Xiaomi","EP Agent","框架价格偏离比对器","Xiaomi/EP Agent/框架价格偏离比对器.html"],
+["Xiaomi","EP Agent","样件采购自动化流程Agent","Xiaomi/EP Agent/样件采购自动化流程Agent.html"],
+["Xiaomi","EP 原型/EP原型","EP / SRM","Xiaomi/EP 原型/EP原型/*.html"],
+["Xiaomi","EP 原型/Q3Q4项目","Q3Q4项目 工作台","Xiaomi/EP 原型/Q3Q4项目/Q3Q4项目 工作台.html"],
+["Xiaomi","EP 原型/报价明细","报价明细成本库","Xiaomi/EP 原型/报价明细/报价明细成本库.html"],
+["Xiaomi","EP 原型/供应商资源池","供应商Onepage/资源池/风险管理","Xiaomi/EP 原型/供应商资源池/*.html"],
+["Xiaomi","EP 原型/品类资源池","品类Onepage/资源池","Xiaomi/EP 原型/品类资源池/*.html"],
+["Xiaomi","EP 原型/首页工作台","工作台/分镜系列 (7个)","Xiaomi/EP 原型/首页工作台/*.html"],
+["Xiaomi","MVPS","MVPS管理后台/体系说明","Xiaomi/MVPS/*.html"],
+["Xiaomi","Q3 立项报告","EP采购系统规划总览","Xiaomi/Q3 立项报告/EP采购系统规划总览.html"],
+["Xiaomi","Q3 立项报告","EP采购系统规划总览_融合版","Xiaomi/Q3 立项报告/EP采购系统规划总览_融合版.html"],
+["Xiaomi","Q3 立项报告","EP系统Wave动态图","Xiaomi/Q3 立项报告/EP系统Wave动态图.html"],
+["Xiaomi","Q3 立项报告","EP系统建设历程-路径图","Xiaomi/Q3 立项报告/EP系统建设历程-路径图.html"],
+["Xiaomi","Q3 立项报告","采购B点架构-三轴四层两闭环","Xiaomi/Q3 立项报告/采购B点架构-三轴四层两闭环.html"],
+["Xiaomi","Q3 立项报告","采购数字化B点架构图","Xiaomi/Q3 立项报告/采购数字化B点架构图.html"],
+["Xiaomi","Q3 立项报告","采购数字化B点建设路径","Xiaomi/Q3 立项报告/采购数字化B点建设路径.html"],
+["Xiaomi","Q3 立项报告","采购数字化B点目标","Xiaomi/Q3 立项报告/采购数字化B点目标.html"],
+["Xiaomi","Q3 立项报告","供应链数字化B点架构-四层两闭环","Xiaomi/Q3 立项报告/供应链数字化B点架构-四层两闭环.html"],
+["Xiaomi","Q3 立项报告","供应链数字运营体系-层级图","Xiaomi/Q3 立项报告/供应链数字运营体系-层级图.html"],
+["Xiaomi","Q3 立项报告","汽车采购业务域演进路线","Xiaomi/Q3 立项报告/汽车采购业务域演进路线.html"],
+["Xiaomi","Q3 立项报告","四层架构提升图示","Xiaomi/Q3 立项报告/四层架构提升图示.html"],
+["Xiaomi","Q3 立项报告","系统健壮性设计","Xiaomi/Q3 立项报告/系统健壮性设计.html"],
+["Xiaomi","Q3 立项报告","智能分析层图示","Xiaomi/Q3 立项报告/智能分析层图示.html"],
+["Xiaomi","(root)","Skill-Agent架构图","Xiaomi/Skill-Agent架构图-定点匹配与任务路由.html"],
+["Xiaomi","(root)","Skill交叉验证方案","Xiaomi/Skill交叉验证方案.html"],
+["Xiaomi","采购品类和partplanning","partplanning/品类策略表/采购品类管理/采购项目管理","Xiaomi/采购品类和partplanning/*.html"],
+["Xiaomi","合同线上化","合同流程Agent对比图/合同执行流程图","Xiaomi/合同线上化/*.html"],
+["Xiaomi","价格确认原型","价格确认","Xiaomi/价格确认原型/价格确认.html"],
+["Xiaomi","埋点分析","bom-vsm-dashboard/rfq-analysis-dashboard","Xiaomi/埋点分析/*.html"],
+["Xiaomi","(root)","数字化方案-AI能力增强版","Xiaomi/数字化方案-AI能力增强版.html"],
+["Xiaomi","询报价-CE核价","CE核价原型/核价","Xiaomi/询报价-CE核价/*.html"],
+["Xiaomi","询报价-报价细项","报价细项分析报告/报价明细效果","Xiaomi/询报价-报价细项/*.html"],
+["Xiaomi","询报价-比价","比价","Xiaomi/询报价-比价/比价.html"],
+["Xiaomi","(root)","询报价数据分析报告","Xiaomi/询报价数据分析报告.html"],
+["Xiaomi","询报价-制造费","制造费报价/制造费明细报价","Xiaomi/询报价-制造费/*.html"],
+["Xiaomi","样件订单自动化","sample-ordering-flow/样件订单流程对比","Xiaomi/样件订单自动化/*.html"],
+];
+
+const BASE='https://claireqi328.github.io/claire-pages/';
+const ICONS={ByteDance:'🎵',NIO:'🚗',Self:'🧠',SJTU:'🎓',Xiaomi:'📱'};
+const COLORS={ByteDance:'#6366f1',NIO:'#3b82f6',Self:'#22c55e',SJTU:'#f59e0b',Xiaomi:'#ef4444'};
+
+// Group
+const groups={};
+DATA.forEach(([top,sub,name,path])=>{
+  if(!groups[top])groups[top]={};
+  if(!groups[top][sub])groups[top][sub]=[];
+  groups[top][sub].push({name,path});
+});
+
+// Stats
+const statsEl=document.getElementById('stats');
+const totalCount=DATA.length;
+const topCounts=Object.entries(groups).map(([k,v])=>({k,n:Object.values(v).flat().length})).sort((a,b)=>b.n-a.n);
+statsEl.innerHTML=`<div class="stat">共 <b>${totalCount}</b> 个报告</div>`+topCounts.map(c=>`<div class="stat">${ICONS[c.k]||''} ${c.k} <b>${c.n}</b></div>`).join('');
+
+// Render
+const container=document.getElementById('container');
+Object.entries(groups).sort((a,b)=>b[1].__count-a[1].__count).forEach(([top,subs])=>{
+  const total=Object.values(subs).flat().length;
+  const gDiv=document.createElement('div');gDiv.className='group';gDiv.dataset.top=top;
+  const hdr=document.createElement('div');hdr.className='group-header';
+  hdr.innerHTML=`<span class="icon">${ICONS[top]||'📁'}</span><h2>${top}</h2><span class="count">${total}</span><span class="arrow">▸</span>`;
+  hdr.onclick=()=>hdr.classList.toggle('open');
+  gDiv.appendChild(hdr);
+  const sgDiv=document.createElement('div');sgDiv.className='subgroup';
+  Object.entries(subs).sort((a,b)=>a[0].localeCompare(b[0])).forEach(([sub,files])=>{
+    const sgTitle=document.createElement('div');sgTitle.className='subgroup-title';
+    sgTitle.textContent=sub+' ('+files.length+')';
+    sgTitle.onclick=()=>sgTitle.classList.toggle('open');
+    sgDiv.appendChild(sgTitle);
+    const fl=document.createElement('div');fl.className='file-list';
+    files.forEach(f=>{
+      const a=document.createElement('a');a.className='file-item';a.href=BASE+encodeURI(f.path);a.target='_blank';a.dataset.search=(f.name+' '+f.path).toLowerCase();
+      a.innerHTML=`<span class="name">${f.name}</span><span class="badge">${f.path.split('/').pop()}</span>`;
+      fl.appendChild(a);
+    });
+    sgDiv.appendChild(fl);
+  });
+  gDiv.appendChild(sgDiv);
+  container.appendChild(gDiv);
+});
+
+// Search
+document.getElementById('search').addEventListener('input',function(){
+  const q=this.value.toLowerCase().trim();
+  document.querySelectorAll('.file-item').forEach(a=>{
+    a.style.display=!q||a.dataset.search.includes(q)?'':'none';
+  });
+  document.querySelectorAll('.group').forEach(g=>{
+    const hasVisible=g.querySelector('.file-item:not([style*="display: none"])');
+    g.style.display=!q||hasVisible?'':'none';
+    if(q&&hasVisible){g.querySelector('.group-header').classList.add('open');g.querySelectorAll('.subgroup-title').forEach(s=>{if(s.nextElementSibling.querySelector('.file-item:not([style*="display: none"])'))s.classList.add('open');});}
+  });
+});
+</script>
+</body>
+</html>

@@ -1,0 +1,514 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>框架价格偏离比对器</title>
+<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;background:#f5f6f7;color:#1f2329;font-size:13px}
+.header{background:linear-gradient(135deg,#1a1a2e,#16213e,#0f3460);color:white;padding:24px 0;text-align:center}
+.header h1{font-size:20px;margin-bottom:4px}
+.header p{font-size:12px;opacity:.7}
+.container{max-width:1300px;margin:0 auto;padding:20px}
+
+.card{background:white;border-radius:10px;box-shadow:0 1px 4px rgba(0,0,0,.06);margin-bottom:16px;overflow:hidden}
+.card-header{padding:14px 20px;border-bottom:1px solid #eee;display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap}
+.card-header h2{font-size:15px;display:flex;align-items:center;gap:8px}
+.card-body{padding:20px}
+
+.btn{padding:6px 14px;border-radius:6px;border:1px solid #dee0e3;background:white;cursor:pointer;font-size:12px;transition:.15s}
+.btn:hover{background:#f5f6f7}
+.btn-primary{background:#3370ff;color:white;border-color:#3370ff}
+.btn-primary:hover{background:#245bdb}
+.btn-danger{background:#d83931;color:white;border-color:#d83931}
+.btn-danger:hover{background:#b52d27}
+.btn-success{background:#10b981;color:white;border-color:#10b981}
+.btn-sm{padding:4px 10px;font-size:11px}
+
+.table-wrap{overflow-x:auto;max-height:300px;overflow-y:auto}
+table{width:100%;border-collapse:collapse;font-size:12px}
+th{background:#f5f6f7;position:sticky;top:0;z-index:1;padding:8px 10px;text-align:left;font-weight:600;border-bottom:2px solid #dee0e3;white-space:nowrap}
+td{padding:6px 10px;border-bottom:1px solid #f0f0f0}
+tr:hover{background:#f8f9ff}
+td input{border:1px solid #dee0e3;border-radius:4px;padding:4px 6px;font-size:12px;width:100%}
+td input:focus{outline:none;border-color:#3370ff}
+
+.status-ok{background:#d1fadf;color:#0a6e3a;padding:2px 8px;border-radius:4px;font-weight:600;font-size:11px}
+.status-warn{background:#fee2e2;color:#b91c1c;padding:2px 8px;border-radius:4px;font-weight:600;font-size:11px}
+.status-miss{background:#fef3c7;color:#92400e;padding:2px 8px;border-radius:4px;font-weight:600;font-size:11px}
+
+.stats{display:flex;gap:16px;flex-wrap:wrap;margin-bottom:16px}
+.stat-item{background:white;border-radius:8px;padding:14px 20px;box-shadow:0 1px 3px rgba(0,0,0,.06);min-width:140px;text-align:center;border:1px solid #eee}
+.stat-item .num{font-size:24px;font-weight:700}
+.stat-item .label{font-size:11px;color:#646a73;margin-top:2px}
+.stat-ok .num{color:#0a6e3a}
+.stat-warn .num{color:#b91c1c}
+.stat-miss .num{color:#92400e}
+
+.threshold-row{display:flex;gap:20px;align-items:center;flex-wrap:wrap;margin-bottom:12px;padding:10px 16px;background:#f8f9ff;border-radius:6px}
+.threshold-row label{font-size:12px;color:#646a73}
+.threshold-row input[type=number]{width:70px;border:1px solid #dee0e3;border-radius:4px;padding:4px 6px;font-size:12px;text-align:center}
+.threshold-hint{margin-left:16px;font-size:11px;color:#aaa}
+
+.toast{position:fixed;top:20px;right:20px;background:#d83931;color:white;padding:14px 20px;border-radius:8px;font-size:13px;z-index:999;box-shadow:0 4px 12px rgba(0,0,0,.2);display:none;max-width:400px;line-height:1.5}
+.toast.show{display:block;animation:fadeIn .3s}
+.toast-info{background:#3370ff}
+.toast-ok{background:#10b981}
+@keyframes fadeIn{from{opacity:0;transform:translateY(-10px)}to{opacity:1;transform:translateY(0)}}
+
+.empty{text-align:center;padding:30px;color:#bbb;font-size:13px}
+.tag{font-size:10px;padding:2px 6px;border-radius:3px;background:#e8edf5;color:#555}
+.file-name{font-size:11px;color:#10b981;margin-left:8px;font-weight:500}
+.prefix-tag{font-size:10px;padding:2px 6px;border-radius:3px;background:#dbeafe;color:#1d4ed8}
+
+.drop-zone{border:2px dashed #dee0e3;border-radius:8px;padding:30px;text-align:center;cursor:pointer;transition:.2s;margin-bottom:12px}
+.drop-zone:hover,.drop-zone.dragover{border-color:#3370ff;background:#f0f4ff}
+.drop-zone p{font-size:13px;color:#888}
+.drop-zone .icon{font-size:32px;margin-bottom:8px}
+</style>
+</head>
+<body>
+
+<div class="header">
+  <h1>框架价格偏离比对器</h1>
+  <p>导入正式价框架协议 → 导入新框架Excel → 自动比对价格偏差</p>
+</div>
+
+<div class="container">
+  <div id="toast" class="toast"></div>
+
+  <!-- 偏差阈值设置 -->
+  <div class="card">
+    <div class="card-header"><h2>⚙️ 偏差阈值设置</h2></div>
+    <div class="card-body">
+      <div class="threshold-row">
+        <label>偏差率阈值：</label>
+        <input type="number" id="thRate" value="20" min="0" max="100" step="1">
+        <span style="font-size:12px;color:#888">%</span>
+        <span style="margin-left:16px;color:#ddd">|</span>
+        <label style="margin-left:16px">绝对值阈值：</label>
+        <input type="number" id="thAbs" value="100" min="0" step="10">
+        <span style="font-size:12px;color:#888">元</span>
+        <span class="threshold-hint">（满足任一条件即触发告警）</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- 台账区 -->
+  <div class="card">
+    <div class="card-header">
+      <h2>📋 正式价框架协议</h2>
+      <div style="display:flex;gap:6px">
+        <button class="btn btn-sm" onclick="addRow()">➕ 添加行</button>
+        <button class="btn btn-sm" onclick="dl('﻿零件号,零件名称,基准价\n','正式价框架协议模板.csv')">📄 导出模板</button>
+        <button class="btn btn-sm" onclick="importCSV()">📥 导入CSV</button>
+        <button class="btn btn-sm btn-success" onclick="exportCSV()">📤 导出正式价</button>
+        <button class="btn btn-sm btn-danger" onclick="clearLedger()">🗑️ 清空正式价</button>
+      </div>
+    </div>
+    <div class="card-body">
+      <div class="table-wrap" id="ledgerWrap" style="max-height:250px">
+        <table id="ledgerTable">
+          <thead><tr><th style="width:40px">#</th><th>零件号</th><th>零件名称</th><th>基准价(元)</th><th style="width:50px">操作</th></tr></thead>
+          <tbody id="ledgerBody"></tbody>
+        </table>
+      </div>
+      <div class="empty" id="ledgerEmpty">暂无数据，请导入CSV或手动添加</div>
+    </div>
+  </div>
+
+  <!-- 新框架数据区 -->
+  <div class="card">
+    <div class="card-header">
+      <h2>📥 新框架数据 <span id="excelFileName" class="file-name"></span></h2>
+      <button class="btn btn-primary btn-sm" onclick="importExcel()">📁 导入框架协议Excel(.xlsx)</button>
+    </div>
+    <div class="card-body">
+      <div class="drop-zone" id="dropZone" onclick="importExcel()">
+        <div class="icon">📄</div>
+        <p>点击选择 或 拖拽框架协议Excel文件到这里</p>
+        <p style="font-size:11px;color:#aaa;margin-top:4px">自动识别：零部件号(C列)、零部件名称(D列)、到厂价(H列)</p>
+      </div>
+      <div class="table-wrap" id="newWrap" style="max-height:250px;display:none">
+        <table id="newTable">
+          <thead><tr><th style="width:40px">#</th><th>零部件号</th><th>零部件名称</th><th>到厂价(元)</th></tr></thead>
+          <tbody id="newBody"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- 比对按钮 -->
+  <div style="text-align:center;margin:10px 0">
+    <button class="btn btn-primary" style="padding:10px 40px;font-size:14px;border-radius:8px" onclick="compare()">🔍 开始比对</button>
+  </div>
+
+  <!-- 比对结果 -->
+  <div class="card" id="resultCard" style="display:none">
+    <div class="card-header">
+      <h2>📊 比对结果</h2>
+      <button class="btn btn-sm btn-success" onclick="exportResult()">📤 导出结果CSV</button>
+    </div>
+    <div class="card-body">
+      <div class="stats" id="statsBar"></div>
+      <div class="table-wrap" style="max-height:500px">
+        <table id="resultTable">
+          <thead><tr>
+            <th>#</th><th>件号</th><th>名称</th><th>暂作价</th>
+            <th>匹配正式价名称</th><th>基准价</th><th>偏差率</th><th>偏差金额</th><th>状态</th>
+          </tr></thead>
+          <tbody id="resultBody"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+// ========== 存储 ==========
+const STORAGE_KEY = 'price_compare_ledger';
+let ledger = [];
+
+function saveLedger() {
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(ledger));
+  localStorage.setItem(STORAGE_KEY + '_ts', Date.now().toString());
+}
+
+function loadLedger() {
+  const marker = localStorage.getItem(STORAGE_KEY + '_marker');
+  const ts = localStorage.getItem(STORAGE_KEY + '_ts');
+  const raw = localStorage.getItem(STORAGE_KEY);
+  if (raw) {
+    try { ledger = JSON.parse(raw); if (!Array.isArray(ledger)) ledger = []; }
+    catch { ledger = []; }
+  }
+  if (!marker && ts) {
+    setTimeout(() => showToast('⚠️ 检测到浏览器缓存可能被清理过，数据可能丢失。请用"导入CSV"恢复备份。', 'warn', 6000), 500);
+  }
+  localStorage.setItem(STORAGE_KEY + '_marker', '1');
+}
+
+// ========== Toast ==========
+function showToast(msg, type, ms) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.className = 'toast show' + (type === 'info' ? ' toast-info' : type === 'ok' ? ' toast-ok' : '');
+  clearTimeout(t._timer);
+  t._timer = setTimeout(() => { t.className = 'toast'; }, ms || 4000);
+}
+
+// ========== 台账操作 ==========
+function renderLedger() {
+  const body = document.getElementById('ledgerBody');
+  const empty = document.getElementById('ledgerEmpty');
+  if (ledger.length === 0) { body.innerHTML = ''; empty.style.display = 'block'; return; }
+  empty.style.display = 'none';
+  body.innerHTML = ledger.map((r, i) => `<tr>
+    <td>${i+1}</td>
+    <td><input value="${esc(r.partNo)}" onchange="upd(${i},'partNo',this.value)"></td>
+    <td><input value="${esc(r.name)}" onchange="upd(${i},'name',this.value)"></td>
+    <td><input type="number" value="${r.price}" onchange="upd(${i},'price',parseFloat(this.value)||0)"></td>
+    <td><button class="btn btn-sm btn-danger" onclick="rmLedger(${i})">×</button></td>
+  </tr>`).join('');
+}
+
+function esc(s) { return String(s||'').replace(/"/g,'&quot;').replace(/</g,'&lt;'); }
+
+function addRow() { ledger.push({id:Date.now(),partNo:'',name:'',price:0}); saveLedger(); renderLedger(); }
+function rmLedger(i) { ledger.splice(i,1); saveLedger(); renderLedger(); }
+function upd(i,k,v) { ledger[i][k]=v; saveLedger(); }
+function clearLedger() { if(!confirm('确定清空全部正式价框架协议？'))return; ledger=[]; saveLedger(); renderLedger(); }
+
+function importCSV() {
+  const inp = document.createElement('input'); inp.type='file'; inp.accept='.csv,.txt';
+  inp.onchange = e => {
+    const f = e.target.files[0]; if(!f) return;
+    const rd = new FileReader();
+    rd.onload = ev => {
+      let cnt = 0;
+      ev.target.result.split(/\r?\n/).forEach(line => {
+        const p = line.split(/[,\t]/).map(s=>s.trim().replace(/^"|"$/g,''));
+        if (p.length>=3 && p[2] && !isNaN(parseFloat(p[2]))) {
+          ledger.push({id:Date.now()+Math.random(),partNo:p[0],name:p[1],price:parseFloat(p[2])}); cnt++;
+        }
+      });
+      saveLedger(); renderLedger(); showToast(`导入 ${cnt} 条正式价框架协议数据`,'ok');
+    };
+    rd.readAsText(f);
+  };
+  inp.click();
+}
+
+function exportCSV() {
+  if (!ledger.length) { showToast('正式价框架协议为空','warn'); return; }
+  let csv = '﻿零件号,零件名称,基准价\n';
+  ledger.forEach(r => { csv += `${r.partNo},${r.name},${r.price}\n`; });
+  dl(csv, '正式价框架协议_'+ds()+'.csv');
+}
+
+// ========== Excel导入 ==========
+let newParts = [];
+
+function importExcel() {
+  const inp = document.createElement('input'); inp.type='file'; inp.accept='.xlsx,.xls';
+  inp.onchange = e => {
+    const f = e.target.files[0]; if(!f) return;
+    document.getElementById('excelFileName').textContent = f.name;
+    const rd = new FileReader();
+    rd.onload = ev => {
+      try {
+        const wb = XLSX.read(ev.target.result, {type:'array'});
+        const ws = wb.Sheets[wb.SheetNames[0]];
+        const data = XLSX.utils.sheet_to_json(ws, {header:1});
+        parseExcelData(data);
+      } catch(err) {
+        showToast('Excel解析失败：' + err.message, 'warn', 5000);
+      }
+    };
+    rd.readAsArrayBuffer(f);
+  };
+  inp.click();
+}
+
+function parseExcelData(data) {
+  if (data.length < 2) { showToast('Excel文件无数据行','warn'); return; }
+  const header = data[0].map(h => String(h||'').replace(/\n/g,'').trim());
+  let colPartNo=-1, colName=-1, colPrice=-1;
+  header.forEach((h,i) => {
+    if (/零部件号|零件号|件号/.test(h)) colPartNo=i;
+    if (/零部件名称|零件名称|名称/.test(h)) colName=i;
+    if (/到厂价|采购价格|不含税/.test(h)) colPrice=i;
+  });
+  if (colName===-1) { showToast('未找到"零部件名称"列','warn',5000); return; }
+  if (colPrice===-1) { showToast('未找到"到厂价"列','warn',5000); return; }
+  newParts = [];
+  for (let r=1;r<data.length;r++) {
+    const row=data[r];
+    if (!row||!row[colName]) continue;
+    const price=parseFloat(row[colPrice]);
+    if (isNaN(price)||price===0) continue;
+    newParts.push({partNo:colPartNo>=0?String(row[colPartNo]||''):'',name:String(row[colName]||'').trim(),price});
+  }
+  renderNew();
+  document.getElementById('newWrap').style.display='block';
+  showToast(`成功读取 ${newParts.length} 条零件数据`,'ok');
+}
+
+function renderNew() {
+  const body = document.getElementById('newBody');
+  body.innerHTML = newParts.map((r,i) => `<tr>
+    <td>${i+1}</td><td>${esc(r.partNo)}</td><td>${esc(r.name)}</td><td>${r.price.toFixed(2)}</td>
+  </tr>`).join('');
+}
+
+// 拖拽支持
+(function(){
+  const dz = document.getElementById('dropZone');
+  dz.addEventListener('dragover', e => { e.preventDefault(); dz.classList.add('dragover'); });
+  dz.addEventListener('dragleave', () => dz.classList.remove('dragover'));
+  dz.addEventListener('drop', e => {
+    e.preventDefault(); dz.classList.remove('dragover');
+    const f = e.dataTransfer.files[0];
+    if (f && /\.(xlsx|xls)$/i.test(f.name)) {
+      document.getElementById('excelFileName').textContent = f.name;
+      const rd = new FileReader();
+      rd.onload = ev2 => {
+        try {
+          const wb = XLSX.read(ev2.target.result,{type:'array'});
+          const ws = wb.Sheets[wb.SheetNames[0]];
+          const data = XLSX.utils.sheet_to_json(ws,{header:1});
+          parseExcelData(data);
+        } catch(err) { showToast('解析失败：'+err.message,'warn',5000); }
+      };
+      rd.readAsArrayBuffer(f);
+    } else {
+      showToast('请拖入 .xlsx 或 .xls 文件','warn');
+    }
+  });
+})();
+
+// ========== 颜色后缀词库 ==========
+const COLOR_SUFFIXES = [
+  '红丹橘','银耀石','黑曜','铂金灰','珍珠白','曜石黑','星辉银','冰川白','琥珀棕','极光蓝',
+  '星河紫','曜岩黑','极地白','深空灰','天际蓝','暮光紫','流光金','玫瑰金','午夜绿','松林绿',
+  '烈焰红','幻影黑','陶瓷白','钛金灰','翡翠绿','宝石蓝','樱花粉','香槟金','磨砂黑','亮银',
+  '哑光黑','炫彩蓝','中国红','墨玉黑','皓月白','星空灰','烈日橙','深海蓝','薄荷绿','薰衣草紫',
+  '冰川蓝','落日橙','午夜蓝','星空黑','极光绿','晨曦金','暮光灰','珊瑚红','靛青','鹅黄',
+  '米白','象牙白','碳纤维黑','酒红','墨绿','藏蓝','卡其','军绿','驼色','深棕',
+  '浅灰','深灰','银灰','亮黑','哑光灰','钛灰','石墨黑','月光银','冰灰','雪白'
+];
+
+// ========== 去噪 ==========
+function noise(s) {
+  return (s||'').toLowerCase().replace(/[\s\-\_\.，。、；：！？\(\)\[\]【】<>《》\/\\|·~`'"　]+/g, '');
+}
+
+// ========== 提取颜色前缀 ==========
+function extractPrefix(name) {
+  const trimmed = (name||'').trim();
+  for (const suffix of COLOR_SUFFIXES) {
+    if (trimmed.endsWith(suffix) && trimmed.length > suffix.length) {
+      return trimmed.substring(0, trimmed.length - suffix.length).trim();
+    }
+  }
+  return null;
+}
+
+// ========== 相似度 ==========
+function calcSimilarity(a, b) {
+  a = (a||'').toLowerCase().replace(/\s+/g,'');
+  b = (b||'').toLowerCase().replace(/\s+/g,'');
+  if (!a||!b) return 0;
+  if (a===b) return 1;
+  const sA=new Set(a),sB=new Set(b); let c=0;
+  sA.forEach(ch=>{if(sB.has(ch))c++});
+  return c/Math.max(sA.size,sB.size);
+}
+
+// ========== 五级模糊匹配 ==========
+function findMatch(name) {
+  if (!name) return null;
+  let best=null, bestScore=0, matchType='';
+
+  for (const r of ledger) {
+    const lName = r.name;
+    // 1. 精确匹配
+    if (name === lName) return { record:r, score:1, type:'精确匹配' };
+    // 2. 包含匹配
+    if (name.includes(lName) || lName.includes(name)) {
+      if (0.9 > bestScore) { bestScore=0.9; best=r; matchType='包含匹配'; }
+      continue;
+    }
+    // 3. 去噪匹配
+    if (noise(name) === noise(lName)) {
+      if (0.8 > bestScore) { bestScore=0.8; best=r; matchType='去噪匹配'; }
+      continue;
+    }
+  }
+
+  if (best) return { record:best, score:bestScore, type:matchType };
+
+  // 4. 前缀匹配（颜色件）
+  const targetPrefix = extractPrefix(name);
+  if (targetPrefix) {
+    let prefixMatches = [];
+    for (const r of ledger) {
+      const lPrefix = extractPrefix(r.name);
+      if (lPrefix && targetPrefix === lPrefix) {
+        prefixMatches.push(r);
+      }
+    }
+    if (prefixMatches.length === 1) {
+      return { record:prefixMatches[0], score:0.7, type:'前缀匹配（颜色件）' };
+    } else if (prefixMatches.length > 1) {
+      const exact = prefixMatches.find(p => p.name === name);
+      if (exact) return { record:exact, score:0.75, type:'前缀匹配（二次精确）' };
+      return { record:prefixMatches[0], score:0.65, type:`前缀匹配（颜色件：${prefixMatches.length}条候选）`, candidates:prefixMatches };
+    }
+  }
+
+  // 5. 相似度匹配
+  for (const r of ledger) {
+    const s = calcSimilarity(name, r.name);
+    if (s >= 0.5 && s > bestScore) { bestScore=s; best=r; matchType='相似度匹配'; }
+  }
+
+  return bestScore >= 0.5 ? { record:best, score:bestScore, type:matchType } : null;
+}
+
+// ========== 比对 ==========
+function compare() {
+  if (!ledger.length) { showToast('请先导入正式价框架协议','warn'); return; }
+  if (!newParts.length) { showToast('请先导入框架协议Excel','warn'); return; }
+
+  const thRate=parseFloat(document.getElementById('thRate').value)||20;
+  const thAbs=parseFloat(document.getElementById('thAbs').value)||100;
+
+  let ok=0,warn=0,miss=0;
+  const results = newParts.map((np, i) => {
+    const match = findMatch(np.name);
+    if (!match) { miss++; return {idx:i+1,...np,matchedName:'—',matchType:'',matchScore:0,basePrice:0,rate:0,diff:0,status:'miss',hasMatch:false}; }
+    const base=match.record.price;
+    const diff=np.price-base;
+    const rate=base!==0?((diff/base)*100):0;
+    // 或关系：满足任一条件即触发告警
+    const isWarn=Math.abs(rate)>thRate || Math.abs(diff)>thAbs;
+    if (isWarn) warn++; else ok++;
+    return {
+      idx:i+1,...np,
+      matchedName:match.record.name,
+      matchType:match.type,
+      matchScore:match.score,
+      basePrice:base,rate,diff,
+      status:isWarn?'warn':'ok',
+      hasMatch:true,
+      candidates:match.candidates||null
+    };
+  });
+
+  document.getElementById('statsBar').innerHTML = `
+    <div class="stat-item"><div class="num">${newParts.length}</div><div class="label">新零件总数</div></div>
+    <div class="stat-item stat-ok"><div class="num">${ok}</div><div class="label">价格正常</div></div>
+    <div class="stat-item stat-warn"><div class="num">${warn}</div><div class="label">偏差异常</div></div>
+    <div class="stat-item stat-miss"><div class="num">${miss}</div><div class="label">未匹配</div></div>
+  `;
+
+  document.getElementById('resultBody').innerHTML = results.map(r => {
+    let st, s='';
+    if (r.status==='ok') st='<span class="status-ok">✓ 通过</span>';
+    else if (r.status==='warn') { st='<span class="status-warn">⚠️ 偏差异常</span>'; s='background:#fff5f5'; }
+    else { st='<span class="status-miss">❓ 未匹配</span>'; s='background:#fffbeb'; }
+
+    let matchDisplay = esc(r.matchedName);
+    if (r.hasMatch && r.matchType) {
+      if (r.matchType.includes('前缀匹配')) {
+        matchDisplay += ` <span class="prefix-tag">${r.matchType}</span>`;
+      } else {
+        matchDisplay += ` <span class="tag">${Math.round(r.matchScore*100)}% ${r.matchType}</span>`;
+      }
+    }
+
+    return `<tr style="${s}">
+      <td>${r.idx}</td><td>${esc(r.partNo)}</td><td>${esc(r.name)}</td><td>${r.price.toFixed(2)}</td>
+      <td>${matchDisplay}</td>
+      <td>${r.hasMatch?r.basePrice.toFixed(2):'—'}</td>
+      <td>${r.hasMatch?(r.rate>0?'+':'')+r.rate.toFixed(1)+'%':'—'}</td>
+      <td>${r.hasMatch?(r.diff>0?'+':'')+r.diff.toFixed(2):'—'}</td>
+      <td>${st}</td>
+    </tr>`;
+  }).join('');
+
+  document.getElementById('resultCard').style.display='block';
+  document.getElementById('resultCard').scrollIntoView({behavior:'smooth',block:'start'});
+  if (warn>0) showToast(`⚠️ 发现 ${warn} 条价格偏差异常！`,'warn',5000);
+  else showToast('✓ 全部通过，无异常','ok');
+}
+
+// ========== 导出结果 ==========
+function exportResult() {
+  const rows = document.querySelectorAll('#resultBody tr');
+  if (!rows.length) { showToast('无结果可导出','warn'); return; }
+  let csv='﻿件号,名称,暂作价,匹配正式价名称,匹配方式,基准价,偏差率,偏差金额,状态\n';
+  rows.forEach(tr => {
+    const cells=tr.querySelectorAll('td');
+    csv += Array.from(cells).map(td=>'"'+td.textContent.trim().replace(/"/g,'""')+'"').join(',')+'\n';
+  });
+  dl(csv,'比对结果_'+ds()+'.csv');
+}
+
+// ========== 工具 ==========
+function dl(content,name) {
+  const b=new Blob([content],{type:'text/csv;charset=utf-8'});
+  const u=URL.createObjectURL(b); const a=document.createElement('a');
+  a.href=u;a.download=name;document.body.appendChild(a);a.click();document.body.removeChild(a);
+  URL.revokeObjectURL(u);
+}
+function ds() { const d=new Date(); return d.getFullYear()+String(d.getMonth()+1).padStart(2,'0')+String(d.getDate()).padStart(2,'0'); }
+
+// ========== 初始化 ==========
+loadLedger(); renderLedger();
+</script>
+</body>
+</html>

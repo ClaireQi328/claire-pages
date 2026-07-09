@@ -1,0 +1,279 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>场景二：合同创建 — 多Agent协同架构</title>
+<style>
+:root {
+  --bg: #f8f9fc; --bg-card: #ffffff; --bg-section: #f1f3f8; --border: #e2e6ef;
+  --text: #1a1f36; --text-secondary: #4a5568; --text-muted: #8492a6;
+  --blue: #3b82f6; --blue-light: #eff6ff; --green: #10b981; --green-light: #ecfdf5;
+  --orange: #f59e0b; --orange-light: #fffbeb; --red: #ef4444; --red-light: #fef2f2;
+  --purple: #8b5cf6; --purple-light: #f5f3ff; --teal: #06b6d4; --teal-light: #ecfeff;
+  --font-sans: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Noto Sans SC', sans-serif;
+  --font-mono: 'JetBrains Mono', 'Fira Code', monospace;
+  --radius: 12px; --shadow: 0 1px 3px rgba(0,0,0,0.06), 0 4px 12px rgba(0,0,0,0.04);
+}
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body { font-family: var(--font-sans); background: var(--bg); color: var(--text); line-height: 1.7; padding: 2.5rem; max-width: 1200px; margin: 0 auto; }
+.header { margin-bottom: 2rem; }
+.header h1 { font-size: 1.8rem; font-weight: 700; margin-bottom: 0.3rem; }
+.header .badge { display: inline-block; font-size: 0.72rem; font-weight: 600; padding: 0.2rem 0.7rem; border-radius: 20px; background: var(--blue-light); color: var(--blue); border: 1px solid #bfdbfe; margin-right: 0.5rem; }
+.header .subtitle { color: var(--text-secondary); font-size: 0.9rem; margin-top: 0.5rem; }
+.section { background: var(--bg-card); border: 1px solid var(--border); border-radius: var(--radius); padding: 1.8rem; margin: 1.5rem 0; box-shadow: var(--shadow); }
+.section h2 { font-size: 1.2rem; font-weight: 700; margin-bottom: 1rem; display: flex; align-items: center; gap: 0.5rem; }
+.section h2 .icon { width: 28px; height: 28px; border-radius: 8px; display: flex; align-items: center; justify-content: center; font-size: 0.85rem; }
+.section h3 { font-size: 0.95rem; font-weight: 600; margin-top: 1.2rem; margin-bottom: 0.5rem; color: var(--text-secondary); }
+.pain-box { background: var(--red-light); border: 1px solid #fecaca; border-radius: 8px; padding: 1rem 1.2rem; margin: 1rem 0; }
+.pain-box h4 { font-size: 0.8rem; font-weight: 700; color: var(--red); margin-bottom: 0.3rem; text-transform: uppercase; }
+.pain-box p { color: #991b1b; font-size: 0.85rem; margin: 0; }
+.value-box { background: var(--green-light); border: 1px solid #a7f3d0; border-radius: 8px; padding: 1rem 1.2rem; margin: 1rem 0; }
+.value-box h4 { font-size: 0.8rem; font-weight: 700; color: var(--green); margin-bottom: 0.3rem; text-transform: uppercase; }
+.value-box p { color: #065f46; font-size: 0.85rem; margin: 0; }
+.arch-container { display: flex; flex-direction: column; gap: 1rem; margin: 1.5rem 0; }
+.arch-layer { background: var(--bg-section); border: 1px solid var(--border); border-radius: 10px; padding: 1rem 1.2rem; }
+.arch-layer-title { font-size: 0.72rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 0.8rem; padding-bottom: 0.4rem; border-bottom: 1px dashed var(--border); }
+.layer-cross .arch-layer-title { color: var(--blue); }
+.layer-domain .arch-layer-title { color: var(--green); }
+.layer-leaf .arch-layer-title { color: var(--purple); }
+.agents-row { display: flex; gap: 0.8rem; flex-wrap: wrap; }
+.agent-box { background: var(--bg-card); border: 1px solid var(--border); border-radius: 8px; padding: 0.8rem 1rem; flex: 1; min-width: 180px; box-shadow: 0 1px 3px rgba(0,0,0,0.04); }
+.agent-box .name { font-size: 0.85rem; font-weight: 700; margin-bottom: 0.2rem; display: flex; align-items: center; gap: 0.4rem; }
+.agent-box .name .dot { width: 8px; height: 8px; border-radius: 50%; }
+.agent-box .role { font-size: 0.72rem; color: var(--text-muted); }
+.flow-container { margin: 1.5rem 0; }
+.flow-step { display: flex; align-items: flex-start; gap: 1rem; padding: 0.8rem 0; border-bottom: 1px solid var(--bg-section); }
+.flow-step:last-child { border-bottom: none; }
+.flow-num { width: 26px; height: 26px; border-radius: 50%; background: var(--blue-light); border: 2px solid var(--blue); display: flex; align-items: center; justify-content: center; font-size: 0.7rem; font-weight: 700; color: var(--blue); flex-shrink: 0; }
+.flow-content { flex: 1; }
+.flow-agent { font-size: 0.75rem; font-weight: 700; color: var(--blue); }
+.flow-action { font-size: 0.85rem; color: var(--text-secondary); }
+.flow-protocol { font-size: 0.68rem; font-family: var(--font-mono); color: var(--text-muted); background: var(--bg-section); padding: 0.1rem 0.4rem; border-radius: 4px; margin-left: 0.4rem; }
+.instruction { background: var(--bg-section); border: 1px solid var(--border); border-radius: 8px; padding: 1rem 1.2rem; margin: 0.8rem 0; font-family: var(--font-mono); font-size: 0.75rem; line-height: 1.8; color: var(--text-secondary); white-space: pre-wrap; overflow-x: auto; }
+.instruction .comment { color: var(--blue); font-weight: 600; }
+.skill-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 0.8rem; margin: 1rem 0; }
+.skill-card { background: var(--purple-light); border: 1px solid #ddd6fe; border-radius: 8px; padding: 0.8rem 1rem; }
+.skill-card h5 { font-size: 0.8rem; font-weight: 700; color: var(--purple); margin-bottom: 0.2rem; }
+.skill-card p { font-size: 0.75rem; color: #5b21b6; margin: 0; }
+.mcp-card { background: var(--teal-light); border: 1px solid #a5f3fc; border-radius: 8px; padding: 0.8rem 1rem; }
+.mcp-card h5 { font-size: 0.8rem; font-weight: 700; color: var(--teal); margin-bottom: 0.2rem; }
+.mcp-card p { font-size: 0.75rem; color: #0e7490; margin: 0; }
+.multica-ref { background: var(--orange-light); border: 1px solid #fde68a; border-radius: 8px; padding: 0.8rem 1rem; margin: 1rem 0; font-size: 0.8rem; color: #92400e; }
+.multica-ref strong { color: #78350f; }
+@media (max-width: 768px) { body { padding: 1rem; } .agents-row { flex-direction: column; } .skill-grid { grid-template-columns: 1fr; } }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <h1>场景二：合同创建</h1>
+  <span class="badge">Multica Squad</span>
+  <span class="badge">Event-Driven</span>
+  <span class="badge">优先级 P0</span>
+  <p class="subtitle">定点审批通过后，自动触发合同全流程：信息提取 → 草稿生成 → 供应商确认 → 进度跟踪</p>
+</div>
+
+<!-- 业务场景 -->
+<div class="section">
+  <h2><span class="icon" style="background:var(--red-light); color:var(--red);">!</span> 业务场景 & 痛点</h2>
+
+  <p style="color:var(--text-secondary); font-size:0.85rem; margin-bottom: 1rem;"><strong>业务流程：</strong>监控定点申请单审批完成 → 从定点申请单获取合同信息 → 创建合同草稿 → 确认合同信息 → 合同发送给供应商确认 → 跟进合同进度</p>
+
+  <div class="pain-box">
+    <h4>核心痛点</h4>
+    <p>1. 定点审批通过后需手动监控EP首页待办，容易遗漏合同签署任务<br>
+    2. 合同创建时需手动填写合同名称、选择我方主体（小米汽车科技/小米景明科技）、维护供应商信息<br>
+    3. 合同模板同步后仍需线下修改Word（一次性费用需手工调整）→ 转PDF → 上传系统<br>
+    4. 合同发起后需持续跟进供应商确认、电子签认证、小米内部审批、双方双签全流程</p>
+  </div>
+</div>
+
+<!-- 业务价值 -->
+<div class="section">
+  <h2><span class="icon" style="background:var(--green-light); color:var(--green);">✓</span> 业务价值</h2>
+  <div class="value-box">
+    <h4>预期效果</h4>
+    <p><strong>响应速度：</strong>定点通过到合同创建从平均2-3天 → 当天自动触发<br>
+    <strong>信息准确：</strong>合同信息从定点申请单自动提取，消除手工填写错误<br>
+    <strong>进度透明：</strong>合同流转全程自动追踪，超期自动催办供应商<br>
+    <strong>模板智能化：</strong>一次性费用等需手工调整项由Agent预填充，人工仅需确认</p>
+  </div>
+</div>
+
+<!-- Agent 架构 -->
+<div class="section">
+  <h2><span class="icon" style="background:var(--blue-light); color:var(--blue);">◉</span> 协同 Agent 架构</h2>
+
+  <div class="arch-container">
+    <div class="arch-layer layer-cross">
+      <div class="arch-layer-title">L1 跨域层 — 数字化团队控股</div>
+      <div class="agents-row">
+        <div class="agent-box">
+          <div class="name"><span class="dot" style="background:var(--blue)"></span>合同流程 Coordinator</div>
+          <div class="role">Squad Leader · 监听定点审批 · 编排合同全流程 · 状态流转</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="arch-layer layer-domain">
+      <div class="arch-layer-title">L2 域Agent层 — 业务域定义</div>
+      <div class="agents-row">
+        <div class="agent-box">
+          <div class="name"><span class="dot" style="background:var(--green)"></span>合同信息提取 Agent</div>
+          <div class="role">从定点申请单提取合同所需全部信息</div>
+        </div>
+        <div class="agent-box">
+          <div class="name"><span class="dot" style="background:var(--green)"></span>合同草稿生成 Agent</div>
+          <div class="role">按模板生成合同 + 预填一次性费用</div>
+        </div>
+        <div class="agent-box">
+          <div class="name"><span class="dot" style="background:var(--green)"></span>合同进度追踪 Agent</div>
+          <div class="role">监控确认/电子签/审批/双签全流程</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="arch-layer layer-leaf">
+      <div class="arch-layer-title">L3 叶子执行层</div>
+      <div class="agents-row">
+        <div class="agent-box">
+          <div class="name"><span class="dot" style="background:var(--purple)"></span>供应商通知 Agent</div>
+          <div class="role">通过EP门户/邮件通知供应商确认合同</div>
+        </div>
+        <div class="agent-box">
+          <div class="name"><span class="dot" style="background:var(--purple)"></span>催办 Agent</div>
+          <div class="role">供应商超期未确认 → 分级催办</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="multica-ref">
+    <strong>Multica 映射：</strong>Squad = 合同签署小队 | Event-Driven = 定点审批通过事件触发(非Cron) | Task Lifecycle = 合同状态(created→supplier_confirmed→internal_approved→signed) | Skill = 合同模板填充+一次性费用预填(固化)
+  </div>
+</div>
+
+<!-- Agent 指令 -->
+<div class="section">
+  <h2><span class="icon" style="background:var(--orange-light); color:var(--orange);">⚡</span> Agent 指令</h2>
+
+  <h3>合同流程 Coordinator</h3>
+  <div class="instruction"><span class="comment">// 合同流程 Coordinator — 事件驱动型Squad Leader</span>
+你是合同创建全流程编排Agent。
+
+【触发条件】
+监听EP系统"定点申请单审批通过"事件（首页待办中出现合同签署任务）
+
+【执行流程】
+1. 收到事件后，提取定点申请单ID
+2. 触发"合同信息提取Agent"：从定点申请单获取所有合同必要信息
+3. 判断签署类型：
+   - 单方签署（默认）→ 正常流程
+   - 三方签署 → 标记多方签署
+4. 触发"合同草稿生成Agent"：基于提取信息 + 合同模板生成草稿
+5. 草稿生成后推送采购员确认：
+   - 确认合同名称
+   - 确认我方主体（小米汽车科技 or 小米景明科技）
+   - 确认一次性费用项是否正确
+6. 采购员确认后 → 在EP系统创建合同申请单 + 发布
+7. 触发"供应商通知Agent"：通知供应商在系统中确认
+8. 进入追踪模式 → 触发"合同进度追踪Agent"
+
+约束：
+- 合同草稿必须经采购员确认后才能发布
+- 我方主体只能选：小米汽车科技有限公司 / 小米景明科技有限公司
+- 不可跳过供应商确认环节直接发起审批</div>
+
+  <h3>合同信息提取 Agent</h3>
+  <div class="instruction"><span class="comment">// 合同信息提取 Agent</span>
+你是合同信息提取Agent。从EP定点申请单中提取：
+1. 项目名称、关联定点申请单号（自动关联）
+2. 供应商名称、供应商主体信息
+3. 零件信息列表（零件号/名称/数量/单价）
+4. 一次性费用明细（开发费/模具费/软模费 — 金额+支付条件）
+5. 供货比例、有效期、量纲信息
+6. 输出结构化JSON供下游Agent使用
+
+注意：一次性费用类目前EP模板未自动带入，需从定点申请单的价格明细中单独提取并格式化</div>
+
+  <h3>合同草稿生成 Agent</h3>
+  <div class="instruction"><span class="comment">// 合同草稿生成 Agent</span>
+你是合同草稿生成Agent。
+1. 接收合同信息JSON
+2. 调用EP"同步模板"接口，将信息填入标准合同模板
+3. 针对一次性费用部分（EP模板不会自动带入的）：
+   - 按定点协议中的开发费/模具费/软模费条款预填充
+   - 标记"需人工确认"的字段
+4. 生成合同草稿PDF预览
+5. 输出：{contract_draft_id, preview_url, manual_confirm_fields:[]}
+
+如为三方协议：需在签署方列表中添加第三方主体信息</div>
+
+  <h3>合同进度追踪 Agent</h3>
+  <div class="instruction"><span class="comment">// 合同进度追踪 Agent</span>
+你是合同进度追踪Agent。合同发布后进入追踪模式：
+1. 监控合同状态流转：
+   待确认 → 供应商确认 → 供应商发起电子签 → 小米内部审批 → 双方双签完成
+2. 每个节点设置超时阈值：
+   - 供应商确认：3个工作日
+   - 电子签认证：2个工作日
+   - 内部审批：按审批流SLA
+3. 超时触发"催办Agent"
+4. 状态变更时实时推送采购员
+5. 双签完成 → 通知"合同流程闭环"
+
+输出：{contract_id, current_status, stuck_at, days_elapsed, next_action}</div>
+</div>
+
+<!-- 协同流程 -->
+<div class="section">
+  <h2><span class="icon" style="background:var(--teal-light); color:var(--teal);">→</span> Agent 协同流程</h2>
+
+  <div class="flow-container">
+    <div class="flow-step"><div class="flow-num">1</div><div class="flow-content"><span class="flow-agent">EP系统</span> <span class="flow-action">定点申请单审批通过 → 产生"合同签署任务"待办 → 触发Coordinator</span><span class="flow-protocol">Webhook</span></div></div>
+    <div class="flow-step"><div class="flow-num">2</div><div class="flow-content"><span class="flow-agent">合同信息提取Agent</span> <span class="flow-action">从定点申请单提取：项目名/供应商/零件/价格/一次性费用</span><span class="flow-protocol">MCP→EP</span></div></div>
+    <div class="flow-step"><div class="flow-num">3</div><div class="flow-content"><span class="flow-agent">合同草稿生成Agent</span> <span class="flow-action">调用EP模板同步 + 预填一次性费用 → 生成草稿PDF</span><span class="flow-protocol">MCP→EP</span></div></div>
+    <div class="flow-step"><div class="flow-num">4</div><div class="flow-content"><span class="flow-agent">Coordinator</span> <span class="flow-action">推送采购员确认：合同名称/我方主体/一次性费用/签署方式</span><span class="flow-protocol">飞书卡片 HITL</span></div></div>
+    <div class="flow-step"><div class="flow-num">5</div><div class="flow-content"><span class="flow-agent">Coordinator</span> <span class="flow-action">采购员确认后 → 在EP创建合同申请单 → 点击"发布"</span><span class="flow-protocol">MCP→EP</span></div></div>
+    <div class="flow-step"><div class="flow-num">6</div><div class="flow-content"><span class="flow-agent">供应商通知Agent</span> <span class="flow-action">通过EP门户推送待办 + 邮件通知供应商确认合同</span><span class="flow-protocol">EP门户+邮件</span></div></div>
+    <div class="flow-step"><div class="flow-num">7</div><div class="flow-content"><span class="flow-agent">合同进度追踪Agent</span> <span class="flow-action">进入追踪模式：监控供应商确认→电子签→内部审批→双签</span><span class="flow-protocol">Autopilot轮询</span></div></div>
+    <div class="flow-step"><div class="flow-num">8</div><div class="flow-content"><span class="flow-agent">催办Agent</span> <span class="flow-action">供应商超时未确认 → 催办邮件/门户消息</span><span class="flow-protocol">条件触发</span></div></div>
+    <div class="flow-step"><div class="flow-num">9</div><div class="flow-content"><span class="flow-agent">Coordinator</span> <span class="flow-action">双方双签完成 → 通知采购员"合同闭环" → 归档</span><span class="flow-protocol">飞书通知</span></div></div>
+  </div>
+</div>
+
+<!-- Skill & MCP -->
+<div class="section">
+  <h2><span class="icon" style="background:var(--purple-light); color:var(--purple);">⬡</span> 需封装的 Skill & MCP</h2>
+
+  <div class="skill-grid">
+    <div class="mcp-card">
+      <h5>EP-定点申请单信息读取 MCP</h5>
+      <p>输入：定点申请单ID<br>输出：项目名/供应商/零件清单/价格/一次性费用/供货比例<br>接口：EP「定点推荐与决策」模块</p>
+    </div>
+    <div class="mcp-card">
+      <h5>EP-合同创建 MCP</h5>
+      <p>输入：合同名称/我方主体/供应商/关联定点单/签署类型<br>输出：合同申请单ID<br>接口：EP「合同管理→创建合同清单」</p>
+    </div>
+    <div class="mcp-card">
+      <h5>EP-合同模板同步 MCP</h5>
+      <p>输入：合同申请单ID<br>输出：标准模板(含定点信息预填)<br>接口：EP「填写合同信息→同步模板」</p>
+    </div>
+    <div class="mcp-card">
+      <h5>EP-合同状态查询 MCP</h5>
+      <p>输入：合同ID<br>输出：当前状态(待确认/已确认/审批中/已签署)、停留时长<br>接口：EP「合同签署」模块</p>
+    </div>
+    <div class="skill-card">
+      <h5>一次性费用预填充 Skill</h5>
+      <p>从定点价格明细中提取开发费/模具费/软模费条款，按合同模板格式填入对应位置<br>解决当前"需采购工程师手工调整"的痛点</p>
+    </div>
+    <div class="skill-card">
+      <h5>合同进度催办 Skill</h5>
+      <p>根据节点超时规则（确认3天/电子签2天/审批按SLA），自动生成催办消息并发送</p>
+    </div>
+  </div>
+</div>
+
+</body>
+</html>

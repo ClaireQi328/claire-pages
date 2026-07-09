@@ -1,0 +1,568 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Claire Pages</title>
+<style>
+:root {
+    --bg: #0f0f0f; --surface: #1a1a1a; --surface2: #242424; --border: #333;
+    --text: #e0e0e0; --text2: #888; --accent: #4a9eff; --accent-dim: rgba(74,158,255,0.12);
+    --green: #4caf50; --red: #ef5350; --orange: #ff9800; --radius: 8px;
+}
+* { margin:0; padding:0; box-sizing:border-box; }
+body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background:var(--bg); color:var(--text); height:100vh; display:flex; flex-direction:column; overflow:hidden; }
+
+/* ── Header ── */
+header { padding:12px 20px; background:var(--surface); border-bottom:1px solid var(--border); display:flex; align-items:center; gap:16px; flex-shrink:0; }
+header h1 { font-size:18px; font-weight:600; white-space:nowrap; }
+.search-box { flex:1; max-width:400px; position:relative; }
+.search-box input { width:100%; padding:7px 12px 7px 32px; background:var(--surface2); border:1px solid var(--border); border-radius:var(--radius); color:var(--text); font-size:14px; outline:none; }
+.search-box input:focus { border-color:var(--accent); }
+.search-box::before { content:"🔍"; position:absolute; left:10px; top:50%; transform:translateY(-50%); font-size:13px; }
+.badge { background:var(--accent-dim); color:var(--accent); padding:3px 10px; border-radius:12px; font-size:12px; white-space:nowrap; }
+
+/* ── Toolbar ── */
+.toolbar { padding:8px 20px; background:var(--surface); border-bottom:1px solid var(--border); display:flex; gap:8px; align-items:center; flex-shrink:0; flex-wrap:wrap; }
+.toolbar button { padding:5px 12px; background:var(--surface2); border:1px solid var(--border); border-radius:var(--radius); color:var(--text); font-size:12px; cursor:pointer; white-space:nowrap; }
+.toolbar button:hover { border-color:var(--accent); color:var(--accent); }
+.toolbar button.primary { background:var(--accent); color:#fff; border-color:var(--accent); }
+.toolbar button.primary:hover { opacity:0.85; }
+.toolbar button.danger { color:var(--red); border-color:var(--red); }
+.toolbar .spacer { flex:1; }
+.toolbar .selection-info { font-size:12px; color:var(--text2); }
+
+/* ── Tree ── */
+.tree-container { flex:1; overflow-y:auto; padding:12px 20px; }
+.tree-node { user-select:none; }
+.tree-row { display:flex; align-items:center; gap:6px; padding:4px 8px; border-radius:6px; cursor:pointer; position:relative; }
+.tree-row:hover { background:var(--surface2); }
+.tree-row.selected { background:var(--accent-dim); }
+.tree-row .arrow { width:16px; text-align:center; font-size:10px; color:var(--text2); transition:transform 0.15s; flex-shrink:0; }
+.tree-row .arrow.open { transform:rotate(90deg); }
+.tree-row .arrow.leaf { visibility:hidden; }
+.tree-row .icon { font-size:14px; flex-shrink:0; }
+.tree-row .name { font-size:13px; flex:1; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.tree-row .name a { color:var(--text); text-decoration:none; }
+.tree-row .name a:hover { color:var(--accent); text-decoration:underline; }
+.tree-row .count { font-size:11px; color:var(--text2); background:var(--surface2); padding:1px 7px; border-radius:10px; flex-shrink:0; }
+.tree-row .path-hint { font-size:11px; color:var(--text2); margin-left:4px; flex-shrink:0; }
+.tree-row input[type=checkbox] { accent-color:var(--accent); flex-shrink:0; }
+.tree-children { padding-left:20px; }
+.tree-children.collapsed { display:none; }
+.match-highlight { background:rgba(255,235,59,0.25); border-radius:2px; }
+
+/* ── Modal ── */
+.modal-overlay { display:none; position:fixed; inset:0; background:rgba(0,0,0,0.6); z-index:100; align-items:center; justify-content:center; }
+.modal-overlay.show { display:flex; }
+.modal { background:var(--surface); border:1px solid var(--border); border-radius:12px; padding:24px; min-width:400px; max-width:500px; }
+.modal h3 { margin-bottom:16px; font-size:16px; }
+.modal label { display:block; font-size:13px; color:var(--text2); margin-bottom:4px; margin-top:12px; }
+.modal input, .modal select { width:100%; padding:8px 12px; background:var(--surface2); border:1px solid var(--border); border-radius:var(--radius); color:var(--text); font-size:13px; outline:none; }
+.modal input:focus, .modal select:focus { border-color:var(--accent); }
+.modal .actions { margin-top:20px; display:flex; gap:8px; justify-content:flex-end; }
+.modal .actions button { padding:7px 16px; border-radius:var(--radius); font-size:13px; cursor:pointer; border:1px solid var(--border); background:var(--surface2); color:var(--text); }
+.modal .actions button.primary { background:var(--accent); color:#fff; border-color:var(--accent); }
+.modal .file-list { max-height:150px; overflow-y:auto; background:var(--surface2); border:1px solid var(--border); border-radius:var(--radius); padding:8px; margin-top:8px; }
+.modal .file-list .item { font-size:12px; padding:3px 6px; color:var(--text2); border-bottom:1px solid var(--border); }
+.modal .file-list .item:last-child { border-bottom:none; }
+
+/* ── Toast ── */
+.toast { position:fixed; bottom:20px; right:20px; padding:12px 20px; background:var(--green); color:#fff; border-radius:var(--radius); font-size:13px; z-index:200; display:none; }
+.toast.show { display:block; animation:fadeIn 0.2s; }
+.toast.error { background:var(--red); }
+@keyframes fadeIn { from{opacity:0;transform:translateY(10px)} to{opacity:1;transform:translateY(0)} }
+
+/* ── Stats ── */
+footer { padding:8px 20px; background:var(--surface); border-top:1px solid var(--border); font-size:11px; color:var(--text2); text-align:center; flex-shrink:0; }
+</style>
+</head>
+<body>
+
+<header>
+    <h1>📂 Claire Pages</h1>
+    <div class="search-box"><input type="text" id="searchInput" placeholder="Search files and folders..."></div>
+    <span class="badge" id="fileCount">—</span>
+</header>
+
+<div class="toolbar">
+    <button onclick="selectAll()">Select All</button>
+    <button onclick="deselectAll()">Deselect</button>
+    <button onclick="expandAll()">Expand All</button>
+    <button onclick="collapseAll()">Collapse All</button>
+    <span class="spacer"></span>
+    <span class="selection-info" id="selectionInfo"></span>
+    <button onclick="openNewFolderModal()">+ New Folder</button>
+    <button class="primary" onclick="openMoveModal()">Move To...</button>
+    <button class="danger" onclick="openDeleteModal()">Delete</button>
+</div>
+
+<div class="tree-container" id="treeContainer"></div>
+
+<footer id="footer">Loading...</footer>
+
+<!-- Move Modal -->
+<div class="modal-overlay" id="moveModal">
+    <div class="modal">
+        <h3>Move Files</h3>
+        <p style="font-size:13px;color:var(--text2)" id="moveFileCount"></p>
+        <label>Destination folder</label>
+        <select id="moveDest"></select>
+        <div class="file-list" id="moveFileList"></div>
+        <div class="actions">
+            <button onclick="closeModal('moveModal')">Cancel</button>
+            <button class="primary" onclick="executeMove()">Move</button>
+        </div>
+    </div>
+</div>
+
+<!-- New Folder Modal -->
+<div class="modal-overlay" id="newFolderModal">
+    <div class="modal">
+        <h3>Create New Folder</h3>
+        <label>Folder path (relative to repo root)</label>
+        <input type="text" id="newFolderPath" placeholder="e.g. Xiaomi/NewProject">
+        <div class="actions">
+            <button onclick="closeModal('newFolderModal')">Cancel</button>
+            <button class="primary" onclick="executeNewFolder()">Create</button>
+        </div>
+    </div>
+</div>
+
+<!-- Delete Modal -->
+<div class="modal-overlay" id="deleteModal">
+    <div class="modal">
+        <h3>Delete Files</h3>
+        <p style="font-size:13px;color:var(--red);margin-bottom:8px">This will remove the files from the pages repo. The original vault files are NOT affected.</p>
+        <div class="file-list" id="deleteFileList"></div>
+        <div class="actions">
+            <button onclick="closeModal('deleteModal')">Cancel</button>
+            <button class="danger" style="background:var(--red);color:#fff;border-color:var(--red)" onclick="executeDelete()">Delete</button>
+        </div>
+    </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+// ── Data ──
+let allFiles = [{"path":"ByteDance/assets/web/字节分析_CBOM深度研究报告.html","url":"https://claireqi328.github.io/claire-pages/ByteDance/assets/web/%E5%AD%97%E8%8A%82%E5%88%86%E6%9E%90_CBOM%E6%B7%B1%E5%BA%A6%E7%A0%94%E7%A9%B6%E6%8A%A5%E5%91%8A.html","name":"字节分析_CBOM深度研究报告.html"},{"path":"ByteDance/assets/web/字节分析_字节跳动云服务_横纵分析报告.html","url":"https://claireqi328.github.io/claire-pages/ByteDance/assets/web/%E5%AD%97%E8%8A%82%E5%88%86%E6%9E%90_%E5%AD%97%E8%8A%82%E8%B7%B3%E5%8A%A8%E4%BA%91%E6%9C%8D%E5%8A%A1_%E6%A8%AA%E7%BA%B5%E5%88%86%E6%9E%90%E6%8A%A5%E5%91%8A.html","name":"字节分析_字节跳动云服务_横纵分析报告.html"},{"path":"ByteDance/云服务/云服务全景.html","url":"https://claireqi328.github.io/claire-pages/ByteDance/%E4%BA%91%E6%9C%8D%E5%8A%A1/%E4%BA%91%E6%9C%8D%E5%8A%A1%E5%85%A8%E6%99%AF.html","name":"云服务全景.html"},{"path":"ByteDance/云服务/字节分析_CBOM深度研究报告.html","url":"https://claireqi328.github.io/claire-pages/ByteDance/%E4%BA%91%E6%9C%8D%E5%8A%A1/%E5%AD%97%E8%8A%82%E5%88%86%E6%9E%90_CBOM%E6%B7%B1%E5%BA%A6%E7%A0%94%E7%A9%B6%E6%8A%A5%E5%91%8A.html","name":"字节分析_CBOM深度研究报告.html"},{"path":"ByteDance/云服务/字节分析_字节跳动云服务_横纵分析报告.html","url":"https://claireqi328.github.io/claire-pages/ByteDance/%E4%BA%91%E6%9C%8D%E5%8A%A1/%E5%AD%97%E8%8A%82%E5%88%86%E6%9E%90_%E5%AD%97%E8%8A%82%E8%B7%B3%E5%8A%A8%E4%BA%91%E6%9C%8D%E5%8A%A1_%E6%A8%AA%E7%BA%B5%E5%88%86%E6%9E%90%E6%8A%A5%E5%91%8A.html","name":"字节分析_字节跳动云服务_横纵分析报告.html"},{"path":"NIO/NQPP/NQPP质量评估报告.html","url":"https://claireqi328.github.io/claire-pages/NIO/NQPP/NQPP%E8%B4%A8%E9%87%8F%E8%AF%84%E4%BC%B0%E6%8A%A5%E5%91%8A.html","name":"NQPP质量评估报告.html"},{"path":"NIO/寻源定点/index.html","url":"https://claireqi328.github.io/claire-pages/NIO/%E5%AF%BB%E6%BA%90%E5%AE%9A%E7%82%B9/index.html","name":"index.html"},{"path":"NIO/寻源定点/p-data____.html","url":"https://claireqi328.github.io/claire-pages/NIO/%E5%AF%BB%E6%BA%90%E5%AE%9A%E7%82%B9/p-data____.html","name":"p-data____.html"},{"path":"NIO/寻源定点/pre-rfq__.html","url":"https://claireqi328.github.io/claire-pages/NIO/%E5%AF%BB%E6%BA%90%E5%AE%9A%E7%82%B9/pre-rfq__.html","name":"pre-rfq__.html"},{"path":"NIO/寻源定点/sor更新弹窗.html","url":"https://claireqi328.github.io/claire-pages/NIO/%E5%AF%BB%E6%BA%90%E5%AE%9A%E7%82%B9/sor%E6%9B%B4%E6%96%B0%E5%BC%B9%E7%AA%97.html","name":"sor更新弹窗.html"},{"path":"NIO/寻源定点/sor更新弹窗_1.html","url":"https://claireqi328.github.io/claire-pages/NIO/%E5%AF%BB%E6%BA%90%E5%AE%9A%E7%82%B9/sor%E6%9B%B4%E6%96%B0%E5%BC%B9%E7%AA%97_1.html","name":"sor更新弹窗_1.html"},{"path":"NIO/寻源定点/start.html","url":"https://claireqi328.github.io/claire-pages/NIO/%E5%AF%BB%E6%BA%90%E5%AE%9A%E7%82%B9/start.html","name":"start.html"},{"path":"NIO/寻源定点/start_c_1.html","url":"https://claireqi328.github.io/claire-pages/NIO/%E5%AF%BB%E6%BA%90%E5%AE%9A%E7%82%B9/start_c_1.html","name":"start_c_1.html"},{"path":"NIO/寻源定点/start_with_pages.html","url":"https://claireqi328.github.io/claire-pages/NIO/%E5%AF%BB%E6%BA%90%E5%AE%9A%E7%82%B9/start_with_pages.html","name":"start_with_pages.html"},{"path":"NIO/寻源定点/__p-data.html","url":"https://claireqi328.github.io/claire-pages/NIO/%E5%AF%BB%E6%BA%90%E5%AE%9A%E7%82%B9/__p-data.html","name":"__p-data.html"},{"path":"NIO/寻源定点/__p-data_1.html","url":"https://claireqi328.github.io/claire-pages/NIO/%E5%AF%BB%E6%BA%90%E5%AE%9A%E7%82%B9/__p-data_1.html","name":"__p-data_1.html"},{"path":"NIO/寻源定点/供应商参与报价.html","url":"https://claireqi328.github.io/claire-pages/NIO/%E5%AF%BB%E6%BA%90%E5%AE%9A%E7%82%B9/%E4%BE%9B%E5%BA%94%E5%95%86%E5%8F%82%E4%B8%8E%E6%8A%A5%E4%BB%B7.html","name":"供应商参与报价.html"},{"path":"NIO/寻源定点/供应商报价列表.html","url":"https://claireqi328.github.io/claire-pages/NIO/%E5%AF%BB%E6%BA%90%E5%AE%9A%E7%82%B9/%E4%BE%9B%E5%BA%94%E5%95%86%E6%8A%A5%E4%BB%B7%E5%88%97%E8%A1%A8.html","name":"供应商报价列表.html"},{"path":"NIO/寻源定点/单价_a价.html","url":"https://claireqi328.github.io/claire-pages/NIO/%E5%AF%BB%E6%BA%90%E5%AE%9A%E7%82%B9/%E5%8D%95%E4%BB%B7_a%E4%BB%B7.html","name":"单价_a价.html"},{"path":"NIO/寻源定点/单价_b价.html","url":"https://claireqi328.github.io/claire-pages/NIO/%E5%AF%BB%E6%BA%90%E5%AE%9A%E7%82%B9/%E5%8D%95%E4%BB%B7_b%E4%BB%B7.html","name":"单价_b价.html"},{"path":"NIO/寻源定点/取消报价.html","url":"https://claireqi328.github.io/claire-pages/NIO/%E5%AF%BB%E6%BA%90%E5%AE%9A%E7%82%B9/%E5%8F%96%E6%B6%88%E6%8A%A5%E4%BB%B7.html","name":"取消报价.html"},{"path":"NIO/寻源定点/取消询报价弹窗.html","url":"https://claireqi328.github.io/claire-pages/NIO/%E5%AF%BB%E6%BA%90%E5%AE%9A%E7%82%B9/%E5%8F%96%E6%B6%88%E8%AF%A2%E6%8A%A5%E4%BB%B7%E5%BC%B9%E7%AA%97.html","name":"取消询报价弹窗.html"},{"path":"NIO/寻源定点/合作伙伴信息弹窗.html","url":"https://claireqi328.github.io/claire-pages/NIO/%E5%AF%BB%E6%BA%90%E5%AE%9A%E7%82%B9/%E5%90%88%E4%BD%9C%E4%BC%99%E4%BC%B4%E4%BF%A1%E6%81%AF%E5%BC%B9%E7%AA%97.html","name":"合作伙伴信息弹窗.html"},{"path":"NIO/寻源定点/合作伙伴参与报价.html","url":"https://claireqi328.github.io/claire-pages/NIO/%E5%AF%BB%E6%BA%90%E5%AE%9A%E7%82%B9/%E5%90%88%E4%BD%9C%E4%BC%99%E4%BC%B4%E5%8F%82%E4%B8%8E%E6%8A%A5%E4%BB%B7.html","name":"合作伙伴参与报价.html"},{"path":"NIO/寻源定点/带交互-查看合作伙伴报价弹窗.html","url":"https://claireqi328.github.io/claire-pages/NIO/%E5%AF%BB%E6%BA%90%E5%AE%9A%E7%82%B9/%E5%B8%A6%E4%BA%A4%E4%BA%92-%E6%9F%A5%E7%9C%8B%E5%90%88%E4%BD%9C%E4%BC%99%E4%BC%B4%E6%8A%A5%E4%BB%B7%E5%BC%B9%E7%AA%97.html","name":"带交互-查看合作伙伴报价弹窗.html"},{"path":"NIO/寻源定点/带交互-查看物料报价弹窗.html","url":"https://claireqi328.github.io/claire-pages/NIO/%E5%AF%BB%E6%BA%90%E5%AE%9A%E7%82%B9/%E5%B8%A6%E4%BA%A4%E4%BA%92-%E6%9F%A5%E7%9C%8B%E7%89%A9%E6%96%99%E6%8A%A5%E4%BB%B7%E5%BC%B9%E7%AA%97.html","name":"带交互-查看物料报价弹窗.html"},{"path":"NIO/寻源定点/新增rfq.html","url":"https://claireqi328.github.io/claire-pages/NIO/%E5%AF%BB%E6%BA%90%E5%AE%9A%E7%82%B9/%E6%96%B0%E5%A2%9Erfq.html","name":"新增rfq.html"},{"path":"NIO/寻源定点/新增临时物料弹窗.html","url":"https://claireqi328.github.io/claire-pages/NIO/%E5%AF%BB%E6%BA%90%E5%AE%9A%E7%82%B9/%E6%96%B0%E5%A2%9E%E4%B8%B4%E6%97%B6%E7%89%A9%E6%96%99%E5%BC%B9%E7%AA%97.html","name":"新增临时物料弹窗.html"},{"path":"NIO/寻源定点/新增报价轮次.html","url":"https://claireqi328.github.io/claire-pages/NIO/%E5%AF%BB%E6%BA%90%E5%AE%9A%E7%82%B9/%E6%96%B0%E5%A2%9E%E6%8A%A5%E4%BB%B7%E8%BD%AE%E6%AC%A1.html","name":"新增报价轮次.html"},{"path":"NIO/寻源定点/新增报价轮次_1.html","url":"https://claireqi328.github.io/claire-pages/NIO/%E5%AF%BB%E6%BA%90%E5%AE%9A%E7%82%B9/%E6%96%B0%E5%A2%9E%E6%8A%A5%E4%BB%B7%E8%BD%AE%E6%AC%A1_1.html","name":"新增报价轮次_1.html"},{"path":"NIO/寻源定点/新增物料.html","url":"https://claireqi328.github.io/claire-pages/NIO/%E5%AF%BB%E6%BA%90%E5%AE%9A%E7%82%B9/%E6%96%B0%E5%A2%9E%E7%89%A9%E6%96%99.html","name":"新增物料.html"},{"path":"NIO/寻源定点/新增附件.html","url":"https://claireqi328.github.io/claire-pages/NIO/%E5%AF%BB%E6%BA%90%E5%AE%9A%E7%82%B9/%E6%96%B0%E5%A2%9E%E9%99%84%E4%BB%B6.html","name":"新增附件.html"},{"path":"NIO/寻源定点/查看-物料报价.html","url":"https://claireqi328.github.io/claire-pages/NIO/%E5%AF%BB%E6%BA%90%E5%AE%9A%E7%82%B9/%E6%9F%A5%E7%9C%8B-%E7%89%A9%E6%96%99%E6%8A%A5%E4%BB%B7.html","name":"查看-物料报价.html"},{"path":"NIO/寻源定点/查看合作伙伴报价弹窗.html","url":"https://claireqi328.github.io/claire-pages/NIO/%E5%AF%BB%E6%BA%90%E5%AE%9A%E7%82%B9/%E6%9F%A5%E7%9C%8B%E5%90%88%E4%BD%9C%E4%BC%99%E4%BC%B4%E6%8A%A5%E4%BB%B7%E5%BC%B9%E7%AA%97.html","name":"查看合作伙伴报价弹窗.html"},{"path":"NIO/寻源定点/模具对应物料号弹窗.html","url":"https://claireqi328.github.io/claire-pages/NIO/%E5%AF%BB%E6%BA%90%E5%AE%9A%E7%82%B9/%E6%A8%A1%E5%85%B7%E5%AF%B9%E5%BA%94%E7%89%A9%E6%96%99%E5%8F%B7%E5%BC%B9%E7%AA%97.html","name":"模具对应物料号弹窗.html"},{"path":"NIO/寻源定点/沿用报价包.html","url":"https://claireqi328.github.io/claire-pages/NIO/%E5%AF%BB%E6%BA%90%E5%AE%9A%E7%82%B9/%E6%B2%BF%E7%94%A8%E6%8A%A5%E4%BB%B7%E5%8C%85.html","name":"沿用报价包.html"},{"path":"NIO/寻源定点/物料信息弹窗.html","url":"https://claireqi328.github.io/claire-pages/NIO/%E5%AF%BB%E6%BA%90%E5%AE%9A%E7%82%B9/%E7%89%A9%E6%96%99%E4%BF%A1%E6%81%AF%E5%BC%B9%E7%AA%97.html","name":"物料信息弹窗.html"},{"path":"NIO/寻源定点/维护合作伙伴评估结果.html","url":"https://claireqi328.github.io/claire-pages/NIO/%E5%AF%BB%E6%BA%90%E5%AE%9A%E7%82%B9/%E7%BB%B4%E6%8A%A4%E5%90%88%E4%BD%9C%E4%BC%99%E4%BC%B4%E8%AF%84%E4%BC%B0%E7%BB%93%E6%9E%9C.html","name":"维护合作伙伴评估结果.html"},{"path":"NIO/寻源定点/编辑rfq.html","url":"https://claireqi328.github.io/claire-pages/NIO/%E5%AF%BB%E6%BA%90%E5%AE%9A%E7%82%B9/%E7%BC%96%E8%BE%91rfq.html","name":"编辑rfq.html"},{"path":"NIO/寻源定点/获取其他物料报价.html","url":"https://claireqi328.github.io/claire-pages/NIO/%E5%AF%BB%E6%BA%90%E5%AE%9A%E7%82%B9/%E8%8E%B7%E5%8F%96%E5%85%B6%E4%BB%96%E7%89%A9%E6%96%99%E6%8A%A5%E4%BB%B7.html","name":"获取其他物料报价.html"},{"path":"NIO/寻源定点/设置阶梯.html","url":"https://claireqi328.github.io/claire-pages/NIO/%E5%AF%BB%E6%BA%90%E5%AE%9A%E7%82%B9/%E8%AE%BE%E7%BD%AE%E9%98%B6%E6%A2%AF.html","name":"设置阶梯.html"},{"path":"NIO/寻源定点/询报价列表.html","url":"https://claireqi328.github.io/claire-pages/NIO/%E5%AF%BB%E6%BA%90%E5%AE%9A%E7%82%B9/%E8%AF%A2%E6%8A%A5%E4%BB%B7%E5%88%97%E8%A1%A8.html","name":"询报价列表.html"},{"path":"NIO/寻源定点/询报价文件下载弹窗.html","url":"https://claireqi328.github.io/claire-pages/NIO/%E5%AF%BB%E6%BA%90%E5%AE%9A%E7%82%B9/%E8%AF%A2%E6%8A%A5%E4%BB%B7%E6%96%87%E4%BB%B6%E4%B8%8B%E8%BD%BD%E5%BC%B9%E7%AA%97.html","name":"询报价文件下载弹窗.html"},{"path":"NIO/寻源定点/询报价详情.html","url":"https://claireqi328.github.io/claire-pages/NIO/%E5%AF%BB%E6%BA%90%E5%AE%9A%E7%82%B9/%E8%AF%A2%E6%8A%A5%E4%BB%B7%E8%AF%A6%E6%83%85.html","name":"询报价详情.html"},{"path":"NIO/寻源定点/选择人员.html","url":"https://claireqi328.github.io/claire-pages/NIO/%E5%AF%BB%E6%BA%90%E5%AE%9A%E7%82%B9/%E9%80%89%E6%8B%A9%E4%BA%BA%E5%91%98.html","name":"选择人员.html"},{"path":"NIO/寻源定点/选择定点物料.html","url":"https://claireqi328.github.io/claire-pages/NIO/%E5%AF%BB%E6%BA%90%E5%AE%9A%E7%82%B9/%E9%80%89%E6%8B%A9%E5%AE%9A%E7%82%B9%E7%89%A9%E6%96%99.html","name":"选择定点物料.html"},{"path":"NIO/寻源定点/量纲.html","url":"https://claireqi328.github.io/claire-pages/NIO/%E5%AF%BB%E6%BA%90%E5%AE%9A%E7%82%B9/%E9%87%8F%E7%BA%B2.html","name":"量纲.html"},{"path":"NIO/寻源定点/量纲查看弹窗.html","url":"https://claireqi328.github.io/claire-pages/NIO/%E5%AF%BB%E6%BA%90%E5%AE%9A%E7%82%B9/%E9%87%8F%E7%BA%B2%E6%9F%A5%E7%9C%8B%E5%BC%B9%E7%AA%97.html","name":"量纲查看弹窗.html"},{"path":"NIO/寻源定点/量纲查看弹窗_1.html","url":"https://claireqi328.github.io/claire-pages/NIO/%E5%AF%BB%E6%BA%90%E5%AE%9A%E7%82%B9/%E9%87%8F%E7%BA%B2%E6%9F%A5%E7%9C%8B%E5%BC%B9%E7%AA%97_1.html","name":"量纲查看弹窗_1.html"},{"path":"NIO/寻源定点/阶梯价.html","url":"https://claireqi328.github.io/claire-pages/NIO/%E5%AF%BB%E6%BA%90%E5%AE%9A%E7%82%B9/%E9%98%B6%E6%A2%AF%E4%BB%B7.html","name":"阶梯价.html"},{"path":"NIO/寻源定点/阶梯报价.html","url":"https://claireqi328.github.io/claire-pages/NIO/%E5%AF%BB%E6%BA%90%E5%AE%9A%E7%82%B9/%E9%98%B6%E6%A2%AF%E6%8A%A5%E4%BB%B7.html","name":"阶梯报价.html"},{"path":"NIO/寻源定点/附件列表.html","url":"https://claireqi328.github.io/claire-pages/NIO/%E5%AF%BB%E6%BA%90%E5%AE%9A%E7%82%B9/%E9%99%84%E4%BB%B6%E5%88%97%E8%A1%A8.html","name":"附件列表.html"},{"path":"NIO/寻源定点/页面1.html","url":"https://claireqi328.github.io/claire-pages/NIO/%E5%AF%BB%E6%BA%90%E5%AE%9A%E7%82%B9/%E9%A1%B5%E9%9D%A21.html","name":"页面1.html"},{"path":"NIO/寻源定点/app/attachment-list.html","url":"https://claireqi328.github.io/claire-pages/NIO/%E5%AF%BB%E6%BA%90%E5%AE%9A%E7%82%B9/app/attachment-list.html","name":"attachment-list.html"},{"path":"NIO/寻源定点/app/dialogs.html","url":"https://claireqi328.github.io/claire-pages/NIO/%E5%AF%BB%E6%BA%90%E5%AE%9A%E7%82%B9/app/dialogs.html","name":"dialogs.html"},{"path":"NIO/寻源定点/app/dimension.html","url":"https://claireqi328.github.io/claire-pages/NIO/%E5%AF%BB%E6%BA%90%E5%AE%9A%E7%82%B9/app/dimension.html","name":"dimension.html"},{"path":"NIO/寻源定点/app/index.html","url":"https://claireqi328.github.io/claire-pages/NIO/%E5%AF%BB%E6%BA%90%E5%AE%9A%E7%82%B9/app/index.html","name":"index.html"},{"path":"NIO/寻源定点/app/ladder-price.html","url":"https://claireqi328.github.io/claire-pages/NIO/%E5%AF%BB%E6%BA%90%E5%AE%9A%E7%82%B9/app/ladder-price.html","name":"ladder-price.html"},{"path":"NIO/寻源定点/app/main.html","url":"https://claireqi328.github.io/claire-pages/NIO/%E5%AF%BB%E6%BA%90%E5%AE%9A%E7%82%B9/app/main.html","name":"main.html"},{"path":"NIO/寻源定点/app/partner-evaluation.html","url":"https://claireqi328.github.io/claire-pages/NIO/%E5%AF%BB%E6%BA%90%E5%AE%9A%E7%82%B9/app/partner-evaluation.html","name":"partner-evaluation.html"},{"path":"NIO/寻源定点/app/price-comparison.html","url":"https://claireqi328.github.io/claire-pages/NIO/%E5%AF%BB%E6%BA%90%E5%AE%9A%E7%82%B9/app/price-comparison.html","name":"price-comparison.html"},{"path":"NIO/寻源定点/app/rfq-create.html","url":"https://claireqi328.github.io/claire-pages/NIO/%E5%AF%BB%E6%BA%90%E5%AE%9A%E7%82%B9/app/rfq-create.html","name":"rfq-create.html"},{"path":"NIO/寻源定点/app/rfq-detail.html","url":"https://claireqi328.github.io/claire-pages/NIO/%E5%AF%BB%E6%BA%90%E5%AE%9A%E7%82%B9/app/rfq-detail.html","name":"rfq-detail.html"},{"path":"NIO/寻源定点/app/rfq-list.html","url":"https://claireqi328.github.io/claire-pages/NIO/%E5%AF%BB%E6%BA%90%E5%AE%9A%E7%82%B9/app/rfq-list.html","name":"rfq-list.html"},{"path":"NIO/寻源定点/app/srm.html","url":"https://claireqi328.github.io/claire-pages/NIO/%E5%AF%BB%E6%BA%90%E5%AE%9A%E7%82%B9/app/srm.html","name":"srm.html"},{"path":"NIO/寻源定点/app/supplier-quote-list.html","url":"https://claireqi328.github.io/claire-pages/NIO/%E5%AF%BB%E6%BA%90%E5%AE%9A%E7%82%B9/app/supplier-quote-list.html","name":"supplier-quote-list.html"},{"path":"NIO/寻源定点/app/supplier-quote.html","url":"https://claireqi328.github.io/claire-pages/NIO/%E5%AF%BB%E6%BA%90%E5%AE%9A%E7%82%B9/app/supplier-quote.html","name":"supplier-quote.html"},{"path":"NIO/寻源定点/resources/Other.html","url":"https://claireqi328.github.io/claire-pages/NIO/%E5%AF%BB%E6%BA%90%E5%AE%9A%E7%82%B9/resources/Other.html","name":"Other.html"},{"path":"NIO/寻源定点/resources/reload.html","url":"https://claireqi328.github.io/claire-pages/NIO/%E5%AF%BB%E6%BA%90%E5%AE%9A%E7%82%B9/resources/reload.html","name":"reload.html"},{"path":"NIO/寻源定点/resources/chrome/chrome.html","url":"https://claireqi328.github.io/claire-pages/NIO/%E5%AF%BB%E6%BA%90%E5%AE%9A%E7%82%B9/resources/chrome/chrome.html","name":"chrome.html"},{"path":"NIO/寻源定点/resources/chrome/firefox.html","url":"https://claireqi328.github.io/claire-pages/NIO/%E5%AF%BB%E6%BA%90%E5%AE%9A%E7%82%B9/resources/chrome/firefox.html","name":"firefox.html"},{"path":"NIO/寻源定点/resources/chrome/safari.html","url":"https://claireqi328.github.io/claire-pages/NIO/%E5%AF%BB%E6%BA%90%E5%AE%9A%E7%82%B9/resources/chrome/safari.html","name":"safari.html"},{"path":"NIO/寻源定点/resources/css/images/images.html","url":"https://claireqi328.github.io/claire-pages/NIO/%E5%AF%BB%E6%BA%90%E5%AE%9A%E7%82%B9/resources/css/images/images.html","name":"images.html"},{"path":"NIO/智能助手 Ontology/business_relationships_graph.html","url":"https://claireqi328.github.io/claire-pages/NIO/%E6%99%BA%E8%83%BD%E5%8A%A9%E6%89%8B%20Ontology/business_relationships_graph.html","name":"business_relationships_graph.html"},{"path":"NIO/智能助手 Ontology/entities_visualization.html","url":"https://claireqi328.github.io/claire-pages/NIO/%E6%99%BA%E8%83%BD%E5%8A%A9%E6%89%8B%20Ontology/entities_visualization.html","name":"entities_visualization.html"},{"path":"Self/代码练习生/福利模块/welfare-management.html","url":"https://claireqi328.github.io/claire-pages/Self/%E4%BB%A3%E7%A0%81%E7%BB%83%E4%B9%A0%E7%94%9F/%E7%A6%8F%E5%88%A9%E6%A8%A1%E5%9D%97/welfare-management.html","name":"welfare-management.html"},{"path":"Self/供应链/E2E供应链/index.html","url":"https://claireqi328.github.io/claire-pages/Self/%E4%BE%9B%E5%BA%94%E9%93%BE/E2E%E4%BE%9B%E5%BA%94%E9%93%BE/index.html","name":"index.html"},{"path":"Self/供应链/E2E供应链/01-需求管理/需求管理看板.html","url":"https://claireqi328.github.io/claire-pages/Self/%E4%BE%9B%E5%BA%94%E9%93%BE/E2E%E4%BE%9B%E5%BA%94%E9%93%BE/01-%E9%9C%80%E6%B1%82%E7%AE%A1%E7%90%86/%E9%9C%80%E6%B1%82%E7%AE%A1%E7%90%86%E7%9C%8B%E6%9D%BF.html","name":"需求管理看板.html"},{"path":"Self/供应链/E2E供应链/02-供应网络设计/供应网络设计看板.html","url":"https://claireqi328.github.io/claire-pages/Self/%E4%BE%9B%E5%BA%94%E9%93%BE/E2E%E4%BE%9B%E5%BA%94%E9%93%BE/02-%E4%BE%9B%E5%BA%94%E7%BD%91%E7%BB%9C%E8%AE%BE%E8%AE%A1/%E4%BE%9B%E5%BA%94%E7%BD%91%E7%BB%9C%E8%AE%BE%E8%AE%A1%E7%9C%8B%E6%9D%BF.html","name":"供应网络设计看板.html"},{"path":"Self/供应链/E2E供应链/03-寻源定点/寻源定点管理系统.html","url":"https://claireqi328.github.io/claire-pages/Self/%E4%BE%9B%E5%BA%94%E9%93%BE/E2E%E4%BE%9B%E5%BA%94%E9%93%BE/03-%E5%AF%BB%E6%BA%90%E5%AE%9A%E7%82%B9/%E5%AF%BB%E6%BA%90%E5%AE%9A%E7%82%B9%E7%AE%A1%E7%90%86%E7%B3%BB%E7%BB%9F.html","name":"寻源定点管理系统.html"},{"path":"Self/供应链/E2E供应链/03-寻源定点/寻源定点管理系统_优化版.html","url":"https://claireqi328.github.io/claire-pages/Self/%E4%BE%9B%E5%BA%94%E9%93%BE/E2E%E4%BE%9B%E5%BA%94%E9%93%BE/03-%E5%AF%BB%E6%BA%90%E5%AE%9A%E7%82%B9/%E5%AF%BB%E6%BA%90%E5%AE%9A%E7%82%B9%E7%AE%A1%E7%90%86%E7%B3%BB%E7%BB%9F_%E4%BC%98%E5%8C%96%E7%89%88.html","name":"寻源定点管理系统_优化版.html"},{"path":"Self/供应链/E2E供应链/04-计划与排程/计划与排程看板.html","url":"https://claireqi328.github.io/claire-pages/Self/%E4%BE%9B%E5%BA%94%E9%93%BE/E2E%E4%BE%9B%E5%BA%94%E9%93%BE/04-%E8%AE%A1%E5%88%92%E4%B8%8E%E6%8E%92%E7%A8%8B/%E8%AE%A1%E5%88%92%E4%B8%8E%E6%8E%92%E7%A8%8B%E7%9C%8B%E6%9D%BF.html","name":"计划与排程看板.html"},{"path":"Self/供应链/E2E供应链/05-采购执行/采购执行看板.html","url":"https://claireqi328.github.io/claire-pages/Self/%E4%BE%9B%E5%BA%94%E9%93%BE/E2E%E4%BE%9B%E5%BA%94%E9%93%BE/05-%E9%87%87%E8%B4%AD%E6%89%A7%E8%A1%8C/%E9%87%87%E8%B4%AD%E6%89%A7%E8%A1%8C%E7%9C%8B%E6%9D%BF.html","name":"采购执行看板.html"},{"path":"Self/供应链/E2E供应链/06-生产制造/生产制造看板.html","url":"https://claireqi328.github.io/claire-pages/Self/%E4%BE%9B%E5%BA%94%E9%93%BE/E2E%E4%BE%9B%E5%BA%94%E9%93%BE/06-%E7%94%9F%E4%BA%A7%E5%88%B6%E9%80%A0/%E7%94%9F%E4%BA%A7%E5%88%B6%E9%80%A0%E7%9C%8B%E6%9D%BF.html","name":"生产制造看板.html"},{"path":"Self/供应链/E2E供应链/07-仓储配送/仓储配送看板.html","url":"https://claireqi328.github.io/claire-pages/Self/%E4%BE%9B%E5%BA%94%E9%93%BE/E2E%E4%BE%9B%E5%BA%94%E9%93%BE/07-%E4%BB%93%E5%82%A8%E9%85%8D%E9%80%81/%E4%BB%93%E5%82%A8%E9%85%8D%E9%80%81%E7%9C%8B%E6%9D%BF.html","name":"仓储配送看板.html"},{"path":"Self/供应链/E2E供应链/08-交付与售后/交付与售后看板.html","url":"https://claireqi328.github.io/claire-pages/Self/%E4%BE%9B%E5%BA%94%E9%93%BE/E2E%E4%BE%9B%E5%BA%94%E9%93%BE/08-%E4%BA%A4%E4%BB%98%E4%B8%8E%E5%94%AE%E5%90%8E/%E4%BA%A4%E4%BB%98%E4%B8%8E%E5%94%AE%E5%90%8E%E7%9C%8B%E6%9D%BF.html","name":"交付与售后看板.html"},{"path":"Self/供应链/E2E供应链/09-产销协同/供应链产销协同流程设计.html","url":"https://claireqi328.github.io/claire-pages/Self/%E4%BE%9B%E5%BA%94%E9%93%BE/E2E%E4%BE%9B%E5%BA%94%E9%93%BE/09-%E4%BA%A7%E9%94%80%E5%8D%8F%E5%90%8C/%E4%BE%9B%E5%BA%94%E9%93%BE%E4%BA%A7%E9%94%80%E5%8D%8F%E5%90%8C%E6%B5%81%E7%A8%8B%E8%AE%BE%E8%AE%A1.html","name":"供应链产销协同流程设计.html"},{"path":"Self/供应链/E2E供应链/11-间接采购/间接采购商城.html","url":"https://claireqi328.github.io/claire-pages/Self/%E4%BE%9B%E5%BA%94%E9%93%BE/E2E%E4%BE%9B%E5%BA%94%E9%93%BE/11-%E9%97%B4%E6%8E%A5%E9%87%87%E8%B4%AD/%E9%97%B4%E6%8E%A5%E9%87%87%E8%B4%AD%E5%95%86%E5%9F%8E.html","name":"间接采购商城.html"},{"path":"SJTU/999_SJTU 软件安装包/ClashX.app/Contents/Resources/dashboard/index.html","url":"https://claireqi328.github.io/claire-pages/SJTU/999_SJTU%20%E8%BD%AF%E4%BB%B6%E5%AE%89%E8%A3%85%E5%8C%85/ClashX.app/Contents/Resources/dashboard/index.html","name":"index.html"},{"path":"Xiaomi/AI建设策略-Skill与MCP详细说明.html","url":"https://claireqi328.github.io/claire-pages/Xiaomi/AI%E5%BB%BA%E8%AE%BE%E7%AD%96%E7%95%A5-Skill%E4%B8%8EMCP%E8%AF%A6%E7%BB%86%E8%AF%B4%E6%98%8E.html","name":"AI建设策略-Skill与MCP详细说明.html"},{"path":"Xiaomi/AI建设策略-递进路径图.html","url":"https://claireqi328.github.io/claire-pages/Xiaomi/AI%E5%BB%BA%E8%AE%BE%E7%AD%96%E7%95%A5-%E9%80%92%E8%BF%9B%E8%B7%AF%E5%BE%84%E5%9B%BE.html","name":"AI建设策略-递进路径图.html"},{"path":"Xiaomi/Skill-Agent架构图-定点匹配与任务路由.html","url":"https://claireqi328.github.io/claire-pages/Xiaomi/Skill-Agent%E6%9E%B6%E6%9E%84%E5%9B%BE-%E5%AE%9A%E7%82%B9%E5%8C%B9%E9%85%8D%E4%B8%8E%E4%BB%BB%E5%8A%A1%E8%B7%AF%E7%94%B1.html","name":"Skill-Agent架构图-定点匹配与任务路由.html"},{"path":"Xiaomi/Skill交叉验证方案.html","url":"https://claireqi328.github.io/claire-pages/Xiaomi/Skill%E4%BA%A4%E5%8F%89%E9%AA%8C%E8%AF%81%E6%96%B9%E6%A1%88.html","name":"Skill交叉验证方案.html"},{"path":"Xiaomi/数字化方案-AI能力增强版.html","url":"https://claireqi328.github.io/claire-pages/Xiaomi/%E6%95%B0%E5%AD%97%E5%8C%96%E6%96%B9%E6%A1%88-AI%E8%83%BD%E5%8A%9B%E5%A2%9E%E5%BC%BA%E7%89%88.html","name":"数字化方案-AI能力增强版.html"},{"path":"Xiaomi/询报价数据分析报告.html","url":"https://claireqi328.github.io/claire-pages/Xiaomi/%E8%AF%A2%E6%8A%A5%E4%BB%B7%E6%95%B0%E6%8D%AE%E5%88%86%E6%9E%90%E6%8A%A5%E5%91%8A.html","name":"询报价数据分析报告.html"},{"path":"Xiaomi/AI 分享材料/AI-Coding-Best-Practice.html","url":"https://claireqi328.github.io/claire-pages/Xiaomi/AI%20%E5%88%86%E4%BA%AB%E6%9D%90%E6%96%99/AI-Coding-Best-Practice.html","name":"AI-Coding-Best-Practice.html"},{"path":"Xiaomi/AI 分享材料/AI应用分享.html","url":"https://claireqi328.github.io/claire-pages/Xiaomi/AI%20%E5%88%86%E4%BA%AB%E6%9D%90%E6%96%99/AI%E5%BA%94%E7%94%A8%E5%88%86%E4%BA%AB.html","name":"AI应用分享.html"},{"path":"Xiaomi/AI 分享材料/应用skill的原型.html","url":"https://claireqi328.github.io/claire-pages/Xiaomi/AI%20%E5%88%86%E4%BA%AB%E6%9D%90%E6%96%99/%E5%BA%94%E7%94%A8skill%E7%9A%84%E5%8E%9F%E5%9E%8B.html","name":"应用skill的原型.html"},{"path":"Xiaomi/AI 分享材料/拆解团队“黄金数据集”，如何用复杂系统本体模型构建AI时代的护城河.html","url":"https://claireqi328.github.io/claire-pages/Xiaomi/AI%20%E5%88%86%E4%BA%AB%E6%9D%90%E6%96%99/%E6%8B%86%E8%A7%A3%E5%9B%A2%E9%98%9F%E2%80%9C%E9%BB%84%E9%87%91%E6%95%B0%E6%8D%AE%E9%9B%86%E2%80%9D%EF%BC%8C%E5%A6%82%E4%BD%95%E7%94%A8%E5%A4%8D%E6%9D%82%E7%B3%BB%E7%BB%9F%E6%9C%AC%E4%BD%93%E6%A8%A1%E5%9E%8B%E6%9E%84%E5%BB%BAAI%E6%97%B6%E4%BB%A3%E7%9A%84%E6%8A%A4%E5%9F%8E%E6%B2%B3.html","name":"拆解团队“黄金数据集”，如何用复杂系统本体模型构建AI时代的护城河.html"},{"path":"Xiaomi/AI 分享材料/零基础到落地Builder.html","url":"https://claireqi328.github.io/claire-pages/Xiaomi/AI%20%E5%88%86%E4%BA%AB%E6%9D%90%E6%96%99/%E9%9B%B6%E5%9F%BA%E7%A1%80%E5%88%B0%E8%90%BD%E5%9C%B0Builder.html","name":"零基础到落地Builder.html"},{"path":"Xiaomi/AI 分享材料/飞书报警平台原型_v3.html","url":"https://claireqi328.github.io/claire-pages/Xiaomi/AI%20%E5%88%86%E4%BA%AB%E6%9D%90%E6%96%99/%E9%A3%9E%E4%B9%A6%E6%8A%A5%E8%AD%A6%E5%B9%B3%E5%8F%B0%E5%8E%9F%E5%9E%8B_v3.html","name":"飞书报警平台原型_v3.html"},{"path":"Xiaomi/assets/web/Agent架构.html","url":"https://claireqi328.github.io/claire-pages/Xiaomi/assets/web/Agent%E6%9E%B6%E6%9E%84.html","name":"Agent架构.html"},{"path":"Xiaomi/assets/web/AI 应用分享_AI应用分享.html","url":"https://claireqi328.github.io/claire-pages/Xiaomi/assets/web/AI%20%E5%BA%94%E7%94%A8%E5%88%86%E4%BA%AB_AI%E5%BA%94%E7%94%A8%E5%88%86%E4%BA%AB.html","name":"AI 应用分享_AI应用分享.html"},{"path":"Xiaomi/assets/web/AI 应用分享_EP系统供应商端原型.html","url":"https://claireqi328.github.io/claire-pages/Xiaomi/assets/web/AI%20%E5%BA%94%E7%94%A8%E5%88%86%E4%BA%AB_EP%E7%B3%BB%E7%BB%9F%E4%BE%9B%E5%BA%94%E5%95%86%E7%AB%AF%E5%8E%9F%E5%9E%8B.html","name":"AI 应用分享_EP系统供应商端原型.html"},{"path":"Xiaomi/assets/web/AI-Coding-Best-Practice.html","url":"https://claireqi328.github.io/claire-pages/Xiaomi/assets/web/AI-Coding-Best-Practice.html","name":"AI-Coding-Best-Practice.html"},{"path":"Xiaomi/assets/web/bom-vsm-dashboard.html","url":"https://claireqi328.github.io/claire-pages/Xiaomi/assets/web/bom-vsm-dashboard.html","name":"bom-vsm-dashboard.html"},{"path":"Xiaomi/assets/web/Claude Code 零基础到落地Builder.html","url":"https://claireqi328.github.io/claire-pages/Xiaomi/assets/web/Claude%20Code%20%E9%9B%B6%E5%9F%BA%E7%A1%80%E5%88%B0%E8%90%BD%E5%9C%B0Builder.html","name":"Claude Code 零基础到落地Builder.html"},{"path":"Xiaomi/assets/web/Demo_供应商Onepage.html","url":"https://claireqi328.github.io/claire-pages/Xiaomi/assets/web/Demo_%E4%BE%9B%E5%BA%94%E5%95%86Onepage.html","name":"Demo_供应商Onepage.html"},{"path":"Xiaomi/assets/web/Demo_品类Onepage.html","url":"https://claireqi328.github.io/claire-pages/Xiaomi/assets/web/Demo_%E5%93%81%E7%B1%BBOnepage.html","name":"Demo_品类Onepage.html"},{"path":"Xiaomi/assets/web/EP Agent_EP.html","url":"https://claireqi328.github.io/claire-pages/Xiaomi/assets/web/EP%20Agent_EP.html","name":"EP Agent_EP.html"},{"path":"Xiaomi/assets/web/EP Agent_scenario-1-sourcing-progress.html","url":"https://claireqi328.github.io/claire-pages/Xiaomi/assets/web/EP%20Agent_scenario-1-sourcing-progress.html","name":"EP Agent_scenario-1-sourcing-progress.html"},{"path":"Xiaomi/assets/web/EP Agent_scenario-2-contract-creation.html","url":"https://claireqi328.github.io/claire-pages/Xiaomi/assets/web/EP%20Agent_scenario-2-contract-creation.html","name":"EP Agent_scenario-2-contract-creation.html"},{"path":"Xiaomi/assets/web/EP Agent_scenario-3-sample-ordering.html","url":"https://claireqi328.github.io/claire-pages/Xiaomi/assets/web/EP%20Agent_scenario-3-sample-ordering.html","name":"EP Agent_scenario-3-sample-ordering.html"},{"path":"Xiaomi/assets/web/EP Agent_supply-chain-agent-architecture.html","url":"https://claireqi328.github.io/claire-pages/Xiaomi/assets/web/EP%20Agent_supply-chain-agent-architecture.html","name":"EP Agent_supply-chain-agent-architecture.html"},{"path":"Xiaomi/assets/web/EP Agent_合同管理-Agent.html","url":"https://claireqi328.github.io/claire-pages/Xiaomi/assets/web/EP%20Agent_%E5%90%88%E5%90%8C%E7%AE%A1%E7%90%86-Agent.html","name":"EP Agent_合同管理-Agent.html"},{"path":"Xiaomi/assets/web/EP Agent_多Agent协同.html","url":"https://claireqi328.github.io/claire-pages/Xiaomi/assets/web/EP%20Agent_%E5%A4%9AAgent%E5%8D%8F%E5%90%8C.html","name":"EP Agent_多Agent协同.html"},{"path":"Xiaomi/assets/web/EP Agent_样件采购自动化流程Agent.html","url":"https://claireqi328.github.io/claire-pages/Xiaomi/assets/web/EP%20Agent_%E6%A0%B7%E4%BB%B6%E9%87%87%E8%B4%AD%E8%87%AA%E5%8A%A8%E5%8C%96%E6%B5%81%E7%A8%8BAgent.html","name":"EP Agent_样件采购自动化流程Agent.html"},{"path":"Xiaomi/assets/web/EP Agent_样件采购自动化流程Agent_融合版.html","url":"https://claireqi328.github.io/claire-pages/Xiaomi/assets/web/EP%20Agent_%E6%A0%B7%E4%BB%B6%E9%87%87%E8%B4%AD%E8%87%AA%E5%8A%A8%E5%8C%96%E6%B5%81%E7%A8%8BAgent_%E8%9E%8D%E5%90%88%E7%89%88.html","name":"EP Agent_样件采购自动化流程Agent_融合版.html"},{"path":"Xiaomi/assets/web/EP Agent_框架价格偏离比对器.html","url":"https://claireqi328.github.io/claire-pages/Xiaomi/assets/web/EP%20Agent_%E6%A1%86%E6%9E%B6%E4%BB%B7%E6%A0%BC%E5%81%8F%E7%A6%BB%E6%AF%94%E5%AF%B9%E5%99%A8.html","name":"EP Agent_框架价格偏离比对器.html"},{"path":"Xiaomi/assets/web/EP Agent_采购Agent工作台.html","url":"https://claireqi328.github.io/claire-pages/Xiaomi/assets/web/EP%20Agent_%E9%87%87%E8%B4%ADAgent%E5%B7%A5%E4%BD%9C%E5%8F%B0.html","name":"EP Agent_采购Agent工作台.html"},{"path":"Xiaomi/assets/web/Q3 立项报告_EP系统Wave动态图.html","url":"https://claireqi328.github.io/claire-pages/Xiaomi/assets/web/Q3%20%E7%AB%8B%E9%A1%B9%E6%8A%A5%E5%91%8A_EP%E7%B3%BB%E7%BB%9FWave%E5%8A%A8%E6%80%81%E5%9B%BE.html","name":"Q3 立项报告_EP系统Wave动态图.html"},{"path":"Xiaomi/assets/web/Q3 立项报告_EP系统建设历程-路径图.html","url":"https://claireqi328.github.io/claire-pages/Xiaomi/assets/web/Q3%20%E7%AB%8B%E9%A1%B9%E6%8A%A5%E5%91%8A_EP%E7%B3%BB%E7%BB%9F%E5%BB%BA%E8%AE%BE%E5%8E%86%E7%A8%8B-%E8%B7%AF%E5%BE%84%E5%9B%BE.html","name":"Q3 立项报告_EP系统建设历程-路径图.html"},{"path":"Xiaomi/assets/web/Q3 立项报告_EP采购系统规划总览.html","url":"https://claireqi328.github.io/claire-pages/Xiaomi/assets/web/Q3%20%E7%AB%8B%E9%A1%B9%E6%8A%A5%E5%91%8A_EP%E9%87%87%E8%B4%AD%E7%B3%BB%E7%BB%9F%E8%A7%84%E5%88%92%E6%80%BB%E8%A7%88.html","name":"Q3 立项报告_EP采购系统规划总览.html"},{"path":"Xiaomi/assets/web/Q3 立项报告_EP采购系统规划总览_融合版.html","url":"https://claireqi328.github.io/claire-pages/Xiaomi/assets/web/Q3%20%E7%AB%8B%E9%A1%B9%E6%8A%A5%E5%91%8A_EP%E9%87%87%E8%B4%AD%E7%B3%BB%E7%BB%9F%E8%A7%84%E5%88%92%E6%80%BB%E8%A7%88_%E8%9E%8D%E5%90%88%E7%89%88.html","name":"Q3 立项报告_EP采购系统规划总览_融合版.html"},{"path":"Xiaomi/assets/web/Q3 立项报告_供应链数字化B点架构-四层两闭环.html","url":"https://claireqi328.github.io/claire-pages/Xiaomi/assets/web/Q3%20%E7%AB%8B%E9%A1%B9%E6%8A%A5%E5%91%8A_%E4%BE%9B%E5%BA%94%E9%93%BE%E6%95%B0%E5%AD%97%E5%8C%96B%E7%82%B9%E6%9E%B6%E6%9E%84-%E5%9B%9B%E5%B1%82%E4%B8%A4%E9%97%AD%E7%8E%AF.html","name":"Q3 立项报告_供应链数字化B点架构-四层两闭环.html"},{"path":"Xiaomi/assets/web/Q3 立项报告_供应链数字运营体系-层级图.html","url":"https://claireqi328.github.io/claire-pages/Xiaomi/assets/web/Q3%20%E7%AB%8B%E9%A1%B9%E6%8A%A5%E5%91%8A_%E4%BE%9B%E5%BA%94%E9%93%BE%E6%95%B0%E5%AD%97%E8%BF%90%E8%90%A5%E4%BD%93%E7%B3%BB-%E5%B1%82%E7%BA%A7%E5%9B%BE.html","name":"Q3 立项报告_供应链数字运营体系-层级图.html"},{"path":"Xiaomi/assets/web/Q3 立项报告_四层架构提升图示.html","url":"https://claireqi328.github.io/claire-pages/Xiaomi/assets/web/Q3%20%E7%AB%8B%E9%A1%B9%E6%8A%A5%E5%91%8A_%E5%9B%9B%E5%B1%82%E6%9E%B6%E6%9E%84%E6%8F%90%E5%8D%87%E5%9B%BE%E7%A4%BA.html","name":"Q3 立项报告_四层架构提升图示.html"},{"path":"Xiaomi/assets/web/Q3 立项报告_智能分析层图示.html","url":"https://claireqi328.github.io/claire-pages/Xiaomi/assets/web/Q3%20%E7%AB%8B%E9%A1%B9%E6%8A%A5%E5%91%8A_%E6%99%BA%E8%83%BD%E5%88%86%E6%9E%90%E5%B1%82%E5%9B%BE%E7%A4%BA.html","name":"Q3 立项报告_智能分析层图示.html"},{"path":"Xiaomi/assets/web/Q3 立项报告_汽车采购业务域演进路线.html","url":"https://claireqi328.github.io/claire-pages/Xiaomi/assets/web/Q3%20%E7%AB%8B%E9%A1%B9%E6%8A%A5%E5%91%8A_%E6%B1%BD%E8%BD%A6%E9%87%87%E8%B4%AD%E4%B8%9A%E5%8A%A1%E5%9F%9F%E6%BC%94%E8%BF%9B%E8%B7%AF%E7%BA%BF.html","name":"Q3 立项报告_汽车采购业务域演进路线.html"},{"path":"Xiaomi/assets/web/Q3 立项报告_系统健壮性设计.html","url":"https://claireqi328.github.io/claire-pages/Xiaomi/assets/web/Q3%20%E7%AB%8B%E9%A1%B9%E6%8A%A5%E5%91%8A_%E7%B3%BB%E7%BB%9F%E5%81%A5%E5%A3%AE%E6%80%A7%E8%AE%BE%E8%AE%A1.html","name":"Q3 立项报告_系统健壮性设计.html"},{"path":"Xiaomi/assets/web/Q3 立项报告_采购B点架构-三轴四层两闭环.html","url":"https://claireqi328.github.io/claire-pages/Xiaomi/assets/web/Q3%20%E7%AB%8B%E9%A1%B9%E6%8A%A5%E5%91%8A_%E9%87%87%E8%B4%ADB%E7%82%B9%E6%9E%B6%E6%9E%84-%E4%B8%89%E8%BD%B4%E5%9B%9B%E5%B1%82%E4%B8%A4%E9%97%AD%E7%8E%AF.html","name":"Q3 立项报告_采购B点架构-三轴四层两闭环.html"},{"path":"Xiaomi/assets/web/Q3 立项报告_采购数字化B点建设路径.html","url":"https://claireqi328.github.io/claire-pages/Xiaomi/assets/web/Q3%20%E7%AB%8B%E9%A1%B9%E6%8A%A5%E5%91%8A_%E9%87%87%E8%B4%AD%E6%95%B0%E5%AD%97%E5%8C%96B%E7%82%B9%E5%BB%BA%E8%AE%BE%E8%B7%AF%E5%BE%84.html","name":"Q3 立项报告_采购数字化B点建设路径.html"},{"path":"Xiaomi/assets/web/Q3 立项报告_采购数字化B点架构图.html","url":"https://claireqi328.github.io/claire-pages/Xiaomi/assets/web/Q3%20%E7%AB%8B%E9%A1%B9%E6%8A%A5%E5%91%8A_%E9%87%87%E8%B4%AD%E6%95%B0%E5%AD%97%E5%8C%96B%E7%82%B9%E6%9E%B6%E6%9E%84%E5%9B%BE.html","name":"Q3 立项报告_采购数字化B点架构图.html"},{"path":"Xiaomi/assets/web/Q3 立项报告_采购数字化B点目标.html","url":"https://claireqi328.github.io/claire-pages/Xiaomi/assets/web/Q3%20%E7%AB%8B%E9%A1%B9%E6%8A%A5%E5%91%8A_%E9%87%87%E8%B4%AD%E6%95%B0%E5%AD%97%E5%8C%96B%E7%82%B9%E7%9B%AE%E6%A0%87.html","name":"Q3 立项报告_采购数字化B点目标.html"},{"path":"Xiaomi/assets/web/Q3Q4项目 工作台.html","url":"https://claireqi328.github.io/claire-pages/Xiaomi/assets/web/Q3Q4%E9%A1%B9%E7%9B%AE%20%E5%B7%A5%E4%BD%9C%E5%8F%B0.html","name":"Q3Q4项目 工作台.html"},{"path":"Xiaomi/assets/web/Q3Q4项目 工作台_backup.html","url":"https://claireqi328.github.io/claire-pages/Xiaomi/assets/web/Q3Q4%E9%A1%B9%E7%9B%AE%20%E5%B7%A5%E4%BD%9C%E5%8F%B0_backup.html","name":"Q3Q4项目 工作台_backup.html"},{"path":"Xiaomi/assets/web/rfq-analysis-dashboard.html","url":"https://claireqi328.github.io/claire-pages/Xiaomi/assets/web/rfq-analysis-dashboard.html","name":"rfq-analysis-dashboard.html"},{"path":"Xiaomi/assets/web/workbench_only.html","url":"https://claireqi328.github.io/claire-pages/Xiaomi/assets/web/workbench_only.html","name":"workbench_only.html"},{"path":"Xiaomi/assets/web/产销协同_供应链产销协同流程设计.html","url":"https://claireqi328.github.io/claire-pages/Xiaomi/assets/web/%E4%BA%A7%E9%94%80%E5%8D%8F%E5%90%8C_%E4%BE%9B%E5%BA%94%E9%93%BE%E4%BA%A7%E9%94%80%E5%8D%8F%E5%90%8C%E6%B5%81%E7%A8%8B%E8%AE%BE%E8%AE%A1.html","name":"产销协同_供应链产销协同流程设计.html"},{"path":"Xiaomi/assets/web/价格确认_价格确认.html","url":"https://claireqi328.github.io/claire-pages/Xiaomi/assets/web/%E4%BB%B7%E6%A0%BC%E7%A1%AE%E8%AE%A4_%E4%BB%B7%E6%A0%BC%E7%A1%AE%E8%AE%A4.html","name":"价格确认_价格确认.html"},{"path":"Xiaomi/assets/web/供应商Onepage.html","url":"https://claireqi328.github.io/claire-pages/Xiaomi/assets/web/%E4%BE%9B%E5%BA%94%E5%95%86Onepage.html","name":"供应商Onepage.html"},{"path":"Xiaomi/assets/web/供应商资源池.html","url":"https://claireqi328.github.io/claire-pages/Xiaomi/assets/web/%E4%BE%9B%E5%BA%94%E5%95%86%E8%B5%84%E6%BA%90%E6%B1%A0.html","name":"供应商资源池.html"},{"path":"Xiaomi/assets/web/供应商风险管理.html","url":"https://claireqi328.github.io/claire-pages/Xiaomi/assets/web/%E4%BE%9B%E5%BA%94%E5%95%86%E9%A3%8E%E9%99%A9%E7%AE%A1%E7%90%86.html","name":"供应商风险管理.html"},{"path":"Xiaomi/assets/web/分镜-采购员工作流-v2.html","url":"https://claireqi328.github.io/claire-pages/Xiaomi/assets/web/%E5%88%86%E9%95%9C-%E9%87%87%E8%B4%AD%E5%91%98%E5%B7%A5%E4%BD%9C%E6%B5%81-v2.html","name":"分镜-采购员工作流-v2.html"},{"path":"Xiaomi/assets/web/分镜-采购员工作流.html","url":"https://claireqi328.github.io/claire-pages/Xiaomi/assets/web/%E5%88%86%E9%95%9C-%E9%87%87%E8%B4%AD%E5%91%98%E5%B7%A5%E4%BD%9C%E6%B5%81.html","name":"分镜-采购员工作流.html"},{"path":"Xiaomi/assets/web/分镜1_首页.html","url":"https://claireqi328.github.io/claire-pages/Xiaomi/assets/web/%E5%88%86%E9%95%9C1_%E9%A6%96%E9%A1%B5.html","name":"分镜1_首页.html"},{"path":"Xiaomi/assets/web/分镜2_任务流.html","url":"https://claireqi328.github.io/claire-pages/Xiaomi/assets/web/%E5%88%86%E9%95%9C2_%E4%BB%BB%E5%8A%A1%E6%B5%81.html","name":"分镜2_任务流.html"},{"path":"Xiaomi/assets/web/分镜3_AI地图.html","url":"https://claireqi328.github.io/claire-pages/Xiaomi/assets/web/%E5%88%86%E9%95%9C3_AI%E5%9C%B0%E5%9B%BE.html","name":"分镜3_AI地图.html"},{"path":"Xiaomi/assets/web/分镜4_智能助手.html","url":"https://claireqi328.github.io/claire-pages/Xiaomi/assets/web/%E5%88%86%E9%95%9C4_%E6%99%BA%E8%83%BD%E5%8A%A9%E6%89%8B.html","name":"分镜4_智能助手.html"},{"path":"Xiaomi/assets/web/合同线上化执行_合同执行流程图.html","url":"https://claireqi328.github.io/claire-pages/Xiaomi/assets/web/%E5%90%88%E5%90%8C%E7%BA%BF%E4%B8%8A%E5%8C%96%E6%89%A7%E8%A1%8C_%E5%90%88%E5%90%8C%E6%89%A7%E8%A1%8C%E6%B5%81%E7%A8%8B%E5%9B%BE.html","name":"合同线上化执行_合同执行流程图.html"},{"path":"Xiaomi/assets/web/合同线上化执行_合同流程Agent对比图.html","url":"https://claireqi328.github.io/claire-pages/Xiaomi/assets/web/%E5%90%88%E5%90%8C%E7%BA%BF%E4%B8%8A%E5%8C%96%E6%89%A7%E8%A1%8C_%E5%90%88%E5%90%8C%E6%B5%81%E7%A8%8BAgent%E5%AF%B9%E6%AF%94%E5%9B%BE.html","name":"合同线上化执行_合同流程Agent对比图.html"},{"path":"Xiaomi/assets/web/品类Onepage.html","url":"https://claireqi328.github.io/claire-pages/Xiaomi/assets/web/%E5%93%81%E7%B1%BBOnepage.html","name":"品类Onepage.html"},{"path":"Xiaomi/assets/web/品类资源池.html","url":"https://claireqi328.github.io/claire-pages/Xiaomi/assets/web/%E5%93%81%E7%B1%BB%E8%B5%84%E6%BA%90%E6%B1%A0.html","name":"品类资源池.html"},{"path":"Xiaomi/assets/web/工作台.html","url":"https://claireqi328.github.io/claire-pages/Xiaomi/assets/web/%E5%B7%A5%E4%BD%9C%E5%8F%B0.html","name":"工作台.html"},{"path":"Xiaomi/assets/web/报价明细成本库.html","url":"https://claireqi328.github.io/claire-pages/Xiaomi/assets/web/%E6%8A%A5%E4%BB%B7%E6%98%8E%E7%BB%86%E6%88%90%E6%9C%AC%E5%BA%93.html","name":"报价明细成本库.html"},{"path":"Xiaomi/assets/web/拆解团队“黄金数据集”，如何用复杂系统本体模型构建AI时代的护城河.html","url":"https://claireqi328.github.io/claire-pages/Xiaomi/assets/web/%E6%8B%86%E8%A7%A3%E5%9B%A2%E9%98%9F%E2%80%9C%E9%BB%84%E9%87%91%E6%95%B0%E6%8D%AE%E9%9B%86%E2%80%9D%EF%BC%8C%E5%A6%82%E4%BD%95%E7%94%A8%E5%A4%8D%E6%9D%82%E7%B3%BB%E7%BB%9F%E6%9C%AC%E4%BD%93%E6%A8%A1%E5%9E%8B%E6%9E%84%E5%BB%BAAI%E6%97%B6%E4%BB%A3%E7%9A%84%E6%8A%A4%E5%9F%8E%E6%B2%B3.html","name":"拆解团队“黄金数据集”，如何用复杂系统本体模型构建AI时代的护城河.html"},{"path":"Xiaomi/assets/web/样件订单自动化_sample-ordering-flow.html","url":"https://claireqi328.github.io/claire-pages/Xiaomi/assets/web/%E6%A0%B7%E4%BB%B6%E8%AE%A2%E5%8D%95%E8%87%AA%E5%8A%A8%E5%8C%96_sample-ordering-flow.html","name":"样件订单自动化_sample-ordering-flow.html"},{"path":"Xiaomi/assets/web/样件订单自动化_样件订单流程对比.html","url":"https://claireqi328.github.io/claire-pages/Xiaomi/assets/web/%E6%A0%B7%E4%BB%B6%E8%AE%A2%E5%8D%95%E8%87%AA%E5%8A%A8%E5%8C%96_%E6%A0%B7%E4%BB%B6%E8%AE%A2%E5%8D%95%E6%B5%81%E7%A8%8B%E5%AF%B9%E6%AF%94.html","name":"样件订单自动化_样件订单流程对比.html"},{"path":"Xiaomi/assets/web/样件订单自动化_样件订单流程对比_融合版.html","url":"https://claireqi328.github.io/claire-pages/Xiaomi/assets/web/%E6%A0%B7%E4%BB%B6%E8%AE%A2%E5%8D%95%E8%87%AA%E5%8A%A8%E5%8C%96_%E6%A0%B7%E4%BB%B6%E8%AE%A2%E5%8D%95%E6%B5%81%E7%A8%8B%E5%AF%B9%E6%AF%94_%E8%9E%8D%E5%90%88%E7%89%88.html","name":"样件订单自动化_样件订单流程对比_融合版.html"},{"path":"Xiaomi/assets/web/框架协议.html","url":"https://claireqi328.github.io/claire-pages/Xiaomi/assets/web/%E6%A1%86%E6%9E%B6%E5%8D%8F%E8%AE%AE.html","name":"框架协议.html"},{"path":"Xiaomi/assets/web/汇报演示.html","url":"https://claireqi328.github.io/claire-pages/Xiaomi/assets/web/%E6%B1%87%E6%8A%A5%E6%BC%94%E7%A4%BA.html","name":"汇报演示.html"},{"path":"Xiaomi/assets/web/汇报演示_完整版.html","url":"https://claireqi328.github.io/claire-pages/Xiaomi/assets/web/%E6%B1%87%E6%8A%A5%E6%BC%94%E7%A4%BA_%E5%AE%8C%E6%95%B4%E7%89%88.html","name":"汇报演示_完整版.html"},{"path":"Xiaomi/assets/web/福利模块_welfare-management.html","url":"https://claireqi328.github.io/claire-pages/Xiaomi/assets/web/%E7%A6%8F%E5%88%A9%E6%A8%A1%E5%9D%97_welfare-management.html","name":"福利模块_welfare-management.html"},{"path":"Xiaomi/assets/web/询报价-CE核价_CE核价原型.html","url":"https://claireqi328.github.io/claire-pages/Xiaomi/assets/web/%E8%AF%A2%E6%8A%A5%E4%BB%B7-CE%E6%A0%B8%E4%BB%B7_CE%E6%A0%B8%E4%BB%B7%E5%8E%9F%E5%9E%8B.html","name":"询报价-CE核价_CE核价原型.html"},{"path":"Xiaomi/assets/web/询报价-CE核价_核价.html","url":"https://claireqi328.github.io/claire-pages/Xiaomi/assets/web/%E8%AF%A2%E6%8A%A5%E4%BB%B7-CE%E6%A0%B8%E4%BB%B7_%E6%A0%B8%E4%BB%B7.html","name":"询报价-CE核价_核价.html"},{"path":"Xiaomi/assets/web/询报价-制造费_制造费报价.html","url":"https://claireqi328.github.io/claire-pages/Xiaomi/assets/web/%E8%AF%A2%E6%8A%A5%E4%BB%B7-%E5%88%B6%E9%80%A0%E8%B4%B9_%E5%88%B6%E9%80%A0%E8%B4%B9%E6%8A%A5%E4%BB%B7.html","name":"询报价-制造费_制造费报价.html"},{"path":"Xiaomi/assets/web/询报价-制造费_制造费明细报价-交互.html","url":"https://claireqi328.github.io/claire-pages/Xiaomi/assets/web/%E8%AF%A2%E6%8A%A5%E4%BB%B7-%E5%88%B6%E9%80%A0%E8%B4%B9_%E5%88%B6%E9%80%A0%E8%B4%B9%E6%98%8E%E7%BB%86%E6%8A%A5%E4%BB%B7-%E4%BA%A4%E4%BA%92.html","name":"询报价-制造费_制造费明细报价-交互.html"},{"path":"Xiaomi/assets/web/询报价-制造费_制造费明细报价-交互页.html","url":"https://claireqi328.github.io/claire-pages/Xiaomi/assets/web/%E8%AF%A2%E6%8A%A5%E4%BB%B7-%E5%88%B6%E9%80%A0%E8%B4%B9_%E5%88%B6%E9%80%A0%E8%B4%B9%E6%98%8E%E7%BB%86%E6%8A%A5%E4%BB%B7-%E4%BA%A4%E4%BA%92%E9%A1%B5.html","name":"询报价-制造费_制造费明细报价-交互页.html"},{"path":"Xiaomi/assets/web/询报价-制造费_制造费明细报价-交互页v2.html","url":"https://claireqi328.github.io/claire-pages/Xiaomi/assets/web/%E8%AF%A2%E6%8A%A5%E4%BB%B7-%E5%88%B6%E9%80%A0%E8%B4%B9_%E5%88%B6%E9%80%A0%E8%B4%B9%E6%98%8E%E7%BB%86%E6%8A%A5%E4%BB%B7-%E4%BA%A4%E4%BA%92%E9%A1%B5v2.html","name":"询报价-制造费_制造费明细报价-交互页v2.html"},{"path":"Xiaomi/assets/web/询报价-制造费_制造费明细报价-交互页v3.html","url":"https://claireqi328.github.io/claire-pages/Xiaomi/assets/web/%E8%AF%A2%E6%8A%A5%E4%BB%B7-%E5%88%B6%E9%80%A0%E8%B4%B9_%E5%88%B6%E9%80%A0%E8%B4%B9%E6%98%8E%E7%BB%86%E6%8A%A5%E4%BB%B7-%E4%BA%A4%E4%BA%92%E9%A1%B5v3.html","name":"询报价-制造费_制造费明细报价-交互页v3.html"},{"path":"Xiaomi/assets/web/询报价-制造费_制造费明细报价-完整交互页.html","url":"https://claireqi328.github.io/claire-pages/Xiaomi/assets/web/%E8%AF%A2%E6%8A%A5%E4%BB%B7-%E5%88%B6%E9%80%A0%E8%B4%B9_%E5%88%B6%E9%80%A0%E8%B4%B9%E6%98%8E%E7%BB%86%E6%8A%A5%E4%BB%B7-%E5%AE%8C%E6%95%B4%E4%BA%A4%E4%BA%92%E9%A1%B5.html","name":"询报价-制造费_制造费明细报价-完整交互页.html"},{"path":"Xiaomi/assets/web/询报价-制造费_制造费明细报价.html","url":"https://claireqi328.github.io/claire-pages/Xiaomi/assets/web/%E8%AF%A2%E6%8A%A5%E4%BB%B7-%E5%88%B6%E9%80%A0%E8%B4%B9_%E5%88%B6%E9%80%A0%E8%B4%B9%E6%98%8E%E7%BB%86%E6%8A%A5%E4%BB%B7.html","name":"询报价-制造费_制造费明细报价.html"},{"path":"Xiaomi/assets/web/询报价-报价细项_html demo_报价明细效果.html","url":"https://claireqi328.github.io/claire-pages/Xiaomi/assets/web/%E8%AF%A2%E6%8A%A5%E4%BB%B7-%E6%8A%A5%E4%BB%B7%E7%BB%86%E9%A1%B9_html%20demo_%E6%8A%A5%E4%BB%B7%E6%98%8E%E7%BB%86%E6%95%88%E6%9E%9C.html","name":"询报价-报价细项_html demo_报价明细效果.html"},{"path":"Xiaomi/assets/web/询报价-比价_比价.html","url":"https://claireqi328.github.io/claire-pages/Xiaomi/assets/web/%E8%AF%A2%E6%8A%A5%E4%BB%B7-%E6%AF%94%E4%BB%B7_%E6%AF%94%E4%BB%B7.html","name":"询报价-比价_比价.html"},{"path":"Xiaomi/assets/web/采购Agent工作台-完整版.html","url":"https://claireqi328.github.io/claire-pages/Xiaomi/assets/web/%E9%87%87%E8%B4%ADAgent%E5%B7%A5%E4%BD%9C%E5%8F%B0-%E5%AE%8C%E6%95%B4%E7%89%88.html","name":"采购Agent工作台-完整版.html"},{"path":"Xiaomi/assets/web/飞书报警平台原型_v3.html","url":"https://claireqi328.github.io/claire-pages/Xiaomi/assets/web/%E9%A3%9E%E4%B9%A6%E6%8A%A5%E8%AD%A6%E5%B9%B3%E5%8F%B0%E5%8E%9F%E5%9E%8B_v3.html","name":"飞书报警平台原型_v3.html"},{"path":"Xiaomi/assets/web/首页工作台.html","url":"https://claireqi328.github.io/claire-pages/Xiaomi/assets/web/%E9%A6%96%E9%A1%B5%E5%B7%A5%E4%BD%9C%E5%8F%B0.html","name":"首页工作台.html"},{"path":"Xiaomi/EP Agent/Agent架构.html","url":"https://claireqi328.github.io/claire-pages/Xiaomi/EP%20Agent/Agent%E6%9E%B6%E6%9E%84.html","name":"Agent架构.html"},{"path":"Xiaomi/EP Agent/scenario-1-sourcing-progress.html","url":"https://claireqi328.github.io/claire-pages/Xiaomi/EP%20Agent/scenario-1-sourcing-progress.html","name":"scenario-1-sourcing-progress.html"},{"path":"Xiaomi/EP Agent/scenario-2-contract-creation.html","url":"https://claireqi328.github.io/claire-pages/Xiaomi/EP%20Agent/scenario-2-contract-creation.html","name":"scenario-2-contract-creation.html"},{"path":"Xiaomi/EP Agent/scenario-3-sample-ordering.html","url":"https://claireqi328.github.io/claire-pages/Xiaomi/EP%20Agent/scenario-3-sample-ordering.html","name":"scenario-3-sample-ordering.html"},{"path":"Xiaomi/EP Agent/supply-chain-agent-architecture.html","url":"https://claireqi328.github.io/claire-pages/Xiaomi/EP%20Agent/supply-chain-agent-architecture.html","name":"supply-chain-agent-architecture.html"},{"path":"Xiaomi/EP Agent/合同管理-Agent.html","url":"https://claireqi328.github.io/claire-pages/Xiaomi/EP%20Agent/%E5%90%88%E5%90%8C%E7%AE%A1%E7%90%86-Agent.html","name":"合同管理-Agent.html"},{"path":"Xiaomi/EP Agent/多Agent协同.html","url":"https://claireqi328.github.io/claire-pages/Xiaomi/EP%20Agent/%E5%A4%9AAgent%E5%8D%8F%E5%90%8C.html","name":"多Agent协同.html"},{"path":"Xiaomi/EP Agent/样件采购自动化流程Agent.html","url":"https://claireqi328.github.io/claire-pages/Xiaomi/EP%20Agent/%E6%A0%B7%E4%BB%B6%E9%87%87%E8%B4%AD%E8%87%AA%E5%8A%A8%E5%8C%96%E6%B5%81%E7%A8%8BAgent.html","name":"样件采购自动化流程Agent.html"},{"path":"Xiaomi/EP Agent/样件采购自动化流程Agent_融合版.html","url":"https://claireqi328.github.io/claire-pages/Xiaomi/EP%20Agent/%E6%A0%B7%E4%BB%B6%E9%87%87%E8%B4%AD%E8%87%AA%E5%8A%A8%E5%8C%96%E6%B5%81%E7%A8%8BAgent_%E8%9E%8D%E5%90%88%E7%89%88.html","name":"样件采购自动化流程Agent_融合版.html"},{"path":"Xiaomi/EP Agent/框架价格偏离比对器.html","url":"https://claireqi328.github.io/claire-pages/Xiaomi/EP%20Agent/%E6%A1%86%E6%9E%B6%E4%BB%B7%E6%A0%BC%E5%81%8F%E7%A6%BB%E6%AF%94%E5%AF%B9%E5%99%A8.html","name":"框架价格偏离比对器.html"},{"path":"Xiaomi/EP Agent/采购Agent工作台.html","url":"https://claireqi328.github.io/claire-pages/Xiaomi/EP%20Agent/%E9%87%87%E8%B4%ADAgent%E5%B7%A5%E4%BD%9C%E5%8F%B0.html","name":"采购Agent工作台.html"},{"path":"Xiaomi/EP 原型/EP原型/EP.html","url":"https://claireqi328.github.io/claire-pages/Xiaomi/EP%20%E5%8E%9F%E5%9E%8B/EP%E5%8E%9F%E5%9E%8B/EP.html","name":"EP.html"},{"path":"Xiaomi/EP 原型/EP原型/SRM.html","url":"https://claireqi328.github.io/claire-pages/Xiaomi/EP%20%E5%8E%9F%E5%9E%8B/EP%E5%8E%9F%E5%9E%8B/SRM.html","name":"SRM.html"},{"path":"Xiaomi/EP 原型/Q3Q4项目/Q3Q4项目 工作台.html","url":"https://claireqi328.github.io/claire-pages/Xiaomi/EP%20%E5%8E%9F%E5%9E%8B/Q3Q4%E9%A1%B9%E7%9B%AE/Q3Q4%E9%A1%B9%E7%9B%AE%20%E5%B7%A5%E4%BD%9C%E5%8F%B0.html","name":"Q3Q4项目 工作台.html"},{"path":"Xiaomi/EP 原型/Q3Q4项目/Q3Q4项目 工作台_backup.html","url":"https://claireqi328.github.io/claire-pages/Xiaomi/EP%20%E5%8E%9F%E5%9E%8B/Q3Q4%E9%A1%B9%E7%9B%AE/Q3Q4%E9%A1%B9%E7%9B%AE%20%E5%B7%A5%E4%BD%9C%E5%8F%B0_backup.html","name":"Q3Q4项目 工作台_backup.html"},{"path":"Xiaomi/EP 原型/供应商资源池/供应商Onepage.html","url":"https://claireqi328.github.io/claire-pages/Xiaomi/EP%20%E5%8E%9F%E5%9E%8B/%E4%BE%9B%E5%BA%94%E5%95%86%E8%B5%84%E6%BA%90%E6%B1%A0/%E4%BE%9B%E5%BA%94%E5%95%86Onepage.html","name":"供应商Onepage.html"},{"path":"Xiaomi/EP 原型/供应商资源池/供应商资源池.html","url":"https://claireqi328.github.io/claire-pages/Xiaomi/EP%20%E5%8E%9F%E5%9E%8B/%E4%BE%9B%E5%BA%94%E5%95%86%E8%B5%84%E6%BA%90%E6%B1%A0/%E4%BE%9B%E5%BA%94%E5%95%86%E8%B5%84%E6%BA%90%E6%B1%A0.html","name":"供应商资源池.html"},{"path":"Xiaomi/EP 原型/供应商资源池/供应商风险管理.html","url":"https://claireqi328.github.io/claire-pages/Xiaomi/EP%20%E5%8E%9F%E5%9E%8B/%E4%BE%9B%E5%BA%94%E5%95%86%E8%B5%84%E6%BA%90%E6%B1%A0/%E4%BE%9B%E5%BA%94%E5%95%86%E9%A3%8E%E9%99%A9%E7%AE%A1%E7%90%86.html","name":"供应商风险管理.html"},{"path":"Xiaomi/EP 原型/品类资源池/品类Onepage.html","url":"https://claireqi328.github.io/claire-pages/Xiaomi/EP%20%E5%8E%9F%E5%9E%8B/%E5%93%81%E7%B1%BB%E8%B5%84%E6%BA%90%E6%B1%A0/%E5%93%81%E7%B1%BBOnepage.html","name":"品类Onepage.html"},{"path":"Xiaomi/EP 原型/品类资源池/品类资源池.html","url":"https://claireqi328.github.io/claire-pages/Xiaomi/EP%20%E5%8E%9F%E5%9E%8B/%E5%93%81%E7%B1%BB%E8%B5%84%E6%BA%90%E6%B1%A0/%E5%93%81%E7%B1%BB%E8%B5%84%E6%BA%90%E6%B1%A0.html","name":"品类资源池.html"},{"path":"Xiaomi/EP 原型/报价明细/报价明细成本库.html","url":"https://claireqi328.github.io/claire-pages/Xiaomi/EP%20%E5%8E%9F%E5%9E%8B/%E6%8A%A5%E4%BB%B7%E6%98%8E%E7%BB%86/%E6%8A%A5%E4%BB%B7%E6%98%8E%E7%BB%86%E6%88%90%E6%9C%AC%E5%BA%93.html","name":"报价明细成本库.html"},{"path":"Xiaomi/EP 原型/首页工作台/workbench_only.html","url":"https://claireqi328.github.io/claire-pages/Xiaomi/EP%20%E5%8E%9F%E5%9E%8B/%E9%A6%96%E9%A1%B5%E5%B7%A5%E4%BD%9C%E5%8F%B0/workbench_only.html","name":"workbench_only.html"},{"path":"Xiaomi/EP 原型/首页工作台/分镜-采购员工作流-v2.html","url":"https://claireqi328.github.io/claire-pages/Xiaomi/EP%20%E5%8E%9F%E5%9E%8B/%E9%A6%96%E9%A1%B5%E5%B7%A5%E4%BD%9C%E5%8F%B0/%E5%88%86%E9%95%9C-%E9%87%87%E8%B4%AD%E5%91%98%E5%B7%A5%E4%BD%9C%E6%B5%81-v2.html","name":"分镜-采购员工作流-v2.html"},{"path":"Xiaomi/EP 原型/首页工作台/分镜-采购员工作流.html","url":"https://claireqi328.github.io/claire-pages/Xiaomi/EP%20%E5%8E%9F%E5%9E%8B/%E9%A6%96%E9%A1%B5%E5%B7%A5%E4%BD%9C%E5%8F%B0/%E5%88%86%E9%95%9C-%E9%87%87%E8%B4%AD%E5%91%98%E5%B7%A5%E4%BD%9C%E6%B5%81.html","name":"分镜-采购员工作流.html"},{"path":"Xiaomi/EP 原型/首页工作台/分镜1_首页.html","url":"https://claireqi328.github.io/claire-pages/Xiaomi/EP%20%E5%8E%9F%E5%9E%8B/%E9%A6%96%E9%A1%B5%E5%B7%A5%E4%BD%9C%E5%8F%B0/%E5%88%86%E9%95%9C1_%E9%A6%96%E9%A1%B5.html","name":"分镜1_首页.html"},{"path":"Xiaomi/EP 原型/首页工作台/分镜2_任务流.html","url":"https://claireqi328.github.io/claire-pages/Xiaomi/EP%20%E5%8E%9F%E5%9E%8B/%E9%A6%96%E9%A1%B5%E5%B7%A5%E4%BD%9C%E5%8F%B0/%E5%88%86%E9%95%9C2_%E4%BB%BB%E5%8A%A1%E6%B5%81.html","name":"分镜2_任务流.html"},{"path":"Xiaomi/EP 原型/首页工作台/分镜3_AI地图.html","url":"https://claireqi328.github.io/claire-pages/Xiaomi/EP%20%E5%8E%9F%E5%9E%8B/%E9%A6%96%E9%A1%B5%E5%B7%A5%E4%BD%9C%E5%8F%B0/%E5%88%86%E9%95%9C3_AI%E5%9C%B0%E5%9B%BE.html","name":"分镜3_AI地图.html"},{"path":"Xiaomi/EP 原型/首页工作台/分镜4_智能助手.html","url":"https://claireqi328.github.io/claire-pages/Xiaomi/EP%20%E5%8E%9F%E5%9E%8B/%E9%A6%96%E9%A1%B5%E5%B7%A5%E4%BD%9C%E5%8F%B0/%E5%88%86%E9%95%9C4_%E6%99%BA%E8%83%BD%E5%8A%A9%E6%89%8B.html","name":"分镜4_智能助手.html"},{"path":"Xiaomi/EP 原型/首页工作台/工作台.html","url":"https://claireqi328.github.io/claire-pages/Xiaomi/EP%20%E5%8E%9F%E5%9E%8B/%E9%A6%96%E9%A1%B5%E5%B7%A5%E4%BD%9C%E5%8F%B0/%E5%B7%A5%E4%BD%9C%E5%8F%B0.html","name":"工作台.html"},{"path":"Xiaomi/EP 原型/首页工作台/首页工作台.html","url":"https://claireqi328.github.io/claire-pages/Xiaomi/EP%20%E5%8E%9F%E5%9E%8B/%E9%A6%96%E9%A1%B5%E5%B7%A5%E4%BD%9C%E5%8F%B0/%E9%A6%96%E9%A1%B5%E5%B7%A5%E4%BD%9C%E5%8F%B0.html","name":"首页工作台.html"},{"path":"Xiaomi/MVPS/MVPS体系说明.html","url":"https://claireqi328.github.io/claire-pages/Xiaomi/MVPS/MVPS%E4%BD%93%E7%B3%BB%E8%AF%B4%E6%98%8E.html","name":"MVPS体系说明.html"},{"path":"Xiaomi/MVPS/MVPS管理后台.html","url":"https://claireqi328.github.io/claire-pages/Xiaomi/MVPS/MVPS%E7%AE%A1%E7%90%86%E5%90%8E%E5%8F%B0.html","name":"MVPS管理后台.html"},{"path":"Xiaomi/Q3 立项报告/EP系统Wave动态图.html","url":"https://claireqi328.github.io/claire-pages/Xiaomi/Q3%20%E7%AB%8B%E9%A1%B9%E6%8A%A5%E5%91%8A/EP%E7%B3%BB%E7%BB%9FWave%E5%8A%A8%E6%80%81%E5%9B%BE.html","name":"EP系统Wave动态图.html"},{"path":"Xiaomi/Q3 立项报告/EP系统建设历程-路径图.html","url":"https://claireqi328.github.io/claire-pages/Xiaomi/Q3%20%E7%AB%8B%E9%A1%B9%E6%8A%A5%E5%91%8A/EP%E7%B3%BB%E7%BB%9F%E5%BB%BA%E8%AE%BE%E5%8E%86%E7%A8%8B-%E8%B7%AF%E5%BE%84%E5%9B%BE.html","name":"EP系统建设历程-路径图.html"},{"path":"Xiaomi/Q3 立项报告/EP采购系统规划总览.html","url":"https://claireqi328.github.io/claire-pages/Xiaomi/Q3%20%E7%AB%8B%E9%A1%B9%E6%8A%A5%E5%91%8A/EP%E9%87%87%E8%B4%AD%E7%B3%BB%E7%BB%9F%E8%A7%84%E5%88%92%E6%80%BB%E8%A7%88.html","name":"EP采购系统规划总览.html"},{"path":"Xiaomi/Q3 立项报告/EP采购系统规划总览_融合版.html","url":"https://claireqi328.github.io/claire-pages/Xiaomi/Q3%20%E7%AB%8B%E9%A1%B9%E6%8A%A5%E5%91%8A/EP%E9%87%87%E8%B4%AD%E7%B3%BB%E7%BB%9F%E8%A7%84%E5%88%92%E6%80%BB%E8%A7%88_%E8%9E%8D%E5%90%88%E7%89%88.html","name":"EP采购系统规划总览_融合版.html"},{"path":"Xiaomi/Q3 立项报告/供应链数字化B点架构-四层两闭环.html","url":"https://claireqi328.github.io/claire-pages/Xiaomi/Q3%20%E7%AB%8B%E9%A1%B9%E6%8A%A5%E5%91%8A/%E4%BE%9B%E5%BA%94%E9%93%BE%E6%95%B0%E5%AD%97%E5%8C%96B%E7%82%B9%E6%9E%B6%E6%9E%84-%E5%9B%9B%E5%B1%82%E4%B8%A4%E9%97%AD%E7%8E%AF.html","name":"供应链数字化B点架构-四层两闭环.html"},{"path":"Xiaomi/Q3 立项报告/供应链数字运营体系-层级图.html","url":"https://claireqi328.github.io/claire-pages/Xiaomi/Q3%20%E7%AB%8B%E9%A1%B9%E6%8A%A5%E5%91%8A/%E4%BE%9B%E5%BA%94%E9%93%BE%E6%95%B0%E5%AD%97%E8%BF%90%E8%90%A5%E4%BD%93%E7%B3%BB-%E5%B1%82%E7%BA%A7%E5%9B%BE.html","name":"供应链数字运营体系-层级图.html"},{"path":"Xiaomi/Q3 立项报告/四层架构提升图示.html","url":"https://claireqi328.github.io/claire-pages/Xiaomi/Q3%20%E7%AB%8B%E9%A1%B9%E6%8A%A5%E5%91%8A/%E5%9B%9B%E5%B1%82%E6%9E%B6%E6%9E%84%E6%8F%90%E5%8D%87%E5%9B%BE%E7%A4%BA.html","name":"四层架构提升图示.html"},{"path":"Xiaomi/Q3 立项报告/智能分析层图示.html","url":"https://claireqi328.github.io/claire-pages/Xiaomi/Q3%20%E7%AB%8B%E9%A1%B9%E6%8A%A5%E5%91%8A/%E6%99%BA%E8%83%BD%E5%88%86%E6%9E%90%E5%B1%82%E5%9B%BE%E7%A4%BA.html","name":"智能分析层图示.html"},{"path":"Xiaomi/Q3 立项报告/汽车采购业务域演进路线.html","url":"https://claireqi328.github.io/claire-pages/Xiaomi/Q3%20%E7%AB%8B%E9%A1%B9%E6%8A%A5%E5%91%8A/%E6%B1%BD%E8%BD%A6%E9%87%87%E8%B4%AD%E4%B8%9A%E5%8A%A1%E5%9F%9F%E6%BC%94%E8%BF%9B%E8%B7%AF%E7%BA%BF.html","name":"汽车采购业务域演进路线.html"},{"path":"Xiaomi/Q3 立项报告/系统健壮性设计.html","url":"https://claireqi328.github.io/claire-pages/Xiaomi/Q3%20%E7%AB%8B%E9%A1%B9%E6%8A%A5%E5%91%8A/%E7%B3%BB%E7%BB%9F%E5%81%A5%E5%A3%AE%E6%80%A7%E8%AE%BE%E8%AE%A1.html","name":"系统健壮性设计.html"},{"path":"Xiaomi/Q3 立项报告/采购B点架构-三轴四层两闭环.html","url":"https://claireqi328.github.io/claire-pages/Xiaomi/Q3%20%E7%AB%8B%E9%A1%B9%E6%8A%A5%E5%91%8A/%E9%87%87%E8%B4%ADB%E7%82%B9%E6%9E%B6%E6%9E%84-%E4%B8%89%E8%BD%B4%E5%9B%9B%E5%B1%82%E4%B8%A4%E9%97%AD%E7%8E%AF.html","name":"采购B点架构-三轴四层两闭环.html"},{"path":"Xiaomi/Q3 立项报告/采购数字化B点建设路径.html","url":"https://claireqi328.github.io/claire-pages/Xiaomi/Q3%20%E7%AB%8B%E9%A1%B9%E6%8A%A5%E5%91%8A/%E9%87%87%E8%B4%AD%E6%95%B0%E5%AD%97%E5%8C%96B%E7%82%B9%E5%BB%BA%E8%AE%BE%E8%B7%AF%E5%BE%84.html","name":"采购数字化B点建设路径.html"},{"path":"Xiaomi/Q3 立项报告/采购数字化B点架构图.html","url":"https://claireqi328.github.io/claire-pages/Xiaomi/Q3%20%E7%AB%8B%E9%A1%B9%E6%8A%A5%E5%91%8A/%E9%87%87%E8%B4%AD%E6%95%B0%E5%AD%97%E5%8C%96B%E7%82%B9%E6%9E%B6%E6%9E%84%E5%9B%BE.html","name":"采购数字化B点架构图.html"},{"path":"Xiaomi/Q3 立项报告/采购数字化B点目标.html","url":"https://claireqi328.github.io/claire-pages/Xiaomi/Q3%20%E7%AB%8B%E9%A1%B9%E6%8A%A5%E5%91%8A/%E9%87%87%E8%B4%AD%E6%95%B0%E5%AD%97%E5%8C%96B%E7%82%B9%E7%9B%AE%E6%A0%87.html","name":"采购数字化B点目标.html"},{"path":"Xiaomi/价格确认原型/价格确认.html","url":"https://claireqi328.github.io/claire-pages/Xiaomi/%E4%BB%B7%E6%A0%BC%E7%A1%AE%E8%AE%A4%E5%8E%9F%E5%9E%8B/%E4%BB%B7%E6%A0%BC%E7%A1%AE%E8%AE%A4.html","name":"价格确认.html"},{"path":"Xiaomi/合同线上化/合同执行流程图.html","url":"https://claireqi328.github.io/claire-pages/Xiaomi/%E5%90%88%E5%90%8C%E7%BA%BF%E4%B8%8A%E5%8C%96/%E5%90%88%E5%90%8C%E6%89%A7%E8%A1%8C%E6%B5%81%E7%A8%8B%E5%9B%BE.html","name":"合同执行流程图.html"},{"path":"Xiaomi/合同线上化/合同流程Agent对比图.html","url":"https://claireqi328.github.io/claire-pages/Xiaomi/%E5%90%88%E5%90%8C%E7%BA%BF%E4%B8%8A%E5%8C%96/%E5%90%88%E5%90%8C%E6%B5%81%E7%A8%8BAgent%E5%AF%B9%E6%AF%94%E5%9B%BE.html","name":"合同流程Agent对比图.html"},{"path":"Xiaomi/埋点分析/bom-vsm-dashboard.html","url":"https://claireqi328.github.io/claire-pages/Xiaomi/%E5%9F%8B%E7%82%B9%E5%88%86%E6%9E%90/bom-vsm-dashboard.html","name":"bom-vsm-dashboard.html"},{"path":"Xiaomi/埋点分析/rfq-analysis-dashboard.html","url":"https://claireqi328.github.io/claire-pages/Xiaomi/%E5%9F%8B%E7%82%B9%E5%88%86%E6%9E%90/rfq-analysis-dashboard.html","name":"rfq-analysis-dashboard.html"},{"path":"Xiaomi/样件订单自动化/sample-ordering-flow.html","url":"https://claireqi328.github.io/claire-pages/Xiaomi/%E6%A0%B7%E4%BB%B6%E8%AE%A2%E5%8D%95%E8%87%AA%E5%8A%A8%E5%8C%96/sample-ordering-flow.html","name":"sample-ordering-flow.html"},{"path":"Xiaomi/样件订单自动化/样件订单流程对比.html","url":"https://claireqi328.github.io/claire-pages/Xiaomi/%E6%A0%B7%E4%BB%B6%E8%AE%A2%E5%8D%95%E8%87%AA%E5%8A%A8%E5%8C%96/%E6%A0%B7%E4%BB%B6%E8%AE%A2%E5%8D%95%E6%B5%81%E7%A8%8B%E5%AF%B9%E6%AF%94.html","name":"样件订单流程对比.html"},{"path":"Xiaomi/样件订单自动化/样件订单流程对比_融合版.html","url":"https://claireqi328.github.io/claire-pages/Xiaomi/%E6%A0%B7%E4%BB%B6%E8%AE%A2%E5%8D%95%E8%87%AA%E5%8A%A8%E5%8C%96/%E6%A0%B7%E4%BB%B6%E8%AE%A2%E5%8D%95%E6%B5%81%E7%A8%8B%E5%AF%B9%E6%AF%94_%E8%9E%8D%E5%90%88%E7%89%88.html","name":"样件订单流程对比_融合版.html"},{"path":"Xiaomi/询报价-CE核价/CE核价原型.html","url":"https://claireqi328.github.io/claire-pages/Xiaomi/%E8%AF%A2%E6%8A%A5%E4%BB%B7-CE%E6%A0%B8%E4%BB%B7/CE%E6%A0%B8%E4%BB%B7%E5%8E%9F%E5%9E%8B.html","name":"CE核价原型.html"},{"path":"Xiaomi/询报价-CE核价/核价.html","url":"https://claireqi328.github.io/claire-pages/Xiaomi/%E8%AF%A2%E6%8A%A5%E4%BB%B7-CE%E6%A0%B8%E4%BB%B7/%E6%A0%B8%E4%BB%B7.html","name":"核价.html"},{"path":"Xiaomi/询报价-制造费/制造费报价.html","url":"https://claireqi328.github.io/claire-pages/Xiaomi/%E8%AF%A2%E6%8A%A5%E4%BB%B7-%E5%88%B6%E9%80%A0%E8%B4%B9/%E5%88%B6%E9%80%A0%E8%B4%B9%E6%8A%A5%E4%BB%B7.html","name":"制造费报价.html"},{"path":"Xiaomi/询报价-制造费/制造费明细报价-交互.html","url":"https://claireqi328.github.io/claire-pages/Xiaomi/%E8%AF%A2%E6%8A%A5%E4%BB%B7-%E5%88%B6%E9%80%A0%E8%B4%B9/%E5%88%B6%E9%80%A0%E8%B4%B9%E6%98%8E%E7%BB%86%E6%8A%A5%E4%BB%B7-%E4%BA%A4%E4%BA%92.html","name":"制造费明细报价-交互.html"},{"path":"Xiaomi/询报价-制造费/制造费明细报价-交互页.html","url":"https://claireqi328.github.io/claire-pages/Xiaomi/%E8%AF%A2%E6%8A%A5%E4%BB%B7-%E5%88%B6%E9%80%A0%E8%B4%B9/%E5%88%B6%E9%80%A0%E8%B4%B9%E6%98%8E%E7%BB%86%E6%8A%A5%E4%BB%B7-%E4%BA%A4%E4%BA%92%E9%A1%B5.html","name":"制造费明细报价-交互页.html"},{"path":"Xiaomi/询报价-制造费/制造费明细报价-交互页v2.html","url":"https://claireqi328.github.io/claire-pages/Xiaomi/%E8%AF%A2%E6%8A%A5%E4%BB%B7-%E5%88%B6%E9%80%A0%E8%B4%B9/%E5%88%B6%E9%80%A0%E8%B4%B9%E6%98%8E%E7%BB%86%E6%8A%A5%E4%BB%B7-%E4%BA%A4%E4%BA%92%E9%A1%B5v2.html","name":"制造费明细报价-交互页v2.html"},{"path":"Xiaomi/询报价-制造费/制造费明细报价-交互页v3.html","url":"https://claireqi328.github.io/claire-pages/Xiaomi/%E8%AF%A2%E6%8A%A5%E4%BB%B7-%E5%88%B6%E9%80%A0%E8%B4%B9/%E5%88%B6%E9%80%A0%E8%B4%B9%E6%98%8E%E7%BB%86%E6%8A%A5%E4%BB%B7-%E4%BA%A4%E4%BA%92%E9%A1%B5v3.html","name":"制造费明细报价-交互页v3.html"},{"path":"Xiaomi/询报价-制造费/制造费明细报价-完整交互页.html","url":"https://claireqi328.github.io/claire-pages/Xiaomi/%E8%AF%A2%E6%8A%A5%E4%BB%B7-%E5%88%B6%E9%80%A0%E8%B4%B9/%E5%88%B6%E9%80%A0%E8%B4%B9%E6%98%8E%E7%BB%86%E6%8A%A5%E4%BB%B7-%E5%AE%8C%E6%95%B4%E4%BA%A4%E4%BA%92%E9%A1%B5.html","name":"制造费明细报价-完整交互页.html"},{"path":"Xiaomi/询报价-制造费/制造费明细报价.html","url":"https://claireqi328.github.io/claire-pages/Xiaomi/%E8%AF%A2%E6%8A%A5%E4%BB%B7-%E5%88%B6%E9%80%A0%E8%B4%B9/%E5%88%B6%E9%80%A0%E8%B4%B9%E6%98%8E%E7%BB%86%E6%8A%A5%E4%BB%B7.html","name":"制造费明细报价.html"},{"path":"Xiaomi/询报价-报价细项/报价细项分析报告.html","url":"https://claireqi328.github.io/claire-pages/Xiaomi/%E8%AF%A2%E6%8A%A5%E4%BB%B7-%E6%8A%A5%E4%BB%B7%E7%BB%86%E9%A1%B9/%E6%8A%A5%E4%BB%B7%E7%BB%86%E9%A1%B9%E5%88%86%E6%9E%90%E6%8A%A5%E5%91%8A.html","name":"报价细项分析报告.html"},{"path":"Xiaomi/询报价-报价细项/报价细项分析结果.html","url":"https://claireqi328.github.io/claire-pages/Xiaomi/%E8%AF%A2%E6%8A%A5%E4%BB%B7-%E6%8A%A5%E4%BB%B7%E7%BB%86%E9%A1%B9/%E6%8A%A5%E4%BB%B7%E7%BB%86%E9%A1%B9%E5%88%86%E6%9E%90%E7%BB%93%E6%9E%9C.html","name":"报价细项分析结果.html"},{"path":"Xiaomi/询报价-报价细项/html demo/报价明细效果.html","url":"https://claireqi328.github.io/claire-pages/Xiaomi/%E8%AF%A2%E6%8A%A5%E4%BB%B7-%E6%8A%A5%E4%BB%B7%E7%BB%86%E9%A1%B9/html%20demo/%E6%8A%A5%E4%BB%B7%E6%98%8E%E7%BB%86%E6%95%88%E6%9E%9C.html","name":"报价明细效果.html"},{"path":"Xiaomi/询报价-比价/比价.html","url":"https://claireqi328.github.io/claire-pages/Xiaomi/%E8%AF%A2%E6%8A%A5%E4%BB%B7-%E6%AF%94%E4%BB%B7/%E6%AF%94%E4%BB%B7.html","name":"比价.html"},{"path":"Xiaomi/采购品类和partplanning/partplanning.html","url":"https://claireqi328.github.io/claire-pages/Xiaomi/%E9%87%87%E8%B4%AD%E5%93%81%E7%B1%BB%E5%92%8Cpartplanning/partplanning.html","name":"partplanning.html"},{"path":"Xiaomi/采购品类和partplanning/采购品类管理.html","url":"https://claireqi328.github.io/claire-pages/Xiaomi/%E9%87%87%E8%B4%AD%E5%93%81%E7%B1%BB%E5%92%8Cpartplanning/%E9%87%87%E8%B4%AD%E5%93%81%E7%B1%BB%E7%AE%A1%E7%90%86.html","name":"采购品类管理.html"},{"path":"Xiaomi/采购品类和partplanning/采购项目管理.html","url":"https://claireqi328.github.io/claire-pages/Xiaomi/%E9%87%87%E8%B4%AD%E5%93%81%E7%B1%BB%E5%92%8Cpartplanning/%E9%87%87%E8%B4%AD%E9%A1%B9%E7%9B%AE%E7%AE%A1%E7%90%86.html","name":"采购项目管理.html"},{"path":"Xiaomi/采购品类和partplanning/VPPS应用需求/图片和附件/品类策略表.html","url":"https://claireqi328.github.io/claire-pages/Xiaomi/%E9%87%87%E8%B4%AD%E5%93%81%E7%B1%BB%E5%92%8Cpartplanning/VPPS%E5%BA%94%E7%94%A8%E9%9C%80%E6%B1%82/%E5%9B%BE%E7%89%87%E5%92%8C%E9%99%84%E4%BB%B6/%E5%93%81%E7%B1%BB%E7%AD%96%E7%95%A5%E8%A1%A8.html","name":"品类策略表.html"}];
+let treeData = null;
+let overrides = {};
+const STORAGE_KEY = 'claire-pages-overrides';
+
+// ── Load ──
+async function init() {
+    if (allFiles.length === 0) {
+        try { const r = await fetch('data.json'); allFiles = await r.json(); } catch(e) {}
+    }
+    overrides = JSON.parse(localStorage.getItem(STORAGE_KEY) || '{}');
+    applyOverrides();
+    treeData = buildTree(allFiles);
+    renderTree();
+    document.getElementById('fileCount').textContent = allFiles.length + ' files';
+    document.getElementById('footer').textContent = 'Generated ' + new Date().toISOString().slice(0,16).replace('T',' ') + ' · Synced from Claire Vault';
+}
+
+function applyOverrides() {
+    for (const [orig, ov] of Object.entries(overrides)) {
+        if (ov.action === 'move') {
+            const f = allFiles.find(x => x.path === orig);
+            if (f) { f.path = ov.newPath; f.name = ov.newPath.split('/').pop(); }
+        } else if (ov.action === 'delete') {
+            allFiles = allFiles.filter(x => x.path !== orig);
+        }
+    }
+}
+
+// ── Tree Builder ──
+function buildTree(files) {
+    const root = { children: {}, files: [] };
+    for (const f of files) {
+        const parts = f.path.split('/');
+        let node = root;
+        for (let i = 0; i < parts.length - 1; i++) {
+            if (!node.children[parts[i]]) node.children[parts[i]] = { children: {}, files: [] };
+            node = node.children[parts[i]];
+        }
+        node.files.push(f);
+    }
+    return root;
+}
+
+function flattenTree(node, prefix = '') {
+    const result = [];
+    for (const [name, child] of Object.entries(node.children)) {
+        const path = prefix ? prefix + '/' + name : name;
+        result.push({ type: 'folder', name, path, child });
+        result.push(...flattenTree(child, path));
+    }
+    for (const f of node.files) {
+        result.push({ type: 'file', ...f });
+    }
+    return result;
+}
+
+// ── Render ──
+const expanded = new Set();
+const selected = new Set(); // paths
+
+function renderTree(filter = '') {
+    const container = document.getElementById('treeContainer');
+    container.innerHTML = '';
+    const lf = filter.toLowerCase();
+    renderNode(treeData, container, '', lf);
+    updateSelectionInfo();
+}
+
+function renderNode(node, parent, path, filter) {
+    const sortedFolders = Object.keys(node.children).sort();
+    const sortedFiles = [...node.files].sort((a,b) => a.name.localeCompare(b.name));
+
+    for (const folderName of sortedFolders) {
+        const child = node.children[folderName];
+        const folderPath = path ? path + '/' + folderName : folderName;
+        const childCount = countFiles(child);
+
+        // Check if this folder or any descendant matches the filter
+        const matches = !filter || folderMatches(child, folderName, folderPath, filter);
+        if (!matches) continue;
+
+        const div = document.createElement('div');
+        div.className = 'tree-node';
+
+        const isOpen = filter ? true : expanded.has(folderPath);
+        const row = document.createElement('div');
+        row.className = 'tree-row' + (selected.has(folderPath) ? ' selected' : '');
+        row.innerHTML = `
+            <span class="arrow ${isOpen ? 'open' : ''}">▶</span>
+            <span class="icon">📁</span>
+            <input type="checkbox" ${selected.has(folderPath) ? 'checked' : ''} data-folder="${folderPath}">
+            <span class="name">${filter ? highlight(folderName, filter) : folderName}</span>
+            <span class="count">${childCount}</span>
+        `;
+
+        row.querySelector('.arrow').onclick = (e) => {
+            e.stopPropagation();
+            toggleExpand(folderPath, div);
+        };
+        row.onclick = (e) => {
+            if (e.target.tagName === 'INPUT') return;
+            toggleExpand(folderPath, div);
+        };
+        row.querySelector('input').onchange = (e) => {
+            toggleSelect(folderPath, e.target.checked, true);
+        };
+
+        const childContainer = document.createElement('div');
+        childContainer.className = 'tree-children' + (isOpen ? '' : ' collapsed');
+        renderNode(child, childContainer, folderPath, filter);
+
+        div.appendChild(row);
+        div.appendChild(childContainer);
+        parent.appendChild(div);
+    }
+
+    for (const file of sortedFiles) {
+        if (filter && !file.name.toLowerCase().includes(filter) && !file.path.toLowerCase().includes(filter)) continue;
+
+        const div = document.createElement('div');
+        div.className = 'tree-node';
+        const row = document.createElement('div');
+        row.className = 'tree-row' + (selected.has(file.path) ? ' selected' : '');
+        row.innerHTML = `
+            <span class="arrow leaf">▶</span>
+            <span class="icon">📄</span>
+            <input type="checkbox" ${selected.has(file.path) ? 'checked' : ''} data-file="${file.path}">
+            <span class="name"><a href="${file.url}" target="_blank">${filter ? highlight(file.name, filter) : file.name}</a></span>
+            ${filter ? '<span class="path-hint">' + file.path + '</span>' : ''}
+        `;
+        row.querySelector('input').onchange = (e) => {
+            toggleSelect(file.path, e.target.checked);
+        };
+        div.appendChild(row);
+        parent.appendChild(div);
+    }
+}
+
+function folderMatches(node, name, path, filter) {
+    if (name.toLowerCase().includes(filter)) return true;
+    if (path.toLowerCase().includes(filter)) return true;
+    for (const f of node.files) {
+        if (f.name.toLowerCase().includes(filter) || f.path.toLowerCase().includes(filter)) return true;
+    }
+    for (const [n, c] of Object.entries(node.children)) {
+        if (folderMatches(c, n, path + '/' + n, filter)) return true;
+    }
+    return false;
+}
+
+function countFiles(node) {
+    let c = node.files.length;
+    for (const child of Object.values(node.children)) c += countFiles(child);
+    return c;
+}
+
+function highlight(text, filter) {
+    const i = text.toLowerCase().indexOf(filter.toLowerCase());
+    if (i < 0) return text;
+    return text.slice(0,i) + '<span class="match-highlight">' + text.slice(i, i+filter.length) + '</span>' + text.slice(i+filter.length);
+}
+
+// ── Expand/Collapse ──
+function toggleExpand(path, nodeDiv) {
+    const arrow = nodeDiv.querySelector(':scope > .tree-row .arrow');
+    const children = nodeDiv.querySelector(':scope > .tree-children');
+    if (!children) return;
+    const isOpen = !children.classList.contains('collapsed');
+    if (isOpen) { expanded.delete(path); arrow.classList.remove('open'); children.classList.add('collapsed'); }
+    else { expanded.add(path); arrow.classList.add('open'); children.classList.remove('collapsed'); }
+}
+
+function expandAll() {
+    const walk = (node, path) => {
+        for (const [name, child] of Object.entries(node.children)) {
+            const p = path ? path + '/' + name : name;
+            expanded.add(p);
+            walk(child, p);
+        }
+    };
+    walk(treeData, '');
+    renderTree(document.getElementById('searchInput').value);
+}
+
+function collapseAll() {
+    expanded.clear();
+    renderTree(document.getElementById('searchInput').value);
+}
+
+// ── Selection ──
+function toggleSelect(path, checked, isFolder) {
+    if (checked) {
+        selected.add(path);
+        // If folder, select all children
+        if (isFolder) {
+            const node = getNodeAtPath(path);
+            if (node) selectAllInNode(node, path);
+        }
+    } else {
+        selected.delete(path);
+        if (isFolder) {
+            const node = getNodeAtPath(path);
+            if (node) deselectAllInNode(node, path);
+        }
+    }
+    renderTree(document.getElementById('searchInput').value);
+}
+
+function getNodeAtPath(path) {
+    const parts = path.split('/');
+    let node = treeData;
+    for (const p of parts) {
+        if (!node.children[p]) return null;
+        node = node.children[p];
+    }
+    return node;
+}
+
+function selectAllInNode(node, path) {
+    for (const f of node.files) selected.add(f.path);
+    for (const [name, child] of Object.entries(node.children)) {
+        const p = path + '/' + name;
+        selected.add(p);
+        selectAllInNode(child, p);
+    }
+}
+
+function deselectAllInNode(node, path) {
+    for (const f of node.files) selected.delete(f.path);
+    for (const [name, child] of Object.entries(node.children)) {
+        const p = path + '/' + name;
+        selected.delete(p);
+        deselectAllInNode(child, p);
+    }
+}
+
+function selectAll() {
+    const walk = (node, path) => {
+        for (const f of node.files) selected.add(f.path);
+        for (const [name, child] of Object.entries(node.children)) {
+            const p = path ? path + '/' + name : name;
+            selected.add(p);
+            walk(child, p);
+        }
+    };
+    walk(treeData, '');
+    renderTree(document.getElementById('searchInput').value);
+}
+
+function deselectAll() {
+    selected.clear();
+    renderTree(document.getElementById('searchInput').value);
+}
+
+function updateSelectionInfo() {
+    const info = document.getElementById('selectionInfo');
+    if (selected.size === 0) { info.textContent = ''; return; }
+    let files = 0, folders = 0;
+    for (const s of selected) {
+        if (allFiles.find(f => f.path === s)) files++;
+        else folders++;
+    }
+    info.textContent = `${files} files, ${folders} folders selected`;
+}
+
+function getSelectedFiles() {
+    return [...selected].filter(s => allFiles.find(f => f.path === s));
+}
+
+// ── Move ──
+function openMoveModal() {
+    const files = getSelectedFiles();
+    if (files.length === 0) { showToast('Select files first', true); return; }
+
+    document.getElementById('moveFileCount').textContent = files.length + ' file(s) will be moved:';
+    document.getElementById('moveFileList').innerHTML = files.map(f => '<div class="item">' + f.path + '</div>').join('');
+
+    // Build folder list
+    const folders = getAllFolders(treeData, '');
+    const select = document.getElementById('moveDest');
+    select.innerHTML = '<option value="">(root)</option>' + folders.map(f => '<option value="' + f + '">' + f + '</option>').join('');
+
+    document.getElementById('moveModal').classList.add('show');
+}
+
+function getAllFolders(node, path) {
+    const result = [];
+    for (const [name, child] of Object.entries(node.children)) {
+        const p = path ? path + '/' + name : name;
+        result.push(p);
+        result.push(...getAllFolders(child, p));
+    }
+    return result.sort();
+}
+
+function executeMove() {
+    const dest = document.getElementById('moveDest').value;
+    const files = getSelectedFiles();
+    for (const f of files) {
+        const fileName = f.path.split('/').pop();
+        const newPath = dest ? dest + '/' + fileName : fileName;
+        overrides[f.path] = { action: 'move', newPath, dest, fileName };
+        // Update in-memory
+        f.path = newPath;
+        f.name = fileName;
+    }
+    saveOverrides();
+    selected.clear();
+    treeData = buildTree(allFiles);
+    renderTree();
+    closeModal('moveModal');
+    showToast(files.length + ' file(s) moved to ' + (dest || '(root)'));
+}
+
+// ── New Folder ──
+function openNewFolderModal() {
+    document.getElementById('newFolderPath').value = '';
+    document.getElementById('newFolderModal').classList.add('show');
+}
+
+function executeNewFolder() {
+    const path = document.getElementById('newFolderPath').value.trim();
+    if (!path) return;
+    // Add to tree so it shows up
+    const parts = path.split('/');
+    let node = treeData;
+    for (const p of parts) {
+        if (!node.children[p]) node.children[p] = { children: {}, files: [] };
+        node = node.children[p];
+    }
+    expanded.add(path);
+    renderTree();
+    closeModal('newFolderModal');
+    showToast('Folder "' + path + '" created (will persist after sync)');
+}
+
+// ── Delete ──
+function openDeleteModal() {
+    const files = getSelectedFiles();
+    if (files.length === 0) { showToast('Select files first', true); return; }
+    document.getElementById('deleteFileList').innerHTML = files.map(f => '<div class="item">' + f.path + '</div>').join('');
+    document.getElementById('deleteModal').classList.add('show');
+}
+
+function executeDelete() {
+    const files = getSelectedFiles();
+    for (const f of files) {
+        overrides[f.path] = { action: 'delete' };
+    }
+    allFiles = allFiles.filter(f => !selected.has(f.path));
+    saveOverrides();
+    selected.clear();
+    treeData = buildTree(allFiles);
+    renderTree();
+    closeModal('deleteModal');
+    showToast(files.length + ' file(s) removed from listing');
+}
+
+// ── Persistence ──
+function saveOverrides() {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(overrides));
+    // Also try to save as a downloadable changes file
+    generateChangesFile();
+}
+
+function generateChangesFile() {
+    const changes = Object.entries(overrides).map(([orig, ov]) => ({
+        action: ov.action,
+        source: orig,
+        ...(ov.action === 'move' ? { destination: ov.newPath, destFolder: ov.dest } : {})
+    }));
+    // Store for download
+    window._pendingChanges = changes;
+}
+
+function downloadChanges() {
+    if (!window._pendingChanges || window._pendingChanges.length === 0) {
+        showToast('No pending changes', true);
+        return;
+    }
+    const blob = new Blob([JSON.stringify(window._pendingChanges, null, 2)], {type: 'application/json'});
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = 'changes.json';
+    a.click();
+    showToast('Downloaded changes.json — place it in claire-pages repo root and run sync-pages.ps1');
+}
+
+// ── Modal helpers ──
+function closeModal(id) { document.getElementById(id).classList.remove('show'); }
+document.querySelectorAll('.modal-overlay').forEach(m => {
+    m.addEventListener('click', e => { if (e.target === m) m.classList.remove('show'); });
+});
+
+// ── Toast ──
+function showToast(msg, isError) {
+    const t = document.getElementById('toast');
+    t.textContent = msg;
+    t.className = 'toast show' + (isError ? ' error' : '');
+    setTimeout(() => t.className = 'toast', 3000);
+}
+
+// ── Search ──
+document.getElementById('searchInput').addEventListener('input', (e) => {
+    renderTree(e.target.value.trim());
+});
+
+// ── Keyboard ──
+document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape') {
+        document.querySelectorAll('.modal-overlay.show').forEach(m => m.classList.remove('show'));
+    }
+});
+
+// ── Init ──
+init();
+</script>
+</body>
+</html>

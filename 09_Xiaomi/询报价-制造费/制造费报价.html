@@ -1,0 +1,918 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>制造费明细报价</title>
+    <style>
+        :root {
+            --primary: #1a73e8;
+            --primary-hover: #1557b0;
+            --primary-light: #e8f0fe;
+            --success: #0d904f;
+            --success-light: #e6f4ea;
+            --warning: #e37400;
+            --warning-light: #fef7e0;
+            --danger: #d93025;
+            --danger-light: #fce8e6;
+            --gray-50: #f8f9fa;
+            --gray-100: #f1f3f4;
+            --gray-200: #e8eaed;
+            --gray-300: #dadce0;
+            --gray-500: #9aa0a6;
+            --gray-600: #80868b;
+            --gray-700: #5f6368;
+            --gray-800: #3c4043;
+            --gray-900: #202124;
+            --radius: 8px;
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "PingFang SC", "Microsoft YaHei", sans-serif;
+            background: var(--gray-100);
+            color: var(--gray-900);
+            line-height: 1.6;
+        }
+
+        /* Top bar */
+        .topbar {
+            background: white;
+            border-bottom: 1px solid var(--gray-200);
+            padding: 12px 24px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+        .topbar h1 { font-size: 18px; font-weight: 700; }
+        .topbar .breadcrumb { font-size: 13px; color: var(--gray-500); }
+
+        .main-container { max-width: 1400px; margin: 0 auto; padding: 20px 24px; }
+
+        /* Part info bar */
+        .part-info {
+            background: white;
+            border-radius: var(--radius);
+            border: 1px solid var(--gray-200);
+            padding: 16px 24px;
+            margin-bottom: 20px;
+            display: flex;
+            align-items: center;
+            gap: 32px;
+        }
+        .part-info .field { font-size: 14px; }
+        .part-info .field .label { color: var(--gray-500); margin-right: 4px; }
+        .part-info .field .value { font-weight: 600; }
+
+        /* Toggle panel */
+        .toggle-panel {
+            background: white;
+            border-radius: var(--radius);
+            border: 1px solid var(--gray-200);
+            padding: 16px 24px;
+            margin-bottom: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+        .toggle-panel .left { display: flex; align-items: center; gap: 16px; }
+        .toggle-panel .desc { font-size: 13px; color: var(--gray-600); }
+
+        /* Toggle switch */
+        .switch { position: relative; width: 48px; height: 26px; flex-shrink: 0; }
+        .switch input { opacity: 0; width: 0; height: 0; }
+        .slider {
+            position: absolute; inset: 0;
+            background: var(--gray-300);
+            border-radius: 13px;
+            cursor: pointer;
+            transition: 0.3s;
+        }
+        .slider::before {
+            content: '';
+            position: absolute;
+            width: 20px; height: 20px;
+            left: 3px; bottom: 3px;
+            background: white;
+            border-radius: 50%;
+            transition: 0.3s;
+        }
+        .switch input:checked + .slider { background: var(--primary); }
+        .switch input:checked + .slider::before { transform: translateX(22px); }
+
+        /* Status chips */
+        .status-bar {
+            display: flex;
+            gap: 12px;
+            margin-bottom: 20px;
+        }
+        .chip {
+            padding: 8px 16px;
+            border-radius: 20px;
+            font-size: 13px;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+        .chip.on { background: var(--success-light); color: var(--success); }
+        .chip.off { background: var(--gray-100); color: var(--gray-600); }
+        .chip.warn { background: var(--warning-light); color: var(--warning); }
+        .chip .dot { width: 8px; height: 8px; border-radius: 50%; }
+        .chip.on .dot { background: var(--success); }
+        .chip.off .dot { background: var(--gray-500); }
+        .chip.warn .dot { background: var(--warning); }
+
+        /* Card */
+        .card {
+            background: white;
+            border-radius: var(--radius);
+            border: 1px solid var(--gray-200);
+            margin-bottom: 20px;
+        }
+        .card-head {
+            padding: 14px 20px;
+            border-bottom: 1px solid var(--gray-100);
+            font-size: 15px;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+        .card-body { padding: 20px; }
+
+        /* Buttons */
+        .btn {
+            padding: 8px 18px;
+            border-radius: 6px;
+            font-size: 13px;
+            font-weight: 600;
+            border: 1px solid var(--gray-200);
+            background: white;
+            cursor: pointer;
+            transition: 0.2s;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+        }
+        .btn:hover { background: var(--gray-50); }
+        .btn-primary { background: var(--primary); color: white; border-color: var(--primary); }
+        .btn-primary:hover { background: var(--primary-hover); }
+        .btn-danger { color: var(--danger); border-color: var(--danger); }
+        .btn-danger:hover { background: var(--danger-light); }
+        .btn-sm { padding: 5px 12px; font-size: 12px; }
+        .btn[disabled] { opacity: 0.5; cursor: not-allowed; }
+
+        /* Summary grid */
+        .summary-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+            gap: 12px;
+        }
+        .summary-item {
+            border: 1px solid var(--gray-200);
+            border-radius: 6px;
+            padding: 14px 16px;
+        }
+        .summary-item.readonly { background: var(--gray-50); }
+        .summary-item .s-label {
+            font-size: 12px;
+            color: var(--gray-500);
+            margin-bottom: 6px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+        .summary-item input {
+            width: 100%;
+            border: none;
+            font-size: 20px;
+            font-weight: 700;
+            outline: none;
+            background: transparent;
+            color: var(--gray-900);
+        }
+        .summary-item input::placeholder { color: var(--gray-300); }
+        .summary-item.readonly input { color: var(--gray-600); cursor: default; }
+        .summary-item.total { border-color: var(--primary); border-width: 2px; }
+        .summary-item.total input { color: var(--primary); }
+        .unit { font-size: 12px; color: var(--gray-500); font-weight: 400; }
+
+        /* Detail table */
+        .table-wrap {
+            overflow-x: auto;
+            border: 1px solid var(--gray-200);
+            border-radius: var(--radius);
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 13px;
+            white-space: nowrap;
+        }
+        th {
+            background: var(--gray-50);
+            padding: 10px 14px;
+            font-weight: 600;
+            text-align: center;
+            border-bottom: 2px solid var(--gray-200);
+            position: sticky;
+            top: 0;
+        }
+        td {
+            padding: 8px 14px;
+            border-bottom: 1px solid var(--gray-100);
+            text-align: center;
+        }
+        td input {
+            width: 90px;
+            border: 1px solid var(--gray-200);
+            border-radius: 4px;
+            padding: 5px 8px;
+            font-size: 13px;
+            text-align: right;
+            outline: none;
+            transition: 0.2s;
+        }
+        td input:focus { border-color: var(--primary); box-shadow: 0 0 0 2px rgba(26,115,232,0.15); }
+        td input[readonly] {
+            background: var(--gray-50);
+            color: var(--gray-600);
+            border-color: transparent;
+            cursor: default;
+        }
+        td input.empty { border-color: var(--danger); }
+        td .part-name {
+            text-align: left;
+            font-weight: 500;
+            white-space: normal;
+            max-width: 160px;
+        }
+
+        .tr-highlight td { background: #fffde7; }
+        .tr-deleted td { background: #ffeef0; text-decoration: line-through; opacity: 0.5; }
+
+        /* VSM panel */
+        .vsm-panel {
+            background: var(--gray-50);
+            border: 2px dashed var(--gray-300);
+            border-radius: var(--radius);
+            padding: 40px;
+            text-align: center;
+            color: var(--gray-500);
+            min-height: 200px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+        }
+        .vsm-panel.active {
+            border-color: var(--success);
+            background: white;
+        }
+        .vsm-panel .vsm-icon { font-size: 40px; }
+        .vsm-flow {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            flex-wrap: wrap;
+            justify-content: center;
+            padding: 20px;
+        }
+        .vsm-node {
+            padding: 12px 20px;
+            border-radius: 8px;
+            font-size: 13px;
+            font-weight: 600;
+            border: 2px solid;
+            text-align: center;
+            min-width: 100px;
+        }
+        .vsm-node.blue { background: var(--primary-light); border-color: var(--primary); color: var(--primary); }
+        .vsm-node.green { background: var(--success-light); border-color: var(--success); color: var(--success); }
+        .vsm-node.orange { background: var(--warning-light); border-color: var(--warning); color: var(--warning); }
+        .vsm-arrow { color: var(--gray-500); font-size: 20px; }
+
+        /* Toast */
+        .toast-container { position: fixed; top: 20px; right: 20px; z-index: 9999; display: flex; flex-direction: column; gap: 8px; }
+        .toast {
+            padding: 14px 20px;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: 500;
+            box-shadow: 0 8px 32px rgba(0,0,0,0.15);
+            animation: slideIn 0.3s ease;
+            max-width: 480px;
+        }
+        .toast.success { background: var(--success); color: white; }
+        .toast.error { background: var(--danger); color: white; }
+        .toast.info { background: var(--primary); color: white; }
+        .toast.warning { background: var(--warning); color: white; }
+        @keyframes slideIn {
+            from { transform: translateX(100%); opacity: 0; }
+            to { transform: translateX(0); opacity: 1; }
+        }
+
+        /* Modal */
+        .modal-mask {
+            position: fixed; inset: 0;
+            background: rgba(0,0,0,0.45);
+            z-index: 1000;
+            display: none;
+            align-items: center;
+            justify-content: center;
+        }
+        .modal-mask.show { display: flex; }
+        .modal {
+            background: white;
+            border-radius: 12px;
+            width: 520px;
+            max-width: 90vw;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.2);
+            animation: modalIn 0.25s ease;
+        }
+        @keyframes modalIn {
+            from { transform: scale(0.95); opacity: 0; }
+            to { transform: scale(1); opacity: 1; }
+        }
+        .modal-head {
+            padding: 20px 24px 0;
+            font-size: 17px;
+            font-weight: 700;
+        }
+        .modal-body { padding: 16px 24px; font-size: 14px; color: var(--gray-700); }
+        .modal-foot {
+            padding: 16px 24px 20px;
+            display: flex;
+            gap: 10px;
+            justify-content: flex-end;
+        }
+
+        /* Validation badge */
+        .badge-count {
+            background: var(--danger);
+            color: white;
+            font-size: 11px;
+            font-weight: 700;
+            padding: 1px 7px;
+            border-radius: 10px;
+            margin-left: 8px;
+        }
+
+        /* Section hidden */
+        .hidden { display: none !important; }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            .main-container { padding: 12px; }
+            .part-info { flex-wrap: wrap; gap: 12px; }
+            .summary-grid { grid-template-columns: 1fr 1fr; }
+        }
+    </style>
+</head>
+<body>
+
+<div class="topbar">
+    <div>
+        <h1>制造费明细报价</h1>
+        <div class="breadcrumb">RFQ报价 &gt; 报价中 &gt; 零件报价 &gt; 制造费</div>
+    </div>
+    <div style="display:flex;gap:10px;">
+        <button class="btn" onclick="handleGetVSM()">获取最新VSM</button>
+        <button class="btn btn-primary" onclick="handleSubmit()">提交报价</button>
+    </div>
+</div>
+
+<div class="main-container">
+
+    <!-- Part info -->
+    <div class="part-info">
+        <div class="field"><span class="label">零件号：</span><span class="value" id="partNo">P-20260521-001</span></div>
+        <div class="field"><span class="label">零件名称：</span><span class="value" id="partName">电池模组壳体</span></div>
+        <div class="field"><span class="label">供应商：</span><span class="value" id="supplier">XX精密制造有限公司</span></div>
+        <div class="field"><span class="label">报价轮次：</span><span class="value">第2轮</span></div>
+    </div>
+
+    <!-- Toggle panel -->
+    <div class="toggle-panel">
+        <div class="left">
+            <span style="font-size:15px;font-weight:600;">打开制造成本</span>
+            <label class="switch">
+                <input type="checkbox" id="enableMfgCost" checked onchange="onToggleMfgCost()">
+                <span class="slider"></span>
+            </label>
+            <span class="desc">开启后基于工艺工序视角展开制造费用明细报价</span>
+        </div>
+        <div id="bomVsmStatusArea">
+            <button class="btn btn-sm" onclick="cycleBomVsmStatus()" id="bomVsmBtn">
+                BOM+VSM: <span id="bomVsmLabel">OK</span>
+            </button>
+        </div>
+    </div>
+
+    <!-- Status chips -->
+    <div class="status-bar" id="statusBar">
+        <div class="chip on" id="chipMfg"><div class="dot"></div>已打开制造成本</div>
+        <div class="chip on" id="chipBom"><div class="dot"></div>BOM+VSM OK</div>
+        <div class="chip off" id="chipSVC"><div class="dot"></div>SVC工序: OK</div>
+    </div>
+
+    <!-- ============ SCENARIO 1: 不打开制造成本 ============ -->
+    <div id="scenario1" class="hidden">
+        <div class="card">
+            <div class="card-head">
+                制造费用报价汇总
+                <span style="font-size:13px;color:var(--gray-500);font-weight:400;">手动填写中粗项</span>
+            </div>
+            <div class="card-body">
+                <div class="summary-grid" id="summaryManual">
+                    <div class="summary-item">
+                        <div class="s-label">设备费用 <span class="unit">元</span></div>
+                        <input type="text" inputmode="decimal" placeholder="0.000" data-key="equipment" oninput="calcManualTotal(this)" class="manual-input">
+                    </div>
+                    <div class="summary-item">
+                        <div class="s-label">人员费用 <span class="unit">元</span></div>
+                        <input type="text" inputmode="decimal" placeholder="0.000" data-key="labor" oninput="calcManualTotal(this)" class="manual-input">
+                    </div>
+                    <div class="summary-item">
+                        <div class="s-label">报废费用 <span class="unit">元</span></div>
+                        <input type="text" inputmode="decimal" placeholder="0.000" data-key="scrap" oninput="calcManualTotal(this)" class="manual-input">
+                    </div>
+                    <div class="summary-item">
+                        <div class="s-label">能耗费用 <span class="unit">元</span></div>
+                        <input type="text" inputmode="decimal" placeholder="0.000" data-key="energy" oninput="calcManualTotal(this)" class="manual-input">
+                    </div>
+                    <div class="summary-item">
+                        <div class="s-label">耗材费用 <span class="unit">元</span></div>
+                        <input type="text" inputmode="decimal" placeholder="0.000" data-key="consumable" oninput="calcManualTotal(this)" class="manual-input">
+                    </div>
+                    <div class="summary-item total">
+                        <div class="s-label" style="color:var(--primary);">制造费总价 <span class="unit">元</span></div>
+                        <input type="text" id="manualTotal" value="0.000" readonly>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ============ SCENARIO 2 & 3: 打开制造成本 ============ -->
+    <div id="scenario23">
+
+        <!-- 中粗项汇总 -->
+        <div class="card">
+            <div class="card-head">
+                制造费用报价汇总（中粗项）
+                <span style="font-size:13px;color:var(--gray-500);font-weight:400;" id="summaryNote">自动汇总</span>
+            </div>
+            <div class="card-body">
+                <div class="summary-grid">
+                    <div class="summary-item readonly">
+                        <div class="s-label">设备费用 <span class="unit">元</span></div>
+                        <input type="text" id="sumEquipment" value="0.000" readonly>
+                    </div>
+                    <div class="summary-item readonly">
+                        <div class="s-label">人员费用 <span class="unit">元</span></div>
+                        <input type="text" id="sumLabor" value="0.000" readonly>
+                    </div>
+                    <div class="summary-item readonly">
+                        <div class="s-label">报废费用 <span class="unit">元</span></div>
+                        <input type="text" id="sumScrap" value="0.000" readonly>
+                    </div>
+                    <div class="summary-item readonly">
+                        <div class="s-label">能耗费用 <span class="unit">元</span></div>
+                        <input type="text" id="sumEnergy" value="0.000" readonly>
+                    </div>
+                    <div class="summary-item readonly">
+                        <div class="s-label">耗材费用 <span class="unit">元</span></div>
+                        <input type="text" id="sumConsumable" value="0.000" readonly>
+                    </div>
+                    <div class="summary-item total">
+                        <div class="s-label" style="color:var(--primary);">制造费总价 <span class="unit">元</span></div>
+                        <input type="text" id="sumTotal" value="0.000" readonly>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 明细表 -->
+        <div class="card">
+            <div class="card-head">
+                <span>自制件制造费明细 <span class="badge-count" id="errorCount">0</span></span>
+                <div style="display:flex;gap:8px;">
+                    <button class="btn btn-sm" onclick="addLine()">+ 添加行</button>
+                    <button class="btn btn-sm" onclick="validateLines()">校验</button>
+                </div>
+            </div>
+            <div class="card-body" style="padding:0;">
+                <div class="table-wrap">
+                    <table id="detailTable">
+                        <thead>
+                            <tr>
+                                <th style="min-width:50px;">序号</th>
+                                <th style="min-width:100px;">零件号</th>
+                                <th style="min-width:120px;">零件名称</th>
+                                <th style="min-width:120px;">工段/线体</th>
+                                <th style="min-width:100px;">线体编号</th>
+                                <th>CT(s)</th>
+                                <th>产出/拍</th>
+                                <th>OEE(%)</th>
+                                <th>LCR(件/d)</th>
+                                <th>LCR工时(h)</th>
+                                <th>占地费<br>(元/EA)</th>
+                                <th>设备折旧<br>(元/EA)</th>
+                                <th>设备总费<br>(元/EA)</th>
+                                <th>能耗费<br>(元/EA)</th>
+                                <th>合格率(%)</th>
+                                <th>报废回收率(%)</th>
+                                <th>报废费<br>(元/EA)</th>
+                                <th>耗材均摊<br>(元/EA)</th>
+                                <th>人员费<br>(元/EA)</th>
+                                <th style="min-width:60px;">操作</th>
+                            </tr>
+                        </thead>
+                        <tbody id="detailBody">
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- VSM -->
+        <div class="card">
+            <div class="card-head">可视化VSM</div>
+            <div class="card-body">
+                <div id="vsmEmpty" class="vsm-panel">
+                    <div class="vsm-icon">VSM</div>
+                    <div>VSM结构状态NOK - 暂不显示</div>
+                </div>
+                <div id="vsmActive" class="vsm-panel active hidden">
+                    <div class="vsm-flow">
+                        <div class="vsm-node blue">零件<br><span id="vsmPart">P-001</span></div>
+                        <div class="vsm-arrow">&rarr;</div>
+                        <div class="vsm-node orange">冲压工段<br>LN-01</div>
+                        <div class="vsm-arrow">&rarr;</div>
+                        <div class="vsm-node orange">焊接工段<br>LN-02</div>
+                        <div class="vsm-arrow">&rarr;</div>
+                        <div class="vsm-node green">终检<br>QC-01</div>
+                        <div class="vsm-arrow">&rarr;</div>
+                        <div class="vsm-node blue">入库</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+</div>
+
+<!-- Toast container -->
+<div class="toast-container" id="toastContainer"></div>
+
+<!-- Modal -->
+<div class="modal-mask" id="modalMask" onclick="closeModal(event)">
+    <div class="modal" onclick="event.stopPropagation()">
+        <div class="modal-head" id="modalTitle">提示</div>
+        <div class="modal-body" id="modalBody"></div>
+        <div class="modal-foot">
+            <button class="btn" onclick="closeModal()">取消</button>
+            <button class="btn btn-primary" id="modalConfirm" onclick="confirmModal()">确定</button>
+        </div>
+    </div>
+</div>
+
+<script>
+// ========== State ==========
+let mfgCostEnabled = true;
+let bomVsmOk = true; // true=OK, false=NOK
+let lineIdCounter = 0;
+
+const SAMPLE_DATA = [
+    { partNo: 'P-20260521-001', partName: '电池模组壳体', line: '冲压线体A', lineCode: 'LN-ST-01', ct: '12.5', qty: '2', oee: '85', lcr: '500', lcrH: '4.2', areaFee: '0.35', depFee: '0.42', equipFee: '1.28', energyFee: '0.18', passRate: '99.2', scrapRecover: '75', scrapFee: '0.12', consumFee: '0.25', laborFee: '0.68' },
+    { partNo: 'P-20260521-001', partName: '电池模组壳体', line: '焊接线体B', lineCode: 'LN-WD-02', ct: '18.0', qty: '1', oee: '80', lcr: '500', lcrH: '5.8', areaFee: '0.28', depFee: '0.55', equipFee: '1.65', energyFee: '0.22', passRate: '98.8', scrapRecover: '80', scrapFee: '0.15', consumFee: '0.32', laborFee: '0.92' },
+];
+
+const EMPTY_LINE = { partNo: '', partName: '', line: '', lineCode: '', ct: '', qty: '', oee: '', lcr: '', lcrH: '', areaFee: '', depFee: '', equipFee: '', energyFee: '', passRate: '', scrapRecover: '', scrapFee: '', consumFee: '', laborFee: '' };
+
+// ========== Toggle handlers ==========
+function onToggleMfgCost() {
+    mfgCostEnabled = document.getElementById('enableMfgCost').checked;
+    render();
+    if (!mfgCostEnabled) {
+        showToast('已切换为中粗项报价模式', 'info');
+    } else {
+        showToast('已切换为明细报价模式', 'info');
+    }
+}
+
+function cycleBomVsmStatus() {
+    bomVsmOk = !bomVsmOk;
+    document.getElementById('bomVsmLabel').textContent = bomVsmOk ? 'OK' : 'NOK';
+    const btn = document.getElementById('bomVsmBtn');
+    btn.style.background = bomVsmOk ? 'var(--success-light)' : 'var(--warning-light)';
+    btn.style.borderColor = bomVsmOk ? 'var(--success)' : 'var(--warning)';
+    render();
+    if (bomVsmOk) {
+        showVSMConfirm();
+    } else {
+        showToast('SVC工序拆解状态NOK', 'warning');
+    }
+}
+
+function showVSMConfirm() {
+    showModal('VSM版本校验', '当前零件-供应商的SVC VSM结构和工序参数有更新，请点击确定并根据最新VSM进行报价；如VSM有误，请到SVC系统进行更新。', () => {
+        closeModal();
+        loadSampleData();
+        showToast('已加载最新VSM数据', 'success');
+    });
+}
+
+// ========== Render ==========
+function render() {
+    const s1 = document.getElementById('scenario1');
+    const s23 = document.getElementById('scenario23');
+    const chipMfg = document.getElementById('chipMfg');
+    const chipBom = document.getElementById('chipBom');
+    const chipSvc = document.getElementById('chipSVC');
+    const bomBtnArea = document.getElementById('bomVsmStatusArea');
+
+    if (!mfgCostEnabled) {
+        s1.classList.remove('hidden');
+        s23.classList.add('hidden');
+        bomBtnArea.classList.add('hidden');
+        chipMfg.className = 'chip off';
+        chipMfg.innerHTML = '<div class="dot"></div>已关闭制造成本';
+        chipBom.className = 'chip off';
+        chipBom.innerHTML = '<div class="dot"></div>--';
+        chipSvc.className = 'chip off';
+        chipSvc.innerHTML = '<div class="dot"></div>--';
+    } else {
+        s1.classList.add('hidden');
+        s23.classList.remove('hidden');
+        bomBtnArea.classList.remove('hidden');
+        chipMfg.className = 'chip on';
+        chipMfg.innerHTML = '<div class="dot"></div>已打开制造成本';
+        chipBom.className = bomVsmOk ? 'chip on' : 'chip warn';
+        chipBom.innerHTML = '<div class="dot"></div>BOM+VSM: ' + (bomVsmOk ? 'OK' : 'NOK');
+        chipSvc.className = bomVsmOk ? 'chip on' : 'chip warn';
+        chipSvc.innerHTML = '<div class="dot"></div>SVC工序: ' + (bomVsmOk ? 'OK' : 'NOK');
+
+        // Show/hide VSM
+        document.getElementById('vsmEmpty').classList.toggle('hidden', bomVsmOk);
+        document.getElementById('vsmActive').classList.toggle('hidden', !bomVsmOk);
+
+        // Summary note
+        document.getElementById('summaryNote').textContent = bomVsmOk ? 'SVC自动计算' : '用户维护后自动汇总';
+
+        // Render detail table
+        renderDetailTable();
+    }
+    calcSummary();
+}
+
+// ========== Detail table ==========
+function renderDetailTable() {
+    const tbody = document.getElementById('detailBody');
+    const lines = getLines();
+    tbody.innerHTML = '';
+    lines.forEach((l, i) => {
+        const tr = document.createElement('tr');
+        tr.id = 'line-' + l.id;
+        const editable = bomVsmOk ? true : true; // both allow editing
+        const keys = ['partNo','partName','line','lineCode','ct','qty','oee','lcr','lcrH','areaFee','depFee','equipFee','energyFee','passRate','scrapRecover','scrapFee','consumFee','laborFee'];
+        const readOnly = ['partNo','partName'];
+        let cells = `<td style="text-align:center;color:var(--gray-500);">${i + 1}</td>`;
+        keys.forEach(k => {
+            const ro = readOnly.includes(k) ? 'readonly' : '';
+            const cls = readOnly.includes(k) ? ' class="part-name"' : '';
+            const val = l[k] || '';
+            cells += `<td${cls}><input type="text" inputmode="decimal" value="${val}" ${ro} data-id="${l.id}" data-key="${k}" oninput="onCellInput(this)"></td>`;
+        });
+        cells += `<td><button class="btn btn-sm btn-danger" onclick="deleteLine(${l.id})">删除</button></td>`;
+        tr.innerHTML = cells;
+        tbody.appendChild(tr);
+    });
+}
+
+function getLines() {
+    if (!window._lines) window._lines = [];
+    return window._lines;
+}
+
+function loadSampleData() {
+    window._lines = SAMPLE_DATA.map(d => ({ ...d, id: ++lineIdCounter }));
+    renderDetailTable();
+    calcSummary();
+}
+
+function addLine() {
+    const lines = getLines();
+    lines.push({ ...EMPTY_LINE, id: ++lineIdCounter });
+    renderDetailTable();
+    showToast('已添加新行', 'success');
+}
+
+function deleteLine(id) {
+    const lines = getLines();
+    const idx = lines.findIndex(l => l.id === id);
+    if (idx >= 0) {
+        lines.splice(idx, 1);
+        renderDetailTable();
+        calcSummary();
+    }
+}
+
+function onCellInput(el) {
+    const id = parseInt(el.dataset.id);
+    const key = el.dataset.key;
+    const lines = getLines();
+    const line = lines.find(l => l.id === id);
+    if (line) line[key] = el.value;
+    calcSummary();
+}
+
+// ========== Calculations ==========
+function toNum(v) { const n = parseFloat(v); return isNaN(n) ? 0 : n; }
+function fmt(n) { return n.toFixed(3); }
+
+function calcSummary() {
+    const lines = getLines();
+    const sum = { equip: 0, labor: 0, scrap: 0, energy: 0, consum: 0 };
+    lines.forEach(l => {
+        sum.equip += toNum(l.equipFee);
+        sum.labor += toNum(l.laborFee);
+        sum.scrap += toNum(l.scrapFee);
+        sum.energy += toNum(l.energyFee);
+        sum.consum += toNum(l.consumFee);
+    });
+    const total = sum.equip + sum.labor + sum.scrap + sum.energy + sum.consum;
+
+    document.getElementById('sumEquipment').value = fmt(sum.equip);
+    document.getElementById('sumLabor').value = fmt(sum.labor);
+    document.getElementById('sumScrap').value = fmt(sum.scrap);
+    document.getElementById('sumEnergy').value = fmt(sum.energy);
+    document.getElementById('sumConsumable').value = fmt(sum.consum);
+    document.getElementById('sumTotal').value = fmt(total);
+}
+
+function calcManualTotal(el) {
+    el.value = formatDecimal(el.value);
+    const items = document.querySelectorAll('#summaryManual .manual-input');
+    let total = 0;
+    items.forEach(i => { total += toNum(i.value); });
+    document.getElementById('manualTotal').value = fmt(total);
+}
+
+function formatDecimal(v) {
+    // Allow only numbers and one dot, strip extras
+    let s = v.replace(/[^\d.]/g, '');
+    const parts = s.split('.');
+    if (parts.length > 2) s = parts[0] + '.' + parts.slice(1).join('');
+    if (parts[1] && parts[1].length > 3) s = parts[0] + '.' + parts[1].slice(0, 3);
+    return s;
+}
+
+// ========== Validation ==========
+function validateLines() {
+    const lines = getLines();
+    const requiredKeys = ['ct','qty','oee','lcr','lcrH','areaFee','depFee','equipFee','energyFee','passRate','scrapRecover','scrapFee','consumFee','laborFee'];
+    const keyLabels = {
+        ct: 'CT生产节拍', qty: '产出数量', oee: 'OEE设计值', lcr: 'LCR需求', lcrH: 'LCR工时',
+        areaFee: '占地费', depFee: '设备折旧', equipFee: '设备总费', energyFee: '能耗费',
+        passRate: '合格率', scrapRecover: '报废回收率', scrapFee: '报废费', consumFee: '耗材均摊', laborFee: '人员费'
+    };
+    let errorCount = 0;
+    let missingFields = [];
+
+    // Clear previous highlights
+    document.querySelectorAll('#detailTable td input').forEach(i => i.classList.remove('empty'));
+
+    lines.forEach((l, idx) => {
+        requiredKeys.forEach(k => {
+            if (!l[k] || l[k].trim() === '') {
+                errorCount++;
+                missingFields.push(keyLabels[k]);
+                // Highlight cell
+                const input = document.querySelector(`input[data-id="${l.id}"][data-key="${k}"]`);
+                if (input) input.classList.add('empty');
+            }
+        });
+    });
+
+    document.getElementById('errorCount').textContent = errorCount;
+
+    if (errorCount === 0 && lines.length > 0) {
+        showToast('所有行项目填写完整', 'success');
+    } else if (errorCount > 0) {
+        showToast(`有 ${errorCount} 个字段为空：${[...new Set(missingFields)].join('、')}`, 'error');
+    } else {
+        showToast('请先添加行项目', 'warning');
+    }
+}
+
+// ========== Submit & Get VSM ==========
+function handleSubmit() {
+    if (!mfgCostEnabled) {
+        // Scenario 1: validate manual inputs
+        const items = document.querySelectorAll('#summaryManual .manual-input');
+        let hasEmpty = false;
+        items.forEach(i => { if (!i.value || i.value.trim() === '') { hasEmpty = true; } });
+        if (hasEmpty) {
+            showToast('请填写所有必填费用项', 'error');
+            return;
+        }
+        showModal('提交确认', '确认提交制造费报价？<br><br><strong>制造费总价：' + document.getElementById('manualTotal').value + ' 元</strong>', () => {
+            closeModal();
+            showToast('报价提交成功', 'success');
+        });
+    } else {
+        // Scenario 2/3: validate detail lines
+        const lines = getLines();
+        if (lines.length === 0) {
+            showToast('请至少添加一个行项目', 'error');
+            return;
+        }
+        // Quick validate
+        let empty = false;
+        const requiredKeys = ['ct','qty','oee','lcr','lcrH','areaFee','depFee','equipFee','energyFee','passRate','scrapRecover','scrapFee','consumFee','laborFee'];
+        lines.forEach(l => {
+            requiredKeys.forEach(k => {
+                if (!l[k] || l[k].trim() === '') empty = true;
+            });
+        });
+        if (empty) {
+            showToast('存在未填写的必填字段，请先校验并补全', 'error');
+            return;
+        }
+        // VSM version check for scenario 3
+        if (bomVsmOk) {
+            showModal('VSM版本校验', '提交前确认VSM版本是否最新。当前EP SVC VSM版本与SVC最新版本一致。', () => {
+                closeModal();
+                showToast('报价提交成功', 'success');
+            });
+        } else {
+            showModal('提交确认', '当前BOM+VSM状态为NOK，确认提交中粗项报价？', () => {
+                closeModal();
+                showToast('报价提交成功', 'success');
+            });
+        }
+    }
+}
+
+function handleGetVSM() {
+    if (!mfgCostEnabled) {
+        showToast('关闭制造成本状态下无需获取VSM', 'warning');
+        return;
+    }
+    if (bomVsmOk) {
+        showModal('VSM版本校验', '当前VSM无更新，请在当前版本上进行更新。', () => {
+            closeModal();
+        });
+    } else {
+        showModal('VSM版本校验', '当前BOM结构未维护，请至SVC系统更新VSM，或在当前报价包拆解制造工艺。', () => {
+            bomVsmOk = true;
+            document.getElementById('bomVsmLabel').textContent = 'OK';
+            document.getElementById('bomVsmBtn').style.background = 'var(--success-light)';
+            document.getElementById('bomVsmBtn').style.borderColor = 'var(--success)';
+            loadSampleData();
+            render();
+            closeModal();
+            showToast('已获取最新VSM结构', 'success');
+        });
+    }
+}
+
+// ========== Toast ==========
+function showToast(msg, type) {
+    const c = document.getElementById('toastContainer');
+    const t = document.createElement('div');
+    t.className = 'toast ' + type;
+    t.textContent = msg;
+    c.appendChild(t);
+    setTimeout(() => { t.style.opacity = '0'; t.style.transition = '0.3s'; setTimeout(() => t.remove(), 300); }, 3000);
+}
+
+// ========== Modal ==========
+function showModal(title, body, onConfirm) {
+    document.getElementById('modalTitle').textContent = title;
+    document.getElementById('modalBody').innerHTML = body;
+    document.getElementById('modalMask').classList.add('show');
+    window._modalCb = onConfirm;
+}
+function closeModal(e) {
+    if (e && e.target !== document.getElementById('modalMask')) return;
+    document.getElementById('modalMask').classList.remove('show');
+}
+function confirmModal() {
+    if (window._modalCb) window._modalCb();
+}
+
+// ========== Init ==========
+render();
+</script>
+
+</body>
+</html>
