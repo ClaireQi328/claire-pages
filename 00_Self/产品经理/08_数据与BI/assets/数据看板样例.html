@@ -1,0 +1,317 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>数据看板样例 — 多层级指标体系</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4"></script>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+:root{--bg:#0f1117;--card:#1a1d27;--card2:#22263a;--accent:#6366f1;--accent2:#818cf8;
+--green:#34d399;--red:#f87171;--orange:#fbbf24;--text:#e2e8f0;--text2:#94a3b8;
+--border:rgba(255,255,255,.06);--r:10px}
+body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC",sans-serif;background:var(--bg);color:var(--text);min-height:100vh}
+.wrap{max-width:1200px;margin:0 auto;padding:24px 20px}
+/* Header */
+.hdr{display:flex;justify-content:space-between;align-items:flex-end;flex-wrap:wrap;gap:12px;margin-bottom:24px;padding-bottom:16px;border-bottom:1px solid var(--border)}
+.hdr h1{font-size:1.4rem;font-weight:700;color:#fff}
+.hdr p{font-size:.8rem;color:var(--text2);margin-top:2px}
+.pills{display:flex;gap:6px}
+.pill{padding:5px 14px;border-radius:6px;font-size:.75rem;cursor:pointer;transition:.2s;background:var(--card);color:var(--text2);border:1px solid var(--border)}
+.pill:hover,.pill.on{background:var(--accent);color:#fff;border-color:var(--accent)}
+/* Tabs */
+.tabs{display:flex;gap:4px;margin-bottom:20px;background:var(--card);border-radius:var(--r);padding:4px;width:fit-content}
+.tab{padding:8px 20px;border-radius:8px;font-size:.82rem;cursor:pointer;transition:.2s;color:var(--text2);font-weight:500}
+.tab:hover{color:var(--text)}.tab.on{background:var(--accent);color:#fff}
+.panel{display:none}.panel.on{display:block}
+/* Metric Level Header */
+.level{display:flex;align-items:center;gap:10px;margin-bottom:16px}
+.level-tag{padding:3px 10px;border-radius:4px;font-size:.7rem;font-weight:600;text-transform:uppercase;letter-spacing:.5px}
+.level-tag.ns{background:rgba(99,102,241,.2);color:var(--accent2)}
+.level-tag.in{background:rgba(52,211,153,.15);color:var(--green)}
+.level-tag.gr{background:rgba(251,191,36,.15);color:var(--orange)}
+.level h2{font-size:1.1rem;font-weight:600;color:#fff}
+.level p{font-size:.78rem;color:var(--text2);margin-left:auto}
+/* Cards */
+.grid{display:grid;gap:16px}
+.g2{grid-template-columns:repeat(auto-fit,minmax(260px,1fr))}
+.g3{grid-template-columns:repeat(auto-fit,minmax(200px,1fr))}
+.g4{grid-template-columns:repeat(auto-fit,minmax(180px,1fr))}
+.card{background:var(--card);border:1px solid var(--border);border-radius:var(--r);padding:20px;transition:.2s}
+.card:hover{border-color:rgba(99,102,241,.3)}
+.card .label{font-size:.75rem;color:var(--text2);margin-bottom:6px;display:flex;align-items:center;gap:6px}
+.card .val{font-size:1.8rem;font-weight:700;color:#fff;line-height:1.1}
+.card .sub{font-size:.75rem;margin-top:6px;display:flex;align-items:center;gap:4px}
+.card .sub.up{color:var(--green)}.card .sub.down{color:var(--red)}.card .sub.flat{color:var(--text2)}
+.spark{display:inline-block;vertical-align:middle}
+/* Chart card */
+.chart-card{background:var(--card);border:1px solid var(--border);border-radius:var(--r);padding:20px}
+.chart-card h3{font-size:.85rem;font-weight:600;color:var(--text);margin-bottom:12px;display:flex;align-items:center;gap:8px}
+.chart-card h3 .dot{width:8px;height:8px;border-radius:50%}
+.chart-wrap{position:relative;height:220px}
+/* Table */
+.tbl{width:100%;border-collapse:collapse;font-size:.78rem}
+.tbl th{text-align:left;padding:10px 12px;color:var(--text2);font-weight:500;border-bottom:1px solid var(--border)}
+.tbl td{padding:10px 12px;border-bottom:1px solid rgba(255,255,255,.03)}
+.tbl tr:hover td{background:rgba(99,102,241,.05)}
+.badge{display:inline-block;padding:2px 8px;border-radius:4px;font-size:.7rem;font-weight:600}
+.badge.g{background:rgba(52,211,153,.15);color:var(--green)}
+.badge.r{background:rgba(248,113,113,.15);color:var(--red)}
+.badge.o{background:rgba(251,191,36,.15);color:var(--orange)}
+/* Formula */
+.formula{background:var(--card2);border:1px solid var(--border);border-radius:8px;padding:14px 18px;font-size:.78rem;color:var(--text2);margin:12px 0;line-height:1.7}
+.formula code{background:rgba(99,102,241,.15);color:var(--accent2);padding:2px 6px;border-radius:4px;font-size:.75rem}
+/* Animations */
+@keyframes fadeUp{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:none}}
+.card,.chart-card{animation:fadeUp .4s ease both}
+.g2 .card:nth-child(2),.g3 .card:nth-child(2){animation-delay:.05s}
+.g3 .card:nth-child(3){animation-delay:.1s}
+.g4 .card:nth-child(3){animation-delay:.1s}
+.g4 .card:nth-child(4){animation-delay:.15s}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<!-- Header -->
+<div class="hdr">
+  <div><h1>📊 供应链运营 Dashboard</h1><p>多层级指标体系示例 — 点击 Tab 切换指标层级</p></div>
+  <div class="pills">
+    <span class="pill" onclick="setRange(this)">7天</span>
+    <span class="pill on" onclick="setRange(this)">30天</span>
+    <span class="pill" onclick="setRange(this)">90天</span>
+  </div>
+</div>
+
+<!-- Tabs -->
+<div class="tabs">
+  <div class="tab on" onclick="switchTab(0)">🎯 北极星指标</div>
+  <div class="tab" onclick="switchTab(1)">📈 输入指标</div>
+  <div class="tab" onclick="switchTab(2)">🛡️ 护栏指标</div>
+  <div class="tab" onclick="switchTab(3)">📋 指标字典</div>
+</div>
+
+<!-- ===== Panel 0: North Star ===== -->
+<div class="panel on" id="p0">
+  <div class="level">
+    <span class="level-tag ns">North Star</span>
+    <h2>客户生命周期价值 LTV</h2>
+    <p>衡量产品长期健康度的核心指标</p>
+  </div>
+
+  <div class="formula">
+    <strong>公式：</strong><code>LTV = 客单价 × 购买频次 × 生命周期月数 × 毛利率</code><br>
+    <strong>当前值：</strong>¥453.8 × 2.3次/月 × 18月 × 32% = <strong style="color:#fff">¥5,967</strong>
+    &nbsp; <span class="badge g">↑ 8.2% MoM</span>
+  </div>
+
+  <div class="grid g4">
+    <div class="card">
+      <div class="label">🎯 LTV（本月）</div>
+      <div class="val">¥5,967</div>
+      <div class="sub up">↑ 8.2% vs 上月</div>
+    </div>
+    <div class="card">
+      <div class="label">💰 客单价</div>
+      <div class="val">¥453.8</div>
+      <div class="sub down">↓ 2.1% vs 上月</div>
+    </div>
+    <div class="card">
+      <div class="label">🔄 月均购买频次</div>
+      <div class="val">2.3</div>
+      <div class="sub up">↑ 0.2 vs 上月</div>
+    </div>
+    <div class="card">
+      <div class="label">⏳ 平均生命周期</div>
+      <div class="val">18月</div>
+      <div class="sub flat">— 持平</div>
+    </div>
+  </div>
+
+  <div style="margin-top:16px">
+    <div class="chart-card">
+      <h3><span class="dot" style="background:var(--accent)"></span>LTV 趋势（近 12 月）</h3>
+      <div class="chart-wrap"><canvas id="ltvChart"></canvas></div>
+    </div>
+  </div>
+</div>
+
+<!-- ===== Panel 1: Input Metrics ===== -->
+<div class="panel" id="p1">
+  <div class="level">
+    <span class="level-tag in">Input</span>
+    <h2>驱动北极星的输入指标</h2>
+    <p>可直接影响的先导指标</p>
+  </div>
+
+  <!-- Acquisition -->
+  <div class="level" style="margin-top:20px"><span class="level-tag in">获客</span><h2 style="font-size:.95rem">Acquisition</h2></div>
+  <div class="grid g3">
+    <div class="card"><div class="label">新注册用户</div><div class="val">12,845</div><div class="sub up">↑ 15.3%</div></div>
+    <div class="card"><div class="label">注册转化率</div><div class="val">23.4%</div><div class="sub up">↑ 2.1pp</div></div>
+    <div class="card"><div class="label">CAC 获客成本</div><div class="val">¥86</div><div class="sub down">↑ 12% (需关注)</div></div>
+  </div>
+
+  <!-- Activation -->
+  <div class="level" style="margin-top:20px"><span class="level-tag in">激活</span><h2 style="font-size:.95rem">Activation</h2></div>
+  <div class="grid g3">
+    <div class="card"><div class="label">激活率（首单）</div><div class="val">38.7%</div><div class="sub up">↑ 3.2pp</div></div>
+    <div class="card"><div class="label">Time to First Value</div><div class="val">2.1天</div><div class="sub up">↓ 0.3天 (好)</div></div>
+    <div class="card"><div class="label">Onboarding 完成率</div><div class="val">67.2%</div><div class="sub up">↑ 5.1pp</div></div>
+  </div>
+
+  <!-- Engagement -->
+  <div class="level" style="margin-top:20px"><span class="level-tag in">活跃</span><h2 style="font-size:.95rem">Engagement</h2></div>
+  <div class="grid g3">
+    <div class="card"><div class="label">DAU</div><div class="val">45.2K</div><div class="sub up">↑ 8.7%</div></div>
+    <div class="card"><div class="label">WAU/DAU 比</div><div class="val">3.2</div><div class="sub flat">— 健康区间</div></div>
+    <div class="card"><div class="label">人均会话时长</div><div class="val">8.3min</div><div class="sub up">↑ 1.2min</div></div>
+  </div>
+
+  <!-- Revenue -->
+  <div class="level" style="margin-top:20px"><span class="level-tag in">变现</span><h2 style="font-size:.95rem">Revenue</h2></div>
+  <div class="grid g3">
+    <div class="card"><div class="label">GMV</div><div class="val">¥5,832万</div><div class="sub up">↑ 8.7%</div></div>
+    <div class="card"><div class="label">付费转化率</div><div class="val">4.8%</div><div class="sub up">↑ 0.3pp</div></div>
+    <div class="card"><div class="label">ARPU</div><div class="val">¥129</div><div class="sub up">↑ 5.2%</div></div>
+  </div>
+
+  <div style="margin-top:16px">
+    <div class="chart-card">
+      <h3><span class="dot" style="background:var(--green)"></span>输入指标趋势（近 30 天）</h3>
+      <div class="chart-wrap"><canvas id="inputChart"></canvas></div>
+    </div>
+  </div>
+</div>
+
+<!-- ===== Panel 2: Guardrail ===== -->
+<div class="panel" id="p2">
+  <div class="level">
+    <span class="level-tag gr">Guardrail</span>
+    <h2>护栏指标 — 不可恶化</h2>
+    <p>增长的底线约束，任何优化不能以牺牲这些指标为代价</p>
+  </div>
+
+  <div class="grid g3">
+    <div class="card"><div class="label">🛡️ 系统可用性</div><div class="val">99.97%</div><div class="sub up">SLA ≥ 99.95% ✓</div></div>
+    <div class="card"><div class="label">🛡️ NPS 净推荐值</div><div class="val">+42</div><div class="sub up">目标 ≥ +35 ✓</div></div>
+    <div class="card"><div class="label">🛡️ 客诉率</div><div class="val">0.32%</div><div class="sub up">目标 < 0.5% ✓</div></div>
+    <div class="card"><div class="label">⚠️ 退货率</div><div class="val">3.8%</div><div class="sub down">目标 < 3% ✗ 接近红线</div></div>
+    <div class="card"><div class="label">🛡️ 数据延迟</div><div class="val">< 5min</div><div class="sub up">SLA ≤ 15min ✓</div></div>
+    <div class="card"><div class="label">⚠️ 退款率</div><div class="val">1.2%</div><div class="sub down">目标 < 1% ✗ 需关注</div></div>
+  </div>
+
+  <div style="margin-top:16px">
+    <div class="chart-card">
+      <h3><span class="dot" style="background:var(--orange)"></span>护栏指标健康度</h3>
+      <div class="chart-wrap"><canvas id="guardChart"></canvas></div>
+    </div>
+  </div>
+</div>
+
+<!-- ===== Panel 3: Dictionary ===== -->
+<div class="panel" id="p3">
+  <div class="level">
+    <span class="level-tag ns">Dictionary</span>
+    <h2>指标字典</h2>
+    <p>统一口径，消除歧义</p>
+  </div>
+
+  <div class="chart-card" style="overflow-x:auto">
+    <table class="tbl">
+      <thead><tr>
+        <th>指标名</th><th>层级</th><th>口径</th><th>数据源</th><th>负责人</th><th>更新频率</th>
+      </tr></thead>
+      <tbody>
+        <tr><td><strong>LTV</strong></td><td><span class="badge" style="background:rgba(99,102,241,.2);color:var(--accent2)">North Star</span></td><td>客单价 × 频次 × 生命周期 × 毛利率</td><td>DWS 用户价值表</td><td>张三</td><td>月</td></tr>
+        <tr><td><strong>GMV</strong></td><td><span class="badge g">Input</span></td><td>支付成功订单金额之和（含退款前）</td><td>DWS 交易域</td><td>李四</td><td>日</td></tr>
+        <tr><td><strong>DAU</strong></td><td><span class="badge g">Input</span></td><td>当日去重访问用户数（≥1次有效页面浏览）</td><td>DWS 流量域</td><td>王五</td><td>日</td></tr>
+        <tr><td><strong>激活率</strong></td><td><span class="badge g">Input</span></td><td>注册后7天内完成首单用户 / 注册用户</td><td>DWS 用户域</td><td>张三</td><td>日</td></tr>
+        <tr><td><strong>NPS</strong></td><td><span class="badge o">Guardrail</span></td><td>(推荐者% - 贬损者%) × 100，季度问卷</td><td>问卷系统</td><td>赵六</td><td>季</td></tr>
+        <tr><td><strong>退货率</strong></td><td><span class="badge o">Guardrail</span></td><td>退货订单数 / 总签收订单数</td><td>DWS 售后域</td><td>李四</td><td>日</td></tr>
+        <tr><td><strong>CAC</strong></td><td><span class="badge g">Input</span></td><td>营销总支出 / 新注册用户数</td><td>财务系统</td><td>王五</td><td>月</td></tr>
+        <tr><td><strong>客单价</strong></td><td><span class="badge g">Input</span></td><td>GMV / 有效订单数（剔除0元单和测试单）</td><td>DWS 交易域</td><td>李四</td><td>日</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="formula" style="margin-top:16px">
+    <strong>指标层级关系：</strong><br>
+    <code>North Star (LTV)</code> = <code>客单价</code> × <code>购买频次</code> × <code>生命周期</code> × <code>毛利率</code><br>
+    ↑ 每个 Input 指标都可以继续拆解为更细的运营动作<br>
+    ↓ Guardrail 指标是所有优化的底线约束，不可触碰
+  </div>
+</div>
+
+</div><!-- /wrap -->
+
+<script>
+// Tab switching
+function switchTab(i){
+  document.querySelectorAll('.tab').forEach((t,j)=>t.classList.toggle('on',j===i));
+  document.querySelectorAll('.panel').forEach((p,j)=>p.classList.toggle('on',j===i));
+}
+function setRange(el){
+  el.parentElement.querySelectorAll('.pill').forEach(p=>p.classList.remove('on'));
+  el.classList.add('on');
+}
+
+// Chart defaults
+Chart.defaults.color='#94a3b8';
+Chart.defaults.borderColor='rgba(255,255,255,0.06)';
+Chart.defaults.font.family='-apple-system,BlinkMacSystemFont,"PingFang SC",sans-serif';
+Chart.defaults.font.size=11;
+
+const months=['1月','2月','3月','4月','5月','6月','7月','8月','9月','10月','11月','12月'];
+const days=Array.from({length:30},(_,i)=>`${i+1}日`);
+
+// LTV Chart
+new Chart(document.getElementById('ltvChart'),{
+  type:'line',
+  data:{
+    labels:months,
+    datasets:[{
+      label:'LTV (¥)',data:[4200,4350,4100,4500,4680,4820,5050,5200,5100,5400,5600,5967],
+      borderColor:'#6366f1',backgroundColor:'rgba(99,102,241,.1)',fill:true,tension:.4,
+      pointRadius:3,pointBackgroundColor:'#6366f1'
+    },{
+      label:'目标',data:[5000,5000,5000,5000,5000,5000,5000,5000,5000,5000,5000,5000],
+      borderColor:'rgba(248,113,113,.4)',borderDash:[6,4],pointRadius:0,fill:false
+    }]
+  },
+  options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'bottom',labels:{boxWidth:12,padding:16}}},
+    scales:{y:{beginAtZero:false,grid:{color:'rgba(255,255,255,.04)'}}}}
+});
+
+// Input Chart
+new Chart(document.getElementById('inputChart'),{
+  type:'line',
+  data:{
+    labels:days,
+    datasets:[
+      {label:'GMV (万)',data:[180,195,172,210,198,220,205,215,230,225,240,235,250,245,260,255,270,265,280,275,290,285,300,295,310,305,320,315,330,325],borderColor:'#6366f1',tension:.3,pointRadius:0,yAxisID:'y'},
+      {label:'DAU (K)',data:[42,43,41,44,43,45,44,46,45,47,46,48,47,49,48,50,49,51,50,52,51,53,52,54,53,55,54,56,55,57],borderColor:'#34d399',tension:.3,pointRadius:0,yAxisID:'y1'}
+    ]
+  },
+  options:{responsive:true,maintainAspectRatio:false,interaction:{mode:'index',intersect:false},
+    plugins:{legend:{position:'bottom',labels:{boxWidth:12,padding:16}}},
+    scales:{y:{position:'left',grid:{color:'rgba(255,255,255,.04)'}},y1:{position:'right',grid:{drawOnChartArea:false}}}}
+});
+
+// Guardrail Chart
+new Chart(document.getElementById('guardChart'),{
+  type:'bar',
+  data:{
+    labels:['系统可用性','NPS','客诉率','退货率','数据延迟','退款率'],
+    datasets:[
+      {label:'当前值',data:[99.97,42,0.32,3.8,99.9,1.2],backgroundColor:['#34d399','#34d399','#34d399','#f87171','#34d399','#fbbf24']},
+      {label:'红线值',data:[99.95,35,0.5,3.0,99.5,1.0],backgroundColor:'rgba(255,255,255,.08)'}
+    ]
+  },
+  options:{responsive:true,maintainAspectRatio:false,indexAxis:'y',
+    plugins:{legend:{position:'bottom',labels:{boxWidth:12,padding:16}}},
+    scales:{x:{grid:{color:'rgba(255,255,255,.04)'}}}}
+});
+</script>
+</body>
+</html>
