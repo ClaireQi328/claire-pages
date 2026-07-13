@@ -1,0 +1,400 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>报价细项明细数据分析 — 增量分析（0713）</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+<style>
+  :root{
+    --xm-orange:#FF6700;
+    --xm-orange-soft:#FFF3E9;
+    --ink:#1a1a1a;
+    --ink-2:#4a4a4a;
+    --ink-3:#8a8a8a;
+    --line:#ececec;
+    --bg:#f7f8fa;
+    --card:#ffffff;
+    --L4:#534AB7; --L4-soft:#EEEDFE;
+    --L3:#0F6E56; --L3-soft:#E1F5EE;
+    --L2:#854F0B; --L2-soft:#FAEEDA;
+    --L1:#A32D2D; --L1-soft:#FCEBEB;
+  }
+  *{box-sizing:border-box;margin:0;padding:0;}
+  body{
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Hiragino Sans GB","Microsoft YaHei",sans-serif;
+    background:var(--bg);color:var(--ink);line-height:1.7;
+    -webkit-font-smoothing:antialiased;
+  }
+  .page{max-width:980px;margin:0 auto;background:var(--card);padding:48px 56px 64px;box-shadow:0 1px 24px rgba(0,0,0,.06);}
+  h1{font-size:26px;font-weight:600;letter-spacing:.5px;margin-bottom:4px;}
+  h2{font-size:19px;font-weight:600;margin:40px 0 16px;padding-left:12px;border-left:4px solid var(--xm-orange);}
+  h3{font-size:16px;font-weight:600;margin:26px 0 12px;color:var(--ink);}
+  .sub{color:var(--ink-3);font-size:13px;margin-bottom:28px;}
+  p{font-size:14px;color:var(--ink-2);margin-bottom:12px;}
+  .emoji{margin-right:8px;}
+  .badge-date{display:inline-block;background:var(--xm-orange-soft);color:var(--xm-orange);font-size:12px;padding:3px 12px;border-radius:20px;font-weight:600;margin-bottom:18px;}
+
+  /* summary cards */
+  .grid5{display:grid;grid-template-columns:repeat(5,1fr);gap:12px;margin:14px 0 8px;}
+  .grid2{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin:14px 0;}
+  .stat{background:var(--bg);border-radius:10px;padding:16px 10px;text-align:center;border:1px solid var(--line);}
+  .stat .num{font-size:28px;font-weight:700;line-height:1.1;}
+  .stat .lab{font-size:12px;color:var(--ink-2);margin-top:6px;font-weight:500;}
+  .stat .note{font-size:11px;color:var(--ink-3);margin-top:2px;}
+  .stat.s-L4{background:var(--L4-soft);border-color:#d9d6f5;}
+  .stat.s-L4 .num{color:var(--L4);}
+  .stat.s-L3{background:var(--L3-soft);border-color:#c3ead9;}
+  .stat.s-L3 .num{color:var(--L3);}
+  .stat.s-L2{background:var(--L2-soft);border-color:#f3dcb3;}
+  .stat.s-L2 .num{color:var(--L2);}
+  .stat.s-L1{background:var(--L1-soft);border-color:#f3cccc;}
+  .stat.s-L1 .num{color:var(--L1);}
+  .stat.s-tot{background:var(--xm-orange-soft);border-color:#ffd9bb;}
+  .stat.s-tot .num{color:var(--xm-orange);}
+
+  /* table */
+  table{width:100%;border-collapse:collapse;margin:14px 0;font-size:13px;}
+  th,td{padding:9px 12px;text-align:left;border-bottom:1px solid var(--line);}
+  th{background:var(--bg);font-weight:600;color:var(--ink-2);font-size:12.5px;}
+  td.r,th.r{text-align:right;}
+  tr:hover td{background:#fafbfc;}
+  .pill{display:inline-block;font-size:11px;padding:2px 9px;border-radius:12px;font-weight:600;}
+  .pill.up{background:#E6F4EA;color:#137333;}
+  .pill.flat{background:#eef0f2;color:#5f5e5a;}
+  .pill.L4{background:var(--L4-soft);color:var(--L4);}
+  .pill.L3{background:var(--L3-soft);color:var(--L3);}
+  .pill.L2{background:var(--L2-soft);color:var(--L2);}
+  .pill.L1{background:var(--L1-soft);color:var(--L1);}
+
+  /* insight box */
+  .insight{background:linear-gradient(0deg,var(--xm-orange-soft),#fff);border:1px solid #ffd9bb;border-radius:10px;padding:14px 18px;margin:16px 0;font-size:13.5px;color:var(--ink-2);}
+  .insight b{color:var(--xm-orange);}
+  .callout{background:#f0f4ff;border-left:4px solid #3a6df0;border-radius:0 8px 8px 0;padding:12px 16px;margin:14px 0;font-size:13px;color:var(--ink-2);}
+  .callout b{color:#3a6df0;}
+
+  .chart-wrap{position:relative;width:100%;height:340px;margin:18px 0;background:var(--card);border:1px solid var(--line);border-radius:12px;padding:14px;}
+  .chart-wrap.h260{height:280px;}
+  .legend{display:flex;flex-wrap:wrap;gap:18px;margin-top:6px;font-size:12px;color:var(--ink-2);}
+  .legend span{display:flex;align-items:center;gap:6px;}
+  .legend i{width:11px;height:11px;border-radius:3px;display:inline-block;}
+
+  .timeline{margin:14px 0;padding-left:0;list-style:none;}
+  .timeline li{position:relative;padding:10px 0 10px 22px;border-left:2px solid var(--line);margin-left:8px;}
+  .timeline li::before{content:"";position:absolute;left:-6px;top:16px;width:10px;height:10px;border-radius:50%;background:var(--xm-orange);}
+  .timeline .d{font-weight:600;color:var(--ink);font-size:13px;}
+  .timeline .c{font-size:13px;color:var(--ink-2);}
+
+  .foot{margin-top:48px;padding-top:18px;border-top:1px solid var(--line);font-size:12px;color:var(--ink-3);text-align:center;}
+  @media (max-width:680px){.grid5{grid-template-columns:repeat(2,1fr);}.grid2{grid-template-columns:1fr;}.page{padding:28px 20px;}}
+</style>
+</head>
+<body>
+<div class="page">
+
+  <h1>报价细项明细数据分析</h1>
+  <div class="sub">增量分析报告 · 数据截止 <b>2026年7月13日</b></div>
+  <span class="badge-date">📅 2026-07-13 数据快照</span>
+
+  <!-- 全局总结 -->
+  <h2><span class="emoji">📋</span>全局总结</h2>
+  <p>本周报价细项功能运行规模较上周（0707）继续扩张，但深层拆解（L3/L4）进入平台期，浅层拆解（L2）与未拆解（L1）随新增报价包同步增长。</p>
+
+  <h3>报价包维度（共 138 个 · 按最深拆解等级）</h3>
+  <div class="grid5">
+    <div class="stat s-tot"><div class="num">138</div><div class="lab">报价包总数</div><div class="note">+5 vs 0707</div></div>
+    <div class="stat s-L4"><div class="num">2</div><div class="lab">L4 BOM+VSM</div><div class="note">1.45%</div></div>
+    <div class="stat s-L3"><div class="num">7</div><div class="lab">L3 BOM结构</div><div class="note">5.07%</div></div>
+    <div class="stat s-L2"><div class="num">35</div><div class="lab">L2 自行拆解</div><div class="note">25.36%</div></div>
+    <div class="stat s-L1"><div class="num">94</div><div class="lab">L1 未拆解</div><div class="note">68.12%</div></div>
+  </div>
+
+  <h3>供应商维度（共 243 家 · 按最深拆解等级）</h3>
+  <div class="grid5">
+    <div class="stat s-tot"><div class="num">243</div><div class="lab">供应商总数</div><div class="note">+8 vs 0707</div></div>
+    <div class="stat s-L4"><div class="num">1</div><div class="lab">L4 BOM+VSM</div><div class="note">0.41%</div></div>
+    <div class="stat s-L3"><div class="num">8</div><div class="lab">L3 BOM结构</div><div class="note">3.29%</div></div>
+    <div class="stat s-L2"><div class="num">36</div><div class="lab">L2 自行拆解</div><div class="note">14.81%</div></div>
+    <div class="stat s-L1"><div class="num">198</div><div class="lab">L1 未拆解</div><div class="note">81.48%</div></div>
+  </div>
+
+  <!-- 增量对比 -->
+  <h2><span class="emoji">📈</span>本周增量对比（0707 → 0713）</h2>
+  <table>
+    <thead><tr><th>核心指标</th><th class="r">0706 原始</th><th class="r">0707 更新</th><th class="r">0713 本周</th><th class="r">增量 (0707→0713)</th></tr></thead>
+    <tbody>
+      <tr><td>报价包总数</td><td class="r">119</td><td class="r">133</td><td class="r"><b>138</b></td><td class="r"><span class="pill up">↑ +5</span></td></tr>
+      <tr><td>供应商总数</td><td class="r">216</td><td class="r">235</td><td class="r"><b>243</b></td><td class="r"><span class="pill up">↑ +8</span></td></tr>
+      <tr><td>整体拆解渗透率</td><td class="r">—</td><td class="r">31.6%</td><td class="r"><b>31.9%</b></td><td class="r"><span class="pill up">↑ +0.3pp</span></td></tr>
+    </tbody>
+  </table>
+
+  <div class="chart-wrap">
+    <canvas id="incChart" role="img" aria-label="0707与0713各拆解层级报价包数量对比"></canvas>
+    <div class="legend">
+      <span><i style="background:#CECBF6"></i>0707 基准</span>
+      <span><i style="background:#9FE1CB"></i>0713 本周</span>
+    </div>
+  </div>
+
+  <table>
+    <thead><tr><th>层级（报价包维度）</th><th class="r">0707</th><th class="r">0713</th><th class="r">变化</th></tr></thead>
+    <tbody>
+      <tr><td><span class="pill L4">L4 BOM+VSM</span></td><td class="r">2</td><td class="r">2</td><td class="r"><span class="pill flat">→ 持平</span></td></tr>
+      <tr><td><span class="pill L3">L3 BOM结构</span></td><td class="r">7</td><td class="r">7</td><td class="r"><span class="pill flat">→ 持平</span></td></tr>
+      <tr><td><span class="pill L2">L2 自行拆解</span></td><td class="r">33</td><td class="r">35</td><td class="r"><span class="pill up">↑ +2</span></td></tr>
+      <tr><td><span class="pill L1">L1 未拆解</span></td><td class="r">91</td><td class="r">94</td><td class="r"><span class="pill up">↑ +3</span></td></tr>
+    </tbody>
+  </table>
+  <table>
+    <thead><tr><th>层级（供应商维度）</th><th class="r">0707</th><th class="r">0713</th><th class="r">变化</th></tr></thead>
+    <tbody>
+      <tr><td><span class="pill L4">L4 BOM+VSM</span></td><td class="r">1</td><td class="r">1</td><td class="r"><span class="pill flat">→ 持平</span></td></tr>
+      <tr><td><span class="pill L3">L3 BOM结构</span></td><td class="r">8</td><td class="r">8</td><td class="r"><span class="pill flat">→ 持平</span></td></tr>
+      <tr><td><span class="pill L2">L2 自行拆解</span></td><td class="r">32</td><td class="r">36</td><td class="r"><span class="pill up">↑ +4</span></td></tr>
+      <tr><td><span class="pill L1">L1 未拆解</span></td><td class="r">194</td><td class="r">198</td><td class="r"><span class="pill up">↑ +4</span></td></tr>
+    </tbody>
+  </table>
+
+  <div class="insight">
+    <b>💡 关键发现：</b><br>
+    1. <b>L3/L4 深层拆解本周零增长</b> — 深层拆解进入平台期，需重点推动 BOM → VSM 衔接。<br>
+    2. <b>L2 浅层拆解持续扩张</b>（+2 包 / +4 家）— 作为过渡形态仍发挥主要载体作用，但向 L3 的转化通道尚未打通。<br>
+    3. <b>新增报价包以 L1 为主</b> — 本周净增 5 个报价包中 3 个仍停留 L1，新入场报价包的拆解引导需加强。
+  </div>
+
+  <!-- L4 -->
+  <h2><span class="emoji">🎯</span>各层级详细分析</h2>
+  <h3>L4 BOM+VSM 深层拆解详情</h3>
+  <p>共 <b>2 个报价包、1 家供应商（浙江戈尔德）</b>，与上周持平，维持全维度成本穿透标杆。</p>
+  <table>
+    <thead><tr><th>报价包编码</th><th>报价包名称</th><th>供应商</th><th class="r">提交日期</th></tr></thead>
+    <tbody>
+      <tr><td>RFQ-20260518-001</td><td>MX1127B-1被动减振器</td><td>浙江戈尔德智能悬架股份有限公司</td><td class="r">2026/6/16</td></tr>
+      <tr><td>RFQ-20250829-001</td><td>国产CDC减振器总成</td><td>浙江戈尔德智能悬架股份有限公司</td><td class="r">2026/6/16</td></tr>
+    </tbody>
+  </table>
+
+  <!-- L3 -->
+  <h3>L3 BOM结构拆解详情</h3>
+  <p>共 <b>7 个报价包、8 家正式供应商</b>，与上周持平。部分供应商本周有二次提交记录（加速踏板、动力钥匙、主轮铸造），说明在持续维护 BOM 结构数据。</p>
+  <table>
+    <thead><tr><th>报价包编码</th><th>报价包名称</th><th>供应商</th><th class="r">最近提交</th></tr></thead>
+    <tbody>
+      <tr><td>RFQ-20251127-001</td><td>加速踏板总成</td><td>上海海拉电子有限公司</td><td class="r">2026/7/8</td></tr>
+      <tr><td>RFQ-20260324-007</td><td>MANN座椅头枕扶手总成</td><td>宁波继峰汽车零部件股份有限公司</td><td class="r">2026/6/25</td></tr>
+      <tr><td>RFQ-20260615-004</td><td>动力钥匙及锚点系统</td><td>北京握奇慧通技术有限公司</td><td class="r">2026/7/10</td></tr>
+      <tr><td>RFQ-20260615-004</td><td>动力钥匙及锚点系统</td><td>芜湖埃泰克汽车电子股份有限公司</td><td class="r">2026/7/9</td></tr>
+      <tr><td>RFQ-20260406-001</td><td>MS13-L 主轮总成-铸造</td><td>浙江万丰奥威汽轮股份有限公司</td><td class="r">2026/7/8</td></tr>
+      <tr><td>RFQ-20260414-001</td><td>MS13-L主轮总成-锻造</td><td>浙江万丰奥威汽轮股份有限公司</td><td class="r">2026/7/3</td></tr>
+      <tr><td>RFQ-20240409-002</td><td>MS13-L顶升器</td><td>采埃孚亚太汽车安全系统（上海）有限公司</td><td class="r">2026/6/29</td></tr>
+      <tr><td>RFQ-20260616-002</td><td>Gen3.0旗舰扬声器平台</td><td>瑞声光电科技（常州）有限公司</td><td class="r">2026/7/6</td></tr>
+      <tr><td>RFQ-20260616-002</td><td>Gen3.0旗舰扬声器平台</td><td>广州丰达电机有限公司</td><td class="r">2026/7/3</td></tr>
+    </tbody>
+  </table>
+  <div class="callout"><b>归因分析：</b>供应商在 SVC 系统完成 BOM 结构拆解后，未继续推进到 VSM 制造工序成本。<b>BOM → VSM 衔接仍是深层拆解最大瓶颈</b>。</div>
+
+  <!-- L2 -->
+  <h3>L2 自行拆解详情</h3>
+  <p>共 <b>35 个报价包、36 家供应商</b>，较上周 <b>+2 个报价包、+4 家供应商</b>。本周新增来源：kunlun 流媒体内后视镜（RFQ-20260701-001）新发即达 L2，以及部分现有报价包供应商从 L1 升级至 L2。</p>
+  <table>
+    <thead><tr><th>#</th><th>报价包编码</th><th>报价包名称</th><th>标记</th></tr></thead>
+    <tbody>
+      <tr><td>1</td><td>RFQ-20260526-005</td><td>Leman27B后转向节SOR</td><td></td></tr>
+      <tr><td>2</td><td>RFQ-20250506-003</td><td>Lemans27B中控台后部冰箱总成</td><td></td></tr>
+      <tr><td>3</td><td>RFQ-20250506-001</td><td>LeMans27B-后侧围轮眉&后顶饰板</td><td></td></tr>
+      <tr><td>4</td><td>RFQ-20250506-002</td><td>Modena-L项目_智能B柱总成</td><td></td></tr>
+      <tr><td>5</td><td>RFQ-20260605-001</td><td>Lemans-27B-内饰DECO-SOR0</td><td></td></tr>
+      <tr><td>6</td><td>RFQ-20250820-005</td><td>整车玻璃系统</td><td></td></tr>
+      <tr><td>7</td><td>RFQ-20260624-002</td><td>MX14多腔空气弹簧电磁阀SOR</td><td></td></tr>
+      <tr><td>8</td><td>RFQ-20250527-002</td><td>Modena-L/Mann项目后排控制屏固定式RCP</td><td></td></tr>
+      <tr><td>9</td><td>RFQ-20250511-006</td><td>Modena-L 仪表屏&副驾屏</td><td></td></tr>
+      <tr><td>10</td><td>RFQ-20250507-002</td><td>Mann/Kunlun项目IMU惯性测量单元</td><td></td></tr>
+      <tr><td>11</td><td>RFQ-20250526-006</td><td>Leman27B前转向节SOR</td><td></td></tr>
+      <tr><td>12</td><td>RFQ-20250514-001</td><td>电机代工</td><td></td></tr>
+      <tr><td>13</td><td>RFQ-20240429-001</td><td>副驾座椅触觉交互系统</td><td></td></tr>
+      <tr><td>14</td><td>RFQ-20240420-004</td><td>Modena-L项目车身增强垫</td><td></td></tr>
+      <tr><td>15</td><td>RFQ-20240420-003</td><td>Modena-L项目膨胀胶块</td><td></td></tr>
+      <tr><td>16</td><td>RFQ-20240420-002</td><td>SOR1-MS13-L 结构加强件</td><td></td></tr>
+      <tr><td>17</td><td>RFQ-20240420-001</td><td>中控显示屏</td><td></td></tr>
+      <tr><td>18</td><td><b>RFQ-20260701-001</b></td><td><b>kunlun车型流媒体内后视镜及摄像头SOR1</b></td><td><span class="pill up">🆕 新增</span></td></tr>
+      <tr><td>19</td><td>RFQ-20240409-005</td><td>Modena-L机械限位器-定点</td><td></td></tr>
+      <tr><td>20</td><td>RFQ-20240408-004</td><td>LeMans27B后排安全带</td><td></td></tr>
+      <tr><td>21</td><td>RFQ-20240408-003</td><td>LeMans27B前排安全带</td><td></td></tr>
+      <tr><td>22</td><td>RFQ-20240408-002</td><td>MANN项目USB充电模块</td><td></td></tr>
+      <tr><td>23</td><td>RFQ-20240403-001</td><td>天际屏2.0SOR1</td><td></td></tr>
+      <tr><td>24</td><td>RFQ-20230326-001</td><td>高压空气加热器</td><td></td></tr>
+      <tr><td>25</td><td>RFQ-20230305-004</td><td>曼岛发动机1.5T曲轴减振皮带轮SOR</td><td></td></tr>
+      <tr><td>26</td><td>RFQ-20230324-002</td><td>LeMans27B侧门外把手</td><td></td></tr>
+      <tr><td>27</td><td>RFQ-20230323-007</td><td>Le Mans-27B玻璃SOR</td><td></td></tr>
+      <tr><td>28</td><td>RFQ-20230313-001</td><td>MANN1.5T点火线圈</td><td></td></tr>
+      <tr><td>29</td><td>RFQ-20230311-006</td><td>Modena-L 内饰DECO</td><td></td></tr>
+      <tr><td>30</td><td>RFQ-20230228-001</td><td>Mann车门限位器-定点</td><td></td></tr>
+      <tr><td>31</td><td>RFQ-20230226-001</td><td>Mann前舱盖锁总成-定点</td><td></td></tr>
+      <tr><td>32</td><td>RFQ-20230127-001</td><td>Mann B柱外饰板总成SOR</td><td></td></tr>
+      <tr><td>33</td><td>RFQ-20250928-012</td><td>Mann项目-电动限位器</td><td></td></tr>
+      <tr><td>34</td><td>RFQ-20250918-003</td><td>后车顶玻璃SOR文件</td><td></td></tr>
+      <tr><td>35</td><td>RFQ-20250918-001</td><td>Mann-尾门电撑杆</td><td></td></tr>
+    </tbody>
+  </table>
+
+  <!-- L1 -->
+  <h3>L1 未拆解层级数据分析</h3>
+  <p>94 个报价包（68.12%）、198 家供应商（81.48%）仍处于未拆解状态。L1 占比与上周基本持平（68.42% → 68.12%），绝对值增加主要由新增报价包带动。</p>
+
+  <!-- 预选 vs 正式 -->
+  <h2><span class="emoji">📊</span>预选供应商 vs 正式供应商拆解率对比</h2>
+  <div class="grid2">
+    <div class="stat s-tot" style="border-color:#ffd9bb;"><div class="num" style="color:#993C1D">17.0%</div><div class="lab">预选供应商拆解率</div><div class="note">88家 · L2=15 / L1=73</div></div>
+    <div class="stat s-tot" style="border-color:#ffd9bb;"><div class="num" style="color:#0F6E56">19.4%</div><div class="lab">正式供应商拆解率</div><div class="note">155家 · L4=1 / L3=8 / L2=21 / L1=125</div></div>
+  </div>
+  <div class="chart-wrap h260">
+    <canvas id="supChart" role="img" aria-label="预选与正式供应商各层级分布对比"></canvas>
+    <div class="legend">
+      <span><i style="background:#F0997B"></i>预选供应商</span>
+      <span><i style="background:#97C459"></i>正式供应商</span>
+    </div>
+  </div>
+  <div class="insight">
+    <b>💡 关键发现：</b>预选供应商拆解率从 18.8%（0707）降至 <b>17.0%</b>，正式供应商从 10.8% 升至 <b>19.4%</b>。
+    <b>预选供应商拆解意愿优势正在缩小</b>，主因是本周大量正式供应商参与 L2/L3 拆解。<b>但预选供应商全部被限制在 L2 层级，L3/L4 完全缺席（0 个）</b>，正是无法登录 SVC 导致无法进一步深入。
+  </div>
+
+  <table>
+    <thead><tr><th>类别</th><th class="r">报价包总数</th><th class="r">已拆解</th><th class="r">拆解率</th></tr></thead>
+    <tbody>
+      <tr><td>含预选供应商的报价包</td><td class="r">64</td><td class="r">30</td><td class="r"><b>46.9%</b></td></tr>
+      <tr><td>仅正式供应商的报价包</td><td class="r">74</td><td class="r">14</td><td class="r">18.9%</td></tr>
+    </tbody>
+  </table>
+  <p>含预选供应商的报价包拆解率（46.9%）仍远超仅正式供应商（18.9%），但较上周 51.0% 回落 4.1pp。<b>涉及预选供应商的 24 个 L2 RFQ 仍具备向 L3/L4 升级的基础条件，开放 SVC 账号收益预期不变。</b></p>
+
+  <!-- 近一周动态 -->
+  <h2><span class="emoji">📅</span>近一周动态（0708 — 0713）</h2>
+  <p>本周共 <b>47 条提交记录</b>，活跃供应商 <b>38 家</b>。按层级：L1=33、L2=10、L3=4。近半数的非 L1 提交集中在 L2/L3，高于整体拆解率，说明近期活跃供应商拆解意识较强。</p>
+  <table>
+    <thead><tr><th>日期</th><th class="r">提交记录数</th></tr></thead>
+    <tbody>
+      <tr><td>07-08（周二）</td><td class="r">10</td></tr>
+      <tr><td>07-09（周三）</td><td class="r">14</td></tr>
+      <tr><td>07-10（周四）</td><td class="r">9</td></tr>
+      <tr><td>07-11（周五）</td><td class="r">13</td></tr>
+      <tr><td>07-13（周日）</td><td class="r">1</td></tr>
+      <tr><td><b>合计</b></td><td class="r"><b>47</b></td></tr>
+    </tbody>
+  </table>
+
+  <h3>🔵 L3 二次提交（数据维护信号）</h3>
+  <ul class="timeline">
+    <li><span class="d">07-08</span> <span class="c">上海海拉电子 — 加速踏板总成重新提交（首次 06-18）</span></li>
+    <li><span class="d">07-09</span> <span class="c">芜湖埃泰克 — 动力钥匙及锚点系统重新提交（首次 06-29）</span></li>
+    <li><span class="d">07-10</span> <span class="c">北京握奇慧通 — 动力钥匙及锚点系统重新提交（首次 06-29）</span></li>
+    <li><span class="d">07-08</span> <span class="c">浙江万丰奥威 — MS13-L 主轮总成-铸造重新提交（首次 06-29）</span></li>
+  </ul>
+
+  <h3>🟢 L2 新增亮点</h3>
+  <ul class="timeline">
+    <li><span class="d">新发即 L2</span> <span class="c">kunlun 流媒体内后视镜（RFQ-20260701-001）— 3 家供应商中 2 家完成自行拆解</span></li>
+    <li><span class="d">新增供应商</span> <span class="c">MS13-L 主轮总成-铸造（中信戴卡）— 本周新增 L2 供应商</span></li>
+  </ul>
+
+  <h3>📥 大量预选供应商首次入场</h3>
+  <p>本周活跃 38 家供应商中 <b>16 家为预选供应商</b>（占比 42%），且大部分以 L1 入场（南京奥托立夫、宁波均胜、佛山艾凯、秦皇岛威卡威、保定立中车轮、铁将军电子、上海银基等），新入场预选供应商的拆解培训需同步跟上。</p>
+
+  <!-- 按状态渗透率 -->
+  <h2><span class="emoji">📊</span>按 RFQ 状态的拆解渗透率</h2>
+  <table>
+    <thead><tr><th>RFQ状态</th><th class="r">报价包数</th><th class="r">已拆解</th><th class="r">渗透率</th><th>备注</th></tr></thead>
+    <tbody>
+      <tr><td>询价中</td><td class="r">48</td><td class="r">10</td><td class="r"><b>20.8%</b></td><td>在途报价包，运营空间最大</td></tr>
+      <tr><td>已完成</td><td class="r">75</td><td class="r">10</td><td class="r">13.3%</td><td>已定点，拆解价值转为成本库沉淀</td></tr>
+      <tr><td>ENQUIRING</td><td class="r">8</td><td class="r">1</td><td class="r">12.5%</td><td>初期阶段，拆解引导关键期</td></tr>
+      <tr><td>NOMINATING</td><td class="r">4</td><td class="r">0</td><td class="r">0%</td><td>定点阶段，拆解动力不足</td></tr>
+      <tr><td>HAVE_NOT_ENQUIRED</td><td class="r">3</td><td class="r">0</td><td class="r">0%</td><td>尚未询价，暂无拆解动作</td></tr>
+    </tbody>
+  </table>
+  <div class="callout"><b>提示：</b>"询价中"状态报价包拆解率最高（20.8%），是当前运营推动的最佳切入点 —— 48 个在途 RFQ 中仍有 38 个未拆解，建议重点跟进。</div>
+
+  <!-- 采购员 -->
+  <h2><span class="emoji">👥</span>各采购员负责报价包拆解情况 TOP 10</h2>
+  <table>
+    <thead><tr><th>采购员</th><th class="r">负责RFQ数</th><th class="r">L4</th><th class="r">L3</th><th class="r">L2</th><th class="r">L1</th><th class="r">拆解率</th></tr></thead>
+    <tbody>
+      <tr><td>包思</td><td class="r">3</td><td class="r">2</td><td class="r">0</td><td class="r">0</td><td class="r">1</td><td class="r"><b>66.7%</b></td></tr>
+      <tr><td>张俊</td><td class="r">2</td><td class="r">0</td><td class="r">1</td><td class="r">1</td><td class="r">0</td><td class="r"><b>100%</b></td></tr>
+      <tr><td>徐颖晟</td><td class="r">1</td><td class="r">0</td><td class="r">0</td><td class="r">1</td><td class="r">0</td><td class="r"><b>100%</b></td></tr>
+      <tr><td>白雪</td><td class="r">1</td><td class="r">0</td><td class="r">0</td><td class="r">1</td><td class="r">0</td><td class="r"><b>100%</b></td></tr>
+      <tr><td>王瑞玚</td><td class="r">6</td><td class="r">0</td><td class="r">0</td><td class="r">4</td><td class="r">2</td><td class="r"><b>66.7%</b></td></tr>
+      <tr><td>徐佳浩</td><td class="r">4</td><td class="r">0</td><td class="r">0</td><td class="r">2</td><td class="r">2</td><td class="r">50.0%</td></tr>
+      <tr><td>金鑫</td><td class="r">10</td><td class="r">0</td><td class="r">1</td><td class="r">1</td><td class="r">8</td><td class="r">20.0%</td></tr>
+      <tr><td>曲婉鑫</td><td class="r">2</td><td class="r">0</td><td class="r">1</td><td class="r">0</td><td class="r">1</td><td class="r">50.0%</td></tr>
+      <tr><td>何世泉</td><td class="r">2</td><td class="r">0</td><td class="r">1</td><td class="r">0</td><td class="r">1</td><td class="r">50.0%</td></tr>
+      <tr><td>崔磊</td><td class="r">2</td><td class="r">0</td><td class="r">0</td><td class="r">1</td><td class="r">1</td><td class="r">50.0%</td></tr>
+    </tbody>
+  </table>
+  <p><b>王瑞玚</b>负责 6 个 RFQ 中有 4 个达 L2（66.7%），是 L2 推进最有效的采购员之一；<b>张俊、徐颖晟、白雪</b>负责报价包全部实现拆解（100%）。<b>仓基伟</b>负责 12 个 RFQ 但全部为 L1（0%），是需要重点支持的采购员。</p>
+
+  <!-- 后续运营方向 -->
+  <h2><span class="emoji">🎯</span>后续运营方向建议</h2>
+  <h3>方向一：补数据 — 历史线下数据补充 → 报价成本库</h3>
+  <p>75 个"已完成"状态 RFQ 中仅 10 个有拆解数据（13.3%），大量已定点成本信息缺失。建议优先对已完成 RFQ 中高价值品类（座椅、减振器、电池包等）进行回溯性拆解引导。</p>
+  <h3>方向二：定目标 — 按品类设拆解目标 → 与业务打合</h3>
+  <p>L3/L4 本周零增长，深层拆解陷入瓶颈期。建议：① 聚焦"询价中"48 个 RFQ（拆解率 20.8%，最高）；② 推动 8 家 L3 供应商继续深入 VSM（浙江万丰奥威、上海海拉、瑞声光电/广州丰达等是 L4 种子候选）；③ 支持低拆解率采购员（仓基伟、郑雄、曹志宇等）。</p>
+  <div class="insight">
+    <b>本周特别关注：</b><br>
+    1. <b>kunlun 流媒体内后视镜</b> 新 RFQ 即达 L2，可作为新发 RFQ 拆解引导的成功案例推广。<br>
+    2. <b>预选供应商拆解率优势收窄</b>（17.0% vs 正式 19.4%），建议加快预选供应商 SVC 开放进程。<br>
+    3. <b>近一周 16 家预选供应商以 L1 入场</b>，新入场预选供应商的拆解培训需同步跟上。
+  </div>
+
+  <div class="foot">报价细项明细数据分析 · 增量分析（0713）· 数据截止 2026-07-13 · 基于 20260713.csv 自动生成</div>
+
+</div>
+
+<script>
+  Chart.defaults.font.family = '-apple-system,BlinkMacSystemFont,"PingFang SC","Microsoft YaHei",sans-serif';
+  Chart.defaults.font.size = 12;
+  Chart.defaults.color = '#4a4a4a';
+
+  new Chart(document.getElementById('incChart'), {
+    type: 'bar',
+    data: {
+      labels: ['L4 BOM+VSM','L3 BOM结构','L2 自行拆解','L1 未拆解'],
+      datasets: [
+        { label:'0707', data:[2,7,33,91], backgroundColor:'#CECBF6', borderColor:'#534AB7', borderWidth:1, borderRadius:5 },
+        { label:'0713', data:[2,7,35,94], backgroundColor:'#9FE1CB', borderColor:'#0F6E56', borderWidth:1, borderRadius:5 }
+      ]
+    },
+    options:{
+      responsive:true, maintainAspectRatio:false,
+      plugins:{ legend:{ display:false },
+        tooltip:{ callbacks:{ label:(c)=> c.dataset.label+': '+c.parsed.y+' 个' } } },
+      scales:{
+        x:{ grid:{ display:false } },
+        y:{ beginAtZero:true, max:110, grid:{ color:'rgba(0,0,0,0.06)' } }
+      }
+    }
+  });
+
+  new Chart(document.getElementById('supChart'), {
+    type: 'bar',
+    data: {
+      labels: ['L4','L3','L2','L1'],
+      datasets: [
+        { label:'预选', data:[0,0,15,73], backgroundColor:'#F0997B', borderColor:'#993C1D', borderWidth:1, borderRadius:5 },
+        { label:'正式', data:[1,8,21,125], backgroundColor:'#97C459', borderColor:'#3B6D11', borderWidth:1, borderRadius:5 }
+      ]
+    },
+    options:{
+      responsive:true, maintainAspectRatio:false,
+      plugins:{ legend:{ display:false },
+        tooltip:{ callbacks:{ label:(c)=> c.dataset.label+': '+c.parsed.y+' 家' } } },
+      scales:{
+        x:{ grid:{ display:false } },
+        y:{ beginAtZero:true, max:140, grid:{ color:'rgba(0,0,0,0.06)' } }
+      }
+    }
+  });
+</script>
+</body>
+</html>

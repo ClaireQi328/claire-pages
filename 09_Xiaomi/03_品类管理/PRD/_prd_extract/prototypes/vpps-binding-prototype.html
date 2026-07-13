@@ -1,0 +1,705 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>EP 主数据管理 - MVPS品类管理与VPPS绑定品类（原型 v2）</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  :root{
+    --primary:#1f6fff; --primary-hover:#3d83ff; --primary-active:#1857d6;
+    --text:#1f2329; --text-2:#646a73; --text-3:#8f959e;
+    --border:#e5e6eb; --border-2:#f0f1f3; --bg:#f5f6f8; --white:#fff;
+    --orange:#d46b08; --orange-bg:#fff7e6; --orange-bd:#ffd591;
+    --green:#389e0d; --green-bg:#f6ffed; --green-bd:#b7eb8f;
+    --gray:#8c8c8c; --gray-bg:#fafafa; --gray-bd:#d9d9d9;
+    --red:#cf1322; --red-bg:#fff1f0; --red-bd:#ffa39e;
+    --purple:#722ed1; --purple-bg:#f9f0ff; --purple-bd:#efdbff;
+    --radius:6px;
+  }
+  body{ font-family:"PingFang SC","Microsoft YaHei","Helvetica Neue",Arial,sans-serif; background:var(--bg); color:var(--text); font-size:14px; line-height:1.5; -webkit-font-smoothing:antialiased; }
+  a{ color:inherit; text-decoration:none; }
+
+  /* Top Nav */
+  .topnav{ height:56px; background:#fff; border-bottom:1px solid var(--border); display:flex; align-items:center; padding:0 24px; position:sticky; top:0; z-index:100; }
+  .logo{ display:flex; align-items:center; gap:8px; font-weight:700; font-size:18px; color:#ff6700; margin-right:32px; }
+  .logo .mi{ background:#ff6700; color:#fff; width:30px; height:30px; border-radius:6px; display:flex; align-items:center; justify-content:center; font-size:15px; font-weight:800; }
+  .nav-items{ display:flex; gap:4px; height:100%; }
+  .nav-item{ height:100%; display:flex; align-items:center; padding:0 16px; color:var(--text-2); font-size:14px; cursor:pointer; border-bottom:2px solid transparent; }
+  .nav-item:hover{ color:var(--text); }
+  .nav-item.active{ color:var(--primary); border-bottom-color:var(--primary); font-weight:600; }
+  .nav-right{ margin-left:auto; display:flex; align-items:center; gap:16px; color:var(--text-3); font-size:13px; }
+  .nav-right .avatar{ width:30px;height:30px;border-radius:50%;background:linear-gradient(135deg,#1f6fff,#3d83ff);color:#fff;display:flex;align-items:center;justify-content:center;font-size:13px; }
+
+  /* Layout */
+  .container{ max-width:1340px; margin:0 auto; padding:16px 24px 40px; }
+  .breadcrumb{ font-size:13px; color:var(--text-3); margin-bottom:12px; }
+  .breadcrumb b{ color:var(--text-2); font-weight:500; }
+  .sub-tabs{ display:flex; gap:8px; border-bottom:1px solid var(--border); background:#fff; padding:0 16px; border-radius:var(--radius) var(--radius) 0 0; flex-wrap:wrap; }
+  .sub-tab{ padding:14px 16px; cursor:pointer; color:var(--text-2); font-size:14px; border-bottom:2px solid transparent; margin-bottom:-1px; white-space:nowrap; }
+  .sub-tab:hover{ color:var(--text); }
+  .sub-tab.active{ color:var(--primary); font-weight:600; border-bottom-color:var(--primary); }
+  .panel{ background:#fff; border:1px solid var(--border); border-top:none; border-radius:0 0 var(--radius) var(--radius); padding:20px; min-height:440px; }
+
+  /* Filter */
+  .filter{ background:#fafbfc; border:1px solid var(--border-2); border-radius:var(--radius); padding:16px; margin-bottom:14px; }
+  .filter-row{ display:flex; flex-wrap:wrap; gap:16px 24px; align-items:flex-end; }
+  .field{ display:flex; flex-direction:column; gap:6px; }
+  .field label{ font-size:13px; color:var(--text-2); }
+  .field input, .field select{ width:200px; height:32px; border:1px solid var(--border); border-radius:var(--radius); padding:0 10px; font-size:13px; color:var(--text); background:#fff; outline:none; }
+  .field input:focus, .field select:focus{ border-color:var(--primary); }
+  .filter-actions{ display:flex; align-items:center; gap:10px; margin-left:auto; }
+  .filter-more{ margin-top:12px; padding-top:12px; border-top:1px dashed var(--border-2); display:none; }
+  .filter-more.open{ display:flex; flex-wrap:wrap; gap:16px 24px; align-items:flex-end; }
+  .link-btn{ background:none; border:none; color:var(--primary); cursor:pointer; font-size:13px; padding:0; }
+
+  /* Buttons */
+  .btn{ height:32px; padding:0 16px; border-radius:var(--radius); font-size:14px; cursor:pointer; border:1px solid var(--border); background:#fff; color:var(--text); display:inline-flex; align-items:center; justify-content:center; gap:6px; transition:.15s; }
+  .btn:hover{ border-color:#c0c4cc; }
+  .btn-primary{ background:var(--primary); border-color:var(--primary); color:#fff; }
+  .btn-primary:hover{ background:var(--primary-hover); border-color:var(--primary-hover); }
+  .btn-primary:active{ background:var(--primary-active); }
+  .btn-text{ border:none; background:none; color:var(--primary); cursor:pointer; padding:0 6px; font-size:13px; }
+  .btn-text.danger{ color:var(--red); }
+  .btn-text.muted{ color:var(--text-3); cursor:not-allowed; }
+  .btn-sm{ height:28px; padding:0 12px; font-size:13px; }
+  .btn-link-mini{ color:var(--primary); cursor:pointer; font-size:13px; padding:2px 8px; border-radius:4px; }
+  .btn-link-mini:hover{ background:#eef4ff; }
+
+  /* Alert */
+  .alert{ display:flex; align-items:center; gap:8px; background:#eef5ff; border:1px solid #d3e3ff; color:#1f6fff; border-radius:var(--radius); padding:9px 14px; font-size:13px; margin-bottom:16px; }
+  .alert .ic{ font-size:15px; }
+  .alert.warn{ background:#fffbe6; border-color:#ffe58f; color:#d48806; }
+
+  /* Table */
+  .table-wrap{ overflow-x:auto; border:1px solid var(--border); border-radius:var(--radius); }
+  table{ width:100%; border-collapse:collapse; font-size:13px; }
+  thead th{ background:#fafafa; color:var(--text-2); font-weight:600; text-align:left; padding:11px 12px; border-bottom:1px solid var(--border); white-space:nowrap; }
+  tbody td{ padding:11px 12px; border-bottom:1px solid var(--border-2); color:var(--text); white-space:nowrap; }
+  tbody tr:last-child td{ border-bottom:none; }
+  tbody tr:hover{ background:#fafcff; }
+  .code-link{ color:var(--primary); cursor:pointer; }
+  .empty{ padding:40px; text-align:center; color:var(--text-3); }
+
+  /* Status tags */
+  .tag{ display:inline-block; padding:1px 9px; border-radius:4px; font-size:12px; line-height:20px; border:1px solid; }
+  .tag-pending{ color:var(--orange); background:var(--orange-bg); border-color:var(--orange-bd); }
+  .tag-bound{ color:var(--green); background:var(--green-bg); border-color:var(--green-bd); }
+  .tag-noneed{ color:var(--gray); background:var(--gray-bg); border-color:var(--gray-bd); }
+  .tag-invalid{ color:var(--red); background:var(--red-bg); border-color:var(--red-bd); }
+  .tag-purple{ color:var(--purple); background:var(--purple-bg); border-color:var(--purple-bd); }
+
+  /* Pagination */
+  .pagination{ display:flex; justify-content:flex-end; align-items:center; gap:12px; margin-top:14px; color:var(--text-2); font-size:13px; }
+  .page-btns{ display:flex; gap:4px; }
+  .page-btns button{ min-width:30px; height:30px; border:1px solid var(--border); background:#fff; border-radius:var(--radius); cursor:pointer; color:var(--text-2); }
+  .page-btns button.active{ border-color:var(--primary); color:var(--primary); background:#eef4ff; }
+  .page-btns button:disabled{ color:var(--text-3); cursor:not-allowed; }
+
+  /* Modal / Drawer */
+  .mask{ position:fixed; inset:0; background:rgba(0,0,0,.45); display:none; align-items:center; justify-content:center; z-index:200; }
+  .mask.open{ display:flex; }
+  .modal{ background:#fff; border-radius:10px; width:540px; max-width:92vw; max-height:88vh; overflow:auto; box-shadow:0 12px 40px rgba(0,0,0,.18); }
+  .modal-head{ padding:18px 22px; border-bottom:1px solid var(--border-2); display:flex; justify-content:space-between; align-items:center; font-size:16px; font-weight:600; }
+  .modal-head .close{ cursor:pointer; color:var(--text-3); font-size:20px; line-height:1; }
+  .modal-body{ padding:22px; }
+  .modal-foot{ padding:14px 22px; border-top:1px solid var(--border-2); display:flex; justify-content:flex-end; gap:10px; }
+  .drawer{ position:fixed; top:0; right:0; height:100%; width:560px; max-width:94vw; background:#fff; box-shadow:-8px 0 30px rgba(0,0,0,.12); transform:translateX(100%); transition:.28s; z-index:210; display:flex; flex-direction:column; }
+  .drawer.open{ transform:translateX(0); }
+  .drawer-head{ padding:18px 22px; border-bottom:1px solid var(--border-2); display:flex; justify-content:space-between; align-items:center; font-size:16px; font-weight:600; }
+  .drawer-body{ padding:20px 22px; overflow:auto; }
+  .drawer-mask{ position:fixed; inset:0; background:rgba(0,0,0,.35); display:none; z-index:205; }
+  .drawer-mask.open{ display:block; }
+
+  .form-item{ margin-bottom:18px; }
+  .form-item label{ display:block; font-size:13px; color:var(--text-2); margin-bottom:7px; }
+  .form-item label .req{ color:var(--red); margin-right:3px; }
+  .form-item input, .form-item select, .form-item textarea{ width:100%; height:36px; border:1px solid var(--border); border-radius:var(--radius); padding:0 12px; font-size:14px; outline:none; }
+  .form-item textarea{ height:72px; padding:8px 12px; resize:vertical; }
+  .form-item input:focus, .form-item select:focus, .form-item textarea:focus{ border-color:var(--primary); }
+  .form-item .hint{ font-size:12px; color:var(--text-3); margin-top:5px; }
+  .form-item.readonly input{ background:#f5f6f8; color:var(--text-2); }
+  .err{ color:var(--red); font-size:12px; margin-top:5px; display:none; }
+  .err.show{ display:block; }
+
+  .modal.confirm{ width:420px; }
+  .modal.confirm .modal-body{ font-size:14px; color:var(--text); }
+  .toast{ position:fixed; top:20px; left:50%; transform:translateX(-50%); background:rgba(31,35,41,.92); color:#fff; padding:10px 18px; border-radius:8px; font-size:14px; z-index:300; opacity:0; transition:.25s; pointer-events:none; }
+  .toast.show{ opacity:1; }
+
+  .section-title{ font-size:15px; font-weight:600; margin-bottom:14px; display:flex; align-items:center; gap:8px; }
+  .page-actions{ display:flex; gap:10px; margin-bottom:16px; flex-wrap:wrap; }
+  .left-actions{ margin-right:auto; display:flex; gap:10px; }
+  .stat-row{ display:flex; gap:14px; margin-bottom:16px; flex-wrap:wrap; }
+  .stat-card{ flex:1; min-width:150px; background:#fafbfc; border:1px solid var(--border-2); border-radius:var(--radius); padding:14px 16px; }
+  .stat-card .n{ font-size:22px; font-weight:700; }
+  .stat-card .l{ font-size:12px; color:var(--text-3); margin-top:2px; }
+
+  /* Linkage diagram */
+  .er{ display:flex; align-items:stretch; gap:0; flex-wrap:wrap; margin:8px 0 22px; }
+  .er-table{ border:2px solid var(--primary); border-radius:8px; background:#fff; min-width:200px; flex:1; }
+  .er-table .er-head{ background:var(--primary); color:#fff; padding:8px 14px; font-weight:600; font-size:14px; border-radius:6px 6px 0 0; }
+  .er-table .er-row{ padding:6px 14px; font-size:12px; border-top:1px solid var(--border-2); color:var(--text-2); }
+  .er-table.alt{ border-color:var(--purple); } .er-table.alt .er-head{ background:var(--purple); }
+  .er-table.green{ border-color:var(--green); } .er-table.green .er-head{ background:var(--green); }
+  .er-table.orange{ border-color:var(--orange); } .er-table.orange .er-head{ background:var(--orange); }
+  .er-arrow{ display:flex; flex-direction:column; align-items:center; justify-content:center; padding:0 14px; color:var(--text-3); font-size:12px; min-width:90px; }
+  .er-arrow .line{ width:60px; height:2px; background:var(--text-3); position:relative; margin:6px 0; }
+  .er-arrow .line:after{ content:''; position:absolute; right:-1px; top:-4px; border-left:8px solid var(--text-3); border-top:5px solid transparent; border-bottom:5px solid transparent; }
+  .er-note{ font-size:12px; color:var(--text-3); margin-top:8px; }
+
+  .flow{ display:flex; align-items:center; gap:8px; flex-wrap:wrap; margin:10px 0 8px; }
+  .flow .node{ padding:10px 16px; border-radius:8px; background:#f0f5ff; border:1px solid #c8ddff; color:#1f4fb0; font-size:13px; font-weight:600; }
+  .flow .arrow{ color:var(--text-3); font-size:18px; }
+  .flow .node.special{ background:#fff1f0; border-color:#ffccc7; color:#cf1322; }
+  .kv{ display:flex; gap:10px; flex-wrap:wrap; margin:10px 0; }
+  .kv .chip{ padding:6px 12px; background:#fafbfc; border:1px solid var(--border-2); border-radius:20px; font-size:12px; color:var(--text-2); }
+  .kv .chip b{ color:var(--text); }
+  .sub-sec{ margin:18px 0 8px; font-size:14px; font-weight:600; color:var(--text); border-left:3px solid var(--primary); padding-left:10px; }
+  .callout{ background:#fafbfc; border:1px solid var(--border-2); border-radius:var(--radius); padding:14px 16px; font-size:13px; color:var(--text-2); margin:10px 0; }
+  .callout b{ color:var(--text); }
+</style>
+</head>
+<body>
+
+<!-- Top Nav -->
+<div class="topnav">
+  <div class="logo"><span class="mi">MI</span> 小米汽车 EP</div>
+  <div class="nav-items">
+    <div class="nav-item">首页</div>
+    <div class="nav-item">供应商管理</div>
+    <div class="nav-item">采购项目管理</div>
+    <div class="nav-item">采购任务管理</div>
+    <div class="nav-item">RFQ询报价管理</div>
+    <div class="nav-item">采购定点与台账</div>
+    <div class="nav-item active">主数据管理</div>
+  </div>
+  <div class="nav-right">
+    <span>帮助</span>
+    <span class="avatar">管</span>
+  </div>
+</div>
+
+<div class="container">
+  <div class="breadcrumb">主数据管理 / <b id="bcCurrent">VPPS绑定品类</b></div>
+
+  <div class="sub-tabs">
+    <div class="sub-tab" data-tab="category" onclick="switchTab('category')">品类管理</div>
+    <div class="sub-tab active" data-tab="vpps" onclick="switchTab('vpps')">VPPS绑定品类</div>
+    <div class="sub-tab" data-tab="project" onclick="switchTab('project')">项目分包(表1)</div>
+    <div class="sub-tab" data-tab="linkage" onclick="switchTab('linkage')">联动关系</div>
+    <div class="sub-tab" data-tab="change" onclick="switchTab('change')">变更记录</div>
+  </div>
+
+  <!-- ====== VPPS 绑定品类 ====== -->
+  <div class="panel" id="panel-vpps">
+    <div class="filter">
+      <div class="filter-row">
+        <div class="field"><label>绑定状态</label><select id="f-status"><option value="">全部</option><option value="待绑定">待绑定</option><option value="已绑定">已绑定</option><option value="无需绑定">无需绑定</option></select></div>
+        <div class="field"><label>VPPS编码</label><input id="f-vpps" placeholder="如 10.11.01"></div>
+        <div class="field"><label>结构编码</label><input id="f-struct" placeholder="如 STR-MBOM-1001"></div>
+        <div class="filter-actions">
+          <button class="btn btn-primary btn-sm" onclick="applyFilter()">查询</button>
+          <button class="btn btn-sm" onclick="resetFilter()">重置</button>
+          <button class="btn btn-sm" onclick="exportVpps()">导出</button>
+        </div>
+      </div>
+      <div class="filter-more" id="filterMore">
+        <div class="field"><label>中文描述</label><input id="f-cn" placeholder="模糊查询"></div>
+        <div class="field"><label>状态</label><select id="f-state"><option value="">全部</option><option>生效</option><option>失效</option></select></div>
+        <div class="field"><label>编码状态</label><select id="f-code"><option value="">全部</option><option>生效</option><option>失效</option></select></div>
+      </div>
+      <div style="margin-top:10px;"><button class="link-btn" onclick="toggleMore()">展开筛选 ▾</button></div>
+    </div>
+
+    <div class="alert"><span class="ic">ℹ</span><span>MIBOM 每下发一个 VPPS 即生成一条待处理绑定数据。</span></div>
+
+    <div class="table-wrap">
+      <table>
+        <thead><tr>
+          <th>序号</th><th>绑定状态</th><th>VPPS编码</th><th>结构编码</th><th>结构简码</th>
+          <th>位置码</th><th>中文描述</th><th>英文描述</th><th>创建人</th><th>编码状态</th>
+          <th>编码生效日期</th><th>编码失效日期</th><th>绑定品类</th><th>操作</th>
+        </tr></thead>
+        <tbody id="vppsBody"></tbody>
+      </table>
+    </div>
+    <div class="pagination"><span id="vppsCount">共 0 条</span>
+      <div class="page-btns"><button disabled>‹</button><button class="active">1</button><button disabled>›</button></div>
+    </div>
+  </div>
+
+  <!-- ====== 品类管理 ====== -->
+  <div class="panel" id="panel-category" style="display:none;">
+    <div class="page-actions">
+      <div class="left-actions">
+        <button class="btn btn-primary btn-sm" onclick="openAddCategory()">新增品类</button>
+        <button class="btn btn-sm" onclick="toast('已导出品类数据')">导出</button>
+        <button class="btn btn-sm" onclick="toast('请下载导入模板后批量导入')">批量导入</button>
+      </div>
+      <button class="btn btn-sm" onclick="toast('请选择品类后转派')">转派</button>
+      <button class="btn btn-sm" onclick="toast('请选择品类后冻结')">冻结</button>
+    </div>
+    <div class="alert warn"><span class="ic">⚠</span><span>品类资源池（表2）为<b>底表</b>：VPPS 绑定、项目分包选品类、任务自动下发均以此为准；冻结/转派需同时联动表1（项目进度表）。</span></div>
+    <div class="table-wrap">
+      <table>
+        <thead><tr>
+          <th>品类编码</th><th>品类名称</th><th>品类专家</th><th>品类状态</th><th>专业组</th>
+          <th>材料品类</th><th>工艺品类</th><th>定点供应商</th><th>品类描述/说明</th><th>操作</th>
+        </tr></thead>
+        <tbody id="catBody"></tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- ====== 项目分包(表1) ====== -->
+  <div class="panel" id="panel-project" style="display:none;">
+    <div class="section-title">项目分包 / SOR 进度（表1 · 项目管控表）</div>
+    <div class="alert"><span class="ic">ℹ</span><span>分包选择品类（来自表2底表）后，<b>采购员 / SQE 自动带出</b>；若手动填写采购员，则以手动填写为准（优先级：手动 &gt; 表2默认）。SOR 审批到项目经理时同理，仅选品类、不填人员。</span></div>
+    <div class="callout">
+      <b>演示：</b>在下方"品类"下拉中选择生效品类，观察"采购员 / SQE"是否自动带出；切换品类后值随表2变化。
+    </div>
+    <div style="background:#fafbfc;border:1px solid var(--border-2);border-radius:var(--radius);padding:20px;max-width:760px;">
+      <div class="form-item"><label>车型项目</label><input value="Kunlun（昆仑）" readonly style="background:#f5f6f8;"></div>
+      <div class="form-item"><label>工厂</label><input value="北京工厂" readonly style="background:#f5f6f8;"></div>
+      <div class="form-item"><label>SOR编号</label><input value="SOR-2026-KL-018" readonly style="background:#f5f6f8;"></div>
+      <div class="form-item"><label><span class="req">*</span>品类（来自表2底表）</label>
+        <select id="projCat" onchange="onProjCatChange()"><option value="">请选择品类</option></select>
+        <div class="err" id="projCatErr">请选择品类（须存在于表2品类清单）</div>
+      </div>
+      <div class="form-item" style="display:flex;gap:16px;">
+        <div style="flex:1;">
+          <label>采购员（自动带出 / 可手填）</label>
+          <input id="projBuyer" placeholder="选择品类后自动带出，可覆盖">
+        </div>
+        <div style="flex:1;">
+          <label>SQE（自动带出）</label>
+          <input id="projSqe" placeholder="选择品类后自动带出" readonly>
+        </div>
+      </div>
+      <div class="form-item"><label>计划定点时间</label><input id="projTime" type="date" value="2026-09-30"></div>
+      <div class="form-item"><label>开发策略</label>
+        <select><option>战略</option><option>杠杆</option><option>瓶颈</option><option>常规</option></select>
+      </div>
+      <div style="display:flex;gap:10px;justify-content:flex-end;">
+        <button class="btn" onclick="toast('已取消')">取消</button>
+        <button class="btn btn-primary" onclick="saveProject()">保存分包</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ====== 联动关系 ====== -->
+  <div class="panel" id="panel-linkage" style="display:none;">
+    <div class="section-title">三张表联动关系总览（BRD 三张表联动关系）</div>
+
+    <div class="sub-sec">1. 实体关系图</div>
+    <div class="er">
+      <div class="er-table orange">
+        <div class="er-head">表1 项目管控表</div>
+        <div class="er-row">车型 → 项目编号</div>
+        <div class="er-row">SOR包进度</div>
+        <div class="er-row">行级采购员 / SQE</div>
+      </div>
+      <div class="er-arrow"><div>一对一</div><div class="line"></div><div>SOR↔品类</div></div>
+      <div class="er-table">
+        <div class="er-head">表2 品类资源池（底表）</div>
+        <div class="er-row">品类主数据</div>
+        <div class="er-row">VPPS绑定清单</div>
+        <div class="er-row">品类-采购工程师/SQE/财务CE</div>
+      </div>
+      <div class="er-arrow"><div>绑定</div><div class="line"></div><div>VPPS↔品类</div></div>
+      <div class="er-table purple">
+        <div class="er-head">VPPS（结构编码+位置码）</div>
+        <div class="er-row">来自 MiBOM / 总基线</div>
+        <div class="er-row">索引零件号</div>
+      </div>
+      <div class="er-arrow"><div>记录</div><div class="line"></div><div>零件→台账</div></div>
+      <div class="er-table green">
+        <div class="er-head">表3 价值中心台账</div>
+        <div class="er-row">零件号 + VPPS + 规则方案</div>
+        <div class="er-row">零件履历（跨项目/工厂/供应商）</div>
+      </div>
+    </div>
+    <div class="er-note">说明：品类资源池（表2）为唯一底表；VPPS 绑定品类、项目分包选品类、任务自动下发均依赖表2。表1 与表2 通过"品类"外键联动；表3 通过定点任务的 VPPS 回写品类。</div>
+
+    <div class="sub-sec">2. 下发任务链路：零件号 → VPPS → 品类 → 采购员</div>
+    <div class="flow">
+      <div class="node">任务零件</div><div class="arrow">→</div>
+      <div class="node">索引 VPPS</div><div class="arrow">→</div>
+      <div class="node">VPPS索引品类（表2）</div><div class="arrow">→</div>
+      <div class="node">品类+车型索引采购（表1）</div><div class="arrow">→</div>
+      <div class="node">任务直接下发</div>
+    </div>
+    <div class="kv">
+      <span class="chip">EWO / SWO / CWO：<b>自动下发</b></span>
+      <span class="chip">框架 / 样件：<b>受限（无车型字段）</b></span>
+      <span class="chip">紧固件 / 胶水：<b class="special">未进EBOM·人工</b></span>
+      <span class="chip">面料：<b class="special">不进BOM·人工</b></span>
+      <span class="chip">无VPPS零件：<b class="special">人工下发</b></span>
+    </div>
+
+    <div class="sub-sec">3. EWO 改前参考件号智能关联</div>
+    <div class="flow">
+      <div class="node">EWO改后零件</div><div class="arrow">+</div>
+      <div class="node">VPPS</div><div class="arrow">+</div>
+      <div class="node">项目编码</div><div class="arrow">→</div>
+      <div class="node">查台账已定点零件号</div><div class="arrow">→</div>
+      <div class="node">回填"改前参考件号"</div>
+    </div>
+    <div class="callout">演示：输入改后零件 VPPS 与项目，查询台账返回参考件号（支持批量关联）。
+      <div style="display:flex;gap:10px;margin-top:10px;flex-wrap:wrap;align-items:flex-end;">
+        <div class="field"><label>改后零件VPPS</label><input id="ewoVpps" value="10.05.03"></div>
+        <div class="field"><label>项目编码</label><input id="ewoProj" value="KL-018"></div>
+        <button class="btn btn-primary btn-sm" onclick="runEwo()">查询参考件号</button>
+      </div>
+      <div id="ewoResult" style="margin-top:10px;font-size:13px;color:var(--green);"></div>
+    </div>
+
+    <div class="sub-sec">4. 字段级映射矩阵（BRD）</div>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>影响菜单 &amp; 功能</th><th>增加字段</th><th>备注</th></tr></thead>
+        <tbody>
+          <tr><td>SOR1管理、SOR定点任务、BDL预选</td><td><span class="tag tag-purple">品类</span></td><td>一个 SOR 一对一品类</td></tr>
+          <tr><td>设计价格变更、颜色件变更、SWO、样件、框架任务</td><td><span class="tag tag-purple">VPPS编码</span></td><td>= 结构简码+位置码；EP 优先取 EBOM，次选零件信息库</td></tr>
+          <tr><td>台账</td><td><span class="tag tag-purple">品类</span> <span class="tag tag-purple">VPPS编码</span></td><td>来自定点任务 VPPS；变更VPPS的EWO未处理时台账VPPS保持上一版本不更新（静态）</td></tr>
+          <tr><td>EWO参考件号</td><td>改前参考件号</td><td>按改后零件 VPPS+项目查台账已定点零件号回填</td></tr>
+          <tr><td>下发任务</td><td>任务零件索引 VPPS→品类→采购</td><td>特殊场景：紧固件/胶水/面料/无VPPS 人工下发；样件/框架无车型字段</td></tr>
+          <tr><td>转派</td><td>—</td><td>以"项目+VPPS"维度管理；离职需同时转派表2与表1</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="sub-sec">5. 转派双表联动</div>
+    <div class="callout"><b>规则：</b>采购员离职 / 调岗时，必须<b>同时</b>操作 ① 表2 品类资源池（转派品类专家/采购工程师）与 ② 表1 项目进度表（转派行级采购员）。仅完成其一将导致"车型项目+VPPS→采购工程师"索引错配。</div>
+  </div>
+
+  <!-- ====== 变更记录 ====== -->
+  <div class="panel" id="panel-change" style="display:none;">
+    <div class="stat-row">
+      <div class="stat-card"><div class="n" id="st-bind">0</div><div class="l">绑定操作次数</div></div>
+      <div class="stat-card"><div class="n" id="st-transfer">0</div><div class="l">转派次数</div></div>
+      <div class="stat-card"><div class="n" id="st-freeze">0</div><div class="l">冻结次数</div></div>
+      <div class="stat-card"><div class="n" id="st-unbind">0</div><div class="l">解绑次数</div></div>
+    </div>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>操作时间</th><th>操作人</th><th>操作对象</th><th>操作类型</th><th>品类编码</th><th>VPPS编码</th><th>变更字段</th><th>变更前值</th><th>变更后值</th><th>来源</th></tr></thead>
+        <tbody id="changeBody"></tbody>
+      </table>
+    </div>
+    <div class="pagination"><span id="changeCount">共 0 条</span></div>
+  </div>
+</div>
+
+<!-- Bind Modal -->
+<div class="mask" id="bindMask">
+  <div class="modal">
+    <div class="modal-head">绑定品类<span class="close" onclick="closeMask('bindMask')">&times;</span></div>
+    <div class="modal-body">
+      <div class="form-item readonly"><label>VPPS编码</label><input id="bindVpps" readonly></div>
+      <div class="form-item readonly"><label>中文描述</label><input id="bindCn" readonly></div>
+      <div class="form-item"><label><span class="req">*</span>选择品类（仅生效品类 / 底表）</label>
+        <select id="bindCategory"></select>
+        <div class="err" id="bindErr">请选择要绑定的品类</div>
+      </div>
+    </div>
+    <div class="modal-foot">
+      <button class="btn" onclick="closeMask('bindMask')">取消</button>
+      <button class="btn btn-primary" onclick="confirmBind()">确认绑定</button>
+    </div>
+  </div>
+</div>
+
+<!-- Add Category Modal -->
+<div class="mask" id="addMask">
+  <div class="modal">
+    <div class="modal-head">新增品类<span class="close" onclick="closeMask('addMask')">&times;</span></div>
+    <div class="modal-body">
+      <div class="form-item readonly"><label>品类编码（系统自动生成）</label><input id="newCode" value="CAT-00046" readonly></div>
+      <div class="form-item"><label><span class="req">*</span>品类名称</label><input id="newName" placeholder="请输入品类名称"><div class="err" id="nameErr">品类名称不能为空</div></div>
+      <div class="form-item"><label><span class="req">*</span>专业组</label>
+        <select id="newGroup"><option value="">请选择</option><option>电子架构</option><option>机械架构</option><option>内饰</option><option>车身外饰</option><option>增程&热管理</option><option>电池</option><option>电驱</option></select>
+        <div class="err" id="groupErr">请选择专业组</div>
+      </div>
+      <div class="form-item"><label>品类描述/说明</label><textarea id="newDesc" placeholder="说明品类适用范围或维护说明"></textarea></div>
+      <div class="form-item"><label>材料品类（可多选）</label><input id="newMaterial" placeholder="如：塑料、金属"></div>
+      <div class="form-item"><label>工艺品类（可多选）</label><input id="newProcess" placeholder="如：注塑、冲压"></div>
+      <div class="form-item"><label><span class="req">*</span>品类专家</label><input id="newExpert" placeholder="选择有品类专家角色的人员"><div class="err" id="expertErr">请选择品类专家</div></div>
+    </div>
+    <div class="modal-foot">
+      <button class="btn" onclick="closeMask('addMask')">取消</button>
+      <button class="btn btn-primary" onclick="confirmAdd()">发布</button>
+    </div>
+  </div>
+</div>
+
+<!-- Category Detail Drawer -->
+<div class="drawer-mask" id="drawerMask" onclick="closeDrawer()"></div>
+<div class="drawer" id="catDrawer">
+  <div class="drawer-head"><span id="drawerTitle">品类详情</span><span class="close" onclick="closeDrawer()">&times;</span></div>
+  <div class="drawer-body">
+    <div id="drawerContent"></div>
+  </div>
+</div>
+
+<!-- Confirm Dialog -->
+<div class="mask" id="confirmMask">
+  <div class="modal confirm">
+    <div class="modal-head" id="confirmTitle">提示<span class="close" onclick="closeMask('confirmMask')">&times;</span></div>
+    <div class="modal-body" id="confirmMsg"></div>
+    <div class="modal-foot">
+      <button class="btn" onclick="closeMask('confirmMask')">取消</button>
+      <button class="btn btn-primary" id="confirmOk">确认</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+/* ---------- Data ---------- */
+let vppsData = [
+  {id:1,status:'待绑定',vpps:'10.11.01',structCode:'STR-MBOM-1001',structAbbr:'FRT-BPR',locCode:'FR-L',cn:'前保险杠左侧安装结构',en:'Front bumper LH mounting structure',creator:'MiBOM',codeStatus:'生效',effDate:'2026-06-20',expDate:'-',bindCategory:''},
+  {id:2,status:'待绑定',vpps:'10.11.02',structCode:'STR-MBOM-1002',structAbbr:'FRT-BPR',locCode:'FR-R',cn:'前保险杠右侧安装结构',en:'Front bumper RH mounting structure',creator:'MiBOM',codeStatus:'生效',effDate:'2026-06-18',expDate:'-',bindCategory:''},
+  {id:3,status:'已绑定',vpps:'10.05.03',structCode:'STR-MBOM-0503',structAbbr:'RLY-HDL',locCode:'-',cn:'充电口盖拉手结构',en:'Charge port handle structure',creator:'MiBOM',codeStatus:'生效',effDate:'2026-05-30',expDate:'-',bindCategory:'CAT-00012 充电口盖总成'},
+  {id:5,status:'已绑定',vpps:'30.01.07',structCode:'STR-MBOM-3007',structAbbr:'BTR-MNT',locCode:'-',cn:'电池包安装支架',en:'Battery pack mounting bracket',creator:'MiBOM',codeStatus:'失效',effDate:'2026-03-01',expDate:'2026-06-28',bindCategory:'CAT-00045 电池包结构件'},
+  {id:4,status:'无需绑定',vpps:'20.03.11',structCode:'STR-MBOM-2011',structAbbr:'WIR-HRN',locCode:'-',cn:'线束固定支架',en:'Harness bracket',creator:'MiBOM',codeStatus:'生效',effDate:'2026-04-12',expDate:'-',bindCategory:''}
+];
+
+let catData = [
+  {code:'CAT-00012',name:'充电口盖总成',expert:'张伟',status:'生效',group:'车身外饰',material:'塑料、金属',process:'注塑、冲压',supplier:'宁波华翔',desc:'充电口盖相关零件',
+    vppsNodes:[{vpps:'10.05.03',buyer:'采购A-王磊',sqe:'SQE-陈静',ce:'CE-刘洋'}],
+    boundVpps:['10.05.03']},
+  {code:'CAT-00045',name:'电池包结构件',expert:'李娜',status:'生效',group:'电池',material:'铝',process:'焊接',supplier:'宁德时代',desc:'电池包内结构件',
+    vppsNodes:[{vpps:'30.01.07',buyer:'采购B-赵明',sqe:'SQE-孙琳',ce:'CE-周涛'}],
+    boundVpps:['30.01.07']},
+  {code:'CAT-00008',name:'前保险杠总成',expert:'王强',status:'生效',group:'车身外饰',material:'塑料',process:'注塑',supplier:'彼欧',desc:'前保险杠本体及附件',
+    vppsNodes:[{vpps:'10.11.01',buyer:'采购C-吴婷',sqe:'SQE-陈静',ce:'CE-刘洋'},{vpps:'10.11.02',buyer:'采购C-吴婷',sqe:'SQE-陈静',ce:'CE-刘洋'}],
+    boundVpps:[]}
+];
+
+let changeLog = [
+  {time:'2026-06-20 09:12:33',user:'系统(MiBOM)',obj:'VPPS',type:'新增同步',cat:'',vpps:'10.11.01',field:'绑定状态',old:'-',now:'待绑定',src:'上游同步'},
+  {time:'2026-05-30 14:08:01',user:'张伟',obj:'VPPS',type:'绑定',cat:'CAT-00012',vpps:'10.05.03',field:'绑定状态',old:'待绑定',now:'已绑定',src:'手动编辑'}
+];
+
+/* ---------- Helpers ---------- */
+function statusTag(s){ if(s==='待绑定')return '<span class="tag tag-pending">待绑定</span>'; if(s==='已绑定')return '<span class="tag tag-bound">已绑定</span>'; if(s==='无需绑定')return '<span class="tag tag-noneed">无需绑定</span>'; return s; }
+function codeTag(s){ return s==='失效'?'<span class="tag tag-invalid">失效</span>':'<span class="tag tag-bound">生效</span>'; }
+function toast(msg){ const t=document.getElementById('toast'); t.textContent=msg; t.classList.add('show'); setTimeout(()=>t.classList.remove('show'),1800); }
+function closeMask(id){ document.getElementById(id).classList.remove('open'); }
+function openMask(id){ document.getElementById(id).classList.add('open'); }
+function nowStr(){ const d=new Date(); const p=n=>String(n).padStart(2,'0'); return `${d.getFullYear()}-${p(d.getMonth()+1)}-${p(d.getDate())} ${p(d.getHours())}:${p(d.getMinutes())}:${p(d.getSeconds())}`; }
+function addChange(rec){ changeLog.unshift({time:nowStr(),user:rec.user||'当前用户',obj:rec.obj,type:rec.type,cat:rec.cat||'',vpps:rec.vpps||'',field:rec.field||'',old:rec.old||'',now:rec.now||'',src:'手动编辑'}); renderChange(); }
+
+/* ---------- Tabs ---------- */
+function switchTab(tab){
+  document.querySelectorAll('.sub-tab').forEach(t=>t.classList.toggle('active',t.dataset.tab===tab));
+  ['vpps','category','project','linkage','change'].forEach(p=>document.getElementById('panel-'+p).style.display = p===tab?'block':'none');
+  document.getElementById('bcCurrent').textContent = {vpps:'VPPS绑定品类',category:'品类管理',project:'项目分包(表1)',linkage:'联动关系',change:'变更记录'}[tab];
+  if(tab==='category') renderCategory();
+  if(tab==='change') renderChange();
+  if(tab==='project') initProject();
+}
+
+/* ---------- VPPS ---------- */
+function applyFilter(){
+  const st=document.getElementById('f-status').value;
+  const vpps=document.getElementById('f-vpps').value.trim().toLowerCase();
+  const sc=document.getElementById('f-struct').value.trim().toLowerCase();
+  const cn=document.getElementById('f-cn').value.trim().toLowerCase();
+  const state=document.getElementById('f-state').value;
+  const code=document.getElementById('f-code').value;
+  const filtered=vppsData.filter(r=>{
+    if(st&&r.status!==st)return false;
+    if(vpps&&!r.vpps.toLowerCase().includes(vpps))return false;
+    if(sc&&!r.structCode.toLowerCase().includes(sc))return false;
+    if(cn&&!r.cn.toLowerCase().includes(cn))return false;
+    if(state&&r.codeStatus!==state)return false;
+    if(code&&r.codeStatus!==code)return false;
+    return true;
+  });
+  renderVpps(filtered);
+}
+function resetFilter(){ ['f-status','f-vpps','f-struct','f-cn','f-state','f-code'].forEach(id=>document.getElementById(id).value=''); renderVpps(vppsData); }
+function toggleMore(){ const m=document.getElementById('filterMore'); m.classList.toggle('open'); document.querySelector('.link-btn').textContent=m.classList.contains('open')?'收起筛选 ▴':'展开筛选 ▾'; }
+function sortVpps(arr){
+  const rank={'待绑定':0,'已绑定':1,'无需绑定':2};
+  return arr.slice().sort((a,b)=>{
+    if(rank[a.status]!==rank[b.status])return rank[a.status]-rank[b.status];
+    const da=a.effDate==='-'?'0':a.effDate, db=b.effDate==='-'?'0':b.effDate;
+    if(da!==db)return db.localeCompare(da);
+    return a.vpps.localeCompare(b.vpps);
+  });
+}
+function renderVpps(list){
+  const data=sortVpps(list||vppsData);
+  const body=document.getElementById('vppsBody');
+  if(!data.length){ body.innerHTML='<tr><td colspan="14" class="empty">暂无数据</td></tr>'; document.getElementById('vppsCount').textContent='共 0 条'; return; }
+  body.innerHTML=data.map((r,i)=>{
+    let ops='';
+    if(r.status==='待绑定'){ ops = r.codeStatus==='失效' ? '<span class="btn-text muted">不可绑定</span>' : `<span class="btn-link-mini" onclick="openBind(${r.id})">绑定</span><span class="btn-link-mini" onclick="markNoNeed(${r.id})">标记无需绑定</span>`; }
+    else if(r.status==='无需绑定'){ ops=`<span class="btn-link-mini" onclick="withdraw(${r.id})">撤回</span>`; }
+    else if(r.status==='已绑定'){ ops='<span class="btn-text muted" title="解绑请在品类管理页面操作">解绑</span>'; }
+    return `<tr>
+      <td>${i+1}</td><td>${statusTag(r.status)}</td><td><span class="code-link">${r.vpps}</span></td><td>${r.structCode}</td><td>${r.structAbbr}</td>
+      <td>${r.locCode}</td><td>${r.cn}</td><td>${r.en}</td><td>${r.creator}</td><td>${codeTag(r.codeStatus)}</td>
+      <td>${r.effDate}</td><td>${r.expDate}</td><td>${r.bindCategory||'-'}</td><td>${ops}</td>
+    </tr>`;
+  }).join('');
+  document.getElementById('vppsCount').textContent=`共 ${data.length} 条`;
+}
+function exportVpps(){ toast('已导出 VPPS 绑定数据（演示）'); }
+function openBind(id){
+  const r=vppsData.find(x=>x.id===id);
+  document.getElementById('bindVpps').value=r.vpps;
+  document.getElementById('bindCn').value=r.cn;
+  const sel=document.getElementById('bindCategory');
+  sel.innerHTML='<option value="">请选择生效品类</option>'+catData.filter(c=>c.status==='生效').map(c=>`<option value="${c.code}">${c.code} ${c.name}</option>`).join('');
+  document.getElementById('bindErr').classList.remove('show');
+  sel.dataset.id=id; openMask('bindMask');
+}
+function confirmBind(){
+  const sel=document.getElementById('bindCategory');
+  if(!sel.value){ document.getElementById('bindErr').classList.add('show'); return; }
+  const id=+sel.dataset.id; const r=vppsData.find(x=>x.id===id); const cat=catData.find(c=>c.code===sel.value);
+  r.status='已绑定'; r.bindCategory=`${cat.code} ${cat.name}`;
+  if(!cat.boundVpps.includes(r.vpps)) cat.boundVpps.push(r.vpps);
+  if(!cat.vppsNodes.find(n=>n.vpps===r.vpps)) cat.vppsNodes.push({vpps:r.vpps,buyer:'—',sqe:'—',ce:'—'});
+  addChange({obj:'VPPS',type:'绑定',cat:cat.code,vpps:r.vpps,field:'绑定状态',old:'待绑定',now:'已绑定'});
+  closeMask('bindMask'); renderVpps(); toast('绑定成功');
+}
+function markNoNeed(id){ const r=vppsData.find(x=>x.id===id); showConfirm('标记为无需绑定','确认将该 VPPS 标记为"无需绑定"？无需填写原因。',()=>{ r.status='无需绑定'; addChange({obj:'VPPS',type:'无需绑定',vpps:r.vpps,field:'绑定状态',old:'待绑定',now:'无需绑定'}); renderVpps(); toast('已标记为无需绑定'); }); }
+function withdraw(id){ const r=vppsData.find(x=>x.id===id); showConfirm('撤回无需绑定','确认撤回？撤回后状态恢复为"待绑定"。',()=>{ r.status='待绑定'; addChange({obj:'VPPS',type:'撤回',vpps:r.vpps,field:'绑定状态',old:'无需绑定',now:'待绑定'}); renderVpps(); toast('已撤回'); }); }
+
+/* ---------- Category ---------- */
+function renderCategory(){
+  const body=document.getElementById('catBody');
+  body.innerHTML=catData.map(c=>`
+    <tr>
+      <td><span class="code-link" onclick="openDrawer('${c.code}')">${c.code}</span></td>
+      <td><span class="code-link" onclick="openDrawer('${c.code}')">${c.name}</span></td>
+      <td>${c.expert}</td>
+      <td>${c.status==='生效'?'<span class="tag tag-bound">生效</span>':'<span class="tag tag-noneed">已冻结</span>'}</td>
+      <td>${c.group}</td><td>${c.material}</td><td>${c.process}</td><td>${c.supplier}</td><td>${c.desc}</td>
+      <td>
+        <span class="btn-link-mini" onclick="openDrawer('${c.code}')">详情</span>
+        <span class="btn-link-mini" onclick="toast('编辑：${c.name}')">编辑</span>
+        <span class="btn-link-mini" onclick="toast('转派：${c.name}')">转派</span>
+        <span class="btn-link-mini" onclick="toast('冻结：${c.name}')">冻结</span>
+      </td>
+    </tr>`).join('');
+}
+function openDrawer(code){
+  const c=catData.find(x=>x.code===code);
+  document.getElementById('drawerTitle').textContent=`品类详情 · ${c.name}`;
+  document.getElementById('drawerContent').innerHTML=`
+    <div class="kv" style="margin-bottom:16px;">
+      <span class="chip"><b>品类编码</b> ${c.code}</span>
+      <span class="chip"><b>品类专家</b> ${c.expert}</span>
+      <span class="chip"><b>状态</b> ${c.status}</span>
+      <span class="chip"><b>专业组</b> ${c.group}</span>
+    </div>
+    <div class="sub-sec">VPPS节点 - 人员关系（表2 品类-采购工程师/SQE/财务CE）</div>
+    <div class="table-wrap" style="margin-bottom:18px;">
+      <table><thead><tr><th>VPPS节点</th><th>采购工程师</th><th>SQE</th><th>财务CE</th></tr></thead>
+      <tbody>${c.vppsNodes.map(n=>`<tr><td><span class="code-link">${n.vpps}</span></td><td>${n.buyer}</td><td>${n.sqe}</td><td>${n.ce}</td></tr>`).join('')}</tbody></table>
+    </div>
+    <div class="sub-sec">已绑定 VPPS（解绑在品类视角下处理）</div>
+    <div class="table-wrap" style="margin-bottom:18px;">
+      <table><thead><tr><th>VPPS编码</th><th>中文描述</th><th>状态</th><th>操作</th></tr></thead>
+      <tbody>${c.boundVpps.length?c.boundVpps.map(v=>{const r=vppsData.find(x=>x.vpps===v);return `<tr><td>${v}</td><td>${r?v.cn:'-'}</td><td>${statusTag('已绑定')}</td><td><span class="btn-link-mini" onclick="drawerUnbind('${v}')">解绑</span></td></tr>`;}).join(''):'<tr><td colspan="4" class="empty">暂无已绑定 VPPS</td></tr>'}</tbody></table>
+    </div>
+    <div class="sub-sec">定点供应商</div>
+    <div class="callout">${c.supplier}（期初导入）</div>
+    <div class="sub-sec">品类描述</div>
+    <div class="callout">${c.desc}</div>
+  `;
+  document.getElementById('drawerMask').classList.add('open');
+  document.getElementById('catDrawer').classList.add('open');
+}
+function closeDrawer(){ document.getElementById('drawerMask').classList.remove('open'); document.getElementById('catDrawer').classList.remove('open'); }
+function drawerUnbind(vppsCode){
+  const r=vppsData.find(x=>x.vpps===vppsCode); if(!r)return;
+  showConfirm('解绑确认','解绑后该 VPPS 将恢复为待绑定状态，请确认。',()=>{
+    const old=r.bindCategory; r.status='待绑定'; r.bindCategory='';
+    const cat=catData.find(c=>c.code===old.split(' ')[0]); if(cat){ cat.boundVpps=cat.boundVpps.filter(v=>v!==vppsCode); cat.vppsNodes=cat.vppsNodes.filter(n=>n.vpps!==vppsCode); }
+    addChange({obj:'VPPS',type:'解绑',cat:old.split(' ')[0],vpps:r.vpps,field:'绑定状态',old:'已绑定',now:'待绑定'});
+    closeMask('confirmMask'); closeDrawer(); renderVpps(); renderCategory(); toast('已解绑');
+  });
+}
+function openAddCategory(){ openMask('addMask'); }
+function confirmAdd(){
+  const name=document.getElementById('newName').value.trim();
+  const group=document.getElementById('newGroup').value;
+  const expert=document.getElementById('newExpert').value.trim();
+  let ok=true;
+  document.getElementById('nameErr').classList.toggle('show',!name); if(!name)ok=false;
+  document.getElementById('groupErr').classList.toggle('show',!group); if(!group)ok=false;
+  document.getElementById('expertErr').classList.toggle('show',!expert); if(!expert)ok=false;
+  if(!ok)return;
+  const code=document.getElementById('newCode').value;
+  catData.unshift({code,name,expert,status:'生效',group,material:document.getElementById('newMaterial').value||'-',process:document.getElementById('newProcess').value||'-',supplier:'-',desc:document.getElementById('newDesc').value||'-',vppsNodes:[],boundVpps:[]});
+  addChange({obj:'品类',type:'新增',cat:code,field:'品类名称',old:'-',now:name});
+  closeMask('addMask'); renderCategory(); toast('品类已发布（生效）');
+}
+
+/* ---------- Project (表1) ---------- */
+function initProject(){
+  const sel=document.getElementById('projCat');
+  if(sel.options.length<=1){
+    sel.innerHTML='<option value="">请选择品类</option>'+catData.filter(c=>c.status==='生效').map(c=>`<option value="${c.code}">${c.code} ${c.name}</option>`).join('');
+  }
+}
+function onProjCatChange(){
+  const code=document.getElementById('projCat').value;
+  document.getElementById('projCatErr').classList.remove('show');
+  const c=catData.find(x=>x.code===code);
+  if(c){
+    // 自动带出：取该品类下第一个VPPS节点的采购员/SQE（演示用；实际按VPPS节点索引）
+    const node=c.vppsNodes[0]||{buyer:'—',sqe:'—'};
+    document.getElementById('projBuyer').value=node.buyer==='—'?'':node.buyer;
+    document.getElementById('projSqe').value=node.sqe==='—'?'':node.sqe;
+  } else { document.getElementById('projBuyer').value=''; document.getElementById('projSqe').value=''; }
+}
+function saveProject(){
+  const code=document.getElementById('projCat').value;
+  if(!code){ document.getElementById('projCatErr').classList.add('show'); return; }
+  const buyer=document.getElementById('projBuyer').value;
+  toast(`分包已保存：品类 ${code}，采购员 ${buyer||'（表2默认带出）'}`);
+}
+
+/* ---------- EWO 改前参考件号 ---------- */
+function runEwo(){
+  const v=document.getElementById('ewoVpps').value.trim();
+  const p=document.getElementById('ewoProj').value.trim();
+  // 演示逻辑：台账中存在该VPPS+项目的已定点零件号
+  const map={'10.05.03':'PN-884201（充电口盖拉手-已定点）','30.01.07':'PN-771009（电池包支架-已定点）'};
+  const ref=map[v];
+  document.getElementById('ewoResult').innerHTML = ref
+    ? `✓ 查询到参考件号：<b>${ref}</b>（项目 ${p}），已回填"改前参考件号"。`
+    : `未查询到 ${v} 在 ${p} 下关联的已定点零件号（演示数据有限，可扩展台账）。`;
+}
+
+/* ---------- Change ---------- */
+function renderChange(){
+  const body=document.getElementById('changeBody');
+  body.innerHTML=changeLog.map(r=>`
+    <tr><td>${r.time}</td><td>${r.user}</td><td>${r.obj}</td><td>${r.type}</td><td>${r.cat||'-'}</td><td>${r.vpps||'-'}</td><td>${r.field||'-'}</td><td>${r.old||'-'}</td><td>${r.now||'-'}</td><td>${r.src}</td></tr>`).join('') || '<tr><td colspan="10" class="empty">暂无变更记录</td></tr>';
+  document.getElementById('changeCount').textContent=`共 ${changeLog.length} 条`;
+  document.getElementById('st-bind').textContent=changeLog.filter(r=>r.type==='绑定').length;
+  document.getElementById('st-transfer').textContent=changeLog.filter(r=>r.type==='转派').length;
+  document.getElementById('st-freeze').textContent=changeLog.filter(r=>r.type==='冻结').length;
+  document.getElementById('st-unbind').textContent=changeLog.filter(r=>r.type==='解绑').length;
+}
+
+/* ---------- Confirm ---------- */
+let confirmCb=null;
+function showConfirm(title,msg,cb){ document.getElementById('confirmTitle').textContent=title; document.getElementById('confirmMsg').textContent=msg; document.getElementById('confirmOk').style.display=''; confirmCb=cb; openMask('confirmMask'); document.getElementById('confirmOk').onclick=()=>{ closeMask('confirmMask'); if(confirmCb)confirmCb(); }; }
+
+/* ---------- Init ---------- */
+renderVpps();
+</script>
+</body>
+</html>

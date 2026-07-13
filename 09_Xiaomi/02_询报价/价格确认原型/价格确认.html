@@ -1,0 +1,1231 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>小米汽车SRM系统 - 价格管理 / 价格确认</title>
+<style>
+:root{
+  --p:#1677ff;--ph:#4096ff;--pl:#e6f4ff;--pa:rgba(22,119,255,.06);
+  --s:#52c41a;--sl:#f6ffed;--sa:rgba(82,196,26,.08);
+  --w:#faad14;--wl:#fffbe6;--wa:rgba(250,173,20,.08);
+  --d:#ff4d4f;--dl:#fff2f0;--da:rgba(255,77,79,.06);
+  --g50:#fafafa;--g100:#f5f5f5;--g200:#e8e8e8;--g300:#d9d9d9;
+  --g400:#bfbfbf;--g500:#8c8c8c;--g600:#595959;--g700:#434343;
+  --g800:#262626;--g900:#1f1f1f;
+  --r:10px;--rs:6px;--rl:14px;
+  --sh:0 1px 3px rgba(0,0,0,.04),0 1px 2px rgba(0,0,0,.06);
+  --shm:0 4px 12px rgba(0,0,0,.07);
+  --shl:0 8px 24px rgba(0,0,0,.09);
+  --tr:all .2s ease;
+  --nav-bg:#001529;--nav-bg-light:#002140;
+  --orange:#ff6700;--orange-l:#fff7e6;--orange-d:#d4380d;
+  --purple:#722ed1;--purple-l:#f9f0ff;
+}
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif;background:#f0f2f5;color:var(--g800);line-height:1.6;font-size:13px;min-height:100vh;overflow:hidden}
+
+/* ========== Top Nav ========== */
+.topnav{background:var(--nav-bg);height:48px;display:flex;align-items:center;padding:0 16px;position:fixed;top:0;left:0;right:0;z-index:1000}
+.topnav-logo{display:flex;align-items:center;gap:8px;margin-right:24px;flex-shrink:0}
+.topnav-logo .mi{width:28px;height:28px;background:linear-gradient(135deg,#ff6700,#ff4d00);border-radius:6px;display:flex;align-items:center;justify-content:center;color:#fff;font-size:12px;font-weight:700}
+.topnav-logo span{color:#fff;font-size:14px;font-weight:600;letter-spacing:.5px;white-space:nowrap}
+.topnav-menu{display:flex;align-items:center;gap:0;flex:1;overflow-x:auto;scrollbar-width:none}
+.topnav-menu::-webkit-scrollbar{display:none}
+.topnav-item{padding:0 14px;height:48px;display:flex;align-items:center;color:rgba(255,255,255,.65);font-size:13px;cursor:pointer;white-space:nowrap;transition:all .2s;position:relative}
+.topnav-item:hover{color:#fff;background:rgba(255,255,255,.08)}
+.topnav-item.active{color:#fff;background:rgba(255,255,255,.12)}
+.topnav-item.active::after{content:'';position:absolute;bottom:0;left:8px;right:8px;height:2px;background:var(--p);border-radius:2px 2px 0 0}
+.topnav-right{display:flex;align-items:center;gap:12px;margin-left:auto;flex-shrink:0;padding-left:16px}
+.topnav-right .icon{width:32px;height:32px;border-radius:50%;display:flex;align-items:center;justify-content:center;color:rgba(255,255,255,.65);cursor:pointer;transition:all .2s;font-size:14px;position:relative}
+.topnav-right .icon:hover{background:rgba(255,255,255,.1);color:#fff}
+.topnav-right .icon .dot{position:absolute;top:6px;right:6px;width:7px;height:7px;background:var(--d);border-radius:50%;border:1.5px solid var(--nav-bg)}
+.topnav-user{display:flex;align-items:center;gap:6px;color:rgba(255,255,255,.85);font-size:12px;cursor:pointer}
+.topnav-avatar{width:28px;height:28px;border-radius:50%;background:linear-gradient(135deg,var(--p),#4096ff);display:flex;align-items:center;justify-content:center;color:#fff;font-size:11px;font-weight:600}
+
+/* ========== Layout ========== */
+.srm-layout{display:flex;height:calc(100vh - 48px);margin-top:48px}
+.sidebar{width:220px;background:#fff;border-right:1px solid var(--g200);display:flex;flex-direction:column;flex-shrink:0;overflow:hidden}
+.sidebar-hdr{padding:16px;border-bottom:1px solid var(--g100)}
+.sidebar-hdr h3{font-size:14px;font-weight:700;color:var(--g900);margin-bottom:4px}
+.sidebar-hdr .count{font-size:12px;color:var(--g500)}
+.sidebar-hdr .count strong{color:var(--p);font-weight:600}
+.sp-menu{flex:1;overflow-y:auto;padding:8px 0}
+.sp-menu-item{display:flex;align-items:center;gap:10px;padding:11px 20px;font-size:13px;color:var(--g600);cursor:pointer;transition:all .15s;border-left:3px solid transparent;position:relative}
+.sp-menu-item:hover{color:var(--p);background:var(--pl)}
+.sp-menu-item.active{color:var(--p);background:var(--pl);font-weight:600;border-left-color:var(--p)}
+.sp-menu-item .mi-icon{width:20px;height:20px;border-radius:4px;display:flex;align-items:center;justify-content:center;font-size:12px;flex-shrink:0}
+.sp-menu-item .mi-icon.blue{background:var(--pl);color:var(--p)}
+.sp-menu-item .mi-icon.green{background:var(--sl);color:var(--s)}
+.sp-menu-item .mi-icon.orange{background:var(--orange-l);color:var(--orange)}
+.sp-menu-item .mi-icon.purple{background:var(--purple-l);color:var(--purple)}
+.sp-menu-item .mi-badge{margin-left:auto;font-size:10px;padding:1px 6px;border-radius:8px;background:var(--g100);color:var(--g500);font-weight:500}
+.sp-menu-item.active .mi-badge{background:var(--pl);color:var(--p)}
+.sp-menu-item .mi-badge.warn{background:var(--wl);color:var(--orange-d)}
+
+/* ========== Main Content ========== */
+.main-content{flex:1;overflow-y:auto;background:#f0f2f5;padding:0}
+.content-header{background:#fff;padding:16px 24px;border-bottom:1px solid var(--g200)}
+.content-title{font-size:16px;font-weight:700;color:var(--g900);margin-bottom:12px;display:flex;align-items:center;gap:10px}
+.content-title .sub{font-size:12px;font-weight:400;color:var(--g500)}
+.content-tabs{display:flex;gap:0;border-bottom:none;margin-bottom:12px}
+.ctab{padding:8px 16px;font-size:13px;color:var(--g600);cursor:pointer;border-bottom:2px solid transparent;transition:var(--tr);display:flex;align-items:center;gap:6px}
+.ctab:hover{color:var(--p)}
+.ctab.active{color:var(--p);font-weight:600;border-bottom-color:var(--p)}
+.ctab .badge{font-size:10px;padding:1px 6px;border-radius:8px;background:var(--d);color:#fff;font-weight:600;min-width:18px;text-align:center}
+.ctab .badge.warn{background:var(--w)}
+.content-toolbar{display:flex;align-items:center;justify-content:space-between;gap:12px}
+.search-box{display:flex;align-items:center;gap:8px}
+.search-input{width:260px;padding:6px 12px;border:1px solid var(--g300);border-radius:var(--rs);font-size:12px;transition:var(--tr)}
+.search-input:focus{outline:none;border-color:var(--p);box-shadow:0 0 0 3px rgba(22,119,255,.1)}
+.toolbar-right{display:flex;align-items:center;gap:10px}
+.filter-select{padding:6px 28px 6px 10px;border:1px solid var(--g300);border-radius:var(--rs);font-size:12px;color:var(--g700);background:#fff url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M0 0l5 6 5-6z' fill='%238c8c8c'/%3E%3C/svg%3E") no-repeat right 8px center;appearance:none;cursor:pointer;transition:var(--tr)}
+.filter-select:focus{outline:none;border-color:var(--p)}
+
+/* ========== Buttons ========== */
+.btn{border:none;padding:7px 16px;border-radius:var(--rs);font-size:12px;font-weight:500;cursor:pointer;transition:var(--tr);display:inline-flex;align-items:center;gap:5px;white-space:nowrap}
+.btn:active{transform:scale(.97)}
+.btn-p{background:linear-gradient(135deg,var(--p) 0%,#4096ff 100%);color:#fff;box-shadow:0 2px 6px rgba(22,119,255,.25)}
+.btn-p:hover{box-shadow:0 4px 12px rgba(22,119,255,.35);transform:translateY(-1px)}
+.btn-o{background:#fff;color:var(--g700);border:1px solid var(--g300)}.btn-o:hover{color:var(--p);border-color:var(--p);background:var(--pa)}
+.btn-g{background:var(--g50);color:var(--g600);border:1px solid var(--g200)}.btn-g:hover{color:var(--p);border-color:var(--p);background:var(--pa)}
+.btn-s{padding:4px 10px;font-size:11px;border-radius:4px;white-space:nowrap}
+.btn-d{background:none;color:var(--d);border:none;padding:2px 6px;font-size:11px;cursor:pointer}.btn-d:hover{text-decoration:underline}
+.btn-success{background:linear-gradient(135deg,var(--s),#73d13d);color:#fff;box-shadow:0 2px 6px rgba(82,196,26,.25)}.btn-success:hover{box-shadow:0 4px 12px rgba(82,196,26,.35)}
+.btn-danger{background:#fff;color:var(--d);border:1px solid #ffa39e}.btn-danger:hover{background:var(--dl);border-color:var(--d)}
+.btn-warn{background:linear-gradient(135deg,var(--w),#ffc53d);color:#fff;box-shadow:0 2px 6px rgba(250,173,20,.25)}.btn-warn:hover{box-shadow:0 4px 12px rgba(250,173,20,.35)}
+
+/* ========== Cards & Panels ========== */
+.sp{background:#fff;border-radius:var(--r);box-shadow:var(--sh);margin-bottom:14px;overflow:hidden;border:1px solid rgba(0,0,0,.04);transition:var(--tr)}
+.sp:hover{box-shadow:var(--shm);border-color:rgba(0,0,0,.06)}
+.sp-h{display:flex;align-items:center;justify-content:space-between;padding:13px 20px;border-bottom:1px solid var(--g100);cursor:pointer;user-select:none;transition:var(--tr)}
+.sp-h:hover{background:linear-gradient(90deg,var(--g50),#fff)}
+.sp-t{font-size:13px;font-weight:600;display:flex;align-items:center;gap:7px;color:var(--g800)}
+.sp-t .arr{font-size:10px;color:var(--g400);transition:transform .25s ease}
+.sp-t .arr.open{transform:rotate(90deg)}
+.sp-b{padding:0}
+
+/* ========== Summary Cards ========== */
+.summary-row{display:grid;grid-template-columns:repeat(5,1fr);gap:14px;padding:16px 24px}
+.summary-card{background:#fff;border-radius:var(--r);padding:16px 18px;border:1px solid rgba(0,0,0,.04);box-shadow:var(--sh);transition:var(--tr);position:relative;overflow:hidden}
+.summary-card:hover{box-shadow:var(--shm);transform:translateY(-2px)}
+.summary-card::before{content:'';position:absolute;top:0;left:0;right:0;height:3px}
+.summary-card.blue::before{background:linear-gradient(90deg,var(--p),var(--ph))}
+.summary-card.green::before{background:linear-gradient(90deg,var(--s),#73d13d)}
+.summary-card.orange::before{background:linear-gradient(90deg,var(--w),#ffc53d)}
+.summary-card.red::before{background:linear-gradient(90deg,var(--d),#ff7875)}
+.summary-card.purple::before{background:linear-gradient(90deg,var(--purple),#b37feb)}
+.sc-top{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px}
+.sc-label{font-size:12px;color:var(--g500)}
+.sc-icon{width:36px;height:36px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:16px}
+.sc-icon.blue{background:var(--pl);color:var(--p)}
+.sc-icon.green{background:var(--sl);color:var(--s)}
+.sc-icon.orange{background:var(--orange-l);color:var(--orange)}
+.sc-icon.red{background:var(--dl);color:var(--d)}
+.sc-icon.purple{background:var(--purple-l);color:var(--purple)}
+.sc-value{font-size:24px;font-weight:700;color:var(--g900);line-height:1.2}
+.sc-sub{font-size:11px;color:var(--g500);margin-top:4px;display:flex;align-items:center;gap:4px}
+.sc-sub .up{color:var(--d)}
+.sc-sub .down{color:var(--s)}
+
+/* ========== Tables ========== */
+.dt{width:100%;border-collapse:collapse;table-layout:fixed}
+.dt th{background:linear-gradient(180deg,#fafafa,#f5f5f5);color:var(--g700);font-size:11px;font-weight:600;padding:10px 12px;text-align:left;border-bottom:1px solid var(--g200);border-right:1px solid var(--g100);white-space:nowrap;position:sticky;top:0;z-index:10}
+.dt td{padding:10px 12px;border-bottom:1px solid var(--g100);border-right:1px solid var(--g100);font-size:12px;vertical-align:middle}
+.dt tbody tr{transition:var(--tr)}
+.dt tbody tr:hover td{background:#f0f7ff}
+.dt tbody tr.selected td{background:var(--pl)}
+.dt .cell-link{color:var(--p);font-weight:500;cursor:pointer}
+.dt .cell-link:hover{text-decoration:underline}
+.dt .cell-bold{font-weight:600;color:var(--g800)}
+
+/* ========== Tags ========== */
+.tag{display:inline-block;font-size:10px;padding:2px 8px;border-radius:4px;font-weight:500;white-space:nowrap}
+.tag-p{background:var(--pl);color:var(--p)}
+.tag-s{background:var(--sl);color:var(--s)}
+.tag-w{background:var(--wl);color:#d46b08}
+.tag-d{background:var(--dl);color:var(--d)}
+.tag-g{background:var(--g100);color:var(--g600)}
+.tag-o{background:var(--orange-l);color:var(--orange)}
+.tag-purple{background:var(--purple-l);color:var(--purple)}
+
+/* ========== BOM Tree ========== */
+.bom-tree{padding:16px 20px}
+.bom-node{position:relative;padding-left:24px}
+.bom-node::before{content:'';position:absolute;left:8px;top:0;bottom:12px;width:1px;background:var(--g200)}
+.bom-node:last-child::before{height:20px}
+.bom-node::after{content:'';position:absolute;left:8px;top:20px;width:12px;height:1px;background:var(--g200)}
+.bom-node-head{display:flex;align-items:center;gap:8px;padding:6px 12px;border-radius:var(--rs);cursor:pointer;transition:var(--tr);margin-bottom:2px;position:relative}
+.bom-node-head:hover{background:var(--g50)}
+.bom-node-head .node-icon{width:24px;height:24px;border-radius:6px;display:flex;align-items:center;justify-content:center;font-size:11px;flex-shrink:0;font-weight:600}
+.bom-node-head .node-icon.assembly{background:linear-gradient(135deg,var(--p),#4096ff);color:#fff}
+.bom-node-head .node-icon.body{background:linear-gradient(135deg,var(--s),#73d13d);color:#fff}
+.bom-node-head .node-icon.db{background:linear-gradient(135deg,var(--orange),#ff9c6e);color:#fff}
+.bom-node-head .node-icon.material{background:var(--g100);color:var(--g600)}
+.bom-node-head .node-code{font-weight:600;color:var(--g800);font-size:12px}
+.bom-node-head .node-name{color:var(--g500);font-size:11px;margin-left:4px}
+.bom-node-head .node-price{margin-left:auto;font-weight:600;color:var(--g800);font-size:12px;background:var(--g50);padding:2px 8px;border-radius:4px}
+.bom-node-head .node-price.highlight{background:var(--dl);color:var(--d)}
+.bom-node-head .node-tag{font-size:9px;padding:1px 5px;border-radius:3px;margin-left:4px}
+.bom-children{position:relative}
+
+/* ========== Price Calc Panel ========== */
+.calc-panel{display:grid;grid-template-columns:1fr 1fr;gap:16px;padding:16px 20px}
+.calc-box{border:1px solid var(--g200);border-radius:var(--r);overflow:hidden}
+.calc-box-hdr{padding:10px 16px;background:linear-gradient(180deg,#fafafa,#f5f5f5);border-bottom:1px solid var(--g200);font-size:12px;font-weight:600;color:var(--g700);display:flex;align-items:center;gap:6px}
+.calc-row{display:flex;align-items:center;justify-content:space-between;padding:10px 16px;border-bottom:1px solid var(--g100);transition:var(--tr)}
+.calc-row:last-child{border-bottom:none}
+.calc-row:hover{background:var(--g50)}
+.calc-row .label{font-size:12px;color:var(--g600)}
+.calc-row .value{font-size:13px;font-weight:600;color:var(--g800)}
+.calc-row .value.blue{color:var(--p)}
+.calc-row .value.green{color:var(--s)}
+.calc-row .value.red{color:var(--d)}
+.calc-row .value.orange{color:var(--orange)}
+.calc-row.total{background:linear-gradient(90deg,var(--pl),#f0f5ff);font-weight:600}
+.calc-row.total .label{font-weight:700;color:var(--g800)}
+.calc-row.total .value{font-size:16px;font-weight:700;color:var(--p)}
+.calc-row.changed{background:var(--dl)}
+.calc-row.changed .label{color:var(--d)}
+.calc-row.changed .value{color:var(--d)}
+
+/* ========== Confirmation Panel ========== */
+.confirm-panel{padding:16px 20px}
+.confirm-status-bar{display:flex;align-items:center;gap:12px;padding:14px 18px;border-radius:var(--r);margin-bottom:16px}
+.confirm-status-bar.pending{background:linear-gradient(135deg,#fff7e6,#fffbe6);border:1px solid #ffd591}
+.confirm-status-bar.confirmed{background:linear-gradient(135deg,#f6ffed,#e6fffb);border:1px solid #b7eb8f}
+.confirm-status-bar.rejected{background:linear-gradient(135deg,#fff2f0,#fff1f0);border:1px solid #ffa39e}
+.confirm-status-bar .status-icon{width:40px;height:40px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0}
+.confirm-status-bar.pending .status-icon{background:var(--w);color:#fff}
+.confirm-status-bar.confirmed .status-icon{background:var(--s);color:#fff}
+.confirm-status-bar.rejected .status-icon{background:var(--d);color:#fff}
+.confirm-status-bar .status-text h4{font-size:14px;font-weight:600;color:var(--g800);margin-bottom:2px}
+.confirm-status-bar .status-text p{font-size:12px;color:var(--g500)}
+
+.confirm-form{display:grid;grid-template-columns:1fr 1fr;gap:12px 20px;margin-bottom:16px}
+.confirm-form .form-item{display:flex;flex-direction:column;gap:4px}
+.confirm-form .form-item.full{grid-column:1/-1}
+.confirm-form label{font-size:12px;color:var(--g600);font-weight:500}
+.confirm-form label .req{color:var(--d);margin-left:2px}
+.confirm-form input,.confirm-form textarea,.confirm-form select{padding:7px 10px;border:1px solid var(--g300);border-radius:var(--rs);font-size:12px;color:var(--g800);transition:var(--tr);font-family:inherit}
+.confirm-form input:focus,.confirm-form textarea:focus,.confirm-form select:focus{outline:none;border-color:var(--p);box-shadow:0 0 0 3px rgba(22,119,255,.1)}
+.confirm-form textarea{resize:vertical;min-height:60px}
+.confirm-form .form-value{padding:7px 10px;background:var(--g50);border:1px solid var(--g200);border-radius:var(--rs);font-size:12px;color:var(--g700)}
+
+.confirm-actions{display:flex;gap:10px;padding-top:12px;border-top:1px solid var(--g100)}
+
+/* ========== Change Diff ========== */
+.diff-bar{display:flex;align-items:center;gap:6px;padding:6px 12px;border-radius:var(--rs);font-size:11px;margin:2px 0}
+.diff-bar.up{background:var(--dl);color:var(--d)}
+.diff-bar.down{background:var(--sl);color:var(--s)}
+.diff-bar .arrow{font-size:13px;font-weight:700}
+
+/* ========== Timeline ========== */
+.timeline{padding:16px 20px}
+.tl-item{display:flex;gap:12px;padding-bottom:16px;position:relative}
+.tl-item::before{content:'';position:absolute;left:11px;top:24px;bottom:0;width:1px;background:var(--g200)}
+.tl-item:last-child::before{display:none}
+.tl-dot{width:24px;height:24px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:10px;flex-shrink:0;z-index:1}
+.tl-dot.blue{background:var(--pl);color:var(--p);border:2px solid var(--p)}
+.tl-dot.green{background:var(--sl);color:var(--s);border:2px solid var(--s)}
+.tl-dot.orange{background:var(--wl);color:var(--w);border:2px solid var(--w)}
+.tl-dot.gray{background:var(--g100);color:var(--g500);border:2px solid var(--g300)}
+.tl-content{flex:1}
+.tl-content .tl-title{font-size:12px;font-weight:600;color:var(--g800);margin-bottom:2px}
+.tl-content .tl-desc{font-size:11px;color:var(--g500)}
+.tl-content .tl-time{font-size:10px;color:var(--g400);margin-top:2px}
+
+/* ========== Alert Banner ========== */
+.alert-banner{margin:14px 24px 0;padding:12px 16px;border-radius:var(--r);display:flex;align-items:flex-start;gap:10px;font-size:12px;line-height:1.5}
+.alert-banner.warn{background:linear-gradient(135deg,#fff7e6,#fffbe6);border:1px solid #ffd591;color:#ad6800}
+.alert-banner.info{background:linear-gradient(135deg,#e6f4ff,#f0f5ff);border:1px solid #91caff;color:#0958d9}
+.alert-banner .alert-icon{font-size:16px;flex-shrink:0;margin-top:1px}
+.alert-banner .alert-close{margin-left:auto;cursor:pointer;color:inherit;opacity:.5;font-size:14px}
+.alert-banner .alert-close:hover{opacity:1}
+
+/* ========== Content Wrapper ========== */
+.content-wrap{padding:0 24px 24px}
+.page-section{margin-top:14px}
+
+/* ========== Responsive ========== */
+@media(max-width:1400px){.summary-row{grid-template-columns:repeat(3,1fr)}}
+@media(max-width:1100px){.summary-row{grid-template-columns:repeat(2,1fr)}}
+
+/* ========== Modal ========== */
+.modal-overlay{position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,.45);z-index:2000;display:flex;align-items:center;justify-content:center;opacity:0;visibility:hidden;transition:all .25s}
+.modal-overlay.show{opacity:1;visibility:visible}
+.modal{background:#fff;border-radius:var(--rl);box-shadow:var(--shl);width:640px;max-height:80vh;overflow:hidden;transform:scale(.95);transition:all .25s}
+.modal-overlay.show .modal{transform:scale(1)}
+.modal-hdr{padding:16px 20px;border-bottom:1px solid var(--g200);display:flex;align-items:center;justify-content:space-between}
+.modal-hdr h3{font-size:15px;font-weight:700;color:var(--g900)}
+.modal-close{width:28px;height:28px;border-radius:50%;display:flex;align-items:center;justify-content:center;cursor:pointer;transition:var(--tr);color:var(--g500);font-size:14px}
+.modal-close:hover{background:var(--g100);color:var(--g800)}
+.modal-body{padding:20px;overflow-y:auto;max-height:calc(80vh - 120px)}
+.modal-footer{padding:12px 20px;border-top:1px solid var(--g200);display:flex;justify-content:flex-end;gap:8px}
+
+/* ========== Checkbox ========== */
+.chk{width:16px;height:16px;accent-color:var(--p);cursor:pointer}
+
+/* ========== Tooltip ========== */
+.tooltip-wrap{position:relative}
+.tooltip-wrap:hover .tooltip-text{opacity:1;visibility:visible;transform:translateY(0)}
+.tooltip-text{position:absolute;bottom:calc(100% + 6px);left:50%;transform:translateX(-50%) translateY(4px);background:var(--g800);color:#fff;font-size:11px;padding:4px 8px;border-radius:4px;white-space:nowrap;opacity:0;visibility:hidden;transition:all .2s;pointer-events:none;z-index:100}
+</style>
+</head>
+<body>
+
+<!-- ===== Top Nav ===== -->
+<nav class="topnav">
+  <div class="topnav-logo">
+    <div class="mi">MI</div>
+    <span>小米汽车 SRM</span>
+  </div>
+  <div class="topnav-menu">
+    <div class="topnav-item">工作台</div>
+    <div class="topnav-item">供应商管理</div>
+    <div class="topnav-item active">价格管理</div>
+    <div class="topnav-item">合同管理</div>
+    <div class="topnav-item">订单管理</div>
+    <div class="topnav-item">质量管理</div>
+    <div class="topnav-item">物流管理</div>
+    <div class="topnav-item">报表中心</div>
+  </div>
+  <div class="topnav-right">
+    <div class="icon">🔔<span class="dot"></span></div>
+    <div class="icon">✉️</div>
+    <div class="topnav-user">
+      <div class="topnav-avatar">张</div>
+      <span>张伟</span>
+    </div>
+  </div>
+</nav>
+
+<!-- ===== Layout ===== -->
+<div class="srm-layout">
+  <!-- Sidebar -->
+  <aside class="sidebar">
+    <div class="sidebar-hdr">
+      <h3>价格管理</h3>
+      <div class="count">共 <strong>128</strong> 条待确认</div>
+    </div>
+    <nav class="sp-menu">
+      <div class="sp-menu-item">
+        <div class="mi-icon blue">📊</div>
+        <span>价格总览</span>
+      </div>
+      <div class="sp-menu-item active">
+        <div class="mi-icon orange">✅</div>
+        <span>价格确认</span>
+        <div class="mi-badge warn">36</div>
+      </div>
+      <div class="sp-menu-item">
+        <div class="mi-icon green">📈</div>
+        <span>价格联动</span>
+        <div class="mi-badge">12</div>
+      </div>
+      <div class="sp-menu-item">
+        <div class="mi-icon purple">🔄</div>
+        <span>补差管理</span>
+        <div class="mi-badge">8</div>
+      </div>
+      <div class="sp-menu-item">
+        <div class="mi-icon blue">📋</div>
+        <span>BOM结构</span>
+      </div>
+      <div class="sp-menu-item">
+        <div class="mi-icon green">📐</div>
+        <span>价格基线</span>
+      </div>
+      <div class="sp-menu-item">
+        <div class="mi-icon orange">⚙️</div>
+        <span>卷积规则</span>
+      </div>
+      <div class="sp-menu-item">
+        <div class="mi-icon purple">📝</div>
+        <span>变更日志</span>
+      </div>
+    </nav>
+  </aside>
+
+  <!-- Main Content -->
+  <main class="main-content">
+    <!-- Header -->
+    <div class="content-header">
+      <div class="content-title">
+        价格确认
+        <span class="sub">总成件价格卷积 · BOM结构解析 · 变更联动</span>
+      </div>
+      <div class="content-tabs">
+        <div class="ctab active">待确认 <span class="badge">36</span></div>
+        <div class="ctab">已确认 <span class="badge" style="background:var(--g300)">89</span></div>
+        <div class="ctab">已驳回 <span class="badge warn">3</span></div>
+        <div class="ctab">全部</div>
+      </div>
+      <div class="content-toolbar">
+        <div class="search-box">
+          <input class="search-input" placeholder="搜索零件号 / 总成号 / 供应商..." />
+        </div>
+        <div class="toolbar-right">
+          <select class="filter-select">
+            <option>所有采购组</option>
+            <option>底盘件采购组</option>
+            <option>三电采购组</option>
+            <option>内外饰采购组</option>
+          </select>
+          <select class="filter-select">
+            <option>所有变更类型</option>
+            <option>DB件价格变更</option>
+            <option>本体件价格变更</option>
+            <option>BOM结构调整</option>
+          </select>
+          <button class="btn btn-o">📥 导出</button>
+          <button class="btn btn-p">🔄 批量刷新价格</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Alert Banner -->
+    <div class="alert-banner warn">
+      <span class="alert-icon">⚠️</span>
+      <div>
+        <strong>DB件价格变动提醒：</strong>
+        共有 <strong style="color:var(--d)">36</strong> 个总成件的下级DB件价格发生变更，涉及本体件 <strong>18</strong> 个。
+        请尽快确认总成件卷积价格是否需要同步调整。
+        <span style="color:var(--p);cursor:pointer;margin-left:6px;">查看详情 →</span>
+      </div>
+      <span class="alert-close">✕</span>
+    </div>
+
+    <!-- Summary Cards -->
+    <div class="summary-row">
+      <div class="summary-card blue">
+        <div class="sc-top">
+          <span class="sc-label">待确认总成件</span>
+          <div class="sc-icon blue">📦</div>
+        </div>
+        <div class="sc-value">36</div>
+        <div class="sc-sub"><span class="up">↑ 12</span> 较上周</div>
+      </div>
+      <div class="summary-card orange">
+        <div class="sc-top">
+          <span class="sc-label">DB件价格已变</span>
+          <div class="sc-icon orange">🔄</div>
+        </div>
+        <div class="sc-value">52</div>
+        <div class="sc-sub"><span class="up">↑ 8</span> 本周新增</div>
+      </div>
+      <div class="summary-card green">
+        <div class="sc-top">
+          <span class="sc-label">已确认价格</span>
+          <div class="sc-icon green">✅</div>
+        </div>
+        <div class="sc-value">89</div>
+        <div class="sc-sub"><span class="down">↓ 2</span> 较上周</div>
+      </div>
+      <div class="summary-card red">
+        <div class="sc-top">
+          <span class="sc-label">触发补差</span>
+          <div class="sc-icon red">💰</div>
+        </div>
+        <div class="sc-value">8</div>
+        <div class="sc-sub">补差金额 ¥<strong>124.6w</strong></div>
+      </div>
+      <div class="summary-card purple">
+        <div class="sc-top">
+          <span class="sc-label">平均确认时效</span>
+          <div class="sc-icon purple">⏱️</div>
+        </div>
+        <div class="sc-value">2.3天</div>
+        <div class="sc-sub"><span class="down">↓ 0.5天</span> 效率提升</div>
+      </div>
+    </div>
+
+    <div class="content-wrap">
+      <!-- ===== Main Table ===== -->
+      <div class="page-section">
+        <div class="sp">
+          <div class="sp-h">
+            <div class="sp-t"><span class="arr open">▶</span> 待确认列表</div>
+            <div style="display:flex;gap:6px">
+              <button class="btn btn-g btn-s">📋 批量确认</button>
+              <button class="btn btn-o btn-s">🔍 高级筛选</button>
+            </div>
+          </div>
+          <div class="sp-b" style="overflow-x:auto">
+            <table class="dt" style="min-width:1300px">
+              <thead>
+                <tr>
+                  <th style="width:36px"><input type="checkbox" class="chk" /></th>
+                  <th style="width:160px">总成件号</th>
+                  <th style="width:140px">总成件名称</th>
+                  <th style="width:80px">结构类型</th>
+                  <th style="width:80px">本体件</th>
+                  <th style="width:60px">DB件数</th>
+                  <th style="width:110px">原总成价格</th>
+                  <th style="width:110px">新卷积价格</th>
+                  <th style="width:110px">价格变动</th>
+                  <th style="width:80px">变动幅度</th>
+                  <th style="width:100px">供应商</th>
+                  <th style="width:90px">变更原因</th>
+                  <th style="width:80px">状态</th>
+                  <th style="width:100px">操作</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr class="selected">
+                  <td><input type="checkbox" class="chk" checked /></td>
+                  <td><span class="cell-link" onclick="showDetail('ZC-2026-001')">ZC-2026-001</span></td>
+                  <td>前保险杠总成-A</td>
+                  <td><span class="tag tag-o">情况一</span></td>
+                  <td><span class="cell-link">BT-8801</span></td>
+                  <td>3</td>
+                  <td>¥ 2,380.00</td>
+                  <td><strong style="color:var(--d)">¥ 2,547.60</strong></td>
+                  <td>
+                    <div class="diff-bar up"><span class="arrow">↑</span> +¥ 167.60</div>
+                  </td>
+                  <td><span class="tag tag-d">+7.04%</span></td>
+                  <td>延锋内饰</td>
+                  <td><span class="tag tag-w">DB件涨价</span></td>
+                  <td><span class="tag tag-w">待确认</span></td>
+                  <td>
+                    <button class="btn btn-p btn-s" onclick="showConfirmModal()">确认</button>
+                    <button class="btn btn-d" onclick="showDetail('ZC-2026-001')">详情</button>
+                  </td>
+                </tr>
+                <tr>
+                  <td><input type="checkbox" class="chk" /></td>
+                  <td><span class="cell-link" onclick="showDetail('ZC-2026-002')">ZC-2026-002</span></td>
+                  <td>后视镜总成-L</td>
+                  <td><span class="tag tag-p">情况二</span></td>
+                  <td><span class="cell-link">BT-8802</span></td>
+                  <td>2</td>
+                  <td>¥ 1,260.00</td>
+                  <td><strong style="color:var(--s)">¥ 1,198.80</strong></td>
+                  <td>
+                    <div class="diff-bar down"><span class="arrow">↓</span> -¥ 61.20</div>
+                  </td>
+                  <td><span class="tag tag-s">-4.86%</span></td>
+                  <td>镜泰汽车</td>
+                  <td><span class="tag tag-w">DB件降价</span></td>
+                  <td><span class="tag tag-w">待确认</span></td>
+                  <td>
+                    <button class="btn btn-p btn-s">确认</button>
+                    <button class="btn btn-d">详情</button>
+                  </td>
+                </tr>
+                <tr>
+                  <td><input type="checkbox" class="chk" /></td>
+                  <td><span class="cell-link">ZC-2026-003</span></td>
+                  <td>仪表板总成</td>
+                  <td><span class="tag tag-purple">平铺</span></td>
+                  <td><span class="cell-link">BT-8803</span></td>
+                  <td>5</td>
+                  <td>¥ 4,560.00</td>
+                  <td><strong style="color:var(--d)">¥ 4,892.40</strong></td>
+                  <td>
+                    <div class="diff-bar up"><span class="arrow">↑</span> +¥ 332.40</div>
+                  </td>
+                  <td><span class="tag tag-d">+7.29%</span></td>
+                  <td>佛吉亚</td>
+                  <td><span class="tag tag-o">BOM调整</span></td>
+                  <td><span class="tag tag-w">待确认</span></td>
+                  <td>
+                    <button class="btn btn-p btn-s">确认</button>
+                    <button class="btn btn-d">详情</button>
+                  </td>
+                </tr>
+                <tr>
+                  <td><input type="checkbox" class="chk" /></td>
+                  <td><span class="cell-link">ZC-2026-004</span></td>
+                  <td>电池包上盖总成</td>
+                  <td><span class="tag tag-o">情况一</span></td>
+                  <td><span class="cell-link">BT-8804</span></td>
+                  <td>4</td>
+                  <td>¥ 3,120.00</td>
+                  <td><strong style="color:var(--g600)">¥ 3,120.00</strong></td>
+                  <td><span style="color:var(--g400)">—</span></td>
+                  <td><span class="tag tag-g">0.00%</span></td>
+                  <td>宁德时代</td>
+                  <td><span class="tag tag-p">结构同步</span></td>
+                  <td><span class="tag tag-p">待确认</span></td>
+                  <td>
+                    <button class="btn btn-p btn-s">确认</button>
+                    <button class="btn btn-d">详情</button>
+                  </td>
+                </tr>
+                <tr>
+                  <td><input type="checkbox" class="chk" /></td>
+                  <td><span class="cell-link">ZC-2026-005</span></td>
+                  <td>前大灯总成-R</td>
+                  <td><span class="tag tag-p">情况二</span></td>
+                  <td><span class="cell-link">BT-8805</span></td>
+                  <td>2</td>
+                  <td>¥ 1,890.00</td>
+                  <td><strong style="color:var(--d)">¥ 2,023.20</strong></td>
+                  <td>
+                    <div class="diff-bar up"><span class="arrow">↑</span> +¥ 133.20</div>
+                  </td>
+                  <td><span class="tag tag-d">+7.05%</span></td>
+                  <td>海拉照明</td>
+                  <td><span class="tag tag-w">DB件涨价</span></td>
+                  <td><span class="tag tag-w">待确认</span></td>
+                  <td>
+                    <button class="btn btn-p btn-s">确认</button>
+                    <button class="btn btn-d">详情</button>
+                  </td>
+                </tr>
+                <tr>
+                  <td><input type="checkbox" class="chk" /></td>
+                  <td><span class="cell-link">ZC-2026-006</span></td>
+                  <td>后尾灯总成</td>
+                  <td><span class="tag tag-purple">平铺</span></td>
+                  <td><span class="cell-link">BT-8806</span></td>
+                  <td>3</td>
+                  <td>¥ 1,450.00</td>
+                  <td><strong style="color:var(--s)">¥ 1,392.00</strong></td>
+                  <td>
+                    <div class="diff-bar down"><span class="arrow">↓</span> -¥ 58.00</div>
+                  </td>
+                  <td><span class="tag tag-s">-4.00%</span></td>
+                  <td>星宇车灯</td>
+                  <td><span class="tag tag-w">DB件降价</span></td>
+                  <td><span class="tag tag-w">待确认</span></td>
+                  <td>
+                    <button class="btn btn-p btn-s">确认</button>
+                    <button class="btn btn-d">详情</button>
+                  </td>
+                </tr>
+                <tr>
+                  <td><input type="checkbox" class="chk" /></td>
+                  <td><span class="cell-link">ZC-2026-007</span></td>
+                  <td>座椅骨架总成</td>
+                  <td><span class="tag tag-p">情况二</span></td>
+                  <td><span class="cell-link">BT-8807</span></td>
+                  <td>6</td>
+                  <td>¥ 3,780.00</td>
+                  <td><strong style="color:var(--d)">¥ 4,039.20</strong></td>
+                  <td>
+                    <div class="diff-bar up"><span class="arrow">↑</span> +¥ 259.20</div>
+                  </td>
+                  <td><span class="tag tag-d">+6.86%</span></td>
+                  <td>安道拓</td>
+                  <td><span class="tag tag-o">BOM调整</span></td>
+                  <td><span class="tag tag-w">待确认</span></td>
+                  <td>
+                    <button class="btn btn-p btn-s">确认</button>
+                    <button class="btn btn-d">详情</button>
+                  </td>
+                </tr>
+                <tr>
+                  <td><input type="checkbox" class="chk" /></td>
+                  <td><span class="cell-link">ZC-2026-008</span></td>
+                  <td>充电口盖总成</td>
+                  <td><span class="tag tag-o">情况一</span></td>
+                  <td><span class="cell-link">BT-8808</span></td>
+                  <td>1</td>
+                  <td>¥ 680.00</td>
+                  <td><strong style="color:var(--g600)">¥ 680.00</strong></td>
+                  <td><span style="color:var(--g400)">—</span></td>
+                  <td><span class="tag tag-g">0.00%</span></td>
+                  <td>敏实集团</td>
+                  <td><span class="tag tag-p">结构同步</span></td>
+                  <td><span class="tag tag-p">待确认</span></td>
+                  <td>
+                    <button class="btn btn-p btn-s">确认</button>
+                    <button class="btn btn-d">详情</button>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- ===== Detail Section: BOM Structure + Price Calc ===== -->
+      <div class="page-section">
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px">
+          <!-- Left: BOM Structure -->
+          <div class="sp">
+            <div class="sp-h">
+              <div class="sp-t"><span class="arr open">▶</span> BOM结构解析 <span class="tag tag-o" style="margin-left:6px">情况一：本体A + DB件B → 总成C</span></div>
+            </div>
+            <div class="sp-b">
+              <div class="bom-tree">
+                <!-- Level 0: Assembly -->
+                <div class="bom-node" style="padding-left:0">
+                  <div class="bom-node-head" style="background:linear-gradient(90deg,#e6f4ff,#f0f5ff);border-radius:var(--rs);padding:10px 14px;border:1px solid #bae0ff">
+                    <div class="node-icon assembly">总</div>
+                    <span class="node-code">ZC-2026-001</span>
+                    <span class="node-name">前保险杠总成-A</span>
+                    <span class="node-tag" style="background:var(--pl);color:var(--p)">总成件</span>
+                    <span class="node-price highlight">¥ 2,547.60</span>
+                  </div>
+                  <!-- Level 1 children -->
+                  <div class="bom-children">
+                    <!-- Body Part -->
+                    <div class="bom-node">
+                      <div class="bom-node-head">
+                        <div class="node-icon body">本</div>
+                        <span class="node-code">BT-8801</span>
+                        <span class="node-name">前保本体-注塑件</span>
+                        <span class="node-tag" style="background:var(--sl);color:var(--s)">本体件</span>
+                        <span class="node-price">¥ 1,680.00</span>
+                      </div>
+                      <div class="bom-children">
+                        <div class="bom-node">
+                          <div class="bom-node-head" style="padding-left:8px">
+                            <div class="node-icon material">料</div>
+                            <span class="node-code">PP-TD20</span>
+                            <span class="node-name">聚丙烯改性料</span>
+                            <span class="node-price" style="font-size:11px">¥ 42.50/kg</span>
+                          </div>
+                        </div>
+                        <div class="bom-node">
+                          <div class="bom-node-head" style="padding-left:8px">
+                            <div class="node-icon material">料</div>
+                            <span class="node-code">PA66-GF30</span>
+                            <span class="node-name">尼龙增强料</span>
+                            <span class="node-price" style="font-size:11px">¥ 68.00/kg</span>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                    <!-- DB Part 1 -->
+                    <div class="bom-node">
+                      <div class="bom-node-head" style="background:linear-gradient(90deg,#fff7e6,#fffbf0);border-radius:var(--rs)">
+                        <div class="node-icon db">DB</div>
+                        <span class="node-code">DB-4401</span>
+                        <span class="node-name">前雷达支架-左</span>
+                        <span class="node-tag" style="background:var(--orange-l);color:var(--orange)">DB件</span>
+                        <span class="node-price highlight">¥ 286.40</span>
+                      </div>
+                    </div>
+                    <!-- DB Part 2 -->
+                    <div class="bom-node">
+                      <div class="bom-node-head" style="background:linear-gradient(90deg,#fff7e6,#fffbf0);border-radius:var(--rs)">
+                        <div class="node-icon db">DB</div>
+                        <span class="node-code">DB-4402</span>
+                        <span class="node-name">前雷达支架-右</span>
+                        <span class="node-tag" style="background:var(--orange-l);color:var(--orange)">DB件</span>
+                        <span class="node-price highlight">¥ 286.40</span>
+                      </div>
+                    </div>
+                    <!-- DB Part 3 -->
+                    <div class="bom-node">
+                      <div class="bom-node-head" style="background:linear-gradient(90deg,#fff7e6,#fffbf0);border-radius:var(--rs)">
+                        <div class="node-icon db">DB</div>
+                        <span class="node-code">DB-4403</span>
+                        <span class="node-name">雾灯装饰框</span>
+                        <span class="node-tag" style="background:var(--orange-l);color:var(--orange)">DB件</span>
+                        <span class="node-price">¥ 294.80</span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+              <!-- Structure legend -->
+              <div style="padding:8px 20px 16px;display:flex;gap:16px;flex-wrap:wrap;border-top:1px solid var(--g100)">
+                <div style="display:flex;align-items:center;gap:5px;font-size:11px;color:var(--g500)">
+                  <div style="width:14px;height:14px;border-radius:4px;background:linear-gradient(135deg,var(--p),#4096ff)"></div> 总成件
+                </div>
+                <div style="display:flex;align-items:center;gap:5px;font-size:11px;color:var(--g500)">
+                  <div style="width:14px;height:14px;border-radius:4px;background:linear-gradient(135deg,var(--s),#73d13d)"></div> 本体件
+                </div>
+                <div style="display:flex;align-items:center;gap:5px;font-size:11px;color:var(--g500)">
+                  <div style="width:14px;height:14px;border-radius:4px;background:linear-gradient(135deg,var(--orange),#ff9c6e)"></div> DB件
+                </div>
+                <div style="display:flex;align-items:center;gap:5px;font-size:11px;color:var(--g500)">
+                  <div style="width:14px;height:14px;border-radius:4px;background:var(--g100)"></div> 原材料
+                </div>
+                <div style="display:flex;align-items:center;gap:5px;font-size:11px;color:var(--d)">
+                  <span style="font-size:13px">●</span> 价格变动
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Right: Price Calculation -->
+          <div class="sp">
+            <div class="sp-h">
+              <div class="sp-t"><span class="arr open">▶</span> 价格卷积计算</div>
+              <button class="btn btn-o btn-s">📐 卷积规则</button>
+            </div>
+            <div class="sp-b">
+              <div class="calc-panel" style="grid-template-columns:1fr">
+                <!-- Old Price -->
+                <div class="calc-box">
+                  <div class="calc-box-hdr">📋 原价格（变更前）</div>
+                  <div class="calc-row">
+                    <span class="label">本体件 BT-8801 单价</span>
+                    <span class="value">¥ 1,680.00</span>
+                  </div>
+                  <div class="calc-row">
+                    <span class="label">DB-4401 前雷达支架-左 × 1</span>
+                    <span class="value">¥ 240.00</span>
+                  </div>
+                  <div class="calc-row">
+                    <span class="label">DB-4402 前雷达支架-右 × 1</span>
+                    <span class="value">¥ 240.00</span>
+                  </div>
+                  <div class="calc-row">
+                    <span class="label">DB-4403 雾灯装饰框 × 1</span>
+                    <span class="value">¥ 220.00</span>
+                  </div>
+                  <div class="calc-row total">
+                    <span class="label">总成件合计</span>
+                    <span class="value">¥ 2,380.00</span>
+                  </div>
+                </div>
+
+                <!-- New Price -->
+                <div class="calc-box">
+                  <div class="calc-box-hdr" style="color:var(--d)">🔄 新价格（DB件变更后卷积）</div>
+                  <div class="calc-row">
+                    <span class="label">本体件 BT-8801 单价</span>
+                    <span class="value">¥ 1,680.00</span>
+                  </div>
+                  <div class="calc-row changed">
+                    <span class="label">DB-4401 前雷达支架-左 × 1</span>
+                    <span class="value" style="display:flex;align-items:center;gap:6px">
+                      <span style="text-decoration:line-through;color:var(--g400);font-weight:400;font-size:11px">¥ 240.00</span>
+                      <span style="color:var(--d)">¥ 286.40</span>
+                      <span class="tag tag-d" style="font-size:9px">+19.3%</span>
+                    </span>
+                  </div>
+                  <div class="calc-row changed">
+                    <span class="label">DB-4402 前雷达支架-右 × 1</span>
+                    <span class="value" style="display:flex;align-items:center;gap:6px">
+                      <span style="text-decoration:line-through;color:var(--g400);font-weight:400;font-size:11px">¥ 240.00</span>
+                      <span style="color:var(--d)">¥ 286.40</span>
+                      <span class="tag tag-d" style="font-size:9px">+19.3%</span>
+                    </span>
+                  </div>
+                  <div class="calc-row">
+                    <span class="label">DB-4403 雾灯装饰框 × 1</span>
+                    <span class="value">¥ 294.80</span>
+                  </div>
+                  <div class="calc-row total">
+                    <span class="label">总成件新合计</span>
+                    <span class="value">¥ 2,547.60</span>
+                  </div>
+                </div>
+
+                <!-- Delta -->
+                <div class="calc-box" style="border-color:#ffd591">
+                  <div class="calc-box-hdr" style="background:linear-gradient(180deg,#fff7e6,#fffbe6);color:#ad6800">⚡ 价格变动汇总</div>
+                  <div class="calc-row changed">
+                    <span class="label">DB-4401 涨价</span>
+                    <span class="value red">+¥ 46.40</span>
+                  </div>
+                  <div class="calc-row changed">
+                    <span class="label">DB-4402 涨价</span>
+                    <span class="value red">+¥ 46.40</span>
+                  </div>
+                  <div class="calc-row">
+                    <span class="label">DB-4403 价格未变</span>
+                    <span class="value" style="color:var(--g400)">¥ 0.00</span>
+                  </div>
+                  <div class="calc-row" style="background:var(--dl)">
+                    <span class="label" style="font-weight:700;color:var(--d)">总成件价格变动</span>
+                    <span class="value" style="font-size:16px;color:var(--d)">+¥ 92.80</span>
+                  </div>
+                  <div style="padding:10px 16px;background:#fff7e6;font-size:11px;color:#ad6800;display:flex;align-items:center;gap:6px">
+                    <span>⚠️</span>
+                    变动幅度 +3.90% 已超过阈值 (3%)，需采购员确认后生效
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ===== Bottom Section: Confirmation + History ===== -->
+      <div class="page-section">
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px">
+          <!-- Left: Confirmation Form -->
+          <div class="sp">
+            <div class="sp-h">
+              <div class="sp-t"><span class="arr open">▶</span> 价格确认操作</div>
+            </div>
+            <div class="sp-b">
+              <div class="confirm-panel">
+                <div class="confirm-status-bar pending">
+                  <div class="status-icon">⏳</div>
+                  <div class="status-text">
+                    <h4>待确认</h4>
+                    <p>DB件价格已变更，总成件卷积价格待采购员确认</p>
+                  </div>
+                </div>
+                <div class="confirm-form">
+                  <div class="form-item">
+                    <label>总成件号 <span class="req">*</span></label>
+                    <div class="form-value">ZC-2026-001</div>
+                  </div>
+                  <div class="form-item">
+                    <label>供应商</label>
+                    <div class="form-value">延锋内饰系统有限公司</div>
+                  </div>
+                  <div class="form-item">
+                    <label>原采购价格</label>
+                    <div class="form-value">¥ 2,380.00</div>
+                  </div>
+                  <div class="form-item">
+                    <label>系统卷积新价格 <span class="req">*</span></label>
+                    <div class="form-value" style="color:var(--d);font-weight:600">¥ 2,547.60</div>
+                  </div>
+                  <div class="form-item">
+                    <label>采购确认价格 <span class="req">*</span></label>
+                    <input type="text" value="2547.60" style="font-weight:600;color:var(--d)" />
+                  </div>
+                  <div class="form-item">
+                    <label>价格生效日期 <span class="req">*</span></label>
+                    <input type="date" value="2026-06-15" />
+                  </div>
+                  <div class="form-item full">
+                    <label>补差方案</label>
+                    <select>
+                      <option>按差额补差（¥ 167.60 / 套）</option>
+                      <option>不补差，新价格直接生效</option>
+                      <option>部分补差（需填写金额）</option>
+                      <option>待协商</option>
+                    </select>
+                  </div>
+                  <div class="form-item full">
+                    <label>确认备注</label>
+                    <textarea placeholder="请输入确认说明，如变更原因核实、补差计算依据等..."></textarea>
+                  </div>
+                </div>
+                <div class="confirm-actions">
+                  <button class="btn btn-success" onclick="showConfirmModal()">✅ 确认价格</button>
+                  <button class="btn btn-warn">💬 提交审批</button>
+                  <button class="btn btn-danger">❌ 驳回</button>
+                  <button class="btn btn-o" style="margin-left:auto">📥 下载变更单</button>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Right: Change History + Timeline -->
+          <div class="sp">
+            <div class="sp-h">
+              <div class="sp-t"><span class="arr open">▶</span> 价格变更历史</div>
+            </div>
+            <div class="sp-b">
+              <div style="overflow-x:auto">
+                <table class="dt">
+                  <thead>
+                    <tr>
+                      <th style="width:90px">变更日期</th>
+                      <th style="width:80px">变更类型</th>
+                      <th style="width:80px">触发零件</th>
+                      <th style="width:100px">变动前价格</th>
+                      <th style="width:100px">变动后价格</th>
+                      <th style="width:80px">变动幅度</th>
+                      <th style="width:80px">确认状态</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr>
+                      <td>2026-06-05</td>
+                      <td><span class="tag tag-w">DB件涨价</span></td>
+                      <td><span class="cell-link">DB-4401/402</span></td>
+                      <td>¥ 2,380.00</td>
+                      <td><strong style="color:var(--d)">¥ 2,547.60</strong></td>
+                      <td><span class="tag tag-d">+7.04%</span></td>
+                      <td><span class="tag tag-w">待确认</span></td>
+                    </tr>
+                    <tr>
+                      <td>2026-05-18</td>
+                      <td><span class="tag tag-s">DB件降价</span></td>
+                      <td><span class="cell-link">DB-4403</span></td>
+                      <td>¥ 2,420.00</td>
+                      <td><strong style="color:var(--s)">¥ 2,380.00</strong></td>
+                      <td><span class="tag tag-s">-1.65%</span></td>
+                      <td><span class="tag tag-s">已确认</span></td>
+                    </tr>
+                    <tr>
+                      <td>2026-04-22</td>
+                      <td><span class="tag tag-o">BOM调整</span></td>
+                      <td><span class="cell-link">DB-4404</span></td>
+                      <td>¥ 2,350.00</td>
+                      <td><strong style="color:var(--d)">¥ 2,420.00</strong></td>
+                      <td><span class="tag tag-d">+2.98%</span></td>
+                      <td><span class="tag tag-s">已确认</span></td>
+                    </tr>
+                    <tr>
+                      <td>2026-03-10</td>
+                      <td><span class="tag tag-w">DB件涨价</span></td>
+                      <td><span class="cell-link">DB-4401</span></td>
+                      <td>¥ 2,280.00</td>
+                      <td><strong style="color:var(--d)">¥ 2,350.00</strong></td>
+                      <td><span class="tag tag-d">+3.07%</span></td>
+                      <td><span class="tag tag-s">已确认</span></td>
+                    </tr>
+                    <tr>
+                      <td>2026-02-15</td>
+                      <td><span class="tag tag-p">初始定价</span></td>
+                      <td><span class="cell-link">—</span></td>
+                      <td>—</td>
+                      <td><strong>¥ 2,280.00</strong></td>
+                      <td><span class="tag tag-g">基准</span></td>
+                      <td><span class="tag tag-s">已确认</span></td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+
+              <!-- Timeline -->
+              <div style="padding:0 20px;border-top:1px solid var(--g100)">
+                <div style="padding:12px 0 4px;font-size:12px;font-weight:600;color:var(--g700)">变更时间线</div>
+                <div class="timeline">
+                  <div class="tl-item">
+                    <div class="tl-dot orange">⚡</div>
+                    <div class="tl-content">
+                      <div class="tl-title">DB件价格变更触发</div>
+                      <div class="tl-desc">DB-4401/4402 供应商延锋内饰提交新报价，单价从 ¥240 → ¥286.40</div>
+                      <div class="tl-time">2026-06-05 09:30</div>
+                    </div>
+                  </div>
+                  <div class="tl-item">
+                    <div class="tl-dot blue">🔄</div>
+                    <div class="tl-content">
+                      <div class="tl-title">系统自动卷积计算</div>
+                      <div class="tl-desc">总成件 ZC-2026-001 价格自动更新：¥2,380.00 → ¥2,547.60（+7.04%）</div>
+                      <div class="tl-time">2026-06-05 09:31</div>
+                    </div>
+                  </div>
+                  <div class="tl-item">
+                    <div class="tl-dot orange">📨</div>
+                    <div class="tl-content">
+                      <div class="tl-title">采购确认提醒已发送</div>
+                      <div class="tl-desc">系统已通知采购员张伟、采购主管李明进行价格确认</div>
+                      <div class="tl-time">2026-06-05 09:31</div>
+                    </div>
+                  </div>
+                  <div class="tl-item">
+                    <div class="tl-dot gray">⏳</div>
+                    <div class="tl-content">
+                      <div class="tl-title">等待采购确认</div>
+                      <div class="tl-desc">待确认后将通知财务部门和供应商，更新合同价格</div>
+                      <div class="tl-time">—</div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ===== BOM Structure Scenarios Reference ===== -->
+      <div class="page-section">
+        <div class="sp">
+          <div class="sp-h" onclick="toggleSection(this)">
+            <div class="sp-t"><span class="arr">▶</span> BOM结构类型参考（5种常见挂接模式）</div>
+          </div>
+          <div class="sp-b" style="display:none;padding:16px 20px">
+            <div style="display:grid;grid-template-columns:repeat(5,1fr);gap:14px">
+              <!-- Scenario 1 -->
+              <div style="border:1px solid var(--g200);border-radius:var(--r);padding:14px;text-align:center">
+                <div style="font-size:11px;font-weight:600;color:var(--g700);margin-bottom:10px">模式一：直接挂接</div>
+                <div style="font-size:11px;color:var(--g500);line-height:2">
+                  <div style="display:inline-flex;align-items:center;gap:4px;background:var(--pl);padding:2px 8px;border-radius:4px">📦 总成</div>
+                  <div style="color:var(--g300)">├</div>
+                  <div style="display:inline-flex;align-items:center;gap:4px;background:var(--sl);padding:2px 8px;border-radius:4px">🟢 本体</div>
+                  <div style="color:var(--g300)">├</div>
+                  <div style="display:inline-flex;align-items:center;gap:4px;background:var(--orange-l);padding:2px 8px;border-radius:4px">🟠 DB</div>
+                  <div style="color:var(--g300)">└</div>
+                  <div style="display:inline-flex;align-items:center;gap:4px;background:var(--orange-l);padding:2px 8px;border-radius:4px">🟠 DB</div>
+                </div>
+                <div style="margin-top:8px"><span class="tag tag-s">推荐</span></div>
+              </div>
+              <!-- Scenario 2 -->
+              <div style="border:1px solid var(--g200);border-radius:var(--r);padding:14px;text-align:center">
+                <div style="font-size:11px;font-weight:600;color:var(--g700);margin-bottom:10px">模式二：含C件</div>
+                <div style="font-size:11px;color:var(--g500);line-height:2">
+                  <div style="display:inline-flex;align-items:center;gap:4px;background:var(--pl);padding:2px 8px;border-radius:4px">📦 总成</div>
+                  <div style="color:var(--g300)">├</div>
+                  <div style="display:inline-flex;align-items:center;gap:4px;background:var(--sl);padding:2px 8px;border-radius:4px">🟢 本体</div>
+                  <div style="color:var(--g300)">├</div>
+                  <div style="display:inline-flex;align-items:center;gap:4px;background:var(--g50);padding:2px 8px;border-radius:4px">⬜ C件</div>
+                  <div style="color:var(--g300)">└</div>
+                  <div style="display:inline-flex;align-items:center;gap:4px;background:var(--orange-l);padding:2px 8px;border-radius:4px">🟠 DB</div>
+                </div>
+                <div style="margin-top:8px"><span class="tag tag-p">常见</span></div>
+              </div>
+              <!-- Scenario 3 -->
+              <div style="border:1px solid var(--g200);border-radius:var(--r);padding:14px;text-align:center">
+                <div style="font-size:11px;font-weight:600;color:var(--g700);margin-bottom:10px">模式三：中间跳层</div>
+                <div style="font-size:11px;color:var(--g500);line-height:2">
+                  <div style="display:inline-flex;align-items:center;gap:4px;background:var(--pl);padding:2px 8px;border-radius:4px">📦 总成</div>
+                  <div style="color:var(--g300)">└─</div>
+                  <div style="display:inline-flex;align-items:center;gap:4px;background:var(--g100);padding:2px 8px;border-radius:4px">🔹 S件</div>
+                  <div style="color:var(--g300)">&nbsp;&nbsp;├</div>
+                  <div style="display:inline-flex;align-items:center;gap:4px;background:var(--sl);padding:2px 8px;border-radius:4px">🟢 本体</div>
+                  <div style="color:var(--g300)">&nbsp;&nbsp;└</div>
+                  <div style="display:inline-flex;align-items:center;gap:4px;background:var(--orange-l);padding:2px 8px;border-radius:4px">🟠 DB</div>
+                </div>
+                <div style="margin-top:8px"><span class="tag tag-w">需解析</span></div>
+              </div>
+              <!-- Scenario 4 -->
+              <div style="border:1px solid var(--g200);border-radius:var(--r);padding:14px;text-align:center">
+                <div style="font-size:11px;font-weight:600;color:var(--g700);margin-bottom:10px">模式四：仪表板平铺</div>
+                <div style="font-size:11px;color:var(--g500);line-height:2">
+                  <div style="display:inline-flex;align-items:center;gap:4px;background:var(--pl);padding:2px 8px;border-radius:4px">📦 总成</div>
+                  <div style="color:var(--g300)">├</div>
+                  <div style="display:inline-flex;align-items:center;gap:4px;background:var(--sl);padding:2px 8px;border-radius:4px">🟢 本体</div>
+                  <div style="color:var(--g300)">├</div>
+                  <div style="display:inline-flex;align-items:center;gap:4px;background:var(--orange-l);padding:2px 8px;border-radius:4px">🟠 DB</div>
+                  <div style="color:var(--g300)">├</div>
+                  <div style="display:inline-flex;align-items:center;gap:4px;background:var(--orange-l);padding:2px 8px;border-radius:4px">🟠 DB</div>
+                  <div style="color:var(--g300)">└</div>
+                  <div style="display:inline-flex;align-items:center;gap:4px;background:var(--orange-l);padding:2px 8px;border-radius:4px">🟠 DB</div>
+                </div>
+                <div style="margin-top:8px"><span class="tag tag-w">需解析</span></div>
+              </div>
+              <!-- Scenario 5 -->
+              <div style="border:1px solid var(--g200);border-radius:var(--r);padding:14px;text-align:center">
+                <div style="font-size:11px;font-weight:600;color:var(--g700);margin-bottom:10px">模式五：DB嵌套DB</div>
+                <div style="font-size:11px;color:var(--g500);line-height:2">
+                  <div style="display:inline-flex;align-items:center;gap:4px;background:var(--pl);padding:2px 8px;border-radius:4px">📦 总成</div>
+                  <div style="color:var(--g300)">├</div>
+                  <div style="display:inline-flex;align-items:center;gap:4px;background:var(--sl);padding:2px 8px;border-radius:4px">🟢 本体</div>
+                  <div style="color:var(--g300)">└─</div>
+                  <div style="display:inline-flex;align-items:center;gap:4px;background:var(--orange-l);padding:2px 8px;border-radius:4px">🟠 DB</div>
+                  <div style="color:var(--g300)">&nbsp;&nbsp;└─</div>
+                  <div style="display:inline-flex;align-items:center;gap:4px;background:var(--orange-l);padding:2px 8px;border-radius:4px;border:1px dashed var(--orange)">🟠 DB</div>
+                </div>
+                <div style="margin-top:8px"><span class="tag tag-d">复杂</span></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </main>
+</div>
+
+<!-- ===== Confirm Modal ===== -->
+<div class="modal-overlay" id="confirmModal">
+  <div class="modal">
+    <div class="modal-hdr">
+      <h3>✅ 确认价格变更</h3>
+      <div class="modal-close" onclick="closeModal()">✕</div>
+    </div>
+    <div class="modal-body">
+      <div style="background:var(--sl);border:1px solid #b7eb8f;border-radius:var(--r);padding:14px 16px;margin-bottom:16px;display:flex;align-items:center;gap:10px">
+        <span style="font-size:20px">✅</span>
+        <div>
+          <div style="font-size:13px;font-weight:600;color:var(--g800)">确认后将执行以下操作：</div>
+          <div style="font-size:12px;color:var(--g600);margin-top:4px">
+            1. 更新总成件 ZC-2026-001 采购价格为 ¥2,547.60<br>
+            2. 自动生成补差单据（如适用）<br>
+            3. 通知供应商延锋内饰确认新价格<br>
+            4. 同步更新EP系统价格基线
+          </div>
+        </div>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px">
+        <div style="background:var(--g50);padding:10px 14px;border-radius:var(--rs)">
+          <div style="font-size:11px;color:var(--g500)">总成件号</div>
+          <div style="font-size:13px;font-weight:600;color:var(--g800)">ZC-2026-001</div>
+        </div>
+        <div style="background:var(--g50);padding:10px 14px;border-radius:var(--rs)">
+          <div style="font-size:11px;color:var(--g500)">供应商</div>
+          <div style="font-size:13px;font-weight:600;color:var(--g800)">延锋内饰</div>
+        </div>
+        <div style="background:var(--dl);padding:10px 14px;border-radius:var(--rs)">
+          <div style="font-size:11px;color:var(--d)">新采购价格</div>
+          <div style="font-size:15px;font-weight:700;color:var(--d)">¥ 2,547.60</div>
+        </div>
+        <div style="background:var(--dl);padding:10px 14px;border-radius:var(--rs)">
+          <div style="font-size:11px;color:var(--d)">价格变动</div>
+          <div style="font-size:15px;font-weight:700;color:var(--d)">+¥ 167.60 (+7.04%)</div>
+        </div>
+      </div>
+      <div style="background:#fff7e6;border:1px solid #ffd591;border-radius:var(--rs);padding:10px 14px;font-size:12px;color:#ad6800;display:flex;align-items:center;gap:6px">
+        <span>⚠️</span>
+        变动幅度 7.04% 超过审批阈值 (3%)，确认后将自动提交上级审批
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-o" onclick="closeModal()">取消</button>
+      <button class="btn btn-success" onclick="doConfirm()">✅ 确认并提交</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// Tab switching
+document.querySelectorAll('.ctab').forEach(tab => {
+  tab.addEventListener('click', function() {
+    this.closest('.content-tabs').querySelectorAll('.ctab').forEach(t => t.classList.remove('active'));
+    this.classList.add('active');
+  });
+});
+
+// Sidebar menu
+document.querySelectorAll('.sp-menu-item').forEach(item => {
+  item.addEventListener('click', function() {
+    document.querySelectorAll('.sp-menu-item').forEach(i => i.classList.remove('active'));
+    this.classList.add('active');
+  });
+});
+
+// Collapsible sections
+function toggleSection(el) {
+  const arrow = el.querySelector('.arr');
+  const body = el.closest('.sp').querySelector('.sp-b');
+  if (body.style.display === 'none') {
+    body.style.display = '';
+    arrow.classList.add('open');
+  } else {
+    body.style.display = 'none';
+    arrow.classList.remove('open');
+  }
+}
+
+// Table row selection
+document.querySelectorAll('.dt tbody tr').forEach(row => {
+  row.addEventListener('click', function(e) {
+    if (e.target.tagName === 'INPUT' || e.target.tagName === 'BUTTON' || e.target.classList.contains('cell-link') || e.target.classList.contains('btn')) return;
+    this.closest('tbody').querySelectorAll('tr').forEach(r => r.classList.remove('selected'));
+    this.classList.add('selected');
+  });
+});
+
+// Modal
+function showConfirmModal() {
+  document.getElementById('confirmModal').classList.add('show');
+}
+function closeModal() {
+  document.getElementById('confirmModal').classList.remove('show');
+}
+function doConfirm() {
+  const bar = document.querySelector('.confirm-status-bar');
+  bar.className = 'confirm-status-bar confirmed';
+  bar.innerHTML = `
+    <div class="status-icon">✅</div>
+    <div class="status-text">
+      <h4>已确认</h4>
+      <p>价格已确认，已自动提交上级审批流程</p>
+    </div>
+  `;
+  closeModal();
+}
+
+// Detail panel click
+function showDetail(code) {
+  // Scroll to BOM structure section
+  document.querySelector('.page-section:nth-of-type(2)').scrollIntoView({ behavior: 'smooth' });
+}
+
+// Alert close
+document.querySelector('.alert-banner .alert-close').addEventListener('click', function() {
+  this.closest('.alert-banner').style.display = 'none';
+});
+</script>
+</body>
+</html>
