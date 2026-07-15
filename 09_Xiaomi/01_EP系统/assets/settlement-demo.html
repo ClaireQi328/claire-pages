@@ -1,0 +1,881 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>月结结算管理系统 Demo</title>
+<style>
+  :root {
+    --primary: #1677ff;
+    --success: #52c41a;
+    --warning: #faad14;
+    --error: #ff4d4f;
+    --bg: #f5f5f5;
+    --card: #fff;
+    --text: #1f1f1f;
+    --text-secondary: #666;
+    --border: #e8e8e8;
+    --shadow: 0 2px 8px rgba(0,0,0,0.06);
+  }
+  * { margin:0; padding:0; box-sizing:border-box; }
+  body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background:var(--bg); color:var(--text); line-height:1.5; }
+  .container { max-width:1200px; margin:0 auto; padding:20px; }
+
+  /* Header */
+  .header { background:linear-gradient(135deg,#1677ff,#0958d9); color:#fff; padding:24px 32px; border-radius:12px; margin-bottom:24px; }
+  .header h1 { font-size:22px; font-weight:600; }
+  .header p { font-size:13px; opacity:0.85; margin-top:4px; }
+  .header-meta { display:flex; gap:24px; margin-top:12px; font-size:13px; }
+  .header-meta span { background:rgba(255,255,255,0.15); padding:4px 12px; border-radius:6px; }
+
+  /* Tabs */
+  .tabs { display:flex; gap:4px; margin-bottom:20px; background:var(--card); padding:4px; border-radius:10px; box-shadow:var(--shadow); }
+  .tab { padding:10px 20px; border-radius:8px; cursor:pointer; font-size:14px; font-weight:500; color:var(--text-secondary); transition:all 0.2s; border:none; background:none; }
+  .tab:hover { background:#f0f5ff; color:var(--primary); }
+  .tab.active { background:var(--primary); color:#fff; }
+
+  /* Cards */
+  .stats { display:grid; grid-template-columns:repeat(auto-fit,minmax(200px,1fr)); gap:16px; margin-bottom:24px; }
+  .stat-card { background:var(--card); border-radius:10px; padding:20px; box-shadow:var(--shadow); }
+  .stat-card .label { font-size:13px; color:var(--text-secondary); }
+  .stat-card .value { font-size:28px; font-weight:700; margin:4px 0; }
+  .stat-card .sub { font-size:12px; color:var(--text-secondary); }
+  .stat-card.highlight { border-left:4px solid var(--primary); }
+  .stat-card.warn { border-left:4px solid var(--warning); }
+  .stat-card.ok { border-left:4px solid var(--success); }
+  .stat-card.danger { border-left:4px solid var(--error); }
+
+  /* Table */
+  .table-wrap { background:var(--card); border-radius:10px; box-shadow:var(--shadow); overflow:hidden; margin-bottom:24px; }
+  .table-header { padding:16px 20px; border-bottom:1px solid var(--border); display:flex; justify-content:space-between; align-items:center; }
+  .table-header h3 { font-size:16px; }
+  table { width:100%; border-collapse:collapse; font-size:13px; }
+  th { background:#fafafa; padding:12px 16px; text-align:left; font-weight:600; color:var(--text-secondary); border-bottom:1px solid var(--border); white-space:nowrap; }
+  td { padding:12px 16px; border-bottom:1px solid #f0f0f0; }
+  tr:hover { background:#f8faff; }
+  tr.clickable { cursor:pointer; }
+
+  /* Badges */
+  .badge { display:inline-block; padding:2px 10px; border-radius:12px; font-size:12px; font-weight:500; }
+  .badge-success { background:#f6ffed; color:#52c41a; border:1px solid #b7eb8f; }
+  .badge-warning { background:#fffbe6; color:#d48806; border:1px solid #ffe58f; }
+  .badge-error { background:#fff2f0; color:#ff4d4f; border:1px solid #ffccc7; }
+  .badge-info { background:#e6f4ff; color:#1677ff; border:1px solid #91caff; }
+  .badge-default { background:#f5f5f5; color:#666; border:1px solid #d9d9d9; }
+
+  /* Buttons */
+  .btn { padding:6px 16px; border-radius:6px; font-size:13px; cursor:pointer; border:1px solid var(--border); background:var(--card); transition:all 0.2s; }
+  .btn:hover { border-color:var(--primary); color:var(--primary); }
+  .btn-primary { background:var(--primary); color:#fff; border-color:var(--primary); }
+  .btn-primary:hover { background:#4096ff; }
+  .btn-sm { padding:4px 10px; font-size:12px; }
+  .btn-group { display:flex; gap:8px; }
+
+  /* Modal */
+  .modal-overlay { display:none; position:fixed; inset:0; background:rgba(0,0,0,0.45); z-index:1000; justify-content:center; align-items:flex-start; padding-top:60px; }
+  .modal-overlay.show { display:flex; }
+  .modal { background:var(--card); border-radius:12px; width:90%; max-width:900px; max-height:80vh; overflow-y:auto; box-shadow:0 8px 32px rgba(0,0,0,0.15); }
+  .modal-header { padding:20px 24px; border-bottom:1px solid var(--border); display:flex; justify-content:space-between; align-items:center; position:sticky; top:0; background:var(--card); z-index:1; }
+  .modal-header h3 { font-size:16px; }
+  .modal-body { padding:24px; }
+  .modal-close { background:none; border:none; font-size:20px; cursor:pointer; color:#999; padding:4px 8px; border-radius:4px; }
+  .modal-close:hover { background:#f0f0f0; color:#333; }
+
+  /* Detail sections */
+  .detail-grid { display:grid; grid-template-columns:1fr 1fr; gap:16px; margin-bottom:20px; }
+  .detail-item { }
+  .detail-item .label { font-size:12px; color:var(--text-secondary); margin-bottom:2px; }
+  .detail-item .value { font-size:14px; font-weight:500; }
+
+  /* Timeline */
+  .timeline { position:relative; padding-left:24px; }
+  .timeline::before { content:''; position:absolute; left:8px; top:4px; bottom:4px; width:2px; background:var(--border); }
+  .timeline-item { position:relative; margin-bottom:16px; }
+  .timeline-item::before { content:''; position:absolute; left:-20px; top:6px; width:10px; height:10px; border-radius:50%; background:var(--primary); border:2px solid var(--card); box-shadow:0 0 0 2px var(--primary); }
+  .timeline-item.done::before { background:var(--success); box-shadow:0 0 0 2px var(--success); }
+  .timeline-item.pending::before { background:var(--warning); box-shadow:0 0 0 2px var(--warning); }
+  .timeline-item .time { font-size:12px; color:var(--text-secondary); }
+  .timeline-item .desc { font-size:13px; }
+
+  /* Progress bar */
+  .progress-bar { height:8px; background:#f0f0f0; border-radius:4px; overflow:hidden; }
+  .progress-bar .fill { height:100%; border-radius:4px; transition:width 0.3s; }
+  .progress-bar .fill-green { background:linear-gradient(90deg,#52c41a,#73d13d); }
+  .progress-bar .fill-yellow { background:linear-gradient(90deg,#faad14,#ffc53d); }
+  .progress-bar .fill-red { background:linear-gradient(90deg,#ff4d4f,#ff7875); }
+
+  /* Flow diagram */
+  .flow { display:flex; align-items:center; gap:8px; margin:16px 0; flex-wrap:wrap; }
+  .flow-node { padding:8px 16px; border-radius:8px; font-size:12px; font-weight:500; text-align:center; min-width:80px; }
+  .flow-arrow { color:#bbb; font-size:18px; }
+  .flow-node.blue { background:#e6f4ff; color:#1677ff; border:1px solid #91caff; }
+  .flow-node.green { background:#f6ffed; color:#52c41a; border:1px solid #b7eb8f; }
+  .flow-node.orange { background:#fff7e6; color:#d46b08; border:1px solid #ffd591; }
+  .flow-node.red { background:#fff2f0; color:#ff4d4f; border:1px solid #ffccc7; }
+
+  /* Section */
+  .section { margin-bottom:24px; }
+  .section-title { font-size:15px; font-weight:600; margin-bottom:12px; padding-bottom:8px; border-bottom:2px solid var(--primary); display:inline-block; }
+
+  /* Responsive */
+  @media (max-width:768px) {
+    .stats { grid-template-columns:1fr 1fr; }
+    .detail-grid { grid-template-columns:1fr; }
+    .header-meta { flex-wrap:wrap; }
+  }
+
+  /* Filter bar */
+  .filter-bar { display:flex; gap:12px; align-items:center; flex-wrap:wrap; }
+  .filter-bar select, .filter-bar input { padding:6px 12px; border:1px solid var(--border); border-radius:6px; font-size:13px; }
+  .filter-bar select:focus, .filter-bar input:focus { outline:none; border-color:var(--primary); }
+
+  /* Tab content */
+  .tab-content { display:none; }
+  .tab-content.active { display:block; }
+
+  /* Scrollbar */
+  ::-webkit-scrollbar { width:6px; }
+  ::-webkit-scrollbar-thumb { background:#d9d9d9; border-radius:3px; }
+  ::-webkit-scrollbar-thumb:hover { background:#bbb; }
+</style>
+</head>
+<body>
+
+<div class="container">
+  <!-- Header -->
+  <div class="header">
+    <h1>📦 月结结算管理系统</h1>
+    <p>结算月份：2026 年 7 月 | 对账窗口：2026-08-01 ~ 2026-08-10</p>
+    <div class="header-meta">
+      <span>📅 当前日期：2026-08-05</span>
+      <span>📊 结算状态：对账中</span>
+      <span>🏢 采购组织：小米汽车</span>
+    </div>
+  </div>
+
+  <!-- Tabs -->
+  <div class="tabs">
+    <button class="tab active" onclick="switchTab('dashboard')">📊 总览</button>
+    <button class="tab" onclick="switchTab('reconciliation')">📋 对账中心</button>
+    <button class="tab" onclick="switchTab('payment')">💰 付款计划</button>
+    <button class="tab" onclick="switchTab('dispute')">⚠️ 差异处理</button>
+  </div>
+
+  <!-- Tab 1: Dashboard -->
+  <div id="tab-dashboard" class="tab-content active">
+    <div class="stats">
+      <div class="stat-card highlight">
+        <div class="label">本月结算金额</div>
+        <div class="value">¥4,832万</div>
+        <div class="sub">较上月 +12.3%</div>
+      </div>
+      <div class="stat-card ok">
+        <div class="label">自动匹配率</div>
+        <div class="value">87.5%</div>
+        <div class="sub">✅ 超过目标 85%</div>
+      </div>
+      <div class="stat-card warn">
+        <div class="label">待处理差异</div>
+        <div class="value">3 笔</div>
+        <div class="sub">涉及 ¥187,500</div>
+      </div>
+      <div class="stat-card danger">
+        <div class="label">即将到期付款</div>
+        <div class="value">¥2,128万</div>
+        <div class="sub">宁德时代 9/1 到期</div>
+      </div>
+    </div>
+
+    <!-- Reconciliation Progress -->
+    <div class="table-wrap">
+      <div class="table-header">
+        <h3>📈 本月对账进度</h3>
+        <span class="badge badge-info">进行中</span>
+      </div>
+      <div style="padding:20px;">
+        <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:20px;">
+          <div>
+            <div style="font-size:13px;color:var(--text-secondary);margin-bottom:8px;">海斯坦普（冲压件）</div>
+            <div class="progress-bar"><div class="fill fill-green" style="width:85%"></div></div>
+            <div style="font-size:12px;color:var(--text-secondary);margin-top:4px;">7/8 笔已匹配 | 1 笔数量差异</div>
+          </div>
+          <div>
+            <div style="font-size:13px;color:var(--text-secondary);margin-bottom:8px;">宁德时代（电池包）</div>
+            <div class="progress-bar"><div class="fill fill-green" style="width:100%"></div></div>
+            <div style="font-size:12px;color:var(--text-secondary);margin-top:4px;">4/4 笔已匹配 | 无差异 ✅</div>
+          </div>
+          <div>
+            <div style="font-size:13px;color:var(--text-secondary);margin-bottom:8px;">博世（ECU）</div>
+            <div class="progress-bar"><div class="fill fill-yellow" style="width:67%"></div></div>
+            <div style="font-size:12px;color:var(--text-secondary);margin-top:4px;">4/6 笔已匹配 | 1 笔退货 + 1 笔价格差异</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Recent Activities -->
+    <div class="table-wrap">
+      <div class="table-header">
+        <h3>🕐 最近操作记录</h3>
+      </div>
+      <div style="padding:20px;">
+        <div class="timeline">
+          <div class="timeline-item done">
+            <div class="time">2026-08-05 09:30</div>
+            <div class="desc"><b>系统</b> 自动生成 7 月对账单（3 家供应商，18 笔收货）</div>
+          </div>
+          <div class="timeline-item done">
+            <div class="time">2026-08-05 10:15</div>
+            <div class="desc"><b>系统</b> 完成三单匹配：15 笔自动通过，3 笔进入差异池</div>
+          </div>
+          <div class="timeline-item done">
+            <div class="time">2026-08-05 11:00</div>
+            <div class="desc"><b>宁德时代</b> 确认对账单 ✅（4 笔，¥2,128 万）</div>
+          </div>
+          <div class="timeline-item pending">
+            <div class="time">2026-08-05 14:00</div>
+            <div class="desc"><b>海斯坦普</b> 对账单待确认（7 笔已匹配，1 笔差异待处理）</div>
+          </div>
+          <div class="timeline-item pending">
+            <div class="time">2026-08-05 14:30</div>
+            <div class="desc"><b>博世</b> 对账单待确认（4 笔已匹配，1 笔退货 + 1 笔价格差异）</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Flow Diagram -->
+    <div class="table-wrap">
+      <div class="table-header">
+        <h3>🔄 月结结算流程</h3>
+      </div>
+      <div style="padding:20px;">
+        <div class="flow">
+          <div class="flow-node green">月初<br>系统汇总GR</div>
+          <span class="flow-arrow">→</span>
+          <div class="flow-node green">三单匹配<br>PO↔GR↔INV</div>
+          <span class="flow-arrow">→</span>
+          <div class="flow-node blue">生成对账单<br>供应商确认</div>
+          <span class="flow-arrow">→</span>
+          <div class="flow-node orange">差异处理<br>（如有）</div>
+          <span class="flow-arrow">→</span>
+          <div class="flow-node blue">财务审批<br>AP入账</div>
+          <span class="flow-arrow">→</span>
+          <div class="flow-node green">到期付款<br>银企直连</div>
+        </div>
+        <div style="margin-top:12px;font-size:12px;color:var(--text-secondary);text-align:center;">
+          当前进度：步骤 2→3，15/18 笔已匹配，等待供应商确认对账单
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Tab 2: Reconciliation -->
+  <div id="tab-reconciliation" class="tab-content">
+    <div class="filter-bar" style="margin-bottom:16px;">
+      <select id="filter-supplier" onchange="filterTable()">
+        <option value="">全部供应商</option>
+        <option value="海斯坦普">海斯坦普</option>
+        <option value="宁德时代">宁德时代</option>
+        <option value="博世">博世</option>
+      </select>
+      <select id="filter-status" onchange="filterTable()">
+        <option value="">全部状态</option>
+        <option value="matched">已匹配</option>
+        <option value="dispute">差异</option>
+        <option value="returned">退货</option>
+      </select>
+      <span style="font-size:13px;color:var(--text-secondary);">共 18 笔收货记录</span>
+    </div>
+
+    <div class="table-wrap">
+      <table id="recon-table">
+        <thead>
+          <tr>
+            <th>序号</th>
+            <th>供应商</th>
+            <th>PO 编号</th>
+            <th>物料编码</th>
+            <th>物料名称</th>
+            <th style="text-align:right">PO 数量</th>
+            <th style="text-align:right">收货数量</th>
+            <th style="text-align:right">发票数量</th>
+            <th style="text-align:right">单价(¥)</th>
+            <th style="text-align:right">金额(¥)</th>
+            <th>匹配状态</th>
+            <th>操作</th>
+          </tr>
+        </thead>
+        <tbody id="recon-body"></tbody>
+      </table>
+    </div>
+
+    <!-- Summary -->
+    <div class="stats">
+      <div class="stat-card ok">
+        <div class="label">已匹配</div>
+        <div class="value">15 笔</div>
+        <div class="sub">¥4,644,500</div>
+      </div>
+      <div class="stat-card warn">
+        <div class="label">数量差异</div>
+        <div class="value">1 笔</div>
+        <div class="sub">少收 200 件</div>
+      </div>
+      <div class="stat-card warn">
+        <div class="label">价格差异</div>
+        <div class="value">1 笔</div>
+        <div class="sub">¥125,000 差额</div>
+      </div>
+      <div class="stat-card danger">
+        <div class="label">退货扣减</div>
+        <div class="value">1 笔</div>
+        <div class="sub">-¥37,500</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Tab 3: Payment -->
+  <div id="tab-payment" class="tab-content">
+    <div class="table-wrap">
+      <div class="table-header">
+        <h3>💰 7 月结算付款计划</h3>
+        <span class="badge badge-info">3 笔待付</span>
+      </div>
+      <table>
+        <thead>
+          <tr>
+            <th>供应商</th>
+            <th>对账金额(¥)</th>
+            <th>差异调整(¥)</th>
+            <th>应付金额(¥)</th>
+            <th>账期</th>
+            <th>结算月末</th>
+            <th>付款到期日</th>
+            <th>状态</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><b>宁德时代</b></td>
+            <td style="text-align:right">21,280,000</td>
+            <td style="text-align:right;color:var(--success)">0</td>
+            <td style="text-align:right;font-weight:700">21,280,000</td>
+            <td>月结 30 天</td>
+            <td>2026-07-31</td>
+            <td>2026-08-30</td>
+            <td><span class="badge badge-warning">待供应商确认</span></td>
+          </tr>
+          <tr>
+            <td><b>海斯坦普</b></td>
+            <td style="text-align:right">12,870,000</td>
+            <td style="text-align:right;color:var(--error)">-62,500</td>
+            <td style="text-align:right;font-weight:700">12,807,500</td>
+            <td>月结 60 天</td>
+            <td>2026-07-31</td>
+            <td>2026-09-29</td>
+            <td><span class="badge badge-error">差异处理中</span></td>
+          </tr>
+          <tr>
+            <td><b>博世</b></td>
+            <td style="text-align:right">14,362,500</td>
+            <td style="text-align:right;color:var(--error)">-125,000</td>
+            <td style="text-align:right;font-weight:700">14,237,500</td>
+            <td>月结 90 天</td>
+            <td>2026-07-31</td>
+            <td>2026-10-29</td>
+            <td><span class="badge badge-error">差异处理中</span></td>
+          </tr>
+        </tbody>
+        <tfoot>
+          <tr style="background:#fafafa;font-weight:700;">
+            <td>合计</td>
+            <td style="text-align:right">48,512,500</td>
+            <td style="text-align:right;color:var(--error)">-187,500</td>
+            <td style="text-align:right">48,325,000</td>
+            <td colspan="4"></td>
+          </tr>
+        </tfoot>
+      </table>
+    </div>
+
+    <!-- Payment Calendar -->
+    <div class="table-wrap">
+      <div class="table-header">
+        <h3>📅 付款日历（2026 Q3-Q4）</h3>
+      </div>
+      <div style="padding:20px;">
+        <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:12px;">
+          <div style="padding:12px;background:#f6ffed;border:1px solid #b7eb8f;border-radius:8px;">
+            <div style="font-size:12px;color:var(--text-secondary)">8 月 30 日</div>
+            <div style="font-size:14px;font-weight:600;color:var(--success)">¥2,128 万</div>
+            <div style="font-size:12px">宁德时代 (月结30)</div>
+          </div>
+          <div style="padding:12px;background:#fffbe6;border:1px solid #ffe58f;border-radius:8px;">
+            <div style="font-size:12px;color:var(--text-secondary)">9 月 29 日</div>
+            <div style="font-size:14px;font-weight:600;color:#d48806">¥1,281 万</div>
+            <div style="font-size:12px">海斯坦普 (月结60)</div>
+          </div>
+          <div style="padding:12px;background:#fff7e6;border:1px solid #ffd591;border-radius:8px;">
+            <div style="font-size:12px;color:var(--text-secondary)">10 月 29 日</div>
+            <div style="font-size:14px;font-weight:600;color:#d46b08">¥1,424 万</div>
+            <div style="font-size:12px">博世 (月结90)</div>
+          </div>
+          <div style="padding:12px;background:#f0f0f0;border:1px solid #d9d9d9;border-radius:8px;border-style:dashed;">
+            <div style="font-size:12px;color:var(--text-secondary)">本月合计</div>
+            <div style="font-size:14px;font-weight:600;">¥4,833 万</div>
+            <div style="font-size:12px">3 家供应商</div>
+          </div>
+        </div>
+        <div style="margin-top:16px;font-size:12px;color:var(--text-secondary);">
+          💡 付款日计算逻辑：结算月末(7/31) + 账期天数 → 遇周末/节假日顺延至下一工作日
+        </div>
+      </div>
+    </div>
+
+    <!-- DPO Analysis -->
+    <div class="table-wrap">
+      <div class="table-header">
+        <h3>📊 应付周转天数（DPO）分析</h3>
+      </div>
+      <div style="padding:20px;">
+        <table>
+          <thead>
+            <tr>
+              <th>供应商</th>
+              <th style="text-align:right">月采购额(万)</th>
+              <th>账期</th>
+              <th style="text-align:right">资金占用成本(万/月)</th>
+              <th>策略</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>宁德时代</td>
+              <td style="text-align:right">2,128</td>
+              <td>月结 30 天</td>
+              <td style="text-align:right">7.0</td>
+              <td><span class="badge badge-success">账期合理</span></td>
+            </tr>
+            <tr>
+              <td>海斯坦普</td>
+              <td style="text-align:right">1,287</td>
+              <td>月结 60 天</td>
+              <td style="text-align:right">8.5</td>
+              <td><span class="badge badge-info">行业标准</span></td>
+            </tr>
+            <tr>
+              <td>博世</td>
+              <td style="text-align:right">1,436</td>
+              <td>月结 90 天</td>
+              <td style="text-align:right">14.2</td>
+              <td><span class="badge badge-warning">关注供应商现金流</span></td>
+            </tr>
+          </tbody>
+        </table>
+        <div style="margin-top:12px;font-size:12px;color:var(--text-secondary);">
+          资金占用成本 = 月采购额 × (账期天数/365) × 年化利率 4%
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Tab 4: Dispute -->
+  <div id="tab-dispute" class="tab-content">
+    <div class="stats">
+      <div class="stat-card warn">
+        <div class="label">待处理差异</div>
+        <div class="value">3 笔</div>
+        <div class="sub">涉及金额 ¥187,500</div>
+      </div>
+      <div class="stat-card ok">
+        <div class="label">平均处理时间</div>
+        <div class="value">2.3 天</div>
+        <div class="sub">目标 ≤ 5 天</div>
+      </div>
+      <div class="stat-card highlight">
+        <div class="label">本月差异率</div>
+        <div class="value">16.7%</div>
+        <div class="sub">3/18 笔（目标 ≤ 10%）</div>
+      </div>
+    </div>
+
+    <!-- Dispute items -->
+    <div class="table-wrap">
+      <div class="table-header">
+        <h3>⚠️ 差异明细</h3>
+      </div>
+      <table>
+        <thead>
+          <tr>
+            <th>差异编号</th>
+            <th>供应商</th>
+            <th>PO 编号</th>
+            <th>差异类型</th>
+            <th>差异描述</th>
+            <th style="text-align:right">差异金额(¥)</th>
+            <th>状态</th>
+            <th>操作</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><b>DIS-001</b></td>
+            <td>海斯坦普</td>
+            <td>PO-2026-0712</td>
+            <td><span class="badge badge-warning">数量差异</span></td>
+            <td>收货 1,800 件 vs 发票 2,000 件，少收 200 件</td>
+            <td style="text-align:right;color:var(--error)">-62,500</td>
+            <td><span class="badge badge-warning">待核查</span></td>
+            <td><button class="btn btn-sm btn-primary" onclick="showDisputeDetail(1)">处理</button></td>
+          </tr>
+          <tr>
+            <td><b>DIS-002</b></td>
+            <td>博世</td>
+            <td>PO-2026-0715</td>
+            <td><span class="badge badge-error">退货未扣减</span></td>
+            <td>7/20 退货 50 件 ECU（质量问题），发票未扣减</td>
+            <td style="text-align:right;color:var(--error)">-37,500</td>
+            <td><span class="badge badge-error">已通知供应商</span></td>
+            <td><button class="btn btn-sm btn-primary" onclick="showDisputeDetail(2)">处理</button></td>
+          </tr>
+          <tr>
+            <td><b>DIS-003</b></td>
+            <td>博世</td>
+            <td>PO-2026-0718</td>
+            <td><span class="badge badge-info">价格差异</span></td>
+            <td>PO 单价 ¥750/件 vs 发票 ¥800/件（供应商声称已调价）</td>
+            <td style="text-align:right;color:var(--error)">-125,000</td>
+            <td><span class="badge badge-warning">协商中</span></td>
+            <td><button class="btn btn-sm btn-primary" onclick="showDisputeDetail(3)">处理</button></td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Resolution flow -->
+    <div class="table-wrap">
+      <div class="table-header">
+        <h3>🔄 差异处理流程</h3>
+      </div>
+      <div style="padding:20px;">
+        <div class="flow">
+          <div class="flow-node red">系统发现差异</div>
+          <span class="flow-arrow">→</span>
+          <div class="flow-node orange">采购员核查<br>（调GR/PO/退货记录）</div>
+          <span class="flow-arrow">→</span>
+          <div class="flow-node blue">通知供应商<br>（门户推送/邮件）</div>
+          <span class="flow-arrow">→</span>
+          <div class="flow-node blue">供应商确认<br>（同意/申诉）</div>
+          <span class="flow-arrow">→</span>
+          <div class="flow-node green">差异关闭<br>调整对账单</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Detail Modal -->
+<div class="modal-overlay" id="detailModal">
+  <div class="modal">
+    <div class="modal-header">
+      <h3 id="modal-title">收货明细</h3>
+      <button class="modal-close" onclick="closeModal()">&times;</button>
+    </div>
+    <div class="modal-body" id="modal-body"></div>
+  </div>
+</div>
+
+<!-- Dispute Modal -->
+<div class="modal-overlay" id="disputeModal">
+  <div class="modal">
+    <div class="modal-header">
+      <h3 id="dispute-title">差异处理</h3>
+      <button class="modal-close" onclick="closeDisputeModal()">&times;</button>
+    </div>
+    <div class="modal-body" id="dispute-body"></div>
+  </div>
+</div>
+
+<script>
+// ==================== Data ====================
+const reconData = [
+  { id:1, supplier:'海斯坦普', po:'PO-2026-0701', material:'XM-SP-001', name:'SU7 左侧围外板', poQty:2000, grQty:2000, invQty:2000, price:1250, status:'matched' },
+  { id:2, supplier:'海斯坦普', po:'PO-2026-0702', material:'XM-SP-002', name:'SU7 右侧围外板', poQty:2000, grQty:2000, invQty:2000, price:1250, status:'matched' },
+  { id:3, supplier:'海斯坦普', po:'PO-2026-0703', material:'XM-SP-003', name:'SU7 引擎盖外板', poQty:3000, grQty:3000, invQty:3000, price:800, status:'matched' },
+  { id:4, supplier:'海斯坦普', po:'PO-2026-0704', material:'XM-SP-004', name:'SU7 前地板总成', poQty:2500, grQty:2500, invQty:2500, price:950, status:'matched' },
+  { id:5, supplier:'海斯坦普', po:'PO-2026-0705', material:'XM-SP-005', name:'SU7 后地板总成', poQty:2500, grQty:2500, invQty:2500, price:900, status:'matched' },
+  { id:6, supplier:'海斯坦普', po:'PO-2026-0706', material:'XM-SP-006', name:'SU7 车顶内板', poQty:2000, grQty:2000, invQty:2000, price:650, status:'matched' },
+  { id:7, supplier:'海斯坦普', po:'PO-2026-0707', material:'XM-SP-007', name:'SU7 左前门外板', poQty:2200, grQty:2200, invQty:2200, price:780, status:'matched' },
+  { id:8, supplier:'海斯坦普', po:'PO-2026-0712', material:'XM-SP-008', name:'SU7 右前门外板', poQty:2000, grQty:1800, invQty:2000, price:312.5, status:'dispute', disputeType:'数量差异', disputeDesc:'GR 1,800 vs INV 2,000，少收 200 件，需核查物流签收单' },
+
+  { id:9, supplier:'宁德时代', po:'PO-2026-0708', material:'XM-BT-001', name:'SU7 标准续航电池包', poQty:1500, grQty:1500, invQty:1500, price:5200, status:'matched' },
+  { id:10, supplier:'宁德时代', po:'PO-2026-0709', material:'XM-BT-002', name:'SU7 长续航电池包', poQty:1200, grQty:1200, invQty:1200, price:6800, status:'matched' },
+  { id:11, supplier:'宁德时代', po:'PO-2026-0710', material:'XM-BT-003', name:'SU7 电池管理系统 BMS', poQty:3000, grQty:3000, invQty:3000, price:1200, status:'matched' },
+  { id:12, supplier:'宁德时代', po:'PO-2026-0711', material:'XM-BT-004', name:'SU7 电池冷却模组', poQty:2800, grQty:2800, invQty:2800, price:850, status:'matched' },
+
+  { id:13, supplier:'博世', po:'PO-2026-0713', material:'XM-EC-001', name:'ESP 电子稳定系统', poQty:2000, grQty:2000, invQty:2000, price:1800, status:'matched' },
+  { id:14, supplier:'博世', po:'PO-2026-0714', material:'XM-EC-002', name:'iBooster 制动助力器', poQty:2000, grQty:2000, invQty:2000, price:2200, status:'matched' },
+  { id:15, supplier:'博世', po:'PO-2026-0715', material:'XM-EC-003', name:'ADAS 域控制器', poQty:500, grQty:450, invQty:500, price:750, status:'returned', disputeType:'退货未扣减', disputeDesc:'7/20 退货 50 件（IQC 不合格），发票未扣减退货金额 ¥37,500' },
+  { id:16, supplier:'博世', po:'PO-2026-0716', material:'XM-EC-004', name:'毫米波雷达 77GHz', poQty:1800, grQty:1800, invQty:1800, price:950, status:'matched' },
+  { id:17, supplier:'博世', po:'PO-2026-0717', material:'XM-EC-005', name:'超声波传感器', poQty:5000, grQty:5000, invQty:5000, price:120, status:'matched' },
+  { id:18, supplier:'博世', po:'PO-2026-0718', material:'XM-EC-006', name:'电子助力转向 EPS', poQty:2500, grQty:2500, invQty:2500, price:800, status:'dispute', disputeType:'价格差异', disputeDesc:'PO ¥750 vs INV ¥800，供应商声称 7/1 已发调价函但 PO 未更新' },
+];
+
+// ==================== Tab Switching ====================
+function switchTab(tab) {
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+  document.getElementById('tab-' + tab).classList.add('active');
+  event.target.classList.add('active');
+}
+
+// ==================== Reconciliation Table ====================
+function renderTable(data) {
+  const tbody = document.getElementById('recon-body');
+  tbody.innerHTML = data.map(row => {
+    const amount = (row.grQty * row.price).toLocaleString();
+    const statusBadge = getStatusBadge(row.status);
+    return `<tr class="clickable" onclick="showDetail(${row.id})">
+      <td>${row.id}</td>
+      <td>${row.supplier}</td>
+      <td><code>${row.po}</code></td>
+      <td><code>${row.material}</code></td>
+      <td>${row.name}</td>
+      <td style="text-align:right">${row.poQty.toLocaleString()}</td>
+      <td style="text-align:right${row.grQty < row.poQty ? ';color:var(--warning)' : ''}">${row.grQty.toLocaleString()}</td>
+      <td style="text-align:right${row.invQty !== row.grQty ? ';color:var(--error)' : ''}">${row.invQty.toLocaleString()}</td>
+      <td style="text-align:right">${row.price.toLocaleString()}</td>
+      <td style="text-align:right;font-weight:600">¥${amount}</td>
+      <td>${statusBadge}</td>
+      <td><button class="btn btn-sm" onclick="event.stopPropagation();showDetail(${row.id})">详情</button></td>
+    </tr>`;
+  }).join('');
+}
+
+function getStatusBadge(status) {
+  const map = {
+    'matched': '<span class="badge badge-success">✅ 已匹配</span>',
+    'dispute': '<span class="badge badge-warning">⚠️ 数量差异</span>',
+    'returned': '<span class="badge badge-error">🔄 退货</span>',
+  };
+  return map[status] || status;
+}
+
+function filterTable() {
+  const supplier = document.getElementById('filter-supplier').value;
+  const status = document.getElementById('filter-status').value;
+  let filtered = reconData;
+  if (supplier) filtered = filtered.filter(r => r.supplier === supplier);
+  if (status) filtered = filtered.filter(r => r.status === status);
+  renderTable(filtered);
+}
+
+// ==================== Detail Modal ====================
+function showDetail(id) {
+  const row = reconData.find(r => r.id === id);
+  if (!row) return;
+  document.getElementById('modal-title').textContent = `${row.material} — ${row.name}`;
+
+  const diffQty = row.grQty - row.invQty;
+  const diffAmount = diffQty * row.price;
+  const matchScore = (row.poQty === row.grQty && row.grQty === row.invQty) ? 100 :
+    (row.grQty === row.invQty ? 90 : 70);
+
+  document.getElementById('modal-body').innerHTML = `
+    <div class="detail-grid">
+      <div class="detail-item"><div class="label">供应商</div><div class="value">${row.supplier}</div></div>
+      <div class="detail-item"><div class="label">PO 编号</div><div class="value"><code>${row.po}</code></div></div>
+      <div class="detail-item"><div class="label">物料编码</div><div class="value"><code>${row.material}</code></div></div>
+      <div class="detail-item"><div class="label">物料名称</div><div class="value">${row.name}</div></div>
+    </div>
+
+    <div class="section">
+      <div class="section-title">三单匹配详情</div>
+      <table style="margin-top:8px;">
+        <thead>
+          <tr>
+            <th>匹配维度</th>
+            <th style="text-align:right">PO</th>
+            <th style="text-align:right">收货(GR)</th>
+            <th style="text-align:right">发票(Invoice)</th>
+            <th style="text-align:right">差异</th>
+            <th>判定</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><b>数量</b></td>
+            <td style="text-align:right">${row.poQty.toLocaleString()}</td>
+            <td style="text-align:right">${row.grQty.toLocaleString()}</td>
+            <td style="text-align:right">${row.invQty.toLocaleString()}</td>
+            <td style="text-align:right;${diffQty !== 0 ? 'color:var(--error)' : 'color:var(--success)'}">${diffQty !== 0 ? diffQty.toLocaleString() : '-'}</td>
+            <td>${diffQty === 0 ? '<span class="badge badge-success">匹配</span>' :
+              Math.abs(diffQty/row.poQty) <= 0.02 ? '<span class="badge badge-warning">容差内</span>' :
+              '<span class="badge badge-error">超出容差</span>'}</td>
+          </tr>
+          <tr>
+            <td><b>单价</b></td>
+            <td style="text-align:right">¥${row.price.toLocaleString()}</td>
+            <td style="text-align:right">-</td>
+            <td style="text-align:right">¥${(row.status === 'dispute' && row.disputeType === '价格差异' ? 800 : row.price).toLocaleString()}</td>
+            <td style="text-align:right">${row.status === 'dispute' && row.disputeType === '价格差异' ? '<span style="color:var(--error)">+¥50</span>' : '-'}</td>
+            <td>${row.status === 'dispute' && row.disputeType === '价格差异' ? '<span class="badge badge-error">不匹配</span>' : '<span class="badge badge-success">匹配</span>'}</td>
+          </tr>
+          <tr>
+            <td><b>金额</b></td>
+            <td style="text-align:right">¥${(row.poQty * row.price).toLocaleString()}</td>
+            <td style="text-align:right">¥${(row.grQty * row.price).toLocaleString()}</td>
+            <td style="text-align:right">¥${(row.invQty * (row.status === 'dispute' && row.disputeType === '价格差异' ? 800 : row.price)).toLocaleString()}</td>
+            <td style="text-align:right">-</td>
+            <td>${matchScore >= 90 ? '<span class="badge badge-success">通过</span>' : '<span class="badge badge-warning">待确认</span>'}</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    ${row.disputeType ? `
+    <div class="section">
+      <div class="section-title">⚠️ 差异说明</div>
+      <div style="background:#fffbe6;border:1px solid #ffe58f;border-radius:8px;padding:12px;margin-top:8px;">
+        <div style="font-size:13px;"><b>类型：</b>${row.disputeType}</div>
+        <div style="font-size:13px;margin-top:4px;"><b>描述：</b>${row.disputeDesc}</div>
+      </div>
+    </div>
+    ` : ''}
+
+    <div class="section">
+      <div class="section-title">操作记录</div>
+      <div class="timeline" style="margin-top:8px;">
+        <div class="timeline-item done">
+          <div class="time">2026-08-05 09:30</div>
+          <div class="desc">系统自动汇总 GR 数据</div>
+        </div>
+        <div class="timeline-item done">
+          <div class="time">2026-08-05 10:15</div>
+          <div class="desc">执行三单匹配${diffQty !== 0 ? ' → 发现差异' : ' → 匹配通过'}</div>
+        </div>
+        ${diffQty !== 0 ? `
+        <div class="timeline-item pending">
+          <div class="time">2026-08-05 14:00</div>
+          <div class="desc">采购员核查中...</div>
+        </div>` : ''}
+      </div>
+    </div>
+  `;
+  document.getElementById('detailModal').classList.add('show');
+}
+
+function closeModal() {
+  document.getElementById('detailModal').classList.remove('show');
+}
+
+// ==================== Dispute Modal ====================
+function showDisputeDetail(id) {
+  const disputes = {
+    1: {
+      title: 'DIS-001：海斯坦普数量差异',
+      supplier: '海斯坦普',
+      po: 'PO-2026-0712',
+      type: '数量差异',
+      desc: 'SU7 右前门外板，PO 下单 2,000 件，供应商发票 2,000 件，但仓库 GR 仅 1,800 件。',
+      rootCause: '7/18 供应商送货车次因物流原因少发 200 件，约定 7/25 补发，但补发部分已计入 8 月 GR。',
+      options: [
+        { label: '方案 A：按 GR 结算', desc: '本月按 1,800 件结算（¥562,500），200 件差异留到 8 月一并结算', recommend: true },
+        { label: '方案 B：全额结算', desc: '本月按 2,000 件全额结算（¥625,000），风险是 200 件尚未入库' },
+      ]
+    },
+    2: {
+      title: 'DIS-002：博世退货未扣减',
+      supplier: '博世',
+      po: 'PO-2026-0715',
+      type: '退货扣减',
+      desc: 'ADAS 域控制器 7/20 IQC 检验发现 50 件不良（功能失效），已开退货单，但供应商 7 月发票未扣减。',
+      rootCause: '退货单在 7/20 开出，供应商发票日期 7/18（先于退货），供应商未收到退货信息。',
+      options: [
+        { label: '方案 A：扣减后结算', desc: '按 450 件结算（GR 450 × ¥750 = ¥337,500），退货 50 件由供应商 8 月开红字发票', recommend: true },
+        { label: '方案 B：通知供应商重开发票', desc: '退回整张发票，请供应商扣除退货后重新开具', note: '耗时较长，可能导致付款延迟' },
+      ]
+    },
+    3: {
+      title: 'DIS-003：博世价格差异',
+      supplier: '博世',
+      po: 'PO-2026-0718',
+      type: '价格差异',
+      desc: 'EPS 电子助力转向，PO 单价 ¥750/件，供应商发票 ¥800/件，差额 ¥50/件 × 2,500 件 = ¥125,000。',
+      rootCause: '供应商声称 7/1 已发调价函（原材料涨价），但采购系统中 PO 未更新，合同也未签署变更。',
+      options: [
+        { label: '方案 A：按 PO 价格结算', desc: '以 PO 约定 ¥750/件为准，差额 ¥125,000 不予确认。供应商需正式走合同变更流程', recommend: true },
+        { label: '方案 B：暂按发票结算', desc: '暂按 ¥800/件结算，待合同变更完成后补签', note: '有合规风险，需采购主管特批' },
+        { label: '方案 C：协商中间价', desc: '按 ¥775/件结算（各让一步），同时启动合同变更', note: '需供应商同意' },
+      ]
+    }
+  };
+
+  const d = disputes[id];
+  if (!d) return;
+  document.getElementById('dispute-title').textContent = d.title;
+
+  document.getElementById('dispute-body').innerHTML = `
+    <div class="detail-grid">
+      <div class="detail-item"><div class="label">供应商</div><div class="value">${d.supplier}</div></div>
+      <div class="detail-item"><div class="label">PO 编号</div><div class="value"><code>${d.po}</code></div></div>
+      <div class="detail-item"><div class="label">差异类型</div><div class="value">${d.type}</div></div>
+    </div>
+
+    <div class="section">
+      <div class="section-title">差异描述</div>
+      <div style="font-size:13px;background:#f8f8f8;padding:12px;border-radius:8px;margin-top:8px;">${d.desc}</div>
+    </div>
+
+    <div class="section">
+      <div class="section-title">根因分析</div>
+      <div style="font-size:13px;background:#fff7e6;border:1px solid #ffd591;padding:12px;border-radius:8px;margin-top:8px;">${d.rootCause}</div>
+    </div>
+
+    <div class="section">
+      <div class="section-title">处理方案</div>
+      <div style="margin-top:8px;">
+        ${d.options.map((opt, i) => `
+          <div style="border:1px solid ${opt.recommend ? 'var(--primary)' : 'var(--border)'};border-radius:8px;padding:16px;margin-bottom:12px;${opt.recommend ? 'background:#f0f5ff;' : ''}">
+            <div style="font-size:14px;font-weight:600;">${opt.label} ${opt.recommend ? '<span class="badge badge-info">推荐</span>' : ''}</div>
+            <div style="font-size:13px;margin-top:4px;">${opt.desc}</div>
+            ${opt.note ? `<div style="font-size:12px;color:var(--warning);margin-top:4px;">⚠️ ${opt.note}</div>` : ''}
+          </div>
+        `).join('')}
+      </div>
+    </div>
+
+    <div style="display:flex;gap:12px;justify-content:flex-end;margin-top:20px;">
+      <button class="btn" onclick="closeDisputeModal()">暂不处理</button>
+      <button class="btn btn-primary" onclick="resolveDispute(${id})">确认处理</button>
+    </div>
+  `;
+  document.getElementById('disputeModal').classList.add('show');
+}
+
+function closeDisputeModal() {
+  document.getElementById('disputeModal').classList.remove('show');
+}
+
+function resolveDispute(id) {
+  alert('✅ 差异已提交处理！\n\n处理结果将同步到对账单，更新应付金额。\n系统将自动通知供应商确认。');
+  closeDisputeModal();
+}
+
+// ==================== Init ====================
+document.addEventListener('DOMContentLoaded', () => {
+  renderTable(reconData);
+});
+
+// Close modals on overlay click
+document.querySelectorAll('.modal-overlay').forEach(overlay => {
+  overlay.addEventListener('click', (e) => {
+    if (e.target === overlay) {
+      overlay.classList.remove('show');
+    }
+  });
+});
+</script>
+</body>
+</html>

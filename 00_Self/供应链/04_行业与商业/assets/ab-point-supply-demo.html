@@ -1,0 +1,793 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AB 点供应与供应链韧性 — 交互式演示</title>
+<style>
+  :root {
+    --bg: #0f1117;
+    --card: #1a1d27;
+    --card-hover: #22263a;
+    --border: #2a2e3e;
+    --text: #e4e4e7;
+    --text-dim: #9ca3af;
+    --accent: #6366f1;
+    --accent-light: #818cf8;
+    --green: #22c55e;
+    --green-dim: rgba(34,197,94,.15);
+    --red: #ef4444;
+    --red-dim: rgba(239,68,68,.12);
+    --yellow: #eab308;
+    --yellow-dim: rgba(234,179,8,.12);
+    --blue: #3b82f6;
+    --blue-dim: rgba(59,130,246,.12);
+    --orange: #f97316;
+    --cyan: #06b6d4;
+    --radius: 12px;
+    --shadow: 0 2px 16px rgba(0,0,0,.35);
+  }
+  * { margin:0; padding:0; box-sizing:border-box; }
+  body { font-family: -apple-system, 'SF Pro Display', 'Segoe UI', sans-serif; background: var(--bg); color: var(--text); line-height: 1.6; min-height: 100vh; }
+
+  .container { max-width: 1400px; margin: 0 auto; padding: 32px 24px; }
+
+  /* Header */
+  .header { text-align: center; margin-bottom: 40px; }
+  .header h1 { font-size: 2rem; font-weight: 700; background: linear-gradient(135deg, var(--accent-light), var(--cyan)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+  .header p { color: var(--text-dim); margin-top: 8px; font-size: .95rem; }
+
+  /* Tab nav */
+  .tab-nav { display: flex; gap: 4px; margin-bottom: 28px; background: var(--card); border-radius: var(--radius); padding: 4px; width: fit-content; margin-left: auto; margin-right: auto; }
+  .tab-btn { padding: 10px 24px; border: none; background: transparent; color: var(--text-dim); font-size: .9rem; cursor: pointer; border-radius: 8px; transition: all .2s; font-weight: 500; }
+  .tab-btn.active { background: var(--accent); color: #fff; }
+  .tab-btn:hover:not(.active) { color: var(--text); background: rgba(99,102,241,.1); }
+  .tab-panel { display: none; }
+  .tab-panel.active { display: block; }
+
+  /* Cards */
+  .card { background: var(--card); border: 1px solid var(--border); border-radius: var(--radius); padding: 24px; margin-bottom: 20px; box-shadow: var(--shadow); }
+  .card-title { font-size: 1.1rem; font-weight: 600; margin-bottom: 16px; display: flex; align-items: center; gap: 8px; }
+
+  /* Grid */
+  .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+  .grid-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 20px; }
+  .grid-4 { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; }
+  @media (max-width: 900px) { .grid-2, .grid-3, .grid-4 { grid-template-columns: 1fr; } }
+
+  /* Network visualization */
+  .network-canvas { position: relative; width: 100%; height: 520px; background: linear-gradient(135deg, #0d1020 0%, #151825 100%); border-radius: var(--radius); overflow: hidden; border: 1px solid var(--border); }
+  .node { position: absolute; display: flex; flex-direction: column; align-items: center; justify-content: center; border-radius: 12px; font-weight: 600; font-size: .82rem; cursor: pointer; transition: all .4s cubic-bezier(.4,0,.2,1); z-index: 2; border: 2px solid transparent; text-align: center; padding: 8px; }
+  .node:hover { transform: scale(1.08); z-index: 3; }
+  .node-factory { width: 120px; height: 70px; background: linear-gradient(135deg, #1e3a5f, #1a2744); border-color: var(--blue); }
+  .node-supplier-a { width: 110px; height: 65px; background: linear-gradient(135deg, #1a3328, #162920); border-color: var(--green); }
+  .node-supplier-b { width: 110px; height: 65px; background: linear-gradient(135deg, #3b2e1a, #2d2416); border-color: var(--yellow); }
+  .node-supplier-c { width: 110px; height: 65px; background: linear-gradient(135deg, #2d1a3b, #241630); border-color: var(--accent-light); }
+  .node.down { opacity: .4; border-color: var(--red) !important; animation: pulse-red 1.5s infinite; }
+  .node-label { font-size: .75rem; color: var(--text-dim); margin-top: 4px; }
+  .node-icon { font-size: 1.3rem; margin-bottom: 2px; }
+  .node-quota { font-size: .7rem; margin-top: 2px; padding: 2px 8px; border-radius: 10px; font-weight: 500; }
+  .quota-a { background: var(--green-dim); color: var(--green); }
+  .quota-b { background: var(--yellow-dim); color: var(--yellow); }
+  .quota-c { background: rgba(99,102,241,.15); color: var(--accent-light); }
+  .quota-0 { background: var(--red-dim); color: var(--red); }
+
+  @keyframes pulse-red { 0%,100% { box-shadow: 0 0 0 0 rgba(239,68,68,.4); } 50% { box-shadow: 0 0 20px 4px rgba(239,68,68,.3); } }
+
+  /* SVG lines */
+  .network-svg { position: absolute; top: 0; left: 0; width: 100%; height: 100%; z-index: 1; }
+  .supply-line { stroke-width: 2.5; fill: none; transition: all .4s; }
+  .supply-line.active { stroke-dasharray: none; }
+  .supply-line.inactive { stroke-dasharray: 6 4; opacity: .25; }
+  .supply-line.switching { stroke-dasharray: 12 6; animation: dash-flow 1s linear infinite; stroke-width: 3.5; }
+  @keyframes dash-flow { to { stroke-dashoffset: -18; } }
+
+  /* Controls */
+  .control-group { display: flex; flex-direction: column; gap: 6px; }
+  .control-label { font-size: .8rem; color: var(--text-dim); font-weight: 500; }
+  .slider-row { display: flex; align-items: center; gap: 12px; }
+  input[type=range] { flex: 1; accent-color: var(--accent); height: 6px; -webkit-appearance: none; background: var(--border); border-radius: 3px; outline: none; }
+  input[type=range]::-webkit-slider-thumb { -webkit-appearance: none; width: 18px; height: 18px; border-radius: 50%; background: var(--accent); cursor: pointer; }
+  .slider-val { font-size: .85rem; font-weight: 600; min-width: 42px; text-align: right; color: var(--accent-light); }
+
+  /* Buttons */
+  .btn { padding: 10px 24px; border: none; border-radius: 8px; font-size: .9rem; font-weight: 600; cursor: pointer; transition: all .2s; display: inline-flex; align-items: center; gap: 6px; }
+  .btn-danger { background: var(--red); color: #fff; }
+  .btn-danger:hover { background: #dc2626; transform: translateY(-1px); }
+  .btn-primary { background: var(--accent); color: #fff; }
+  .btn-primary:hover { background: #4f46e5; }
+  .btn-success { background: var(--green); color: #fff; }
+  .btn-success:hover { background: #16a34a; }
+  .btn-outline { background: transparent; color: var(--text); border: 1px solid var(--border); }
+  .btn-outline:hover { border-color: var(--accent); color: var(--accent-light); }
+  .btn-sm { padding: 6px 14px; font-size: .8rem; }
+
+  /* Status badges */
+  .badge { display: inline-flex; align-items: center; gap: 4px; padding: 4px 12px; border-radius: 20px; font-size: .78rem; font-weight: 600; }
+  .badge-green { background: var(--green-dim); color: var(--green); }
+  .badge-red { background: var(--red-dim); color: var(--red); }
+  .badge-yellow { background: var(--yellow-dim); color: var(--yellow); }
+  .badge-blue { background: var(--blue-dim); color: var(--blue); }
+
+  /* Stats */
+  .stat { text-align: center; padding: 16px; }
+  .stat-value { font-size: 2rem; font-weight: 700; }
+  .stat-label { font-size: .8rem; color: var(--text-dim); margin-top: 4px; }
+  .stat-change { font-size: .78rem; margin-top: 4px; font-weight: 600; }
+  .stat-change.up { color: var(--green); }
+  .stat-change.down { color: var(--red); }
+
+  /* Table */
+  .table-wrap { overflow-x: auto; }
+  table { width: 100%; border-collapse: collapse; font-size: .85rem; }
+  th { text-align: left; padding: 10px 14px; background: rgba(99,102,241,.08); color: var(--accent-light); font-weight: 600; border-bottom: 1px solid var(--border); }
+  td { padding: 10px 14px; border-bottom: 1px solid rgba(42,46,62,.5); }
+  tr:hover td { background: rgba(255,255,255,.02); }
+
+  /* Event log */
+  .event-log { max-height: 320px; overflow-y: auto; display: flex; flex-direction: column; gap: 8px; }
+  .event-item { display: flex; align-items: flex-start; gap: 10px; padding: 10px 14px; border-radius: 8px; font-size: .82rem; border-left: 3px solid; background: rgba(255,255,255,.02); }
+  .event-item.info { border-color: var(--blue); }
+  .event-item.warn { border-color: var(--yellow); }
+  .event-item.error { border-color: var(--red); }
+  .event-item.success { border-color: var(--green); }
+  .event-time { color: var(--text-dim); font-size: .75rem; white-space: nowrap; }
+  .event-icon { font-size: 1rem; }
+
+  /* Gauge */
+  .gauge-row { display: flex; align-items: center; gap: 12px; margin-bottom: 14px; }
+  .gauge-label { font-size: .82rem; min-width: 100px; color: var(--text-dim); }
+  .gauge-bar { flex: 1; height: 10px; background: var(--border); border-radius: 5px; overflow: hidden; }
+  .gauge-fill { height: 100%; border-radius: 5px; transition: width .8s cubic-bezier(.4,0,.2,1); }
+  .gauge-val { font-size: .85rem; font-weight: 600; min-width: 50px; text-align: right; }
+
+  /* Scenario cards */
+  .scenario-card { background: var(--card); border: 1px solid var(--border); border-radius: var(--radius); padding: 18px; cursor: pointer; transition: all .25s; }
+  .scenario-card:hover { border-color: var(--accent); transform: translateY(-2px); box-shadow: 0 4px 20px rgba(99,102,241,.15); }
+  .scenario-card.selected { border-color: var(--accent); background: rgba(99,102,241,.06); }
+  .scenario-title { font-weight: 600; margin-bottom: 6px; font-size: .95rem; }
+  .scenario-desc { font-size: .8rem; color: var(--text-dim); line-height: 1.5; }
+  .scenario-impact { margin-top: 10px; display: flex; gap: 8px; flex-wrap: wrap; }
+
+  /* Responsive */
+  @media (max-width: 768px) {
+    .container { padding: 16px 12px; }
+    .header h1 { font-size: 1.4rem; }
+    .network-canvas { height: 420px; }
+    .node-factory { width: 90px; height: 55px; font-size: .72rem; }
+    .node-supplier-a, .node-supplier-b, .node-supplier-c { width: 85px; height: 50px; font-size: .7rem; }
+  }
+
+  /* Pulse animation for switching */
+  .switching-badge { animation: pulse-badge .8s ease-in-out 3; }
+  @keyframes pulse-badge { 0%,100% { transform: scale(1); } 50% { transform: scale(1.15); } }
+
+  /* Insight callout */
+  .insight { background: rgba(99,102,241,.06); border: 1px solid rgba(99,102,241,.2); border-radius: var(--radius); padding: 16px 20px; font-size: .88rem; line-height: 1.7; margin-top: 16px; }
+  .insight strong { color: var(--accent-light); }
+
+  .hidden { display: none; }
+  .mt-12 { margin-top: 12px; }
+  .mt-20 { margin-top: 20px; }
+  .mb-12 { margin-bottom: 12px; }
+  .flex-between { display: flex; justify-content: space-between; align-items: center; }
+  .gap-12 { gap: 12px; }
+  .text-dim { color: var(--text-dim); }
+  .text-sm { font-size: .82rem; }
+</style>
+</head>
+<body>
+
+<div class="container">
+  <div class="header">
+    <h1>🏭 AB 点供应与供应链韧性</h1>
+    <p>多工厂 × 多源 × 多业务属性 — 交互式模拟器</p>
+  </div>
+
+  <div class="tab-nav">
+    <button class="tab-btn active" onclick="switchTab('tab1')">🌐 供应网络</button>
+    <button class="tab-btn" onclick="switchTab('tab2')">⚡ 断供模拟</button>
+    <button class="tab-btn" onclick="switchTab('tab3')">📊 韧性仪表盘</button>
+    <button class="tab-btn" onclick="switchTab('tab4')">📋 配额矩阵</button>
+  </div>
+
+  <!-- TAB 1: Supply Network -->
+  <div id="tab1" class="tab-panel active">
+    <div class="grid-2">
+      <div class="card">
+        <div class="card-title">🔗 供应网络拓扑</div>
+        <div class="network-canvas" id="networkCanvas">
+          <svg class="network-svg" id="networkSvg"></svg>
+          <!-- Nodes injected by JS -->
+        </div>
+        <div class="mt-12 text-sm text-dim">
+          💡 点击供应商节点可模拟断供，拖动滑块调整配额比例
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-title">🎛️ 配额调节器</div>
+        <div id="quotaControls"></div>
+
+        <div class="mt-20">
+          <div class="card-title" style="font-size:.95rem">📝 事件日志</div>
+          <div class="event-log" id="eventLog"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- TAB 2: Disruption Simulation -->
+  <div id="tab2" class="tab-panel">
+    <div class="card mb-12">
+      <div class="card-title">⚡ 选择断供场景</div>
+      <div class="grid-3" id="scenarioGrid"></div>
+    </div>
+    <div class="grid-2">
+      <div class="card">
+        <div class="card-title">🔄 切换过程模拟</div>
+        <div id="simResult"></div>
+      </div>
+      <div class="card">
+        <div class="card-title">📈 影响评估</div>
+        <div id="impactAssessment"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- TAB 3: Resilience Dashboard -->
+  <div id="tab3" class="tab-panel">
+    <div class="grid-4 mb-12" id="resilienceKPIs"></div>
+    <div class="grid-2">
+      <div class="card">
+        <div class="card-title">🎯 韧性维度评分</div>
+        <div id="resilienceGauges"></div>
+      </div>
+      <div class="card">
+        <div class="card-title">📉 断供恢复时间对比</div>
+        <div id="recoveryComparison"></div>
+      </div>
+    </div>
+    <div class="card mt-20">
+      <div class="card-title">💡 韧性洞察</div>
+      <div id="resilienceInsights"></div>
+    </div>
+  </div>
+
+  <!-- TAB 4: Quota Matrix -->
+  <div id="tab4" class="tab-panel">
+    <div class="grid-2">
+      <div class="card">
+        <div class="card-title">📋 工厂 × 供应商 配额矩阵（物料：铝合金型材 AL-001）</div>
+        <div class="table-wrap" id="quotaMatrix"></div>
+      </div>
+      <div class="card">
+        <div class="card-title">🔧 多业务属性兼容表</div>
+        <div class="table-wrap" id="bizAttrTable"></div>
+      </div>
+    </div>
+    <div class="card mt-20">
+      <div class="card-title">🧮 切换规则引擎配置</div>
+      <div class="table-wrap" id="ruleEngine"></div>
+    </div>
+  </div>
+</div>
+
+<script>
+// ─── Data Model ───
+const factories = [
+  { id: 'F1', name: '上海工厂', x: 50, y: 220, icon: '🏭', color: '#3b82f6' },
+  { id: 'F2', name: '武汉工厂', x: 50, y: 340, icon: '🏭', color: '#06b6d4' },
+  { id: 'F3', name: '匈牙利工厂', x: 50, y: 455, icon: '🏭', color: '#8b5cf6' },
+];
+
+const suppliers = [
+  { id: 'SA', name: '忠旺铝业', short: '忠旺', x: 820, y: 100, icon: '🟢', type: 'a', color: '#22c55e' },
+  { id: 'SB', name: '诺贝丽斯', short: '诺贝丽斯', x: 820, y: 250, icon: '🟡', type: 'b', color: '#eab308' },
+  { id: 'SC', name: '海德鲁', short: '海德鲁', x: 820, y: 400, icon: '🟣', type: 'c', color: '#818cf8' },
+];
+
+// sourcing: factory × supplier → { quota, vmi, cert, maxCap, status }
+let sourcing = {
+  F1_SA: { quota: 70, vmi: true, cert: 'certified', maxCap: 8000, status: 'active', switchLT: 3 },
+  F1_SB: { quota: 30, vmi: false, cert: 'certified', maxCap: 5000, status: 'active', switchLT: 7 },
+  F1_SC: { quota: 0, vmi: false, cert: 'pending', maxCap: 3000, status: 'inactive', switchLT: 30 },
+  F2_SA: { quota: 60, vmi: false, cert: 'certified', maxCap: 6000, status: 'active', switchLT: 5 },
+  F2_SB: { quota: 20, vmi: false, cert: 'certified', maxCap: 4000, status: 'active', switchLT: 7 },
+  F2_SC: { quota: 20, vmi: false, cert: 'certified', maxCap: 3000, status: 'active', switchLT: 14 },
+  F3_SA: { quota: 0, vmi: false, cert: 'not_certified', maxCap: 0, status: 'inactive', switchLT: 90 },
+  F3_SB: { quota: 80, vmi: true, cert: 'certified', maxCap: 7000, status: 'active', switchLT: 5 },
+  F3_SC: { quota: 20, vmi: false, cert: 'certified', maxCap: 3000, status: 'active', switchLT: 14 },
+};
+
+let supplierDown = {}; // { SA: false, SB: false, SC: false }
+let eventLogs = [];
+
+const demand = { F1: 10000, F2: 8000, F3: 9000 };
+
+// ─── Tab switching ───
+function switchTab(id) {
+  document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+  event.target.classList.add('active');
+  if (id === 'tab1') drawNetwork();
+  if (id === 'tab3') renderResilienceDashboard();
+}
+
+// ─── Network Drawing ───
+function drawNetwork() {
+  const canvas = document.getElementById('networkCanvas');
+  const svg = document.getElementById('networkSvg');
+  // Clear old nodes
+  canvas.querySelectorAll('.node').forEach(n => n.remove());
+  svg.innerHTML = '';
+
+  const canvasRect = canvas.getBoundingClientRect();
+  const w = canvasRect.width || 960;
+  const h = canvasRect.height || 520;
+
+  // Scale positions
+  const sx = w / 960, sy = h / 520;
+
+  // Draw factories
+  factories.forEach(f => {
+    const node = document.createElement('div');
+    node.className = 'node node-factory';
+    node.style.left = (f.x * sx) + 'px';
+    node.style.top = (f.y * sy) + 'px';
+    node.innerHTML = `<span class="node-icon">${f.icon}</span><span>${f.name}</span><span class="node-label">需求 ${demand[f.id].toLocaleString()}/月</span>`;
+    canvas.appendChild(node);
+  });
+
+  // Draw suppliers
+  suppliers.forEach(s => {
+    const isDown = supplierDown[s.id];
+    const node = document.createElement('div');
+    node.className = `node node-supplier-${s.type} ${isDown ? 'down' : ''}`;
+    node.style.left = (s.x * sx) + 'px';
+    node.style.top = (s.y * sy) + 'px';
+    node.onclick = () => toggleSupplier(s.id);
+    node.innerHTML = `<span class="node-icon">${isDown ? '🔴' : s.icon}</span><span>${s.short}</span>`;
+    canvas.appendChild(node);
+  });
+
+  // Draw lines
+  factories.forEach(f => {
+    suppliers.forEach(s => {
+      const key = f.id + '_' + s.id;
+      const sc = sourcing[key];
+      if (!sc) return;
+      const x1 = (f.x * sx + 120);
+      const y1 = (f.y * sy + 35);
+      const x2 = (s.x * sx);
+      const y2 = (s.y * sy + 32);
+      const line = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+      const cp1x = x1 + (x2 - x1) * 0.4;
+      const cp2x = x2 - (x2 - x1) * 0.4;
+      line.setAttribute('d', `M${x1},${y1} C${cp1x},${y1} ${cp2x},${y2} ${x2},${y2}`);
+
+      const isDown = supplierDown[s.id];
+      const hasQuota = sc.quota > 0 && sc.status === 'active';
+
+      if (isDown && hasQuota) {
+        line.setAttribute('class', 'supply-line switching');
+        line.setAttribute('stroke', '#ef4444');
+      } else if (hasQuota && !isDown) {
+        line.setAttribute('class', 'supply-line active');
+        line.setAttribute('stroke', s.color);
+        line.setAttribute('opacity', Math.max(0.3, sc.quota / 100));
+      } else {
+        line.setAttribute('class', 'supply-line inactive');
+        line.setAttribute('stroke', '#555');
+      }
+      svg.appendChild(line);
+
+      // Quota label on line
+      if (sc.quota > 0) {
+        const label = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+        const mx = (x1 + x2) / 2;
+        const my = (y1 + y2) / 2 - 8;
+        label.setAttribute('x', mx);
+        label.setAttribute('y', my);
+        label.setAttribute('fill', isDown ? '#ef4444' : s.color);
+        label.setAttribute('font-size', '11');
+        label.setAttribute('font-weight', '600');
+        label.setAttribute('text-anchor', 'middle');
+        label.textContent = sc.quota + '%';
+        svg.appendChild(label);
+      }
+    });
+  });
+
+  // Draw supplier quota badges
+  suppliers.forEach(s => {
+    factories.forEach(f => {
+      const key = f.id + '_' + s.id;
+      const sc = sourcing[key];
+      if (!sc) return;
+      const sx2 = (f.x * (w/960));
+      const sy2 = (f.y * (h/520));
+      // Badge near factory
+    });
+  });
+}
+
+function toggleSupplier(id) {
+  supplierDown[id] = !supplierDown[id];
+  const action = supplierDown[id] ? '断供' : '恢复';
+  addLog(supplierDown[id] ? 'error' : 'success',
+    `${suppliers.find(s=>s.id===id).short} ${action}`,
+    `模拟 ${suppliers.find(s=>s.id===id).name} ${action}${supplierDown[id] ? '，系统自动触发配额切换' : ''}`);
+
+  if (supplierDown[id]) {
+    autoSwitch(id);
+  } else {
+    restoreQuotas();
+  }
+  drawNetwork();
+  renderQuotaControls();
+  renderQuotaMatrix();
+}
+
+function autoSwitch(downId) {
+  const downSupplier = suppliers.find(s => s.id === downId);
+  factories.forEach(f => {
+    const downKey = f.id + '_' + downId;
+    const downSc = sourcing[downKey];
+    if (!downSc || downSc.quota === 0) return;
+
+    const freedQuota = downSc.quota;
+    downSc.quota = 0;
+
+    // Distribute to other active suppliers
+    const others = suppliers.filter(s => s.id !== downId)
+      .map(s => ({ id: s.id, key: f.id + '_' + s.id, sc: sourcing[f.id + '_' + s.id] }))
+      .filter(o => o.sc && o.sc.cert === 'certified' && o.sc.status === 'active' && !supplierDown[o.id]);
+
+    if (others.length === 0) {
+      addLog('error', '无可用替代', `${f.name} 的 ${downSupplier.short} 断供，但无其他认证供应商可用！`);
+      return;
+    }
+
+    let remaining = freedQuota;
+    others.forEach((o, i) => {
+      const add = i === others.length - 1 ? remaining : Math.round(freedQuota / others.length);
+      o.sc.quota += add;
+      remaining -= add;
+      addLog('warn', '配额自动切换',
+        `${f.name}: ${downSupplier.short} 配额 ${freedQuota}% → ${suppliers.find(s=>s.id===o.id).short} (+${add}%，切换准备 ${o.sc.switchLT} 天)`);
+    });
+  });
+}
+
+let savedQuotas = null;
+function restoreQuotas() {
+  if (!savedQuotas) return;
+  Object.keys(sourcing).forEach(k => {
+    if (savedQuotas[k] !== undefined) {
+      sourcing[k].quota = savedQuotas[k];
+    }
+  });
+  addLog('info', '配额恢复', '所有配额已恢复到断供前状态');
+}
+
+// Save quotas before any disruption
+function saveQuotaSnapshot() {
+  savedQuotas = {};
+  Object.keys(sourcing).forEach(k => { savedQuotas[k] = sourcing[k].quota; });
+}
+saveQuotaSnapshot();
+
+// ─── Quota Controls ───
+function renderQuotaControls() {
+  const container = document.getElementById('quotaControls');
+  container.innerHTML = '';
+  factories.forEach(f => {
+    const group = document.createElement('div');
+    group.className = 'mb-12';
+    group.innerHTML = `<div style="font-weight:600;margin-bottom:10px;font-size:.9rem">${f.icon} ${f.name}</div>`;
+    suppliers.forEach(s => {
+      const key = f.id + '_' + s.id;
+      const sc = sourcing[key];
+      if (!sc) return;
+      const isDown = supplierDown[s.id];
+      const row = document.createElement('div');
+      row.className = 'control-group mt-12';
+      row.innerHTML = `
+        <div class="control-label">${s.icon} ${s.short} ${sc.vmi ? '<span class="badge badge-blue" style="font-size:.65rem;padding:2px 6px">VMI</span>' : ''} ${sc.cert !== 'certified' ? '<span class="badge badge-yellow" style="font-size:.65rem;padding:2px 6px">未认证</span>' : ''} ${isDown ? '<span class="badge badge-red" style="font-size:.65rem;padding:2px 6px">断供</span>' : ''}</div>
+        <div class="slider-row">
+          <input type="range" min="0" max="100" value="${sc.quota}" ${isDown || sc.cert !== 'certified' ? 'disabled' : ''} data-key="${key}" oninput="updateQuota(this)">
+          <span class="slider-val" id="val_${key}">${sc.quota}%</span>
+        </div>`;
+      group.appendChild(row);
+    });
+    container.appendChild(group);
+  });
+}
+
+function updateQuota(el) {
+  const key = el.dataset.key;
+  const val = parseInt(el.value);
+  sourcing[key].quota = val;
+  document.getElementById('val_' + key).textContent = val + '%';
+
+  // Normalize within factory
+  const plantId = key.split('_')[0];
+  const keys = suppliers.map(s => plantId + '_' + s.id).filter(k => sourcing[k]);
+  const total = keys.reduce((sum, k) => sum + sourcing[k].quota, 0);
+  if (total !== 100 && total > 0) {
+    // Auto-adjust: show warning
+    addLog('warn', '配额不平衡', `${factories.find(f=>f.id===plantId).name} 配额总和 ${total}%（需为 100%）`);
+  }
+
+  drawNetwork();
+  renderQuotaMatrix();
+}
+
+// ─── Event Log ───
+function addLog(type, title, desc) {
+  const now = new Date();
+  const ts = now.toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+  eventLogs.unshift({ type, title, desc, ts });
+  if (eventLogs.length > 50) eventLogs.pop();
+  renderEventLog();
+}
+
+function renderEventLog() {
+  const container = document.getElementById('eventLog');
+  container.innerHTML = eventLogs.slice(0, 15).map(e => `
+    <div class="event-item ${e.type}">
+      <span class="event-icon">${e.type==='error'?'🔴':e.type==='warn'?'🟡':e.type==='success'?'🟢':'🔵'}</span>
+      <div><strong>${e.title}</strong><br><span class="text-dim">${e.desc}</span></div>
+      <span class="event-time">${e.ts}</span>
+    </div>`).join('');
+}
+
+// ─── Scenario Simulation (Tab 2) ───
+const scenarios = [
+  { id: 's1', icon: '🔥', title: '忠旺工厂火灾', desc: '主供应商忠旺铝业华东工厂发生火灾，预计停产 3 个月', impact: [{ label: '影响工厂', val: '上海+武汉', color: 'red' }, { label: '持续时间', val: '3 个月', color: 'red' }, { label: '影响量', val: '12,600件/月', color: 'yellow' }] },
+  { id: 's2', icon: '🚢', title: '欧洲物流中断', desc: '红海危机导致匈牙利工厂海运延期 4 周', impact: [{ label: '影响工厂', val: '匈牙利', color: 'yellow' }, { label: '持续时间', val: '4-6 周', color: 'yellow' }, { label: '影响量', val: '9,000件/月', color: 'yellow' }] },
+  { id: 's3', icon: '📉', title: '诺贝丽斯质量异常', desc: '诺贝丽斯批次 PPM 飙升至 350，需要暂停供货并排查', impact: [{ label: '影响工厂', val: '全部 3 工厂', color: 'red' }, { label: '持续时间', val: '2-4 周', color: 'yellow' }, { label: '影响量', val: '6,200件/月', color: 'yellow' }] },
+  { id: 's4', icon: '🌍', title: '地缘政治制裁', desc: '欧盟对华铝制品加征 25% 关税，忠旺无法供货欧洲', impact: [{ label: '影响工厂', val: '匈牙利', color: 'red' }, { label: '持续时间', val: '长期', color: 'red' }, { label: '影响量', val: '7,200件/月', color: 'red' }] },
+  { id: 's5', icon: '📈', title: '需求暴增 +50%', desc: '新车型爆款，月需求从 27,000 增至 40,500 件', impact: [{ label: '影响工厂', val: '全部', color: 'blue' }, { label: '持续时间', val: '6 个月+', color: 'blue' }, { label: '新增需求', val: '13,500件/月', color: 'blue' }] },
+  { id: 's6', icon: '🏭', title: 'B 点产能扩建完成', desc: '海德鲁匈牙利新工厂投产，产能提升 200%', impact: [{ label: '影响', val: '匈牙利韧性提升', color: 'green' }, { label: '新增产能', val: '+6,000件/月', color: 'green' }, { label: '建议', val: '提升C点配额', color: 'green' }] },
+];
+
+let selectedScenario = null;
+
+function renderScenarios() {
+  const grid = document.getElementById('scenarioGrid');
+  grid.innerHTML = scenarios.map(s => `
+    <div class="scenario-card ${selectedScenario === s.id ? 'selected' : ''}" onclick="runScenario('${s.id}')">
+      <div class="scenario-title">${s.icon} ${s.title}</div>
+      <div class="scenario-desc">${s.desc}</div>
+      <div class="scenario-impact">
+        ${s.impact.map(i => `<span class="badge badge-${i.color}">${i.label}: ${i.val}</span>`).join('')}
+      </div>
+    </div>`).join('');
+}
+
+function runScenario(id) {
+  selectedScenario = id;
+  renderScenarios();
+  const s = scenarios.find(sc => sc.id === id);
+  const result = document.getElementById('simResult');
+  const impact = document.getElementById('impactAssessment');
+
+  // Generate simulation steps
+  let steps = '';
+  if (id === 's1') {
+    steps = simulationSteps([
+      { time: 'T+0', icon: '🔴', text: '忠旺华东工厂火灾报警，系统自动将忠旺状态标记为"不可用"' },
+      { time: 'T+0', icon: '⚡', text: '配额引擎触发紧急规则：上海工厂忠旺 70% → 0%，武汉工厂忠旺 60% → 0%' },
+      { time: 'T+0', icon: '🔄', text: '自动切换：上海→诺贝丽斯 30%→70%，武汉→诺贝丽斯+海德鲁' },
+      { time: 'T+1天', icon: '📧', text: '系统通知采购经理、生产计划、质量部门' },
+      { time: 'T+3天', icon: '📦', text: '诺贝丽斯紧急发货，使用安全库存过渡' },
+      { time: 'T+7天', icon: '✅', text: '新供应稳定，产能恢复至 85%（受诺贝丽斯产能限制）' },
+      { time: 'T+90天', icon: '🏭', text: '忠旺工厂修复完成，逐步恢复配额' },
+    ]);
+    impact.innerHTML = impactTable([
+      { metric: '停线风险', before: '100%（单源时）', after: '0%（有 B 点）', delta: '🟢 -100%' },
+      { metric: '产能影响', before: '全面停产', after: '产能降至 85%', delta: '🟡 -15%' },
+      { metric: '成本增加', before: '¥0', after: '+¥2.8 万/月（诺贝丽斯价差）', delta: '🟡 可控' },
+      { metric: '恢复时间', before: '3 个月（找新供应商）', after: '7 天（B 点切到位）', delta: '🟢 快 12 倍' },
+    ]);
+  } else if (id === 's3') {
+    steps = simulationSteps([
+      { time: 'T+0', icon: '🟡', text: 'QMS 系统检测到诺贝丽斯 PPM > 200，触发黄色预警' },
+      { time: 'T+1天', icon: '🔴', text: 'PPM 持续 > 300，触发质量红线规则' },
+      { time: 'T+1天', icon: '⚡', text: '系统自动暂停诺贝丽斯新订单，全部 3 工厂的诺贝丽斯配额归零' },
+      { time: 'T+1天', icon: '🔄', text: '配额自动重分配：忠旺/海德鲁承接溢出量' },
+      { time: 'T+2天', icon: '🔍', text: '质量团队赴诺贝丽斯现场审核' },
+      { time: 'T+14天', icon: '📋', text: '根因分析完成，纠正措施验证' },
+      { time: 'T+21天', icon: '✅', text: '诺贝丽斯恢复供货（小批量验证后逐步恢复配额）' },
+    ]);
+    impact.innerHTML = impactTable([
+      { metric: '质量风险', before: '350 PPM 流入产线', after: '立即暂停，0 流入', delta: '🟢 质量保障' },
+      { metric: '供应连续性', before: '可能全线停供', after: '忠旺+海德鲁承接', delta: '🟢 不停线' },
+      { metric: '切换速度', before: '2-4 周协调', after: '1 天自动切换', delta: '🟢 快 14 倍' },
+    ]);
+  } else if (id === 's5') {
+    steps = simulationSteps([
+      { time: 'T+0', icon: '📈', text: 'S&OP 会议确认需求 +50%，MRP 产生新增采购需求' },
+      { time: 'T+0', icon: '🧮', text: '配额引擎计算：当前 A/B 点总产能 27,000 → 需求 40,500' },
+      { time: 'T+1天', icon: '📧', text: '系统自动发送产能确认请求给忠旺、诺贝丽斯、海德鲁' },
+      { time: 'T+3天', icon: '📊', text: '忠旺回复：可扩至 12,000(+4,000)；诺贝丽斯：8,000(+2,000)；海德鲁：7,000(+1,000)' },
+      { time: 'T+3天', icon: '🔄', text: '配额自动调整：忠旺 45%→50%，诺贝丽斯 30%→28%，海德鲁 20%→22%' },
+      { time: 'T+7天', icon: '⚡', text: '启动海德鲁匈牙利新线，预期 8 周达产' },
+      { time: 'T+60天', icon: '✅', text: '产能爬坡完成，40,500 件/月需求可满足' },
+    ]);
+    impact.innerHTML = impactTable([
+      { metric: '供应缺口', before: '单源：13,500 件/月缺口', after: '三供应商并行扩产', delta: '🟢 缺口缩短 60%' },
+      { metric: '扩产时间', before: '单源 6 个月', after: '多源并行 2 个月', delta: '🟢 快 3 倍' },
+      { metric: '成本控制', before: '紧急采购溢价 15%', after: '正常扩产溢价 3%', delta: '🟢 节省 ¥54 万/月' },
+    ]);
+  } else {
+    steps = simulationSteps([
+      { time: 'T+0', icon: '⚡', text: `场景触发：${s.title}` },
+      { time: 'T+0', icon: '🔄', text: '配额引擎分析可用供应商能力和约束' },
+      { time: 'T+1天', icon: '📊', text: '计算最优切换方案并发送审批' },
+      { time: 'T+3天', icon: '✅', text: '切换执行，新配额生效' },
+    ]);
+    impact.innerHTML = impactTable([
+      { metric: '韧性表现', before: '未定义', after: 'AB 点机制启动', delta: '🟢 有章可循' },
+    ]);
+  }
+
+  result.innerHTML = `
+    <div style="font-size:.9rem;margin-bottom:12px">模拟过程 — <strong>${s.title}</strong></div>
+    <div class="event-log">${steps}</div>`;
+}
+
+function simulationSteps(steps) {
+  return steps.map(s => `
+    <div class="event-item ${s.icon==='🔴'?'error':s.icon==='🟡'||s.icon==='🔄'?'warn':s.icon==='🟢'||s.icon==='✅'?'success':'info'}">
+      <span class="event-icon">${s.icon}</span>
+      <div><span class="badge badge-blue" style="font-size:.7rem">${s.time}</span> &nbsp;${s.text}</div>
+    </div>`).join('');
+}
+
+function impactTable(rows) {
+  return `<table><thead><tr><th>指标</th><th>无 AB 点</th><th>有 AB 点</th><th>改善</th></tr></thead><tbody>
+    ${rows.map(r => `<tr><td>${r.metric}</td><td>${r.before}</td><td>${r.after}</td><td>${r.delta}</td></tr>`).join('')}
+    </tbody></table>`;
+}
+
+// ─── Resilience Dashboard (Tab 3) ───
+function renderResilienceDashboard() {
+  // KPIs
+  const totalSupplyPoints = Object.values(sourcing).filter(s => s.quota > 0 && s.status === 'active').length;
+  const avgSuppliersPerFactory = (factories.map(f =>
+    suppliers.filter(s => sourcing[f.id+'_'+s.id]?.quota > 0 && sourcing[f.id+'_'+s.id]?.status === 'active').length
+  ).reduce((a,b) => a+b, 0) / factories.length).toFixed(1);
+
+  const singleSourceRisk = factories.filter(f =>
+    suppliers.filter(s => sourcing[f.id+'_'+s.id]?.quota > 50).length > 0
+  ).length;
+
+  const kpis = document.getElementById('resilienceKPIs');
+  kpis.innerHTML = [
+    { label: '活跃供应点', value: totalSupplyPoints, icon: '🔗', change: '', color: 'var(--blue)' },
+    { label: '平均供应商/工厂', value: avgSuppliersPerFactory, icon: '📊', change: '目标 ≥ 2.0', color: 'var(--green)' },
+    { label: '单源风险工厂', value: singleSourceRisk, icon: '⚠️', change: singleSourceRisk > 0 ? '需要关注' : '已消除', color: singleSourceRisk > 0 ? 'var(--yellow)' : 'var(--green)' },
+    { label: 'VMI 覆盖率', value: Math.round(Object.values(sourcing).filter(s => s.vmi && s.quota > 0).length / Object.values(sourcing).filter(s => s.quota > 0).length * 100) + '%', icon: '📦', change: '', color: 'var(--accent)' },
+  ].map(k => `
+    <div class="card" style="text-align:center;padding:20px">
+      <div style="font-size:1.8rem;margin-bottom:4px">${k.icon}</div>
+      <div class="stat-value" style="color:${k.color}">${k.value}</div>
+      <div class="stat-label">${k.label}</div>
+      ${k.change ? `<div class="stat-change ${k.change.includes('需要')?'down':'up'}" style="margin-top:6px">${k.change}</div>` : ''}
+    </div>`).join('');
+
+  // Gauges
+  const gauges = document.getElementById('resilienceGauges');
+  const gaugeData = [
+    { label: '供应多样性', value: 78, color: 'var(--green)', note: '3 工厂平均 2.3 个活跃供应商' },
+    { label: '切换就绪度', value: 65, color: 'var(--yellow)', note: '匈牙利工厂的忠旺未认证，切换能力受限' },
+    { label: '成本韧性', value: 82, color: 'var(--green)', note: 'AB 点价差 < 5%，切换成本可控' },
+    { label: '质量韧性', value: 90, color: 'var(--green)', note: '所有活跃供应商 PPM < 50' },
+    { label: '合规覆盖', value: 55, color: 'var(--red)', note: '匈牙利工厂仅 2 个认证供应商，需扩充' },
+    { label: '需求弹性', value: 70, color: 'var(--yellow)', note: '三供应商总产能 42,000 vs 需求 27,000' },
+  ];
+  gauges.innerHTML = gaugeData.map(g => `
+    <div class="gauge-row">
+      <span class="gauge-label">${g.label}</span>
+      <div class="gauge-bar"><div class="gauge-fill" style="width:${g.value}%;background:${g.color}"></div></div>
+      <span class="gauge-val" style="color:${g.color}">${g.value}</span>
+    </div>
+    <div style="font-size:.75rem;color:var(--text-dim);margin:-8px 0 14px 112px">${g.note}</div>`).join('');
+
+  // Recovery comparison
+  const recovery = document.getElementById('recoveryComparison');
+  recovery.innerHTML = `<table>
+    <thead><tr><th>断供场景</th><th>单源恢复</th><th>AB 点恢复</th><th>提速</th></tr></thead>
+    <tbody>
+      <tr><td>主供应商工厂火灾</td><td>12 周（找新供应商）</td><td>1 周（B 点切换）</td><td><span class="badge badge-green">12x</span></td></tr>
+      <tr><td>质量异常暂停</td><td>4 周（排查+恢复）</td><td>1 天（自动暂停+切换）</td><td><span class="badge badge-green">28x</span></td></tr>
+      <tr><td>物流中断</td><td>6 周（改路线）</td><td>2 周（本地 B 点）</td><td><span class="badge badge-green">3x</span></td></tr>
+      <tr><td>地缘政治制裁</td><td>16 周（新供应商认证）</td><td>3 周（已认证 B 点）</td><td><span class="badge badge-green">5x</span></td></tr>
+      <tr><td>需求暴增 +50%</td><td>24 周（单源扩产）</td><td>8 周（多源并行）</td><td><span class="badge badge-green">3x</span></td></tr>
+    </tbody></table>`;
+
+  // Insights
+  const insights = document.getElementById('resilienceInsights');
+  insights.innerHTML = `
+    <div class="insight">
+      <strong>🎯 核心发现：</strong>匈牙利工厂是当前韧性最薄弱的环节——忠旺未在欧洲认证，实际只有 2 个可用供应商（诺贝丽斯 80% + 海德鲁 20%）。诺贝丽斯占比过高，一旦断供影响巨大。<br><br>
+      <strong>💡 建议行动：</strong><br>
+      1. 加速忠旺在欧洲的认证流程（预计 3 个月），目标配额 40%<br>
+      2. 将海德鲁配额从 20% 提升至 30%，降低诺贝丽斯集中度<br>
+      3. 考虑引入第四个欧洲本地供应商（如 Speira）作为战略备份
+    </div>`;
+}
+
+// ─── Quota Matrix (Tab 4) ───
+function renderQuotaMatrix() {
+  const matrix = document.getElementById('quotaMatrix');
+  const certColors = { certified: 'green', pending: 'yellow', not_certified: 'red' };
+  const certLabels = { certified: '✅ 已认证', pending: '⏳ 认证中', not_certified: '❌ 未认证' };
+
+  matrix.innerHTML = `<table>
+    <thead><tr><th>工厂</th><th>供应商</th><th>配额</th><th>认证状态</th><th>VMI</th><th>最大产能</th><th>切换LT</th><th>状态</th></tr></thead>
+    <tbody>
+    ${factories.map(f => {
+      const rows = suppliers.map(s => {
+        const key = f.id + '_' + s.id;
+        const sc = sourcing[key];
+        const isDown = supplierDown[s.id];
+        return `<tr>
+          <td>${f.icon} ${f.name}</td>
+          <td>${s.icon} ${s.short}</td>
+          <td><strong>${sc.quota}%</strong></td>
+          <td><span class="badge badge-${certColors[sc.cert]}">${certLabels[sc.cert]}</span></td>
+          <td>${sc.vmi ? '<span class="badge badge-blue">VMI</span>' : '—'}</td>
+          <td>${sc.maxCap > 0 ? sc.maxCap.toLocaleString() + '件/月' : '—'}</td>
+          <td>${sc.switchLT} 天</td>
+          <td>${isDown ? '<span class="badge badge-red">断供</span>' : sc.status === 'active' ? '<span class="badge badge-green">正常</span>' : '<span class="badge badge-yellow">待启用</span>'}</td>
+        </tr>`;
+      }).join('');
+      return rows;
+    }).join('')}
+    </tbody></table>`;
+
+  // Business attributes table
+  const bizAttr = document.getElementById('bizAttrTable');
+  bizAttr.innerHTML = `<table>
+    <thead><tr><th>业务属性</th><th>忠旺</th><th>诺贝丽斯</th><th>海德鲁</th><th>系统处理</th></tr></thead>
+    <tbody>
+      <tr><td>供应商类型</td><td>国内</td><td>跨国（加拿大）</td><td>跨国（挪威）</td><td>配额引擎按区域过滤</td></tr>
+      <tr><td>VMI 模式</td><td>上海 VMI</td><td>匈牙利 VMI</td><td>非 VMI</td><td>WMS 按 VMI 标记走不同收货流</td></tr>
+      <tr><td>币种</td><td>CNY</td><td>USD</td><td>EUR</td><td>AP 按供应商币种自动结算</td></tr>
+      <tr><td>认证覆盖</td><td>上海✅ 武汉✅ 匈牙利❌</td><td>上海✅ 武汉✅ 匈牙利✅</td><td>上海❌ 武汉✅ 匈牙利✅</td><td>MRP 按"工厂×供应商"过滤认证</td></tr>
+      <tr><td>碳足迹等级</td><td>B（水电铝）</td><td>A（再生铝）</td><td>A（水电铝）</td><td>欧盟工厂优先 A 级供应商</td></tr>
+      <tr><td>账期</td><td>60 天</td><td>45 天</td><td>60 天</td><td>AP 按合同条款自动匹配</td></tr>
+    </tbody></table>`;
+
+  // Rule engine
+  const rules = document.getElementById('ruleEngine');
+  rules.innerHTML = `<table>
+    <thead><tr><th>规则 ID</th><th>规则名称</th><th>触发条件</th><th>执行动作</th><th>审批</th><th>冷却期</th></tr></thead>
+    <tbody>
+      <tr><td>R001</td><td>OTIF 低降配额</td><td>OTIF < 90% 连续 2 周</td><td>配额 -20%，转给其他供应商</td><td>品类经理</td><td>30 天</td></tr>
+      <tr><td>R002</td><td>质量红线暂停</td><td>PPM > 200 持续 3 天</td><td>暂停新订单，紧急切换</td><td>质量+采购双签</td><td>即时</td></tr>
+      <tr><td>R003</td><td>产能溢出分配</td><td>产能利用率 > 95%</td><td>溢出自动转 B 点</td><td>系统自动</td><td>7 天</td></tr>
+      <tr><td>R004</td><td>认证到期预警</td><td>认证 30 天内到期</td><td>降低配额，提醒续证</td><td>系统提醒</td><td>—</td></tr>
+      <tr><td>R005</td><td>紧急断供切换</td><td>供应商标记"不可用"</td><td>配额归零，100% 切换</td><td>总经理特批</td><td>即时</td></tr>
+      <tr><td>R006</td><td>绩效驱动轮换</td><td>季度综合评分差异 > 15 分</td><td>配额 ±10% 微调</td><td>采购总监</td><td>90 天</td></tr>
+    </tbody></table>`;
+}
+
+// ─── Init ───
+function init() {
+  drawNetwork();
+  renderQuotaControls();
+  renderScenarios();
+  renderQuotaMatrix();
+  addLog('info', '系统初始化', 'AB 点供应模拟器启动，加载 3 工厂 × 3 供应商配额数据');
+  window.addEventListener('resize', () => { drawNetwork(); });
+}
+init();
+</script>
+</body>
+</html>
