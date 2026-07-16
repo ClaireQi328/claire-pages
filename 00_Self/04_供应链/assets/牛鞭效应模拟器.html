@@ -361,43 +361,10 @@ select{width:100%;padding:.35rem .5rem;background:var(--card);color:var(--text);
   </table>
 </div>
 
-<!-- Tier3 Paradox -->
+<!-- Dynamic Insight -->
 <div class="cc" style="border-left:3px solid var(--accent)">
-  <h3>🤔 Tier3 悖论：承担最大风险，却拥有最大话语权</h3>
-  <div class="cd">从模拟结果看，Tier3（原材料/芯片）承受最大的牛鞭波动和持货成本。但现实恰恰相反——他们往往是供应链中最有话语权的一方。</div>
-  <div style="display:grid;grid-template-columns:1fr 1fr;gap:.8rem;margin-top:.6rem">
-    <div style="background:#fef2f2;padding:.7rem .9rem;border-radius:8px">
-      <div style="font-size:.78rem;font-weight:600;color:var(--red);margin-bottom:.3rem">❌ 牛鞭效应模型假设</div>
-      <ul style="font-size:.74rem;color:var(--muted);padding-left:1rem;line-height:1.7">
-        <li>Tier3 是被动的"接单者"</li>
-        <li>下游砍单 → Tier3 被迫承受库存</li>
-        <li>价格由下游主导</li>
-        <li>话语权：OEM > Tier1 > Tier2 > Tier3</li>
-      </ul>
-    </div>
-    <div style="background:#ecfdf5;padding:.7rem .9rem;border-radius:8px">
-      <div style="font-size:.78rem;font-weight:600;color:var(--green);margin-bottom:.3rem">✅ 现实中的 Tier3</div>
-      <ul style="font-size:.74rem;color:var(--muted);padding-left:1rem;line-height:1.7">
-        <li><b>稀缺性垄断</b>：矿产/稀土/晶圆厂/光刻胶——全球仅几家</li>
-        <li><b>产能控制权</b>：台积电/沙特阿美/淡水河谷——他们决定给谁供货</li>
-        <li><b>价格主导权</b>：大宗商品定价权在卖方（铁矿石/锂/钴）</li>
-        <li><b>话语权：Tier3 > Tier1 > OEM</b></li>
-      </ul>
-    </div>
-  </div>
-  <div style="margin-top:.6rem;padding:.6rem .8rem;background:#fffbeb;border-radius:8px">
-    <div style="font-size:.78rem;font-weight:600;color:var(--amber);margin-bottom:.3rem">💡 为什么 Tier3 不怕牛鞭效应？</div>
-    <div style="font-size:.74rem;color:var(--muted);line-height:1.7">
-      <b>1. 价格转嫁</b>：原材料通过大宗商品定价机制（期货/指数/调价公式）把成本波动转嫁给下游。钢材涨30%？→ OEM 自己扛。<br>
-      <b>2. 产能定价</b>：紧缺时（如 2021 缺芯），Tier3 不是"被砍单"，而是"挑客户"——谁给钱多/签 LTA 就给谁产能。<br>
-      <b>3. 长协锁量</b>：台积电/三星通过 LTA 锁定多年产能，把牛鞭效应的波动转移给了没有 LTA 的中小客户。<br>
-      <b>4. 信息优势</b>：Tier3 看到的是全产业链的需求信号，而下游只看到自己的——信息不对称让 Tier3 更容易做正确的产能决策。<br>
-      <b>5. 转换成本极高</b>：换一家晶圆代工厂需要 6-12 个月重新认证，换一家矿石供应商几乎不可能——客户被锁定了。
-    </div>
-  </div>
-  <div style="margin-top:.5rem;font-size:.72rem;color:var(--muted);padding:.5rem .7rem;background:#f9fafb;border-radius:6px">
-    <b>📌 给供应链人的启示</b>：牛鞭效应模型揭示的是"信息流"的放大问题，但现实供应链中还有"权力流"——谁控制稀缺资源，谁就有话语权。Tier3 的策略不是"减少波动"，而是"让别人承担波动"。作为下游采购方，你能做的是：① 签 LTA 锁产能 ② 建立替代供应商 ③ 理解大宗商品定价机制 ④ 与 Tier3 建立战略合作而非纯买卖关系。
-  </div>
+  <h3>🔍 场景洞察</h3>
+  <div id="dyn_insight" style="font-size:.78rem;color:var(--muted);line-height:1.7"></div>
 </div>
 
 </div><!-- /main -->
@@ -425,7 +392,7 @@ function sync(){
     $('#'+k+'_hc_v').textContent=p[k].hc+'%';
   });
   clearTimeout(_debounce);
-  _debounce=setTimeout(run,80);
+  _debounce=setTimeout(()=>{update(sim(P()))},80);
 }
 
 function P(){
@@ -461,7 +428,7 @@ function getDemand(da,pat,wk){
 
 // ===== Sim =====
 function sim(p){
-  const wk=p.wk;
+  const wk=p.wk,base=100;
   const dem=getDemand(p.da,p.pat,wk);
   function node(dn,lt,ss,ov){
     const ord=[],inv=[];let oh=base*2;
@@ -568,6 +535,77 @@ function update(r){
   else if(mx>2)msg+='。📊 显著牛鞭效应。缩短LT + 降低过度反应 + VMI/CPFR 可改善。';
   else msg+='。✅ 牛鞭效应可控。';
   $('#ins').innerHTML=msg;
+
+  // Dynamic insight
+  genInsight(r,sigs,ratios,totalCost);
+}
+
+function genInsight(r,sigs,ratios,totalCost){
+  const p=P();
+  const names=['消费者','零售商','分销商','OEM','Tier1','Tier2','Tier3'];
+  const mx=Math.max(...ratios),mxi=ratios.indexOf(mx);
+  const totalLT=p.r.lt+p.d.lt+p.m.lt+p.t1.lt+p.t2.lt+p.t3.lt;
+  const avgOver=((p.r.or+p.d.or+p.m.or+p.t1.or+p.t2.or+p.t3.or)/6).toFixed(1);
+  const t3pct=(r.cs[5].reduce((a,b)=>a+b,0)/totalCost*100).toFixed(1);
+  const t2pct=(r.cs[4].reduce((a,b)=>a+b,0)/totalCost*100).toFixed(1);
+  const upPct=(parseFloat(t2pct)+parseFloat(t3pct)).toFixed(1);
+
+  let h='';
+
+  // Severity
+  if(mx>5){
+    h+=`<div style="background:#fef2f2;padding:.55rem .8rem;border-radius:8px;margin-bottom:.4rem">`;
+    h+=`<div style="font-weight:600;color:var(--red);font-size:.8rem">🔴 极端牛鞭：${names[mxi]}放大 ${mx.toFixed(1)}x</div>`;
+    h+=`<div style="font-size:.72rem;margin-top:.15rem">LT 合计 ${totalLT} 周，过度反应均值 ${avgOver}x。上游几乎不可能自行消化。</div></div>`;
+  } else if(mx>2){
+    h+=`<div style="background:#fffbeb;padding:.55rem .8rem;border-radius:8px;margin-bottom:.4rem">`;
+    h+=`<div style="font-weight:600;color:var(--amber);font-size:.8rem">⚠️ 显著牛鞭：${names[mxi]}放大 ${mx.toFixed(1)}x</div>`;
+    h+=`<div style="font-size:.72rem;margin-top:.15rem">LT 合计 ${totalLT} 周，过度反应均值 ${avgOver}x。存在优化空间。</div></div>`;
+  } else {
+    h+=`<div style="background:#ecfdf5;padding:.55rem .8rem;border-radius:8px;margin-bottom:.4rem">`;
+    h+=`<div style="font-weight:600;color:var(--green);font-size:.8rem">✅ 可控：最大放大 ${mx.toFixed(1)}x</div>`;
+    h+=`<div style="font-size:.72rem;margin-top:.15rem">LT 合计 ${totalLT} 周，信息传导顺畅。</div></div>`;
+  }
+
+  // Cost
+  h+=`<div style="background:#f9fafb;padding:.45rem .8rem;border-radius:8px;margin-bottom:.4rem">`;
+  h+=`<div style="font-weight:600;font-size:.78rem">💰 成本</div>`;
+  h+=`<div style="font-size:.72rem;margin-top:.15rem">累计 <b>¥${Number(totalCost.toFixed(0)).toLocaleString()}</b>，Tier2+Tier3 占 <b>${upPct}%</b>`;
+  h+=parseFloat(upPct)>40?'——上游库存波动大，持货成本集中。':'——分布均衡。';
+  h+=`</div></div>`;
+
+  // Drivers
+  const isOver=p.r.or>15||p.d.or>15||p.m.or>15||p.t1.or>15;
+  const isLongLT=p.m.lt>6||p.t1.lt>6;
+  const isHighSS=p.r.ss>15||p.d.ss>15||p.m.ss>15;
+  let fac=[];
+  if(isOver) fac.push(`<b>过度反应过高</b>（${avgOver}x）→ 恐慌放大`);
+  if(isLongLT) fac.push(`<b>LT 过长</b>（${totalLT}周）→ 信息延迟`);
+  if(isHighSS) fac.push(`<b>安全库存过高</b> → 方差累加`);
+  if(!fac.length) fac.push('参数合理，牛鞭可控');
+  h+=`<div style="background:#eff6ff;padding:.45rem .8rem;border-radius:8px;margin-bottom:.4rem">`;
+  h+=`<div style="font-weight:600;font-size:.78rem">🔗 驱动因素</div>`;
+  h+=`<div style="font-size:.72rem;margin-top:.15rem">${fac.join('；')}。</div></div>`;
+
+  // Tier3 paradox
+  if(mx>2){
+    h+=`<div style="background:#fffbeb;padding:.45rem .8rem;border-radius:8px;margin-bottom:.4rem">`;
+    h+=`<div style="font-weight:600;font-size:.78rem">🏭 Tier3 悖论</div>`;
+    h+=`<div style="font-size:.72rem;margin-top:.15rem">模拟中 Tier3 波动 ${ratios[6].toFixed(1)}x、成本占 ${t3pct}%——但现实中 Tier3（矿产/芯片）通过 LTA 锁量、大宗商品定价、产能分配权把波动转嫁给下游。采购方应：签 LTA、建替代供应商、理解定价机制、战略合作。</div></div>`;
+  }
+
+  // Recommendations
+  let rec=[];
+  if(isOver) rec.push('① 降低过度反应：引入 VMI/CPFR 信息共享');
+  if(isLongLT) rec.push(`${rec.length+1}. 缩短 LT：本地化 + 柔性制造 + 数字化协同`);
+  if(isHighSS) rec.push(`${rec.length+1}. 优化安全库存：动态调整而非固定倍数`);
+  if(mx>3) rec.push(`${rec.length+1}. 推动 CPFR：全链路共享预测和库存`);
+  if(!rec.length) rec.push('当前配置合理，定期对比基准场景监控偏差');
+  h+=`<div style="background:#f0fdf4;padding:.45rem .8rem;border-radius:8px">`;
+  h+=`<div style="font-weight:600;font-size:.78rem">🎯 优化建议</div>`;
+  h+=`<div style="font-size:.72rem;margin-top:.15rem">${rec.join('<br>')}</div></div>`;
+
+  $('#dyn_insight').innerHTML=h;
 }
 
 // ===== Presets =====
@@ -601,7 +639,7 @@ function preset(n){
   sync();run();
 }
 
-function run(){_cachedDem=null;sync();update(sim(P()))}
+function run(){_cachedDem=null;update(sim(P()))}
 
 // ===== Init =====
 init();sync();run();
