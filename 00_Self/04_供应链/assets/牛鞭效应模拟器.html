@@ -148,8 +148,8 @@ select{width:100%;padding:.35rem .5rem;background:var(--card);color:var(--text);
   <div class="mod-b show">
     <div class="pr"><label>波动幅度</label><span class="v" id="d_amp_v">±20%</span></div>
     <input type="range" id="d_amp" min="0" max="50" value="20" oninput="sync()">
-    <div style="margin-top:.35rem"><select id="d_pat" onchange="sync()"><option value="real">🎯 真实全年需求（季节+促销+波动叠加）</option><option value="random">🎲 纯随机波动</option><option value="step">📈 阶跃变化（第20周 +50%）</option><option value="seasonal">🌊 纯季节性</option><option value="promo">🎯 单次促销脉冲</option><option value="trend">📊 持续增长</option></select></div>
-    <div class="note">💡 推荐选「真实全年需求」体验最接近实际的效果。</div>
+    <div style="margin-top:.35rem"><select id="d_pat" onchange="sync()"><option value="real4y">🎯 真实4年需求（推荐）</option><option value="real">📅 单年需求</option><option value="random">🎲 纯随机</option><option value="seasonal">🌊 纯季节性</option></select></div>
+    <div class="note">💡 推荐「真实4年需求」：含疫情冲击、促销季、供应危机等事件。</div>
   </div>
 </div>
 
@@ -256,8 +256,8 @@ select{width:100%;padding:.35rem .5rem;background:var(--card);color:var(--text);
 <div class="mod">
   <div class="mod-h" onclick="tog(this)"><span class="ico">⚙️</span><div class="info"><div class="t">全局设置</div><div class="d">模拟时长</div></div><span class="arr">▶</span></div>
   <div class="mod-b">
-    <div class="pr"><label>模拟周数</label><span class="v" id="wk_v">52</span></div>
-    <input type="range" id="wk" min="20" max="104" value="52" step="4" oninput="sync()">
+    <div class="pr"><label>模拟周数</label><span class="v" id="wk_v">104</span></div>
+    <input type="range" id="wk" min="26" max="208" value="104" step="4" oninput="sync()">
   </div>
 </div>
 
@@ -406,7 +406,7 @@ function P(){
   return r;
 }
 
-// ===== Demand (cached, only regenerate when demand params change) =====
+// ===== Demand (cached) =====
 let _cachedDem=null,_lastDa=-1,_lastPat='',_lastWk=-1;
 function getDemand(da,pat,wk){
   if(da===_lastDa&&pat===_lastPat&&wk===_lastWk&&_cachedDem)return _cachedDem;
@@ -416,30 +416,60 @@ function getDemand(da,pat,wk){
     const noise=(Math.random()-.5)*2*amp;
     let v;
     switch(pat){
-      case 'real': {
-        // 多因素叠加的真实全年需求
-        // ① 基线 + 缓慢趋势
-        let b=base*(1+t*0.002);
-        // ② 季节性：双峰（Q2旺季+Q4旺季），Q1淡季
-        let season=base*0.25*Math.sin(2*Math.PI*(t-8)/52); // 年周期，第8周低谷
-        // ③ 月度波动（4周周期，模拟月度下单节奏）
-        let monthly=base*0.08*Math.sin(2*Math.PI*t/4);
-        // ④ 促销事件：618（第24周）、双11（第45周）、春节前（第48-50周）
+      case 'real4y': {
+        // ===== 4年多阶段需求 =====
+        // ① 基线：每年+5%增长
+        let b=base*Math.pow(1.05,t/52);
+        // ② 年度季节性（每年重复，Q2旺季+Q4旺季）
+        let season=b*0.25*Math.sin(2*Math.PI*(t%52-8)/52);
+        // ③ 月度小波动
+        let monthly=b*0.06*Math.sin(2*Math.PI*t/4.3);
+        // ④ 每年促销事件
+        const yw=t%52; // 年内周数
         let promo=0;
-        if(t>=23&&t<26) promo=base*0.6;  // 618
-        if(t>=44&&t<47) promo=base*0.8;  // 双11
-        if(t>=48&&t<51) promo=base*0.4;  // 春节备货
-        // ⑤ 随机冲击（偶尔出现的突发事件）
+        if(yw>=22&&yw<25) promo=b*0.5;   // 618
+        if(yw>=43&&yw<46) promo=b*0.7;   // 双11
+        if(yw>=48&&yw<51) promo=b*0.35;  // 春节备货
+        // ⑤ 多阶段事件（跨年）
+        let event=0;
+        // Y1: 正常增长期
+        // Y2 Q1: 疫情冲击（W52-65）
+        if(t>=52&&t<65) event=-base*0.3;
+        // Y2 Q2-Q3: 报复性消费（W65-90）
+        if(t>=65&&t<90) event=base*0.25;
+        // Y2 Q4: 供应危机缺货（W90-104）→ 需求被压制
+        if(t>=90&&t<104) event=-base*0.15;
+        // Y3 Q1-Q2: 恢复期（W104-130）
+        if(t>=104&&t<130) event=base*0.1;
+        // Y3 Q3: 原材料涨价恐慌囤货（W130-145）
+        if(t>=130&&t<145) event=base*0.35;
+        // Y3 Q4-Y4 Q1: 涨价后需求萎缩（W145-170）
+        if(t>=145&&t<170) event=-base*0.2;
+        // Y4: 新产品上市拉动（W170-208）
+        if(t>=170&&t<190) event=base*0.3;
+        if(t>=190) event=base*0.15;
+        // ⑥ 随机微冲击（8%概率）
         let shock=0;
-        if(Math.random()<0.05) shock=base*0.3*(Math.random()>0.5?1:-1);
-        // ⑥ 叠加
+        if(Math.random()<0.08) shock=base*0.15*(Math.random()>0.5?1:-1);
+        // ⑦ 叠加
+        v=b+season+monthly+promo+event+shock+noise;
+        break;
+      }
+      case 'real': {
+        let b=base*(1+t*0.002);
+        let season=base*0.25*Math.sin(2*Math.PI*(t%52-8)/52);
+        let monthly=base*0.06*Math.sin(2*Math.PI*t/4.3);
+        const yw=t%52;
+        let promo=0;
+        if(yw>=22&&yw<25) promo=base*0.5;
+        if(yw>=43&&yw<46) promo=base*0.7;
+        if(yw>=48&&yw<51) promo=base*0.35;
+        let shock=0;
+        if(Math.random()<0.08) shock=base*0.15*(Math.random()>0.5?1:-1);
         v=b+season+monthly+promo+shock+noise;
         break;
       }
-      case 'step':v=t>=20?base*1.5+noise:base+noise;break;
-      case 'seasonal':v=base+base*.3*Math.sin(2*Math.PI*t/26)+noise;break;
-      case 'promo':v=(t>=20&&t<24)?base*2+noise:base+noise;break;
-      case 'trend':v=base*(1+t*.005)+noise;break;
+      case 'seasonal':v=base+base*.3*Math.sin(2*Math.PI*t/52)+noise;break;
       default:v=base+noise;
     }
     d.push(Math.max(0,Math.round(v)));
@@ -511,10 +541,10 @@ function sig(a){const n=a.length,m=a.reduce((s,v)=>s+v,0)/n;return Math.sqrt(a.r
 
 // ===== Charts =====
 let ch1,ch2,ch3,ch4,ch5;
-const copt=(yt)=>({responsive:true,maintainAspectRatio:false,animation:{duration:400},
+const copt=(yt)=>({responsive:true,maintainAspectRatio:false,animation:{duration:300},
   interaction:{mode:'index',intersect:false},
   plugins:{legend:{display:false},tooltip:{backgroundColor:'#fff',titleColor:'#1f2937',bodyColor:'#6b7280',borderColor:'#e5e7eb',borderWidth:1}},
-  scales:{x:{ticks:{color:'#9ca3af',maxTicksLimit:14,font:{size:10}},grid:{color:'#f3f4f6'}},
+  scales:{x:{ticks:{color:'#9ca3af',maxTicksLimit:12,font:{size:9},maxRotation:0},grid:{color:'#f3f4f6'}},
           y:{ticks:{color:'#9ca3af',font:{size:10}},grid:{color:'#f3f4f6'},title:yt?{display:true,text:yt,color:'#9ca3af',font:{size:11}}:{}}}});
 
 function init(){
@@ -541,7 +571,12 @@ function init(){
 function ml(l,d,c,w=2){return{label:l,data:d,borderColor:c,backgroundColor:'transparent',fill:false,tension:.3,pointRadius:0,borderWidth:w}}
 
 function update(r){
-  const L=Array.from({length:r.wk},(_,i)=>'W'+(i+1));
+  const months=['1月','2月','3月','4月','5月','6月','7月','8月','9月','10月','11月','12月'];
+  const L=Array.from({length:r.wk},(_,i)=>{
+    const yr=Math.floor(i/52)+1;
+    const mo=months[i%12];
+    return i%4===0?('Y'+yr+' '+mo):''; // 每4周一个标签
+  });
   const sigs=[sig(r.dem),...r.sts.map(s=>sig(s.ord))];
   const base=sigs[0]||1;
   const ratios=sigs.map(s=>+(s/base).toFixed(2));
@@ -663,22 +698,22 @@ function genInsight(r,sigs,ratios,totalCost){
 
 // ===== Presets =====
 const PS={
-  normal:{da:10,pat:'real',wk:52,
+  normal:{da:10,pat:'real4y',wk:104,
     r:{lt:1,ss:5,or:10,pr:500,hc:25},d:{lt:1,ss:5,or:10,pr:350,hc:20},m:{lt:2,ss:5,or:10,pr:200,hc:18},
     t1:{lt:2,ss:5,or:10,pr:120,hc:15},t2:{lt:2,ss:5,or:10,pr:70,hc:12},t3:{lt:3,ss:5,or:10,pr:30,hc:10}},
-  bullwhip:{da:20,pat:'real',wk:52,
+  bullwhip:{da:20,pat:'real4y',wk:104,
     r:{lt:2,ss:15,or:18,pr:500,hc:25},d:{lt:2,ss:15,or:18,pr:350,hc:20},m:{lt:4,ss:15,or:20,pr:200,hc:18},
     t1:{lt:4,ss:15,or:20,pr:120,hc:15},t2:{lt:4,ss:15,or:22,pr:70,hc:12},t3:{lt:5,ss:15,or:22,pr:30,hc:10}},
-  crisis:{da:30,pat:'step',wk:52,
+  crisis:{da:30,pat:'real4y',wk:104,
     r:{lt:4,ss:25,or:25,pr:500,hc:25},d:{lt:4,ss:25,or:25,pr:350,hc:20},m:{lt:8,ss:25,or:25,pr:200,hc:18},
     t1:{lt:8,ss:25,or:25,pr:120,hc:15},t2:{lt:8,ss:25,or:28,pr:70,hc:12},t3:{lt:10,ss:25,or:28,pr:30,hc:10}},
-  promo:{da:15,pat:'real',wk:52,
+  promo:{da:15,pat:'real4y',wk:104,
     r:{lt:2,ss:10,or:15,pr:500,hc:25},d:{lt:2,ss:10,or:15,pr:350,hc:20},m:{lt:4,ss:10,or:18,pr:200,hc:18},
     t1:{lt:4,ss:10,or:18,pr:120,hc:15},t2:{lt:4,ss:10,or:20,pr:70,hc:12},t3:{lt:5,ss:10,or:20,pr:30,hc:10}},
-  vmi:{da:20,pat:'real',wk:52,
+  vmi:{da:20,pat:'real4y',wk:104,
     r:{lt:1,ss:5,or:10,pr:500,hc:25},d:{lt:1,ss:5,or:10,pr:350,hc:20},m:{lt:2,ss:5,or:10,pr:200,hc:18},
     t1:{lt:2,ss:5,or:10,pr:120,hc:15},t2:{lt:2,ss:5,or:10,pr:70,hc:12},t3:{lt:3,ss:5,or:10,pr:30,hc:10}},
-  cpfr:{da:20,pat:'real',wk:52,
+  cpfr:{da:20,pat:'real4y',wk:104,
     r:{lt:1,ss:3,or:10,pr:500,hc:25},d:{lt:1,ss:3,or:10,pr:350,hc:20},m:{lt:2,ss:3,or:10,pr:200,hc:18},
     t1:{lt:2,ss:3,or:10,pr:120,hc:15},t2:{lt:2,ss:3,or:10,pr:70,hc:12},t3:{lt:2,ss:3,or:10,pr:30,hc:10}},
 };
