@@ -437,8 +437,11 @@ function P(){
   return r;
 }
 
-// ===== Demand =====
-function demand(wk,base,amp,pat){
+// ===== Demand (cached, only regenerate when demand params change) =====
+let _cachedDem=null,_lastDa=-1,_lastPat='',_lastWk=-1;
+function getDemand(da,pat,wk){
+  if(da===_lastDa&&pat===_lastPat&&wk===_lastWk&&_cachedDem)return _cachedDem;
+  const base=100,amp=base*da/100;
   const d=[];
   for(let t=0;t<wk;t++){
     const n=(Math.random()-.5)*2*amp;
@@ -452,13 +455,14 @@ function demand(wk,base,amp,pat){
     }
     d.push(Math.max(0,Math.round(v)));
   }
+  _cachedDem=d;_lastDa=da;_lastPat=pat;_lastWk=wk;
   return d;
 }
 
 // ===== Sim =====
 function sim(p){
-  const base=100,amp=base*p.da/100,wk=p.wk;
-  const dem=demand(wk,base,amp,p.pat);
+  const wk=p.wk;
+  const dem=getDemand(p.da,p.pat,wk);
   function node(dn,lt,ss,ov){
     const ord=[],inv=[];let oh=base*2;
     for(let t=0;t<wk;t++){
@@ -597,7 +601,7 @@ function preset(n){
   sync();run();
 }
 
-function run(){sync();update(sim(P()))}
+function run(){_cachedDem=null;sync();update(sim(P()))}
 
 // ===== Init =====
 init();sync();run();
