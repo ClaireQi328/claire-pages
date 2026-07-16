@@ -1,0 +1,870 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>品类策略管理</title>
+<style>
+  :root{--blue:#1A365D;--orange:#FF7D3B;--green:#16A34A;--purple:#7C3AED;--red:#E64340;--bg:#F0F2F5;--white:#FFFFFF;--dark:#1E293B;--gray:#64748B;--border:#E2E8F0}
+  *{margin:0;padding:0;box-sizing:border-box}
+  body{font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Microsoft YaHei",sans-serif;background:var(--bg);color:var(--dark);font-size:13px;line-height:1.6}
+  .container{max-width:1400px;margin:0 auto;padding:30px 20px}
+  h1{font-size:26px;font-weight:800;color:var(--blue);text-align:center;margin-bottom:6px}
+  .subtitle{text-align:center;color:var(--gray);font-size:14px;margin-bottom:30px}
+  .btn{padding:7px 16px;border-radius:8px;font-size:12px;font-weight:600;border:none;cursor:pointer;transition:all 0.15s}
+  .btn:hover{transform:translateY(-1px)}
+  .btn-primary{background:var(--blue);color:#fff}
+  .btn-outline{background:#fff;color:var(--blue);border:1px solid var(--border)}
+  .btn-orange{background:var(--orange);color:#fff}
+  .btn-green{background:var(--green);color:#fff}
+  .btn-sm{padding:4px 10px;font-size:11px}
+  .filter-input{padding:5px 10px;border:1px solid var(--border);border-radius:6px;font-size:12px;outline:none;min-width:80px}
+  .data-table{width:100%;border-collapse:collapse;font-size:12px}
+  .data-table th{padding:10px 12px;text-align:left;font-weight:700;background:#F8FAFC;border-bottom:2px solid var(--border);color:var(--gray);white-space:nowrap}
+  .data-table td{padding:10px 12px;border-bottom:1px solid #F1F5F9;vertical-align:middle}
+  .data-table tr:hover td{background:#FFFBF5}
+  .badge{display:inline-block;padding:2px 8px;border-radius:4px;font-size:10px;font-weight:700}
+  .badge-green{background:#DCFCE7;color:#166534}
+  .badge-blue{background:#DBEAFE;color:#1E40AF}
+  .badge-orange{background:#FFF7ED;color:#C2410C}
+  .badge-gray{background:#F1F5F9;color:#64748B}
+  .badge-purple{background:#F3E8FF;color:#6B21A8}
+  .badge-red{background:#FEE2E2;color:#991B1B}
+  .link{color:var(--blue);font-weight:500;cursor:pointer}
+  .link:hover{text-decoration:underline}
+  .note{font-size:12px;color:var(--gray);padding:12px;background:#F8FAFC;border-radius:8px;margin:12px 0}
+  .supplier-tag{display:inline-block;padding:3px 10px;border-radius:4px;font-size:11px;font-weight:600;cursor:pointer;transition:all 0.15s;margin:2px}
+  .supplier-tag:hover{opacity:0.8;transform:scale(1.05)}
+  .supplier-tag[data-status="approved"]{background:#DCFCE7;color:#166534}
+  .supplier-tag[data-status="pool"]{background:#DBEAFE;color:#1E40AF}
+  .supplier-tag[data-status="pending"]{background:#FEF3C7;color:#92400E}
+  .supplier-tag[data-status="rejected"]{background:#FEE2E2;color:#991B1B}
+  .vpps-item{background:#EFF6FF;border:1px solid #BFDBFE;border-radius:6px;padding:8px 12px;margin:4px 0;display:flex;align-items:center;justify-content:space-between}
+  .vpps-code{font-weight:700;color:var(--blue);font-size:12px}
+  .vpps-name{font-size:11px;color:var(--gray);margin-left:8px}
+  .vpps-buyer{font-size:11px}
+  .tree-toggle{cursor:pointer;display:flex;align-items:center;gap:6px;font-weight:700}
+  .tree-toggle .arrow{display:inline-block;transition:transform 0.2s;font-size:10px;color:#CBD5E1}
+  .tree-toggle .arrow.open{transform:rotate(90deg)}
+  .vpps-list{display:none;margin-top:8px;padding-left:10px}
+  .vpps-list.show{display:block}
+  .supplier-tooltip{position:fixed;width:360px;background:#fff;border:1px solid var(--border);border-radius:12px;box-shadow:0 8px 30px rgba(0,0,0,0.15);z-index:1000;padding:20px;display:none;font-size:12px}
+  .supplier-tooltip .tooltip-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;padding-bottom:12px;border-bottom:1px solid var(--border)}
+  .supplier-tooltip .tooltip-header strong{font-size:16px;color:var(--dark)}
+  .supplier-tooltip .tooltip-section{margin-bottom:16px}
+  .supplier-tooltip .tooltip-section:last-child{margin-bottom:0}
+  .supplier-tooltip .section-title{font-size:12px;font-weight:700;color:var(--blue);margin-bottom:8px}
+  .supplier-tooltip .review-content{font-size:11px;color:var(--dark);line-height:1.8;background:#F8FAFC;padding:10px 12px;border-radius:8px}
+  .supplier-tooltip .review-content div{margin-bottom:2px}
+  .supplier-tooltip .stars{color:#F59E0B;letter-spacing:2px}
+  .modal{position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.5);z-index:3000;display:none;justify-content:center;align-items:flex-start;padding:40px;overflow-y:auto}
+  .modal.show{display:flex}
+  .modal-content{background:#fff;border-radius:16px;width:100%;max-width:800px;box-shadow:0 20px 60px rgba(0,0,0,0.2)}
+  .modal-lg{max-width:1000px}
+  .modal-header{padding:20px 24px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between}
+  .modal-header h2{font-size:18px;font-weight:700;color:var(--blue);margin:0}
+  .modal-body{padding:24px}
+  .form-group{margin-bottom:16px}
+  .form-group label{display:block;font-size:12px;font-weight:600;color:var(--gray);margin-bottom:6px}
+  .form-group input,.form-group select,.form-group textarea{width:100%;padding:8px 12px;border:1px solid var(--border);border-radius:6px;font-size:12px;outline:none}
+  .form-group textarea{height:80px;resize:vertical}
+  .modal-footer{padding:16px 24px;border-top:1px solid var(--border);display:flex;justify-content:flex-end;gap:12px;background:#F8FAFC;border-radius:0 0 16px 16px}
+  .tabs{display:flex;border-bottom:2px solid var(--border);margin-bottom:0}
+  .tab{padding:12px 24px;font-size:14px;font-weight:600;color:var(--gray);cursor:pointer;border-bottom:2px solid transparent;margin-bottom:-2px;transition:all 0.2s;display:flex;align-items:center;gap:8px}
+  .tab:hover{color:var(--dark)}
+  .tab.active{color:var(--blue);border-bottom-color:var(--blue);background:#fff}
+  .tab .tab-badge{background:var(--red);color:#fff;border-radius:10px;padding:2px 8px;font-size:10px;font-weight:700}
+  .tab-content{display:none}
+  .tab-content.active{display:block}
+  .detail-section{margin-bottom:20px}
+  .detail-section h3{font-size:14px;font-weight:700;color:var(--dark);margin-bottom:12px;display:flex;align-items:center;gap:8px}
+  .detail-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}
+  .detail-item{background:#F8FAFC;padding:10px 14px;border-radius:8px;border:1px solid #E2E8F0}
+  .detail-item label{display:block;font-size:11px;color:var(--gray);font-weight:600;margin-bottom:4px}
+  .detail-item span{font-size:13px;color:var(--dark);font-weight:600}
+  .vpps-flat{display:grid;grid-template-columns:repeat(2,1fr);gap:10px;margin-top:12px}
+  .vpps-card{background:#EFF6FF;border:1px solid #BFDBFE;border-radius:8px;padding:12px}
+  .vpps-card .vpps-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:6px}
+  .vpps-card .vpps-info{font-size:11px;color:var(--gray)}
+</style>
+</head>
+<body>
+<div class="container">
+  <h1>品类策略管理</h1>
+  <p class="subtitle">以品类为维度，管理供应商、VPPS编码、品类策略文档</p>
+
+  <!-- 页签切换 -->
+  <div style="background:#fff;border-radius:12px;box-shadow:0 2px 12px rgba(0,0,0,0.04);overflow:hidden">
+    <div class="tabs">
+      <div class="tab active" onclick="switchTab('category')">📋 品类明细表</div>
+      <div class="tab" onclick="switchTab('bindVpps')">🔗 待绑定VPPS <span class="tab-badge">3</span></div>
+    </div>
+
+    <!-- 页签1：品类明细表 -->
+    <div class="tab-content active" id="tab-category">
+      <div style="padding:20px">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;flex-wrap:wrap;gap:12px">
+          <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center">
+            <div style="display:flex;align-items:center;gap:6px">
+              <label style="font-size:12px;color:var(--gray);font-weight:600">品类</label>
+              <select class="filter-input" id="filterCategory" onchange="filterTable()">
+                <option value="">全部</option><option value="车身">车身</option><option value="底盘">底盘</option><option value="电子架构">电子架构</option><option value="电池">电池</option><option value="内饰">内饰</option>
+              </select>
+            </div>
+            <div style="display:flex;align-items:center;gap:6px">
+              <label style="font-size:12px;color:var(--gray);font-weight:600">采购专家</label>
+              <input class="filter-input" id="filterExpert" placeholder="请输入" style="width:100px">
+            </div>
+            <div style="display:flex;align-items:center;gap:6px">
+              <label style="font-size:12px;color:var(--gray);font-weight:600">供应商</label>
+              <input class="filter-input" id="filterSupplier" placeholder="供应商名称" style="width:120px">
+            </div>
+            <button class="btn btn-primary btn-sm" onclick="filterTable()">查询</button>
+            <button class="btn btn-outline btn-sm" onclick="resetFilter()">重置</button>
+          </div>
+          <div style="display:flex;gap:8px">
+            <button class="btn btn-outline" onclick="alert('导出功能开发中')">导出</button>
+            <button class="btn btn-outline" onclick="showAddSupplier()">+ 新增供应商</button>
+            <button class="btn btn-primary" onclick="showBatchTransfer()">批量转派采购员</button>
+            <button class="btn btn-orange" onclick="alert('新增品类功能开发中')">+ 新增品类</button>
+          </div>
+        </div>
+
+        <table class="data-table" id="mainTable">
+          <thead>
+            <tr>
+              <th style="width:120px">品类</th>
+              <th style="width:80px">采购专家</th>
+              <th style="width:180px">VPPS 编码（采购员）</th>
+              <th>已定点供应商</th>
+              <th>入池供应商</th>
+              <th>审核中</th>
+              <th>审核不通过</th>
+              <th style="width:70px">策略文档</th>
+              <th style="width:110px">关联项目</th>
+              <th style="width:110px">操作</th>
+            </tr>
+          </thead>
+          <tbody id="tableBody">
+            <!-- 车身 -->
+            <tr data-category="车身" data-suppliers="湖北中饭,上海汇众,宝钢,首钢,供应商X,供应商Y">
+              <td><div class="tree-toggle" onclick="toggleVpps('cat1')"><span class="arrow" id="arrow-cat1">▶</span> 车身</div></td>
+              <td><span class="badge badge-blue">张三</span></td>
+              <td>
+                <div id="cat1" class="vpps-list">
+                  <div class="vpps-item"><div><span class="vpps-code">VPPS-001</span><span class="vpps-name">白车身总成</span></div><span class="badge badge-green">张三</span></div>
+                  <div class="vpps-item"><div><span class="vpps-code">VPPS-005</span><span class="vpps-name">车门总成</span></div><span class="badge badge-green">张三</span></div>
+                  <div class="vpps-item"><div><span class="vpps-code">VPPS-006</span><span class="vpps-name">翼子板</span></div><span class="badge badge-blue">赵六</span></div>
+                </div>
+                <div style="color:var(--gray);font-size:11px" id="cat1-hint">3 个VPPS（点击展开）</div>
+              </td>
+              <td>
+                <span class="supplier-tag" data-id="SUP-001" data-status="approved" onmouseenter="showTooltip(this)" onmouseleave="hideTooltip()">湖北中饭</span>
+                <span class="supplier-tag" data-id="SUP-002" data-status="approved" onmouseenter="showTooltip(this)" onmouseleave="hideTooltip()">上海汇众</span>
+              </td>
+              <td>
+                <span class="supplier-tag" data-id="SUP-003" data-status="pool" onmouseenter="showTooltip(this)" onmouseleave="hideTooltip()">宝钢</span>
+                <span class="supplier-tag" data-id="SUP-004" data-status="pool" onmouseenter="showTooltip(this)" onmouseleave="hideTooltip()">首钢</span>
+                <span style="font-size:10px;color:var(--gray)">+2</span>
+              </td>
+              <td><span class="supplier-tag" data-id="SUP-005" data-status="pending" onmouseenter="showTooltip(this)" onmouseleave="hideTooltip()">供应商X</span></td>
+              <td><span class="supplier-tag" data-id="SUP-006" data-status="rejected" onmouseenter="showTooltip(this)" onmouseleave="hideTooltip()">供应商Y</span></td>
+              <td><span class="badge badge-green">已归档</span></td>
+              <td>Mann(8042), MX11(8041)</td>
+              <td><span class="link" onclick="showDetail('车身')">详情</span> · <span class="link" style="color:var(--green)" onclick="alert('生成OnePage功能开发中')">生成OnePage</span></td>
+            </tr>
+            <!-- 底盘 -->
+            <tr data-category="底盘" data-suppliers="采埃孚,博世,万向">
+              <td><div class="tree-toggle" onclick="toggleVpps('cat2')"><span class="arrow" id="arrow-cat2">▶</span> 底盘</div></td>
+              <td><span class="badge badge-blue">李四</span></td>
+              <td>
+                <div id="cat2" class="vpps-list">
+                  <div class="vpps-item"><div><span class="vpps-code">VPPS-002</span><span class="vpps-name">前悬架总成</span></div><span class="badge badge-green">李四</span></div>
+                  <div class="vpps-item"><div><span class="vpps-code">VPPS-007</span><span class="vpps-name">后悬架总成</span></div><span class="badge badge-green">李四</span></div>
+                  <div class="vpps-item"><div><span class="vpps-code">VPPS-008</span><span class="vpps-name">制动系统</span></div><span class="badge badge-green">李四</span></div>
+                </div>
+                <div style="color:var(--gray);font-size:11px" id="cat2-hint">3 个VPPS（点击展开）</div>
+              </td>
+              <td>
+                <span class="supplier-tag" data-id="SUP-007" data-status="approved" onmouseenter="showTooltip(this)" onmouseleave="hideTooltip()">采埃孚</span>
+                <span class="supplier-tag" data-id="SUP-008" data-status="approved" onmouseenter="showTooltip(this)" onmouseleave="hideTooltip()">博世</span>
+              </td>
+              <td><span class="supplier-tag" data-id="SUP-009" data-status="pool" onmouseenter="showTooltip(this)" onmouseleave="hideTooltip()">万向</span></td>
+              <td>-</td>
+              <td>-</td>
+              <td><span class="badge badge-green">已归档</span></td>
+              <td>Mann(8042)</td>
+              <td><span class="link" onclick="showDetail('底盘')">详情</span> · <span class="link" style="color:var(--green)" onclick="alert('生成OnePage功能开发中')">生成OnePage</span></td>
+            </tr>
+            <!-- 电子架构 -->
+            <tr data-category="电子架构" data-suppliers="德赛西威,华为,均联智行">
+              <td><div class="tree-toggle" onclick="toggleVpps('cat3')"><span class="arrow" id="arrow-cat3">▶</span> 电子架构</div></td>
+              <td><span class="badge badge-blue">王五</span></td>
+              <td>
+                <div id="cat3" class="vpps-list">
+                  <div class="vpps-item"><div><span class="vpps-code">VPPS-003</span><span class="vpps-name">域控制器</span></div><span class="badge badge-green">王五</span></div>
+                  <div class="vpps-item"><div><span class="vpps-code">VPPS-009</span><span class="vpps-name">线束总成</span></div><span class="badge badge-blue">钱七</span></div>
+                </div>
+                <div style="color:var(--gray);font-size:11px" id="cat3-hint">2 个VPPS（点击展开）</div>
+              </td>
+              <td><span class="supplier-tag" data-id="SUP-010" data-status="approved" onmouseenter="showTooltip(this)" onmouseleave="hideTooltip()">德赛西威</span></td>
+              <td>
+                <span class="supplier-tag" data-id="SUP-011" data-status="pool" onmouseenter="showTooltip(this)" onmouseleave="hideTooltip()">华为</span>
+                <span class="supplier-tag" data-id="SUP-012" data-status="pool" onmouseenter="showTooltip(this)" onmouseleave="hideTooltip()">均联智行</span>
+                <span style="font-size:10px;color:var(--gray)">+3</span>
+              </td>
+              <td>-</td>
+              <td>-</td>
+              <td><span class="badge badge-orange">待归档</span></td>
+              <td>Mann(8042), MX11(8041)</td>
+              <td><span class="link" onclick="showDetail('电子架构')">详情</span> · <span class="link" style="color:var(--green)" onclick="alert('生成OnePage功能开发中')">生成OnePage</span></td>
+            </tr>
+            <!-- 电池 -->
+            <tr data-category="电池" data-suppliers="宁德时代,比亚迪弗迪,中创新航" style="background:#ECFDF5">
+              <td><span style="font-weight:700">电池</span> <span class="badge badge-purple">新增</span></td>
+              <td><span class="badge badge-blue">孙八</span></td>
+              <td><div style="padding:4px 0"><span style="color:var(--gray);font-size:11px">待绑定 VPPS</span> <span class="link" style="font-size:11px;color:var(--orange)" onclick="switchTab('bindVpps')">去绑定</span></div></td>
+              <td><span class="supplier-tag" data-id="SUP-013" data-status="approved" onmouseenter="showTooltip(this)" onmouseleave="hideTooltip()">宁德时代</span></td>
+              <td>
+                <span class="supplier-tag" data-id="SUP-014" data-status="pool" onmouseenter="showTooltip(this)" onmouseleave="hideTooltip()">比亚迪弗迪</span>
+                <span class="supplier-tag" data-id="SUP-015" data-status="pool" onmouseenter="showTooltip(this)" onmouseleave="hideTooltip()">中创新航</span>
+              </td>
+              <td>-</td>
+              <td>-</td>
+              <td><span class="badge badge-gray">未创建</span></td>
+              <td>MX11(8041)</td>
+              <td><span class="link" onclick="showDetail('电池')">详情</span> · <span class="link" style="color:var(--green)" onclick="alert('生成OnePage功能开发中')">生成OnePage</span></td>
+            </tr>
+            <!-- 内饰 -->
+            <tr data-category="内饰" data-suppliers="延锋,安道拓,李尔,佛吉亚,丰田纺织">
+              <td><div class="tree-toggle" onclick="toggleVpps('cat5')"><span class="arrow" id="arrow-cat5">▶</span> 内饰</div></td>
+              <td><span class="badge badge-blue">周九</span></td>
+              <td>
+                <div id="cat5" class="vpps-list">
+                  <div class="vpps-item"><div><span class="vpps-code">VPPS-004</span><span class="vpps-name">仪表板总成</span></div><span class="badge badge-green">周九</span></div>
+                  <div class="vpps-item"><div><span class="vpps-code">VPPS-010</span><span class="vpps-name">座椅总成</span></div><span class="badge badge-green">周九</span></div>
+                  <div class="vpps-item"><div><span class="vpps-code">VPPS-011</span><span class="vpps-name">门板内饰</span></div><span class="badge badge-blue">吴十</span></div>
+                  <div class="vpps-item"><div><span class="vpps-code">VPPS-012</span><span class="vpps-name">顶棚总成</span></div><span class="badge badge-blue">吴十</span></div>
+                </div>
+                <div style="color:var(--gray);font-size:11px" id="cat5-hint">4 个VPPS（点击展开）</div>
+              </td>
+              <td>
+                <span class="supplier-tag" data-id="SUP-016" data-status="approved" onmouseenter="showTooltip(this)" onmouseleave="hideTooltip()">延锋</span>
+                <span class="supplier-tag" data-id="SUP-017" data-status="approved" onmouseenter="showTooltip(this)" onmouseleave="hideTooltip()">安道拓</span>
+              </td>
+              <td>
+                <span class="supplier-tag" data-id="SUP-018" data-status="pool" onmouseenter="showTooltip(this)" onmouseleave="hideTooltip()">李尔</span>
+                <span class="supplier-tag" data-id="SUP-019" data-status="pool" onmouseenter="showTooltip(this)" onmouseleave="hideTooltip()">佛吉亚</span>
+                <span class="supplier-tag" data-id="SUP-020" data-status="pool" onmouseenter="showTooltip(this)" onmouseleave="hideTooltip()">丰田纺织</span>
+              </td>
+              <td>-</td>
+              <td>-</td>
+              <td><span class="badge badge-green">已归档</span></td>
+              <td>Mann(8042), MX11(8041)</td>
+              <td><span class="link" onclick="showDetail('内饰')">详情</span> · <span class="link" style="color:var(--green)" onclick="alert('生成OnePage功能开发中')">生成OnePage</span></td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- 页签2：待绑定VPPS -->
+    <div class="tab-content" id="tab-bindVpps">
+      <div style="padding:20px">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px">
+          <div>
+            <h3 style="font-size:16px;font-weight:700;color:var(--dark);margin-bottom:4px">待绑定VPPS列表</h3>
+            <div style="font-size:12px;color:var(--gray)">以下VPPS已从上游系统导入，请为每个VPPS指定绑定品类和采购专家</div>
+          </div>
+          <button class="btn btn-orange" onclick="submitBindVpps()">确认绑定（3条）</button>
+        </div>
+        <div style="background:#FFF7ED;border:1px solid #FDBA74;border-radius:8px;padding:12px;margin-bottom:20px;font-size:12px;color:#C2410C">
+          ⚠️ 当前有 <strong>3</strong> 个VPPS待绑定品类，请尽快完成绑定操作。
+        </div>
+        <table class="data-table" style="font-size:12px">
+          <thead>
+            <tr>
+              <th style="width:40px">序号</th>
+              <th style="width:120px">VPPS编码</th>
+              <th style="width:140px">VPPS名称</th>
+              <th style="width:100px">结构简码</th>
+              <th style="width:80px">来源项目</th>
+              <th style="width:140px">绑定品类 <span style="color:var(--red)">*</span></th>
+              <th style="width:140px">指定采购专家 <span style="color:var(--red)">*</span></th>
+              <th>备注</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td style="text-align:center">1</td>
+              <td><span style="font-weight:600;color:var(--blue)">VPPS-013</span></td>
+              <td>电池包总成</td>
+              <td><span style="color:var(--gray)">BATTERY-PK</span></td>
+              <td>MX11(8041)</td>
+              <td><select class="filter-input" style="width:100%;border-color:var(--orange)" id="bindCategory1"><option value="">请选择</option><option value="车身">车身</option><option value="底盘">底盘</option><option value="电子架构">电子架构</option><option value="电池" selected>电池</option><option value="内饰">内饰</option></select></td>
+              <td><select class="filter-input" style="width:100%;border-color:var(--orange)" id="bindExpert1"><option value="">请选择</option><option value="张三">张三（车身）</option><option value="李四">李四（底盘）</option><option value="王五">王五（电子架构）</option><option value="孙八" selected>孙八（电池）</option><option value="周九">周九（内饰）</option></select></td>
+              <td><input type="text" placeholder="选填" style="border:1px solid var(--border);border-radius:4px;padding:6px 8px;font-size:12px;width:100%"></td>
+            </tr>
+            <tr>
+              <td style="text-align:center">2</td>
+              <td><span style="font-weight:600;color:var(--blue)">VPPS-014</span></td>
+              <td>电机总成</td>
+              <td><span style="color:var(--gray)">MOTOR-01</span></td>
+              <td>MX11(8041)</td>
+              <td><select class="filter-input" style="width:100%;border-color:var(--orange)" id="bindCategory2"><option value="">请选择</option><option value="车身">车身</option><option value="底盘">底盘</option><option value="电子架构">电子架构</option><option value="电池" selected>电池</option><option value="内饰">内饰</option></select></td>
+              <td><select class="filter-input" style="width:100%;border-color:var(--orange)" id="bindExpert2"><option value="">请选择</option><option value="张三">张三（车身）</option><option value="李四">李四（底盘）</option><option value="王五">王五（电子架构）</option><option value="孙八" selected>孙八（电池）</option><option value="周九">周九（内饰）</option></select></td>
+              <td><input type="text" placeholder="选填" style="border:1px solid var(--border);border-radius:4px;padding:6px 8px;font-size:12px;width:100%"></td>
+            </tr>
+            <tr>
+              <td style="text-align:center">3</td>
+              <td><span style="font-weight:600;color:var(--blue)">VPPS-015</span></td>
+              <td>电控总成</td>
+              <td><span style="color:var(--gray)">ECONT-01</span></td>
+              <td>MX11(8041)</td>
+              <td><select class="filter-input" style="width:100%;border-color:var(--orange)" id="bindCategory3"><option value="">请选择</option><option value="车身">车身</option><option value="底盘">底盘</option><option value="电子架构" selected>电子架构</option><option value="电池">电池</option><option value="内饰">内饰</option></select></td>
+              <td><select class="filter-input" style="width:100%;border-color:var(--orange)" id="bindExpert3"><option value="">请选择</option><option value="张三">张三（车身）</option><option value="李四">李四（底盘）</option><option value="王五" selected>王五（电子架构）</option><option value="孙八">孙八（电池）</option><option value="周九">周九（内饰）</option></select></td>
+              <td><input type="text" placeholder="选填" style="border:1px solid var(--border);border-radius:4px;padding:6px 8px;font-size:12px;width:100%"></td>
+            </tr>
+          </tbody>
+        </table>
+        <div class="note" style="margin-top:16px">
+          💡 VPPS编码、名称、结构简码由上游系统自动带出，无需手动填写。<br>
+          💡 绑定品类和采购专家为必填项，请根据业务归属正确指定。
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- 供应商浮窗 -->
+<div class="supplier-tooltip" id="supplierTooltip">
+  <div class="tooltip-header"><strong id="tipName">-</strong><span class="badge" id="tipStatus">-</span></div>
+  <div class="tooltip-section"><div class="section-title">📋 基本信息</div><div class="review-content"><div>供应商编码：<span id="tipCode">-</span></div><div>入池时间：<span id="tipPoolDate">-</span></div><div>定点时间：<span id="tipApprovedDate">-</span></div></div></div>
+  <div class="tooltip-section"><div class="section-title">🔬 研发评审意见</div><div class="review-content"><div>评审日期：<span id="tipRdDate">-</span></div><div>评审结论：<span id="tipRdConclusion">-</span></div><div>技术能力：<span id="tipRdScore">-</span></div><div>评审备注：<span id="tipRdComment">-</span></div></div></div>
+  <div class="tooltip-section"><div class="section-title">🔍 质量评审意见</div><div class="review-content"><div>评审日期：<span id="tipQaDate">-</span></div><div>评审结论：<span id="tipQaConclusion">-</span></div><div>质量体系：<span id="tipQaSystem">-</span></div><div>评审备注：<span id="tipQaComment">-</span></div></div></div>
+  <div class="tooltip-section" id="tipApprovedSection" style="display:none"><div class="section-title">📊 定点信息</div><div class="review-content"><div>定点项目：<span id="tipProject">-</span></div><div>定点零件：<span id="tipParts">-</span></div></div></div>
+</div>
+
+<!-- 详情弹窗 -->
+<div class="modal" id="detailModal">
+  <div class="modal-content modal-lg">
+    <div class="modal-header">
+      <h2 id="detailTitle">品类详情</h2>
+      <div style="display:flex;gap:8px">
+        <button class="btn btn-primary btn-sm" onclick="alert('编辑功能开发中')">编辑</button>
+        <button class="btn btn-outline btn-sm" onclick="alert('生成OnePage功能开发中')">生成OnePage</button>
+        <button class="btn btn-outline btn-sm" onclick="closeDetail()">关闭</button>
+      </div>
+    </div>
+    <div class="modal-body" id="detailBody">
+      <!-- 动态填充 -->
+    </div>
+  </div>
+</div>
+
+<!-- 新增供应商弹窗 -->
+<div class="modal" id="addSupplierModal">
+  <div class="modal-content">
+    <div class="modal-header"><h2>➕ 新增供应商申请</h2><button class="btn btn-outline btn-sm" onclick="closeAddSupplier()">✕</button></div>
+    <div class="modal-body">
+      <div class="form-group"><label>供应商名称 <span style="color:var(--red)">*</span></label><input type="text" id="supplierName" placeholder="请输入供应商名称"></div>
+      <div class="form-group"><label>供应商编码 <span style="color:var(--red)">*</span></label><input type="text" id="supplierCode" placeholder="请输入供应商编码"></div>
+      <div class="form-group"><label>所属品类 <span style="color:var(--red)">*</span></label><select id="supplierCategory"><option value="">请选择品类</option><option value="车身">车身</option><option value="底盘">底盘</option><option value="电子架构">电子架构</option><option value="电池">电池</option><option value="内饰">内饰</option></select></div>
+      <div class="form-group"><label>申请理由 <span style="color:var(--red)">*</span></label><textarea id="supplierReason" placeholder="请输入申请理由"></textarea></div>
+      <div class="note">⚠️ 提交后将进入铁三角审批流程（采购专家 + 研发工程师 + 质量工程师）</div>
+    </div>
+    <div class="modal-footer"><button class="btn btn-outline" onclick="closeAddSupplier()">取消</button><button class="btn btn-orange" onclick="submitSupplier()">提交申请</button></div>
+  </div>
+</div>
+
+<!-- 单个/批量转派弹窗 -->
+<div class="modal" id="singleTransferModal">
+  <div class="modal-content">
+    <div class="modal-header"><h2>🔄 转派采购员</h2><button class="btn btn-outline btn-sm" onclick="closeSingleTransfer()">✕</button></div>
+    <div class="modal-body">
+      <div id="transferVppsInfo"></div>
+      <div class="form-group"><label>新采购员 <span style="color:var(--red)">*</span></label><select id="transferNewBuyer"><option value="">请选择</option><option value="张三">张三</option><option value="李四">李四</option><option value="王五">王五</option><option value="孙八">孙八</option><option value="周九">周九</option><option value="赵六">赵六</option><option value="钱七">钱七</option><option value="吴十">吴十</option></select></div>
+      <div class="form-group"><label>转派原因 <span style="color:var(--red)">*</span></label><textarea id="transferReason" placeholder="请输入转派原因"></textarea></div>
+      <div class="note">💡 转派后，该VPPS关联的任务将自动分配给新采购员。</div>
+    </div>
+    <div class="modal-footer"><button class="btn btn-outline" onclick="closeSingleTransfer()">取消</button><button class="btn btn-primary" onclick="submitSingleTransfer()">确认转派</button></div>
+  </div>
+</div>
+
+<!-- 批量转派弹窗（从品类明细表进入） -->
+<div class="modal" id="batchTransferModal">
+  <div class="modal-content">
+    <div class="modal-header"><h2>🔄 批量转派采购员</h2><button class="btn btn-outline btn-sm" onclick="closeBatchTransfer()">✕</button></div>
+    <div class="modal-body">
+      <div class="form-group"><label>选择品类 <span style="color:var(--red)">*</span></label><select id="transferCategory" onchange="loadCategoryVpps()"><option value="">请选择品类</option><option value="车身">车身</option><option value="底盘">底盘</option><option value="电子架构">电子架构</option><option value="电池">电池</option><option value="内饰">内饰</option></select></div>
+      <div id="batchVppsList" style="margin-bottom:16px;display:none">
+        <label style="font-size:12px;font-weight:600;color:var(--gray);margin-bottom:8px;display:block">选择VPPS <span style="color:var(--red)">*</span></label>
+        <div style="background:#F8FAFC;border-radius:8px;padding:12px;max-height:200px;overflow-y:auto" id="batchVppsCheckboxList"></div>
+      </div>
+      <div class="form-group"><label>新采购员 <span style="color:var(--red)">*</span></label><select id="batchNewBuyer"><option value="">请选择</option><option value="张三">张三</option><option value="李四">李四</option><option value="王五">王五</option><option value="孙八">孙八</option><option value="周九">周九</option><option value="赵六">赵六</option><option value="钱七">钱七</option><option value="吴十">吴十</option></select></div>
+      <div class="form-group"><label>转派原因 <span style="color:var(--red)">*</span></label><textarea id="batchTransferReason" placeholder="请输入转派原因"></textarea></div>
+      <div class="note">💡 请先选择品类，然后勾选需要转派的VPPS，转派后关联任务将自动分配给新采购员。</div>
+    </div>
+    <div class="modal-footer"><button class="btn btn-outline" onclick="closeBatchTransfer()">取消</button><button class="btn btn-primary" onclick="submitBatchTransfer()">确认转派</button></div>
+  </div>
+</div>
+
+<script>
+// 品类详情数据
+var categoryDetailData = {
+  '车身': {
+    expert:'张三', staff:'张三、赵六', projects:'Mann(8042), MX11(8041)', docStatus:'已归档',
+    vppsList: [
+      {code:'VPPS-001', name:'白车身总成', struct:'BODY-WH', buyer:'张三'},
+      {code:'VPPS-005', name:'车门总成', struct:'BODY-DR', buyer:'张三'},
+      {code:'VPPS-006', name:'翼子板', struct:'BODY-FN', buyer:'赵六'}
+    ],
+    suppliers: [
+      {name:'湖北中饭', code:'SUP-001', status:'已定点', poolDate:'2026-01-15', approvedDate:'2026-03-01'},
+      {name:'上海汇众', code:'SUP-002', status:'已定点', poolDate:'2026-01-10', approvedDate:'2026-02-28'},
+      {name:'宝钢', code:'SUP-003', status:'入池', poolDate:'2026-02-01', approvedDate:'-'},
+      {name:'首钢', code:'SUP-004', status:'入池', poolDate:'2026-02-05', approvedDate:'-'},
+      {name:'华菱钢铁', code:'SUP-021', status:'入池', poolDate:'2026-03-01', approvedDate:'-'},
+      {name:'鞍钢', code:'SUP-022', status:'入池', poolDate:'2026-03-05', approvedDate:'-'},
+      {name:'供应商X', code:'SUP-005', status:'审核中', poolDate:'2026-06-01', approvedDate:'-'},
+      {name:'供应商Y', code:'SUP-006', status:'审核不通过', poolDate:'2026-05-15', approvedDate:'-'}
+    ]
+  },
+  '底盘': {
+    expert:'李四', staff:'李四', projects:'Mann(8042)', docStatus:'已归档',
+    vppsList: [
+      {code:'VPPS-002', name:'前悬架总成', struct:'CHASSIS-FR', buyer:'李四'},
+      {code:'VPPS-007', name:'后悬架总成', struct:'CHASSIS-RR', buyer:'李四'},
+      {code:'VPPS-008', name:'制动系统', struct:'CHASSIS-BR', buyer:'李四'}
+    ],
+    suppliers: [
+      {name:'采埃孚', code:'SUP-007', status:'已定点', poolDate:'2026-01-05', approvedDate:'2026-02-20'},
+      {name:'博世', code:'SUP-008', status:'已定点', poolDate:'2026-01-08', approvedDate:'2026-02-25'},
+      {name:'万向', code:'SUP-009', status:'入池', poolDate:'2026-03-01', approvedDate:'-'},
+      {name:'耐世特', code:'SUP-023', status:'入池', poolDate:'2026-03-10', approvedDate:'-'}
+    ]
+  },
+  '电子架构': {
+    expert:'王五', staff:'王五、钱七', projects:'Mann(8042), MX11(8041)', docStatus:'待归档',
+    vppsList: [
+      {code:'VPPS-003', name:'域控制器', struct:'ELEC-ARCH', buyer:'王五'},
+      {code:'VPPS-009', name:'线束总成', struct:'ELEC-WH', buyer:'钱七'}
+    ],
+    suppliers: [
+      {name:'德赛西威', code:'SUP-010', status:'已定点', poolDate:'2026-01-20', approvedDate:'2026-03-05'},
+      {name:'华为', code:'SUP-011', status:'入池', poolDate:'2026-04-01', approvedDate:'-'},
+      {name:'均联智行', code:'SUP-012', status:'入池', poolDate:'2026-04-05', approvedDate:'-'},
+      {name:'经纬恒润', code:'SUP-024', status:'入池', poolDate:'2026-04-10', approvedDate:'-'},
+      {name:'科博达', code:'SUP-025', status:'入池', poolDate:'2026-04-15', approvedDate:'-'}
+    ]
+  },
+  '电池': {
+    expert:'孙八', staff:'孙八', projects:'MX11(8041)', docStatus:'未创建',
+    vppsList: [],
+    suppliers: [
+      {name:'宁德时代', code:'SUP-013', status:'已定点', poolDate:'2026-01-25', approvedDate:'2026-03-10'},
+      {name:'比亚迪弗迪', code:'SUP-014', status:'入池', poolDate:'2026-03-15', approvedDate:'-'},
+      {name:'中创新航', code:'SUP-015', status:'入池', poolDate:'2026-03-20', approvedDate:'-'}
+    ]
+  },
+  '内饰': {
+    expert:'周九', staff:'周九、吴十', projects:'Mann(8042), MX11(8041)', docStatus:'已归档',
+    vppsList: [
+      {code:'VPPS-004', name:'仪表板总成', struct:'INTERIOR-D', buyer:'周九'},
+      {code:'VPPS-010', name:'座椅总成', struct:'INTERIOR-S', buyer:'周九'},
+      {code:'VPPS-011', name:'门板内饰', struct:'INTERIOR-P', buyer:'吴十'},
+      {code:'VPPS-012', name:'顶棚总成', struct:'INTERIOR-H', buyer:'吴十'}
+    ],
+    suppliers: [
+      {name:'延锋', code:'SUP-016', status:'已定点', poolDate:'2026-01-12', approvedDate:'2026-02-28'},
+      {name:'安道拓', code:'SUP-017', status:'已定点', poolDate:'2026-01-15', approvedDate:'2026-03-01'},
+      {name:'李尔', code:'SUP-018', status:'入池', poolDate:'2026-04-01', approvedDate:'-'},
+      {name:'佛吉亚', code:'SUP-019', status:'入池', poolDate:'2026-04-05', approvedDate:'-'},
+      {name:'丰田纺织', code:'SUP-020', status:'入池', poolDate:'2026-04-10', approvedDate:'-'}
+    ]
+  }
+};
+
+// 供应商数据
+var suppliers = {
+  'SUP-001': {name:'湖北中饭', code:'SUP-001', status:'approved', statusText:'已定点', poolDate:'2026-01-15', approvedDate:'2026-03-01', rdDate:'2026-01-20', rdConclusion:'通过', rdScore:4, rdComment:'具备车身件开发能力', qaDate:'2026-01-22', qaConclusion:'通过', qaSystem:'IATF16949', qaComment:'质量管理体系完善', project:'Mann(8042)', parts:['前纵梁总成-左','前纵梁总成-右']},
+  'SUP-002': {name:'上海汇众', code:'SUP-002', status:'approved', statusText:'已定点', poolDate:'2026-01-10', approvedDate:'2026-02-28', rdDate:'2026-01-18', rdConclusion:'通过', rdScore:5, rdComment:'技术能力强', qaDate:'2026-01-20', qaConclusion:'通过', qaSystem:'IATF16949', qaComment:'质量体系完善', project:'Mann(8042)', parts:['前围总成']},
+  'SUP-003': {name:'宝钢', code:'SUP-003', status:'pool', statusText:'已入池', poolDate:'2026-02-01', approvedDate:null, rdDate:'2026-02-10', rdConclusion:'通过', rdScore:5, rdComment:'钢材供应商', qaDate:'2026-02-12', qaConclusion:'通过', qaSystem:'IATF16949', qaComment:'质量稳定', project:null, parts:[]},
+  'SUP-004': {name:'首钢', code:'SUP-004', status:'pool', statusText:'已入池', poolDate:'2026-02-05', approvedDate:null, rdDate:'2026-02-15', rdConclusion:'通过', rdScore:4, rdComment:'钢材供应商', qaDate:'2026-02-18', qaConclusion:'通过', qaSystem:'IATF16949', qaComment:'质量体系完善', project:null, parts:[]},
+  'SUP-005': {name:'供应商X', code:'SUP-005', status:'pending', statusText:'审核中', poolDate:'2026-06-01', approvedDate:null, rdDate:'2026-06-05', rdConclusion:'审核中', rdScore:null, rdComment:'待研发评审', qaDate:'2026-06-05', qaConclusion:'审核中', qaSystem:null, qaComment:'待质量评审', project:null, parts:[]},
+  'SUP-006': {name:'供应商Y', code:'SUP-006', status:'rejected', statusText:'审核不通过', poolDate:'2026-05-15', approvedDate:null, rdDate:'2026-05-20', rdConclusion:'不通过', rdScore:2, rdComment:'技术能力不足', qaDate:'2026-05-22', qaConclusion:'不通过', qaSystem:null, qaComment:'质量体系不完善', project:null, parts:[]},
+  'SUP-007': {name:'采埃孚', code:'SUP-007', status:'approved', statusText:'已定点', poolDate:'2026-01-05', approvedDate:'2026-02-20', rdDate:'2026-01-12', rdConclusion:'通过', rdScore:5, rdComment:'国际一流底盘供应商', qaDate:'2026-01-15', qaConclusion:'通过', qaSystem:'IATF16949', qaComment:'质量体系完善', project:'Mann(8042)', parts:['减震器总成']},
+  'SUP-008': {name:'博世', code:'SUP-008', status:'approved', statusText:'已定点', poolDate:'2026-01-08', approvedDate:'2026-02-25', rdDate:'2026-01-14', rdConclusion:'通过', rdScore:5, rdComment:'制动系统技术领先', qaDate:'2026-01-16', qaConclusion:'通过', qaSystem:'IATF16949', qaComment:'质量稳定', project:'Mann(8042)', parts:['制动系统']},
+  'SUP-009': {name:'万向', code:'SUP-009', status:'pool', statusText:'已入池', poolDate:'2026-03-01', approvedDate:null, rdDate:'2026-03-10', rdConclusion:'通过', rdScore:4, rdComment:'国内底盘零部件龙头', qaDate:'2026-03-12', qaConclusion:'通过', qaSystem:'IATF16949', qaComment:'质量体系完善', project:null, parts:[]},
+  'SUP-010': {name:'德赛西威', code:'SUP-010', status:'approved', statusText:'已定点', poolDate:'2026-01-20', approvedDate:'2026-03-05', rdDate:'2026-01-28', rdConclusion:'通过', rdScore:5, rdComment:'域控制器技术领先', qaDate:'2026-01-30', qaConclusion:'通过', qaSystem:'IATF16949', qaComment:'质量体系完善', project:'Mann(8042)', parts:['域控制器']},
+  'SUP-011': {name:'华为', code:'SUP-011', status:'pool', statusText:'已入池', poolDate:'2026-04-01', approvedDate:null, rdDate:'2026-04-10', rdConclusion:'通过', rdScore:5, rdComment:'智能驾驶技术领先', qaDate:'2026-04-12', qaConclusion:'通过', qaSystem:'IATF16949', qaComment:'质量体系完善', project:null, parts:[]},
+  'SUP-012': {name:'均联智行', code:'SUP-012', status:'pool', statusText:'已入池', poolDate:'2026-04-05', approvedDate:null, rdDate:'2026-04-15', rdConclusion:'通过', rdScore:4, rdComment:'智能座舱解决方案', qaDate:'2026-04-18', qaConclusion:'通过', qaSystem:'IATF16949', qaComment:'质量体系完善', project:null, parts:[]},
+  'SUP-013': {name:'宁德时代', code:'SUP-013', status:'approved', statusText:'已定点', poolDate:'2026-01-25', approvedDate:'2026-03-10', rdDate:'2026-02-01', rdConclusion:'通过', rdScore:5, rdComment:'电池技术全球领先', qaDate:'2026-02-05', qaConclusion:'通过', qaSystem:'IATF16949', qaComment:'质量体系完善', project:'MX11(8041)', parts:['电池包总成']},
+  'SUP-014': {name:'比亚迪弗迪', code:'SUP-014', status:'pool', statusText:'已入池', poolDate:'2026-03-15', approvedDate:null, rdDate:'2026-03-25', rdConclusion:'通过', rdScore:5, rdComment:'电池技术成熟', qaDate:'2026-03-28', qaConclusion:'通过', qaSystem:'IATF16949', qaComment:'质量体系完善', project:null, parts:[]},
+  'SUP-015': {name:'中创新航', code:'SUP-015', status:'pool', statusText:'已入池', poolDate:'2026-03-20', approvedDate:null, rdDate:'2026-03-30', rdConclusion:'通过', rdScore:4, rdComment:'电池技术发展迅速', qaDate:'2026-04-02', qaConclusion:'通过', qaSystem:'IATF16949', qaComment:'质量体系完善', project:null, parts:[]},
+  'SUP-016': {name:'延锋', code:'SUP-016', status:'approved', statusText:'已定点', poolDate:'2026-01-12', approvedDate:'2026-02-28', rdDate:'2026-01-18', rdConclusion:'通过', rdScore:5, rdComment:'内饰件开发经验丰富', qaDate:'2026-01-20', qaConclusion:'通过', qaSystem:'IATF16949', qaComment:'质量体系完善', project:'Mann(8042)', parts:['仪表板总成']},
+  'SUP-017': {name:'安道拓', code:'SUP-017', status:'approved', statusText:'已定点', poolDate:'2026-01-15', approvedDate:'2026-03-01', rdDate:'2026-01-22', rdConclusion:'通过', rdScore:5, rdComment:'座椅技术全球领先', qaDate:'2026-01-25', qaConclusion:'通过', qaSystem:'IATF16949', qaComment:'质量体系完善', project:'Mann(8042)', parts:['座椅总成']},
+  'SUP-018': {name:'李尔', code:'SUP-018', status:'pool', statusText:'已入池', poolDate:'2026-04-01', approvedDate:null, rdDate:'2026-04-10', rdConclusion:'通过', rdScore:4, rdComment:'座椅零部件供应商', qaDate:'2026-04-12', qaConclusion:'通过', qaSystem:'IATF16949', qaComment:'质量体系完善', project:null, parts:[]},
+  'SUP-019': {name:'佛吉亚', code:'SUP-019', status:'pool', statusText:'已入池', poolDate:'2026-04-05', approvedDate:null, rdDate:'2026-04-15', rdConclusion:'通过', rdScore:4, rdComment:'内饰件供应商', qaDate:'2026-04-18', qaConclusion:'通过', qaSystem:'IATF16949', qaComment:'质量体系完善', project:null, parts:[]},
+  'SUP-020': {name:'丰田纺织', code:'SUP-020', status:'pool', statusText:'已入池', poolDate:'2026-04-10', approvedDate:null, rdDate:'2026-04-20', rdConclusion:'通过', rdScore:4, rdComment:'内饰件供应商', qaDate:'2026-04-22', qaConclusion:'通过', qaSystem:'IATF16949', qaComment:'质量体系完善', project:null, parts:[]}
+};
+
+var hoverTimer = null;
+
+// 页签切换
+function switchTab(tabName) {
+  document.querySelectorAll('.tab').forEach(function(t) { t.classList.remove('active'); });
+  document.querySelectorAll('.tab-content').forEach(function(c) { c.classList.remove('active'); });
+  if (tabName === 'category') {
+    document.querySelector('.tab:first-child').classList.add('active');
+    document.getElementById('tab-category').classList.add('active');
+  } else {
+    document.querySelector('.tab:last-child').classList.add('active');
+    document.getElementById('tab-bindVpps').classList.add('active');
+  }
+}
+
+// VPPS展开收起
+function toggleVpps(id) {
+  var el = document.getElementById(id);
+  var arrow = document.getElementById('arrow-' + id);
+  var hint = document.getElementById(id + '-hint');
+  if (el.classList.contains('show')) {
+    el.classList.remove('show');
+    arrow.classList.remove('open');
+    if (hint) hint.style.display = '';
+  } else {
+    el.classList.add('show');
+    arrow.classList.add('open');
+    if (hint) hint.style.display = 'none';
+  }
+}
+
+// 供应商浮窗
+function showTooltip(el) {
+  var supplierId = el.getAttribute('data-id');
+  hoverTimer = setTimeout(function() {
+    var data = suppliers[supplierId];
+    if (!data) return;
+    var tooltip = document.getElementById('supplierTooltip');
+    document.getElementById('tipName').textContent = data.name;
+    var statusEl = document.getElementById('tipStatus');
+    statusEl.textContent = data.statusText;
+    statusEl.className = 'badge badge-' + (data.status === 'approved' ? 'green' : data.status === 'pool' ? 'blue' : data.status === 'pending' ? 'orange' : 'red');
+    document.getElementById('tipCode').textContent = data.code;
+    document.getElementById('tipPoolDate').textContent = data.poolDate || '-';
+    document.getElementById('tipApprovedDate').textContent = data.approvedDate || '-';
+    document.getElementById('tipRdDate').textContent = data.rdDate || '-';
+    document.getElementById('tipRdConclusion').textContent = data.rdConclusion || '-';
+    document.getElementById('tipRdScore').innerHTML = data.rdScore ? '<span class="stars">' + '★'.repeat(data.rdScore) + '☆'.repeat(5 - data.rdScore) + '</span>' : '-';
+    document.getElementById('tipRdComment').textContent = data.rdComment || '-';
+    document.getElementById('tipQaDate').textContent = data.qaDate || '-';
+    document.getElementById('tipQaConclusion').textContent = data.qaConclusion || '-';
+    document.getElementById('tipQaSystem').textContent = data.qaSystem || '-';
+    document.getElementById('tipQaComment').textContent = data.qaComment || '-';
+    var approvedSection = document.getElementById('tipApprovedSection');
+    if (data.approvedDate) {
+      approvedSection.style.display = 'block';
+      document.getElementById('tipProject').textContent = data.project || '-';
+      document.getElementById('tipParts').textContent = data.parts ? data.parts.join(', ') : '-';
+    } else {
+      approvedSection.style.display = 'none';
+    }
+    var rect = el.getBoundingClientRect();
+    tooltip.style.left = Math.min(rect.left, window.innerWidth - 380) + 'px';
+    tooltip.style.top = (rect.bottom + 10) + 'px';
+    tooltip.style.display = 'block';
+  }, 500);
+}
+
+function hideTooltip() {
+  clearTimeout(hoverTimer);
+  document.getElementById('supplierTooltip').style.display = 'none';
+}
+
+// 筛选
+function filterTable() {
+  var category = document.getElementById('filterCategory').value;
+  var supplier = document.getElementById('filterSupplier').value.toLowerCase();
+  var rows = document.querySelectorAll('#tableBody tr');
+  for (var i = 0; i < rows.length; i++) {
+    var rowCategory = rows[i].getAttribute('data-category');
+    var rowSuppliers = rows[i].getAttribute('data-suppliers').toLowerCase();
+    var showCategory = !category || rowCategory === category;
+    var showSupplier = !supplier || rowSuppliers.indexOf(supplier) >= 0;
+    rows[i].style.display = (showCategory && showSupplier) ? '' : 'none';
+  }
+}
+
+function resetFilter() {
+  document.getElementById('filterCategory').value = '';
+  document.getElementById('filterExpert').value = '';
+  document.getElementById('filterSupplier').value = '';
+  filterTable();
+}
+
+// 品类详情
+function showDetail(category) {
+  var data = categoryDetailData[category];
+  if (!data) return;
+  window.currentDetailCategory = category;
+  document.getElementById('detailTitle').textContent = category + ' - 品类详情';
+  var html = '';
+  // 基本信息
+  html += '<div style="background:#F8FAFC;border-radius:8px;padding:16px;margin-bottom:20px">';
+  html += '<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px">';
+  html += '<div><span style="font-size:11px;color:var(--gray)">品类名称</span><div style="font-weight:700;color:var(--dark)">' + category + '</div></div>';
+  html += '<div><span style="font-size:11px;color:var(--gray)">采购专家</span><div style="font-weight:700;color:var(--dark)">' + data.expert + '</div></div>';
+  html += '<div><span style="font-size:11px;color:var(--gray)">相关采购员</span><div style="font-weight:700;color:var(--dark)">' + data.staff + '</div></div>';
+  html += '<div><span style="font-size:11px;color:var(--gray)">关联项目</span><div style="font-weight:700;color:var(--dark)">' + data.projects + '</div></div>';
+  html += '<div><span style="font-size:11px;color:var(--gray)">策略文档</span><div><span class="badge ' + (data.docStatus === '已归档' ? 'badge-green' : data.docStatus === '待归档' ? 'badge-orange' : 'badge-gray') + '">' + data.docStatus + '</span></div></div>';
+  html += '</div></div>';
+  // VPPS编码表格
+  html += '<div style="margin-bottom:20px"><div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px"><h3 style="font-size:14px;font-weight:700;color:var(--dark);margin:0">🔗 VPPS编码列表</h3><div style="display:flex;gap:8px"><button class="btn btn-outline btn-sm" onclick="showChangeCategoryBatch()">修改绑定品类</button><button class="btn btn-primary btn-sm" onclick="showTransferFromDetail()">批量转派采购员</button></div></div>';
+  if (data.vppsList.length > 0) {
+    html += '<table class="data-table" style="font-size:11px"><thead><tr><th style="width:30px"><input type="checkbox" id="checkAllVpps" onchange="toggleAllVpps(this)"></th><th>VPPS编码</th><th>VPPS名称</th><th>结构简码</th><th>采购员</th><th>操作</th></tr></thead><tbody>';
+    for (var i = 0; i < data.vppsList.length; i++) {
+      var vpps = data.vppsList[i];
+      html += '<tr>';
+      html += '<td><input type="checkbox" class="vpps-checkbox" data-code="' + vpps.code + '" data-buyer="' + vpps.buyer + '"></td>';
+      html += '<td><span style="font-weight:700;color:var(--blue)">' + vpps.code + '</span></td>';
+      html += '<td>' + vpps.name + '</td>';
+      html += '<td><span style="color:var(--gray)">' + vpps.struct + '</span></td>';
+      html += '<td><span class="badge badge-blue">' + vpps.buyer + '</span></td>';
+      html += '<td><span class="link" onclick="showSingleTransfer(\'' + vpps.code + '\', \'' + vpps.buyer + '\')">转派</span> · <span class="link" onclick="changeVppsCategory(\'' + vpps.code + '\', \'' + category + '\')">变更品类</span></td>';
+      html += '</tr>';
+    }
+    html += '</tbody></table>';
+  } else {
+    html += '<div style="color:var(--gray);font-size:12px;padding:16px;background:#F8FAFC;border-radius:8px;text-align:center">暂无VPPS编码，请先完成绑定。</div>';
+  }
+  html += '</div>';
+  // 供应商表格
+  html += '<div><h3 style="font-size:14px;font-weight:700;color:var(--dark);margin-bottom:12px">🏢 供应商列表</h3>';
+  html += '<table class="data-table" style="font-size:11px"><thead><tr><th>供应商编码</th><th>供应商名称</th><th>状态</th><th>入池时间</th><th>定点时间</th></tr></thead><tbody>';
+  for (var i = 0; i < data.suppliers.length; i++) {
+    var sup = data.suppliers[i];
+    var statusClass = sup.status === '已定点' ? 'badge-green' : sup.status === '入池' ? 'badge-blue' : sup.status === '审核中' ? 'badge-orange' : 'badge-red';
+    html += '<tr>';
+    html += '<td><span style="color:var(--blue)">' + sup.code + '</span></td>';
+    html += '<td>' + sup.name + '</td>';
+    html += '<td><span class="badge ' + statusClass + '">' + sup.status + '</span></td>';
+    html += '<td>' + sup.poolDate + '</td>';
+    html += '<td>' + sup.approvedDate + '</td>';
+    html += '</tr>';
+  }
+  html += '</tbody></table></div>';
+  document.getElementById('detailBody').innerHTML = html;
+  document.getElementById('detailModal').classList.add('show');
+}
+
+// 全选/取消全选VPPS
+function toggleAllVpps(checkbox) {
+  var checkboxes = document.querySelectorAll('.vpps-checkbox');
+  for (var i = 0; i < checkboxes.length; i++) {
+    checkboxes[i].checked = checkbox.checked;
+  }
+}
+
+// 单个VPPS转派
+function showSingleTransfer(vppsCode, currentBuyer) {
+  window.transferMode = 'single';
+  window.transferVppsList = [{code: vppsCode, buyer: currentBuyer}];
+  document.getElementById('transferVppsInfo').innerHTML = '<div style="background:#EFF6FF;border:1px solid #BFDBFE;border-radius:6px;padding:10px;margin-bottom:12px"><span style="font-weight:700;color:var(--blue)">' + vppsCode + '</span> <span style="color:var(--gray)">当前采购员：</span><span class="badge badge-blue">' + currentBuyer + '</span></div>';
+  document.getElementById('transferNewBuyer').value = '';
+  document.getElementById('transferReason').value = '';
+  document.getElementById('singleTransferModal').classList.add('show');
+}
+
+// 从详情页批量转派
+function showTransferFromDetail() {
+  var checked = document.querySelectorAll('.vpps-checkbox:checked');
+  if (checked.length === 0) {
+    alert('请先勾选需要转派的VPPS');
+    return;
+  }
+  window.transferMode = 'batch';
+  var vppsList = [];
+  var buyers = new Set();
+  var infoHtml = '<div style="background:#EFF6FF;border:1px solid #BFDBFE;border-radius:6px;padding:10px;margin-bottom:12px">';
+  infoHtml += '<div style="font-size:11px;color:var(--gray);margin-bottom:6px">已选 ' + checked.length + ' 个VPPS：</div>';
+  for (var i = 0; i < checked.length; i++) {
+    var code = checked[i].getAttribute('data-code');
+    var buyer = checked[i].getAttribute('data-buyer');
+    vppsList.push({code: code, buyer: buyer});
+    buyers.add(buyer);
+    infoHtml += '<span style="display:inline-block;padding:2px 8px;background:#DBEAFE;border-radius:4px;font-size:10px;margin:2px;color:#1E40AF">' + code + ' (' + buyer + ')</span>';
+  }
+  infoHtml += '</div>';
+  window.transferVppsList = vppsList;
+  document.getElementById('transferVppsInfo').innerHTML = infoHtml;
+  document.getElementById('transferNewBuyer').value = '';
+  document.getElementById('transferReason').value = '';
+  document.getElementById('singleTransferModal').classList.add('show');
+}
+
+// 关闭转派弹窗
+function closeSingleTransfer() {
+  document.getElementById('singleTransferModal').classList.remove('show');
+}
+
+// 提交转派
+function submitSingleTransfer() {
+  var newBuyer = document.getElementById('transferNewBuyer').value;
+  var reason = document.getElementById('transferReason').value;
+  if (!newBuyer || !reason) {
+    alert('请填写新采购员和转派原因');
+    return;
+  }
+  var msg = '转派成功！\n\n';
+  for (var i = 0; i < window.transferVppsList.length; i++) {
+    var vpps = window.transferVppsList[i];
+    msg += vpps.code + '：' + vpps.buyer + ' → ' + newBuyer + '\n';
+  }
+  msg += '\n原因：' + reason;
+  alert(msg);
+  closeSingleTransfer();
+  // 刷新详情页
+  showDetail(window.currentDetailCategory);
+}
+
+document.getElementById('singleTransferModal').addEventListener('click', function(e) { if (e.target === this) closeSingleTransfer(); });
+
+// 变更VPPS品类
+function changeVppsCategory(vppsCode, currentCategory) {
+  var newCategory = prompt('请输入' + vppsCode + '的新品类（当前：' + currentCategory + '）：\n\n可选：车身、底盘、电子架构、电池、内饰');
+  if (newCategory && newCategory !== currentCategory) {
+    alert('VPPS品类变更成功！\n\n' + vppsCode + '：' + currentCategory + ' → ' + newCategory);
+  }
+}
+
+// 批量修改绑定品类
+function showChangeCategoryBatch() {
+  var checked = document.querySelectorAll('.vpps-checkbox:checked');
+  if (checked.length === 0) {
+    alert('请先勾选需要变更品类的VPPS');
+    return;
+  }
+  var vppsCodes = [];
+  for (var i = 0; i < checked.length; i++) {
+    vppsCodes.push(checked[i].getAttribute('data-code'));
+  }
+  var newCategory = prompt('已选 ' + vppsCodes.length + ' 个VPPS：\n' + vppsCodes.join(', ') + '\n\n请输入新品类：\n可选：车身、底盘、电子架构、电池、内饰');
+  if (newCategory) {
+    alert('品类变更成功！\n\n' + vppsCodes.join(', ') + ' → ' + newCategory);
+    showDetail(window.currentDetailCategory);
+  }
+}
+
+function closeDetail() {
+  document.getElementById('detailModal').classList.remove('show');
+}
+
+document.getElementById('detailModal').addEventListener('click', function(e) { if (e.target === this) closeDetail(); });
+
+// 新增供应商
+function showAddSupplier() { document.getElementById('addSupplierModal').classList.add('show'); }
+function closeAddSupplier() { document.getElementById('addSupplierModal').classList.remove('show'); }
+function submitSupplier() {
+  var name = document.getElementById('supplierName').value;
+  var code = document.getElementById('supplierCode').value;
+  var category = document.getElementById('supplierCategory').value;
+  var reason = document.getElementById('supplierReason').value;
+  if (!name || !code || !category || !reason) { alert('请填写所有必填项'); return; }
+  alert('供应商申请已提交！\n\n供应商：' + name + ' (' + code + ')\n品类：' + category + '\n\n等待铁三角审批');
+  closeAddSupplier();
+}
+document.getElementById('addSupplierModal').addEventListener('click', function(e) { if (e.target === this) closeAddSupplier(); });
+
+// 批量转派
+function showBatchTransfer() {
+  document.getElementById('transferCategory').value = '';
+  document.getElementById('batchVppsList').style.display = 'none';
+  document.getElementById('batchNewBuyer').value = '';
+  document.getElementById('batchTransferReason').value = '';
+  document.getElementById('batchTransferModal').classList.add('show');
+}
+
+function closeBatchTransfer() { document.getElementById('batchTransferModal').classList.remove('show'); }
+
+// 加载品类下的VPPS列表
+function loadCategoryVpps() {
+  var category = document.getElementById('transferCategory').value;
+  var container = document.getElementById('batchVppsList');
+  var listDiv = document.getElementById('batchVppsCheckboxList');
+
+  if (!category) {
+    container.style.display = 'none';
+    return;
+  }
+
+  var data = categoryDetailData[category];
+  if (!data || data.vppsList.length === 0) {
+    container.style.display = 'none';
+    alert('该品类下暂无VPPS编码');
+    return;
+  }
+
+  var html = '<div style="margin-bottom:8px"><label style="font-size:11px;cursor:pointer;color:var(--blue)"><input type="checkbox" onchange="toggleBatchVpps(this)" style="margin-right:4px"> 全选</label></div>';
+  for (var i = 0; i < data.vppsList.length; i++) {
+    var vpps = data.vppsList[i];
+    html += '<div style="padding:6px 0;border-bottom:1px solid #E2E8F0;display:flex;align-items:center;gap:8px">';
+    html += '<input type="checkbox" class="batch-vpps-checkbox" data-code="' + vpps.code + '" data-buyer="' + vpps.buyer + '">';
+    html += '<span style="font-weight:600;color:var(--blue);font-size:12px">' + vpps.code + '</span>';
+    html += '<span style="font-size:11px;color:var(--gray)">' + vpps.name + '</span>';
+    html += '<span style="margin-left:auto"><span class="badge badge-blue" style="font-size:10px">' + vpps.buyer + '</span></span>';
+    html += '</div>';
+  }
+
+  listDiv.innerHTML = html;
+  container.style.display = 'block';
+}
+
+// 全选/取消全选
+function toggleBatchVpps(checkbox) {
+  var checkboxes = document.querySelectorAll('.batch-vpps-checkbox');
+  for (var i = 0; i < checkboxes.length; i++) {
+    checkboxes[i].checked = checkbox.checked;
+  }
+}
+
+function submitBatchTransfer() {
+  var category = document.getElementById('transferCategory').value;
+  var newBuyer = document.getElementById('batchNewBuyer').value;
+  var reason = document.getElementById('batchTransferReason').value;
+
+  var checked = document.querySelectorAll('.batch-vpps-checkbox:checked');
+  if (!category) { alert('请选择品类'); return; }
+  if (checked.length === 0) { alert('请勾选需要转派的VPPS'); return; }
+  if (!newBuyer) { alert('请选择新采购员'); return; }
+  if (!reason) { alert('请填写转派原因'); return; }
+
+  var msg = '批量转派已完成！\n\n品类：' + category + '\n新采购员：' + newBuyer + '\n\n已转派VPPS：\n';
+  for (var i = 0; i < checked.length; i++) {
+    var code = checked[i].getAttribute('data-code');
+    var oldBuyer = checked[i].getAttribute('data-buyer');
+    msg += code + '：' + oldBuyer + ' → ' + newBuyer + '\n';
+  }
+  msg += '\n原因：' + reason;
+
+  alert(msg);
+  closeBatchTransfer();
+}
+
+document.getElementById('batchTransferModal').addEventListener('click', function(e) { if (e.target === this) closeBatchTransfer(); });
+
+// 待绑定VPPS
+function submitBindVpps() {
+  var results = [];
+  for (var i = 1; i <= 3; i++) {
+    var category = document.getElementById('bindCategory' + i).value;
+    var expert = document.getElementById('bindExpert' + i).value;
+    if (!category || !expert) { alert('第 ' + i + ' 行：绑定品类和采购专家为必填项'); return; }
+    results.push({ category: category, expert: expert });
+  }
+  alert('VPPS绑定完成！\n\n1. VPPS-013 → ' + results[0].category + ' / ' + results[0].expert + '\n2. VPPS-014 → ' + results[1].category + ' / ' + results[1].expert + '\n3. VPPS-015 → ' + results[2].category + ' / ' + results[2].expert);
+  switchTab('category');
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,851 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>电池护照 Demo — Xiaomi EV Battery Digital Passport</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.7/dist/chart.umd.min.js"></script>
+<style>
+  :root {
+    --bg: #0f1117;
+    --card: #1a1d27;
+    --card-hover: #22263a;
+    --border: #2a2e3e;
+    --text: #e4e4e7;
+    --text-dim: #9ca3af;
+    --text-muted: #6b7280;
+    --accent: #6366f1;
+    --accent-light: #818cf8;
+    --green: #22c55e;
+    --green-dim: rgba(34,197,94,.15);
+    --red: #ef4444;
+    --red-dim: rgba(239,68,68,.12);
+    --yellow: #eab308;
+    --yellow-dim: rgba(234,179,8,.12);
+    --blue: #3b82f6;
+    --blue-dim: rgba(59,130,246,.12);
+    --orange: #f97316;
+    --orange-dim: rgba(249,115,22,.12);
+    --cyan: #06b6d4;
+    --cyan-dim: rgba(6,182,212,.12);
+    --purple: #a855f7;
+    --radius: 12px;
+    --radius-sm: 8px;
+    --shadow: 0 2px 16px rgba(0,0,0,.35);
+  }
+  * { margin:0; padding:0; box-sizing:border-box; }
+  body { font-family: -apple-system, 'SF Pro Display', 'Segoe UI', 'PingFang SC', 'Microsoft YaHei', sans-serif; background: var(--bg); color: var(--text); line-height: 1.6; min-height: 100vh; }
+  .container { max-width: 1200px; margin: 0 auto; padding: 32px 24px; }
+
+  /* Header */
+  .header { text-align: center; margin-bottom: 36px; position: relative; }
+  .header h1 { font-size: 2rem; font-weight: 700; background: linear-gradient(135deg, var(--green), var(--cyan)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; margin-bottom: 6px; }
+  .header p { color: var(--text-dim); font-size: .9rem; }
+  .header .badge-verified { display: inline-flex; align-items: center; gap: 6px; background: var(--green-dim); color: var(--green); padding: 4px 14px; border-radius: 20px; font-size: .8rem; font-weight: 600; margin-top: 10px; }
+
+  /* Tabs */
+  .tab-nav { display: flex; gap: 4px; margin-bottom: 28px; background: var(--card); border-radius: var(--radius); padding: 4px; width: fit-content; margin-left: auto; margin-right: auto; flex-wrap: wrap; }
+  .tab-btn { padding: 10px 20px; border: none; background: transparent; color: var(--text-dim); font-size: .85rem; cursor: pointer; border-radius: 8px; transition: all .2s; font-weight: 500; white-space: nowrap; }
+  .tab-btn.active { background: var(--accent); color: #fff; }
+  .tab-btn:hover:not(.active) { color: var(--text); background: rgba(99,102,241,.1); }
+  .tab-panel { display: none; animation: fadeIn .3s ease; }
+  .tab-panel.active { display: block; }
+  @keyframes fadeIn { from { opacity:0; transform:translateY(8px); } to { opacity:1; transform:translateY(0); } }
+
+  /* Cards */
+  .card { background: var(--card); border: 1px solid var(--border); border-radius: var(--radius); padding: 24px; margin-bottom: 20px; box-shadow: var(--shadow); }
+  .card-title { font-size: 1.05rem; font-weight: 600; margin-bottom: 16px; display: flex; align-items: center; gap: 8px; }
+  .card-title .icon { font-size: 1.2rem; }
+
+  /* Grid */
+  .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+  .grid-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 16px; }
+  .grid-4 { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; }
+  @media (max-width: 900px) { .grid-2, .grid-3, .grid-4 { grid-template-columns: 1fr; } }
+
+  /* Stat card */
+  .stat-card { background: var(--card); border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 16px; text-align: center; transition: all .2s; }
+  .stat-card:hover { border-color: var(--accent); transform: translateY(-2px); }
+  .stat-value { font-size: 1.8rem; font-weight: 700; margin-bottom: 4px; }
+  .stat-label { font-size: .78rem; color: var(--text-dim); }
+  .stat-sub { font-size: .7rem; color: var(--text-muted); margin-top: 4px; }
+
+  /* Info list */
+  .info-list { display: grid; grid-template-columns: 1fr 1fr; gap: 10px 24px; }
+  .info-item { display: flex; justify-content: space-between; align-items: center; padding: 10px 0; border-bottom: 1px solid var(--border); }
+  .info-item:last-child { border-bottom: none; }
+  .info-key { font-size: .82rem; color: var(--text-dim); }
+  .info-val { font-size: .88rem; font-weight: 600; text-align: right; }
+
+  /* Progress bar */
+  .progress-bar { width: 100%; height: 8px; background: var(--border); border-radius: 4px; overflow: hidden; }
+  .progress-fill { height: 100%; border-radius: 4px; transition: width .8s ease; }
+
+  /* Badge */
+  .badge { display: inline-flex; align-items: center; gap: 4px; padding: 3px 10px; border-radius: 6px; font-size: .75rem; font-weight: 600; }
+  .badge-green { background: var(--green-dim); color: var(--green); }
+  .badge-yellow { background: var(--yellow-dim); color: var(--yellow); }
+  .badge-red { background: var(--red-dim); color: var(--red); }
+  .badge-blue { background: var(--blue-dim); color: var(--blue); }
+  .badge-cyan { background: var(--cyan-dim); color: var(--cyan); }
+
+  /* Chart container */
+  .chart-wrap { position: relative; height: 300px; margin-top: 12px; }
+  .chart-wrap-sm { height: 220px; }
+
+  /* Map placeholder */
+  .map-container { position: relative; width: 100%; height: 400px; background: linear-gradient(135deg, #0d1020, #151825); border-radius: var(--radius); overflow: hidden; border: 1px solid var(--border); }
+  .map-dot { position: absolute; width: 14px; height: 14px; border-radius: 50%; cursor: pointer; transition: all .3s; z-index: 2; }
+  .map-dot::after { content: ''; position: absolute; top: -4px; left: -4px; width: 22px; height: 22px; border-radius: 50%; border: 2px solid currentColor; opacity: .3; animation: ping 2s infinite; }
+  @keyframes ping { 0% { transform: scale(1); opacity:.3; } 50% { transform: scale(1.5); opacity:0; } 100% { transform: scale(1); opacity:.3; } }
+  .map-dot .tooltip { position: absolute; bottom: 120%; left: 50%; transform: translateX(-50%); background: var(--card); border: 1px solid var(--border); border-radius: 8px; padding: 10px 14px; font-size: .78rem; white-space: nowrap; display: none; box-shadow: var(--shadow); z-index: 10; }
+  .map-dot:hover .tooltip { display: block; }
+
+  /* QR section */
+  .qr-box { width: 200px; height: 200px; background: #fff; border-radius: 12px; display: flex; align-items: center; justify-content: center; margin: 0 auto 20px; position: relative; }
+  .qr-box canvas { width: 180px !important; height: 180px !important; }
+
+  /* Timeline */
+  .timeline { position: relative; padding-left: 28px; }
+  .timeline::before { content: ''; position: absolute; left: 8px; top: 0; bottom: 0; width: 2px; background: var(--border); }
+  .timeline-item { position: relative; margin-bottom: 20px; }
+  .timeline-item::before { content: ''; position: absolute; left: -24px; top: 6px; width: 10px; height: 10px; border-radius: 50%; border: 2px solid var(--accent); background: var(--bg); z-index: 1; }
+  .timeline-item.done::before { background: var(--green); border-color: var(--green); }
+  .timeline-item .tl-date { font-size: .75rem; color: var(--text-muted); margin-bottom: 2px; }
+  .timeline-item .tl-title { font-size: .88rem; font-weight: 600; }
+  .timeline-item .tl-desc { font-size: .78rem; color: var(--text-dim); }
+
+  /* Validation strip */
+  .validation-strip { display: flex; gap: 12px; flex-wrap: wrap; margin-top: 16px; }
+  .valid-item { display: flex; align-items: center; gap: 6px; font-size: .78rem; padding: 6px 12px; border-radius: 6px; background: var(--card); border: 1px solid var(--border); }
+
+  /* SOH gauge */
+  .gauge-wrap { display: flex; align-items: center; justify-content: center; flex-direction: column; }
+  .gauge-circle { width: 160px; height: 160px; border-radius: 50%; background: conic-gradient(var(--green) 0deg, var(--green) 324deg, var(--border) 324deg); display: flex; align-items: center; justify-content: center; position: relative; }
+  .gauge-inner { width: 120px; height: 120px; border-radius: 50%; background: var(--card); display: flex; align-items: center; justify-content: center; flex-direction: column; }
+  .gauge-value { font-size: 2rem; font-weight: 700; color: var(--green); }
+  .gauge-label { font-size: .75rem; color: var(--text-dim); }
+
+  /* Footer */
+  .footer { text-align: center; margin-top: 40px; padding: 20px; color: var(--text-muted); font-size: .75rem; border-top: 1px solid var(--border); }
+</style>
+</head>
+<body>
+<div class="container">
+  <!-- Header -->
+  <div class="header">
+    <h1>🔋 小米电池护照</h1>
+    <p>Xiaomi EV Battery Digital Passport — EU Regulation 2023/1542 Compliant</p>
+    <div class="badge-verified">✅ 数据已验证 · Hyperledger 区块链存证</div>
+  </div>
+
+  <!-- Tabs -->
+  <div class="tab-nav">
+    <button class="tab-btn active" onclick="switchTab('identity')">🔋 电池身份</button>
+    <button class="tab-btn" onclick="switchTab('carbon')">🌿 碳足迹</button>
+    <button class="tab-btn" onclick="switchTab('material')">⛏️ 材料溯源</button>
+    <button class="tab-btn" onclick="switchTab('health')">📊 健康状态</button>
+    <button class="tab-btn" onclick="switchTab('qr')">🔗 QR 验证</button>
+  </div>
+
+  <!-- Tab 1: Battery Identity -->
+  <div id="tab-identity" class="tab-panel active">
+    <div class="grid-4">
+      <div class="stat-card">
+        <div class="stat-value" style="color:var(--accent)">NMC 811</div>
+        <div class="stat-label">化学体系</div>
+        <div class="stat-sub">镍钴锰三元锂</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-value" style="color:var(--cyan)">101 kWh</div>
+        <div class="stat-label">额定容量</div>
+        <div class="stat-sub">标称能量</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-value" style="color:var(--green)">800V</div>
+        <div class="stat-label">平台电压</div>
+        <div class="stat-sub">高压快充架构</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-value" style="color:var(--orange)">CTP 3.0</div>
+        <div class="stat-label">封装技术</div>
+        <div class="stat-sub">Cell-to-Pack</div>
+      </div>
+    </div>
+
+    <div class="grid-2" style="margin-top:20px;">
+      <div class="card">
+        <div class="card-title"><span class="icon">📋</span> 电池身份信息</div>
+        <div class="info-list">
+          <div class="info-item"><span class="info-key">制造商</span><span class="info-val">小米汽车科技有限公司</span></div>
+          <div class="info-item"><span class="info-key">电池供应商</span><span class="info-val">宁德时代 (CATL)</span></div>
+          <div class="info-item"><span class="info-key">电池型号</span><span class="info-val">XM-BP-NMC-101</span></div>
+          <div class="info-item"><span class="info-key">序列号</span><span class="info-val">XM20260315A0042</span></div>
+          <div class="info-item"><span class="info-key">制造日期</span><span class="info-val">2026-03-15</span></div>
+          <div class="info-item"><span class="info-key">制造工厂</span><span class="info-val">宁德时代 · 宁德基地</span></div>
+          <div class="info-item"><span class="info-key">电芯数量</span><span class="info-val">198 个</span></div>
+          <div class="info-item"><span class="info-key">PACK 重量</span><span class="info-val">≈ 485 kg</span></div>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-title"><span class="icon">🚗</span> 车辆绑定信息</div>
+        <div class="info-list">
+          <div class="info-item"><span class="info-key">适用车型</span><span class="info-val">小米 SU7 Ultra</span></div>
+          <div class="info-item"><span class="info-key">车辆 VIN</span><span class="info-val">LM1AA3E5***0042</span></div>
+          <div class="info-item"><span class="info-key">装车日期</span><span class="info-val">2026-04-02</span></div>
+          <div class="info-item"><span class="info-key">装车工厂</span><span class="info-val">小米汽车 · 北京亦庄</span></div>
+          <div class="info-item"><span class="info-key">设计寿命</span><span class="info-val">8 年 / 200,000 km</span></div>
+          <div class="info-item"><span class="info-key">质保期限</span><span class="info-val">8 年 / 160,000 km</span></div>
+          <div class="info-item"><span class="info-key">目标市场</span><span class="info-val">🇪🇺 欧盟</span></div>
+          <div class="info-item"><span class="info-key">合规状态</span><span class="info-val"><span class="badge badge-green">✅ 已认证</span></span></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Tab 2: Carbon Footprint -->
+  <div id="tab-carbon" class="tab-panel">
+    <div class="grid-4">
+      <div class="stat-card">
+        <div class="stat-value" style="color:var(--green)">62.4</div>
+        <div class="stat-label">总碳足迹 (kg CO₂e/kWh)</div>
+        <div class="stat-sub">低于 EU 阈值 ✅</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-value" style="color:var(--blue)">6,302</div>
+        <div class="stat-label">电池总碳排放 (kg CO₂e)</div>
+        <div class="stat-sub">全生命周期</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-value" style="color:var(--yellow)">B</div>
+        <div class="stat-label">碳足迹性能等级</div>
+        <div class="stat-sub">2027 起强制标签</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-value" style="color:var(--orange)">-18%</div>
+        <div class="stat-label">较行业平均</div>
+        <div class="stat-sub">优于基准线</div>
+      </div>
+    </div>
+
+    <div class="grid-2" style="margin-top:20px;">
+      <div class="card">
+        <div class="card-title"><span class="icon">📊</span> 各阶段碳排放分布</div>
+        <div class="chart-wrap"><canvas id="carbonDonut"></canvas></div>
+      </div>
+      <div class="card">
+        <div class="card-title"><span class="icon">📈</span> 碳排放趋势与目标</div>
+        <div class="chart-wrap"><canvas id="carbonTrend"></canvas></div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-title"><span class="icon">🔍</span> 各阶段碳排放明细</div>
+      <div style="overflow-x:auto;">
+        <table style="width:100%;border-collapse:collapse;font-size:.85rem;">
+          <thead>
+            <tr style="border-bottom:2px solid var(--border);text-align:left;">
+              <th style="padding:10px 12px;color:var(--text-dim);font-weight:600;">阶段</th>
+              <th style="padding:10px 12px;color:var(--text-dim);font-weight:600;">碳排放 (kg CO₂e)</th>
+              <th style="padding:10px 12px;color:var(--text-dim);font-weight:600;">占比</th>
+              <th style="padding:10px 12px;color:var(--text-dim);font-weight:600;">数据来源</th>
+              <th style="padding:10px 12px;color:var(--text-dim);font-weight:600;">评级</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr style="border-bottom:1px solid var(--border);">
+              <td style="padding:10px 12px;">⛏️ 原材料开采与精炼</td>
+              <td style="padding:10px 12px;font-weight:600;">2,899</td>
+              <td style="padding:10px 12px;">46.0%</td>
+              <td style="padding:10px 12px;">Tier 1 供应商实测 + Ecoinvent</td>
+              <td style="padding:10px 12px;"><span class="badge badge-yellow">🟡 中</span></td>
+            </tr>
+            <tr style="border-bottom:1px solid var(--border);">
+              <td style="padding:10px 12px;">🏭 电芯与 PACK 制造</td>
+              <td style="padding:10px 12px;font-weight:600;">1,891</td>
+              <td style="padding:10px 12px;">30.0%</td>
+              <td style="padding:10px 12px;">CATL 工厂实测数据</td>
+              <td style="padding:10px 12px;"><span class="badge badge-green">🟢 优</span></td>
+            </tr>
+            <tr style="border-bottom:1px solid var(--border);">
+              <td style="padding:10px 12px;">🚛 运输与物流</td>
+              <td style="padding:10px 12px;font-weight:600;">441</td>
+              <td style="padding:10px 12px;">7.0%</td>
+              <td style="padding:10px 12px;">物流商碳排放因子</td>
+              <td style="padding:10px 12px;"><span class="badge badge-green">🟢 优</span></td>
+            </tr>
+            <tr style="border-bottom:1px solid var(--border);">
+              <td style="padding:10px 12px;">🔌 使用阶段（充电损耗）</td>
+              <td style="padding:10px 12px;font-weight:600;">819</td>
+              <td style="padding:10px 12px;">13.0%</td>
+              <td style="padding:10px 12px;">EU 电网平均碳强度</td>
+              <td style="padding:10px 12px;"><span class="badge badge-yellow">🟡 中</span></td>
+            </tr>
+            <tr>
+              <td style="padding:10px 12px;">♻️ 回收与报废</td>
+              <td style="padding:10px 12px;font-weight:600;">252</td>
+              <td style="padding:10px 12px;">4.0%</td>
+              <td style="padding:10px 12px;">行业平均（回收抵扣后）</td>
+              <td style="padding:10px 12px;"><span class="badge badge-green">🟢 优</span></td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- Tab 3: Material Traceability -->
+  <div id="tab-material" class="tab-panel">
+    <div class="grid-4">
+      <div class="stat-card">
+        <div class="stat-value" style="color:var(--cyan)">4</div>
+        <div class="stat-label">关键矿物种类</div>
+        <div class="stat-sub">Co / Li / Ni / Graphite</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-value" style="color:var(--green)">100%</div>
+        <div class="stat-label">矿产溯源覆盖</div>
+        <div class="stat-sub">全部可追溯至矿山</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-value" style="color:var(--accent)">12%</div>
+        <div class="stat-label">再生材料比例</div>
+        <div class="stat-sub">回收钴 + 回收镍</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-value" style="color:var(--green)">✅</div>
+        <div class="stat-label">冲突矿产合规</div>
+        <div class="stat-sub">OECD DD 审计通过</div>
+      </div>
+    </div>
+
+    <!-- Traceability Map -->
+    <div class="card" style="margin-top:20px;">
+      <div class="card-title"><span class="icon">🗺️</span> 矿产溯源地图</div>
+      <div class="map-container">
+        <!-- SVG World outline -->
+        <svg viewBox="0 0 1000 500" style="position:absolute;top:0;left:0;width:100%;height:100%;opacity:.15;">
+          <path d="M150,180 Q180,160 220,170 L280,165 Q320,155 340,180 L360,200 Q370,220 350,240 L320,250 Q290,260 270,245 L240,235 Q210,225 190,240 L160,250 Q140,240 130,220 Z" fill="var(--accent)" opacity=".5"/>
+          <path d="M450,120 Q500,100 560,115 L620,110 Q680,105 720,130 L750,160 Q760,190 740,210 L700,230 Q650,250 600,240 L550,230 Q500,220 470,200 L440,180 Q430,150 440,130 Z" fill="var(--accent)" opacity=".5"/>
+          <path d="M480,250 Q530,240 580,250 L630,260 Q680,270 700,300 L710,340 Q700,380 670,400 L620,410 Q570,420 530,400 L490,380 Q460,350 460,310 L470,280 Z" fill="var(--accent)" opacity=".5"/>
+          <path d="M750,140 Q800,120 860,130 L900,140 Q930,155 920,180 L900,210 Q870,230 830,220 L790,210 Q760,195 750,170 Z" fill="var(--accent)" opacity=".5"/>
+          <path d="M780,280 Q830,260 890,275 L920,290 Q940,310 930,340 L910,370 Q880,390 840,380 L800,365 Q770,340 770,310 Z" fill="var(--accent)" opacity=".5"/>
+        </svg>
+
+        <!-- Map dots -->
+        <div class="map-dot" style="left:28%;top:38%;background:var(--yellow);color:var(--yellow);">
+          <div class="tooltip">
+            <strong>🇨🇩 刚果 (金) — 钴矿</strong><br>
+            来源: Tenke Fungurume 矿区<br>
+            供应商: 洛阳钼业<br>
+            合规: <span style="color:var(--green)">✅ RMI 审计通过</span>
+          </div>
+        </div>
+        <div class="map-dot" style="left:62%;top:32%;background:var(--cyan);color:var(--cyan);">
+          <div class="tooltip">
+            <strong>🇨🇱 智利 — 锂矿</strong><br>
+            来源: Atacama 盐湖<br>
+            供应商: SQM<br>
+            合规: <span style="color:var(--green)">✅ 环境合规</span>
+          </div>
+        </div>
+        <div class="map-dot" style="left:72%;top:28%;background:var(--green);color:var(--green);">
+          <div class="tooltip">
+            <strong>🇮🇩 印度尼西亚 — 镍矿</strong><br>
+            来源: Sulawesi 矿区<br>
+            供应商: 华友钴业<br>
+            合规: <span style="color:var(--green)">✅ OECD DD 通过</span>
+          </div>
+        </div>
+        <div class="map-dot" style="left:70%;top:45%;background:var(--purple);color:var(--purple);">
+          <div class="tooltip">
+            <strong>🇲🇿 莫桑比克 — 天然石墨</strong><br>
+            来源: Balama 矿区<br>
+            供应商: Syrah Resources<br>
+            合规: <span style="color:var(--green)">✅ FSC 认证</span>
+          </div>
+        </div>
+        <div class="map-dot" style="left:78%;top:35%;background:var(--accent);color:var(--accent);">
+          <div class="tooltip">
+            <strong>🇨🇳 中国 — 精炼加工</strong><br>
+            正极材料: 巴莫科技 (成都)<br>
+            电芯制造: CATL (宁德)<br>
+            合规: <span style="color:var(--green)">✅ ISO 14001</span>
+          </div>
+        </div>
+      </div>
+      <p style="text-align:center;color:var(--text-muted);font-size:.75rem;margin-top:8px;">鼠标悬停矿点查看详细溯源信息</p>
+    </div>
+
+    <!-- Material composition -->
+    <div class="grid-2" style="margin-top:20px;">
+      <div class="card">
+        <div class="card-title"><span class="icon">⚗️</span> 材料成分</div>
+        <div class="chart-wrap chart-wrap-sm"><canvas id="materialPie"></canvas></div>
+      </div>
+      <div class="card">
+        <div class="card-title"><span class="icon">♻️</span> 再生材料占比</div>
+        <div style="margin-top:16px;">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
+            <span style="font-size:.85rem;">钴 (Co)</span>
+            <span class="badge badge-green">18% 再生</span>
+          </div>
+          <div class="progress-bar" style="margin-bottom:16px;"><div class="progress-fill" style="width:18%;background:var(--yellow);"></div></div>
+
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
+            <span style="font-size:.85rem;">镍 (Ni)</span>
+            <span class="badge badge-green">10% 再生</span>
+          </div>
+          <div class="progress-bar" style="margin-bottom:16px;"><div class="progress-fill" style="width:10%;background:var(--green);"></div></div>
+
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
+            <span style="font-size:.85rem;">锂 (Li)</span>
+            <span class="badge badge-yellow">4% 再生</span>
+          </div>
+          <div class="progress-bar" style="margin-bottom:16px;"><div class="progress-fill" style="width:4%;background:var(--cyan);"></div></div>
+
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
+            <span style="font-size:.85rem;">石墨 (Graphite)</span>
+            <span class="badge badge-yellow">6% 再生</span>
+          </div>
+          <div class="progress-bar"><div class="progress-fill" style="width:6%;background:var(--purple);"></div></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Tab 4: Health Status -->
+  <div id="tab-health" class="tab-panel">
+    <div class="grid-3">
+      <div class="card">
+        <div class="card-title" style="justify-content:center;"><span class="icon">❤️</span> SOH 健康度</div>
+        <div class="gauge-wrap">
+          <div class="gauge-circle" id="sohGauge">
+            <div class="gauge-inner">
+              <div class="gauge-value" id="sohValue">90%</div>
+              <div class="gauge-label">State of Health</div>
+            </div>
+          </div>
+          <p style="margin-top:12px;font-size:.85rem;color:var(--text-dim);">设计寿命剩余 <strong style="color:var(--green);">82%</strong></p>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-title" style="justify-content:center;"><span class="icon">🔄</span> 循环统计</div>
+        <div style="text-align:center;margin-top:20px;">
+          <div class="stat-value" style="font-size:3rem;color:var(--blue);">326</div>
+          <div class="stat-label" style="font-size:.9rem;">充放电循环次数</div>
+          <div style="margin-top:20px;">
+            <div style="display:flex;justify-content:space-between;font-size:.8rem;color:var(--text-dim);margin-bottom:4px;">
+              <span>已用</span><span>326 / 1,500 次</span>
+            </div>
+            <div class="progress-bar"><div class="progress-fill" style="width:21.7%;background:var(--blue);"></div></div>
+          </div>
+          <div style="margin-top:16px;display:grid;grid-template-columns:1fr 1fr;gap:10px;">
+            <div style="background:var(--blue-dim);border-radius:8px;padding:10px;">
+              <div style="font-size:1.1rem;font-weight:700;color:var(--blue);">42,800</div>
+              <div style="font-size:.7rem;color:var(--text-dim);">累计里程 (km)</div>
+            </div>
+            <div style="background:var(--green-dim);border-radius:8px;padding:10px;">
+              <div style="font-size:1.1rem;font-weight:700;color:var(--green);">96.2%</div>
+              <div style="font-size:.7rem;color:var(--text-dim);">充电效率</div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-title" style="justify-content:center;"><span class="icon">🌡️</span> 温度概况</div>
+        <div style="text-align:center;margin-top:20px;">
+          <div class="stat-value" style="font-size:2.5rem;color:var(--green);">28°C</div>
+          <div class="stat-label" style="font-size:.9rem;">当前电芯平均温度</div>
+          <div style="margin-top:16px;display:grid;grid-template-columns:1fr 1fr;gap:10px;">
+            <div style="background:var(--red-dim);border-radius:8px;padding:10px;">
+              <div style="font-size:1.1rem;font-weight:700;color:var(--orange);">45°C</div>
+              <div style="font-size:.7rem;color:var(--text-dim);">历史最高温度</div>
+            </div>
+            <div style="background:var(--cyan-dim);border-radius:8px;padding:10px;">
+              <div style="font-size:1.1rem;font-weight:700;color:var(--cyan);">-8°C</div>
+              <div style="font-size:.7rem;color:var(--text-dim);">历史最低温度</div>
+            </div>
+          </div>
+          <div style="margin-top:12px;display:grid;grid-template-columns:1fr 1fr;gap:10px;">
+            <div style="background:var(--green-dim);border-radius:8px;padding:10px;">
+              <div style="font-size:1.1rem;font-weight:700;color:var(--green);">0</div>
+              <div style="font-size:.7rem;color:var(--text-dim);">热失控事件</div>
+            </div>
+            <div style="background:var(--yellow-dim);border-radius:8px;padding:10px;">
+              <div style="font-size:1.1rem;font-weight:700;color:var(--yellow);">3</div>
+              <div style="font-size:.7rem;color:var(--text-dim);">温度告警次数</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="grid-2" style="margin-top:20px;">
+      <div class="card">
+        <div class="card-title"><span class="icon">📉</span> SOH 衰减曲线</div>
+        <div class="chart-wrap"><canvas id="sohChart"></canvas></div>
+      </div>
+      <div class="card">
+        <div class="card-title"><span class="icon">🌡️</span> 温度历史（近 30 天）</div>
+        <div class="chart-wrap"><canvas id="tempChart"></canvas></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Tab 5: QR Verification -->
+  <div id="tab-qr" class="tab-panel">
+    <div class="grid-2">
+      <div class="card" style="text-align:center;">
+        <div class="card-title" style="justify-content:center;"><span class="icon">📱</span> 电池护照 QR 码</div>
+        <div class="qr-box">
+          <canvas id="qrCanvas"></canvas>
+        </div>
+        <p style="font-size:.82rem;color:var(--text-dim);margin-bottom:12px;">扫描查看完整电池护照</p>
+        <div style="background:var(--bg);border-radius:8px;padding:10px;font-family:monospace;font-size:.75rem;color:var(--cyan);word-break:break-all;">
+          https://bpassport.mi.com/XM20260315A0042
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-title"><span class="icon">🔐</span> 数据验证状态</div>
+        <div class="validation-strip" style="flex-direction:column;gap:10px;">
+          <div class="valid-item" style="background:var(--green-dim);border-color:var(--green);">
+            <span style="color:var(--green);font-size:1rem;">✅</span>
+            <span>数据哈希验证通过</span>
+            <span style="margin-left:auto;font-size:.7rem;color:var(--text-muted);">SHA-256</span>
+          </div>
+          <div class="valid-item" style="background:var(--green-dim);border-color:var(--green);">
+            <span style="color:var(--green);font-size:1rem;">✅</span>
+            <span>区块链存证验证通过</span>
+            <span style="margin-left:auto;font-size:.7rem;color:var(--text-muted);">Block #4,821,567</span>
+          </div>
+          <div class="valid-item" style="background:var(--green-dim);border-color:var(--green);">
+            <span style="color:var(--green);font-size:1rem;">✅</span>
+            <span>数字签名验证通过</span>
+            <span style="margin-left:auto;font-size:.7rem;color:var(--text-muted);">ECDSA P-256</span>
+          </div>
+          <div class="valid-item" style="background:var(--green-dim);border-color:var(--green);">
+            <span style="color:var(--green);font-size:1rem;">✅</span>
+            <span>碳足迹声明已认证</span>
+            <span style="margin-left:auto;font-size:.7rem;color:var(--text-muted);">TÜV SÜD</span>
+          </div>
+          <div class="valid-item" style="background:var(--green-dim);border-color:var(--green);">
+            <span style="color:var(--green);font-size:1rem;">✅</span>
+            <span>供应链尽职调查合规</span>
+            <span style="margin-left:auto;font-size:.7rem;color:var(--text-muted);">OECD DD</span>
+          </div>
+          <div class="valid-item" style="background:var(--green-dim);border-color:var(--green);">
+            <span style="color:var(--green);font-size:1rem;">✅</span>
+            <span>冲突矿产筛查通过</span>
+            <span style="margin-left:auto;font-size:.7rem;color:var(--text-muted);">RMI CMRT</span>
+          </div>
+        </div>
+
+        <div style="margin-top:20px;">
+          <div class="card-title"><span class="icon">📜</span> 存证时间线</div>
+          <div class="timeline">
+            <div class="timeline-item done">
+              <div class="tl-date">2026-03-15</div>
+              <div class="tl-title">电池制造完成</div>
+              <div class="tl-desc">CATL 宁德基地 · 批次 XM-20260315</div>
+            </div>
+            <div class="timeline-item done">
+              <div class="tl-date">2026-03-18</div>
+              <div class="tl-title">碳足迹声明生成</div>
+              <div class="tl-desc">62.4 kg CO₂e/kWh · TÜV SÜD 认证</div>
+            </div>
+            <div class="timeline-item done">
+              <div class="tl-date">2026-03-20</div>
+              <div class="tl-title">区块链存证上链</div>
+              <div class="tl-desc">Hyperledger Fabric · Block #4,821,567</div>
+            </div>
+            <div class="timeline-item done">
+              <div class="tl-date">2026-04-02</div>
+              <div class="tl-title">装车绑定</div>
+              <div class="tl-desc">VIN: LM1AA3E5***0042 · SU7 Ultra</div>
+            </div>
+            <div class="timeline-item done">
+              <div class="tl-date">2026-07-15</div>
+              <div class="tl-title">最近一次数据更新</div>
+              <div class="tl-desc">SOH: 90% · 循环: 326 次</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="footer">
+    <p>🔋 小米电池护照 Demo · 基于 EU Battery Regulation 2023/1542 · 数据仅供演示</p>
+    <p style="margin-top:4px;">数据标准: CIRPASS Battery Passport · GBA Battery Passport · GS1 Digital Link</p>
+  </div>
+</div>
+
+<script>
+// Tab switching
+function switchTab(name) {
+  document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+  document.getElementById('tab-' + name).classList.add('active');
+  event.target.classList.add('active');
+  // Re-render charts when tab becomes visible
+  if (name === 'carbon') { renderCarbonCharts(); }
+  if (name === 'material') { renderMaterialChart(); }
+  if (name === 'health') { renderHealthCharts(); }
+  if (name === 'qr') { renderQR(); }
+}
+
+// Chart defaults
+Chart.defaults.color = '#9ca3af';
+Chart.defaults.borderColor = '#2a2e3e';
+Chart.defaults.font.family = "-apple-system, 'SF Pro Display', 'Segoe UI', sans-serif";
+
+let carbonDonutChart, carbonTrendChart, materialPieChart, sohChart, tempChart;
+
+function renderCarbonCharts() {
+  if (carbonDonutChart) carbonDonutChart.destroy();
+  if (carbonTrendChart) carbonTrendChart.destroy();
+
+  const donutCtx = document.getElementById('carbonDonut').getContext('2d');
+  carbonDonutChart = new Chart(donutCtx, {
+    type: 'doughnut',
+    data: {
+      labels: ['原材料开采', '电芯/PACK制造', '运输物流', '使用阶段', '回收报废'],
+      datasets: [{
+        data: [2899, 1891, 441, 819, 252],
+        backgroundColor: ['#eab308', '#3b82f6', '#06b6d4', '#f97316', '#22c55e'],
+        borderColor: '#1a1d27',
+        borderWidth: 3
+      }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      cutout: '65%',
+      plugins: {
+        legend: { position: 'right', labels: { padding: 16, usePointStyle: true, pointStyleWidth: 12 } },
+        tooltip: { callbacks: { label: ctx => `${ctx.label}: ${ctx.raw} kg CO₂e (${(ctx.raw/6302*100).toFixed(1)}%)` } }
+      }
+    }
+  });
+
+  const trendCtx = document.getElementById('carbonTrend').getContext('2d');
+  carbonTrendChart = new Chart(trendCtx, {
+    type: 'line',
+    data: {
+      labels: ['2024', '2025', '2026', '2027(E)', '2028(E)', '2029(E)', '2030(E)'],
+      datasets: [{
+        label: '小米电池碳足迹',
+        data: [78, 70, 62.4, 56, 50, 45, 40],
+        borderColor: '#22c55e',
+        backgroundColor: 'rgba(34,197,94,.1)',
+        fill: true,
+        tension: .4,
+        pointRadius: 5,
+        pointBackgroundColor: '#22c55e'
+      }, {
+        label: '行业平均',
+        data: [85, 80, 76, 72, 68, 65, 62],
+        borderColor: '#ef4444',
+        borderDash: [6, 4],
+        tension: .4,
+        pointRadius: 4,
+        pointBackgroundColor: '#ef4444'
+      }, {
+        label: 'EU 碳足迹阈值 (预估)',
+        data: [null, null, null, null, null, null, 55],
+        borderColor: '#eab308',
+        borderDash: [2, 2],
+        pointRadius: 6,
+        pointBackgroundColor: '#eab308',
+        pointStyle: 'triangle'
+      }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      scales: {
+        y: { title: { display: true, text: 'kg CO₂e / kWh' }, grid: { color: 'rgba(42,46,62,.5)' } },
+        x: { grid: { display: false } }
+      },
+      plugins: { legend: { labels: { padding: 16, usePointStyle: true } } }
+    }
+  });
+}
+
+function renderMaterialChart() {
+  if (materialPieChart) materialPieChart.destroy();
+  const ctx = document.getElementById('materialPie').getContext('2d');
+  materialPieChart = new Chart(ctx, {
+    type: 'pie',
+    data: {
+      labels: ['镍 (Ni)', '钴 (Co)', '锰 (Mn)', '锂 (Li)', '石墨', '铜箔', '铝箔', '电解液', '隔膜', '其他'],
+      datasets: [{
+        data: [32, 8, 5, 4, 14, 12, 8, 10, 4, 3],
+        backgroundColor: ['#3b82f6', '#eab308', '#a855f7', '#06b6d4', '#6b7280', '#f97316', '#818cf8', '#22c55e', '#ef4444', '#4b5563'],
+        borderColor: '#1a1d27',
+        borderWidth: 2
+      }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: {
+        legend: { position: 'right', labels: { padding: 10, usePointStyle: true, pointStyleWidth: 10, font: { size: 11 } } },
+        tooltip: { callbacks: { label: ctx => `${ctx.label}: ${ctx.raw}%` } }
+      }
+    }
+  });
+}
+
+function renderHealthCharts() {
+  if (sohChart) sohChart.destroy();
+  if (tempChart) tempChart.destroy();
+
+  const sohCtx = document.getElementById('sohChart').getContext('2d');
+  sohChart = new Chart(sohCtx, {
+    type: 'line',
+    data: {
+      labels: ['0', '5k', '10k', '15k', '20k', '25k', '30k', '35k', '40k', '42.8k'],
+      datasets: [{
+        label: 'SOH (%)',
+        data: [100, 98.5, 97, 95.5, 94, 92.5, 91.5, 90.8, 90.2, 90],
+        borderColor: '#22c55e',
+        backgroundColor: 'rgba(34,197,94,.1)',
+        fill: true,
+        tension: .3,
+        pointRadius: 4,
+        pointBackgroundColor: '#22c55e'
+      }, {
+        label: '设计衰减曲线',
+        data: [100, 98, 96, 94, 92, 90, 88, 86, 84, 83],
+        borderColor: '#6b7280',
+        borderDash: [6, 4],
+        tension: .3,
+        pointRadius: 0
+      }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      scales: {
+        y: { min: 75, max: 102, title: { display: true, text: 'SOH (%)' }, grid: { color: 'rgba(42,46,62,.5)' } },
+        x: { title: { display: true, text: '累计里程 (km)' }, grid: { display: false } }
+      },
+      plugins: { legend: { labels: { padding: 16, usePointStyle: true } } }
+    }
+  });
+
+  const tempCtx = document.getElementById('tempChart').getContext('2d');
+  const tempLabels = Array.from({length: 30}, (_, i) => `${i+1}日`);
+  const tempData = [22,24,26,25,23,21,20,22,28,30,32,35,38,40,42,45,43,38,32,28,25,23,22,24,26,28,30,27,25,28];
+  tempChart = new Chart(tempCtx, {
+    type: 'line',
+    data: {
+      labels: tempLabels,
+      datasets: [{
+        label: '电芯平均温度 (°C)',
+        data: tempData,
+        borderColor: '#06b6d4',
+        backgroundColor: ctx => {
+          const gradient = ctx.chart.ctx.createLinearGradient(0, 0, 0, 300);
+          gradient.addColorStop(0, 'rgba(6,182,212,.2)');
+          gradient.addColorStop(1, 'rgba(6,182,212,0)');
+          return gradient;
+        },
+        fill: true,
+        tension: .4,
+        pointRadius: 2,
+        pointHoverRadius: 5
+      }, {
+        label: '安全阈值',
+        data: Array(30).fill(40),
+        borderColor: '#ef4444',
+        borderDash: [6, 4],
+        pointRadius: 0
+      }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      scales: {
+        y: { min: 10, max: 55, title: { display: true, text: '温度 (°C)' }, grid: { color: 'rgba(42,46,62,.5)' } },
+        x: { grid: { display: false } }
+      },
+      plugins: { legend: { labels: { padding: 16, usePointStyle: true } } }
+    }
+  });
+}
+
+// Simple QR code renderer (visual pattern, not a real QR encoder)
+function renderQR() {
+  const canvas = document.getElementById('qrCanvas');
+  if (!canvas) return;
+  const ctx = canvas.getContext('2d');
+  const size = 180;
+  canvas.width = size;
+  canvas.height = size;
+  const cellSize = size / 25;
+
+  ctx.fillStyle = '#ffffff';
+  ctx.fillRect(0, 0, size, size);
+  ctx.fillStyle = '#000000';
+
+  // Position patterns (3 corners)
+  function drawFinder(x, y) {
+    const s = cellSize;
+    ctx.fillRect(x*s, y*s, 7*s, 7*s);
+    ctx.fillStyle = '#ffffff';
+    ctx.fillRect((x+1)*s, (y+1)*s, 5*s, 5*s);
+    ctx.fillStyle = '#000000';
+    ctx.fillRect((x+2)*s, (y+2)*s, 3*s, 3*s);
+  }
+  drawFinder(0, 0);
+  drawFinder(18, 0);
+  drawFinder(0, 18);
+
+  // Timing patterns
+  for (let i = 8; i < 17; i++) {
+    if (i % 2 === 0) {
+      ctx.fillRect(i * cellSize, 6 * cellSize, cellSize, cellSize);
+      ctx.fillRect(6 * cellSize, i * cellSize, cellSize, cellSize);
+    }
+  }
+
+  // Data area (pseudo-random for visual effect)
+  const seed = 42;
+  for (let r = 0; r < 25; r++) {
+    for (let c = 0; c < 25; c++) {
+      if ((r < 8 && c < 8) || (r < 8 && c > 16) || (r > 16 && c < 8)) continue;
+      if ((r === 6 || c === 6) && r >= 8 && r <= 16 && c >= 8 && c <= 16) continue;
+      if (((r * 25 + c + seed) * 2654435761 >>> 0) % 3 === 0) {
+        ctx.fillRect(c * cellSize, r * cellSize, cellSize, cellSize);
+      }
+    }
+  }
+
+  // Xiaomi logo in center
+  const cx = 11.5 * cellSize, cy = 11.5 * cellSize, lr = 2.5 * cellSize;
+  ctx.fillStyle = '#ffffff';
+  ctx.beginPath();
+  ctx.arc(cx, cy, lr + 2, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.fillStyle = '#ff6900';
+  ctx.beginPath();
+  ctx.arc(cx, cy, lr, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.fillStyle = '#ffffff';
+  ctx.font = `bold ${cellSize * 1.8}px sans-serif`;
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  ctx.fillText('Mi', cx, cy + 1);
+}
+
+// Initialize
+document.addEventListener('DOMContentLoaded', () => {
+  // Pre-render charts for active tab
+  renderCarbonCharts();
+});
+</script>
+</body>
+</html>

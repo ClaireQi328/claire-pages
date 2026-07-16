@@ -1,0 +1,792 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AI 建设策略 — Skill 与 MCP 详细说明</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC",
+                 "Hiragino Sans GB", "Microsoft YaHei", sans-serif;
+    background: #f0f2f5; color: #333; line-height: 1.8; padding: 24px;
+  }
+  .report-container {
+    max-width: 1200px; margin: 0 auto; background: #fff;
+    border-radius: 12px; box-shadow: 0 2px 12px rgba(0,0,0,0.08); padding: 40px 48px;
+  }
+  .report-header {
+    text-align: center; margin-bottom: 40px; padding-bottom: 24px; border-bottom: 2px solid #e8e8e8;
+  }
+  .report-header h1 { font-size: 30px; font-weight: 700; color: #1a1a1a; margin-bottom: 8px; }
+  .report-header .subtitle { font-size: 14px; color: #888; }
+  .section-title {
+    font-size: 22px; font-weight: 700; color: #1a1a1a;
+    margin: 40px 0 20px 0; padding-bottom: 10px; border-bottom: 1px solid #f0f0f0;
+  }
+  .section-title::before {
+    content: ''; display: inline-block; width: 4px; height: 22px;
+    background: #1890ff; border-radius: 2px; margin-right: 10px; vertical-align: middle;
+  }
+  .sub-title {
+    font-size: 18px; font-weight: 700; color: #1a1a1a;
+    margin: 28px 0 14px 0; padding-left: 12px; border-left: 3px solid #1890ff;
+  }
+  .sub-title.green { border-left-color: #52c41a; }
+  .sub-title.orange { border-left-color: #faad14; }
+  .sub-title.purple { border-left-color: #722ed1; }
+  .sub-title.red { border-left-color: #ff4d4f; }
+  p { font-size: 15px; color: #555; margin-bottom: 12px; line-height: 1.9; }
+  p strong { color: #333; }
+  .note-box {
+    background: #fafbfc; border: 1px solid #e8e8e8; border-left: 4px solid #1890ff;
+    border-radius: 6px; padding: 18px 22px; margin: 20px 0; font-size: 14px; color: #555;
+  }
+  .note-box p { margin-bottom: 6px; font-size: 14px; }
+  .note-box.purple { border-left-color: #722ed1; background: #f9f0ff; }
+  .note-box.green { border-left-color: #52c41a; background: #f6ffed; }
+  .note-box.orange { border-left-color: #faad14; background: #fffbe6; }
+  .note-box.red { border-left-color: #ff4d4f; background: #fff2f0; }
+  .note-box strong { color: #333; }
+  .concept-grid {
+    display: grid; grid-template-columns: 1fr 1fr; gap: 24px; margin: 24px 0;
+  }
+  .concept-card {
+    background: #fafbfc; border: 1px solid #f0f0f0; border-radius: 10px;
+    padding: 24px; position: relative; overflow: hidden;
+  }
+  .concept-card::before {
+    content: ''; position: absolute; top: 0; left: 0; right: 0; height: 4px;
+  }
+  .concept-card.skill::before { background: linear-gradient(90deg, #1890ff, #69c0ff); }
+  .concept-card.mcp::before { background: linear-gradient(90deg, #722ed1, #b37feb); }
+  .concept-card h3 { font-size: 18px; font-weight: 700; color: #333; margin-bottom: 12px; }
+  .concept-card .tag {
+    display: inline-block; padding: 2px 10px; border-radius: 4px;
+    font-size: 12px; font-weight: 600; margin-right: 6px; margin-bottom: 8px;
+  }
+  .tag-blue { background: #e6f7ff; color: #0958d9; }
+  .tag-purple { background: #f9f0ff; color: #531dab; }
+  .concept-card ul { padding-left: 20px; margin-top: 12px; }
+  .concept-card li { font-size: 14px; color: #555; margin-bottom: 6px; }
+  .architecture-box {
+    background: #fafbfc; border: 1px solid #e8e8e8; border-radius: 10px;
+    padding: 28px; margin: 24px 0; font-family: "Cascadia Code", "Fira Code", monospace;
+    font-size: 13px; line-height: 1.8; overflow-x: auto; color: #555;
+  }
+  .architecture-box .layer {
+    display: flex; align-items: center; margin: 8px 0;
+  }
+  .architecture-box .layer-label {
+    width: 140px; font-weight: 600; color: #333; flex-shrink: 0;
+  }
+  .architecture-box .layer-content {
+    flex: 1; background: #fff; border: 1px solid #e8e8e8; border-radius: 6px;
+    padding: 10px 16px; display: flex; gap: 12px; flex-wrap: wrap;
+  }
+  .architecture-box .layer-content .item {
+    background: #f0f5ff; border: 1px solid #adc6ff; border-radius: 4px;
+    padding: 4px 12px; font-size: 12px; color: #0958d9;
+  }
+  .architecture-box .layer-content .item.purple {
+    background: #f9f0ff; border-color: #d3adf7; color: #531dab;
+  }
+  .architecture-box .layer-content .item.green {
+    background: #f6ffed; border-color: #b7eb8f; color: #389e0d;
+  }
+  .architecture-box .layer-content .item.orange {
+    background: #fffbe6; border-color: #ffe58f; color: #d48806;
+  }
+  .architecture-box .arrow {
+    text-align: center; color: #bbb; font-size: 18px; margin: 4px 0;
+  }
+  .flow-diagram {
+    display: flex; align-items: center; justify-content: center; gap: 0;
+    margin: 24px 0; flex-wrap: wrap;
+  }
+  .flow-step {
+    background: #fff; border: 2px solid #1890ff; border-radius: 8px;
+    padding: 14px 20px; text-align: center; min-width: 140px;
+  }
+  .flow-step.purple { border-color: #722ed1; }
+  .flow-step.green { border-color: #52c41a; }
+  .flow-step.orange { border-color: #faad14; }
+  .flow-step .step-title { font-size: 14px; font-weight: 700; color: #333; }
+  .flow-step .step-desc { font-size: 12px; color: #888; margin-top: 4px; }
+  .flow-arrow { font-size: 24px; color: #bbb; padding: 0 8px; }
+  .comparison-table {
+    width: 100%; border-collapse: collapse; font-size: 14px; margin: 20px 0;
+  }
+  .comparison-table thead th {
+    background: #fafafa; font-weight: 600; color: #333;
+    padding: 12px 16px; text-align: left; border-bottom: 2px solid #f0f0f0;
+  }
+  .comparison-table tbody td {
+    padding: 12px 16px; border-bottom: 1px solid #f5f5f5; color: #555;
+  }
+  .comparison-table tbody tr:hover { background: #fafafa; }
+  .comparison-table .highlight { color: #1890ff; font-weight: 600; }
+  .comparison-table .highlight-purple { color: #722ed1; font-weight: 600; }
+  .case-grid {
+    display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin: 20px 0;
+  }
+  .case-card {
+    background: #fafbfc; border: 1px solid #f0f0f0; border-radius: 8px;
+    padding: 20px; border-left: 4px solid #1890ff;
+  }
+  .case-card.purple { border-left-color: #722ed1; }
+  .case-card h4 { font-size: 15px; font-weight: 600; color: #333; margin-bottom: 10px; }
+  .case-card p { font-size: 13px; color: #666; margin-bottom: 6px; }
+  .case-card .code {
+    background: #f5f5f5; border-radius: 4px; padding: 8px 12px;
+    font-family: "Cascadia Code", monospace; font-size: 12px; color: #333;
+    margin-top: 10px; overflow-x: auto;
+  }
+  .roadmap {
+    position: relative; padding-left: 32px; margin: 24px 0;
+  }
+  .roadmap::before {
+    content: ''; position: absolute; left: 11px; top: 0; bottom: 0;
+    width: 2px; background: #e8e8e8;
+  }
+  .roadmap-step { position: relative; padding: 14px 0; }
+  .roadmap-step::before {
+    content: ''; position: absolute; left: -27px; top: 20px;
+    width: 12px; height: 12px; background: #1890ff; border-radius: 50%;
+    border: 2px solid #fff; box-shadow: 0 0 0 2px #1890ff;
+  }
+  .roadmap-step.purple::before { background: #722ed1; box-shadow: 0 0 0 2px #722ed1; }
+  .roadmap-step.green::before { background: #52c41a; box-shadow: 0 0 0 2px #52c41a; }
+  .roadmap-step .step-title { font-size: 15px; font-weight: 600; color: #333; }
+  .roadmap-step .step-desc { font-size: 13px; color: #888; margin-top: 4px; }
+  .code-block {
+    background: #1e1e1e; color: #d4d4d4; border-radius: 8px;
+    padding: 20px; margin: 16px 0; font-family: "Cascadia Code", "Fira Code", monospace;
+    font-size: 13px; line-height: 1.6; overflow-x: auto;
+  }
+  .code-block .comment { color: #6a9955; }
+  .code-block .keyword { color: #569cd6; }
+  .code-block .string { color: #ce9178; }
+  .code-block .type { color: #4ec9b0; }
+  .code-block .func { color: #dcdcaa; }
+  .kpi-row {
+    display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    gap: 16px; margin: 24px 0;
+  }
+  .kpi-card {
+    background: #fff; border: 1px solid #f0f0f0; border-radius: 8px;
+    padding: 18px; text-align: center;
+  }
+  .kpi-card .kpi-label { font-size: 13px; color: #888; margin-bottom: 6px; }
+  .kpi-card .kpi-value { font-size: 28px; font-weight: 700; color: #1890ff; }
+  .kpi-card.purple .kpi-value { color: #722ed1; }
+  .kpi-card.green .kpi-value { color: #52c41a; }
+  .kpi-card.orange .kpi-value { color: #faad14; }
+  .footer-note {
+    text-align: center; font-size: 12px; color: #bbb;
+    margin-top: 40px; padding-top: 20px; border-top: 1px solid #f0f0f0;
+  }
+  @media (max-width: 768px) {
+    body { padding: 12px; }
+    .report-container { padding: 24px 16px; }
+    .concept-grid, .case-grid { grid-template-columns: 1fr; }
+    .flow-diagram { flex-direction: column; }
+    .flow-arrow { transform: rotate(90deg); }
+  }
+</style>
+</head>
+<body>
+<div class="report-container">
+
+  <!-- HEADER -->
+  <div class="report-header">
+    <h1>🤖 AI 建设策略 — Skill 与 MCP 详细说明</h1>
+    <p class="subtitle">基于 数鲸 BI 平台 & Claude Code 的 AI 能力构建方案 &nbsp;|&nbsp; 2026-06-30</p>
+  </div>
+
+  <!-- ==================== 一、背景与目标 ==================== -->
+  <h2 class="section-title">一、背景与目标</h2>
+  <p>在数据分析场景中，我们面临以下痛点：</p>
+  <div class="note-box red">
+    <p><strong>🔴 当前痛点</strong></p>
+    <p>• <strong>重复劳动：</strong>每次数据分析都需要手动写 SQL、调模型、做可视化，耗时且易出错</p>
+    <p>• <strong>知识孤岛：</strong>分析经验沉淀在个人脑中，无法复用和传承</p>
+    <p>• <strong>工具割裂：</strong>BI 平台、SQL 编辑器、Excel、报告模板之间缺乏自动化串联</p>
+    <p>• <strong>AI 落地难：</strong>通用 AI 不了解业务上下文，无法直接产出可用的分析结果</p>
+  </div>
+
+  <p><strong>建设目标：</strong>通过 <strong>Skill（技能）</strong>和 <strong>MCP（Model Context Protocol）</strong>两大核心能力，构建可复用、可编排、可进化的 AI 数据分析体系。</p>
+
+  <div class="kpi-row">
+    <div class="kpi-card">
+      <div class="kpi-label">Skill 数量目标</div>
+      <div class="kpi-value">20+</div>
+    </div>
+    <div class="kpi-card purple">
+      <div class="kpi-label">MCP Server 数量</div>
+      <div class="kpi-value">5+</div>
+    </div>
+    <div class="kpi-card green">
+      <div class="kpi-label">分析效率提升</div>
+      <div class="kpi-value">80%</div>
+    </div>
+    <div class="kpi-card orange">
+      <div class="kpi-label">知识复用率</div>
+      <div class="kpi-value">90%</div>
+    </div>
+  </div>
+
+  <!-- ==================== 二、核心概念 ==================== -->
+  <h2 class="section-title">二、核心概念</h2>
+
+  <div class="concept-grid">
+    <!-- Skill -->
+    <div class="concept-card skill">
+      <h3>🎯 Skill（技能）</h3>
+      <span class="tag tag-blue">可复用</span>
+      <span class="tag tag-blue">可编排</span>
+      <span class="tag tag-blue">可进化</span>
+      <p style="font-size:14px;color:#555;margin-top:12px;">
+        <strong>Skill 是预定义的 AI 能力单元</strong>，封装了特定任务的完整处理逻辑。
+        每个 Skill 包含：提示词模板、工具调用链、输出格式规范、异常处理策略。
+      </p>
+      <ul>
+        <li>类似「函数」—— 输入明确、输出确定、可重复调用</li>
+        <li>可组合：多个 Skill 串联形成完整工作流</li>
+        <li>可进化：根据使用反馈持续优化提示词和逻辑</li>
+        <li>可共享：团队成员间复用已有 Skill</li>
+      </ul>
+    </div>
+
+    <!-- MCP -->
+    <div class="concept-card mcp">
+      <h3>🔌 MCP（Model Context Protocol）</h3>
+      <span class="tag tag-purple">标准化</span>
+      <span class="tag tag-purple">可插拔</span>
+      <span class="tag tag-purple">安全隔离</span>
+      <p style="font-size:14px;color:#555;margin-top:12px;">
+        <strong>MCP 是 AI 模型连接外部数据源和工具的标准协议</strong>，
+        由 Anthropic 提出，已成为行业标准。它让 AI 能安全地访问数据库、API、文件系统等。
+      </p>
+      <ul>
+        <li>类似「USB 接口」—— 统一标准，即插即用</li>
+        <li>安全隔离：AI 只能通过 MCP Server 暴露的能力访问数据</li>
+        <li>可插拔：新增数据源只需开发对应 MCP Server</li>
+        <li>跨模型：同一 MCP Server 可服务于不同 AI 模型</li>
+      </ul>
+    </div>
+  </div>
+
+  <!-- ==================== 三、架构设计 ==================== -->
+  <h2 class="section-title">三、整体架构</h2>
+
+  <div class="architecture-box">
+    <div class="layer">
+      <div class="layer-label">🎯 应用层</div>
+      <div class="layer-content">
+        <div class="item">数据分析 Skill</div>
+        <div class="item">报告生成 Skill</div>
+        <div class="item">SQL 优化 Skill</div>
+        <div class="item">可视化 Skill</div>
+        <div class="item">异常检测 Skill</div>
+      </div>
+    </div>
+    <div class="arrow">↕</div>
+    <div class="layer">
+      <div class="layer-label">🧠 编排层</div>
+      <div class="layer-content">
+        <div class="item green">Skill 编排引擎</div>
+        <div class="item green">Workflow 调度器</div>
+        <div class="item green">上下文管理器</div>
+      </div>
+    </div>
+    <div class="arrow">↕</div>
+    <div class="layer">
+      <div class="layer-label">🔌 协议层</div>
+      <div class="layer-content">
+        <div class="item purple">MCP Client</div>
+        <div class="item purple">Tool Router</div>
+        <div class="item purple">权限网关</div>
+      </div>
+    </div>
+    <div class="arrow">↕</div>
+    <div class="layer">
+      <div class="layer-label">🏗️ 服务层</div>
+      <div class="layer-content">
+        <div class="item orange">BI MCP Server</div>
+        <div class="item orange">Database MCP Server</div>
+        <div class="item orange">File MCP Server</div>
+        <div class="item orange">API MCP Server</div>
+      </div>
+    </div>
+    <div class="arrow">↕</div>
+    <div class="layer">
+      <div class="layer-label">💾 数据层</div>
+      <div class="layer-content">
+        <div class="item">数鲸 BI 平台</div>
+        <div class="item">Iceberg 数据仓库</div>
+        <div class="item">Excel/CSV 文件</div>
+        <div class="item">外部 API</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ==================== 四、Skill 详解 ==================== -->
+  <h2 class="section-title">四、Skill（技能）详解</h2>
+
+  <h3 class="sub-title">4.1 Skill 的结构</h3>
+  <p>每个 Skill 由以下要素组成：</p>
+
+  <div class="code-block">
+<span class="comment">// Skill 定义结构</span>
+{
+  <span class="string">"name"</span>: <span class="string">"rfq-data-analysis"</span>,        <span class="comment">// 技能名称</span>
+  <span class="string">"description"</span>: <span class="string">"RFQ 询报价数据分析"</span>,  <span class="comment">// 简要描述</span>
+  <span class="string">"version"</span>: <span class="string">"1.0.0"</span>,                  <span class="comment">// 版本号</span>
+  <span class="string">"trigger"</span>: {                          <span class="comment">// 触发条件</span>
+    <span class="string">"keywords"</span>: [<span class="string">"RFQ"</span>, <span class="string">"询报价"</span>, <span class="string">"报价分析"</span>],
+    <span class="string">"file_patterns"</span>: [<span class="string">"*询报价*.xlsx"</span>]
+  },
+  <span class="string">"steps"</span>: [                            <span class="comment">// 执行步骤</span>
+    { <span class="string">"tool"</span>: <span class="string">"mcp:bi-query"</span>, <span class="string">"params"</span>: {...} },
+    { <span class="string">"tool"</span>: <span class="string">"python:pandas"</span>, <span class="string">"params"</span>: {...} },
+    { <span class="string">"tool"</span>: <span class="string">"html:render"</span>,   <span class="string">"params"</span>: {...} }
+  ],
+  <span class="string">"output"</span>: {                          <span class="comment">// 输出规范</span>
+    <span class="string">"format"</span>: <span class="string">"html"</span>,
+    <span class="string">"template"</span>: <span class="string">"analysis-report"</span>
+  }
+}
+  </div>
+
+  <h3 class="sub-title green">4.2 已建成 / 规划中的 Skill</h3>
+
+  <div class="data-table-wrapper">
+    <table class="comparison-table">
+      <thead>
+        <tr>
+          <th>Skill 名称</th>
+          <th>功能</th>
+          <th>输入</th>
+          <th>输出</th>
+          <th>状态</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td class="highlight">rfq-data-analysis</td>
+          <td>RFQ 询报价数据全流程分析</td>
+          <td>Excel / BI 查询</td>
+          <td>分析报告 HTML</td>
+          <td><span class="tag tag-blue">✅ 已建成</span></td>
+        </tr>
+        <tr>
+          <td class="highlight">sql-optimizer</td>
+          <td>SQL 性能优化与重写</td>
+          <td>原始 SQL</td>
+          <td>优化后 SQL + 解释</td>
+          <td><span class="tag tag-blue">✅ 已建成</span></td>
+        </tr>
+        <tr>
+          <td class="highlight">bi-query</td>
+          <td>自然语言查数</td>
+          <td>自然语言问题</td>
+          <td>SQL + 数据结果</td>
+          <td><span class="tag tag-blue">✅ 已建成</span></td>
+        </tr>
+        <tr>
+          <td class="highlight">report-generator</td>
+          <td>标准化分析报告生成</td>
+          <td>数据 + 模板</td>
+          <td>HTML 报告</td>
+          <td><span class="tag tag-blue">✅ 已建成</span></td>
+        </tr>
+        <tr>
+          <td class="highlight">supplier-profiling</td>
+          <td>供应商画像分析</td>
+          <td>供应商 ID</td>
+          <td>画像报告</td>
+          <td><span class="tag tag-purple">🔨 规划中</span></td>
+        </tr>
+        <tr>
+          <td class="highlight">anomaly-detector</td>
+          <td>报价异常检测</td>
+          <td>历史报价数据</td>
+          <td>异常清单 + 风险等级</td>
+          <td><span class="tag tag-purple">🔨 规划中</span></td>
+        </tr>
+        <tr>
+          <td class="highlight">cost-benchmark</td>
+          <td>成本对标分析</td>
+          <td>品类 + 目标成本</td>
+          <td>对标报告</td>
+          <td><span class="tag tag-purple">🔨 规划中</span></td>
+        </tr>
+        <tr>
+          <td class="highlight">dashboard-builder</td>
+          <td>看板自动生成</td>
+          <td>数据模型 + 需求</td>
+          <td>看板配置 JSON</td>
+          <td><span class="tag tag-purple">🔨 规划中</span></td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <h3 class="sub-title orange">4.3 Skill 编排示例</h3>
+  <p>多个 Skill 可以串联成完整工作流：</p>
+
+  <div class="flow-diagram">
+    <div class="flow-step">
+      <div class="step-title">📥 数据获取</div>
+      <div class="step-desc">bi-query Skill</div>
+    </div>
+    <div class="flow-arrow">→</div>
+    <div class="flow-step purple">
+      <div class="step-title">🔧 SQL 优化</div>
+      <div class="step-desc">sql-optimizer Skill</div>
+    </div>
+    <div class="flow-arrow">→</div>
+    <div class="flow-step green">
+      <div class="step-title">📊 数据分析</div>
+      <div class="step-desc">rfq-data-analysis Skill</div>
+    </div>
+    <div class="flow-arrow">→</div>
+    <div class="flow-step orange">
+      <div class="step-title">📄 报告生成</div>
+      <div class="step-desc">report-generator Skill</div>
+    </div>
+    <div class="flow-arrow">→</div>
+    <div class="flow-step">
+      <div class="step-title">🌐 发布共享</div>
+      <div class="step-desc">FDS 上传</div>
+    </div>
+  </div>
+
+  <!-- ==================== 五、MCP 详解 ==================== -->
+  <h2 class="section-title">五、MCP（Model Context Protocol）详解</h2>
+
+  <h3 class="sub-title purple">5.1 MCP 工作原理</h3>
+
+  <div class="architecture-box">
+    <div class="layer">
+      <div class="layer-label">🤖 AI 模型</div>
+      <div class="layer-content">
+        <div class="item">Claude</div>
+        <div class="item">GPT-4</div>
+        <div class="item">DeepSeek</div>
+        <div class="item">数鲸 AI Agent</div>
+      </div>
+    </div>
+    <div class="arrow">↕ JSON-RPC 2.0</div>
+    <div class="layer">
+      <div class="layer-label">🔌 MCP Client</div>
+      <div class="layer-content">
+        <div class="item purple">Tool Discovery（能力发现）</div>
+        <div class="item purple">Permission Gate（权限控制）</div>
+        <div class="item purple">Request Router（请求路由）</div>
+      </div>
+    </div>
+    <div class="arrow">↕ stdio / SSE / HTTP</div>
+    <div class="layer">
+      <div class="layer-label">🏗️ MCP Server</div>
+      <div class="layer-content">
+        <div class="item orange">bi-mcp-server</div>
+        <div class="item orange">db-mcp-server</div>
+        <div class="item orange">file-mcp-server</div>
+        <div class="item orange">api-mcp-server</div>
+      </div>
+    </div>
+  </div>
+
+  <h3 class="sub-title">5.2 MCP 核心能力</h3>
+  <div class="data-table-wrapper">
+    <table class="comparison-table">
+      <thead>
+        <tr>
+          <th>能力</th>
+          <th>说明</th>
+          <th>示例</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><strong>Resources（资源）</strong></td>
+          <td>AI 可读取的数据源</td>
+          <td>数据库表结构、文件内容、API 文档</td>
+        </tr>
+        <tr>
+          <td><strong>Tools（工具）</strong></td>
+          <td>AI 可调用的操作</td>
+          <td>执行 SQL、上传文件、发送通知</td>
+        </tr>
+        <tr>
+          <td><strong>Prompts（提示模板）</strong></td>
+          <td>预定义的交互模板</td>
+          <td>数据分析提示、报告生成提示</td>
+        </tr>
+        <tr>
+          <td><strong>Sampling（采样）</strong></td>
+          <td>Server 请求 AI 生成内容</td>
+          <td>数据清洗时请求 AI 判断异常值</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <h3 class="sub-title green">5.3 MCP Server 规划</h3>
+
+  <div class="case-grid">
+    <div class="case-card">
+      <h4>🏗️ BI MCP Server（数鲸）</h4>
+      <p>对接数鲸 BI 平台，提供：</p>
+      <p>• 项目/看板/图表的查询与管理</p>
+      <p>• 自然语言问数能力</p>
+      <p>• 模型元数据读取</p>
+      <div class="code">
+tools: bi_project_list, bi_chart_query,<br>
+      bi_model_ask, bi_dashboard_get
+      </div>
+    </div>
+    <div class="case-card purple">
+      <h4>🗄️ Database MCP Server</h4>
+      <p>直连 Iceberg 数据仓库，提供：</p>
+      <p>• SQL 执行与结果返回</p>
+      <p>• 表结构查询（schema discovery）</p>
+      <p>• 数据质量检查</p>
+      <div class="code">
+tools: db_execute_sql, db_get_schema,<br>
+      db_check_quality, db_explain_plan
+      </div>
+    </div>
+    <div class="case-card">
+      <h4>📁 File MCP Server</h4>
+      <p>管理本地/远程文件，提供：</p>
+      <p>• Excel/CSV 读取与解析</p>
+      <p>• HTML 报告生成与上传</p>
+      <p>• 文件格式转换</p>
+      <div class="code">
+tools: file_read_excel, file_write_html,<br>
+      file_upload_fds, file_convert
+      </div>
+    </div>
+    <div class="case-card purple">
+      <h4>🌐 API MCP Server</h4>
+      <p>对接外部系统 API，提供：</p>
+      <p>• SRM 供应商系统查询</p>
+      <p>• OA 审批流程对接</p>
+      <p>• 消息推送（飞书/邮件）</p>
+      <div class="code">
+tools: api_supplier_info, api_approval,<br>
+      api_send_notification
+      </div>
+    </div>
+  </div>
+
+  <!-- ==================== 六、Skill 与 MCP 的关系 ==================== -->
+  <h2 class="section-title">六、Skill 与 MCP 的关系</h2>
+
+  <div class="note-box">
+    <p><strong>💡 核心关系</strong></p>
+    <p><strong>MCP 是「管道」，Skill 是「水」。</strong>MCP 提供了 AI 访问数据和工具的标准化通道，而 Skill 定义了如何利用这些通道完成具体任务。</p>
+  </div>
+
+  <div class="data-table-wrapper">
+    <table class="comparison-table">
+      <thead>
+        <tr>
+          <th>对比维度</th>
+          <th style="color:#1890ff">Skill（技能）</th>
+          <th style="color:#722ed1">MCP（协议）</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><strong>本质</strong></td>
+          <td>任务处理逻辑</td>
+          <td>数据访问协议</td>
+        </tr>
+        <tr>
+          <td><strong>类比</strong></td>
+          <td>菜谱（怎么做）</td>
+          <td>厨房设备（用什么做）</td>
+        </tr>
+        <tr>
+          <td><strong>关注点</strong></td>
+          <td>业务逻辑、分析方法、输出格式</td>
+          <td>数据连接、权限控制、安全隔离</td>
+        </tr>
+        <tr>
+          <td><strong>粒度</strong></td>
+          <td>粗粒度（完整任务）</td>
+          <td>细粒度（单个工具/资源）</td>
+        </tr>
+        <tr>
+          <td><strong>可替换性</strong></td>
+          <td>可替换（不同分析方法）</td>
+          <td>可替换（不同数据源）</td>
+        </tr>
+        <tr>
+          <td><strong>使用者</strong></td>
+          <td>业务分析师、数据分析师</td>
+          <td>开发者、平台工程师</td>
+        </tr>
+        <tr>
+          <td><strong>示例</strong></td>
+          <td>「RFQ 数据分析」Skill</td>
+          <td>「BI MCP Server」</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <p><strong>协作流程：</strong></p>
+  <div class="flow-diagram">
+    <div class="flow-step">
+      <div class="step-title">用户请求</div>
+      <div class="step-desc">"分析 RFQ 数据"</div>
+    </div>
+    <div class="flow-arrow">→</div>
+    <div class="flow-step purple">
+      <div class="step-title">Skill 匹配</div>
+      <div class="step-desc">rfq-data-analysis</div>
+    </div>
+    <div class="flow-arrow">→</div>
+    <div class="flow-step green">
+      <div class="step-title">MCP 调用</div>
+      <div class="step-desc">bi-query → db-sql → file-write</div>
+    </div>
+    <div class="flow-arrow">→</div>
+    <div class="flow-step orange">
+      <div class="step-title">结果输出</div>
+      <div class="step-desc">分析报告 HTML</div>
+    </div>
+  </div>
+
+  <!-- ==================== 七、实施路线图 ==================== -->
+  <h2 class="section-title">七、实施路线图</h2>
+
+  <div class="roadmap">
+    <div class="roadmap-step">
+      <div class="step-title">Phase 1：基础能力（已建成）</div>
+      <div class="step-desc">
+        • bi-query Skill（自然语言查数）<br>
+        • sql-optimizer Skill（SQL 优化）<br>
+        • report-generator Skill（报告生成）<br>
+        • rfq-data-analysis Skill（RFQ 分析全流程）
+      </div>
+    </div>
+    <div class="roadmap-step purple">
+      <div class="step-title">Phase 2：MCP 接入（1-2 个月）</div>
+      <div class="step-desc">
+        • 开发 BI MCP Server（对接数鲸平台）<br>
+        • 开发 Database MCP Server（对接 Iceberg）<br>
+        • 开发 File MCP Server（文件管理）<br>
+        • Skill 与 MCP 联调
+      </div>
+    </div>
+    <div class="roadmap-step green">
+      <div class="step-title">Phase 3：进阶 Skill（2-3 个月）</div>
+      <div class="step-desc">
+        • supplier-profiling Skill（供应商画像）<br>
+        • anomaly-detector Skill（异常检测）<br>
+        • cost-benchmark Skill（成本对标）<br>
+        • dashboard-builder Skill（看板生成）
+      </div>
+    </div>
+    <div class="roadmap-step">
+      <div class="step-title">Phase 4：生态扩展（3-6 个月）</div>
+      <div class="step-desc">
+        • API MCP Server（对接 SRM/OA）<br>
+        • Skill 市场（团队共享）<br>
+        • 自然语言编排（对话式分析）<br>
+        • 持续学习与进化
+      </div>
+    </div>
+  </div>
+
+  <!-- ==================== 八、实际案例 ==================== -->
+  <h2 class="section-title">八、实际案例：本次 RFQ 分析</h2>
+
+  <div class="note-box green">
+    <p><strong>✅ 本次对话中已验证的能力</strong></p>
+    <p>本次 RFQ 询报价数据分析，完整走通了 Skill + MCP 的协作模式：</p>
+  </div>
+
+  <div class="data-table-wrapper">
+    <table class="comparison-table">
+      <thead>
+        <tr>
+          <th>步骤</th>
+          <th>使用的 Skill/MCP</th>
+          <th>具体操作</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>1. 登录认证</td>
+          <td>bi-auth Skill</td>
+          <td>bi auth login → 扫码登录</td>
+        </tr>
+        <tr>
+          <td>2. 数据探索</td>
+          <td>bi-query Skill</td>
+          <td>bi project list / chart list / model list</td>
+        </tr>
+        <tr>
+          <td>3. 自然语言查数</td>
+          <td>bi-query Skill + MCP</td>
+          <td>bi model ask → 按采购员统计 RFQ 数量</td>
+        </tr>
+        <tr>
+          <td>4. SQL 编写与优化</td>
+          <td>sql-optimizer Skill</td>
+          <td>多表 JOIN、去重、CTE 优化、中文映射</td>
+        </tr>
+        <tr>
+          <td>5. 数据读取</td>
+          <td>file-mcp（Python openpyxl）</td>
+          <td>读取 Excel 数据 → JSON 统计</td>
+        </tr>
+        <tr>
+          <td>6. 报告生成</td>
+          <td>report-generator Skill</td>
+          <td>HTML 报告（白板架构 + 参考模板）</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <!-- ==================== 九、总结 ==================== -->
+  <h2 class="section-title">九、总结</h2>
+
+  <div class="concept-grid">
+    <div class="note-box">
+      <p><strong>🎯 Skill 的价值</strong></p>
+      <p>• 将分析经验固化为可复用的能力单元</p>
+      <p>• 降低数据分析门槛，非技术人员也能用</p>
+      <p>• 保证分析质量的一致性和可重复性</p>
+      <p>• 支持快速迭代和持续优化</p>
+    </div>
+    <div class="note-box purple">
+      <p><strong>🔌 MCP 的价值</strong></p>
+      <p>• 标准化的数据访问协议，一次开发多处复用</p>
+      <p>• 安全隔离，AI 无法越权访问数据</p>
+      <p>• 可插拔架构，新增数据源零成本接入</p>
+      <p>• 跨模型兼容，不锁定特定 AI 平台</p>
+    </div>
+  </div>
+
+  <div class="note-box" style="background:#f0f5ff;border-left-color:#1890ff;margin-top:24px;">
+    <p><strong>🚀 一句话总结</strong></p>
+    <p><strong>Skill 让 AI 会做事，MCP 让 AI 能做事。</strong>两者结合，构建可复用、可编排、可进化的 AI 数据分析体系。</p>
+  </div>
+
+  <!-- FOOTER -->
+  <div class="footer-note">
+    AI 建设策略 — Skill 与 MCP 详细说明 &nbsp;|&nbsp; 2026-06-30
+  </div>
+
+</div>
+</body>
+</html>

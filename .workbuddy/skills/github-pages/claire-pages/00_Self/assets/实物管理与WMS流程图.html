@@ -1,0 +1,1308 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>实物管理 vs 非实物管理 & WMS 流程图</title>
+<style>
+  :root {
+    --bg: #0f172a;
+    --card: #1e293b;
+    --border: #334155;
+    --accent: #3b82f6;
+    --accent2: #8b5cf6;
+    --accent3: #10b981;
+    --accent4: #f59e0b;
+    --accent5: #ef4444;
+    --text: #e2e8f0;
+    --text2: #94a3b8;
+    --text3: #64748b;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: -apple-system, 'Segoe UI', 'PingFang SC', 'Microsoft YaHei', sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    line-height: 1.6;
+    padding: 20px;
+  }
+  h1 {
+    text-align: center;
+    font-size: 28px;
+    margin-bottom: 8px;
+    background: linear-gradient(135deg, var(--accent), var(--accent2));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+  }
+  .subtitle {
+    text-align: center;
+    color: var(--text3);
+    font-size: 14px;
+    margin-bottom: 40px;
+  }
+
+  /* ===== Section Titles ===== */
+  .section-title {
+    font-size: 20px;
+    font-weight: 700;
+    margin: 48px 0 20px;
+    padding-left: 14px;
+    border-left: 4px solid var(--accent);
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  .section-title .num {
+    background: var(--accent);
+    color: #fff;
+    width: 28px; height: 28px;
+    border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 14px;
+    flex-shrink: 0;
+  }
+
+  /* ===== Tab System ===== */
+  .tabs {
+    display: flex;
+    gap: 0;
+    margin-bottom: 0;
+  }
+  .tab-btn {
+    padding: 10px 24px;
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-bottom: none;
+    border-radius: 10px 10px 0 0;
+    color: var(--text2);
+    cursor: pointer;
+    font-size: 14px;
+    font-weight: 600;
+    transition: all 0.2s;
+  }
+  .tab-btn.active {
+    background: var(--accent);
+    color: #fff;
+    border-color: var(--accent);
+  }
+  .tab-btn:hover:not(.active) {
+    background: #263450;
+    color: var(--text);
+  }
+  .tab-content {
+    display: none;
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 0 10px 10px 10px;
+    padding: 30px;
+  }
+  .tab-content.active { display: block; }
+
+  /* ===== Comparison Grid ===== */
+  .compare-grid {
+    display: grid;
+    grid-template-columns: 200px 1fr 1fr;
+    gap: 0;
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    overflow: hidden;
+  }
+  .compare-grid .header {
+    background: linear-gradient(135deg, #1e3a5f, #2d1b69);
+    padding: 14px 18px;
+    font-weight: 700;
+    font-size: 14px;
+    text-align: center;
+    border-bottom: 1px solid var(--border);
+  }
+  .compare-grid .dim-label {
+    background: rgba(59,130,246,0.08);
+    padding: 12px 18px;
+    font-weight: 600;
+    font-size: 13px;
+    border-bottom: 1px solid var(--border);
+    border-right: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .compare-grid .cell {
+    padding: 12px 18px;
+    font-size: 13px;
+    border-bottom: 1px solid var(--border);
+    border-right: 1px solid var(--border);
+    transition: background 0.2s;
+  }
+  .compare-grid .cell:last-child { border-right: none; }
+  .compare-grid .cell:hover { background: rgba(59,130,246,0.06); }
+  .compare-grid .cell.physical { border-left: 2px solid var(--accent3); }
+  .compare-grid .cell.non-physical { border-left: 2px solid var(--accent2); }
+  .badge {
+    display: inline-block;
+    padding: 2px 8px;
+    border-radius: 4px;
+    font-size: 11px;
+    font-weight: 600;
+  }
+  .badge.green { background: rgba(16,185,129,0.15); color: #34d399; }
+  .badge.purple { background: rgba(139,92,246,0.15); color: #a78bfa; }
+  .badge.amber { background: rgba(245,158,11,0.15); color: #fbbf24; }
+
+  /* ===== Hierarchy Diagram ===== */
+  .hierarchy {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0;
+    padding: 20px 0;
+  }
+  .h-node {
+    position: relative;
+    background: var(--card);
+    border: 2px solid var(--border);
+    border-radius: 12px;
+    padding: 16px 28px;
+    text-align: center;
+    min-width: 260px;
+    transition: all 0.3s;
+    cursor: default;
+  }
+  .h-node:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 25px rgba(0,0,0,0.3);
+  }
+  .h-node.po { border-color: var(--accent); }
+  .h-node.asn { border-color: var(--accent2); }
+  .h-node.box { border-color: var(--accent4); }
+  .h-node.sn { border-color: var(--accent3); }
+  .h-node .h-label {
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    margin-bottom: 4px;
+  }
+  .h-node.po .h-label { color: var(--accent); }
+  .h-node.asn .h-label { color: var(--accent2); }
+  .h-node.box .h-label { color: var(--accent4); }
+  .h-node.sn .h-label { color: var(--accent3); }
+  .h-node .h-name { font-size: 18px; font-weight: 700; }
+  .h-node .h-desc { font-size: 12px; color: var(--text3); margin-top: 4px; }
+  .h-node .h-example {
+    font-size: 12px;
+    color: var(--text2);
+    margin-top: 8px;
+    padding-top: 8px;
+    border-top: 1px solid var(--border);
+  }
+  .connector {
+    width: 2px;
+    height: 28px;
+    background: var(--border);
+    position: relative;
+  }
+  .connector::after {
+    content: '▼';
+    position: absolute;
+    bottom: -6px;
+    left: 50%;
+    transform: translateX(-50%);
+    color: var(--text3);
+    font-size: 10px;
+  }
+  .rel-badge {
+    font-size: 11px;
+    color: var(--text3);
+    padding: 2px 10px;
+    background: rgba(255,255,255,0.04);
+    border-radius: 10px;
+    margin: -4px 0;
+  }
+
+  /* ===== Branch Layout ===== */
+  .branch-row {
+    display: flex;
+    justify-content: center;
+    gap: 24px;
+    flex-wrap: wrap;
+    margin-top: 8px;
+  }
+  .branch-col {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0;
+  }
+
+  /* ===== Flow Diagram ===== */
+  .flow {
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+    padding: 10px 0;
+  }
+  .flow-stage {
+    display: flex;
+    align-items: stretch;
+    gap: 0;
+    min-height: 80px;
+  }
+  .flow-timeline {
+    width: 40px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    flex-shrink: 0;
+  }
+  .flow-dot {
+    width: 14px; height: 14px;
+    border-radius: 50%;
+    border: 3px solid var(--accent);
+    background: var(--bg);
+    flex-shrink: 0;
+    margin-top: 22px;
+    z-index: 1;
+  }
+  .flow-dot.active {
+    background: var(--accent);
+    box-shadow: 0 0 12px rgba(59,130,246,0.4);
+  }
+  .flow-line {
+    width: 2px;
+    flex: 1;
+    background: var(--border);
+    min-height: 20px;
+  }
+  .flow-body {
+    flex: 1;
+    padding: 12px 0 12px 16px;
+  }
+  .flow-card {
+    background: rgba(255,255,255,0.03);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 16px 20px;
+    transition: all 0.2s;
+  }
+  .flow-card:hover {
+    background: rgba(59,130,246,0.05);
+    border-color: rgba(59,130,246,0.3);
+  }
+  .flow-card .fc-title {
+    font-size: 15px;
+    font-weight: 700;
+    margin-bottom: 6px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .flow-card .fc-system {
+    display: inline-block;
+    padding: 2px 8px;
+    border-radius: 4px;
+    font-size: 10px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+  .fc-system.wms { background: rgba(59,130,246,0.2); color: #60a5fa; }
+  .fc-system.erp { background: rgba(139,92,246,0.2); color: #a78bfa; }
+  .fc-system.tms { background: rgba(245,158,11,0.2); color: #fbbf24; }
+  .fc-system.supplier { background: rgba(16,185,129,0.2); color: #34d399; }
+  .fc-system.scm { background: rgba(239,68,68,0.2); color: #f87171; }
+  .flow-card .fc-desc {
+    font-size: 13px;
+    color: var(--text2);
+    margin-bottom: 8px;
+  }
+  .flow-card .fc-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+  }
+  .fc-action {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 3px 10px;
+    background: rgba(255,255,255,0.04);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    font-size: 11px;
+    color: var(--text2);
+  }
+  .fc-action .icon { font-size: 13px; }
+  .fc-key {
+    margin-top: 8px;
+    padding-top: 8px;
+    border-top: 1px solid var(--border);
+    font-size: 12px;
+    color: var(--text3);
+  }
+  .fc-key code {
+    background: rgba(59,130,246,0.1);
+    color: var(--accent);
+    padding: 1px 6px;
+    border-radius: 3px;
+    font-size: 11px;
+  }
+
+  /* ===== Expandable Details ===== */
+  .expand-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    background: none;
+    border: 1px solid var(--border);
+    color: var(--text2);
+    padding: 4px 12px;
+    border-radius: 6px;
+    font-size: 12px;
+    cursor: pointer;
+    margin-top: 8px;
+    transition: all 0.2s;
+  }
+  .expand-btn:hover { border-color: var(--accent); color: var(--accent); }
+  .expand-content {
+    display: none;
+    margin-top: 10px;
+    padding: 12px;
+    background: rgba(0,0,0,0.2);
+    border-radius: 8px;
+    font-size: 12px;
+    color: var(--text2);
+  }
+  .expand-content.show { display: block; }
+
+  /* ===== Summary Cards ===== */
+  .summary-row {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    gap: 16px;
+    margin: 20px 0;
+  }
+  .summary-card {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 20px;
+    text-align: center;
+    transition: all 0.3s;
+  }
+  .summary-card:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 8px 25px rgba(0,0,0,0.3);
+  }
+  .summary-card .sc-icon { font-size: 36px; margin-bottom: 10px; }
+  .summary-card .sc-title { font-size: 15px; font-weight: 700; margin-bottom: 4px; }
+  .summary-card .sc-val { font-size: 28px; font-weight: 800; }
+  .summary-card .sc-desc { font-size: 12px; color: var(--text3); margin-top: 6px; }
+  .summary-card.blue { border-color: var(--accent); }
+  .summary-card.blue .sc-val { color: var(--accent); }
+  .summary-card.purple { border-color: var(--accent2); }
+  .summary-card.purple .sc-val { color: var(--accent2); }
+  .summary-card.green { border-color: var(--accent3); }
+  .summary-card.green .sc-val { color: var(--accent3); }
+  .summary-card.amber { border-color: var(--accent4); }
+  .summary-card.amber .sc-val { color: var(--accent4); }
+
+  /* ===== Difference Flow (side by side) ===== */
+  .duo-flow {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 24px;
+    margin-top: 20px;
+  }
+  .duo-col {
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    overflow: hidden;
+  }
+  .duo-col .duo-header {
+    padding: 14px 20px;
+    font-weight: 700;
+    font-size: 14px;
+    text-align: center;
+  }
+  .duo-col.physical .duo-header {
+    background: linear-gradient(135deg, rgba(16,185,129,0.15), rgba(16,185,129,0.05));
+    color: #34d399;
+    border-bottom: 2px solid var(--accent3);
+  }
+  .duo-col.non-physical .duo-header {
+    background: linear-gradient(135deg, rgba(139,92,246,0.15), rgba(139,92,246,0.05));
+    color: #a78bfa;
+    border-bottom: 2px solid var(--accent2);
+  }
+  .duo-col .duo-body { padding: 16px; }
+  .duo-step {
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+    padding: 10px 0;
+    border-bottom: 1px solid rgba(255,255,255,0.04);
+  }
+  .duo-step:last-child { border-bottom: none; }
+  .duo-step .step-num {
+    width: 24px; height: 24px;
+    border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 11px; font-weight: 700;
+    flex-shrink: 0;
+    margin-top: 2px;
+  }
+  .physical .step-num { background: rgba(16,185,129,0.2); color: #34d399; }
+  .non-physical .step-num { background: rgba(139,92,246,0.2); color: #a78bfa; }
+  .duo-step .step-text { font-size: 13px; }
+  .duo-step .step-text strong { color: var(--text); }
+  .duo-step .step-text span { color: var(--text3); font-size: 12px; }
+
+  /* ===== Tooltip ===== */
+  [data-tip] { position: relative; cursor: help; }
+  [data-tip]:hover::after {
+    content: attr(data-tip);
+    position: absolute;
+    bottom: calc(100% + 8px);
+    left: 50%;
+    transform: translateX(-50%);
+    background: #1a1a2e;
+    color: var(--text);
+    padding: 8px 14px;
+    border-radius: 8px;
+    font-size: 12px;
+    white-space: nowrap;
+    z-index: 100;
+    border: 1px solid var(--border);
+    box-shadow: 0 4px 12px rgba(0,0,0,0.4);
+  }
+
+  /* ===== Responsive ===== */
+  @media (max-width: 768px) {
+    .compare-grid { grid-template-columns: 1fr; }
+    .compare-grid .header, .compare-grid .dim-label { text-align: left; }
+    .duo-flow { grid-template-columns: 1fr; }
+    .summary-row { grid-template-columns: 1fr 1fr; }
+  }
+
+  /* ===== Key Insight Box ===== */
+  .insight-box {
+    margin: 20px 0;
+    padding: 16px 20px;
+    background: linear-gradient(135deg, rgba(59,130,246,0.08), rgba(139,92,246,0.08));
+    border: 1px solid rgba(59,130,246,0.2);
+    border-radius: 10px;
+    font-size: 13px;
+  }
+  .insight-box .ib-title {
+    font-weight: 700;
+    margin-bottom: 6px;
+    color: var(--accent);
+  }
+
+  /* ===== Highlight Table ===== */
+  .hl-table {
+    width: 100%;
+    border-collapse: separate;
+    border-spacing: 0;
+    margin: 16px 0;
+    font-size: 13px;
+  }
+  .hl-table th {
+    background: rgba(59,130,246,0.1);
+    padding: 10px 14px;
+    text-align: left;
+    font-weight: 700;
+    border-bottom: 2px solid var(--border);
+  }
+  .hl-table td {
+    padding: 10px 14px;
+    border-bottom: 1px solid var(--border);
+  }
+  .hl-table tr:hover td { background: rgba(255,255,255,0.02); }
+</style>
+</head>
+<body>
+
+<h1>📦 实物管理 vs 非实物管理 & WMS 流程全景</h1>
+<p class="subtitle">供应链管理中 SN / ASN / 箱条码 / PO 的关联关系 · 系统流程对比</p>
+
+<!-- ===== Summary Cards ===== -->
+<div class="summary-row">
+  <div class="summary-card blue">
+    <div class="sc-icon">📋</div>
+    <div class="sc-title">PO（采购订单）</div>
+    <div class="sc-val">起点</div>
+    <div class="sc-desc">买卖双方合同依据，驱动整个流程</div>
+  </div>
+  <div class="summary-card purple">
+    <div class="sc-icon">📨</div>
+    <div class="sc-title">ASN（预先发货通知）</div>
+    <div class="sc-val">1 : N</div>
+    <div class="sc-desc">一个 PO 可多次发货，每次一个 ASN</div>
+  </div>
+  <div class="summary-card amber">
+    <div class="sc-icon">📦</div>
+    <div class="sc-title">箱条码（Box Barcode）</div>
+    <div class="sc-val">1 : N</div>
+    <div class="sc-desc">一个 ASN 含多箱，每箱有唯一条码</div>
+  </div>
+  <div class="summary-card green">
+    <div class="sc-icon">🔢</div>
+    <div class="sc-title">SN（序列号）</div>
+    <div class="sc-val">最小粒度</div>
+    <div class="sc-desc">单品唯一标识，全链路追溯核心</div>
+  </div>
+</div>
+
+<!-- ===== Section 1: Comparison ===== -->
+<div class="section-title">
+  <span class="num">1</span>
+  实物管理 vs 非实物管理 — 核心差异
+</div>
+
+<div class="compare-grid">
+  <div class="header">维度</div>
+  <div class="header">🟢 实物管理（Physical）</div>
+  <div class="header">🟣 非实物管理（Non-Physical）</div>
+
+  <div class="dim-label">📦 管理对象</div>
+  <div class="cell physical">有形商品：零件、成品、原材料、半成品</div>
+  <div class="cell non-physical">数字产品：软件授权、云服务、虚拟商品</div>
+
+  <div class="dim-label">🏗️ 核心能力</div>
+  <div class="cell physical">入库 → 存储 → 拣选 → 出库 → 物流配送</div>
+  <div class="cell non-physical">订单处理 → 授权生成 → 数字交付 → 计费</div>
+
+  <div class="dim-label">📊 库存概念</div>
+  <div class="cell physical">物理库存，需定期盘点，有损耗率</div>
+  <div class="cell non-physical">无限/授权库存，无物理损耗，有过期</div>
+
+  <div class="dim-label">💻 关键系统</div>
+  <div class="cell physical">
+    <span class="badge green">WMS</span>
+    <span class="badge amber">TMS</span>
+    <span class="badge green">条码/RFID</span>
+  </div>
+  <div class="cell non-physical">
+    <span class="badge purple">订单系统</span>
+    <span class="badge purple">授权系统</span>
+    <span class="badge purple">计费系统</span>
+  </div>
+
+  <div class="dim-label">🔍 追溯粒度</div>
+  <div class="cell physical">批次号 → 箱号 → 序列号（SN）</div>
+  <div class="cell non-physical">账号 → 授权码 → 订阅 ID</div>
+
+  <div class="dim-label">📐 空间约束</div>
+  <div class="cell physical">仓库面积、库位容量、堆叠规则</div>
+  <div class="cell non-physical">服务器容量、并发数、带宽</div>
+
+  <div class="dim-label">⚠️ 损耗管理</div>
+  <div class="cell physical">破损、过期、丢失、盗窃、自然损耗</div>
+  <div class="cell non-physical">无物理损耗，但有授权过期、退订</div>
+
+  <div class="dim-label">🔬 质检环节</div>
+  <div class="cell physical">来料检验 IQC → 过程检验 IPQC → 出货检验 OQC</div>
+  <div class="cell non-physical">功能测试 → 验收测试 → UAT</div>
+
+  <div class="dim-label">📜 合规要求</div>
+  <div class="cell physical">危化品、冷链温控、食品溯源、海关</div>
+  <div class="cell non-physical">数据安全、版权保护、许可证管理</div>
+
+  <div class="dim-label">🔄 逆向物流</div>
+  <div class="cell physical">退货 → 质检 → 翻新/报废（复杂）</div>
+  <div class="cell non-physical">退款 → 权限回收（简单）</div>
+</div>
+
+<!-- ===== Section 2: System Differences ===== -->
+<div class="section-title">
+  <span class="num">2</span>
+  系统流程对比 — 实物 vs 非实物
+</div>
+
+<div class="duo-flow">
+  <div class="duo-col physical">
+    <div class="duo-header">🟢 实物管理流程（以制造业为例）</div>
+    <div class="duo-body">
+      <div class="duo-step">
+        <div class="step-num">1</div>
+        <div class="step-text"><strong>创建 PO</strong><br><span>ERP 中创建采购订单，发送给供应商</span></div>
+      </div>
+      <div class="duo-step">
+        <div class="step-num">2</div>
+        <div class="step-text"><strong>供应商发货</strong><br><span>供应商打包商品，生成 ASN 发送给买方</span></div>
+      </div>
+      <div class="duo-step">
+        <div class="step-num">3</div>
+        <div class="step-text"><strong>ASN 预报</strong><br><span>WMS 接收 ASN，预分配收货月台和库位</span></div>
+      </div>
+      <div class="duo-step">
+        <div class="step-num">4</div>
+        <div class="step-text"><strong>实物收货</strong><br><span>逐箱扫码（箱条码），核对 ASN 明细</span></div>
+      </div>
+      <div class="duo-step">
+        <div class="step-num">5</div>
+        <div class="step-text"><strong>来料检验（IQC）</strong><br><span>抽检/全检，不良品隔离</span></div>
+      </div>
+      <div class="duo-step">
+        <div class="step-num">6</div>
+        <div class="step-text"><strong>逐件扫码（SN）</strong><br><span>高价值商品逐件扫码，绑定 SN 到库位</span></div>
+      </div>
+      <div class="duo-step">
+        <div class="step-num">7</div>
+        <div class="step-text"><strong>上架入库</strong><br><span>WMS 分配库位，实物放到指定货架</span></div>
+      </div>
+      <div class="duo-step">
+        <div class="step-num">8</div>
+        <div class="step-text"><strong>在库管理</strong><br><span>盘点、移位、补货、效期管理</span></div>
+      </div>
+      <div class="duo-step">
+        <div class="step-num">9</div>
+        <div class="step-text"><strong>出库发货</strong><br><span>波次拣货 → 复核 → 包装 → 发运 → SN 绑定出库</span></div>
+      </div>
+      <div class="duo-step">
+        <div class="step-num">10</div>
+        <div class="step-text"><strong>GR 做账</strong><br><span>ERP 收货过账，更新库存，触发对账</span></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="duo-col non-physical">
+    <div class="duo-header">🟣 非实物管理流程（以 SaaS 为例）</div>
+    <div class="duo-body">
+      <div class="duo-step">
+        <div class="step-num">1</div>
+        <div class="step-text"><strong>创建订单</strong><br><span>CRM 中创建订阅订单/购买合同</span></div>
+      </div>
+      <div class="duo-step">
+        <div class="step-num">2</div>
+        <div class="step-text"><strong>支付确认</strong><br><span>在线支付/账期确认，财务审核</span></div>
+      </div>
+      <div class="duo-step">
+        <div class="step-num">3</div>
+        <div class="step-text"><strong>授权生成</strong><br><span>系统自动生成 License Key / 激活码</span></div>
+      </div>
+      <div class="duo-step">
+        <div class="step-num">4</div>
+        <div class="step-text"><strong>开通服务</strong><br><span>云平台自动开通账号和权限</span></div>
+      </div>
+      <div class="duo-step">
+        <div class="step-num">5</div>
+        <div class="step-text"><strong>交付确认</strong><br><span>邮件/系统通知客户，附使用指南</span></div>
+      </div>
+      <div class="duo-step">
+        <div class="step-num">6</div>
+        <div class="step-text"><strong>使用监控</strong><br><span>追踪 API 调用量、存储量、活跃用户数</span></div>
+      </div>
+      <div class="duo-step">
+        <div class="step-num">7</div>
+        <div class="step-text"><strong>续费/扩缩容</strong><br><span>订阅到期前提醒，支持升降级</span></div>
+      </div>
+      <div class="duo-step">
+        <div class="step-num">8</div>
+        <div class="step-text"><strong>计费结算</strong><br><span>按用量/订阅周期自动生成账单</span></div>
+      </div>
+      <div class="duo-step">
+        <div class="step-num">9</div>
+        <div class="step-text"><strong>退款/回收</strong><br><span>退订 → 权限回收 → 数据保留期 → 删除</span></div>
+      </div>
+      <div class="duo-step">
+        <div class="step-num">10</div>
+        <div class="step-text"><strong>财务做账</strong><br><span>确认收入，按 ASC 606 摊销</span></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ===== Section 3: Hierarchy ===== -->
+<div class="section-title">
+  <span class="num">3</span>
+  PO → ASN → 箱条码 → SN 层级关系
+</div>
+
+<div class="hierarchy">
+  <div class="h-node po">
+    <div class="h-label">Level 1 · 订单级</div>
+    <div class="h-name">📋 PO（采购订单）</div>
+    <div class="h-desc">买卖双方的合同依据，定义"买什么、买多少、多少钱"</div>
+    <div class="h-example">示例：PO-2026-0088<br>采购 iPhone 屏幕 × 10,000 件，单价 ¥320</div>
+  </div>
+  <div class="connector"></div>
+  <div class="rel-badge">1 个 PO → 多次发货（每次发货生成 1 个 ASN）</div>
+  <div class="connector"></div>
+
+  <div class="h-node asn">
+    <div class="h-label">Level 2 · 发货批次级</div>
+    <div class="h-name">📨 ASN（预先发货通知）</div>
+    <div class="h-desc">供应商发货前通知仓库："这批货什么时候到、有多少、装在哪"</div>
+    <div class="h-example">示例：ASN-20260715-A<br>关联 PO-2026-0088，本次发货 5,000 件，预计 7/18 到达</div>
+  </div>
+  <div class="connector"></div>
+  <div class="rel-badge">1 个 ASN → 包含多箱（每箱贴唯一条码）</div>
+  <div class="connector"></div>
+
+  <div class="branch-row">
+    <div class="branch-col">
+      <div class="h-node box">
+        <div class="h-label">Level 3 · 箱级</div>
+        <div class="h-name">📦 箱条码 BOX-001</div>
+        <div class="h-desc">外箱唯一标识，收货时扫码即可整箱签收</div>
+        <div class="h-example">内含 200 件，<br>毛重 15kg</div>
+      </div>
+      <div class="connector"></div>
+      <div class="rel-badge">1 箱 → N 个 SN</div>
+      <div class="connector"></div>
+      <div class="h-node sn">
+        <div class="h-label">Level 4 · 单品级</div>
+        <div class="h-name">🔢 SN-000001</div>
+        <div class="h-desc">每件商品唯一序列号</div>
+        <div class="h-example">用于追溯：<br>生产批次、售后维修</div>
+      </div>
+    </div>
+    <div class="branch-col">
+      <div class="h-node box">
+        <div class="h-label">Level 3 · 箱级</div>
+        <div class="h-name">📦 箱条码 BOX-002</div>
+        <div class="h-desc">外箱唯一标识，收货时扫码即可整箱签收</div>
+        <div class="h-example">内含 200 件，<br>毛重 14.5kg</div>
+      </div>
+      <div class="connector"></div>
+      <div class="rel-badge">1 箱 → N 个 SN</div>
+      <div class="connector"></div>
+      <div class="h-node sn">
+        <div class="h-label">Level 4 · 单品级</div>
+        <div class="h-name">🔢 SN-000201</div>
+        <div class="h-desc">每件商品唯一序列号</div>
+        <div class="h-example">用于追溯：<br>生产批次、售后维修</div>
+      </div>
+    </div>
+    <div class="branch-col">
+      <div class="h-node box">
+        <div class="h-label">Level 3 · 箱级</div>
+        <div class="h-name">📦 箱条码 BOX-003</div>
+        <div class="h-desc">外箱唯一标识，收货时扫码即可整箱签收</div>
+        <div class="h-example">内含 200 件，<br>毛重 15.2kg</div>
+      </div>
+      <div class="connector"></div>
+      <div class="rel-badge">1 箱 → N 个 SN</div>
+      <div class="connector"></div>
+      <div class="h-node sn">
+        <div class="h-label">Level 4 · 单品级</div>
+        <div class="h-name">🔢 SN-000401</div>
+        <div class="h-desc">每件商品唯一序列号</div>
+        <div class="h-example">用于追溯：<br>生产批次、售后维修</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="insight-box">
+  <div class="ib-title">💡 关键洞察：追溯链路</div>
+  当客户投诉某个 SN 的产品质量问题时，可以反向追溯：<br>
+  <strong>SN-000201</strong> → 在 <strong>BOX-002</strong> 中 → 属于 <strong>ASN-20260715-A</strong> → 关联 <strong>PO-2026-0088</strong> → 找到供应商、批次、到货日期、质检记录
+</div>
+
+<!-- ===== Section 4: WMS Flow ===== -->
+<div class="section-title">
+  <span class="num">4</span>
+  WMS 全流程（入库 → 在库 → 出库）
+</div>
+
+<!-- Tab system for flow phases -->
+<div class="tabs">
+  <button class="tab-btn active" onclick="switchTab(event, 'inbound')">📥 入库流程</button>
+  <button class="tab-btn" onclick="switchTab(event, 'storage')">🏪 在库管理</button>
+  <button class="tab-btn" onclick="switchTab(event, 'outbound')">📤 出库流程</button>
+  <button class="tab-btn" onclick="switchTab(event, 'trace')">🔗 追溯场景</button>
+</div>
+
+<!-- Inbound Tab -->
+<div id="inbound" class="tab-content active">
+  <div class="flow">
+    <div class="flow-stage">
+      <div class="flow-timeline">
+        <div class="flow-dot active"></div>
+        <div class="flow-line"></div>
+      </div>
+      <div class="flow-body">
+        <div class="flow-card">
+          <div class="fc-title">
+            ① 供应商发货
+            <span class="fc-system supplier">供应商</span>
+          </div>
+          <div class="fc-desc">供应商按 PO 备货，打包商品并贴箱条码，然后通过 EDI/系统发送 ASN 给买方</div>
+          <div class="fc-actions">
+            <span class="fc-action"><span class="icon">📋</span> PO 下达</span>
+            <span class="fc-action"><span class="icon">📨</span> 生成 ASN</span>
+            <span class="fc-action"><span class="icon">📦</span> 贴箱条码</span>
+            <span class="fc-action"><span class="icon">🔢</span> SN 写入 ASN 明细</span>
+          </div>
+          <div class="fc-key">
+            关键数据：<code>PO号</code> + <code>ASN号</code> + <code>箱条码</code> + <code>SN列表</code> + <code>预计到货时间</code>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="flow-stage">
+      <div class="flow-timeline">
+        <div class="flow-dot"></div>
+        <div class="flow-line"></div>
+      </div>
+      <div class="flow-body">
+        <div class="flow-card">
+          <div class="fc-title">
+            ② ASN 预报 & 资源准备
+            <span class="fc-system wms">WMS</span>
+          </div>
+          <div class="fc-desc">WMS 接收 ASN，自动匹配 PO，预分配收货月台、库位和人力</div>
+          <div class="fc-actions">
+            <span class="fc-action"><span class="icon">✅</span> ASN ↔ PO 匹配校验</span>
+            <span class="fc-action"><span class="icon">🅿️</span> 预分配月台</span>
+            <span class="fc-action"><span class="icon">📍</span> 预分配库位</span>
+            <span class="fc-action"><span class="icon">👷</span> 安排收货人力</span>
+          </div>
+          <button class="expand-btn" onclick="toggleExpand(this)">▸ 校验规则</button>
+          <div class="expand-content">
+            <strong>ASN 校验规则：</strong><br>
+            • ASN 数量 ≤ PO 剩余未收数量<br>
+            • 物料编码必须与 PO 一致<br>
+            • 供应商编码匹配<br>
+            • 超交容差检查（通常 ±5%）<br>
+            • 重复 ASN 号检查
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="flow-stage">
+      <div class="flow-timeline">
+        <div class="flow-dot"></div>
+        <div class="flow-line"></div>
+      </div>
+      <div class="flow-body">
+        <div class="flow-card">
+          <div class="fc-title">
+            ③ 到货 & 卸货
+            <span class="fc-system tms">TMS</span>
+            <span class="fc-system wms">WMS</span>
+          </div>
+          <div class="fc-desc">卡车到达仓库，按预约月台卸货。WMS 记录实际到货时间</div>
+          <div class="fc-actions">
+            <span class="fc-action"><span class="icon">🚛</span> 车辆到达登记</span>
+            <span class="fc-action"><span class="icon">🅿️</span> 引导至月台</span>
+            <span class="fc-action"><span class="icon">📦</span> 卸货清点箱数</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="flow-stage">
+      <div class="flow-timeline">
+        <div class="flow-dot active"></div>
+        <div class="flow-line"></div>
+      </div>
+      <div class="flow-body">
+        <div class="flow-card" style="border-color: rgba(245,158,11,0.3);">
+          <div class="fc-title">
+            ④ 收货扫码（箱条码）
+            <span class="fc-system wms">WMS</span>
+          </div>
+          <div class="fc-desc">逐箱扫描箱条码，系统自动关联 ASN，核对箱数与 ASN 明细是否一致</div>
+          <div class="fc-actions">
+            <span class="fc-action"><span class="icon">📷</span> 扫描箱条码</span>
+            <span class="fc-action"><span class="icon">🔗</span> 关联 ASN</span>
+            <span class="fc-action"><span class="icon">✅</span> 箱数核对</span>
+            <span class="fc-action"><span class="icon">⚠️</span> 异常标记（少货/破损）</span>
+          </div>
+          <div class="fc-key">
+            这里是 <strong>箱条码</strong> 发挥作用的核心环节：<br>
+            扫一次箱条码 = 整箱签收（含内件明细），无需逐件清点低价值商品
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="flow-stage">
+      <div class="flow-timeline">
+        <div class="flow-dot"></div>
+        <div class="flow-line"></div>
+      </div>
+      <div class="flow-body">
+        <div class="flow-card">
+          <div class="fc-title">
+            ⑤ 来料检验（IQC）
+            <span class="fc-system wms">WMS</span>
+          </div>
+          <div class="fc-desc">按抽检规则进行质量检验，不合格品隔离到不良品区</div>
+          <div class="fc-actions">
+            <span class="fc-action"><span class="icon">🔬</span> 抽样检验</span>
+            <span class="fc-action"><span class="icon">📊</span> 录入检验结果</span>
+            <span class="fc-action"><span class="icon">🚫</span> 不良品隔离</span>
+            <span class="fc-action"><span class="icon">✅</span> 合格品放行</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="flow-stage">
+      <div class="flow-timeline">
+        <div class="flow-dot active"></div>
+        <div class="flow-line"></div>
+      </div>
+      <div class="flow-body">
+        <div class="flow-card" style="border-color: rgba(16,185,129,0.3);">
+          <div class="fc-title">
+            ⑥ 逐件扫码（SN 绑定）
+            <span class="fc-system wms">WMS</span>
+          </div>
+          <div class="fc-desc">高价值商品（手机、汽车零件等）需要逐件扫码记录 SN，建立 SN ↔ 库位 绑定关系</div>
+          <div class="fc-actions">
+            <span class="fc-action"><span class="icon">🔢</span> 扫描单品 SN</span>
+            <span class="fc-action"><span class="icon">📍</span> 绑定库位</span>
+            <span class="fc-action"><span class="icon">🔗</span> SN → 箱 → ASN → PO 全链路</span>
+          </div>
+          <div class="fc-key">
+            <strong>SN 的价值在这一步体现：</strong><br>
+            每个 SN 都知道"我在哪、我从哪来、我要去哪"<br>
+            低价值商品（螺丝、包装材料）通常只管批次，不管 SN
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="flow-stage">
+      <div class="flow-timeline">
+        <div class="flow-dot"></div>
+        <div class="flow-line"></div>
+      </div>
+      <div class="flow-body">
+        <div class="flow-card">
+          <div class="fc-title">
+            ⑦ 上架 & GR 做账
+            <span class="fc-system wms">WMS</span>
+            <span class="fc-system erp">ERP</span>
+          </div>
+          <div class="fc-desc">WMS 分配最优库位，实物上架后系统做收货过账（GR），库存正式入账</div>
+          <div class="fc-actions">
+            <span class="fc-action"><span class="icon">📍</span> 智能库位分配</span>
+            <span class="fc-action"><span class="icon">📈</span> GR 过账</span>
+            <span class="fc-action"><span class="icon">💰</span> 触发应付对账</span>
+          </div>
+          <button class="expand-btn" onclick="toggleExpand(this)">▸ 库位分配策略</button>
+          <div class="expand-content">
+            <strong>常见上架策略：</strong><br>
+            • ABC 分类：A 类商品放黄金区域（靠近出库口）<br>
+            • 相关性原则：常一起出库的商品放相邻库位<br>
+            • 重量分层：重的在下层，轻的在上层<br>
+            • 效期管理：先到期的放外侧（FEFO）<br>
+            • 温区匹配：冷链商品放冷藏区
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Storage Tab -->
+<div id="storage" class="tab-content">
+  <div class="flow">
+    <div class="flow-stage">
+      <div class="flow-timeline">
+        <div class="flow-dot active"></div>
+        <div class="flow-line"></div>
+      </div>
+      <div class="flow-body">
+        <div class="flow-card">
+          <div class="fc-title">① 库存盘点 <span class="fc-system wms">WMS</span></div>
+          <div class="fc-desc">定期盘点确保系统库存与实物一致</div>
+          <div class="fc-actions">
+            <span class="fc-action"><span class="icon">🔄</span> 循环盘点（每日）</span>
+            <span class="fc-action"><span class="icon">📅</span> 年度全面盘点</span>
+            <span class="fc-action"><span class="icon">🎯</span> 动碰盘（出入库时顺便盘）</span>
+          </div>
+          <div class="fc-key">盘点时：扫箱条码快速核对箱数，扫 SN 核对单品 —— 两层粒度互补</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="flow-stage">
+      <div class="flow-timeline">
+        <div class="flow-dot"></div>
+        <div class="flow-line"></div>
+      </div>
+      <div class="flow-body">
+        <div class="flow-card">
+          <div class="fc-title">② 库位优化 & 移位 <span class="fc-system wms">WMS</span></div>
+          <div class="fc-desc">根据出入库频率动态调整库位，提升拣货效率</div>
+          <div class="fc-actions">
+            <span class="fc-action"><span class="icon">📊</span> ABC 重分类</span>
+            <span class="fc-action"><span class="icon">🔀</span> 移位指令</span>
+            <span class="fc-action"><span class="icon">📈</span> 库位利用率分析</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="flow-stage">
+      <div class="flow-timeline">
+        <div class="flow-dot"></div>
+        <div class="flow-line"></div>
+      </div>
+      <div class="flow-body">
+        <div class="flow-card">
+          <div class="fc-title">③ 批次/效期管理 <span class="fc-system wms">WMS</span></div>
+          <div class="fc-desc">FIFO/FEFO 策略，确保先到期先出库</div>
+          <div class="fc-actions">
+            <span class="fc-action"><span class="icon">⏰</span> 效期预警</span>
+            <span class="fc-action"><span class="icon">🏷️</span> 批次追溯</span>
+            <span class="fc-action"><span class="icon">🚫</span> 过期自动冻结</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="flow-stage">
+      <div class="flow-timeline">
+        <div class="flow-dot"></div>
+        <div class="flow-line"></div>
+      </div>
+      <div class="flow-body">
+        <div class="flow-card">
+          <div class="fc-title">④ 补货管理 <span class="fc-system wms">WMS</span></div>
+          <div class="fc-desc">从存储区向拣货区补货，确保拣货区始终有货可拣</div>
+          <div class="fc-actions">
+            <span class="fc-action"><span class="icon">📉</span> 安全库存预警</span>
+            <span class="fc-action"><span class="icon">🔄</span> 自动补货触发</span>
+            <span class="fc-action"><span class="icon">📍</span> 补货路径优化</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Outbound Tab -->
+<div id="outbound" class="tab-content">
+  <div class="flow">
+    <div class="flow-stage">
+      <div class="flow-timeline">
+        <div class="flow-dot active"></div>
+        <div class="flow-line"></div>
+      </div>
+      <div class="flow-body">
+        <div class="flow-card">
+          <div class="fc-title">① 订单接收 & 波次生成 <span class="fc-system erp">ERP</span> <span class="fc-system wms">WMS</span></div>
+          <div class="fc-desc">ERP 下发出库订单，WMS 按策略生成波次（合并相似订单批量处理）</div>
+          <div class="fc-actions">
+            <span class="fc-action"><span class="icon">📋</span> 出库订单</span>
+            <span class="fc-action"><span class="icon">🌊</span> 波次策略</span>
+            <span class="fc-action"><span class="icon">📦</span> 库存分配</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="flow-stage">
+      <div class="flow-timeline">
+        <div class="flow-dot"></div>
+        <div class="flow-line"></div>
+      </div>
+      <div class="flow-body">
+        <div class="flow-card">
+          <div class="fc-title">② 拣货 <span class="fc-system wms">WMS</span></div>
+          <div class="fc-desc">WMS 生成拣货任务单，指引拣货员按最优路径拣货</div>
+          <div class="fc-actions">
+            <span class="fc-action"><span class="icon">🗺️</span> 路径优化</span>
+            <span class="fc-action"><span class="icon">📷</span> 扫码确认</span>
+            <span class="fc-action"><span class="icon">🔢</span> SN 扫码出库</span>
+          </div>
+          <div class="fc-key">
+            高价值商品出库时扫描 SN → 解除 SN ↔ 库位绑定 → 记录"此 SN 已出库给客户 X"
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="flow-stage">
+      <div class="flow-timeline">
+        <div class="flow-dot"></div>
+        <div class="flow-line"></div>
+      </div>
+      <div class="flow-body">
+        <div class="flow-card">
+          <div class="fc-title">③ 复核 & 包装 <span class="fc-system wms">WMS</span></div>
+          <div class="fc-desc">复核台核对商品、数量、SN，包装并贴运单</div>
+          <div class="fc-actions">
+            <span class="fc-action"><span class="icon">✅</span> 逐件复核</span>
+            <span class="fc-action"><span class="icon">📦</span> 包装</span>
+            <span class="fc-action"><span class="icon">🏷️</span> 贴运单（箱条码）</span>
+            <span class="fc-action"><span class="icon">⚖️</span> 称重</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="flow-stage">
+      <div class="flow-timeline">
+        <div class="flow-dot active"></div>
+        <div class="flow-line"></div>
+      </div>
+      <div class="flow-body">
+        <div class="flow-card">
+          <div class="fc-title">④ 发运 & GI 做账 <span class="fc-system tms">TMS</span> <span class="fc-system erp">ERP</span></div>
+          <div class="fc-desc">TMS 调度车辆装货发运，WMS 做发货过账（GI），ERP 更新库存</div>
+          <div class="fc-actions">
+            <span class="fc-action"><span class="icon">🚛</span> 装车发运</span>
+            <span class="fc-action"><span class="icon">📈</span> GI 过账</span>
+            <span class="fc-action"><span class="icon">📧</span> 发送发货通知</span>
+            <span class="fc-action"><span class="icon">📍</span> 物流追踪</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Trace Tab -->
+<div id="trace" class="tab-content">
+  <div class="insight-box" style="margin: 0 0 20px;">
+    <div class="ib-title">🔗 追溯场景：当质量问题发生时</div>
+    客户反馈手机屏幕有亮点 → 需要追溯该 SN 的全部信息
+  </div>
+
+  <div class="flow">
+    <div class="flow-stage">
+      <div class="flow-timeline">
+        <div class="flow-dot" style="border-color: var(--accent5);"></div>
+        <div class="flow-line"></div>
+      </div>
+      <div class="flow-body">
+        <div class="flow-card" style="border-color: rgba(239,68,68,0.3);">
+          <div class="fc-title" style="color: var(--accent5);">🔍 起点：客户投诉 SN-000201</div>
+          <div class="fc-desc">客户反馈屏幕亮点，提供 SN。WMS 中查到该 SN 的出库记录</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="flow-stage">
+      <div class="flow-timeline">
+        <div class="flow-dot" style="border-color: var(--accent3);"></div>
+        <div class="flow-line"></div>
+      </div>
+      <div class="flow-body">
+        <div class="flow-card">
+          <div class="fc-title">📦 SN → 箱条码：BOX-002 <span class="fc-system wms">WMS</span></div>
+          <div class="fc-desc">查到 SN-000201 来自 BOX-002，同箱还有 199 件。需要评估是否整箱有问题</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="flow-stage">
+      <div class="flow-timeline">
+        <div class="flow-dot" style="border-color: var(--accent2);"></div>
+        <div class="flow-line"></div>
+      </div>
+      <div class="flow-body">
+        <div class="flow-card">
+          <div class="fc-title">📨 箱条码 → ASN：ASN-20260715-A <span class="fc-system wms">WMS</span></div>
+          <div class="fc-desc">查到 BOX-002 属于 ASN-20260715-A，该批次共 25 箱，同批其他箱是否有类似投诉？</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="flow-stage">
+      <div class="flow-timeline">
+        <div class="flow-dot" style="border-color: var(--accent);"></div>
+        <div class="flow-line"></div>
+      </div>
+      <div class="flow-body">
+        <div class="flow-card">
+          <div class="fc-title">📋 ASN → PO：PO-2026-0088 <span class="fc-system erp">ERP</span></div>
+          <div class="fc-desc">找到供应商、采购价格、质检记录、生产批次号。可以向供应商发起索赔</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="flow-stage">
+      <div class="flow-timeline">
+        <div class="flow-dot" style="border-color: var(--accent4);"></div>
+        <div class="flow-line" style="background: transparent;"></div>
+      </div>
+      <div class="flow-body">
+        <div class="flow-card" style="border-color: rgba(245,158,11,0.3);">
+          <div class="fc-title" style="color: var(--accent4);">📊 决策输出</div>
+          <div class="fc-desc">
+            <strong>精准召回：</strong>只召回 BOX-002 的同批次客户（25箱 × 200件 = 5,000件）<br>
+            <strong>供应商评估：</strong>该供应商近期不良率上升，触发供应商审核<br>
+            <strong>索赔依据：</strong>PO + ASN + IQC 记录 = 完整证据链
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ===== Section 5: Key Insights ===== -->
+<div class="section-title">
+  <span class="num">5</span>
+  核心结论
+</div>
+
+<div class="insight-box">
+  <div class="ib-title">🎯 为什么实物管理必须做这四个层级？</div>
+  <table class="hl-table">
+    <tr>
+      <th>层级</th>
+      <th>解决什么问题</th>
+      <th>不做会怎样</th>
+    </tr>
+    <tr>
+      <td><strong>PO</strong></td>
+      <td>明确"买什么、买多少"，合同依据</td>
+      <td>没有采购依据，无法对账，财务失控</td>
+    </tr>
+    <tr>
+      <td><strong>ASN</strong></td>
+      <td>提前知道"什么时候到、到多少"，准备资源</td>
+      <td>到货后才发现问题，月台拥堵，人力不足</td>
+    </tr>
+    <tr>
+      <td><strong>箱条码</strong></td>
+      <td>快速整箱签收，不用逐件清点</td>
+      <td>收货效率低 10 倍，错收漏收无法追溯</td>
+    </tr>
+    <tr>
+      <td><strong>SN</strong></td>
+      <td>单品追溯，精准召回，售后管理</td>
+      <td>出问题只能整批召回，成本高 100 倍</td>
+    </tr>
+  </table>
+</div>
+
+<div class="insight-box">
+  <div class="ib-title">💡 实物 vs 非实物的本质区别</div>
+  <strong>实物管理的核心难点 = 空间 + 时间 + 损耗</strong><br><br>
+  • <strong>空间：</strong>商品占物理空间，库位有限，必须优化利用率<br>
+  • <strong>时间：</strong>物流有延迟，必须提前预报（ASN）准备资源<br>
+  • <strong>损耗：</strong>实物会破损、丢失、过期，必须精确追踪每一件<br><br>
+  非实物管理没有这三个约束，所以不需要 WMS、不需要 ASN、不需要 SN 追溯。它的核心难点是<strong>授权管控</strong>和<strong>计费精度</strong>。
+</div>
+
+<script>
+function switchTab(e, tabId) {
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+  document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+  e.target.classList.add('active');
+  document.getElementById(tabId).classList.add('active');
+}
+
+function toggleExpand(btn) {
+  const content = btn.nextElementSibling;
+  content.classList.toggle('show');
+  btn.textContent = content.classList.contains('show') ? '▾ 收起' : '▸ ' + btn.textContent.replace('▸ ', '').replace('▾ 收起', '校验规则');
+}
+</script>
+
+</body>
+</html>

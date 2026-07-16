@@ -1,0 +1,2090 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>小米汽车 - 样件采购自动化 Agent（融合版）</title>
+<style>
+:root{
+  --p:#1677ff;--ph:#4096ff;--pl:#e6f4ff;--pa:rgba(22,119,255,.06);
+  --s:#52c41a;--sl:#f6ffed;--sa:rgba(82,196,26,.08);
+  --w:#faad14;--wl:#fffbe6;--wa:rgba(250,173,20,.08);
+  --d:#ff4d4f;--dl:#fff2f0;--da:rgba(255,77,79,.06);
+  --g50:#fafafa;--g100:#f5f5f5;--g200:#e8e8e8;--g300:#d9d9d9;
+  --g400:#bfbfbf;--g500:#8c8c8c;--g600:#595959;--g700:#434343;
+  --g800:#262626;--g900:#1f1f1f;
+  --r:10px;--rs:6px;--rl:14px;
+  --sh:0 1px 3px rgba(0,0,0,.04),0 1px 2px rgba(0,0,0,.06);
+  --shm:0 4px 12px rgba(0,0,0,.07);
+  --shl:0 8px 24px rgba(0,0,0,.09);
+  --tr:all .2s ease;
+  --nav-bg:#001529;--nav-bg-light:#002140;
+  --purple:#722ed1;--purple-l:#f9f0ff;--purple-d:#531dab;
+  --cyan:#13c2c2;--cyan-l:#e6fffb;
+}
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif;background:#f0f2f5;color:var(--g800);line-height:1.6;font-size:13px;min-height:100vh;overflow:hidden}
+
+/* ========== Top Nav ========== */
+.topnav{background:var(--nav-bg);height:48px;display:flex;align-items:center;padding:0 16px;position:fixed;top:0;left:0;right:0;z-index:1000}
+.topnav-logo{display:flex;align-items:center;gap:8px;margin-right:24px;flex-shrink:0}
+.topnav-logo .mi{width:28px;height:28px;background:linear-gradient(135deg,#ff6700,#ff4d00);border-radius:6px;display:flex;align-items:center;justify-content:center;color:#fff;font-size:12px;font-weight:700}
+.topnav-logo span{color:#fff;font-size:14px;font-weight:600;letter-spacing:.5px;white-space:nowrap}
+.topnav-menu{display:flex;align-items:center;gap:0;flex:1;overflow-x:auto;scrollbar-width:none}
+.topnav-menu::-webkit-scrollbar{display:none}
+.topnav-item{padding:0 14px;height:48px;display:flex;align-items:center;color:rgba(255,255,255,.65);font-size:13px;cursor:pointer;white-space:nowrap;transition:all .2s;position:relative}
+.topnav-item:hover{color:#fff;background:rgba(255,255,255,.08)}
+.topnav-item.active{color:#fff;background:rgba(255,255,255,.12)}
+.topnav-item.active::after{content:'';position:absolute;bottom:0;left:8px;right:8px;height:2px;background:var(--p);border-radius:2px 2px 0 0}
+.topnav-right{display:flex;align-items:center;gap:12px;margin-left:auto;flex-shrink:0;padding-left:16px}
+.topnav-right .icon{width:32px;height:32px;border-radius:50%;display:flex;align-items:center;justify-content:center;color:rgba(255,255,255,.65);cursor:pointer;transition:all .2s;font-size:14px}
+.topnav-right .icon:hover{background:rgba(255,255,255,.1);color:#fff}
+.topnav-user{display:flex;align-items:center;gap:6px;color:rgba(255,255,255,.85);font-size:12px;cursor:pointer}
+.topnav-user:hover{color:#fff}
+.topnav-avatar{width:28px;height:28px;border-radius:50%;background:linear-gradient(135deg,var(--p),#4096ff);display:flex;align-items:center;justify-content:center;color:#fff;font-size:11px;font-weight:600}
+
+/* ========== Layout ========== */
+.srm-layout{display:flex;height:calc(100vh - 48px);margin-top:48px}
+.sidebar{width:240px;background:#fff;border-right:1px solid var(--g200);display:flex;flex-direction:column;flex-shrink:0;overflow:hidden}
+.sidebar-hdr{padding:16px;border-bottom:1px solid var(--g100)}
+.sidebar-hdr h3{font-size:14px;font-weight:700;color:var(--g900);margin-bottom:4px}
+.sidebar-hdr .count{font-size:12px;color:var(--g500)}
+.sidebar-hdr .count strong{color:var(--p);font-weight:600}
+.sp-menu{flex:1;overflow-y:auto;padding:8px 0}
+.sp-menu-item{display:flex;align-items:center;gap:10px;padding:11px 20px;font-size:13px;color:var(--g600);cursor:pointer;transition:all .15s;border-left:3px solid transparent;position:relative}
+.sp-menu-item:hover{color:var(--p);background:var(--pl)}
+.sp-menu-item.active{color:var(--p);background:var(--pl);font-weight:600;border-left-color:var(--p)}
+.sp-menu-item .mi-icon{width:20px;height:20px;border-radius:4px;display:flex;align-items:center;justify-content:center;font-size:12px;flex-shrink:0}
+.sp-menu-item .mi-icon.blue{background:var(--pl);color:var(--p)}
+.sp-menu-item .mi-icon.green{background:var(--sl);color:var(--s)}
+.sp-menu-item .mi-icon.orange{background:var(--wl);color:#d46b08}
+.sp-menu-item .mi-icon.purple{background:var(--purple-l);color:var(--purple)}
+.sp-menu-item .mi-icon.cyan{background:var(--cyan-l);color:var(--cyan)}
+.sp-menu-item .mi-icon.red{background:var(--dl);color:var(--d)}
+.sp-menu-item .mi-badge{margin-left:auto;font-size:10px;padding:1px 6px;border-radius:8px;background:var(--g100);color:var(--g500);font-weight:500}
+.sp-menu-item.active .mi-badge{background:var(--pl);color:var(--p)}
+.sp-divider{height:1px;background:var(--g100);margin:8px 16px}
+
+/* ========== Main Content ========== */
+.main-content{flex:1;overflow-y:auto;background:#f0f2f5;padding:0}
+
+/* ========== Tab Content ========== */
+.tab-content{display:none}
+.tab-content.active{display:block}
+
+/* ========== Content Header ========== */
+.content-header{background:#fff;padding:16px 24px;border-bottom:1px solid var(--g200)}
+.content-title{font-size:16px;font-weight:700;color:var(--g900);margin-bottom:12px;display:flex;align-items:center;gap:8px}
+.content-tabs{display:flex;gap:0;margin-bottom:0}
+.ctab{padding:8px 16px;font-size:13px;color:var(--g600);cursor:pointer;border-bottom:2px solid transparent;transition:var(--tr);display:flex;align-items:center;gap:6px}
+.ctab:hover{color:var(--p)}
+.ctab.active{color:var(--p);font-weight:600;border-bottom-color:var(--p)}
+.ctab .badge{font-size:10px;padding:1px 6px;border-radius:8px;background:var(--d);color:#fff;font-weight:600;min-width:18px;text-align:center}
+
+/* ========== Agent Cards ========== */
+.agent-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;padding:16px 24px}
+.agent-card{background:#fff;border:1px solid var(--g200);border-radius:var(--r);padding:0;transition:var(--tr);display:flex;flex-direction:column;cursor:pointer;overflow:hidden}
+.agent-card:hover{border-color:var(--p);box-shadow:var(--shm);transform:translateY(-2px)}
+.agent-card .ac-hdr{display:flex;align-items:center;justify-content:space-between;padding:16px 18px 12px}
+.agent-card .ac-icon{width:42px;height:42px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:20px;flex-shrink:0}
+.agent-card .ac-icon.blue{background:linear-gradient(135deg,var(--pl),#d6e8ff);color:var(--p)}
+.agent-card .ac-icon.green{background:linear-gradient(135deg,var(--sl),#d9f7be);color:var(--s)}
+.agent-card .ac-icon.orange{background:linear-gradient(135deg,var(--wl),#ffe58f);color:#d46b08}
+.agent-card .ac-icon.purple{background:linear-gradient(135deg,var(--purple-l),#efdbff);color:var(--purple)}
+.agent-card .ac-icon.cyan{background:linear-gradient(135deg,var(--cyan-l),#b5f5ec);color:var(--cyan)}
+.agent-card .ac-icon.red{background:linear-gradient(135deg,var(--dl),#ffccc7);color:var(--d)}
+.agent-card .ac-status{display:flex;align-items:center;gap:5px;font-size:11px;font-weight:500}
+.agent-card .ac-status .dot{width:7px;height:7px;border-radius:50%;flex-shrink:0}
+.agent-card .ac-status.running .dot{background:var(--p);animation:pulse 2s infinite}
+.agent-card .ac-status.running{color:var(--p)}
+.agent-card .ac-status.idle .dot{background:var(--g300)}
+.agent-card .ac-status.idle{color:var(--g500)}
+.agent-card .ac-status.done .dot{background:var(--s)}
+.agent-card .ac-status.done{color:var(--s)}
+.agent-card .ac-status.error .dot{background:var(--d)}
+.agent-card .ac-status.error{color:var(--d)}
+.agent-card .ac-body{padding:0 18px 14px;flex:1}
+.agent-card .ac-name{font-size:15px;font-weight:700;color:var(--g900);margin-bottom:4px}
+.agent-card .ac-desc{font-size:12px;color:var(--g500);line-height:1.5;margin-bottom:12px}
+.agent-card .ac-meta{display:flex;flex-wrap:wrap;gap:6px}
+.agent-card .ac-tag{font-size:10px;padding:2px 8px;border-radius:4px;font-weight:500;white-space:nowrap}
+.agent-card .ac-tag.blue{background:var(--pl);color:var(--p)}
+.agent-card .ac-tag.green{background:var(--sl);color:var(--s)}
+.agent-card .ac-tag.orange{background:var(--wl);color:#d46b08}
+.agent-card .ac-tag.purple{background:var(--purple-l);color:var(--purple)}
+.agent-card .ac-tag.cyan{background:var(--cyan-l);color:var(--cyan)}
+.agent-card .ac-tag.gray{background:var(--g100);color:var(--g600)}
+.agent-card .ac-footer{display:flex;align-items:center;justify-content:space-between;padding:10px 18px;border-top:1px solid var(--g100);background:var(--g50)}
+.agent-card .ac-footer .link{font-size:12px;color:var(--p);cursor:pointer;text-decoration:none}
+.agent-card .ac-footer .link:hover{text-decoration:underline}
+.agent-card .ac-footer .metric{font-size:11px;color:var(--g500);display:flex;align-items:center;gap:4px}
+.agent-card .ac-footer .metric strong{color:var(--g800);font-weight:600}
+
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.5}}
+
+/* ========== Workflow Panel ========== */
+.workflow-panel{background:#fff;border-radius:var(--r);border:1px solid var(--g200);margin:0 24px 16px;overflow:hidden}
+.wf-hdr{display:flex;align-items:center;justify-content:space-between;padding:14px 20px;border-bottom:1px solid var(--g100);background:linear-gradient(180deg,#fafafa,#f8f8f8)}
+.wf-title{font-size:14px;font-weight:700;color:var(--g900);display:flex;align-items:center;gap:8px}
+.wf-title::before{content:'';width:3px;height:16px;border-radius:2px;background:var(--p);flex-shrink:0}
+
+/* ========== Flow Timeline ========== */
+.flow-timeline{padding:24px 20px;display:flex;align-items:flex-start;gap:0;overflow-x:auto}
+.flow-step{display:flex;flex-direction:column;align-items:center;min-width:140px;position:relative;flex-shrink:0}
+.flow-step .fs-icon{width:48px;height:48px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:20px;border:2px solid var(--g300);background:#fff;transition:var(--tr);position:relative;z-index:2}
+.flow-step .fs-icon.active{border-color:var(--p);background:var(--pl);box-shadow:0 0 0 4px rgba(22,119,255,.1)}
+.flow-step .fs-icon.done{border-color:var(--s);background:var(--sl)}
+.flow-step .fs-icon.pending{border-color:var(--g300);background:var(--g50)}
+.flow-step .fs-icon.error{border-color:var(--d);background:var(--dl)}
+.flow-step .fs-label{font-size:12px;font-weight:600;color:var(--g800);margin-top:10px;text-align:center;white-space:nowrap}
+.flow-step .fs-sub{font-size:11px;color:var(--g500);margin-top:3px;text-align:center}
+.flow-step .fs-agent{font-size:10px;color:var(--p);margin-top:4px;background:var(--pl);padding:2px 8px;border-radius:10px;white-space:nowrap}
+.flow-connector{width:60px;height:2px;background:var(--g300);margin-top:24px;flex-shrink:0;position:relative}
+.flow-connector.done{background:var(--s)}
+.flow-connector.active{background:linear-gradient(90deg,var(--s),var(--p));animation:flowPulse 2s infinite}
+.flow-connector::after{content:'›';position:absolute;right:-6px;top:-7px;color:var(--g400);font-size:12px}
+.flow-connector.done::after{color:var(--s)}
+.flow-connector.active::after{color:var(--p)}
+@keyframes flowPulse{0%,100%{opacity:1}50%{opacity:.6}}
+
+/* ========== Metrics Bar ========== */
+.metrics-bar{display:flex;gap:16px;padding:16px 24px;flex-shrink:0}
+.metric-card{flex:1;background:#fff;border:1px solid var(--g200);border-radius:var(--r);padding:16px 20px;display:flex;align-items:center;gap:14px;transition:var(--tr)}
+.metric-card:hover{border-color:var(--p);box-shadow:var(--shm)}
+.metric-card .mc-icon{width:44px;height:44px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:20px;flex-shrink:0}
+.metric-card .mc-icon.blue{background:linear-gradient(135deg,var(--pl),#d6e8ff)}
+.metric-card .mc-icon.green{background:linear-gradient(135deg,var(--sl),#d9f7be)}
+.metric-card .mc-icon.orange{background:linear-gradient(135deg,var(--wl),#ffe58f)}
+.metric-card .mc-icon.purple{background:linear-gradient(135deg,var(--purple-l),#efdbff)}
+.metric-card .mc-info{display:flex;flex-direction:column}
+.metric-card .mc-val{font-size:22px;font-weight:700;color:var(--g900);line-height:1.2}
+.metric-card .mc-label{font-size:11px;color:var(--g500);margin-top:2px}
+
+/* ========== SRM Order Table ========== */
+.order-toolbar{display:flex;align-items:center;justify-content:space-between;padding:12px 24px;background:#fff;border-bottom:1px solid var(--g100)}
+.order-toolbar-left{display:flex;gap:8px;flex-wrap:wrap}
+.order-toolbar-right{display:flex;gap:8px;align-items:center}
+.order-search{display:flex;align-items:center;border:1px solid var(--g300);border-radius:var(--rs);overflow:hidden}
+.order-search input{border:none;outline:none;padding:6px 10px;font-size:12px;width:200px;background:transparent}
+.order-search button{background:var(--p);color:#fff;border:none;padding:6px 12px;cursor:pointer;font-size:12px}
+.order-search button:hover{background:var(--ph)}
+
+.order-table-wrap{overflow-x:auto;background:#fff;margin:0}
+.order-table{width:100%;border-collapse:collapse;font-size:12px;white-space:nowrap}
+.order-table th{background:linear-gradient(180deg,#fafafa,#f5f5f5);color:var(--g700);font-size:11px;font-weight:600;padding:10px 12px;text-align:left;border-bottom:1px solid var(--g200);position:sticky;top:0;z-index:2;cursor:pointer;user-select:none}
+.order-table th:hover{background:#f0f0f0}
+.order-table th .sort-icon{color:var(--g400);margin-left:4px;font-size:10px}
+.order-table td{padding:10px 12px;border-bottom:1px solid var(--g100);vertical-align:middle}
+.order-table tbody tr{transition:var(--tr)}
+.order-table tbody tr:hover td{background:#f0f7ff}
+.order-table .cb{width:36px;text-align:center}
+.order-table .cb input{cursor:pointer}
+.order-link{color:var(--p);cursor:pointer;font-weight:500;text-decoration:none}
+.order-link:hover{text-decoration:underline}
+.status-tag{display:inline-flex;align-items:center;gap:4px;font-size:11px;padding:3px 10px;border-radius:12px;font-weight:500;white-space:nowrap}
+.status-tag.confirmed{background:var(--sl);color:var(--s)}
+.status-tag.pending{background:var(--wl);color:#d46b08}
+.status-tag.rejected{background:var(--dl);color:var(--d)}
+.status-tag.draft{background:var(--g100);color:var(--g600)}
+.version-tag{display:inline-flex;align-items:center;gap:3px;font-size:10px;padding:2px 6px;border-radius:4px;background:var(--g50);color:var(--g600);border:1px solid var(--g200)}
+.version-tag.new{background:var(--dl);color:var(--d);border-color:#ffa39e}
+.agent-badge{display:inline-flex;align-items:center;gap:3px;font-size:10px;padding:2px 8px;border-radius:10px;font-weight:500;white-space:nowrap}
+.agent-badge.import{background:var(--pl);color:var(--p)}
+.agent-badge.match{background:var(--sl);color:var(--s)}
+.agent-badge.notify{background:var(--purple-l);color:var(--purple)}
+
+/* Pagination */
+.pagination{display:flex;align-items:center;justify-content:space-between;padding:12px 24px;background:#fff;border-top:1px solid var(--g200);font-size:12px;color:var(--g600)}
+.pagination .page-info{display:flex;align-items:center;gap:4px}
+.pagination .page-btns{display:flex;gap:4px;align-items:center}
+.pagination .page-btn{min-width:28px;height:28px;border:1px solid var(--g300);background:#fff;border-radius:var(--rs);display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:12px;color:var(--g700);transition:var(--tr);padding:0 6px}
+.pagination .page-btn:hover{color:var(--p);border-color:var(--p)}
+.pagination .page-btn.active{background:var(--p);color:#fff;border-color:var(--p)}
+.pagination .page-btn.disabled{color:var(--g300);cursor:not-allowed;border-color:var(--g200)}
+.pagination .page-jump{display:flex;align-items:center;gap:4px}
+.pagination .page-jump input{width:40px;border:1px solid var(--g300);border-radius:var(--rs);padding:4px 6px;text-align:center;font-size:12px;outline:none}
+.pagination .page-jump input:focus{border-color:var(--p)}
+
+/* ========== System Integration ========== */
+.sys-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;padding:16px 24px}
+.sys-card{background:#fff;border:1px solid var(--g200);border-radius:var(--r);overflow:hidden;transition:var(--tr)}
+.sys-card:hover{border-color:var(--p);box-shadow:var(--shm)}
+.sys-card .sc-hdr{padding:14px 18px;border-bottom:1px solid var(--g100);display:flex;align-items:center;gap:10px}
+.sys-card .sc-icon{width:36px;height:36px;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:16px;flex-shrink:0}
+.sys-card .sc-icon.blue{background:var(--pl);color:var(--p)}
+.sys-card .sc-icon.green{background:var(--sl);color:var(--s)}
+.sys-card .sc-icon.purple{background:var(--purple-l);color:var(--purple)}
+.sys-card .sc-name{font-size:14px;font-weight:700;color:var(--g900)}
+.sys-card .sc-ver{font-size:11px;color:var(--g500)}
+.sys-card .sc-body{padding:14px 18px}
+.sys-card .sc-desc{font-size:12px;color:var(--g600);line-height:1.6;margin-bottom:10px}
+.sys-card .sc-apis{display:flex;flex-wrap:wrap;gap:6px}
+.sys-card .sc-api{font-size:10px;padding:3px 8px;border-radius:4px;background:var(--g50);color:var(--g600);border:1px solid var(--g200);cursor:pointer;transition:var(--tr)}
+.sys-card .sc-api:hover{border-color:var(--p);color:var(--p);background:var(--pl)}
+
+/* ========== Section Panel ========== */
+.section{background:#fff;border-radius:var(--r);border:1px solid var(--g200);margin:0 24px 16px;overflow:hidden}
+.section-hdr{display:flex;align-items:center;justify-content:space-between;padding:14px 20px;border-bottom:1px solid var(--g100);background:linear-gradient(180deg,#fafafa,#f8f8f8);cursor:pointer;user-select:none}
+.section-title{font-size:14px;font-weight:700;color:var(--g900);display:flex;align-items:center;gap:8px}
+.section-title::before{content:'';width:3px;height:16px;border-radius:2px;background:var(--p);flex-shrink:0}
+.section-body{padding:16px 20px}
+
+/* ========== Role Table ========== */
+.role-table{width:100%;border-collapse:collapse;font-size:12px}
+.role-table th{background:linear-gradient(180deg,#fafafa,#f5f5f5);color:var(--g700);font-size:11px;font-weight:600;padding:10px 14px;text-align:left;border-bottom:1px solid var(--g200);white-space:nowrap;position:sticky;top:0;z-index:2}
+.role-table td{padding:10px 14px;border-bottom:1px solid var(--g100);vertical-align:middle}
+.role-table tbody tr{transition:var(--tr)}
+.role-table tbody tr:hover td{background:#f0f7ff}
+.role-tag{display:inline-flex;align-items:center;gap:4px;font-size:11px;padding:3px 10px;border-radius:12px;font-weight:500;white-space:nowrap}
+.role-tag.primary{background:var(--pl);color:var(--p)}
+.role-tag.support{background:var(--sl);color:var(--s)}
+.role-tag.approve{background:var(--wl);color:#d46b08}
+.role-tag.info{background:var(--g50);color:var(--g600);border:1px solid var(--g200)}
+
+/* ========== Activity Log ========== */
+.log-list{padding:12px 20px}
+.log-item{display:flex;gap:12px;padding:10px 0;border-bottom:1px solid var(--g100)}
+.log-item:last-child{border-bottom:none}
+.log-item .li-dot{width:8px;height:8px;border-radius:50%;margin-top:5px;flex-shrink:0}
+.log-item .li-dot.blue{background:var(--p)}
+.log-item .li-dot.green{background:var(--s)}
+.log-item .li-dot.orange{background:var(--w)}
+.log-item .li-dot.purple{background:var(--purple)}
+.log-item .li-dot.gray{background:var(--g300)}
+.log-item .li-content{flex:1}
+.log-item .li-title{font-size:12px;color:var(--g800);font-weight:500}
+.log-item .li-desc{font-size:11px;color:var(--g500);margin-top:2px}
+.log-item .li-time{font-size:11px;color:var(--g400);white-space:nowrap;flex-shrink:0}
+
+/* ========== Agent Daily Report ========== */
+.report-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;padding:16px 24px}
+.report-card{background:#fff;border:1px solid var(--g200);border-radius:var(--r);overflow:hidden;transition:var(--tr)}
+.report-card:hover{border-color:var(--p);box-shadow:var(--shm)}
+.report-card .rc-hdr{padding:14px 18px;border-bottom:1px solid var(--g100);display:flex;align-items:center;justify-content:space-between}
+.report-card .rc-title{font-size:14px;font-weight:700;color:var(--g900);display:flex;align-items:center;gap:8px}
+.report-card .rc-badge{font-size:10px;padding:2px 8px;border-radius:10px;font-weight:500}
+.report-card .rc-body{padding:14px 18px}
+.report-stat{display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid var(--g100);font-size:12px}
+.report-stat:last-child{border-bottom:none}
+.report-stat .rs-label{color:var(--g600)}
+.report-stat .rs-val{font-weight:600;color:var(--g800)}
+.report-stat .rs-val.green{color:var(--s)}
+.report-stat .rs-val.blue{color:var(--p)}
+.report-stat .rs-val.orange{color:#d46b08}
+.report-stat .rs-val.red{color:var(--d)}
+
+/* Progress bar */
+.progress-bar{height:6px;background:var(--g100);border-radius:3px;overflow:hidden;margin-top:6px}
+.progress-bar .pb-fill{height:100%;border-radius:3px;transition:width .5s ease}
+.progress-bar .pb-fill.green{background:linear-gradient(90deg,#52c41a,#73d13d)}
+.progress-bar .pb-fill.blue{background:linear-gradient(90deg,var(--p),var(--ph))}
+.progress-bar .pb-fill.orange{background:linear-gradient(90deg,#faad14,#ffc53d)}
+
+/* ========== Buttons ========== */
+.btn{border:none;padding:7px 16px;border-radius:var(--rs);font-size:12px;font-weight:500;cursor:pointer;transition:var(--tr);display:inline-flex;align-items:center;gap:5px;white-space:nowrap}
+.btn:active{transform:scale(.97)}
+.btn-p{background:linear-gradient(135deg,var(--p) 0%,#4096ff 100%);color:#fff;box-shadow:0 2px 6px rgba(22,119,255,.25)}
+.btn-p:hover{box-shadow:0 4px 12px rgba(22,119,255,.35);transform:translateY(-1px)}
+.btn-o{background:#fff;color:var(--g700);border:1px solid var(--g300)}.btn-o:hover{color:var(--p);border-color:var(--p);background:var(--pa)}
+.btn-g{background:var(--g50);color:var(--g600);border:1px solid var(--g200)}.btn-g:hover{color:var(--p);border-color:var(--p);background:var(--pa)}
+.btn-s{padding:4px 10px;font-size:11px;border-radius:4px;white-space:nowrap}
+.btn-danger{background:var(--d);color:#fff;border:none}.btn-danger:hover{background:#ff7875}
+
+/* ========== Toast ========== */
+.toast{display:none;position:fixed;top:60px;right:24px;z-index:3000;background:#fff;border-radius:var(--r);box-shadow:var(--shl);padding:14px 20px;border-left:4px solid var(--p);max-width:360px;animation:toastIn .3s ease}
+.toast.show{display:block}
+@keyframes toastIn{from{opacity:0;transform:translateX(20px)}to{opacity:1;transform:translateX(0)}}
+.toast .t-title{font-size:13px;font-weight:700;color:var(--g900);margin-bottom:3px}
+.toast .t-msg{font-size:12px;color:var(--g600);line-height:1.5}
+
+/* ========== Detail Modal ========== */
+.detail-modal{display:none;position:fixed;top:0;left:0;right:0;bottom:0;z-index:2000;background:rgba(0,0,0,.45);align-items:center;justify-content:center}
+.detail-modal.show{display:flex}
+.detail-dialog{background:#fff;border-radius:var(--rl);width:760px;max-height:80vh;display:flex;flex-direction:column;box-shadow:var(--shl);animation:modalIn .25s ease}
+@keyframes modalIn{from{opacity:0;transform:translateY(-20px)}to{opacity:1;transform:translateY(0)}}
+.detail-dialog .dd-hdr{display:flex;align-items:center;justify-content:space-between;padding:16px 24px;border-bottom:1px solid var(--g200)}
+.detail-dialog .dd-hdr h3{font-size:16px;font-weight:700;color:var(--g900);display:flex;align-items:center;gap:8px}
+.detail-dialog .dd-close{background:none;border:none;font-size:20px;cursor:pointer;color:var(--g400);padding:4px 8px;border-radius:4px;transition:var(--tr)}
+.detail-dialog .dd-close:hover{color:var(--g700);background:var(--g50)}
+.detail-dialog .dd-body{flex:1;overflow-y:auto;padding:20px 24px}
+.detail-dialog .dd-footer{display:flex;align-items:center;justify-content:flex-end;gap:10px;padding:14px 24px;border-top:1px solid var(--g200);background:var(--g50);border-radius:0 0 var(--rl) var(--rl)}
+
+/* ========== Business Process Flow ========== */
+.biz-flow{padding:20px 24px}
+.biz-flow-title{font-size:13px;font-weight:700;color:var(--g900);margin-bottom:16px;display:flex;align-items:center;gap:6px}
+.biz-flow-title::before{content:'';width:3px;height:14px;border-radius:2px;background:var(--p);flex-shrink:0}
+
+/* Flow Grid */
+.biz-grid{display:grid;grid-template-columns:1fr;gap:0;position:relative}
+.biz-row{display:flex;align-items:stretch;gap:0;position:relative;padding:12px 0;border-bottom:1px solid var(--g100)}
+.biz-row:last-child{border-bottom:none}
+.biz-row:nth-child(odd){background:rgba(0,0,0,.006)}
+.biz-row-label{width:130px;flex-shrink:0;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:12px 0;position:relative}
+.biz-row-label .brl-num{font-size:9px;color:#fff;background:rgba(255,255,255,.3);padding:1px 6px;border-radius:8px;margin-bottom:4px;letter-spacing:.5px}
+.biz-row-label .brl-tag{font-size:10px;font-weight:700;color:#fff;padding:5px 14px;border-radius:12px;white-space:nowrap;letter-spacing:.5px;box-shadow:0 2px 6px rgba(0,0,0,.15)}
+.biz-row-label .brl-tag.source{background:linear-gradient(135deg,var(--p),#4096ff)}
+.biz-row-label .brl-tag.process{background:linear-gradient(135deg,var(--s),#73d13d)}
+.biz-row-label .brl-tag.price{background:linear-gradient(135deg,#d46b08,var(--w))}
+.biz-row-label .brl-tag.track{background:linear-gradient(135deg,var(--purple),#9254de)}
+.biz-row-label .brl-tag.end{background:linear-gradient(135deg,var(--cyan),#36cfc9)}
+.biz-row-label::after{content:'';position:absolute;bottom:0;left:50%;width:2px;height:100%;background:var(--g200);z-index:0}
+.biz-row-label:last-child::after{display:none}
+.biz-row-content{flex:1;display:flex;gap:14px;padding:10px 0;align-items:center;position:relative;min-height:90px}
+.biz-node{background:#fff;border:1px solid var(--g200);border-radius:10px;padding:14px 18px;transition:var(--tr);position:relative;overflow:hidden;flex:1;min-width:0}
+.biz-node:hover{border-color:var(--p);box-shadow:var(--shm);transform:translateY(-1px)}
+.biz-node .bn-hdr{display:flex;align-items:center;gap:8px;margin-bottom:8px}
+.biz-node .bn-icon{width:32px;height:32px;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:16px;flex-shrink:0}
+.biz-node .bn-icon.blue{background:var(--pl);color:var(--p)}
+.biz-node .bn-icon.green{background:var(--sl);color:var(--s)}
+.biz-node .bn-icon.orange{background:var(--wl);color:#d46b08}
+.biz-node .bn-icon.purple{background:var(--purple-l);color:var(--purple)}
+.biz-node .bn-icon.cyan{background:var(--cyan-l);color:var(--cyan)}
+.biz-node .bn-icon.red{background:var(--dl);color:var(--d)}
+.biz-node .bn-title{font-size:12px;font-weight:700;color:var(--g900)}
+.biz-node .bn-sub{font-size:10px;color:var(--g500);margin-top:1px}
+.biz-node .bn-body{font-size:12px;color:var(--g600);line-height:1.8}
+.biz-node .bn-metrics{display:flex;gap:8px;margin-top:8px;flex-wrap:wrap}
+.biz-node .bn-metric{font-size:10px;padding:2px 8px;border-radius:4px;background:var(--g50);color:var(--g600);border:1px solid var(--g200);white-space:nowrap}
+.biz-node .bn-metric strong{color:var(--g800)}
+.biz-node .bn-status{position:absolute;top:8px;right:8px;font-size:9px;padding:2px 8px;border-radius:10px;font-weight:600}
+.biz-row:nth-child(1) .biz-node{border-left:3px solid var(--p)}
+.biz-row:nth-child(3) .biz-node{border-left:3px solid var(--s)}
+.biz-row:nth-child(5) .biz-node{border-left:3px solid var(--w)}
+.biz-row:nth-child(7) .biz-node{border-left:3px solid var(--purple)}
+.biz-row:nth-child(9) .biz-node{border-left:3px solid var(--cyan)}
+.biz-node .bn-status.running{background:var(--sl);color:var(--s)}
+.biz-node .bn-status.auto{background:var(--pl);color:var(--p)}
+.biz-node.highlight{border-color:var(--p);background:linear-gradient(135deg,#f0f7ff,#fff)}
+.biz-node.highlight::before{content:'';position:absolute;top:0;left:0;right:0;height:3px;background:linear-gradient(90deg,var(--p),var(--ph))}
+
+/* Flow Arrows between rows */
+.biz-arrow-row{display:flex;align-items:center;padding:0 0 0 130px;position:relative;height:44px}
+.biz-arrow-row .arrow-line{display:flex;align-items:center;gap:0;flex:1}
+.biz-arrow-row .arrow-vert{width:2px;height:100%;background:linear-gradient(180deg,var(--g300),var(--g200));position:absolute;left:calc(130px + 40px)}
+.biz-arrow-row .arrow-vert::before{content:'';position:absolute;bottom:-5px;left:-5px;width:12px;height:12px;border-right:2px solid var(--g300);border-bottom:2px solid var(--g300);transform:rotate(45deg)}
+.biz-arrow-row .arrow-label{font-size:10px;color:var(--p);font-weight:600;background:var(--pl);padding:4px 14px;border-radius:12px;position:absolute;left:calc(130px + 56px);white-space:nowrap;z-index:2;box-shadow:0 1px 4px rgba(22,119,255,.12)}
+
+/* Merge arrow */
+.biz-merge{display:flex;align-items:center;justify-content:center;padding:10px 0 10px 130px}
+.biz-merge-inner{display:flex;align-items:center;gap:12px;flex:1}
+.biz-merge-line{flex:1;height:2px;background:linear-gradient(90deg,transparent,var(--p),transparent)}
+.biz-merge-icon{width:28px;height:28px;border-radius:50%;background:linear-gradient(135deg,var(--p),var(--ph));display:flex;align-items:center;justify-content:center;color:#fff;font-size:12px;flex-shrink:0;box-shadow:0 2px 8px rgba(22,119,255,.25)}
+.biz-merge-text{font-size:11px;color:var(--p);white-space:nowrap;font-weight:600}
+
+/* Price Gate */
+.price-gate{background:linear-gradient(135deg,var(--wl),#fffbe6);border:2px solid var(--w);border-radius:10px;padding:18px 20px;margin:8px 0;position:relative}
+.price-gate::before{content:'⚡ 定价关卡';position:absolute;top:-10px;left:16px;background:var(--wl);padding:0 8px;font-size:11px;font-weight:700;color:#d46b08}
+.pg-rules{display:flex;gap:10px;margin-top:6px}
+.pg-rule{flex:1;background:#fff;border:1px solid var(--g200);border-radius:8px;padding:12px 14px;font-size:11px;line-height:1.7}
+.pg-rule .pgr-head{display:flex;align-items:center;gap:6px;margin-bottom:6px;font-weight:700;font-size:12px}
+.pg-rule .pgr-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0}
+.pg-rule.green{border-color:#b7eb8f;background:linear-gradient(180deg,#f6ffed,#fff)}.pg-rule.green .pgr-head{color:var(--s)}
+.pg-rule.yellow{border-color:#ffe58f;background:linear-gradient(180deg,#fffbe6,#fff)}.pg-rule.yellow .pgr-head{color:#d46b08}
+.pg-rule.red{border-color:#d3adf7;background:linear-gradient(180deg,#f9f0ff,#fff)}.pg-rule.red .pgr-head{color:var(--purple)}
+
+/* Responsive */
+@media(max-width:1200px){
+  .biz-row-label{width:100px}
+  .biz-arrow-row,.biz-merge{padding-left:100px}
+  .biz-arrow-row .arrow-vert{left:calc(100px + 40px)}
+  .biz-arrow-row .arrow-label{left:calc(100px + 56px)}
+}
+
+/* ========== Responsive ========== */
+@media(max-width:1200px){
+  .agent-grid,.report-grid{grid-template-columns:repeat(2,1fr)}
+  .sys-grid{grid-template-columns:1fr}
+  .metrics-bar{flex-wrap:wrap}
+  .metric-card{min-width:calc(50% - 8px)}
+}
+@media(max-width:768px){
+  .agent-grid,.report-grid{grid-template-columns:1fr}
+  .sidebar{display:none}
+}
+</style>
+</head>
+<body>
+
+<!-- ==================== TOP NAV ==================== -->
+<div class="topnav">
+    <div class="topnav-logo"><div class="mi">MI</div><span>小米汽车</span></div>
+    <div class="topnav-menu">
+        <div class="topnav-item">首页</div>
+        <div class="topnav-item">个人中心</div>
+        <div class="topnav-item">供应商管理</div>
+        <div class="topnav-item">采购项目管理</div>
+        <div class="topnav-item">SOR管理</div>
+        <div class="topnav-item">售后需求管理</div>
+        <div class="topnav-item">采购任务管理</div>
+        <div class="topnav-item">RFQ询报价管理</div>
+        <div class="topnav-item">采购定点与台账</div>
+        <div class="topnav-item">合同管理</div>
+        <div class="topnav-item active">样件采购Agent</div>
+    </div>
+    <div class="topnav-right">
+        <div class="topnav-user"><div class="topnav-avatar">齐</div><span>齐岳</span></div>
+        <div class="icon" title="通知">🔔</div>
+        <div class="icon" title="设置">⚙</div>
+    </div>
+</div>
+
+<!-- ==================== SRM LAYOUT ==================== -->
+<div class="srm-layout">
+
+<!-- Sidebar -->
+<div class="sidebar" id="sidebar">
+    <div class="sidebar-hdr">
+        <h3>Agent 工作台</h3>
+        <div class="count">运行中 <strong>3</strong> / 总计 <strong>3</strong></div>
+    </div>
+    <div class="sp-menu">
+        <div class="sp-menu-item active" onclick="switchTab('overview',this)">
+            <span class="mi-icon blue">📊</span> Agent 总览
+        </div>
+        <div class="sp-menu-item" onclick="switchTab('orders',this)">
+            <span class="mi-icon green">📋</span> 采购订单
+            <span class="mi-badge">33479</span>
+        </div>
+        <div class="sp-menu-item" onclick="switchTab('workflow',this)">
+            <span class="mi-icon orange">⚡</span> 流程编排
+        </div>
+        <div class="sp-menu-item" onclick="switchTab('dashboard',this)">
+            <span class="mi-icon cyan">📊</span> 订单进度看板
+            <span class="mi-badge" style="background:var(--cyan-l);color:var(--cyan)">实时</span>
+        </div>
+        <div class="sp-divider"></div>
+        <div class="sp-menu-item" onclick="switchTab('agent1',this)">
+            <span class="mi-icon blue">📥</span> Agent1 需求导入
+            <span class="mi-badge" style="background:var(--pl);color:var(--p)">8/天</span>
+        </div>
+        <div class="sp-menu-item" onclick="switchTab('agent2',this)">
+            <span class="mi-icon green">💰</span> Agent2 自动下单
+            <span class="mi-badge" style="background:var(--sl);color:var(--s)">5/天</span>
+        </div>
+        <div class="sp-menu-item" onclick="switchTab('agent3',this)">
+            <span class="mi-icon purple">🔔</span> Agent3 每日通知
+            <span class="mi-badge" style="background:var(--purple-l);color:var(--purple)">每日</span>
+        </div>
+        <div class="sp-divider"></div>
+        <div class="sp-menu-item" onclick="switchTab('roles',this)">
+            <span class="mi-icon cyan">👥</span> 角色矩阵
+        </div>
+        <div class="sp-menu-item" onclick="switchTab('systems',this)">
+            <span class="mi-icon purple">🔗</span> 系统集成
+        </div>
+        <div class="sp-menu-item" onclick="switchTab('logs',this)">
+            <span class="mi-icon cyan">📋</span> 执行日志
+        </div>
+        <div style="padding:16px 20px;border-top:1px solid var(--g100);margin-top:8px">
+            <div style="font-size:11px;color:var(--g500);margin-bottom:8px;font-weight:600">快速统计</div>
+            <div style="display:flex;flex-direction:column;gap:6px">
+                <div style="display:flex;justify-content:space-between;font-size:12px"><span style="color:var(--g600)">今日导入需求</span><strong style="color:var(--p)">23件</strong></div>
+                <div style="display:flex;justify-content:space-between;font-size:12px"><span style="color:var(--g600)">今日自动下单</span><strong style="color:var(--s)">18件</strong></div>
+                <div style="display:flex;justify-content:space-between;font-size:12px"><span style="color:var(--g600)">自动化率</span><strong style="color:var(--s)">92%</strong></div>
+                <div style="display:flex;justify-content:space-between;font-size:12px"><span style="color:var(--g600)">异常挂起</span><strong style="color:var(--d)">2件</strong></div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Main Content Area -->
+<div class="main-content" id="mainArea">
+
+<!-- ==================== TAB: Overview ==================== -->
+<div id="tab-overview" class="tab-content active">
+
+<!-- ===== MODULE 1: 运营指标 ===== -->
+<div style="background:#fff;margin:16px 24px 0;border-radius:var(--r) var(--r) 0 0;border:1px solid var(--g200);border-bottom:none">
+    <div style="display:flex;align-items:center;justify-content:space-between;padding:12px 20px;border-bottom:1px solid var(--g100);background:linear-gradient(180deg,#f0f7ff,#fff)">
+        <div style="display:flex;align-items:center;gap:10px">
+            <div style="width:4px;height:20px;border-radius:2px;background:linear-gradient(180deg,var(--p),var(--ph))"></div>
+            <span style="font-size:14px;font-weight:700;color:var(--g900)">📊 运营指标</span>
+            <span style="font-size:11px;color:var(--g500);margin-left:4px">实时数据</span>
+        </div>
+        <div style="display:flex;align-items:center;gap:6px">
+            <span style="width:6px;height:6px;border-radius:50%;background:var(--s);animation:pulse 2s infinite"></span>
+            <span style="font-size:11px;color:var(--s);font-weight:500">数据实时更新</span>
+        </div>
+    </div>
+</div>
+<div class="metrics-bar" style="padding-top:0;margin-top:0">
+    <div class="metric-card" style="border-radius:0 0 0 var(--r)">
+        <div class="mc-icon blue">📥</div>
+        <div class="mc-info">
+            <div class="mc-val">23</div>
+            <div class="mc-label">今日需求导入</div>
+        </div>
+    </div>
+    <div class="metric-card" style="border-radius:0">
+        <div class="mc-icon green">✅</div>
+        <div class="mc-info">
+            <div class="mc-val">18</div>
+            <div class="mc-label">今日自动下单</div>
+        </div>
+    </div>
+    <div class="metric-card" style="border-radius:0">
+        <div class="mc-icon orange">⏳</div>
+        <div class="mc-info">
+            <div class="mc-val">5</div>
+            <div class="mc-label">待处理/人工介入</div>
+        </div>
+    </div>
+    <div class="metric-card" style="border-radius:0 0 var(--r) 0">
+        <div class="mc-icon purple">🔔</div>
+        <div class="mc-info">
+            <div class="mc-val">100%</div>
+            <div class="mc-label">通知送达率</div>
+        </div>
+    </div>
+</div>
+
+<!-- ===== MODULE 2: Agent 矩阵 ===== -->
+<div style="background:#fff;margin:0 24px;border-radius:var(--r);border:1px solid var(--g200);overflow:hidden;margin-top:16px">
+    <div style="display:flex;align-items:center;justify-content:space-between;padding:12px 20px;border-bottom:1px solid var(--g100);background:linear-gradient(180deg,#f0fff4,#fff)">
+        <div style="display:flex;align-items:center;gap:10px">
+            <div style="width:4px;height:20px;border-radius:2px;background:linear-gradient(180deg,var(--s),#73d13d)"></div>
+            <span style="font-size:14px;font-weight:700;color:var(--g900)">🤖 Agent 矩阵</span>
+            <span style="font-size:11px;color:var(--g500);margin-left:4px">3个Agent协同工作</span>
+        </div>
+        <div style="display:flex;gap:6px;align-items:center">
+            <span class="ctab active" onclick="filterCards('all',this)" style="padding:4px 12px;border-radius:12px;font-size:11px;margin:0;border-bottom:none">全部 <span class="badge" style="background:var(--p)">3</span></span>
+            <span class="ctab" onclick="filterCards('running',this)" style="padding:4px 12px;border-radius:12px;font-size:11px;margin:0;border-bottom:none">运行中 <span class="badge" style="background:var(--s)">3</span></span>
+        </div>
+    </div>
+    <div class="agent-grid" style="padding:16px 20px;margin:0">
+        <!-- Agent 1 -->
+        <div class="agent-card" data-status="running" onclick="switchTab('agent1',document.querySelector('[onclick*=agent1]'))">
+            <div class="ac-hdr">
+                <div class="ac-icon blue">📥</div>
+                <div class="ac-status running"><span class="dot"></span> 运行中</div>
+            </div>
+            <div class="ac-body">
+                <div class="ac-name">Agent1 · 需求自动导入</div>
+                <div class="ac-desc">自动读取EP系统试制BOM，解析零件清单与数量，将需求自动导入SRM采购系统，生成预算行号。</div>
+                <div class="ac-meta">
+                    <span class="ac-tag blue">EP系统对接</span>
+                    <span class="ac-tag green">BOM解析</span>
+                    <span class="ac-tag gray">SRM导入</span>
+                </div>
+            </div>
+            <div class="ac-footer">
+                <span class="metric">今日导入 <strong>23</strong> 件</span>
+                <span class="link">查看详情 →</span>
+            </div>
+        </div>
+        <!-- Agent 2 -->
+        <div class="agent-card" data-status="running" onclick="switchTab('agent2',document.querySelector('[onclick*=agent2]'))">
+            <div class="ac-hdr">
+                <div class="ac-icon green">💰</div>
+                <div class="ac-status running"><span class="dot"></span> 运行中</div>
+            </div>
+            <div class="ac-body">
+                <div class="ac-name">Agent2 · 自动匹配价格下单</div>
+                <div class="ac-desc">自动匹配历史价格与供应商报价，价格确认后自动创建采购订单草稿，推送采购工程师审批。</div>
+                <div class="ac-meta">
+                    <span class="ac-tag green">价格匹配</span>
+                    <span class="ac-tag blue">自动下单</span>
+                    <span class="ac-tag orange">审批流转</span>
+                </div>
+            </div>
+            <div class="ac-footer">
+                <span class="metric">今日下单 <strong>18</strong> 件</span>
+                <span class="link">查看详情 →</span>
+            </div>
+        </div>
+        <!-- Agent 3 -->
+        <div class="agent-card" data-status="running" onclick="switchTab('agent3',document.querySelector('[onclick*=agent3]'))">
+            <div class="ac-hdr">
+                <div class="ac-icon purple">🔔</div>
+                <div class="ac-status running"><span class="dot"></span> 运行中</div>
+            </div>
+            <div class="ac-body">
+                <div class="ac-name">Agent3 · 每日下单通知</div>
+                <div class="ac-desc">每日汇总已下单与未下单情况，生成日报推送至采购工程师、项目负责人，确保需求无遗漏。</div>
+                <div class="ac-meta">
+                    <span class="ac-tag purple">日报生成</span>
+                    <span class="ac-tag cyan">消息推送</span>
+                    <span class="ac-tag gray">需求跟踪</span>
+                </div>
+            </div>
+            <div class="ac-footer">
+                <span class="metric">下次推送 <strong>18:00</strong></span>
+                <span class="link">查看详情 →</span>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- ===== MODULE 3: 流程步骤总览 ===== -->
+<div style="background:#fff;margin:16px 24px 0;border-radius:var(--r) var(--r) 0 0;border:1px solid var(--g200);border-bottom:none">
+    <div style="display:flex;align-items:center;justify-content:space-between;padding:12px 20px;border-bottom:1px solid var(--g100);background:linear-gradient(180deg,#f9f0ff,#fff)">
+        <div style="display:flex;align-items:center;gap:10px">
+            <div style="width:4px;height:20px;border-radius:2px;background:linear-gradient(180deg,var(--purple),#9254de)"></div>
+            <span style="font-size:14px;font-weight:700;color:var(--g900)">🗺️ 流程步骤总览</span>
+            <span style="font-size:11px;color:var(--g500);margin-left:4px">5步完成从需求到付款的全流程</span>
+        </div>
+    </div>
+    <div style="padding:16px 20px;display:flex;gap:0;align-items:center;overflow-x:auto">
+        <div style="display:flex;align-items:center;gap:0;flex:1;min-width:0">
+            <div style="flex:1;text-align:center">
+                <div style="width:36px;height:36px;border-radius:50%;background:linear-gradient(135deg,var(--pl),#d6e8ff);border:2px solid var(--p);display:flex;align-items:center;justify-content:center;margin:0 auto 6px;font-size:16px">📥</div>
+                <div style="font-size:11px;font-weight:700;color:var(--p)">需求来源</div>
+                <div style="font-size:10px;color:var(--g500);margin-top:2px">MI-PEC + Agent1</div>
+            </div>
+            <div style="width:40px;height:2px;background:linear-gradient(90deg,var(--p),var(--s));position:relative;flex-shrink:0;margin-top:-18px"><div style="position:absolute;right:-3px;top:-4px;color:var(--s);font-size:10px">›</div></div>
+            <div style="flex:1;text-align:center">
+                <div style="width:36px;height:36px;border-radius:50%;background:linear-gradient(135deg,var(--sl),#d9f7be);border:2px solid var(--s);display:flex;align-items:center;justify-content:center;margin:0 auto 6px;font-size:16px">🔍</div>
+                <div style="font-size:11px;font-weight:700;color:var(--s)">需求处理</div>
+                <div style="font-size:10px;color:var(--g500);margin-top:2px">BOM解析 + 订单匹配</div>
+            </div>
+            <div style="width:40px;height:2px;background:linear-gradient(90deg,var(--s),#d46b08);position:relative;flex-shrink:0;margin-top:-18px"><div style="position:absolute;right:-3px;top:-4px;color:#d46b08;font-size:10px">›</div></div>
+            <div style="flex:1;text-align:center">
+                <div style="width:36px;height:36px;border-radius:50%;background:linear-gradient(135deg,var(--wl),#ffe58f);border:2px solid var(--w);display:flex;align-items:center;justify-content:center;margin:0 auto 6px;font-size:16px">💰</div>
+                <div style="font-size:11px;font-weight:700;color:#d46b08">定价通知</div>
+                <div style="font-size:10px;color:var(--g500);margin-top:2px">价格匹配 + 告警</div>
+            </div>
+            <div style="width:40px;height:2px;background:linear-gradient(90deg,#d46b08,var(--purple));position:relative;flex-shrink:0;margin-top:-18px"><div style="position:absolute;right:-3px;top:-4px;color:var(--purple);font-size:10px">›</div></div>
+            <div style="flex:1;text-align:center">
+                <div style="width:36px;height:36px;border-radius:50%;background:linear-gradient(135deg,var(--purple-l),#efdbff);border:2px solid var(--purple);display:flex;align-items:center;justify-content:center;margin:0 auto 6px;font-size:16px">🔔</div>
+                <div style="font-size:11px;font-weight:700;color:var(--purple)">进度追踪</div>
+                <div style="font-size:10px;color:var(--g500);margin-top:2px">Agent3 日报推送</div>
+            </div>
+            <div style="width:40px;height:2px;background:linear-gradient(90deg,var(--purple),var(--cyan));position:relative;flex-shrink:0;margin-top:-18px"><div style="position:absolute;right:-3px;top:-4px;color:var(--cyan);font-size:10px">›</div></div>
+            <div style="flex:1;text-align:center">
+                <div style="width:36px;height:36px;border-radius:50%;background:linear-gradient(135deg,var(--cyan-l),#b5f5ec);border:2px solid var(--cyan);display:flex;align-items:center;justify-content:center;margin:0 auto 6px;font-size:16px">✅</div>
+                <div style="font-size:11px;font-weight:700;color:var(--cyan)">流程闭环</div>
+                <div style="font-size:10px;color:var(--g500);margin-top:2px">验收 + 付款</div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- ==================== Business Process Flow ==================== -->
+<div style="background:#fff;margin:16px 24px;border-radius:var(--r);border:1px solid var(--g200);overflow:hidden">
+    <div style="display:flex;align-items:center;justify-content:space-between;padding:12px 20px;border-bottom:1px solid var(--g100);background:linear-gradient(180deg,#fff7e6,#fff)">
+        <div style="display:flex;align-items:center;gap:10px">
+            <div style="width:4px;height:20px;border-radius:2px;background:linear-gradient(180deg,#d46b08,var(--w))"></div>
+            <span style="font-size:14px;font-weight:700;color:var(--g900)">⚡ 全业务流程图</span>
+            <span style="font-size:11px;color:var(--g500);margin-left:4px">需求来源 → 订单匹配 → 定价通知 → 进度追踪 → 闭环</span>
+        </div>
+        <div style="display:flex;gap:12px;align-items:center">
+            <span style="display:flex;align-items:center;gap:4px;font-size:11px;color:var(--s)"><span style="width:8px;height:8px;border-radius:50%;background:var(--s)"></span> 已完成</span>
+            <span style="display:flex;align-items:center;gap:4px;font-size:11px;color:var(--p)"><span style="width:8px;height:8px;border-radius:50%;background:var(--p);animation:pulse 2s infinite"></span> 运行中</span>
+            <span style="display:flex;align-items:center;gap:4px;font-size:11px;color:var(--g400)"><span style="width:8px;height:8px;border-radius:50%;background:var(--g300)"></span> 待触发</span>
+            <button class="btn btn-o btn-s" style="margin-left:4px" onclick="showToast('流程','已刷新')">🔄 刷新</button>
+        </div>
+    </div>
+
+    <div class="biz-flow">
+        <!-- ===== ROW 1: 需求来源 ===== -->
+        <div class="biz-row">
+            <div class="biz-row-label">
+                <span class="brl-num">STEP 1</span>
+                <span class="brl-tag source">需求来源</span>
+            </div>
+            <div class="biz-row-content">
+                <!-- Source 1: MIPEC -->
+                <div class="biz-node">
+                    <span class="bn-status auto">自动</span>
+                    <div class="bn-hdr">
+                        <div class="bn-icon green">🏗️</div>
+                        <div>
+                            <div class="bn-title">需求来源1 · MI-PEC系统</div>
+                            <div class="bn-sub">样件生产过程管控</div>
+                        </div>
+                    </div>
+                    <div class="bn-body">
+                        样件生产订单触发 → 自动推送采购需求至Agent1<br>
+                        覆盖：样车、试制BOX、量产试制全流程
+                    </div>
+                    <div class="bn-metrics">
+                        <span class="bn-metric">日均触发 <strong>15件</strong></span>
+                        <span class="bn-metric">覆盖项目 <strong>31个</strong></span>
+                        <span class="bn-metric">Webhook推送</span>
+                    </div>
+                </div>
+                <!-- Source 2: Agent1 -->
+                <div class="biz-node highlight">
+                    <span class="bn-status running">运行中</span>
+                    <div class="bn-hdr">
+                        <div class="bn-icon blue">📥</div>
+                        <div>
+                            <div class="bn-title">需求来源2 · Agent1 需求自动导入</div>
+                            <div class="bn-sub">EP系统 → BOM解析 → SRM导入</div>
+                        </div>
+                    </div>
+                    <div class="bn-body">
+                        监听EP试制BOM发布 → 自动解析零件清单与数量 → 生成预算行号 → 写入SRM系统
+                    </div>
+                    <div class="bn-metrics">
+                        <span class="bn-metric">日均导入 <strong>23件</strong></span>
+                        <span class="bn-metric">成功率 <strong style="color:var(--s)">95%</strong></span>
+                        <span class="bn-metric">平均耗时 <strong>12min</strong></span>
+                        <span class="bn-metric">自动化率 <strong>95%</strong></span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Arrow: Merge -->
+        <div class="biz-merge">
+            <div class="biz-merge-inner">
+                <div class="biz-merge-line"></div>
+                <div class="biz-merge-icon">⊕</div>
+                <div class="biz-merge-text">需求汇聚：MI-PEC推送 + Agent1导入 → 统一需求池</div>
+                <div class="biz-merge-line"></div>
+            </div>
+        </div>
+
+        <!-- ===== ROW 2: 需求处理和订单匹配 ===== -->
+        <div class="biz-row">
+            <div class="biz-row-label">
+                <span class="brl-num">STEP 2</span>
+                <span class="brl-tag process">需求处理</span>
+            </div>
+            <div class="biz-row-content">
+                <!-- BOM Parser -->
+                <div class="biz-node">
+                    <div class="bn-hdr">
+                        <div class="bn-icon blue">📋</div>
+                        <div>
+                            <div class="bn-title">BOM数据解析</div>
+                            <div class="bn-sub">零件号 · 数量 · 项目 · 配置</div>
+                        </div>
+                    </div>
+                    <div class="bn-body">
+                        解析EP试制BOM零件清单<br>
+                        校验数据完整性，缺失字段自动补全/告警<br>
+                        关联项目代码（MX13B/KUN30/MS12B等）
+                    </div>
+                </div>
+                <!-- Order Match -->
+                <div class="biz-node">
+                    <div class="bn-hdr">
+                        <div class="bn-icon green">🔍</div>
+                        <div>
+                            <div class="bn-title">订单智能匹配</div>
+                            <div class="bn-sub">供应商 · 历史价格 · 报价</div>
+                        </div>
+                    </div>
+                    <div class="bn-body">
+                        根据零件类别匹配供应商库<br>
+                        查询历史成交价格，获取最新报价<br>
+                        生成SRM采购申请单 + 触发RFQ询价
+                    </div>
+                </div>
+                <!-- Agent2 Core -->
+                <div class="biz-node highlight">
+                    <span class="bn-status running">运行中</span>
+                    <div class="bn-hdr">
+                        <div class="bn-icon green">💰</div>
+                        <div>
+                            <div class="bn-title">Agent2 · 自动匹配价格下单</div>
+                            <div class="bn-sub">价格匹配 → 自动创建订单</div>
+                        </div>
+                    </div>
+                    <div class="bn-body">
+                        自动比价分析（价格、交付、质量评分）<br>
+                        价格偏差 ≤15% → 自动创建采购订单<br>
+                        价格偏差 >15% → 暂停，推送人工确认<br>
+                        生成订单草稿（4900037xxx）→ 推送审批
+                    </div>
+                    <div class="bn-metrics">
+                        <span class="bn-metric">日均下单 <strong>18件</strong></span>
+                        <span class="bn-metric">匹配成功 <strong style="color:var(--s)">88%</strong></span>
+                        <span class="bn-metric">平均耗时 <strong>25min</strong></span>
+                        <span class="bn-metric">今日金额 <strong>¥2.4M</strong></span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Arrow -->
+        <div class="biz-arrow-row">
+            <div class="arrow-line">
+                <div class="arrow-vert"></div>
+                <div class="arrow-label">📋 订单草稿生成</div>
+            </div>
+        </div>
+
+        <!-- ===== ROW 3: 定价提醒和通知 ===== -->
+        <div class="biz-row">
+            <div class="biz-row-label">
+                <span class="brl-num">STEP 3</span>
+                <span class="brl-tag price">定价通知</span>
+            </div>
+            <div class="biz-row-content" style="flex-direction:column;gap:12px;align-items:stretch">
+                <!-- Price Gate: 3 Business Categories -->
+                <div class="price-gate">
+                    <div class="pg-rules">
+                        <div class="pg-rule green">
+                            <div class="pgr-head"><span class="pgr-dot" style="background:var(--s)"></span> 💰 有价格</div>
+                            <div>历史成交价 + 供应商报价均已匹配<br>→ 自动比价，偏差≤15%直接下单<br>→ 偏差>15%暂停，推送人工确认</div>
+                            <div style="margin-top:6px;font-size:10px;color:var(--s);font-weight:600">今日 15件 · 自动化率 92%</div>
+                        </div>
+                        <div class="pg-rule yellow">
+                            <div class="pgr-head"><span class="pgr-dot" style="background:#d46b08"></span> 🆕 无价格</div>
+                            <div>无历史成交价，需供应商首次报价<br>→ 自动触发RFQ询价流程<br>→ 报价截止后由Agent2匹配最优价下单</div>
+                            <div style="margin-top:6px;font-size:10px;color:#d46b08;font-weight:600">今日 5件 · 等待报价中</div>
+                        </div>
+                        <div class="pg-rule red">
+                            <div class="pgr-head"><span class="pgr-dot" style="background:var(--purple)"></span> 🔀 一品两点</div>
+                            <div>同一零件多家供应商同时报价<br>→ Agent2自动比价（价格+质量+交付）<br>→ 生成推荐排序，推送给采购工程师决策</div>
+                            <div style="margin-top:6px;font-size:10px;color:var(--purple);font-weight:600">今日 3件 · 待工程师选点</div>
+                        </div>
+                    </div>
+                </div>
+                <!-- Notification Channels -->
+                <div class="biz-node">
+                    <div class="bn-hdr">
+                        <div class="bn-icon orange">📢</div>
+                        <div>
+                            <div class="bn-title">多渠道通知推送</div>
+                            <div class="bn-sub">💬 企业微信/飞书 · 📧 邮件 · 📱 SRM站内信</div>
+                        </div>
+                    </div>
+                    <div class="bn-body">
+                        价格异常告警、下单成功通知、采购工程师即时提醒、订单审批流转、预算确认、大额订单升级通知、订单状态变更、供应商确认回执
+                    </div>
+                    <div class="bn-metrics">
+                        <span class="bn-metric">💬 企业微信/飞书 <strong>实时推送</strong></span>
+                        <span class="bn-metric">📧 邮件 <strong>异步送达</strong></span>
+                        <span class="bn-metric">📱 SRM站内信 <strong>系统内通知</strong></span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Arrow -->
+        <div class="biz-arrow-row">
+            <div class="arrow-line">
+                <div class="arrow-vert"></div>
+                <div class="arrow-label">✅ 采购工程师确认审批</div>
+            </div>
+        </div>
+
+        <!-- ===== ROW 4: 订单进度追踪(Agent3) ===== -->
+        <div class="biz-row">
+            <div class="biz-row-label">
+                <span class="brl-num">STEP 4</span>
+                <span class="brl-tag track">进度追踪</span>
+            </div>
+            <div class="biz-row-content">
+                <!-- Agent3 -->
+                <div class="biz-node highlight">
+                    <span class="bn-status running">运行中</span>
+                    <div class="bn-hdr">
+                        <div class="bn-icon purple">🔔</div>
+                        <div>
+                            <div class="bn-title">Agent3 · 每日下单通知 & 进度追踪</div>
+                            <div class="bn-sub">日报汇总 → 多渠道推送 → 闭环跟踪</div>
+                        </div>
+                    </div>
+                    <div class="bn-body">
+                        每日18:00自动统计：已导入 vs 已下单 vs 未处理<br>
+                        生成日报（含未下单明细 + 原因分析 + 跟进建议）<br>
+                        推送至采购工程师、项目负责人、领导层<br>
+                        未下单需求自动标注跟进提醒，次日复查
+                    </div>
+                    <div class="bn-metrics">
+                        <span class="bn-metric">推送频率 <strong>每日18:00</strong></span>
+                        <span class="bn-metric">送达率 <strong style="color:var(--s)">100%</strong></span>
+                        <span class="bn-metric">覆盖需求 <strong>47件/日</strong></span>
+                        <span class="bn-metric">推送渠道 <strong>3个</strong></span>
+                    </div>
+                </div>
+                <!-- Order Tracking -->
+                <div class="biz-node">
+                    <div class="bn-hdr">
+                        <div class="bn-icon cyan">📊</div>
+                        <div>
+                            <div class="bn-title">订单进度看板</div>
+                            <div class="bn-sub">全流程状态追踪</div>
+                        </div>
+                    </div>
+                    <div class="bn-body">
+                        <div style="display:flex;flex-direction:column;gap:6px">
+                            <div style="display:flex;justify-content:space-between;align-items:center">
+                                <span style="color:var(--g600)">📥 需求已导入</span>
+                                <div style="display:flex;align-items:center;gap:6px;flex:1;margin:0 10px">
+                                    <div class="progress-bar" style="flex:1"><div class="pb-fill green" style="width:100%"></div></div>
+                                    <strong style="color:var(--s);font-size:12px">100%</strong>
+                                </div>
+                                <span style="font-weight:600;color:var(--g800)">23件</span>
+                            </div>
+                            <div style="display:flex;justify-content:space-between;align-items:center">
+                                <span style="color:var(--g600)">💰 已匹配价格</span>
+                                <div style="display:flex;align-items:center;gap:6px;flex:1;margin:0 10px">
+                                    <div class="progress-bar" style="flex:1"><div class="pb-fill blue" style="width:91%"></div></div>
+                                    <strong style="color:var(--p);font-size:12px">91%</strong>
+                                </div>
+                                <span style="font-weight:600;color:var(--g800)">21件</span>
+                            </div>
+                            <div style="display:flex;justify-content:space-between;align-items:center">
+                                <span style="color:var(--g600)">📋 已创建订单</span>
+                                <div style="display:flex;align-items:center;gap:6px;flex:1;margin:0 10px">
+                                    <div class="progress-bar" style="flex:1"><div class="pb-fill blue" style="width:78%"></div></div>
+                                    <strong style="color:var(--p);font-size:12px">78%</strong>
+                                </div>
+                                <span style="font-weight:600;color:var(--g800)">18件</span>
+                            </div>
+                            <div style="display:flex;justify-content:space-between;align-items:center">
+                                <span style="color:var(--g600)">✅ 供应商已确认</span>
+                                <div style="display:flex;align-items:center;gap:6px;flex:1;margin:0 10px">
+                                    <div class="progress-bar" style="flex:1"><div class="pb-fill green" style="width:65%"></div></div>
+                                    <strong style="color:var(--s);font-size:12px">65%</strong>
+                                </div>
+                                <span style="font-weight:600;color:var(--g800)">15件</span>
+                            </div>
+                            <div style="display:flex;justify-content:space-between;align-items:center">
+                                <span style="color:var(--g600)">⏳ 待处理/异常</span>
+                                <div style="display:flex;align-items:center;gap:6px;flex:1;margin:0 10px">
+                                    <div class="progress-bar" style="flex:1"><div class="pb-fill orange" style="width:22%"></div></div>
+                                    <strong style="color:#d46b08;font-size:12px">22%</strong>
+                                </div>
+                                <span style="font-weight:600;color:var(--d)">5件</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <!-- Daily Report Mini -->
+                <div class="biz-node">
+                    <div class="bn-hdr">
+                        <div class="bn-icon orange">📄</div>
+                        <div>
+                            <div class="bn-title">日报推送内容</div>
+                            <div class="bn-sub">每日自动生成</div>
+                        </div>
+                    </div>
+                    <div class="bn-body">
+                        <div style="background:var(--g50);border:1px solid var(--g200);border-radius:6px;padding:8px 10px;font-size:10px;line-height:1.7;color:var(--g700)">
+                            <div style="font-weight:700;color:var(--g900);margin-bottom:4px">📊 样件采购日报 — 2026/06/05</div>
+                            ✅ 今日导入：23件 | 已下单：18件<br>
+                            ⚠️ 价格异常待确认：3件<br>
+                            ❌ 缺料/其他未处理：2件<br>
+                            📈 本月下单率：95.3%<br>
+                            <div style="margin-top:4px;color:var(--p);font-weight:600">→ 未下单明细见附件</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Arrow -->
+        <div class="biz-arrow-row">
+            <div class="arrow-line">
+                <div class="arrow-vert"></div>
+                <div class="arrow-label">🏭 供应商确认 + 交付</div>
+            </div>
+        </div>
+
+        <!-- ===== ROW 5: 流程闭环 ===== -->
+        <div class="biz-row">
+            <div class="biz-row-label">
+                <span class="brl-num">STEP 5</span>
+                <span class="brl-tag end">流程闭环</span>
+            </div>
+            <div class="biz-row-content">
+                <div class="biz-node">
+                    <div class="bn-hdr">
+                        <div class="bn-icon green">🏭</div>
+                        <div>
+                            <div class="bn-title">供应商确认交付</div>
+                            <div class="bn-sub">订单回执 + 物流跟踪</div>
+                        </div>
+                    </div>
+                    <div class="bn-body">
+                        供应商SRM系统确认订单 → 安排生产与交付<br>
+                        物流状态实时同步 → MI-PEC到货通知
+                    </div>
+                </div>
+                <div class="biz-node">
+                    <div class="bn-hdr">
+                        <div class="bn-icon cyan">🔍</div>
+                        <div>
+                            <div class="bn-title">样件验收</div>
+                            <div class="bn-sub">MI-PEC质检匹配</div>
+                        </div>
+                    </div>
+                    <div class="bn-body">
+                        MI-PEC质检结果：外观/尺寸/性能<br>
+                        合格 → 验收报告 + 触发付款<br>
+                        不合格 → 异常报告 + 返工通知
+                    </div>
+                </div>
+                <div class="biz-node">
+                    <div class="bn-hdr">
+                        <div class="bn-icon purple">✅</div>
+                        <div>
+                            <div class="bn-title">付款 & 台账归档</div>
+                            <div class="bn-sub">财务闭环</div>
+                        </div>
+                    </div>
+                    <div class="bn-body">
+                        自动触发付款流程 → 财务审核<br>
+                        订单归档 → Agent3统计闭环
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+
+</div><!-- end overview tab -->
+
+<!-- ==================== TAB: 采购订单列表 ==================== -->
+<div id="tab-orders" class="tab-content">
+<div class="content-header">
+    <div class="content-title">📋 采购订单列表（全部 33479 条）</div>
+    <div class="content-tabs">
+        <div class="ctab active">全部 <span class="badge" style="background:var(--p)">99+</span></div>
+        <div class="ctab">草稿 <span class="badge" style="background:var(--g400)">99+</span></div>
+        <div class="ctab">审批中 <span class="badge" style="background:var(--w)">99+</span></div>
+        <div class="ctab">待供应商确认 <span class="badge" style="background:var(--p)">99+</span></div>
+        <div class="ctab">驳回 <span class="badge" style="background:var(--d)">20</span></div>
+        <div class="ctab">供应商已确认 <span class="badge" style="background:var(--s)">99+</span></div>
+        <div class="ctab">关闭 <span class="badge" style="background:var(--g400)">99+</span></div>
+    </div>
+</div>
+
+<!-- Toolbar -->
+<div class="order-toolbar">
+    <div class="order-toolbar-left">
+        <button class="btn btn-o btn-s" onclick="showToast('操作','草稿已删除')">🗑 删除草稿</button>
+        <button class="btn btn-o btn-s" onclick="showToast('操作','订单已更新')">🔄 更新订单</button>
+        <button class="btn btn-o btn-s" onclick="showToast('操作','订单已关闭')">❌ 关闭订单</button>
+        <button class="btn btn-o btn-s" onclick="showToast('操作','订单已恢复')">♻️ 恢复订单</button>
+        <button class="btn btn-o btn-s" onclick="showToast('操作','订单已导出')">📥 导出订单</button>
+        <button class="btn btn-o btn-s" onclick="showToast('操作','进入转派')">🔀 转派</button>
+    </div>
+    <div class="order-toolbar-right">
+        <div class="order-search">
+            <input type="text" placeholder="订单编号/预算单号" id="orderSearchInput">
+            <button onclick="showToast('搜索','搜索: '+document.getElementById('orderSearchInput').value)">🔍</button>
+        </div>
+        <button class="btn btn-p btn-s">高级查询 ⬇</button>
+    </div>
+</div>
+
+<!-- Order Table -->
+<div class="order-table-wrap" style="max-height:calc(100vh - 300px);overflow-y:auto">
+<table class="order-table">
+    <thead>
+        <tr>
+            <th class="cb"><input type="checkbox" id="checkAll" onclick="toggleAllCheck(this)"></th>
+            <th>序号 <span class="sort-icon">↕</span></th>
+            <th>订单编号 <span class="sort-icon">↕</span></th>
+            <th>版本</th>
+            <th>项目 <span class="sort-icon">↕</span></th>
+            <th>供应商 <span class="sort-icon">↕</span></th>
+            <th>采购金额 <span class="sort-icon">↕</span></th>
+            <th>预算行号/需求编号</th>
+            <th>需求申请人</th>
+            <th>采购工程师</th>
+            <th>创建人</th>
+            <th>审批状态</th>
+            <th>创建日期 <span class="sort-icon">↕</span></th>
+            <th>历史版本</th>
+        </tr>
+    </thead>
+    <tbody id="orderTableBody">
+        <!-- Rows will be generated by JS -->
+    </tbody>
+</table>
+</div>
+
+<!-- Pagination -->
+<div class="pagination">
+    <div class="page-info">第 1 - 100 条，共 <strong>33479</strong> 条</div>
+    <div class="page-btns">
+        <div class="page-btn disabled">‹</div>
+        <div class="page-btn active">1</div>
+        <div class="page-btn">2</div>
+        <div class="page-btn">3</div>
+        <div class="page-btn">…</div>
+        <div class="page-btn">335</div>
+        <div class="page-btn">›</div>
+        <div style="margin-left:12px;display:flex;align-items:center;gap:4px;font-size:12px;color:var(--g600)">
+            <select style="border:1px solid var(--g300);border-radius:var(--rs);padding:4px 8px;font-size:12px">
+                <option>100 条/页</option>
+                <option>50 条/页</option>
+                <option>200 条/页</option>
+            </select>
+            跳至 <input type="text" style="width:40px;border:1px solid var(--g300);border-radius:var(--rs);padding:4px 6px;text-align:center;font-size:12px"> 页码
+        </div>
+    </div>
+</div>
+</div><!-- end orders tab -->
+
+<!-- ==================== TAB: Flow Workflow ==================== -->
+<div id="tab-workflow" class="tab-content">
+<div class="section" style="margin-top:16px">
+    <div class="section-hdr">
+        <div class="section-title">3 Agent 协同工作流</div>
+        <div style="display:flex;gap:8px">
+            <button class="btn btn-o btn-s" onclick="showToast('流程','已刷新')">🔄 刷新</button>
+            <button class="btn btn-p btn-s" onclick="showToast('流程','进入编辑')">✏️ 编辑</button>
+        </div>
+    </div>
+    <div class="section-body" style="padding:30px">
+        <div style="display:flex;flex-direction:column;gap:20px;align-items:center">
+            <!-- Row 1: Trigger -->
+            <div style="display:flex;gap:20px;align-items:center">
+                <div style="background:var(--pl);border:2px solid var(--p);border-radius:12px;padding:12px 24px;text-align:center">
+                    <div style="font-size:20px;margin-bottom:4px">👤</div>
+                    <div style="font-size:12px;font-weight:700;color:var(--p)">试制申请人</div>
+                    <div style="font-size:10px;color:var(--g500)">EP系统发布需求</div>
+                </div>
+            </div>
+            <div style="color:var(--g400);font-size:20px">⬇️</div>
+            <!-- Row 2: Agent 1 -->
+            <div style="display:flex;gap:20px;align-items:center">
+                <div style="background:var(--pl);border:2px solid var(--p);border-radius:12px;padding:14px 24px;text-align:center;min-width:180px">
+                    <div style="font-size:22px;margin-bottom:4px">📥</div>
+                    <div style="font-size:13px;font-weight:700;color:var(--p)">Agent1 · 需求自动导入</div>
+                    <div style="font-size:10px;color:var(--g500);margin-top:4px">EP BOM解析 → SRM导入</div>
+                    <div style="margin-top:6px;display:flex;gap:4px;justify-content:center">
+                        <span style="font-size:9px;padding:2px 6px;border-radius:4px;background:var(--pl);color:var(--p)">自动化率 95%</span>
+                        <span style="font-size:9px;padding:2px 6px;border-radius:4px;background:var(--sl);color:var(--s)">平均12min</span>
+                    </div>
+                </div>
+            </div>
+            <div style="color:var(--g400);font-size:20px">⬇️</div>
+            <!-- Row 3: Agent 2 -->
+            <div style="display:flex;gap:20px;align-items:center">
+                <div style="background:var(--sl);border:2px solid var(--s);border-radius:12px;padding:14px 24px;text-align:center;min-width:180px">
+                    <div style="font-size:22px;margin-bottom:4px">💰</div>
+                    <div style="font-size:13px;font-weight:700;color:var(--s)">Agent2 · 自动匹配价格下单</div>
+                    <div style="font-size:10px;color:var(--g500);margin-top:4px">价格匹配 → 自动创建订单</div>
+                    <div style="margin-top:6px;display:flex;gap:4px;justify-content:center">
+                        <span style="font-size:9px;padding:2px 6px;border-radius:4px;background:var(--sl);color:var(--s)">自动化率 88%</span>
+                        <span style="font-size:9px;padding:2px 6px;border-radius:4px;background:var(--wl);color:#d46b08">平均25min</span>
+                    </div>
+                </div>
+            </div>
+            <div style="color:var(--g400);font-size:20px">⬇️</div>
+            <!-- Row 4: Human Approval -->
+            <div style="display:flex;gap:20px;align-items:center">
+                <div style="background:var(--wl);border:2px solid var(--w);border-radius:12px;padding:12px 24px;text-align:center">
+                    <div style="font-size:20px;margin-bottom:4px">👤</div>
+                    <div style="font-size:12px;font-weight:700;color:#d46b08">采购工程师审批</div>
+                    <div style="font-size:10px;color:var(--g500)">确认订单（人工节点）</div>
+                </div>
+            </div>
+            <div style="color:var(--g400);font-size:20px">⬇️</div>
+            <!-- Row 5: Agent 3 -->
+            <div style="display:flex;gap:20px;align-items:center">
+                <div style="background:var(--purple-l);border:2px solid var(--purple);border-radius:12px;padding:14px 24px;text-align:center;min-width:180px">
+                    <div style="font-size:22px;margin-bottom:4px">🔔</div>
+                    <div style="font-size:13px;font-weight:700;color:var(--purple)">Agent3 · 每日下单通知</div>
+                    <div style="font-size:10px;color:var(--g500);margin-top:4px">日报汇总 → 推送相关人员</div>
+                    <div style="margin-top:6px;display:flex;gap:4px;justify-content:center">
+                        <span style="font-size:9px;padding:2px 6px;border-radius:4px;background:var(--purple-l);color:var(--purple)">每日18:00</span>
+                        <span style="font-size:9px;padding:2px 6px;border-radius:4px;background:var(--cyan-l);color:var(--cyan)">送达率100%</span>
+                    </div>
+                </div>
+            </div>
+            <div style="color:var(--g400);font-size:20px">⬇️</div>
+            <!-- Row 6: Supplier -->
+            <div style="display:flex;gap:20px;align-items:center">
+                <div style="background:var(--sl);border:2px solid var(--s);border-radius:12px;padding:12px 24px;text-align:center">
+                    <div style="font-size:20px;margin-bottom:4px">🏭</div>
+                    <div style="font-size:12px;font-weight:700;color:var(--s)">供应商确认 + 交付</div>
+                    <div style="font-size:10px;color:var(--g500)">订单闭环</div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+</div><!-- end workflow tab -->
+
+<!-- ==================== TAB: Dashboard ==================== -->
+<div id="tab-dashboard" class="tab-content">
+<!-- Header -->
+<div style="background:#fff;padding:16px 24px;border-bottom:1px solid var(--g200)">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">
+        <div style="font-size:16px;font-weight:700;color:var(--g900);display:flex;align-items:center;gap:8px">
+            📊 订单进度看板
+            <span style="font-size:11px;padding:3px 10px;border-radius:10px;background:var(--sl);color:var(--s);font-weight:500">实时更新</span>
+        </div>
+        <div style="display:flex;gap:8px;align-items:center">
+            <span style="font-size:11px;color:var(--g500)">更新时间：</span>
+            <span style="font-size:11px;color:var(--g800);font-weight:600">2026-06-05 15:30</span>
+            <select style="border:1px solid var(--g300);border-radius:var(--rs);padding:4px 8px;font-size:11px;margin-left:8px">
+                <option>今日</option><option>本周</option><option>本月</option>
+            </select>
+            <button class="btn btn-o btn-s" onclick="showToast('看板','数据已刷新')">🔄 刷新</button>
+        </div>
+    </div>
+    <div class="content-tabs" style="margin-bottom:0">
+        <div class="ctab active">总览</div>
+        <div class="ctab">按项目</div>
+        <div class="ctab">按供应商</div>
+        <div class="ctab">按Agent</div>
+        <div class="ctab">异常跟踪</div>
+    </div>
+</div>
+
+<!-- KPI Cards Row -->
+<div class="metrics-bar">
+    <div class="metric-card">
+        <div class="mc-icon blue">📥</div>
+        <div class="mc-info">
+            <div class="mc-val">23</div>
+            <div class="mc-label">需求已导入</div>
+        </div>
+    </div>
+    <div class="metric-card">
+        <div class="mc-icon blue">🔍</div>
+        <div class="mc-info">
+            <div class="mc-val">21</div>
+            <div class="mc-label">已匹配价格</div>
+        </div>
+    </div>
+    <div class="metric-card">
+        <div class="mc-icon green">📋</div>
+        <div class="mc-info">
+            <div class="mc-val">18</div>
+            <div class="mc-label">已创建订单</div>
+        </div>
+    </div>
+    <div class="metric-card">
+        <div class="mc-icon green">✅</div>
+        <div class="mc-info">
+            <div class="mc-val">15</div>
+            <div class="mc-label">供应商已确认</div>
+        </div>
+    </div>
+    <div class="metric-card">
+        <div class="mc-icon orange">⏳</div>
+        <div class="mc-info">
+            <div class="mc-val">5</div>
+            <div class="mc-label">待处理/异常</div>
+        </div>
+    </div>
+</div>
+
+<!-- Pipeline Flow -->
+<div style="background:#fff;margin:0 24px;border-radius:var(--r);border:1px solid var(--g200);padding:20px">
+    <div style="font-size:13px;font-weight:700;color:var(--g900);margin-bottom:16px;display:flex;align-items:center;gap:8px">
+        <span style="width:3px;height:14px;border-radius:2px;background:var(--p)"></span>
+        订单处理流水线
+    </div>
+    <div style="display:flex;align-items:stretch;gap:0">
+        <!-- Stage 1 -->
+        <div style="flex:1;text-align:center;padding:16px 8px;background:linear-gradient(180deg,#f0f7ff,#fff);border:1px solid #d6e8ff;border-radius:10px 0 0 10px;position:relative">
+            <div style="font-size:28px;font-weight:800;color:var(--p);line-height:1">23</div>
+            <div style="font-size:11px;color:var(--g600);margin-top:6px;font-weight:600">📥 需求导入</div>
+            <div style="font-size:10px;color:var(--g500);margin-top:2px">Agent1自动导入</div>
+            <div style="height:6px;background:var(--g200);border-radius:3px;margin-top:10px;overflow:hidden"><div style="height:100%;width:100%;background:linear-gradient(90deg,var(--p),var(--ph));border-radius:3px"></div></div>
+            <div style="font-size:9px;color:var(--p);margin-top:4px;font-weight:600">100%</div>
+        </div>
+        <div style="width:24px;display:flex;align-items:center;justify-content:center;color:var(--p);font-size:18px;flex-shrink:0;background:linear-gradient(180deg,#f0f7ff,#fff);border-top:1px solid #d6e8ff;border-bottom:1px solid #d6e8ff">→</div>
+        <!-- Stage 2 -->
+        <div style="flex:1;text-align:center;padding:16px 8px;background:linear-gradient(180deg,#f0f7ff,#fff);border:1px solid #d6e8ff;border-left:none;border-right:none;position:relative">
+            <div style="font-size:28px;font-weight:800;color:var(--p);line-height:1">21</div>
+            <div style="font-size:11px;color:var(--g600);margin-top:6px;font-weight:600">🔍 价格匹配</div>
+            <div style="font-size:10px;color:var(--g500);margin-top:2px">Agent2自动比价</div>
+            <div style="height:6px;background:var(--g200);border-radius:3px;margin-top:10px;overflow:hidden"><div style="height:100%;width:91%;background:linear-gradient(90deg,var(--p),var(--ph));border-radius:3px"></div></div>
+            <div style="font-size:9px;color:var(--p);margin-top:4px;font-weight:600">91%</div>
+        </div>
+        <div style="width:24px;display:flex;align-items:center;justify-content:center;color:var(--s);font-size:18px;flex-shrink:0;background:linear-gradient(180deg,var(--sl),#fff);border-top:1px solid #b7eb8f;border-bottom:1px solid #b7eb8f">→</div>
+        <!-- Stage 3 -->
+        <div style="flex:1;text-align:center;padding:16px 8px;background:linear-gradient(180deg,var(--sl),#fff);border:1px solid #b7eb8f;border-left:none;border-right:none;position:relative">
+            <div style="font-size:28px;font-weight:800;color:var(--s);line-height:1">18</div>
+            <div style="font-size:11px;color:var(--g600);margin-top:6px;font-weight:600">📋 创建订单</div>
+            <div style="font-size:10px;color:var(--g500);margin-top:2px">Agent2自动下单</div>
+            <div style="height:6px;background:var(--g200);border-radius:3px;margin-top:10px;overflow:hidden"><div style="height:100%;width:78%;background:linear-gradient(90deg,var(--s),#73d13d);border-radius:3px"></div></div>
+            <div style="font-size:9px;color:var(--s);margin-top:4px;font-weight:600">78%</div>
+        </div>
+        <div style="width:24px;display:flex;align-items:center;justify-content:center;color:var(--s);font-size:18px;flex-shrink:0;background:linear-gradient(180deg,var(--sl),#fff);border-top:1px solid #b7eb8f;border-bottom:1px solid #b7eb8f">→</div>
+        <!-- Stage 4 -->
+        <div style="flex:1;text-align:center;padding:16px 8px;background:linear-gradient(180deg,var(--sl),#fff);border:1px solid #b7eb8f;border-left:none;border-right:none;position:relative">
+            <div style="font-size:28px;font-weight:800;color:var(--s);line-height:1">15</div>
+            <div style="font-size:11px;color:var(--g600);margin-top:6px;font-weight:600">✅ 供应商确认</div>
+            <div style="font-size:10px;color:var(--g500);margin-top:2px">SRM回执</div>
+            <div style="height:6px;background:var(--g200);border-radius:3px;margin-top:10px;overflow:hidden"><div style="height:100%;width:65%;background:linear-gradient(90deg,var(--s),#73d13d);border-radius:3px"></div></div>
+            <div style="font-size:9px;color:var(--s);margin-top:4px;font-weight:600">65%</div>
+        </div>
+        <div style="width:24px;display:flex;align-items:center;justify-content:center;color:var(--cyan);font-size:18px;flex-shrink:0;background:linear-gradient(180deg,var(--cyan-l),#fff);border-top:1px solid #b5f5ec;border-bottom:1px solid #b5f5ec">→</div>
+        <!-- Stage 5 -->
+        <div style="flex:1;text-align:center;padding:16px 8px;background:linear-gradient(180deg,var(--cyan-l),#fff);border:1px solid #b5f5ec;border-radius:0 10px 10px 0;position:relative">
+            <div style="font-size:28px;font-weight:800;color:var(--cyan);line-height:1">12</div>
+            <div style="font-size:11px;color:var(--g600);margin-top:6px;font-weight:600">🏗️ 交付验收</div>
+            <div style="font-size:10px;color:var(--g500);margin-top:2px">MI-PEC质检</div>
+            <div style="height:6px;background:var(--g200);border-radius:3px;margin-top:10px;overflow:hidden"><div style="height:100%;width:52%;background:linear-gradient(90deg,var(--cyan),#36cfc9);border-radius:3px"></div></div>
+            <div style="font-size:9px;color:var(--cyan);margin-top:4px;font-weight:600">52%</div>
+        </div>
+    </div>
+</div>
+
+<!-- Two Column: Project Breakdown + Abnormal -->
+<div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;padding:16px 24px">
+    <!-- By Project -->
+    <div style="background:#fff;border-radius:var(--r);border:1px solid var(--g200);overflow:hidden">
+        <div style="padding:12px 16px;border-bottom:1px solid var(--g100);background:linear-gradient(180deg,#fafafa,#f8f8f8);display:flex;align-items:center;justify-content:space-between">
+            <span style="font-size:13px;font-weight:700;color:var(--g900);display:flex;align-items:center;gap:6px"><span style="width:3px;height:12px;border-radius:2px;background:var(--p)"></span> 按项目分布</span>
+            <span style="font-size:11px;color:var(--g500)">共 8 个项目</span>
+        </div>
+        <div style="padding:12px 16px">
+            <div style="display:flex;flex-direction:column;gap:8px">
+                <div style="display:flex;align-items:center;gap:10px;font-size:12px"><span style="width:60px;color:var(--g600);flex-shrink:0">MX13B</span><div style="flex:1;height:18px;background:var(--g100);border-radius:4px;overflow:hidden;position:relative"><div style="height:100%;width:35%;background:linear-gradient(90deg,var(--p),var(--ph));border-radius:4px"></div></div><span style="width:50px;text-align:right;font-weight:600;color:var(--g800)">8件</span></div>
+                <div style="display:flex;align-items:center;gap:10px;font-size:12px"><span style="width:60px;color:var(--g600);flex-shrink:0">KUN30</span><div style="flex:1;height:18px;background:var(--g100);border-radius:4px;overflow:hidden;position:relative"><div style="height:100%;width:22%;background:linear-gradient(90deg,var(--s),#73d13d);border-radius:4px"></div></div><span style="width:50px;text-align:right;font-weight:600;color:var(--g800)">5件</span></div>
+                <div style="display:flex;align-items:center;gap:10px;font-size:12px"><span style="width:60px;color:var(--g600);flex-shrink:0">MS12B</span><div style="flex:1;height:18px;background:var(--g100);border-radius:4px;overflow:hidden;position:relative"><div style="height:100%;width:26%;background:linear-gradient(90deg,var(--w),#ffc53d);border-radius:4px"></div></div><span style="width:50px;text-align:right;font-weight:600;color:var(--g800)">6件</span></div>
+                <div style="display:flex;align-items:center;gap:10px;font-size:12px"><span style="width:60px;color:var(--g600);flex-shrink:0">MS11E</span><div style="flex:1;height:18px;background:var(--g100);border-radius:4px;overflow:hidden;position:relative"><div style="height:100%;width:9%;background:linear-gradient(90deg,var(--purple),#9254de);border-radius:4px"></div></div><span style="width:50px;text-align:right;font-weight:600;color:var(--g800)">2件</span></div>
+                <div style="display:flex;align-items:center;gap:10px;font-size:12px"><span style="width:60px;color:var(--g600);flex-shrink:0">MS11P</span><div style="flex:1;height:18px;background:var(--g100);border-radius:4px;overflow:hidden;position:relative"><div style="height:100%;width:9%;background:linear-gradient(90deg,var(--cyan),#36cfc9);border-radius:4px"></div></div><span style="width:50px;text-align:right;font-weight:600;color:var(--g800)">2件</span></div>
+            </div>
+        </div>
+    </div>
+    <!-- Abnormal -->
+    <div style="background:#fff;border-radius:var(--r);border:1px solid var(--g200);overflow:hidden">
+        <div style="padding:12px 16px;border-bottom:1px solid var(--g100);background:linear-gradient(180deg,#fff2f0,#fff);display:flex;align-items:center;justify-content:space-between">
+            <span style="font-size:13px;font-weight:700;color:var(--g900);display:flex;align-items:center;gap:6px"><span style="width:3px;height:12px;border-radius:2px;background:var(--d)"></span> ⚠️ 异常订单跟踪</span>
+            <span style="font-size:11px;padding:2px 8px;border-radius:8px;background:var(--dl);color:var(--d);font-weight:600">5件待处理</span>
+        </div>
+        <div style="padding:12px 16px">
+            <div style="display:flex;flex-direction:column;gap:8px">
+                <div style="display:flex;align-items:center;gap:10px;padding:8px 10px;background:var(--dl);border:1px solid #ffa39e;border-radius:6px;font-size:11px">
+                    <span style="color:var(--d);font-weight:700;flex-shrink:0;width:90px">🔴 价格异常</span>
+                    <span style="flex:1;color:var(--g700)">4900037495 MX13B 价格偏差12.5%</span>
+                    <span style="color:var(--g500);flex-shrink:0">徐殿才</span>
+                </div>
+                <div style="display:flex;align-items:center;gap:10px;padding:8px 10px;background:var(--dl);border:1px solid #ffa39e;border-radius:6px;font-size:11px">
+                    <span style="color:var(--d);font-weight:700;flex-shrink:0;width:90px">🔴 价格异常</span>
+                    <span style="flex:1;color:var(--g700)">4900037033 MS12B 价格偏差16%</span>
+                    <span style="color:var(--g500);flex-shrink:0">王楠</span>
+                </div>
+                <div style="display:flex;align-items:center;gap:10px;padding:8px 10px;background:var(--wl);border:1px solid #ffe58f;border-radius:6px;font-size:11px">
+                    <span style="color:#d46b08;font-weight:700;flex-shrink:0;width:90px">🟡 待供应商</span>
+                    <span style="flex:1;color:var(--g700)">4900037714 KUN30 超48h未确认</span>
+                    <span style="color:var(--g500);flex-shrink:0">王龙生</span>
+                </div>
+                <div style="display:flex;align-items:center;gap:10px;padding:8px 10px;background:var(--wl);border:1px solid #ffe58f;border-radius:6px;font-size:11px">
+                    <span style="color:#d46b08;font-weight:700;flex-shrink:0;width:90px">🟡 待供应商</span>
+                    <span style="flex:1;color:var(--g700)">4900037414 MS12B 超24h未确认</span>
+                    <span style="color:var(--g500);flex-shrink:0">张俊</span>
+                </div>
+                <div style="display:flex;align-items:center;gap:10px;padding:8px 10px;background:var(--g50);border:1px solid var(--g200);border-radius:6px;font-size:11px">
+                    <span style="color:var(--g600);font-weight:700;flex-shrink:0;width:90px">⚪ 缺料等待</span>
+                    <span style="flex:1;color:var(--g700)">4900035971 MS11P 物料未到位</span>
+                    <span style="color:var(--g500);flex-shrink:0">曹志宇</span>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Full Order Table -->
+<div style="background:#fff;margin:0 24px 16px;border-radius:var(--r);border:1px solid var(--g200);overflow:hidden">
+    <div style="padding:12px 16px;border-bottom:1px solid var(--g100);background:linear-gradient(180deg,#fafafa,#f8f8f8);display:flex;align-items:center;justify-content:space-between">
+        <span style="font-size:13px;font-weight:700;color:var(--g900);display:flex;align-items:center;gap:6px"><span style="width:3px;height:12px;border-radius:2px;background:var(--cyan)"></span> 今日订单明细</span>
+        <div style="display:flex;gap:6px">
+            <button class="btn btn-o btn-s" onclick="showToast('导出','已导出Excel')">📥 导出</button>
+            <button class="btn btn-o btn-s" onclick="switchTab('orders',document.querySelector('[onclick*=orders]'))">查看全部 →</button>
+        </div>
+    </div>
+    <div style="overflow-x:auto">
+        <table style="width:100%;border-collapse:collapse;font-size:12px">
+            <thead>
+                <tr style="background:var(--g50)">
+                    <th style="padding:8px 12px;text-align:left;border-bottom:1px solid var(--g200);font-weight:600;color:var(--g700)">订单编号</th>
+                    <th style="padding:8px 12px;text-align:left;border-bottom:1px solid var(--g200);font-weight:600;color:var(--g700)">版本</th>
+                    <th style="padding:8px 12px;text-align:left;border-bottom:1px solid var(--g200);font-weight:600;color:var(--g700)">项目</th>
+                    <th style="padding:8px 12px;text-align:left;border-bottom:1px solid var(--g200);font-weight:600;color:var(--g700)">供应商</th>
+                    <th style="padding:8px 12px;text-align:right;border-bottom:1px solid var(--g200);font-weight:600;color:var(--g700)">采购金额</th>
+                    <th style="padding:8px 12px;text-align:left;border-bottom:1px solid var(--g200);font-weight:600;color:var(--g700)">当前节点</th>
+                    <th style="padding:8px 12px;text-align:left;border-bottom:1px solid var(--g200);font-weight:600;color:var(--g700)">采购工程师</th>
+                    <th style="padding:8px 12px;text-align:left;border-bottom:1px solid var(--g200);font-weight:600;color:var(--g700)">Agent</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr><td style="padding:8px 12px;border-bottom:1px solid var(--g100)"><span style="color:var(--p);cursor:pointer;font-weight:500">4900037796</span></td><td style="padding:8px 12px;border-bottom:1px solid var(--g100)"><span style="font-size:10px;padding:1px 6px;border-radius:4px;background:var(--dl);color:var(--d)">V1 新</span></td><td style="padding:8px 12px;border-bottom:1px solid var(--g100)">MX13B</td><td style="padding:8px 12px;border-bottom:1px solid var(--g100)">廊坊莱尼线束系统有限公司</td><td style="padding:8px 12px;border-bottom:1px solid var(--g100);text-align:right;font-weight:500">¥92,557</td><td style="padding:8px 12px;border-bottom:1px solid var(--g100)"><span style="font-size:10px;padding:2px 8px;border-radius:10px;background:var(--sl);color:var(--s)">✅ 供应商已确认</span></td><td style="padding:8px 12px;border-bottom:1px solid var(--g100)">王东</td><td style="padding:8px 12px;border-bottom:1px solid var(--g100)"><span style="font-size:10px;padding:2px 6px;border-radius:4px;background:var(--pl);color:var(--p)">Agent2</span></td></tr>
+                <tr><td style="padding:8px 12px;border-bottom:1px solid var(--g100)"><span style="color:var(--p);cursor:pointer;font-weight:500">4900037714</span></td><td style="padding:8px 12px;border-bottom:1px solid var(--g100)"><span style="font-size:10px;padding:1px 6px;border-radius:4px;background:var(--dl);color:var(--d)">V1 新</span></td><td style="padding:8px 12px;border-bottom:1px solid var(--g100)">KUN30</td><td style="padding:8px 12px;border-bottom:1px solid var(--g100)">延锋彼欧汽车外饰系统有限</td><td style="padding:8px 12px;border-bottom:1px solid var(--g100);text-align:right;font-weight:500">¥19,587.53</td><td style="padding:8px 12px;border-bottom:1px solid var(--g100)"><span style="font-size:10px;padding:2px 8px;border-radius:10px;background:var(--wl);color:#d46b08">⏳ 待供应商确认</span></td><td style="padding:8px 12px;border-bottom:1px solid var(--g100)">王龙生</td><td style="padding:8px 12px;border-bottom:1px solid var(--g100)"><span style="font-size:10px;padding:2px 6px;border-radius:4px;background:var(--pl);color:var(--p)">Agent2</span></td></tr>
+                <tr><td style="padding:8px 12px;border-bottom:1px solid var(--g100)"><span style="color:var(--p);cursor:pointer;font-weight:500">4900037558</span></td><td style="padding:8px 12px;border-bottom:1px solid var(--g100)"><span style="font-size:10px;padding:1px 6px;border-radius:4px;background:var(--dl);color:var(--d)">V1 新</span></td><td style="padding:8px 12px;border-bottom:1px solid var(--g100)">MS12B</td><td style="padding:8px 12px;border-bottom:1px solid var(--g100)">空调国际（上海）有限公司</td><td style="padding:8px 12px;border-bottom:1px solid var(--g100);text-align:right;font-weight:500">¥16,148.3</td><td style="padding:8px 12px;border-bottom:1px solid var(--g100)"><span style="font-size:10px;padding:2px 8px;border-radius:10px;background:var(--sl);color:var(--s)">✅ 供应商已确认</span></td><td style="padding:8px 12px;border-bottom:1px solid var(--g100)">崔磊</td><td style="padding:8px 12px;border-bottom:1px solid var(--g100)"><span style="font-size:10px;padding:2px 6px;border-radius:4px;background:var(--pl);color:var(--p)">Agent2</span></td></tr>
+                <tr><td style="padding:8px 12px;border-bottom:1px solid var(--g100)"><span style="color:var(--p);cursor:pointer;font-weight:500">4900037495</span></td><td style="padding:8px 12px;border-bottom:1px solid var(--g100)"><span style="font-size:10px;padding:1px 6px;border-radius:4px;background:var(--dl);color:var(--d)">V1 新</span></td><td style="padding:8px 12px;border-bottom:1px solid var(--g100)">MX13B</td><td style="padding:8px 12px;border-bottom:1px solid var(--g100)">宣城立讯精密工业有限公司</td><td style="padding:8px 12px;border-bottom:1px solid var(--g100);text-align:right;font-weight:500">¥14,465.98</td><td style="padding:8px 12px;border-bottom:1px solid var(--g100)"><span style="font-size:10px;padding:2px 8px;border-radius:10px;background:var(--wl);color:#d46b08">⏳ 待供应商确认</span></td><td style="padding:8px 12px;border-bottom:1px solid var(--g100)">徐殿才</td><td style="padding:8px 12px;border-bottom:1px solid var(--g100)"><span style="font-size:10px;padding:2px 6px;border-radius:4px;background:var(--pl);color:var(--p)">Agent2</span></td></tr>
+                <tr><td style="padding:8px 12px;border-bottom:1px solid var(--g100)"><span style="color:var(--p);cursor:pointer;font-weight:500">4900037414</span></td><td style="padding:8px 12px;border-bottom:1px solid var(--g100)"><span style="font-size:10px;padding:1px 6px;border-radius:4px;background:var(--dl);color:var(--d)">V1 新</span></td><td style="padding:8px 12px;border-bottom:1px solid var(--g100)">MS12B</td><td style="padding:8px 12px;border-bottom:1px solid var(--g100)">延锋（北京）汽车座椅有限</td><td style="padding:8px 12px;border-bottom:1px solid var(--g100);text-align:right;font-weight:500">¥598.92</td><td style="padding:8px 12px;border-bottom:1px solid var(--g100)"><span style="font-size:10px;padding:2px 8px;border-radius:10px;background:var(--wl);color:#d46b08">⏳ 待供应商确认</span></td><td style="padding:8px 12px;border-bottom:1px solid var(--g100)">张俊</td><td style="padding:8px 12px;border-bottom:1px solid var(--g100)"><span style="font-size:10px;padding:2px 6px;border-radius:4px;background:var(--pl);color:var(--p)">Agent2</span></td></tr>
+                <tr><td style="padding:8px 12px;border-bottom:1px solid var(--g100)"><span style="color:var(--p);cursor:pointer;font-weight:500">4900033736</span></td><td style="padding:8px 12px;border-bottom:1px solid var(--g100)"><span style="font-size:10px;padding:1px 6px;border-radius:4px;background:var(--g50);color:var(--g600)">V3</span></td><td style="padding:8px 12px;border-bottom:1px solid var(--g100)">MS11E</td><td style="padding:8px 12px;border-bottom:1px solid var(--g100)">延锋汽车内饰系统（上海）</td><td style="padding:8px 12px;border-bottom:1px solid var(--g100);text-align:right;font-weight:500">¥24,193.3</td><td style="padding:8px 12px;border-bottom:1px solid var(--g100)"><span style="font-size:10px;padding:2px 8px;border-radius:10px;background:var(--sl);color:var(--s)">✅ 供应商已确认</span></td><td style="padding:8px 12px;border-bottom:1px solid var(--g100)">元彦淞</td><td style="padding:8px 12px;border-bottom:1px solid var(--g100)"><span style="font-size:10px;padding:2px 6px;border-radius:4px;background:var(--pl);color:var(--p)">Agent2</span></td></tr>
+                <tr><td style="padding:8px 12px"><span style="color:var(--p);cursor:pointer;font-weight:500">4900035971</span></td><td style="padding:8px 12px"><span style="font-size:10px;padding:1px 6px;border-radius:4px;background:var(--dl);color:var(--d)">V2 新</span></td><td style="padding:8px 12px">MS11P</td><td style="padding:8px 12px">重庆三友机器制造有限责任</td><td style="padding:8px 12px;text-align:right;font-weight:500">¥35,112</td><td style="padding:8px 12px"><span style="font-size:10px;padding:2px 8px;border-radius:10px;background:var(--sl);color:var(--s)">✅ 供应商已确认</span></td><td style="padding:8px 12px">曹志宇</td><td style="padding:8px 12px"><span style="font-size:10px;padding:2px 6px;border-radius:4px;background:var(--pl);color:var(--p)">Agent2</span></td></tr>
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<!-- Agent3 Daily Report Preview -->
+<div style="background:#fff;margin:0 24px 16px;border-radius:var(--r);border:1px solid var(--g200);overflow:hidden">
+    <div style="padding:12px 16px;border-bottom:1px solid var(--g100);background:linear-gradient(180deg,#f9f0ff,#fff);display:flex;align-items:center;justify-content:space-between">
+        <span style="font-size:13px;font-weight:700;color:var(--g900);display:flex;align-items:center;gap:6px"><span style="width:3px;height:12px;border-radius:2px;background:var(--purple)"></span> 🔔 Agent3 今日日报预览</span>
+        <span style="font-size:11px;color:var(--g500)">推送时间 18:00</span>
+    </div>
+    <div style="padding:16px 20px">
+        <div style="background:linear-gradient(135deg,var(--purple),#9254de);border-radius:8px;padding:14px 18px;color:#fff;margin-bottom:12px">
+            <div style="font-size:13px;font-weight:700;margin-bottom:2px">📊 样件采购日报 — 2026年06月05日</div>
+            <div style="font-size:11px;opacity:.85">Agent3 自动生成 · 推送 采购工程师/项目负责人/领导层</div>
+        </div>
+        <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:12px">
+            <div style="text-align:center;padding:10px;background:var(--g50);border-radius:6px;border:1px solid var(--g200)"><div style="font-size:18px;font-weight:800;color:var(--p)">23</div><div style="font-size:10px;color:var(--g500)">今日导入</div></div>
+            <div style="text-align:center;padding:10px;background:var(--g50);border-radius:6px;border:1px solid var(--g200)"><div style="font-size:18px;font-weight:800;color:var(--s)">18</div><div style="font-size:10px;color:var(--g500)">已完成下单</div></div>
+            <div style="text-align:center;padding:10px;background:var(--g50);border-radius:6px;border:1px solid var(--g200)"><div style="font-size:18px;font-weight:800;color:#d46b08">3</div><div style="font-size:10px;color:var(--g500)">价格异常</div></div>
+            <div style="text-align:center;padding:10px;background:var(--g50);border-radius:6px;border:1px solid var(--g200)"><div style="font-size:18px;font-weight:800;color:var(--d)">2</div><div style="font-size:10px;color:var(--g500)">缺料/其他</div></div>
+        </div>
+        <div style="font-size:11px;color:var(--g600);line-height:1.8">
+            💡 <strong style="color:var(--g800)">本月累计：</strong>需求 1,247件，已下单 1,189件，整体下单率 <strong style="color:var(--s)">95.3%</strong>。
+            价格异常 3件、缺料 2件需关注跟进。
+        </div>
+    </div>
+</div>
+</div><!-- end dashboard tab -->
+
+<!-- ==================== TAB: Agent1 Detail ==================== -->
+<div id="tab-agent1" class="tab-content">
+<!-- Metrics -->
+<div class="metrics-bar">
+    <div class="metric-card">
+        <div class="mc-icon blue">📥</div>
+        <div class="mc-info">
+            <div class="mc-val">23</div>
+            <div class="mc-label">今日导入需求</div>
+        </div>
+    </div>
+    <div class="metric-card">
+        <div class="mc-icon green">✅</div>
+        <div class="mc-info">
+            <div class="mc-val">95%</div>
+            <div class="mc-label">自动化成功率</div>
+        </div>
+    </div>
+    <div class="metric-card">
+        <div class="mc-icon orange">⏱</div>
+        <div class="mc-info">
+            <div class="mc-val">12min</div>
+            <div class="mc-label">平均处理耗时</div>
+        </div>
+    </div>
+    <div class="metric-card">
+        <div class="mc-icon purple">📊</div>
+        <div class="mc-info">
+            <div class="mc-val">1,247</div>
+            <div class="mc-label">本月累计导入</div>
+        </div>
+    </div>
+</div>
+
+<div class="section" style="margin-top:0">
+    <div class="section-hdr">
+        <div class="section-title">📥 Agent1 · 需求自动导入 — 工作详情</div>
+        <div style="display:flex;gap:8px">
+            <span style="font-size:11px;padding:4px 12px;border-radius:12px;background:var(--sl);color:var(--s);font-weight:500">● 运行中</span>
+        </div>
+    </div>
+    <div class="section-body">
+        <div style="display:grid;grid-template-columns:repeat(2,1fr);gap:16px;margin-bottom:20px">
+            <div>
+                <div style="font-size:13px;font-weight:600;color:var(--g900);margin-bottom:10px">自动化逻辑</div>
+                <div style="background:var(--g50);border:1px solid var(--g200);border-radius:6px;padding:14px;font-size:12px;line-height:2;color:var(--g700)">
+                    1. 监听EP系统试制BOM发布事件<br>
+                    2. 自动解析BOM零件清单（零件号、名称、数量、项目代码）<br>
+                    3. 校验数据完整性（缺失字段自动补全/告警）<br>
+                    4. 在SRM系统创建采购需求，生成预算行号<br>
+                    5. 自动关联项目信息（Modena/KUN30/MX13B等）<br>
+                    6. 同步需求状态至EP系统
+                </div>
+            </div>
+            <div>
+                <div style="font-size:13px;font-weight:600;color:var(--g900);margin-bottom:10px">对接系统</div>
+                <div style="display:flex;flex-direction:column;gap:10px">
+                    <div style="background:var(--pl);border:1px solid #b7cfff;border-radius:8px;padding:12px;display:flex;align-items:center;gap:10px">
+                        <div style="font-size:20px">🔧</div>
+                        <div>
+                            <div style="font-size:12px;font-weight:600;color:var(--p)">EP系统 — 读取试制BOM</div>
+                            <div style="font-size:11px;color:var(--g500)">API: GET /api/ep/bom/list</div>
+                        </div>
+                    </div>
+                    <div style="background:var(--purple-l);border:1px solid #d3adf7;border-radius:8px;padding:12px;display:flex;align-items:center;gap:10px">
+                        <div style="font-size:20px">📊</div>
+                        <div>
+                            <div style="font-size:12px;font-weight:600;color:var(--purple)">SRM系统 — 创建采购需求</div>
+                            <div style="font-size:11px;color:var(--g500)">API: POST /api/srm/purchase/apply</div>
+                        </div>
+                    </div>
+                </div>
+                <div style="font-size:13px;font-weight:600;color:var(--g900);margin:16px 0 10px">数据映射</div>
+                <div style="background:var(--g50);border:1px solid var(--g200);border-radius:6px;padding:12px;font-size:11px;color:var(--g700);line-height:1.8">
+                    EP BOM 零件号 → SRM 物料编码<br>
+                    EP 项目代码 → SRM 项目字段<br>
+                    EP 数量/配置 → SRM 采购数量<br>
+                    自动生成 → SRM 预算行号（BR开头）
+                </div>
+            </div>
+        </div>
+        <div style="font-size:13px;font-weight:600;color:var(--g900);margin-bottom:10px">今日导入记录</div>
+        <div style="overflow-x:auto">
+            <table style="width:100%;border-collapse:collapse;font-size:12px">
+                <thead>
+                    <tr style="background:var(--g50)">
+                        <th style="padding:8px 12px;text-align:left;border-bottom:1px solid var(--g200)">时间</th>
+                        <th style="padding:8px 12px;text-align:left;border-bottom:1px solid var(--g200)">EP需求编号</th>
+                        <th style="padding:8px 12px;text-align:left;border-bottom:1px solid var(--g200)">项目</th>
+                        <th style="padding:8px 12px;text-align:left;border-bottom:1px solid var(--g200)">零件数</th>
+                        <th style="padding:8px 12px;text-align:left;border-bottom:1px solid var(--g200)">SRM预算行号</th>
+                        <th style="padding:8px 12px;text-align:left;border-bottom:1px solid var(--g200)">状态</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr><td style="padding:8px 12px;border-bottom:1px solid var(--g100)">09:32</td><td style="padding:8px 12px;border-bottom:1px solid var(--g100)"><span class="order-link">BR20260605001</span></td><td style="padding:8px 12px;border-bottom:1px solid var(--g100)">MX13B</td><td style="padding:8px 12px;border-bottom:1px solid var(--g100)">12</td><td style="padding:8px 12px;border-bottom:1px solid var(--g100)">BR202606050001/2253</td><td style="padding:8px 12px;border-bottom:1px solid var(--g100)"><span class="status-tag confirmed">✅ 已导入</span></td></tr>
+                    <tr><td style="padding:8px 12px;border-bottom:1px solid var(--g100)">09:15</td><td style="padding:8px 12px;border-bottom:1px solid var(--g100)"><span class="order-link">BR20260605002</span></td><td style="padding:8px 12px;border-bottom:1px solid var(--g100)">KUN30</td><td style="padding:8px 12px;border-bottom:1px solid var(--g100)">8</td><td style="padding:8px 12px;border-bottom:1px solid var(--g100)">BR202606050002/2027</td><td style="padding:8px 12px;border-bottom:1px solid var(--g100)"><span class="status-tag confirmed">✅ 已导入</span></td></tr>
+                    <tr><td style="padding:8px 12px;border-bottom:1px solid var(--g100)">08:50</td><td style="padding:8px 12px;border-bottom:1px solid var(--g100)"><span class="order-link">BR20260605003</span></td><td style="padding:8px 12px;border-bottom:1px solid var(--g100)">MS12B</td><td style="padding:8px 12px;border-bottom:1px solid var(--g100)">5</td><td style="padding:8px 12px;border-bottom:1px solid var(--g100)">BR202606050003/2253</td><td style="padding:8px 12px;border-bottom:1px solid var(--g100)"><span class="status-tag pending">⏳ 处理中</span></td></tr>
+                    <tr><td style="padding:8px 12px;border-bottom:1px solid var(--g100)">08:22</td><td style="padding:8px 12px;border-bottom:1px solid var(--g100)"><span class="order-link">BR20260604018</span></td><td style="padding:8px 12px;border-bottom:1px solid var(--g100)">Le Mans-27B</td><td style="padding:8px 12px;border-bottom:1px solid var(--g100)">15</td><td style="padding:8px 12px;border-bottom:1px solid var(--g100)">BR202606040018/804</td><td style="padding:8px 12px;border-bottom:1px solid var(--g100)"><span class="status-tag confirmed">✅ 已导入</span></td></tr>
+                    <tr><td style="padding:8px 12px">08:05</td><td style="padding:8px 12px"><span class="order-link">BR20260604017</span></td><td style="padding:8px 12px">Modena-LUX</td><td style="padding:8px 12px">3</td><td style="padding:8px 12px">BR202606040017/804</td><td style="padding:8px 12px"><span class="status-tag confirmed">✅ 已导入</span></td></tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+</div><!-- end agent1 tab -->
+
+<!-- ==================== TAB: Agent2 Detail ==================== -->
+<div id="tab-agent2" class="tab-content">
+<div class="metrics-bar">
+    <div class="metric-card">
+        <div class="mc-icon green">💰</div>
+        <div class="mc-info">
+            <div class="mc-val">18</div>
+            <div class="mc-label">今日自动下单</div>
+        </div>
+    </div>
+    <div class="metric-card">
+        <div class="mc-icon blue">📊</div>
+        <div class="mc-info">
+            <div class="mc-val">88%</div>
+            <div class="mc-label">价格匹配成功率</div>
+        </div>
+    </div>
+    <div class="metric-card">
+        <div class="mc-icon orange">⏳</div>
+        <div class="mc-info">
+            <div class="mc-val">5</div>
+            <div class="mc-label">待人工确认</div>
+        </div>
+    </div>
+    <div class="metric-card">
+        <div class="mc-icon purple">📦</div>
+        <div class="mc-info">
+            <div class="mc-val">¥2.4M</div>
+            <div class="mc-label">今日下单金额</div>
+        </div>
+    </div>
+</div>
+
+<div class="section" style="margin-top:0">
+    <div class="section-hdr">
+        <div class="section-title">💰 Agent2 · 自动匹配价格下单 — 工作详情</div>
+        <span style="font-size:11px;padding:4px 12px;border-radius:12px;background:var(--sl);color:var(--s);font-weight:500">● 运行中</span>
+    </div>
+    <div class="section-body">
+        <div style="display:grid;grid-template-columns:repeat(2,1fr);gap:16px;margin-bottom:20px">
+            <div>
+                <div style="font-size:13px;font-weight:600;color:var(--g900);margin-bottom:10px">自动化逻辑</div>
+                <div style="background:var(--g50);border:1px solid var(--g200);border-radius:6px;padding:14px;font-size:12px;line-height:2;color:var(--g700)">
+                    1. 接收Agent1导入的需求数据<br>
+                    2. 查询历史成交价格库，匹配同项目同零件价格<br>
+                    3. 获取SRM供应商最新报价<br>
+                    4. 自动比价：价格偏差 ≤15% → 直接下单<br>
+                    5. 价格偏差 >15% → 标记异常，等待人工确认<br>
+                    6. 生成采购订单草稿（4900037xxx），推送采购工程师审批
+                </div>
+            </div>
+            <div>
+                <div style="font-size:13px;font-weight:600;color:var(--g900);margin-bottom:10px">价格匹配规则</div>
+                <div style="background:var(--g50);border:1px solid var(--g200);border-radius:6px;padding:14px;font-size:12px;line-height:2;color:var(--g700)">
+                    <div style="display:flex;align-items:center;gap:6px;margin-bottom:4px">
+                        <span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:var(--s)"></span>
+                        <strong>绿色通道（自动下单）</strong>：价格偏差 ≤10%
+                    </div>
+                    <div style="display:flex;align-items:center;gap:6px;margin-bottom:4px">
+                        <span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:var(--w)"></span>
+                        <strong>黄色通道（自动下单+告警）</strong>：价格偏差 10%-15%
+                    </div>
+                    <div style="display:flex;align-items:center;gap:6px">
+                        <span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:var(--d)"></span>
+                        <strong>红色通道（暂停+人工确认）</strong>：价格偏差 >15%
+                    </div>
+                </div>
+                <div style="font-size:13px;font-weight:600;color:var(--g900);margin:16px 0 10px">订单生成规则</div>
+                <div style="background:var(--g50);border:1px solid var(--g200);border-radius:6px;padding:12px;font-size:11px;color:var(--g700);line-height:1.8">
+                    订单编号：4900037xxx（系统自动生成）<br>
+                    版本号：V1（新订单）/ V2（更新）<br>
+                    供应商：自动匹配最优报价供应商<br>
+                    审批状态：默认"待供应商确认"
+                </div>
+            </div>
+        </div>
+        <div style="font-size:13px;font-weight:600;color:var(--g900);margin-bottom:10px">今日下单记录</div>
+        <div style="overflow-x:auto">
+            <table style="width:100%;border-collapse:collapse;font-size:12px">
+                <thead>
+                    <tr style="background:var(--g50)">
+                        <th style="padding:8px 12px;text-align:left;border-bottom:1px solid var(--g200)">时间</th>
+                        <th style="padding:8px 12px;text-align:left;border-bottom:1px solid var(--g200)">订单编号</th>
+                        <th style="padding:8px 12px;text-align:left;border-bottom:1px solid var(--g200)">项目</th>
+                        <th style="padding:8px 12px;text-align:left;border-bottom:1px solid var(--g200)">供应商</th>
+                        <th style="padding:8px 12px;text-align:left;border-bottom:1px solid var(--g200)">采购金额</th>
+                        <th style="padding:8px 12px;text-align:left;border-bottom:1px solid var(--g200)">价格匹配</th>
+                        <th style="padding:8px 12px;text-align:left;border-bottom:1px solid var(--g200)">状态</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr><td style="padding:8px 12px;border-bottom:1px solid var(--g100)">10:15</td><td style="padding:8px 12px;border-bottom:1px solid var(--g100)"><span class="order-link">4900037796</span></td><td style="padding:8px 12px;border-bottom:1px solid var(--g100)">MX13B</td><td style="padding:8px 12px;border-bottom:1px solid var(--g100)">廊坊莱尼线束系统有限公司</td><td style="padding:8px 12px;border-bottom:1px solid var(--g100)">¥92,557</td><td style="padding:8px 12px;border-bottom:1px solid var(--g100)"><span style="color:var(--s)">✓ -3.2%</span></td><td style="padding:8px 12px;border-bottom:1px solid var(--g100)"><span class="status-tag confirmed">供应商已确认</span></td></tr>
+                    <tr><td style="padding:8px 12px;border-bottom:1px solid var(--g100)">09:48</td><td style="padding:8px 12px;border-bottom:1px solid var(--g100)"><span class="order-link">4900037714</span></td><td style="padding:8px 12px;border-bottom:1px solid var(--g100)">KUN30</td><td style="padding:8px 12px;border-bottom:1px solid var(--g100)">延锋彼欧汽车外饰系统有限</td><td style="padding:8px 12px;border-bottom:1px solid var(--g100)">¥19,587.53</td><td style="padding:8px 12px;border-bottom:1px solid var(--g100)"><span style="color:var(--s)">✓ -1.8%</span></td><td style="padding:8px 12px;border-bottom:1px solid var(--g100)"><span class="status-tag pending">待供应商确认</span></td></tr>
+                    <tr><td style="padding:8px 12px;border-bottom:1px solid var(--g100)">09:30</td><td style="padding:8px 12px;border-bottom:1px solid var(--g100)"><span class="order-link">4900037558</span></td><td style="padding:8px 12px;border-bottom:1px solid var(--g100)">MS12B</td><td style="padding:8px 12px;border-bottom:1px solid var(--g100)">空调国际（上海）有限公司</td><td style="padding:8px 12px;border-bottom:1px solid var(--g100)">¥16,148.3</td><td style="padding:8px 12px;border-bottom:1px solid var(--g100)"><span style="color:var(--s)">✓ +2.1%</span></td><td style="padding:8px 12px;border-bottom:1px solid var(--g100)"><span class="status-tag confirmed">供应商已确认</span></td></tr>
+                    <tr><td style="padding:8px 12px;border-bottom:1px solid var(--g100)">09:12</td><td style="padding:8px 12px;border-bottom:1px solid var(--g100)"><span class="order-link">4900037495</span></td><td style="padding:8px 12px;border-bottom:1px solid var(--g100)">MX13B</td><td style="padding:8px 12px;border-bottom:1px solid var(--g100)">宣城立讯精密工业有限公司</td><td style="padding:8px 12px;border-bottom:1px solid var(--g100)">¥14,465.98</td><td style="padding:8px 12px;border-bottom:1px solid var(--g100)"><span style="color:var(--w)">⚠ +12.5%</span></td><td style="padding:8px 12px;border-bottom:1px solid var(--g100)"><span class="status-tag pending">待供应商确认</span></td></tr>
+                    <tr><td style="padding:8px 12px;border-bottom:1px solid var(--g100)">08:55</td><td style="padding:8px 12px;border-bottom:1px solid var(--g100)"><span class="order-link">4900037414</span></td><td style="padding:8px 12px;border-bottom:1px solid var(--g100)">MS12B</td><td style="padding:8px 12px;border-bottom:1px solid var(--g100)">延锋（北京）汽车座椅有限</td><td style="padding:8px 12px;border-bottom:1px solid var(--g100)">¥598.92</td><td style="padding:8px 12px;border-bottom:1px solid var(--g100)"><span style="color:var(--s)">✓ +0.5%</span></td><td style="padding:8px 12px;border-bottom:1px solid var(--g100)"><span class="status-tag pending">待供应商确认</span></td></tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+</div><!-- end agent2 tab -->
+
+<!-- ==================== TAB: Agent3 Detail ==================== -->
+<div id="tab-agent3" class="tab-content">
+<div class="metrics-bar">
+    <div class="metric-card">
+        <div class="mc-icon purple">🔔</div>
+        <div class="mc-info">
+            <div class="mc-val">3</div>
+            <div class="mc-label">今日已推送</div>
+        </div>
+    </div>
+    <div class="metric-card">
+        <div class="mc-icon green">✅</div>
+        <div class="mc-info">
+            <div class="mc-val">100%</div>
+            <div class="mc-label">送达率</div>
+        </div>
+    </div>
+    <div class="metric-card">
+        <div class="mc-icon blue">📊</div>
+        <div class="mc-info">
+            <div class="mc-val">47</div>
+            <div class="mc-label">今日通知覆盖需求</div>
+        </div>
+    </div>
+    <div class="metric-card">
+        <div class="mc-icon orange">⏰</div>
+        <div class="mc-info">
+            <div class="mc-val">18:00</div>
+            <div class="mc-label">下次推送时间</div>
+        </div>
+    </div>
+</div>
+
+<div class="section" style="margin-top:0">
+    <div class="section-hdr">
+        <div class="section-title">🔔 Agent3 · 每日下单通知 — 工作详情</div>
+        <span style="font-size:11px;padding:4px 12px;border-radius:12px;background:var(--sl);color:var(--s);font-weight:500">● 运行中</span>
+    </div>
+    <div class="section-body">
+        <div style="display:grid;grid-template-columns:repeat(2,1fr);gap:16px;margin-bottom:20px">
+            <div>
+                <div style="font-size:13px;font-weight:600;color:var(--g900);margin-bottom:10px">通知逻辑</div>
+                <div style="background:var(--g50);border:1px solid var(--g200);border-radius:6px;padding:14px;font-size:12px;line-height:2;color:var(--g700)">
+                    1. 每日18:00自动触发统计<br>
+                    2. 汇总当日已导入需求 vs 已下单数量<br>
+                    3. 标记未下单需求（原因：价格异常/待确认/缺料）<br>
+                    4. 生成日报（含明细表格 + 汇总统计）<br>
+                    5. 推送给采购工程师、项目负责人、相关领导<br>
+                    6. 未下单需求自动标注跟进提醒
+                </div>
+            </div>
+            <div>
+                <div style="font-size:13px;font-weight:600;color:var(--g900);margin-bottom:10px">推送渠道</div>
+                <div style="display:flex;flex-direction:column;gap:10px">
+                    <div style="background:var(--sl);border:1px solid #b7eb8f;border-radius:8px;padding:12px;display:flex;align-items:center;gap:10px">
+                        <div style="font-size:20px">💬</div>
+                        <div>
+                            <div style="font-size:12px;font-weight:600;color:var(--s)">企业微信 / 飞书</div>
+                            <div style="font-size:11px;color:var(--g500)">采购工程师群 + 项目群</div>
+                        </div>
+                    </div>
+                    <div style="background:var(--pl);border:1px solid #b7cfff;border-radius:8px;padding:12px;display:flex;align-items:center;gap:10px">
+                        <div style="font-size:20px">📧</div>
+                        <div>
+                            <div style="font-size:12px;font-weight:600;color:var(--p)">邮件</div>
+                            <div style="font-size:11px;color:var(--g500)">项目负责人 + 领导层</div>
+                        </div>
+                    </div>
+                    <div style="background:var(--purple-l);border:1px solid #d3adf7;border-radius:8px;padding:12px;display:flex;align-items:center;gap:10px">
+                        <div style="font-size:20px">📱</div>
+                        <div>
+                            <div style="font-size:12px;font-weight:600;color:var(--purple)">SRM系统站内信</div>
+                            <div style="font-size:11px;color:var(--g500)">所有相关人员</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Daily Report Preview -->
+        <div style="font-size:13px;font-weight:600;color:var(--g900);margin-bottom:10px">今日日报预览（模拟 18:00 推送内容）</div>
+        <div style="background:var(--g50);border:1px solid var(--g200);border-radius:8px;overflow:hidden">
+            <div style="background:linear-gradient(135deg,var(--purple),#9254de);padding:16px 20px;color:#fff">
+                <div style="font-size:14px;font-weight:700;margin-bottom:4px">📊 样件采购日报 — 2026年06月05日</div>
+                <div style="font-size:11px;opacity:.85">Agent3 自动生成 · 推送时间 18:00</div>
+            </div>
+            <div style="padding:16px 20px">
+                <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:16px">
+                    <div style="text-align:center;padding:12px;background:#fff;border-radius:8px;border:1px solid var(--g200)">
+                        <div style="font-size:20px;font-weight:700;color:var(--p)">23</div>
+                        <div style="font-size:11px;color:var(--g500)">今日需求导入</div>
+                    </div>
+                    <div style="text-align:center;padding:12px;background:#fff;border-radius:8px;border:1px solid var(--g200)">
+                        <div style="font-size:20px;font-weight:700;color:var(--s)">18</div>
+                        <div style="font-size:11px;color:var(--g500)">已完成下单</div>
+                    </div>
+                    <div style="text-align:center;padding:12px;background:#fff;border-radius:8px;border:1px solid var(--g200)">
+                        <div style="font-size:20px;font-weight:700;color:#d46b08">3</div>
+                        <div style="font-size:11px;color:var(--g500)">价格异常待确认</div>
+                    </div>
+                    <div style="text-align:center;padding:12px;background:#fff;border-radius:8px;border:1px solid var(--g200)">
+                        <div style="font-size:20px;font-weight:700;color:var(--d)">2</div>
+                        <div style="font-size:11px;color:var(--g500)">缺料/其他未处理</div>
+                    </div>
+                </div>
+                <div style="font-size:12px;font-weight:600;color:var(--g900);margin-bottom:8px">⚠️ 未下单需求明细</div>
+                <table style="width:100%;border-collapse:collapse;font-size:11px">
+                    <thead>
+                        <tr style="background:var(--g100)">
+                            <th style="padding:6px 10px;text-align:left">需求编号</th>
+                            <th style="padding:6px 10px;text-align:left">项目</th>
+                            <th style="padding:6px 10px;text-align:left">供应商</th>
+                            <th style="padding:6px 10px;text-align:left">未下单原因</th>
+                            <th style="padding:6px 10px;text-align:left">责任人</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr style="background:#fff"><td style="padding:6px 10px;border-bottom:1px solid var(--g100)">BR20260605003</td><td style="padding:6px 10px;border-bottom:1px solid var(--g100)">MS12B</td><td style="padding:6px 10px;border-bottom:1px solid var(--g100)">普利司通</td><td style="padding:6px 10px;border-bottom:1px solid var(--g100)"><span style="color:var(--d)">价格偏差18%</span></td><td style="padding:6px 10px;border-bottom:1px solid var(--g100)">王东</td></tr>
+                        <tr style="background:#fff"><td style="padding:6px 10px;border-bottom:1px solid var(--g100)">BR20260604019</td><td style="padding:6px 10px;border-bottom:1px solid var(--g100)">MS11P</td><td style="padding:6px 10px;border-bottom:1px solid var(--g100)">重庆三友</td><td style="padding:6px 10px;border-bottom:1px solid var(--g100)"><span style="color:#d46b08">供应商报价中</span></td><td style="padding:6px 10px;border-bottom:1px solid var(--g100)">曹志宇</td></tr>
+                        <tr style="background:#fff"><td style="padding:6px 10px;border-bottom:1px solid var(--g100)">BR20260604020</td><td style="padding:6px 10px;border-bottom:1px solid var(--g100)">KUN30</td><td style="padding:6px 10px;border-bottom:1px solid var(--g100)">广西双英</td><td style="padding:6px 10px;border-bottom:1px solid var(--g100)"><span style="color:var(--d)">缺料等待</span></td><td style="padding:6px 10px;border-bottom:1px solid var(--g100)">张智</td></tr>
+                        <tr style="background:#fff"><td style="padding:6px 10px">BR20260604021</td><td style="padding:6px 10px">MS12B</td><td style="padding:6px 10px">普利司通</td><td style="padding:6px 10px"><span style="color:var(--d)">价格偏差16%</span></td><td style="padding:6px 10px">王楠</td></tr>
+                    </tbody>
+                </table>
+                <div style="margin-top:12px;padding:10px 14px;background:var(--wl);border:1px solid #ffe58f;border-radius:6px;font-size:11px;color:#d46b08">
+                    💡 <strong>提醒：</strong>本月累计需求 1,247件，已下单 1,189件，整体下单率 95.3%。请关注上述未下单需求的跟进情况。
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+</div><!-- end agent3 tab -->
+
+<!-- ==================== TAB: Roles ==================== -->
+<div id="tab-roles" class="tab-content">
+<div class="section" style="margin-top:16px">
+    <div class="section-hdr">
+        <div class="section-title">角色与职责矩阵</div>
+    </div>
+    <div style="overflow-x:auto">
+        <table class="role-table">
+            <thead>
+                <tr>
+                    <th>角色</th>
+                    <th>Agent映射</th>
+                    <th>职责范围</th>
+                    <th>系统操作</th>
+                    <th>自动化程度</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td><strong>试制BOM工程师</strong></td>
+                    <td><span class="role-tag primary">Agent1 需求导入</span></td>
+                    <td>创建试制BOM，维护零件数量与配置，同步设计变更</td>
+                    <td>EP系统 → BOM管理</td>
+                    <td><strong style="color:var(--s)">95%</strong> 自动</td>
+                </tr>
+                <tr>
+                    <td><strong>零件工程师</strong></td>
+                    <td><span class="role-tag primary">Agent1 需求导入</span></td>
+                    <td>确认零件技术要求，维护SOR技术参数</td>
+                    <td>EP系统 → SOR维护</td>
+                    <td><strong style="color:var(--p)">60%</strong> 辅助</td>
+                </tr>
+                <tr>
+                    <td><strong>采购工程师</strong></td>
+                    <td><span class="role-tag support">Agent2 自动下单</span></td>
+                    <td>确认价格异常订单，审批采购订单，管理供应商报价</td>
+                    <td>SRM系统 → 订单审批</td>
+                    <td><strong style="color:var(--p)">88%</strong> 自动</td>
+                </tr>
+                <tr>
+                    <td><strong>项目负责人</strong></td>
+                    <td><span class="role-tag approve">Agent3 每日通知</span></td>
+                    <td>接收日报，关注未下单需求，协调资源</td>
+                    <td>企业微信/飞书</td>
+                    <td><strong style="color:var(--s)">100%</strong> 推送</td>
+                </tr>
+                <tr>
+                    <td><strong>物流规划</strong></td>
+                    <td><span class="role-tag info">Agent2 自动下单</span></td>
+                    <td>确认物流需求，维护交付计划，同步到货信息</td>
+                    <td>SRM系统 → 物流协同</td>
+                    <td><strong style="color:var(--s)">85%</strong> 自动</td>
+                </tr>
+                <tr>
+                    <td><strong>财务</strong></td>
+                    <td><span class="role-tag approve">Agent1 需求导入</span></td>
+                    <td>确认预算申请，审核付款，维护预算台账</td>
+                    <td>SRM系统 → 付款审核</td>
+                    <td><strong style="color:var(--w)">50%</strong> 审批</td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+</div>
+</div><!-- end roles tab -->
+
+<!-- ==================== TAB: Systems ==================== -->
+<div id="tab-systems" class="tab-content">
+<div class="sys-grid" style="margin-top:16px">
+    <div class="sys-card">
+        <div class="sc-hdr">
+            <div class="sc-icon blue">🔧</div>
+            <div>
+                <div class="sc-name">EP系统</div>
+                <div class="sc-ver">Engineering Platform · 2020年启用</div>
+            </div>
+        </div>
+        <div class="sc-body">
+            <div class="sc-desc">核心造车系统，发布SOR包给到采购。采购作为造车源头向上游追溯，管控BOM与定点、交付、付款等环节。</div>
+            <div class="sc-apis">
+                <span class="sc-api" onclick="showToast('EP接口','GET /api/ep/bom/list')">BOM查询</span>
+                <span class="sc-api" onclick="showToast('EP接口','GET /api/ep/sor/detail')">SOR详情</span>
+                <span class="sc-api" onclick="showToast('EP接口','POST /api/ep/budget/submit')">预算提交</span>
+                <span class="sc-api" onclick="showToast('EP接口','GET /api/ep/design/change')">设计变更</span>
+            </div>
+        </div>
+    </div>
+    <div class="sys-card">
+        <div class="sc-hdr">
+            <div class="sc-icon green">🏗️</div>
+            <div>
+                <div class="sc-name">MI-PEC系统</div>
+                <div class="sc-ver">MI Product Engineering Center</div>
+            </div>
+        </div>
+        <div class="sc-body">
+            <div class="sc-desc">小米汽车产品工程中心样件生产过程管控系统，对样件生产过程全量管控（样车、试制BOX、订单、交付、物流）。</div>
+            <div class="sc-apis">
+                <span class="sc-api" onclick="showToast('MI-PEC接口','GET /api/pec/sample/status')">样件状态</span>
+                <span class="sc-api" onclick="showToast('MI-PEC接口','GET /api/pec/quality/report')">质检报告</span>
+                <span class="sc-api" onclick="showToast('MI-PEC接口','POST /api/pec/acceptance')">验收确认</span>
+                <span class="sc-api" onclick="showToast('MI-PEC接口','GET /api/pec/delivery/track')">到货跟踪</span>
+            </div>
+        </div>
+    </div>
+    <div class="sys-card">
+        <div class="sc-hdr">
+            <div class="sc-icon purple">📊</div>
+            <div>
+                <div class="sc-name">SRM系统</div>
+                <div class="sc-ver">Supplier Relationship Management</div>
+            </div>
+        </div>
+        <div class="sc-body">
+            <div class="sc-desc">供应商关系管理平台，提供供应商线上对账、报价管理、采购订单、合同管理等核心能力。</div>
+            <div class="sc-apis">
+                <span class="sc-api" onclick="showToast('SRM接口','POST /api/srm/purchase/apply')">采购申请</span>
+                <span class="sc-api" onclick="showToast('SRM接口','POST /api/srm/order/create')">订单生成</span>
+                <span class="sc-api" onclick="showToast('SRM接口','GET /api/srm/supplier/list')">供应商库</span>
+                <span class="sc-api" onclick="showToast('SRM接口','POST /api/srm/payment/submit')">付款提交</span>
+            </div>
+        </div>
+    </div>
+</div>
+</div><!-- end systems tab -->
+
+<!-- ==================== TAB: Logs ==================== -->
+<div id="tab-logs" class="tab-content">
+<div class="section" style="margin-top:16px">
+    <div class="section-hdr">
+        <div class="section-title">Agent 执行日志</div>
+        <div style="display:flex;gap:8px">
+            <button class="btn btn-o btn-s" onclick="showToast('日志','已导出日志文件')">📥 导出</button>
+            <button class="btn btn-o btn-s" onclick="showToast('日志','日志已刷新')">🔄 刷新</button>
+        </div>
+    </div>
+    <div class="log-list">
+        <div class="log-item">
+            <div class="li-dot blue"></div>
+            <div class="li-content">
+                <div class="li-title">[Agent1] EP试制BOM发布事件 → 自动导入SRM需求 BR20260605001</div>
+                <div class="li-desc">项目 MX13B，解析零件 12项，生成预算行号 BR202606050001/2253，同步完成</div>
+            </div>
+            <div class="li-time">2分钟前</div>
+        </div>
+        <div class="log-item">
+            <div class="li-dot green"></div>
+            <div class="li-content">
+                <div class="li-title">[Agent2] 自动匹配价格后下单 → 订单 4900037796 创建成功</div>
+                <div class="li-desc">项目 MX13B，供应商 廊坊莱尼线束，价格匹配 -3.2%，已推送采购工程师审批</div>
+            </div>
+            <div class="li-time">5分钟前</div>
+        </div>
+        <div class="log-item">
+            <div class="li-dot purple"></div>
+            <div class="li-content">
+                <div class="li-title">[Agent3] 日报推送完成 → 企业微信 + 邮件 + SRM站内信</div>
+                <div class="li-desc">今日已导入23件，已下单18件，未下单5件（价格异常3+缺料2），推送给 12人</div>
+            </div>
+            <div class="li-time">18:00</div>
+        </div>
+        <div class="log-item">
+            <div class="li-dot orange"></div>
+            <div class="li-content">
+                <div class="li-title">[Agent2] 价格异常告警 → 订单 4900037495 价格偏差 12.5%</div>
+                <div class="li-desc">项目 MX13B，供应商 宣城立讯，历史均价 ¥12,858，当前报价 ¥14,465.98，等待人工确认</div>
+            </div>
+            <div class="li-time">15分钟前</div>
+        </div>
+        <div class="log-item">
+            <div class="li-dot blue"></div>
+            <div class="li-content">
+                <div class="li-title">[Agent1] EP试制BOM发布事件 → 自动导入SRM需求 BR20260605002</div>
+                <div class="li-desc">项目 KUN30，解析零件 8项，生成预算行号 BR202606050002/2027，同步完成</div>
+            </div>
+            <div class="li-time">25分钟前</div>
+        </div>
+        <div class="log-item">
+            <div class="li-dot green"></div>
+            <div class="li-content">
+                <div class="li-title">[Agent2] 自动匹配价格后下单 → 订单 4900037714 创建成功</div>
+                <div class="li-desc">项目 KUN30，供应商 延锋彼欧，价格匹配 -1.8%，已推送给采购工程师 王龙生</div>
+            </div>
+            <div class="li-time">32分钟前</div>
+        </div>
+        <div class="log-item">
+            <div class="li-dot orange"></div>
+            <div class="li-content">
+                <div class="li-title">[Agent2] 价格异常待确认 → 订单 4900037495 需采购工程师确认</div>
+                <div class="li-desc">项目 MX13B，价格偏差超出10%阈值，已暂停自动下单流程</div>
+            </div>
+            <div class="li-time">45分钟前</div>
+        </div>
+        <div class="log-item">
+            <div class="li-dot blue"></div>
+            <div class="li-content">
+                <div class="li-title">[Agent1] 批量导入 5条需求 → 项目 Le Mans-27B / Modena-LUX</div>
+                <div class="li-desc">共解析零件 38项，全部生成预算行号并同步SRM，成功率 100%</div>
+            </div>
+            <div class="li-time">1小时前</div>
+        </div>
+    </div>
+</div>
+</div><!-- end logs tab -->
+
+</div><!-- end main-content -->
+</div><!-- end srm-layout -->
+
+<!-- ========== Toast ========== -->
+<div class="toast" id="toast">
+    <div class="t-title" id="toastTitle">提示</div>
+    <div class="t-msg" id="toastMsg">操作成功</div>
+</div>
+
+<script>
+/* ========== Tab Switching ========== */
+function switchTab(tab, el) {
+    // Hide all tabs
+    document.querySelectorAll('.tab-content').forEach(t => {
+        t.classList.remove('active');
+        t.style.display = 'none';
+    });
+    // Deactivate all menu items
+    document.querySelectorAll('.sp-menu-item').forEach(i => i.classList.remove('active'));
+    // Show target tab
+    const target = document.getElementById('tab-' + tab);
+    if (target) {
+        target.style.display = 'block';
+        target.classList.add('active');
+    }
+    // Activate menu item
+    if (el) el.classList.add('active');
+    // Scroll main area to top
+    document.getElementById('mainArea').scrollTop = 0;
+}
+
+/* ========== Agent Card Filter ========== */
+function filterCards(status, el) {
+    document.querySelectorAll('.ctab').forEach(t => t.classList.remove('active'));
+    if (el) el.classList.add('active');
+    document.querySelectorAll('.agent-card').forEach(card => {
+        if (status === 'all') {
+            card.style.display = '';
+        } else {
+            card.style.display = card.dataset.status === status ? '' : 'none';
+        }
+    });
+}
+
+/* ========== Toast ========== */
+function showToast(title, msg) {
+    document.getElementById('toastTitle').textContent = title;
+    document.getElementById('toastMsg').textContent = msg;
+    const t = document.getElementById('toast');
+    t.classList.add('show');
+    setTimeout(() => t.classList.remove('show'), 3500);
+}
+
+/* ========== Generate Order Table Data ========== */
+function generateOrderTable() {
+    const orders = [
+        {id:'4900037796',ver:'V1',tag:'new',project:'MX13B',supplier:'157309 廊坊莱尼线束系统有限公司',amount:'¥92557',budget:'BR202604220087/2213<br>CGFP202604140119,CG',applicant:'chenxiaoso...',engineer:'王东',creator:'赵小丫',status:'confirmed',statusText:'供应商已确认',date:'2026-06-03',agent:'import'},
+        {id:'4900037714',ver:'V1',tag:'new',project:'KUN30',supplier:'151772 延锋彼欧汽车外饰系统有限',amount:'¥19587.53',budget:'BR202602060098/2027<br>CGFP202604240457,CG',applicant:'chenxiaoso...',engineer:'王龙生',creator:'赵小丫',status:'pending',statusText:'待供应商确认',date:'2026-06-03',agent:'match'},
+        {id:'4900037558',ver:'V1',tag:'new',project:'MS12B',supplier:'144929 空调国际（上海）有限公司',amount:'¥16148.3',budget:'BR202605110006/2253<br>CGFP202605061156,CG',applicant:'zangxue',engineer:'崔磊',creator:'范雪婷',status:'confirmed',statusText:'供应商已确认',date:'2026-06-01',agent:'match'},
+        {id:'4900037495',ver:'V1',tag:'new',project:'MX13B',supplier:'149968 宣城立讯精密工业有限公司',amount:'¥14465.98',budget:'BR202604220087/2213<br>CGFP202604220008',applicant:'chenxiaoso...',engineer:'徐殿才',creator:'赵小丫',status:'pending',statusText:'待供应商确认',date:'2026-06-01',agent:'match'},
+        {id:'4900037414',ver:'V1',tag:'new',project:'MS12B',supplier:'187729 延锋（北京）汽车座椅有限',amount:'¥598.92',budget:'BR202605110006/2253<br>CGFP202605060892,CG',applicant:'zangxue',engineer:'张俊',creator:'赵小丫',status:'pending',statusText:'待供应商确认',date:'2026-05-29',agent:'match'},
+        {id:'4900033736',ver:'V3',tag:'',project:'MS11E',supplier:'164281 延锋汽车内饰系统（上海）',amount:'¥24193.3',budget:'BR202602060122/2028<br>CGFP202602090702,CG',applicant:'xuletao',engineer:'元彦淞',creator:'赵小丫',status:'confirmed',statusText:'供应商已确认',date:'2026-05-27',agent:'match'},
+        {id:'4900035971',ver:'V2',tag:'new',project:'MS11P',supplier:'197717 重庆三友机器制造有限责任',amount:'¥35112',budget:'BR202602040148/2019<br>CGFP202604210020,CG',applicant:'xuletao',engineer:'曹志宇',creator:'赵小丫',status:'confirmed',statusText:'供应商已确认',date:'2026-05-27',agent:'match'},
+        {id:'4900037113',ver:'V1',tag:'new',project:'KUN30',supplier:'179437 广西双英集团股份有限公司',amount:'¥21763.7',budget:'BR202602060098/2027<br>CGFP202604240545,CG',applicant:'chenxiaoso...',engineer:'张智',creator:'赵小丫',status:'confirmed',statusText:'供应商已确认',date:'2026-05-26',agent:'match'},
+        {id:'4900037033',ver:'V1',tag:'new',project:'MS12B',supplier:'147434 普利司通（中国）投资有限',amount:'¥25168.96',budget:'BR202605110006/2253<br>CGFP202605062018,CG',applicant:'zangxue',engineer:'王楠',creator:'赵小丫',status:'pending',statusText:'待供应商确认',date:'2026-05-25',agent:'match'},
+        {id:'4900036950',ver:'V1',tag:'',project:'MS14',supplier:'166230 宁德时代新能源科技',amount:'¥128400',budget:'BR202603150012/804<br>CGFP202603180102,CG',applicant:'lixia...',engineer:'李晓',creator:'赵小丫',status:'confirmed',statusText:'供应商已确认',date:'2026-05-24',agent:'import'},
+    ];
+
+    const tbody = document.getElementById('orderTableBody');
+    if (!tbody) return;
+    tbody.innerHTML = orders.map((o, i) => `
+        <tr>
+            <td class="cb"><input type="checkbox" class="order-cb"></td>
+            <td>${i + 1}</td>
+            <td>
+                <div><span class="order-link">${o.id}</span></div>
+                <div style="font-size:11px;color:var(--g500);margin-top:2px">试制${o.ver === 'V3' ? '-更新' : ''}</div>
+            </td>
+            <td><span class="version-tag ${o.tag}">${o.ver}${o.tag === 'new' ? ' <span style="color:var(--d)">新</span>' : ''}</span></td>
+            <td>${o.project}</td>
+            <td style="max-width:160px;white-space:normal;line-height:1.4">${o.supplier}</td>
+            <td style="font-weight:500">${o.amount}</td>
+            <td style="font-size:11px;color:var(--g600);max-width:200px;white-space:normal;line-height:1.5">${o.budget}</td>
+            <td>${o.applicant}</td>
+            <td>${o.engineer}</td>
+            <td><span style="color:var(--p)">${o.creator}</span></td>
+            <td><span class="status-tag ${o.status}">● ${o.statusText}</span></td>
+            <td>${o.date}</td>
+            <td><span class="order-link" onclick="showToast('历史版本','查看 ${o.id} 的历史版本')">查看</span></td>
+        </tr>
+    `).join('');
+}
+
+/* ========== Toggle All Checkboxes ========== */
+function toggleAllCheck(el) {
+    document.querySelectorAll('.order-cb').forEach(cb => cb.checked = el.checked);
+}
+
+/* ========== Initialize ========== */
+document.addEventListener('DOMContentLoaded', function() {
+    generateOrderTable();
+});
+</script>
+</body>
+</html>

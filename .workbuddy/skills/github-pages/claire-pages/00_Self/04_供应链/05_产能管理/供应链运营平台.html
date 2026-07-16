@@ -1,0 +1,626 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>供应链运营平台 - 交互版</title>
+<style>
+:root{--bg:#f8fafc;--s1:#ffffff;--s2:#f1f5f9;--bd:#e2e8f0;--tx:#1e293b;--tx2:#475569;--tx3:#94a3b8;--bl:#2563eb;--gn:#059669;--am:#d97706;--rd:#dc2626;--pu:#7c3aed;--cy:#0891b2;--blg:rgba(37,99,235,.08);--gng:rgba(5,150,105,.08);--amg:rgba(217,119,6,.08);--rdg:rgba(220,38,38,.08)}
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:system-ui,-apple-system,"PingFang SC","Microsoft YaHei",sans-serif;background:var(--bg);color:var(--tx);line-height:1.6;font-size:14px}
+.mono{font-family:"SF Mono","Cascadia Code",monospace}
+
+/* Layout */
+.app{display:grid;grid-template-columns:220px 1fr;min-height:100vh}
+.sb{background:#f1f5f9;border-right:1px solid var(--bd);padding:16px 0;position:sticky;top:0;height:100vh;overflow-y:auto}
+.sb-brand{padding:0 16px 16px;border-bottom:1px solid var(--bd);margin-bottom:8px}
+.sb-brand h1{font-size:1em;font-weight:700;color:var(--bl)}.sb-brand p{font-size:.68em;color:var(--tx3)}
+.ng{padding:6px 16px 2px;font-size:.6em;color:var(--tx3);text-transform:uppercase;letter-spacing:1px;font-weight:600}
+.ni{display:flex;align-items:center;gap:8px;padding:8px 16px;cursor:pointer;transition:all .2s;font-size:.84em;color:var(--tx2);border-left:3px solid transparent}
+.ni:hover{background:var(--blg);color:var(--tx)}.ni.active{color:var(--bl);background:var(--blg);border-left-color:var(--bl);font-weight:600}
+.ni .ic{width:18px;text-align:center}
+.main{padding:20px 28px;overflow-y:auto}
+.view{display:none}.view.active{display:block}
+
+/* Components */
+.ph{display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;flex-wrap:wrap;gap:8px}
+.ph h2{font-size:1.3em;font-weight:700}
+.acts{display:flex;gap:8px;flex-wrap:wrap}
+.btn{padding:7px 14px;border-radius:8px;border:1px solid var(--bd);background:var(--s1);color:var(--tx2);font-size:.8em;cursor:pointer;transition:all .2s;font-weight:500;box-shadow:0 1px 2px rgba(0,0,0,.04)}
+.btn:hover{border-color:var(--bl);color:var(--bl);box-shadow:0 2px 6px rgba(37,99,235,.12)}
+.btn-p{background:var(--bl);border-color:var(--bl);color:#fff}.btn-p:hover{opacity:.9}
+.btn-g{background:var(--gn);border-color:var(--gn);color:#fff}
+.btn-r{background:var(--rd);border-color:var(--rd);color:#fff}
+.btn-s{padding:4px 10px;font-size:.75em}
+.kr{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:20px}
+.kc{background:var(--s1);border:1px solid var(--bd);border-radius:12px;padding:16px;box-shadow:0 1px 3px rgba(0,0,0,.04)}
+.kl{font-size:.72em;color:var(--tx3);margin-bottom:4px}.kv{font-size:1.6em;font-weight:800;font-family:monospace;line-height:1.1}
+.kchg{font-size:.7em;margin-top:4px}.kchg.up{color:var(--gn)}.kchg.dn{color:var(--rd)}
+.cb{background:var(--s1);border:1px solid var(--bd);border-radius:12px;padding:18px;margin-bottom:16px;box-shadow:0 1px 3px rgba(0,0,0,.04)}
+.cb h3{font-size:.88em;font-weight:600;margin-bottom:12px;color:var(--tx2);display:flex;align-items:center;gap:6px}
+.dt{width:100%;border-collapse:collapse}
+.dt th{text-align:left;padding:8px 10px;font-size:.7em;color:var(--tx3);text-transform:uppercase;letter-spacing:.5px;border-bottom:2px solid var(--bd);font-weight:600}
+.dt td{padding:8px 10px;font-size:.83em;border-bottom:1px solid var(--bd)}
+.dt tr:hover{background:var(--blg)}.dt .n{text-align:right;font-family:monospace}
+.tg{display:inline-block;padding:2px 8px;border-radius:6px;font-size:.7em;font-weight:500}
+.tg-g{background:var(--gng);color:var(--gn)}.tg-a{background:var(--amg);color:var(--am)}.tg-r{background:var(--rdg);color:var(--rd)}.tg-b{background:var(--blg);color:var(--bl)}
+
+/* Forms */
+.modal{position:fixed;inset:0;background:rgba(15,23,42,.3);backdrop-filter:blur(4px);z-index:200;display:none;align-items:center;justify-content:center}
+.modal.open{display:flex}
+.modal-box{background:var(--s1);border:1px solid var(--bd);border-radius:14px;padding:24px;width:520px;max-width:90vw;max-height:80vh;overflow-y:auto;position:relative;box-shadow:0 20px 60px rgba(0,0,0,.15)}
+.modal-box h3{font-size:1.1em;font-weight:700;margin-bottom:16px}
+.modal-close{position:absolute;top:12px;right:12px;width:28px;height:28px;border-radius:6px;border:1px solid var(--bd);background:var(--s2);color:var(--tx2);cursor:pointer;font-size:1em;display:flex;align-items:center;justify-content:center}
+.modal-close:hover{border-color:var(--rd);color:var(--rd)}
+.fg{margin-bottom:12px}
+.fg label{display:block;font-size:.78em;color:var(--tx3);margin-bottom:4px;font-weight:500}
+.fg input,.fg select{width:100%;padding:8px 10px;border-radius:8px;border:1px solid var(--bd);background:#ffffff;color:var(--tx);font-size:.85em}
+.fg input:focus,.fg select:focus{outline:none;border-color:var(--bl)}
+.frow{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.btn-row{display:flex;gap:8px;justify-content:flex-end;margin-top:16px;padding-top:12px;border-top:1px solid var(--bd)}
+
+/* OEE Gauge */
+.oee-ring{width:100px;height:100px;border-radius:50%;display:flex;align-items:center;justify-content:center;position:relative;margin:0 auto 8px}
+.oee-ring::after{content:'';position:absolute;width:68px;height:68px;border-radius:50%;background:var(--s1)}
+.oee-val{position:relative;z-index:1;font-size:1.2em;font-weight:800;font-family:monospace}
+
+/* Progress bar */
+.pbar{width:100%;height:6px;background:var(--bd);border-radius:3px;overflow:hidden}
+.pbar-fill{height:100%;border-radius:3px;transition:width .3s}
+
+/* BOM tree */
+.bom-tree{font-size:.85em}
+.bom-node{padding:4px 0 4px 20px;border-left:1px solid var(--bd);margin-left:8px}
+.bom-root{padding:4px 0;font-weight:600}
+
+/* Toast */
+.toast{position:fixed;top:20px;right:20px;background:var(--s1);border:1px solid var(--gn);border-radius:10px;padding:12px 18px;z-index:300;font-size:.85em;display:none;box-shadow:0 8px 24px rgba(0,0,0,.12)}
+.toast.show{display:block;animation:fadeIn .3s ease}
+.toast.err{border-color:var(--rd)}
+@keyframes fadeIn{from{opacity:0;transform:translateY(-10px)}to{opacity:1;transform:translateY(0)}}
+
+@media(max-width:900px){.app{grid-template-columns:1fr}.sb{display:none}.kr{grid-template-columns:repeat(2,1fr)}.frow{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+<div class="app">
+<aside class="sb">
+  <div class="sb-brand"><h1>SCM Platform</h1><p>供应链运营平台 v2</p></div>
+  <div class="ng">计划</div>
+  <div class="ni active" onclick="sv('mrp',this)"><span class="ic">&#128230;</span>MRP 物料计划</div>
+  <div class="ni" onclick="sv('mps',this)"><span class="ic">&#128197;</span>MPS 生产计划</div>
+  <div class="ni" onclick="sv('atp',this)"><span class="ic">&#128200;</span>ATP/CTP 承诺</div>
+  <div class="ni" onclick="sv('sop',this)"><span class="ic">&#128260;</span>S&OP 产销协同</div>
+  <div class="ng">执行</div>
+  <div class="ni" onclick="sv('oee',this)"><span class="ic">&#9881;</span>OEE 产能计算</div>
+  <div class="ni" onclick="sv('psi',this)"><span class="ic">&#128176;</span>PSI 进销存</div>
+  <div class="ng">主数据</div>
+  <div class="ni" onclick="sv('bom',this)"><span class="ic">&#128203;</span>BOM 物料清单</div>
+  <div class="ni" onclick="sv('wc',this)"><span class="ic">&#127981;</span>工作中心</div>
+</aside>
+<main class="main">
+
+<!-- ========== MRP ========== -->
+<div class="view active" id="v-mrp">
+<div class="ph"><h2>MRP 物料需求计划</h2><div class="acts"><button class="btn btn-p" onclick="runMRP()">&#9654; 运行 MRP</button><button class="btn" onclick="openModal('mrpDemand')">&#128200; 编辑需求</button></div></div>
+<div class="kr" id="mrpKpi"></div>
+<div class="cb"><h3>&#128230; BOM 物料清单</h3><div id="mrpBom" class="bom-tree"></div></div>
+<div class="cb"><h3>&#128202; MRP 运算结果</h3>
+<table class="dt"><thead><tr><th>物料</th><th>层级</th><th class="n">毛需求</th><th class="n">在库</th><th class="n">在途</th><th class="n">净需求</th><th class="n">计划订单</th><th class="n">下单日</th><th>状态</th></tr></thead><tbody id="mrpResult"></tbody></table></div>
+<div class="cb"><h3>&#128179; 自动生成采购申请</h3>
+<table class="dt"><thead><tr><th>PR 编号</th><th>物料</th><th class="n">数量</th><th>供应商</th><th class="n">单价</th><th class="n">金额</th><th>操作</th></tr></thead><tbody id="mrpPR"></tbody></table></div>
+</div>
+
+<!-- ========== MPS ========== -->
+<div class="view" id="v-mps">
+<div class="ph"><h2>MPS 主生产计划</h2><div class="acts"><button class="btn btn-p" onclick="openModal('newWO')">&#10010; 新建工单</button><button class="btn" onclick="calcCapacity()">&#128260; 产能校验</button></div></div>
+<div class="kr" id="mpsKpi"></div>
+<div class="cb"><h3>&#128197; 工单列表</h3>
+<table class="dt"><thead><tr><th>工单号</th><th>产品</th><th class="n">数量</th><th>产线</th><th>开始</th><th>结束</th><th class="n">工时(h)</th><th>状态</th><th>操作</th></tr></thead><tbody id="woList"></tbody></table></div>
+<div class="cb"><h3>&#9881; 产能负荷</h3>
+<div id="capLoad"></div></div>
+</div>
+
+<!-- ========== ATP ========== -->
+<div class="view" id="v-atp">
+<div class="ph"><h2>ATP / CTP 可承诺</h2><div class="acts"><button class="btn btn-p" onclick="openModal('newOrder')">&#10010; 新增订单</button><button class="btn" onclick="calcAllATP()">&#128260; 重算</button></div></div>
+<div class="kr" id="atpKpi"></div>
+<div class="cb"><h3>&#128200; 订单列表（点击 ATP 列可查看详情）</h3>
+<table class="dt"><thead><tr><th>订单号</th><th>客户</th><th>产品</th><th class="n">数量</th><th>期望交期</th><th class="n">ATP</th><th class="n">CTP</th><th>状态</th><th>操作</th></tr></thead><tbody id="orderList"></tbody></table></div>
+<div class="cb"><h3>&#128197; 按周 ATP 汇总</h3>
+<table class="dt"><thead><tr><th>周</th><th class="n">期初库存</th><th class="n">计划产出</th><th class="n">已承诺</th><th class="n">安全库存</th><th class="n">ATP</th></tr></thead><tbody id="atpWeek"></tbody></table></div>
+</div>
+
+<!-- ========== S&OP ========== -->
+<div class="view" id="v-sop">
+<div class="ph"><h2>S&OP 产销协同</h2><div class="acts"><button class="btn btn-p" onclick="runSOP()">&#9654; 运行匹配</button><button class="btn" onclick="openModal('editForecast')">&#128200; 编辑预测</button></div></div>
+<div class="kr" id="sopKpi"></div>
+<div class="cb"><h3>&#128260; 需求预测 vs 产能</h3>
+<table class="dt"><thead><tr><th>产品</th><th class="n">需求预测</th><th class="n">产能上限</th><th class="n">差异</th><th class="n">达成率</th><th>建议</th></tr></thead><tbody id="sopResult"></tbody></table></div>
+<div class="cb"><h3>&#128161; S&OP 决策建议</h3><div id="sopAdvice"></div></div>
+</div>
+
+<!-- ========== OEE ========== -->
+<div class="view" id="v-oee">
+<div class="ph"><h2>OEE 设备综合效率</h2><div class="acts"><button class="btn btn-p" onclick="openModal('oeeInput')">&#10010; 录入班次数据</button><button class="btn" onclick="calcOEEAll()">&#128260; 重算</button></div></div>
+<div class="kr" id="oeeKpi"></div>
+<div class="cb"><h3>&#9881; 产线 OEE 详情（点击可录入数据）</h3>
+<table class="dt"><thead><tr><th>产线</th><th class="n">计划时间(h)</th><th class="n">停机(h)</th><th class="n">可用率</th><th class="n">总产出</th><th class="n">理论产出</th><th class="n">表现性</th><th class="n">良品</th><th class="n">良品率</th><th class="n">OEE</th><th>操作</th></tr></thead><tbody id="oeeList"></tbody></table></div>
+</div>
+
+<!-- ========== PSI ========== -->
+<div class="view" id="v-psi">
+<div class="ph"><h2>PSI 进销存</h2><div class="acts"><button class="btn" onclick="openModal('psiInput')">&#10010; 录入数据</button><button class="btn" onclick="calcPSI()">&#128260; 重算</button></div></div>
+<div class="kr" id="psiKpi"></div>
+<div class="cb"><h3>&#128176; 产品线 PSI</h3>
+<table class="dt"><thead><tr><th>产品线</th><th class="n">期初库存</th><th class="n">采购入库</th><th class="n">销售出库</th><th class="n">期末库存</th><th class="n">产销比</th><th class="n">库存天数</th><th>健康</th></tr></thead><tbody id="psiList"></tbody></table></div>
+</div>
+
+<!-- ========== BOM ========== -->
+<div class="view" id="v-bom">
+<div class="ph"><h2>BOM 物料清单管理</h2><div class="acts"><button class="btn btn-p" onclick="openModal('newBOM')">&#10010; 新增 BOM</button></div></div>
+<div class="cb"><h3>&#128203; BOM 列表</h3>
+<div id="bomManage"></div></div>
+</div>
+
+<!-- ========== 工作中心 ========== -->
+<div class="view" id="v-wc">
+<div class="ph"><h2>工作中心管理</h2><div class="acts"><button class="btn btn-p" onclick="openModal('newWC')">&#10010; 新增工作中心</button></div></div>
+<div class="cb"><h3>&#127981; 工作中心列表</h3>
+<table class="dt"><thead><tr><th>编码</th><th>名称</th><th class="n">日产能</th><th class="n">工时/件</th><th class="n">日可用(h)</th><th class="n">利用率</th><th>操作</th></tr></thead><tbody id="wcList"></tbody></table></div>
+</div>
+
+</main>
+</div>
+
+<!-- MODALS -->
+<div class="modal" id="m-newWO"><div class="modal-box"><button class="modal-close" onclick="closeModal('newWO')">&times;</button><h3>新建工单</h3>
+<div class="frow"><div class="fg"><label>产品</label><select id="woProd"><option value="P1">旗舰A</option><option value="P2">中端B</option><option value="P3">入门C</option></select></div><div class="fg"><label>数量</label><input type="number" id="woQty" value="500"></div></div>
+<div class="frow"><div class="fg"><label>产线</label><select id="woLine"><option>L1-冲压</option><option>L2-焊装</option><option>L3-涂装</option><option>L4-总装</option></select></div><div class="fg"><label>计划开始</label><input type="date" id="woStart" value="2026-07-15"></div></div>
+<div class="btn-row"><button class="btn" onclick="closeModal('newWO')">取消</button><button class="btn btn-p" onclick="addWorkOrder()">创建工单</button></div></div></div>
+
+<div class="modal" id="m-newOrder"><div class="modal-box"><button class="modal-close" onclick="closeModal('newOrder')">&times;</button><h3>新增销售订单</h3>
+<div class="frow"><div class="fg"><label>客户</label><input id="ordCust" value="客户X"></div><div class="fg"><label>产品</label><select id="ordProd"><option value="P1">旗舰A</option><option value="P2">中端B</option><option value="P3">入门C</option></select></div></div>
+<div class="frow"><div class="fg"><label>数量</label><input type="number" id="ordQty" value="1000"></div><div class="fg"><label>期望交期</label><input type="date" id="ordDate" value="2026-07-25"></div></div>
+<div class="btn-row"><button class="btn" onclick="closeModal('newOrder')">取消</button><button class="btn btn-p" onclick="addOrder()">创建订单</button></div></div></div>
+
+<div class="modal" id="m-oeeInput"><div class="modal-box"><button class="modal-close" onclick="closeModal('oeeInput')">&times;</button><h3>录入班次 OEE 数据</h3>
+<div class="fg"><label>产线</label><select id="oeeLine"></select></div>
+<div class="frow"><div class="fg"><label>计划运行时间(h)</label><input type="number" id="oeePlan" value="8"></div><div class="fg"><label>实际停机时间(h)</label><input type="number" id="oeeDown" value="0.5"></div></div>
+<div class="frow"><div class="fg"><label>实际产出(件)</label><input type="number" id="oeeActual" value="450"></div><div class="fg"><label>理论产出(件/h)</label><input type="number" id="oeeTheory" value="60"></div></div>
+<div class="frow"><div class="fg"><label>不良品数</label><input type="number" id="oeeDefect" value="5"></div><div class="fg"></div></div>
+<div class="btn-row"><button class="btn" onclick="closeModal('oeeInput')">取消</button><button class="btn btn-p" onclick="submitOEE()">提交</button></div></div></div>
+
+<div class="modal" id="m-psiInput"><div class="modal-box"><button class="modal-close" onclick="closeModal('psiInput')">&times;</button><h3>录入 PSI 数据</h3>
+<div class="fg"><label>产品线</label><select id="psiProd"><option value="P1">旗舰A</option><option value="P2">中端B</option><option value="P3">入门C</option><option value="P4">配件D</option></select></div>
+<div class="frow"><div class="fg"><label>采购入库量</label><input type="number" id="psiP" value="12000"></div><div class="fg"><label>销售出库量</label><input type="number" id="psiS" value="11500"></div></div>
+<div class="btn-row"><button class="btn" onclick="closeModal('psiInput')">取消</button><button class="btn btn-p" onclick="submitPSI()">提交</button></div></div></div>
+
+<div class="modal" id="m-editForecast"><div class="modal-box"><button class="modal-close" onclick="closeModal('editForecast')">&times;</button><h3>编辑需求预测</h3>
+<div id="forecastForm"></div>
+<div class="btn-row"><button class="btn" onclick="closeModal('editForecast')">取消</button><button class="btn btn-p" onclick="saveForecast()">保存并重算</button></div></div></div>
+
+<div class="modal" id="m-mrpDemand"><div class="modal-box"><button class="modal-close" onclick="closeModal('mrpDemand')">&times;</button><h3>编辑 MPS 需求</h3>
+<div id="mrpDemandForm"></div>
+<div class="btn-row"><button class="btn" onclick="closeModal('mrpDemand')">取消</button><button class="btn btn-p" onclick="saveMRPDemand()">保存并重算</button></div></div></div>
+
+<!-- Toast -->
+<div class="toast" id="toast"></div>
+
+<script>
+// ======================== DATA STORE ========================
+var DB = {
+  // Products
+  products: {
+    P1: {name:'旗舰A', lt:5, price:3200},
+    P2: {name:'中端B', lt:3, price:1800},
+    P3: {name:'入门C', lt:2, price:800},
+    P4: {name:'配件D', lt:1, price:120}
+  },
+  // BOM: product -> [{material, qty, lt}]
+  bom: {
+    P1: [{mid:'M1',name:'芯片A(SoC)',qty:1,lt:14},{mid:'M2',name:'屏幕B(OLED)',qty:1,lt:10},{mid:'M3',name:'电池C',qty:1,lt:7},{mid:'M4',name:'PCB主板',qty:1,lt:12},{mid:'M5',name:'摄像头模组',qty:2,lt:8}],
+    P2: [{mid:'M1',name:'芯片A(SoC)',qty:1,lt:14},{mid:'M2',name:'屏幕B(OLED)',qty:1,lt:10},{mid:'M3',name:'电池C',qty:1,lt:7},{mid:'M4',name:'PCB主板',qty:1,lt:12}],
+    P3: [{mid:'M1',name:'芯片A(SoC)',qty:1,lt:14},{mid:'M6',name:'屏幕C(LCD)',qty:1,lt:7},{mid:'M3',name:'电池C',qty:1,lt:7},{mid:'M7',name:'PCB简板',qty:1,lt:8}],
+    P4: [{mid:'M8',name:'连接器',qty:4,lt:5},{mid:'M9',name:'散热模组',qty:1,lt:6}]
+  },
+  // Inventory
+  inv: {M1:{onhand:2000,intransit:3000,safe:3000,price:150,supplier:'供应商A'},
+        M2:{onhand:3500,intransit:2000,safe:2000,price:190,supplier:'供应商B'},
+        M3:{onhand:1200,intransit:4000,safe:1500,price:60,supplier:'供应商C'},
+        M4:{onhand:0,intransit:5000,safe:1000,price:65,supplier:'供应商D'},
+        M5:{onhand:4800,intransit:1000,safe:1000,price:85,supplier:'供应商E'},
+        M6:{onhand:6000,intransit:0,safe:2000,price:45,supplier:'供应商F'},
+        M7:{onhand:3000,intransit:2000,safe:1000,price:35,supplier:'供应商G'},
+        M8:{onhand:8000,intransit:3000,safe:2000,price:8,supplier:'供应商H'},
+        M9:{onhand:500,intransit:3000,safe:1000,price:25,supplier:'供应商I'}},
+  // MPS demand (product -> week -> qty)
+  demand: {P1:{1:500,2:600,3:500,4:400},P2:{1:1200,2:1000,3:800,4:900},P3:{1:3000,2:2500,3:2000,4:2500},P4:{1:5000,2:4000,3:4500,4:5000}},
+  // S&OP forecast
+  forecast: {P1:{demand:12000,capacity:12500},P2:{demand:25000,capacity:24000},P3:{demand:50000,capacity:48000},P4:{demand:80000,capacity:85000}},
+  // Work orders
+  woCounter: 157,
+  workOrders: [
+    {id:'WO-0156',prod:'P1',qty:500,line:'L1-冲压',start:'2026-07-14',end:'2026-07-16',status:'进行中'},
+    {id:'WO-0155',prod:'P2',qty:1200,line:'L2-焊装',start:'2026-07-14',end:'2026-07-17',status:'进行中'},
+    {id:'WO-0154',prod:'P3',qty:3000,line:'L3-涂装',start:'2026-07-13',end:'2026-07-15',status:'待检验'},
+    {id:'WO-0153',prod:'P1',qty:300,line:'L1-冲压',start:'2026-07-12',end:'2026-07-13',status:'已完成'}
+  ],
+  // Sales orders
+  orders: [
+    {id:'SO-001',cust:'客户A',prod:'P1',qty:800,date:'2026-07-20',status:'已确认'},
+    {id:'SO-002',cust:'客户B',prod:'P2',qty:2000,date:'2026-07-22',status:'已确认'},
+    {id:'SO-003',cust:'客户C',prod:'P3',qty:5000,date:'2026-07-25',status:'待确认'},
+    {id:'SO-004',cust:'客户D',prod:'P1',qty:300,date:'2026-07-18',status:'已确认'}
+  ],
+  orderCounter: 5,
+  // Work centers
+  workCenters: [
+    {id:'L1',name:'L1-冲压',cap:480,rate:1.0,avail:7.5},
+    {id:'L2',name:'L2-焊装',cap:420,rate:1.2,avail:7.5},
+    {id:'L3',name:'L3-涂装',cap:400,rate:1.5,avail:7.5},
+    {id:'L4',name:'L4-总装',cap:450,rate:1.1,avail:7.5}
+  ],
+  // OEE data per line
+  oee: {
+    'L1-冲压':{plan:8,down:0.5,actual:450,theory:60,defect:5},
+    'L2-焊装':{plan:8,down:0.6,actual:420,theory:55,defect:8},
+    'L3-涂装':{plan:8,down:0.9,actual:380,theory:55,defect:12},
+    'L4-总装':{plan:8,down:0.6,actual:400,theory:55,defect:6}
+  },
+  // PSI data
+  psi: {
+    P1:{begin:2700,purchase:12000,sales:11500},
+    P2:{begin:7500,purchase:25000,sales:22000},
+    P3:{begin:19000,purchase:50000,sales:42000},
+    P4:{begin:40000,purchase:80000,sales:65000}
+  },
+  // MRP results (computed)
+  mrpResult: [],
+  prList: []
+};
+
+// ======================== NAV ========================
+function sv(id,el){
+  document.querySelectorAll('.view').forEach(v=>v.classList.remove('active'));
+  document.querySelectorAll('.ni').forEach(n=>n.classList.remove('active'));
+  document.getElementById('v-'+id).classList.add('active');
+  el.classList.add('active');
+}
+
+// ======================== TOAST ========================
+function toast(msg,err){
+  var t=document.getElementById('toast');
+  t.textContent=msg;
+  t.className='toast show'+(err?' err':'');
+  setTimeout(function(){t.className='toast'},3000);
+}
+
+// ======================== MODAL ========================
+function openModal(id){document.getElementById('m-'+id).classList.add('open')}
+function closeModal(id){document.getElementById('m-'+id).classList.remove('open')}
+
+// ======================== MRP ENGINE ========================
+function runMRP(){
+  DB.mrpResult=[];DB.prList=[];
+  var grossByMat={};
+  // Step 1: Calculate gross requirements from demand
+  for(var pid in DB.demand){
+    var weeks=DB.demand[pid];
+    var bom=DB.bom[pid];if(!bom)continue;
+    for(var w in weeks){
+      var prodQty=weeks[w];
+      bom.forEach(function(b){
+        var key=b.mid;
+        if(!grossByMat[key])grossByMat[key]={name:b.name,qty:0,lt:b.lt,week:+w};
+        grossByMat[key].qty+=prodQty*b.qty;
+        if(+w<grossByMat[key].week)grossByMat[key].week=+w;
+      });
+    }
+  }
+  // Step 2: Net requirement calculation
+  var totalGross=0,totalNet=0,totalPR=0;
+  for(var mid in grossByMat){
+    var g=grossByMat[mid];
+    var inv=DB.inv[mid]||{onhand:0,intransit:0,safe:0,price:0,supplier:'-'};
+    var avail=inv.onhand+inv.intransit;
+    var net=Math.max(0,g.qty-avail+inv.safe);
+    var orderWeek=Math.max(1,g.week-Math.ceil(g.lt/7));
+    var status=net>0?(avail>=g.qty?'齐套':'缺料'):'齐套';
+    DB.mrpResult.push({mid:mid,name:g.name,gross:g.qty,onhand:inv.onhand,intransit:inv.intransit,net:net,orderWeek:orderWeek,status:status});
+    totalGross+=g.qty;totalNet+=net;
+    if(net>0){
+      var prId='PR-'+String(DB.prList.length+1).padStart(3,'0');
+      DB.prList.push({id:prId,mid:mid,name:g.name,qty:net,supplier:inv.supplier,price:inv.price,amount:net*inv.price});
+      totalPR+=net*inv.price;
+    }
+  }
+  // Update KPI
+  var kitRate=totalNet===0?100:Math.round((1-totalNet/totalGross)*100);
+  document.getElementById('mrpKpi').innerHTML=
+    '<div class="kc"><div class="kl">物料种类</div><div class="kv mono" style="color:var(--bl)">'+Object.keys(grossByMat).length+'</div></div>'+
+    '<div class="kc"><div class="kl">齐套率</div><div class="kv mono" style="color:'+(kitRate>=95?'var(--gn)':'var(--rd)')+'">'+kitRate+'%</div></div>'+
+    '<div class="kc"><div class="kl">缺料项</div><div class="kv mono" style="color:var(--rd)">'+DB.mrpResult.filter(function(r){return r.status==='缺料'}).length+'</div></div>'+
+    '<div class="kc"><div class="kl">采购金额</div><div class="kv mono" style="color:var(--am)">'+(totalPR/10000).toFixed(0)+'万</div></div>';
+  // Render BOM
+  var bomHTML='';
+  for(var pid2 in DB.demand){
+    bomHTML+='<div class="bom-root">&#128230; '+DB.products[pid2].name+' (需求: '+Object.values(DB.demand[pid2]).reduce(function(a,b){return a+b},0)+')</div>';
+    (DB.bom[pid2]||[]).forEach(function(b){
+      var inv2=DB.inv[b.mid]||{onhand:0};
+      var need=Object.values(DB.demand[pid2]).reduce(function(a,b2){return a+b2},0)*b.qty;
+      var col=inv2.onhand>=need?'var(--gn)':'var(--rd)';
+      bomHTML+='<div class="bom-node" style="border-left-color:'+col+'">'+b.name+' x'+b.qty+' (库存:'+inv2.onhand+', 需要:'+need+')</div>';
+    });
+  }
+  document.getElementById('mrpBom').innerHTML=bomHTML;
+  // Render result
+  var rHTML='';
+  DB.mrpResult.forEach(function(r){
+    rHTML+='<tr><td>'+r.name+'</td><td>+</td><td class="n mono">'+r.gross+'</td><td class="n mono">'+r.onhand+'</td><td class="n mono">'+r.intransit+'</td><td class="n mono" style="color:'+(r.net>0?'var(--rd)':'var(--gn)')+'">'+r.net+'</td><td class="n mono">'+(r.net>0?r.net:'-')+'</td><td class="n mono">W'+r.orderWeek+'</td><td><span class="tg '+(r.status==='缺料'?'tg-r':'tg-g')+'">'+r.status+'</span></td></tr>';
+  });
+  document.getElementById('mrpResult').innerHTML=rHTML;
+  // Render PR
+  var prHTML='';
+  DB.prList.forEach(function(p){
+    prHTML+='<tr><td class="mono">'+p.id+'</td><td>'+p.name+'</td><td class="n mono">'+p.qty+'</td><td>'+p.supplier+'</td><td class="n mono">'+p.price+'</td><td class="n mono">'+p.amount.toLocaleString()+'</td><td><button class="btn btn-s btn-p" onclick="toast(\'PR '+p.id+' 已提交\')">提交</button></td></tr>';
+  });
+  document.getElementById('mrpPR').innerHTML=prHTML;
+  toast('MRP 运算完成：'+DB.mrpResult.length+' 种物料，'+DB.prList.length+' 笔采购申请');
+}
+
+// ======================== MPS ========================
+function renderMPS(){
+  var totalCap=0,totalUsed=0;
+  DB.workOrders.forEach(function(w){
+    var hrs=DB.workCenters.find(function(c){return c.id===w.line.split('-')[0]});
+    totalUsed+=(hrs?hrs.rate:1)*w.qty;
+  });
+  DB.workCenters.forEach(function(c){totalCap+=c.cap*c.avail});
+  var util=totalCap>0?Math.round(totalUsed/totalCap*100):0;
+  var completed=DB.workOrders.filter(function(w){return w.status==='已完成'}).length;
+  var inprog=DB.workOrders.filter(function(w){return w.status==='进行中'}).length;
+  document.getElementById('mpsKpi').innerHTML=
+    '<div class="kc"><div class="kl">总工单</div><div class="kv mono" style="color:var(--bl)">'+DB.workOrders.length+'</div></div>'+
+    '<div class="kc"><div class="kl">进行中</div><div class="kv mono" style="color:var(--am)">'+inprog+'</div></div>'+
+    '<div class="kc"><div class="kl">产能利用率</div><div class="kv mono" style="color:'+(util>85?'var(--rd)':'var(--gn)')+'">'+util+'%</div></div>'+
+    '<div class="kc"><div class="kl">已完成</div><div class="kv mono" style="color:var(--gn)">'+completed+'</div></div>';
+  var wHTML='';
+  DB.workOrders.forEach(function(w,i){
+    var prod=DB.products[w.prod]||{name:w.prod};
+    var hrs2=DB.workCenters.find(function(c){return c.id===w.line.split('-')[0]});
+    var h=hrs2?(w.qty*hrs2.rate).toFixed(1):'-';
+    var sc=w.status==='已完成'?'tg-g':w.status==='进行中'?'tg-a':'tg-b';
+    wHTML+='<tr><td class="mono">'+w.id+'</td><td>'+prod.name+'</td><td class="n mono">'+w.qty+'</td><td>'+w.line+'</td><td class="mono">'+w.start+'</td><td class="mono">'+w.end+'</td><td class="n mono">'+h+'</td><td><span class="tg '+sc+'">'+w.status+'</span></td><td><button class="btn btn-s" onclick="delWO('+i+')">删除</button></td></tr>';
+  });
+  document.getElementById('woList').innerHTML=wHTML;
+  // Capacity load
+  var loadHTML='';
+  DB.workCenters.forEach(function(c){
+    var used=0;
+    DB.workOrders.filter(function(w){return w.line.split('-')[0]===c.id&&w.status!=='已完成'}).forEach(function(w){used+=w.qty*c.rate});
+    var pct=Math.round(used/(c.cap*c.avail)*100);
+    var col=pct>90?'var(--rd)':pct>75?'var(--am)':'var(--gn)';
+    loadHTML+='<div style="display:flex;align-items:center;gap:10px;margin-bottom:8px"><span style="min-width:80px;font-size:.85em;color:var(--tx2)">'+c.name+'</span><div class="pbar" style="flex:1"><div class="pbar-fill" style="width:'+Math.min(pct,100)+'%;background:'+col+'"></div></div><span class="mono" style="font-size:.82em;min-width:40px;text-align:right;color:'+col+'">'+pct+'%</span></div>';
+  });
+  document.getElementById('capLoad').innerHTML=loadHTML;
+}
+function addWorkOrder(){
+  var id='WO-'+String(DB.woCounter++).padStart(4,'0');
+  var prod=document.getElementById('woProd').value;
+  var qty=+document.getElementById('woQty').value;
+  var line=document.getElementById('woLine').value;
+  var start=document.getElementById('woStart').value;
+  var lt=DB.products[prod].lt;
+  var end=new Date(new Date(start).getTime()+lt*86400000).toISOString().slice(0,10);
+  DB.workOrders.unshift({id:id,prod:prod,qty:qty,line:line,start:start,end:end,status:'待排程'});
+  closeModal('newWO');renderMPS();toast('工单 '+id+' 已创建');
+}
+function delWO(i){DB.workOrders.splice(i,1);renderMPS();toast('工单已删除')}
+function calcCapacity(){renderMPS();toast('产能校验完成')}
+
+// ======================== ATP ========================
+function calcAllATP(){
+  // Calculate weekly ATP
+  var weeks={1:{inv:3200,out:0,commit:0,safe:1000},2:{inv:0,out:0,commit:0,safe:1000},3:{inv:0,out:0,commit:0,safe:1000},4:{inv:0,out:0,commit:0,safe:1000}};
+  // Sum production output from work orders
+  DB.workOrders.forEach(function(w){
+    var s=new Date(w.start);var weekNum=Math.ceil((s-new Date('2026-07-13'))/604800000);
+    if(weeks[weekNum])weeks[weekNum].out+=w.qty;
+  });
+  // Sum committed from orders
+  DB.orders.forEach(function(o){
+    var d=new Date(o.date);var weekNum=Math.ceil((d-new Date('2026-07-13'))/604800000);
+    if(weeks[weekNum])weeks[weekNum].commit+=o.qty;
+  });
+  // Calculate rolling ATP
+  for(var w=1;w<=4;w++){
+    if(w>1)weeks[w].inv=weeks[w-1].inv+weeks[w-1].out-weeks[w-1].commit;
+    weeks[w].atp=weeks[w].inv+weeks[w].out-weeks[w].commit-weeks[w].safe;
+  }
+  // KPI
+  var totalATP=0,totalCommit=0;
+  for(var w2=1;w2<=4;w2++){totalATP+=weeks[w2].atp;totalCommit+=weeks[w2].commit;}
+  document.getElementById('atpKpi').innerHTML=
+    '<div class="kc"><div class="kl">总 ATP</div><div class="kv mono" style="color:'+(totalATP>=0?'var(--gn)':'var(--rd)')+'">'+(totalATP>=0?'+':'')+totalATP+'</div></div>'+
+    '<div class="kc"><div class="kl">已承诺订单</div><div class="kv mono" style="color:var(--bl)">'+DB.orders.length+'</div></div>'+
+    '<div class="kc"><div class="kl">承诺总量</div><div class="kv mono" style="color:var(--am)">'+totalCommit.toLocaleString()+'</div></div>'+
+    '<div class="kc"><div class="kl">满足率</div><div class="kv mono" style="color:var(--gn)">'+Math.round(DB.orders.filter(function(o){return o.status==='已确认'}).length/DB.orders.length*100)+'%</div></div>';
+  // Order list with CTP
+  var oHTML='';
+  DB.orders.forEach(function(o,i){
+    var prod=DB.products[o.prod]||{name:o.prod};
+    var atpVal=weeks[1]?weeks[1].atp:0;
+    var ctpDate=o.date;
+    var sc=o.status==='已确认'?'tg-g':'tg-a';
+    oHTML+='<tr><td class="mono">'+o.id+'</td><td>'+o.cust+'</td><td>'+prod.name+'</td><td class="n mono">'+o.qty+'</td><td class="mono">'+o.date+'</td><td class="n mono" style="color:'+(atpVal>=0?'var(--gn)':'var(--rd)')+'">'+(atpVal>=0?'+':'')+atpVal+'</td><td class="mono">'+ctpDate+'</td><td><span class="tg '+sc+'">'+o.status+'</span></td><td><button class="btn btn-s btn-g" onclick="confirmOrder('+i+')">确认</button> <button class="btn btn-s" onclick="delOrder('+i+')">删除</button></td></tr>';
+  });
+  document.getElementById('orderList').innerHTML=oHTML;
+  // Weekly ATP table
+  var wHTML='';
+  for(var w3=1;w3<=4;w3++){
+    var wk=weeks[w3];
+    wHTML+='<tr><td>W'+w3+'</td><td class="n mono">'+wk.inv+'</td><td class="n mono">'+wk.out+'</td><td class="n mono">'+wk.commit+'</td><td class="n mono">'+wk.safe+'</td><td class="n mono" style="color:'+(wk.atp>=0?'var(--gn)':'var(--rd)')+'">'+(wk.atp>=0?'+':'')+wk.atp+'</td></tr>';
+  }
+  document.getElementById('atpWeek').innerHTML=wHTML;
+}
+function addOrder(){
+  var id='SO-'+String(DB.orderCounter++).padStart(3,'0');
+  DB.orders.push({id:id,cust:document.getElementById('ordCust').value,prod:document.getElementById('ordProd').value,qty:+document.getElementById('ordQty').value,date:document.getElementById('ordDate').value,status:'待确认'});
+  closeModal('newOrder');calcAllATP();toast('订单 '+id+' 已创建');
+}
+function confirmOrder(i){DB.orders[i].status='已确认';calcAllATP();toast('订单已确认')}
+function delOrder(i){DB.orders.splice(i,1);calcAllATP();toast('订单已删除')}
+
+// ======================== S&OP ========================
+function runSOP(){
+  var totalDemand=0,totalCap=0,gaps=[];
+  var rHTML='';
+  for(var pid in DB.forecast){
+    var f=DB.forecast[pid];var prod=DB.products[pid];
+    var diff=f.capacity-f.demand;
+    var rate=Math.round(f.capacity/f.demand*100);
+    var advice=diff>=0?'充足':diff>-2000?'紧张':'缺口';
+    var cls=diff>=0?'tg-g':diff>-2000?'tg-a':'tg-r';
+    rHTML+='<tr><td>'+prod.name+'</td><td class="n mono">'+f.demand.toLocaleString()+'</td><td class="n mono">'+f.capacity.toLocaleString()+'</td><td class="n mono" style="color:'+(diff>=0?'var(--gn)':'var(--rd)')+'">'+(diff>=0?'+':'')+diff.toLocaleString()+'</td><td class="n mono">'+rate+'%</td><td><span class="tg '+cls+'">'+advice+'</span></td></tr>';
+    totalDemand+=f.demand;totalCap+=f.capacity;
+    if(diff<0)gaps.push({name:prod.name,gap:-diff});
+  }
+  document.getElementById('sopResult').innerHTML=rHTML;
+  var overallRate=Math.round(totalCap/totalDemand*100);
+  document.getElementById('sopKpi').innerHTML=
+    '<div class="kc"><div class="kl">总需求</div><div class="kv mono" style="color:var(--bl)">'+(totalDemand/10000).toFixed(1)+'万</div></div>'+
+    '<div class="kc"><div class="kl">总产能</div><div class="kv mono" style="color:var(--gn)">'+(totalCap/10000).toFixed(1)+'万</div></div>'+
+    '<div class="kc"><div class="kl">总体达成率</div><div class="kv mono" style="color:'+(overallRate>=95?'var(--gn)':'var(--rd)')+'">'+overallRate+'%</div></div>'+
+    '<div class="kc"><div class="kl">缺口产品</div><div class="kv mono" style="color:var(--rd)">'+gaps.length+'</div></div>';
+  // Advice
+  var advHTML='';
+  gaps.forEach(function(g){
+    advHTML+='<div style="padding:10px;background:var(--s2);border:1px solid var(--bd);border-radius:8px;margin-bottom:8px;font-size:.85em"><strong style="color:var(--rd)">'+g.name+'</strong>：缺口 '+g.gap.toLocaleString()+' 件。建议：周末加班(+1500) + 外协('+Math.max(0,g.gap-1500)+')</div>';
+  });
+  if(gaps.length===0)advHTML='<div style="padding:10px;color:var(--gn);font-size:.85em">&#10003; 所有产品产能充足，无需额外措施</div>';
+  document.getElementById('sopAdvice').innerHTML=advHTML;
+  toast('S&OP 匹配完成：'+gaps.length+' 个缺口');
+}
+// Forecast edit
+function renderForecastForm(){
+  var html='';
+  for(var pid in DB.forecast){
+    var f=DB.forecast[pid];var prod=DB.products[pid];
+    html+='<div class="frow"><div class="fg"><label>'+prod.name+' 需求预测</label><input type="number" id="fc_d_'+pid+'" value="'+f.demand+'"></div><div class="fg"><label>'+prod.name+' 产能上限</label><input type="number" id="fc_c_'+pid+'" value="'+f.capacity+'"></div></div>';
+  }
+  document.getElementById('forecastForm').innerHTML=html;
+}
+function saveForecast(){
+  for(var pid in DB.forecast){
+    DB.forecast[pid].demand=+document.getElementById('fc_d_'+pid).value;
+    DB.forecast[pid].capacity=+document.getElementById('fc_c_'+pid).value;
+  }
+  closeModal('editForecast');runSOP();toast('预测已更新');
+}
+
+// ======================== OEE ========================
+function calcOEEAll(){
+  var kHTML='',lHTML='';
+  var totalOEE=0,count=0;
+  for(var line in DB.oee){
+    var d=DB.oee[line];
+    var avail=((d.plan-d.down)/d.plan*100);
+    var perf=(d.actual/(d.theory*(d.plan-d.down))*100);
+    var qual=((d.actual-d.defect)/d.actual*100);
+    var oee=avail*perf*qual/10000;
+    totalOEE+=oee;count++;
+    var col=oee>=85?'var(--gn)':oee>=75?'var(--am)':'var(--rd)';
+    lHTML+='<tr><td>'+line+'</td><td class="n mono">'+d.plan+'</td><td class="n mono">'+d.down+'</td><td class="n mono">'+avail.toFixed(1)+'%</td><td class="n mono">'+d.actual+'</td><td class="n mono">'+(d.theory*(d.plan-d.down)).toFixed(0)+'</td><td class="n mono">'+perf.toFixed(1)+'%</td><td class="n mono">'+(d.actual-d.defect)+'</td><td class="n mono">'+qual.toFixed(1)+'%</td><td class="n mono" style="color:'+col+';font-weight:700">'+oee.toFixed(1)+'%</td><td><button class="btn btn-s" onclick="editOEE(\''+line+'\')">编辑</button></td></tr>';
+  }
+  var avgOEE=(totalOEE/count).toFixed(1);
+  document.getElementById('oeeKpi').innerHTML=
+    '<div class="kc"><div class="kl">综合 OEE</div><div class="kv mono" style="color:'+(avgOEE>=85?'var(--gn)':'var(--am)')+'">'+avgOEE+'%</div></div>'+
+    '<div class="kc"><div class="kl">产线数</div><div class="kv mono" style="color:var(--bl)">'+count+'</div></div>'+
+    '<div class="kc"><div class="kl">达标产线</div><div class="kv mono" style="color:var(--gn)">'+Object.values(DB.oee).filter(function(d){var o=((d.plan-d.down)/d.plan)*(d.actual/(d.theory*(d.plan-d.down)))*((d.actual-d.defect)/d.actual)*100;return o>=85}).length+'</div></div>'+
+    '<div class="kc"><div class="kl">异常产线</div><div class="kv mono" style="color:var(--rd)">'+Object.values(DB.oee).filter(function(d){var o=((d.plan-d.down)/d.plan)*(d.actual/(d.theory*(d.plan-d.down)))*((d.actual-d.defect)/d.actual)*100;return o<75}).length+'</div></div>';
+  document.getElementById('oeeList').innerHTML=lHTML;
+  // Populate OEE input select
+  var sel=document.getElementById('oeeLine');sel.innerHTML='';
+  for(var ln in DB.oee){sel.innerHTML+='<option>'+ln+'</option>';}
+}
+function editOEE(line){
+  var d=DB.oee[line];
+  document.getElementById('oeeLine').value=line;
+  document.getElementById('oeePlan').value=d.plan;
+  document.getElementById('oeeDown').value=d.down;
+  document.getElementById('oeeActual').value=d.actual;
+  document.getElementById('oeeTheory').value=d.theory;
+  document.getElementById('oeeDefect').value=d.defect;
+  openModal('oeeInput');
+}
+function submitOEE(){
+  var line=document.getElementById('oeeLine').value;
+  DB.oee[line]={plan:+document.getElementById('oeePlan').value,down:+document.getElementById('oeeDown').value,actual:+document.getElementById('oeeActual').value,theory:+document.getElementById('oeeTheory').value,defect:+document.getElementById('oeeDefect').value};
+  closeModal('oeeInput');calcOEEAll();toast(line+' OEE 数据已更新');
+}
+
+// ======================== PSI ========================
+function calcPSI(){
+  var pHTML='';var totalP=0,totalS=0,totalI=0;
+  for(var pid in DB.psi){
+    var p=DB.psi[pid];var prod=DB.products[pid];
+    var end=p.begin+p.purchase-p.sales;
+    var ratio=(p.sales/p.purchase).toFixed(2);
+    var days=Math.round(end/(p.sales/30));
+    var healthy=days<=15?'优':days<=20?'良':days<=30?'关注':'预警';
+    var cls=days<=15?'tg-g':days<=20?'tg-g':days<=30?'tg-a':'tg-r';
+    pHTML+='<tr><td>'+prod.name+'</td><td class="n mono">'+p.begin.toLocaleString()+'</td><td class="n mono">'+p.purchase.toLocaleString()+'</td><td class="n mono">'+p.sales.toLocaleString()+'</td><td class="n mono">'+end.toLocaleString()+'</td><td class="n mono">'+ratio+'</td><td class="n mono">'+days+'</td><td><span class="tg '+cls+'">'+healthy+'</span></td></tr>';
+    totalP+=p.purchase;totalS+=p.sales;totalI+=end;
+  }
+  document.getElementById('psiList').innerHTML=pHTML;
+  var avgDays=Math.round(totalI/(totalS/30));
+  document.getElementById('psiKpi').innerHTML=
+    '<div class="kc"><div class="kl">总采购</div><div class="kv mono" style="color:var(--bl)">'+(totalP/10000).toFixed(1)+'万</div></div>'+
+    '<div class="kc"><div class="kl">总销售</div><div class="kv mono" style="color:var(--gn)">'+(totalS/10000).toFixed(1)+'万</div></div>'+
+    '<div class="kc"><div class="kl">总库存</div><div class="kv mono" style="color:var(--am)">'+(totalI/10000).toFixed(1)+'万</div></div>'+
+    '<div class="kc"><div class="kl">平均库存天数</div><div class="kv mono" style="color:var(--pu)">'+avgDays+'</div></div>';
+}
+function submitPSI(){
+  var pid=document.getElementById('psiProd').value;
+  DB.psi[pid].purchase=+document.getElementById('psiP').value;
+  DB.psi[pid].sales=+document.getElementById('psiS').value;
+  closeModal('psiInput');calcPSI();toast(DB.products[pid].name+' PSI 已更新');
+}
+
+// ======================== BOM MANAGE ========================
+function renderBOM(){
+  var html='';
+  for(var pid in DB.bom){
+    var prod=DB.products[pid];
+    html+='<div style="margin-bottom:16px"><div style="font-weight:600;font-size:.9em;margin-bottom:8px">&#128230; '+prod.name+'</div>';
+    html+='<table class="dt"><thead><tr><th>物料编码</th><th>名称</th><th class="n">用量</th><th class="n">提前期(天)</th><th class="n">库存</th><th class="n">单价</th></tr></thead><tbody>';
+    DB.bom[pid].forEach(function(b){
+      var inv=DB.inv[b.mid]||{onhand:0,price:0};
+      html+='<tr><td class="mono">'+b.mid+'</td><td>'+b.name+'</td><td class="n mono">'+b.qty+'</td><td class="n mono">'+b.lt+'</td><td class="n mono">'+inv.onhand+'</td><td class="n mono">'+inv.price+'</td></tr>';
+    });
+    html+='</tbody></table></div>';
+  }
+  document.getElementById('bomManage').innerHTML=html;
+}
+
+// ======================== WORK CENTER ========================
+function renderWC(){
+  var html='';
+  DB.workCenters.forEach(function(c,i){
+    var used=0;
+    DB.workOrders.filter(function(w){return w.line.split('-')[0]===c.id&&w.status!=='已完成'}).forEach(function(w){used+=w.qty*c.rate});
+    var pct=Math.round(used/(c.cap*c.avail)*100);
+    html+='<tr><td class="mono">'+c.id+'</td><td>'+c.name+'</td><td class="n mono">'+c.cap+'</td><td class="n mono">'+c.rate+'</td><td class="n mono">'+c.avail+'</td><td class="n mono" style="color:'+(pct>90?'var(--rd)':pct>75?'var(--am)':'var(--gn)')+'">'+pct+'%</td><td><button class="btn btn-s" onclick="toast(\'产能详情\')">详情</button></td></tr>';
+  });
+  document.getElementById('wcList').innerHTML=html;
+}
+
+// ======================== INIT ========================
+function init(){
+  runMRP();renderMPS();calcAllATP();runSOP();calcOEEAll();calcPSI();renderBOM();renderWC();renderForecastForm();
+}
+init();
+</script>
+</body>
+</html>

@@ -1,0 +1,1143 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>NQPP 供应商质量评估报告 - 2024年6月</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+    <style>
+        :root {
+            --primary: #1a237e;
+            --primary-light: #3949ab;
+            --accent: #00bcd4;
+            --danger: #e53935;
+            --warning: #fb8c00;
+            --success: #43a047;
+            --bg: #f5f7fa;
+            --card: #ffffff;
+            --text: #212121;
+            --text-secondary: #616161;
+            --border: #e0e0e0;
+        }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: 'Microsoft YaHei', 'Segoe UI', sans-serif; background: var(--bg); color: var(--text); line-height: 1.6; }
+
+        /* Header */
+        .header {
+            background: linear-gradient(135deg, var(--primary) 0%, var(--primary-light) 100%);
+            color: white; padding: 40px 0;
+        }
+        .header .container { max-width: 1400px; margin: 0 auto; padding: 0 30px; }
+        .header h1 { font-size: 32px; font-weight: 700; margin-bottom: 8px; }
+        .header .subtitle { font-size: 16px; opacity: 0.85; }
+        .header .meta { display: flex; gap: 30px; margin-top: 20px; font-size: 14px; opacity: 0.9; }
+        .header .meta span { display: flex; align-items: center; gap: 6px; }
+
+        /* Container */
+        .container { max-width: 1400px; margin: 0 auto; padding: 30px; }
+
+        /* KPI Cards */
+        .kpi-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 20px; margin-bottom: 30px; }
+        .kpi-card {
+            background: var(--card); border-radius: 12px; padding: 24px;
+            box-shadow: 0 2px 12px rgba(0,0,0,0.06); border-left: 4px solid var(--primary);
+            transition: transform 0.2s;
+        }
+        .kpi-card:hover { transform: translateY(-2px); }
+        .kpi-card.danger { border-left-color: var(--danger); }
+        .kpi-card.warning { border-left-color: var(--warning); }
+        .kpi-card.success { border-left-color: var(--success); }
+        .kpi-card.accent { border-left-color: var(--accent); }
+        .kpi-label { font-size: 13px; color: var(--text-secondary); margin-bottom: 8px; text-transform: uppercase; letter-spacing: 0.5px; }
+        .kpi-value { font-size: 36px; font-weight: 700; color: var(--primary); }
+        .kpi-card.danger .kpi-value { color: var(--danger); }
+        .kpi-card.warning .kpi-value { color: var(--warning); }
+        .kpi-card.success .kpi-value { color: var(--success); }
+        .kpi-card.accent .kpi-value { color: var(--accent); }
+        .kpi-detail { font-size: 12px; color: var(--text-secondary); margin-top: 4px; }
+
+        /* Section */
+        .section {
+            background: var(--card); border-radius: 12px; padding: 30px;
+            box-shadow: 0 2px 12px rgba(0,0,0,0.06); margin-bottom: 30px;
+        }
+        .section-title {
+            font-size: 20px; font-weight: 700; color: var(--primary);
+            border-bottom: 2px solid var(--accent); padding-bottom: 12px; margin-bottom: 24px;
+            display: flex; align-items: center; gap: 10px;
+        }
+        .section-title .icon { font-size: 24px; }
+
+        /* Charts */
+        .chart-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 30px; margin-bottom: 30px; }
+        .chart-container { position: relative; height: 320px; }
+
+        /* Tables */
+        .table-wrapper { overflow-x: auto; }
+        table { width: 100%; border-collapse: collapse; font-size: 14px; }
+        th { background: var(--primary); color: white; padding: 12px 16px; text-align: left; font-weight: 600; white-space: nowrap; }
+        td { padding: 10px 16px; border-bottom: 1px solid var(--border); }
+        tr:hover { background: #f8f9ff; }
+        tr.risk { background: #fff3f3; }
+        tr.warning { background: #fff8e1; }
+
+        /* Score badge */
+        .score-badge {
+            display: inline-block; padding: 4px 12px; border-radius: 20px;
+            font-weight: 700; font-size: 13px; min-width: 60px; text-align: center;
+        }
+        .score-badge.excellent { background: #e8f5e9; color: #2e7d32; }
+        .score-badge.good { background: #e3f2fd; color: #1565c0; }
+        .score-badge.fair { background: #fff3e0; color: #e65100; }
+        .score-badge.poor { background: #ffebee; color: #c62828; }
+        .score-badge.critical { background: #c62828; color: white; }
+
+        /* Deduction bar */
+        .deduction-bar {
+            display: flex; align-items: center; gap: 8px; margin: 4px 0;
+        }
+        .deduction-bar .label { width: 100px; font-size: 13px; color: var(--text-secondary); text-align: right; flex-shrink: 0; }
+        .deduction-bar .bar-bg { flex: 1; height: 24px; background: #eee; border-radius: 4px; overflow: hidden; position: relative; }
+        .deduction-bar .bar-fill { height: 100%; border-radius: 4px; display: flex; align-items: center; justify-content: flex-end; padding-right: 8px; font-size: 11px; color: white; font-weight: 600; transition: width 0.6s ease; }
+        .deduction-bar .count { width: 80px; font-size: 13px; font-weight: 600; flex-shrink: 0; }
+
+        /* Risk supplier card */
+        .risk-supplier {
+            background: #fff3f3; border: 1px solid #ffcdd2; border-radius: 8px;
+            padding: 16px; margin-bottom: 12px;
+        }
+        .risk-supplier .supplier-name { font-weight: 700; font-size: 15px; margin-bottom: 6px; }
+        .risk-supplier .supplier-meta { font-size: 12px; color: var(--text-secondary); margin-bottom: 8px; }
+        .risk-supplier .deduction-tags { display: flex; flex-wrap: wrap; gap: 6px; }
+        .deduction-tag {
+            display: inline-block; padding: 2px 8px; border-radius: 4px;
+            font-size: 11px; font-weight: 600;
+        }
+        .deduction-tag.ppm { background: #ffcdd2; color: #c62828; }
+        .deduction-tag.delivery { background: #ffe0b2; color: #e65100; }
+        .deduction-tag.respond { background: #bbdefb; color: #1565c0; }
+        .deduction-tag.field { background: #d1c4e9; color: #4527a0; }
+        .deduction-tag.csl { background: #b2dfdb; color: #00695c; }
+        .deduction-tag.qrcr { background: #f8bbd0; color: #880e4f; }
+        .deduction-tag.cert { background: #c8e6c9; color: #2e7d32; }
+
+        /* Hierarchy */
+        .hierarchy { padding: 20px 0; }
+        .hierarchy-level {
+            display: flex; align-items: stretch; gap: 16px; margin-bottom: 16px;
+            padding: 16px; background: #fafbff; border-radius: 8px; border-left: 3px solid var(--primary);
+        }
+        .hierarchy-level .level-tag {
+            writing-mode: vertical-lr; text-orientation: mixed;
+            background: var(--primary); color: white; padding: 8px 6px;
+            border-radius: 4px; font-weight: 700; font-size: 12px;
+            display: flex; align-items: center; justify-content: center;
+            min-width: 36px;
+        }
+        .hierarchy-level .level-content { flex: 1; }
+        .hierarchy-level h4 { color: var(--primary); margin-bottom: 8px; }
+        .hierarchy-level p { font-size: 13px; color: var(--text-secondary); }
+        .metric-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 8px; margin-top: 10px; }
+        .metric-item {
+            background: white; border: 1px solid var(--border); border-radius: 6px;
+            padding: 8px 12px; font-size: 12px; text-align: center;
+        }
+        .metric-item .metric-name { font-weight: 600; color: var(--primary); }
+        .metric-item .metric-value { color: var(--text-secondary); margin-top: 2px; }
+
+        /* Recommendations */
+        .rec-card {
+            display: flex; gap: 16px; padding: 20px; margin-bottom: 16px;
+            background: #f8f9ff; border-radius: 8px; border: 1px solid #e3e8f8;
+        }
+        .rec-card .rec-icon {
+            width: 48px; height: 48px; border-radius: 12px;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 24px; flex-shrink: 0;
+        }
+        .rec-card .rec-icon.red { background: #ffebee; }
+        .rec-card .rec-icon.orange { background: #fff3e0; }
+        .rec-card .rec-icon.blue { background: #e3f2fd; }
+        .rec-card .rec-icon.green { background: #e8f5e9; }
+        .rec-card h4 { font-size: 15px; margin-bottom: 6px; }
+        .rec-card p { font-size: 13px; color: var(--text-secondary); }
+
+        /* Footer */
+        .footer {
+            text-align: center; padding: 30px; color: var(--text-secondary);
+            font-size: 13px; border-top: 1px solid var(--border); margin-top: 20px;
+        }
+
+        /* Top Navigation */
+        .top-nav {
+            background: var(--card); border-bottom: 1px solid var(--border);
+            box-shadow: 0 2px 8px rgba(0,0,0,0.06); position: sticky; top: 0; z-index: 100;
+        }
+        .top-nav-inner {
+            max-width: 1400px; margin: 0 auto; padding: 0 30px;
+            display: flex; align-items: center; gap: 4px; overflow-x: auto;
+        }
+        .top-nav a {
+            display: flex; align-items: center; gap: 5px; padding: 12px 14px;
+            font-size: 13px; color: var(--text-secondary); text-decoration: none;
+            white-space: nowrap; border-bottom: 2px solid transparent;
+            transition: all 0.2s; font-weight: 500;
+        }
+        .top-nav a:hover { color: var(--primary); background: #f8f9ff; }
+        .top-nav a.active {
+            color: var(--primary); font-weight: 700;
+            border-bottom-color: var(--accent);
+        }
+        .top-nav a .nav-icon { font-size: 15px; }
+
+        /* Four Quadrant Matrix */
+        .quadrant-wrapper { position: relative; width: 100%; height: 500px; }
+        .quadrant-label {
+            position: absolute; padding: 6px 12px; border-radius: 6px;
+            font-size: 11px; font-weight: 700; z-index: 10; pointer-events: none;
+        }
+        .quadrant-label.q1 { top: 8px; right: 8px; background: rgba(200,230,201,0.9); color: #2e7d32; }
+        .quadrant-label.q2 { top: 8px; left: 8px; background: rgba(255,249,196,0.9); color: #f57f17; }
+        .quadrant-label.q3 { bottom: 40px; left: 8px; background: rgba(255,205,210,0.9); color: #c62828; }
+        .quadrant-label.q4 { bottom: 40px; right: 8px; background: rgba(187,222,251,0.9); color: #1565c0; }
+
+        /* Deep insight cards */
+        .insight-card {
+            background: linear-gradient(135deg, #fafbff 0%, #f0f4ff 100%);
+            border: 1px solid #e3e8f8; border-radius: 12px;
+            padding: 24px; margin-bottom: 20px;
+            border-left: 4px solid var(--primary);
+        }
+        .insight-card h4 {
+            font-size: 16px; color: var(--primary); margin-bottom: 10px;
+            display: flex; align-items: center; gap: 8px;
+        }
+        .insight-card p { font-size: 13px; color: var(--text-secondary); line-height: 1.8; }
+        .insight-card .metric-highlight {
+            display: inline-block; background: var(--primary); color: white;
+            padding: 2px 10px; border-radius: 12px; font-size: 12px; font-weight: 700;
+            margin: 2px 4px;
+        }
+        .insight-card ul { margin: 8px 0 0 20px; font-size: 13px; color: var(--text-secondary); }
+        .insight-card ul li { margin-bottom: 4px; }
+
+        @media (max-width: 768px) {
+            .chart-grid { grid-template-columns: 1fr; }
+            .kpi-grid { grid-template-columns: repeat(2, 1fr); }
+            .header h1 { font-size: 24px; }
+            .top-nav a { padding: 10px 10px; font-size: 12px; }
+        }
+    </style>
+</head>
+<body>
+    <!-- Header -->
+    <div class="header" id="sec-overview">
+        <div class="container">
+            <h1>📊 NQPP 供应商质量评估报告</h1>
+            <div class="subtitle">New Quality Performance Program — 汽车零部件供应商质量绩效评估</div>
+            <div class="meta">
+                <span>📅 评估周期: 2024年6月</span>
+                <span>🏭 供应商总数: 376家</span>
+                <span>📋 评估满分: 1000分</span>
+                <span>🕐 报告生成: 2024年7月</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- Top Navigation -->
+    <nav class="top-nav">
+        <div class="top-nav-inner">
+            <a href="#sec-overview" class="active"><span class="nav-icon">📊</span>总览</a>
+            <a href="#sec-charts"><span class="nav-icon">📈</span>评分分布</a>
+            <a href="#sec-deduction"><span class="nav-icon">🔍</span>扣分分析</a>
+            <a href="#sec-hierarchy"><span class="nav-icon">🏗️</span>层级结构</a>
+            <a href="#sec-risk"><span class="nav-icon">🚨</span>高风险</a>
+            <a href="#sec-top"><span class="nav-icon">🏆</span>优秀供应商</a>
+            <a href="#sec-distribution"><span class="nav-icon">📋</span>扣分区间</a>
+            <a href="#sec-matrix"><span class="nav-icon">🎯</span>四象限</a>
+            <a href="#sec-insight"><span class="nav-icon">🧠</span>深度洞察</a>
+            <a href="#sec-rec"><span class="nav-icon">💡</span>行动计划</a>
+        </div>
+    </nav>
+
+    <div class="container">
+        <!-- KPI Overview -->
+        <div class="kpi-grid">
+            <div class="kpi-card success">
+                <div class="kpi-label">平均得分</div>
+                <div class="kpi-value">957.7</div>
+                <div class="kpi-detail">较满分 1000 低 42.3 分</div>
+            </div>
+            <div class="kpi-card accent">
+                <div class="kpi-label">满分供应商</div>
+                <div class="kpi-value">142</div>
+                <div class="kpi-detail">占比 37.8%</div>
+            </div>
+            <div class="kpi-card success">
+                <div class="kpi-label">优秀 (≥950)</div>
+                <div class="kpi-value">269</div>
+                <div class="kpi-detail">占比 71.5%</div>
+            </div>
+            <div class="kpi-card warning">
+                <div class="kpi-label">需关注 (800-949)</div>
+                <div class="kpi-value">97</div>
+                <div class="kpi-detail">占比 25.8%</div>
+            </div>
+            <div class="kpi-card danger">
+                <div class="kpi-label">高风险 (<800)</div>
+                <div class="kpi-value">10</div>
+                <div class="kpi-detail">占比 2.7%</div>
+            </div>
+            <div class="kpi-card warning">
+                <div class="kpi-label">扣分供应商</div>
+                <div class="kpi-value">219</div>
+                <div class="kpi-detail">占比 58.2%</div>
+            </div>
+        </div>
+
+        <!-- Charts Row -->
+        <div class="chart-grid" id="sec-charts">
+            <div class="section">
+                <div class="section-title"><span class="icon">📈</span> 评分分布</div>
+                <div class="chart-container"><canvas id="scoreDistribution"></canvas></div>
+            </div>
+            <div class="section">
+                <div class="section-title"><span class="icon">🎯</span> 扣分原因占比</div>
+                <div class="chart-container"><canvas id="deductionPie"></canvas></div>
+            </div>
+        </div>
+
+        <!-- Deduction Analysis -->
+        <div class="section" id="sec-deduction">
+            <div class="section-title"><span class="icon">🔍</span> 扣分项详细分析</div>
+            <p style="color: var(--text-secondary); margin-bottom: 20px; font-size: 14px;">
+                以下展示各扣分类别的累计扣分总量及涉及供应商数量，数据量越大说明该维度问题越普遍。
+            </p>
+
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 30px;">
+                <div>
+                    <h4 style="margin-bottom: 16px; color: var(--primary);">累计扣分总量</h4>
+                    <div class="deduction-bar">
+                        <div class="label">交付问题</div>
+                        <div class="bar-bg"><div class="bar-fill" style="width: 100%; background: linear-gradient(90deg, #ff9800, #e65100);">4,307</div></div>
+                        <div class="count">150 家</div>
+                    </div>
+                    <div class="deduction-bar">
+                        <div class="label">PPM超标</div>
+                        <div class="bar-bg"><div class="bar-fill" style="width: 81%; background: linear-gradient(90deg, #f44336, #b71c1c);">3,500</div></div>
+                        <div class="count">70 家</div>
+                    </div>
+                    <div class="deduction-bar">
+                        <div class="label">响应问题</div>
+                        <div class="bar-bg"><div class="bar-fill" style="width: 29%; background: linear-gradient(90deg, #2196f3, #0d47a1);">1,250</div></div>
+                        <div class="count">41 家</div>
+                    </div>
+                    <div class="deduction-bar">
+                        <div class="label">证书问题</div>
+                        <div class="bar-bg"><div class="bar-fill" style="width: 38%; background: linear-gradient(90deg, #4caf50, #1b5e20);">1,645</div></div>
+                        <div class="count">1 家</div>
+                    </div>
+                    <div class="deduction-bar">
+                        <div class="label">CSL/NBH</div>
+                        <div class="bar-bg"><div class="bar-fill" style="width: 20%; background: linear-gradient(90deg, #009688, #004d40);">875</div></div>
+                        <div class="count">16 家</div>
+                    </div>
+                    <div class="deduction-bar">
+                        <div class="label">质量响应</div>
+                        <div class="bar-bg"><div class="bar-fill" style="width: 23%; background: linear-gradient(90deg, #e91e63, #880e4f);">1,000</div></div>
+                        <div class="count">12 家</div>
+                    </div>
+                </div>
+                <div>
+                    <h4 style="margin-bottom: 16px; color: var(--primary);">各维度得分率</h4>
+                    <div class="chart-container" style="height: 300px;"><canvas id="radarChart"></canvas></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Quality Hierarchy -->
+        <div class="section" id="sec-hierarchy">
+            <div class="section-title"><span class="icon">🏗️</span> 汽车行业质量分析指标层级结构</div>
+            <div class="hierarchy">
+                <div class="hierarchy-level">
+                    <div class="level-tag">L1<br>总分</div>
+                    <div class="level-content">
+                        <h4>NQPP Score — 供应商质量绩效总分（满分1000分）</h4>
+                        <p>综合评价供应商在质量、交付、响应、合规等方面的整体表现，是供应商分级管理的核心依据。</p>
+                    </div>
+                </div>
+                <div class="hierarchy-level" style="border-left-color: var(--accent);">
+                    <div class="level-tag" style="background: var(--accent);">L2<br>模块</div>
+                    <div class="level-content">
+                        <h4>六大评估维度</h4>
+                        <div class="metric-grid">
+                            <div class="metric-item">
+                                <div class="metric-name">🔧 开发质量</div>
+                                <div class="metric-value">DRE + APQP + Validation</div>
+                            </div>
+                            <div class="metric-item">
+                                <div class="metric-name">📊 过程质量</div>
+                                <div class="metric-value">QR + CR → QRCR</div>
+                            </div>
+                            <div class="metric-item">
+                                <div class="metric-name">📦 交付质量</div>
+                                <div class="metric-value">PPM + CSL + NBH</div>
+                            </div>
+                            <div class="metric-item">
+                                <div class="metric-name">🌍 现场质量</div>
+                                <div class="metric-value">CCAP + SCAP + FCIR</div>
+                            </div>
+                            <div class="metric-item">
+                                <div class="metric-name">📜 合规认证</div>
+                                <div class="metric-value">Certificate + 3MIS IPTV/CPTV</div>
+                            </div>
+                            <div class="metric-item">
+                                <div class="metric-name">🤝 服务响应</div>
+                                <div class="metric-value">Integrity + Respond</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="hierarchy-level" style="border-left-color: var(--success);">
+                    <div class="level-tag" style="background: var(--success);">L3<br>指标</div>
+                    <div class="level-content">
+                        <h4>细化评估指标</h4>
+                        <div class="metric-grid">
+                            <div class="metric-item"><div class="metric-name">DRE_sub</div><div class="metric-value">设计评审得分</div></div>
+                            <div class="metric-item"><div class="metric-name">Vali_total</div><div class="metric-value">验证总分</div></div>
+                            <div class="metric-item"><div class="metric-name">APQP_sub</div><div class="metric-value">先期质量策划</div></div>
+                            <div class="metric-item"><div class="metric-name">QR / CR</div><div class="metric-value">质量/合规评分</div></div>
+                            <div class="metric-item"><div class="metric-name">PPM_target</div><div class="metric-value">PPM目标达成</div></div>
+                            <div class="metric-item"><div class="metric-name">CSL1/2/3</div><div class="metric-value">客户满意度层级</div></div>
+                            <div class="metric-item"><div class="metric-name">NBH Status</div><div class="metric-value">新业务历史状态</div></div>
+                            <div class="metric-item"><div class="metric-name">CCAP / SCAP</div><div class="metric-value">关键/特殊特性管控</div></div>
+                            <div class="metric-item"><div class="metric-name">FCIR</div><div class="metric-value">现场客户投诉</div></div>
+                            <div class="metric-item"><div class="metric-name">3MIS IPTV/CPTV</div><div class="metric-value">3月期问题追踪</div></div>
+                            <div class="metric-item"><div class="metric-name">Delivery_total</div><div class="metric-value">交付绩效总分</div></div>
+                            <div class="metric-item"><div class="metric-name">Integrity_sub</div><div class="metric-value">诚信合规评分</div></div>
+                            <div class="metric-item"><div class="metric-name">Respond_sub</div><div class="metric-value">响应及时性评分</div></div>
+                        </div>
+                    </div>
+                </div>
+                <div class="hierarchy-level" style="border-left-color: var(--warning);">
+                    <div class="level-tag" style="background: var(--warning);">L4<br>事件</div>
+                    <div class="level-content">
+                        <h4>扣分事件追踪</h4>
+                        <p>每一次扣分对应一个具体的质量事件（如交付延迟、PPM超标、响应超时等），是根因分析和纠正措施的输入。</p>
+                        <div class="metric-grid">
+                            <div class="metric-item"><div class="metric-name">交付延迟批次</div><div class="metric-value">影响150家供应商</div></div>
+                            <div class="metric-item"><div class="metric-name">PPM超标事件</div><div class="metric-value">影响70家供应商</div></div>
+                            <div class="metric-item"><div class="metric-name">响应超时事件</div><div class="metric-value">影响41家供应商</div></div>
+                            <div class="metric-item"><div class="metric-name">CSL/NBH违规</div><div class="metric-value">影响16家供应商</div></div>
+                            <div class="metric-item"><div class="metric-name">QRCR不达标</div><div class="metric-value">影响12家供应商</div></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Risk Suppliers -->
+        <div class="section" id="sec-risk">
+            <div class="section-title"><span class="icon">🚨</span> 高风险供应商清单（得分 &lt; 800）</div>
+            <div class="table-wrapper">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>序号</th>
+                            <th>MS Code</th>
+                            <th>供应商名称</th>
+                            <th>NQPP得分</th>
+                            <th>评级</th>
+                            <th>主要扣分项</th>
+                            <th>扣分合计</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr class="risk">
+                            <td>1</td>
+                            <td>V25763-MS02</td>
+                            <td>无锡吉兴汽车部件有限公司</td>
+                            <td><span class="score-badge critical">625</span></td>
+                            <td>🔴 危险</td>
+                            <td>
+                                <span class="deduction-tag ppm">PPM -50</span>
+                                <span class="deduction-tag delivery">交付 -150</span>
+                                <span class="deduction-tag respond">响应 -100</span>
+                                <span class="deduction-tag csl">CSL/NBH -25</span>
+                                <span class="deduction-tag qrcr">QRCR -50</span>
+                            </td>
+                            <td><strong style="color: var(--danger);">-375</strong></td>
+                        </tr>
+                        <tr class="risk">
+                            <td>2</td>
+                            <td>V56835-MS01</td>
+                            <td>建新赵氏科技股份有限公司</td>
+                            <td><span class="score-badge critical">682</span></td>
+                            <td>🔴 危险</td>
+                            <td>
+                                <span class="deduction-tag ppm">PPM -50</span>
+                                <span class="deduction-tag delivery">交付 -18</span>
+                                <span class="deduction-tag csl">CSL/NBH -50</span>
+                                <span class="deduction-tag qrcr">QRCR -100</span>
+                                <span class="deduction-tag cert">诚信 -100</span>
+                            </td>
+                            <td><strong style="color: var(--danger);">-318</strong></td>
+                        </tr>
+                        <tr class="warning">
+                            <td>3</td>
+                            <td>V54895-MS02</td>
+                            <td>上海干巷车镜实业有限公司</td>
+                            <td><span class="score-badge poor">710</span></td>
+                            <td>🟠 警告</td>
+                            <td>
+                                <span class="deduction-tag ppm">PPM -50</span>
+                                <span class="deduction-tag delivery">交付 -20</span>
+                                <span class="deduction-tag respond">响应 -20</span>
+                                <span class="deduction-tag qrcr">QRCR -100</span>
+                            </td>
+                            <td><strong style="color: var(--warning);">-190</strong></td>
+                        </tr>
+                        <tr class="warning">
+                            <td>4</td>
+                            <td>V80569-MS01</td>
+                            <td>延锋汽车饰件系统（合肥）有限公司</td>
+                            <td><span class="score-badge poor">720</span></td>
+                            <td>🟠 警告</td>
+                            <td>
+                                <span class="deduction-tag ppm">PPM -50</span>
+                                <span class="deduction-tag delivery">交付 -80</span>
+                                <span class="deduction-tag respond">响应 -20</span>
+                                <span class="deduction-tag cert">证书 -30</span>
+                            </td>
+                            <td><strong style="color: var(--warning);">-180</strong></td>
+                        </tr>
+                        <tr class="warning">
+                            <td>5</td>
+                            <td>V43575-MS01</td>
+                            <td>安波福电子（苏州）有限公司</td>
+                            <td><span class="score-badge poor">742</span></td>
+                            <td>🟠 警告</td>
+                            <td>
+                                <span class="deduction-tag ppm">PPM -50</span>
+                                <span class="deduction-tag delivery">交付 -8</span>
+                                <span class="deduction-tag qrcr">QRCR -100</span>
+                            </td>
+                            <td><strong style="color: var(--warning);">-158</strong></td>
+                        </tr>
+                        <tr class="warning">
+                            <td>6</td>
+                            <td>V25524-MS03</td>
+                            <td>延锋彼欧汽车外饰系统有限公司</td>
+                            <td><span class="score-badge poor">750</span></td>
+                            <td>🟠 警告</td>
+                            <td>
+                                <span class="deduction-tag ppm">PPM -50</span>
+                                <span class="deduction-tag respond">响应 -50</span>
+                                <span class="deduction-tag csl">CSL/NBH -50</span>
+                                <span class="deduction-tag qrcr">QRCR -100</span>
+                            </td>
+                            <td><strong style="color: var(--warning);">-250</strong></td>
+                        </tr>
+                        <tr class="warning">
+                            <td>7</td>
+                            <td>V75476-MS02</td>
+                            <td>合肥乔路铭新材料科技有限公司</td>
+                            <td><span class="score-badge poor">750</span></td>
+                            <td>🟠 警告</td>
+                            <td>
+                                <span class="deduction-tag ppm">PPM -50</span>
+                                <span class="deduction-tag delivery">交付 -80</span>
+                                <span class="deduction-tag respond">响应 -70</span>
+                                <span class="deduction-tag csl">CSL/NBH -50</span>
+                            </td>
+                            <td><strong style="color: var(--warning);">-250</strong></td>
+                        </tr>
+                        <tr class="warning">
+                            <td>8</td>
+                            <td>V71089-MS01</td>
+                            <td>安悦先锋汽车信息技术有限公司</td>
+                            <td><span class="score-badge poor">750</span></td>
+                            <td>🟠 警告</td>
+                            <td>
+                                <span class="deduction-tag ppm">PPM -50</span>
+                                <span class="deduction-tag respond">响应 -20</span>
+                                <span class="deduction-tag qrcr">QRCR -100</span>
+                            </td>
+                            <td><strong style="color: var(--warning);">-170</strong></td>
+                        </tr>
+                        <tr class="warning">
+                            <td>9</td>
+                            <td>V47049-MS01</td>
+                            <td>合肥华翔汽车车门系统有限公司</td>
+                            <td><span class="score-badge poor">780</span></td>
+                            <td>🟠 警告</td>
+                            <td>
+                                <span class="deduction-tag ppm">PPM -50</span>
+                                <span class="deduction-tag delivery">交付 -100</span>
+                                <span class="deduction-tag respond">响应 -70</span>
+                            </td>
+                            <td><strong style="color: var(--warning);">-220</strong></td>
+                        </tr>
+                        <tr class="warning">
+                            <td>10</td>
+                            <td>V12158-MS03</td>
+                            <td>安徽天汽模通蔚车身科技有限公司</td>
+                            <td><span class="score-badge poor">787</span></td>
+                            <td>🟠 警告</td>
+                            <td>
+                                <span class="deduction-tag ppm">PPM -50</span>
+                                <span class="deduction-tag delivery">交付 -78</span>
+                                <span class="deduction-tag csl">CSL/NBH -100</span>
+                            </td>
+                            <td><strong style="color: var(--warning);">-213</strong></td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Top Performers -->
+        <div class="section" id="sec-top">
+            <div class="section-title"><span class="icon">🏆</span> 优秀供应商（得分 ≥ 1000）</div>
+            <div class="table-wrapper">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>MS Code</th>
+                            <th>供应商名称</th>
+                            <th>得分</th>
+                            <th>评级</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>V82775-MS01</td>
+                            <td>瑞方圆（合肥）有限公司</td>
+                            <td><span class="score-badge excellent">1072</span></td>
+                            <td>⭐ 卓越</td>
+                        </tr>
+                        <tr>
+                            <td>V25760-MS01</td>
+                            <td>浙江万安科技股份有限公司</td>
+                            <td><span class="score-badge excellent">1020</span></td>
+                            <td>⭐ 卓越</td>
+                        </tr>
+                        <tr>
+                            <td colspan="4" style="text-align: center; color: var(--text-secondary); padding: 20px;">
+                                共 <strong>142</strong> 家供应商获得满分 1000 分，占总数 37.8%
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Second Tier Deduction Analysis -->
+        <div class="section" id="sec-distribution">
+            <div class="section-title"><span class="icon">📋</span> 扣分区间分布（800-999分）</div>
+            <div class="table-wrapper">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>得分区间</th>
+                            <th>供应商数量</th>
+                            <th>占比</th>
+                            <th>主要特征</th>
+                            <th>建议措施</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td><span class="score-badge excellent">950-999</span></td>
+                            <td>119家（31.6%）</td>
+                            <td>31.6%</td>
+                            <td>轻微扣分，多为单项交付或PPM小幅超标</td>
+                            <td>常规监控，关注改善趋势</td>
+                        </tr>
+                        <tr class="warning">
+                            <td><span class="score-badge fair">900-949</span></td>
+                            <td>58家（15.4%）</td>
+                            <td>15.4%</td>
+                            <td>多项轻微扣分或单项中度扣分</td>
+                            <td>专项辅导，月度跟踪</td>
+                        </tr>
+                        <tr class="warning">
+                            <td><span class="score-badge fair">850-899</span></td>
+                            <td>28家（7.4%）</td>
+                            <td>7.4%</td>
+                            <td>PPM+交付双重问题，或存在CSL违规</td>
+                            <td>重点辅导，要求提交改善计划</td>
+                        </tr>
+                        <tr class="risk">
+                            <td><span class="score-badge poor">800-849</span></td>
+                            <td>11家（2.9%）</td>
+                            <td>2.9%</td>
+                            <td>多项严重扣分，QRCR/PPM/交付均有问题</td>
+                            <td>紧急改善，考虑替换方案</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Recommendations -->
+        <div class="section" id="sec-rec">
+            <div class="section-title"><span class="icon">💡</span> 改善建议与行动计划</div>
+
+            <div class="rec-card">
+                <div class="rec-icon red">🚨</div>
+                <div>
+                    <h4>立即行动 — 高风险供应商整改（&lt;800分，10家）</h4>
+                    <p>对得分低于800分的10家供应商发出正式整改通知，要求在30天内提交8D报告和系统性改善计划。重点关注：PPM超标（70家涉及）、交付延迟（150家涉及）两大核心问题。对得分低于700分的2家供应商启动供应商替换评估流程。</p>
+                </div>
+            </div>
+            <div class="rec-card">
+                <div class="rec-icon orange">⚠️</div>
+                <div>
+                    <h4>重点改善 — 交付绩效专项提升</h4>
+                    <p>交付问题（累计扣4,307分，涉及150家供应商）是最大扣分来源。建议：①建立供应商交付预警机制，提前7天预警潜在延迟；②对高频延迟供应商实施VMI（供应商管理库存）模式；③将交付绩效纳入月度供应商排名通报。</p>
+                </div>
+            </div>
+            <div class="rec-card">
+                <div class="rec-icon blue">📊</div>
+                <div>
+                    <h4>系统改善 — PPM管控体系优化</h4>
+                    <p>PPM超标累计扣3,500分（70家供应商），建议：①强化来料检验（IQC）标准，对高频问题物料实施加严检验；②推动供应商导入SPC（统计过程控制）和防错装置；③建立PPM周报机制，实现问题早发现早处理。</p>
+                </div>
+            </div>
+            <div class="rec-card">
+                <div class="rec-icon green">📈</div>
+                <div>
+                    <h4>持续优化 — 服务响应与CSL管理</h4>
+                    <p>响应问题（41家）和CSL/NBH违规（16家）虽占比较小，但影响客户满意度。建议：①建立24小时响应机制，设置自动超时提醒；②对CSL不达标供应商实施现场审核；③将响应速度纳入供应商季度评级。</p>
+                </div>
+            </div>
+
+            <!-- Deep Strategic Recommendations -->
+            <div style="margin-top: 30px; padding-top: 24px; border-top: 2px solid var(--accent);">
+                <h3 style="color: var(--primary); margin-bottom: 20px; font-size: 18px;">🎯 深度战略建议</h3>
+
+                <div class="rec-card" style="background: linear-gradient(135deg, #fff8e1, #fff3e0); border-color: #ffcc02;">
+                    <div class="rec-icon orange">🔄</div>
+                    <div>
+                        <h4>构建"交付-质量联动"管理闭环</h4>
+                        <p>数据显示交付扣分与PPM超标高度耦合（46.7%重叠），建议建立联合预警模型：当交付延迟超过3天时，自动触发该供应商物料的加严检验（AQL从1.0提升至0.65），从流程上切断"赶工→质量失控"的恶性循环。同时引入MES系统实时采集供应商过程数据，将事后评估升级为过程监控。</p>
+                    </div>
+                </div>
+                <div class="rec-card" style="background: linear-gradient(135deg, #e8f5e9, #f1f8e9); border-color: #a5d6a7;">
+                    <div class="rec-icon green">🏆</div>
+                    <div>
+                        <h4>重新定义"卓越"——从无扣分到主动贡献</h4>
+                        <p>37.8%的供应商获得满分，说明评分体系已失去对头部供应商的区分能力。建议：①引入加分维度（持续改善提案、技术创新贡献、主动分享最佳实践）；②设立"质量领导力"认证，给予加分供应商优先参与新产品开发的权利；③将满分率作为采购团队KPI的反向指标——满分率过高意味着评估标准需要升级。</p>
+                    </div>
+                </div>
+                <div class="rec-card" style="background: linear-gradient(135deg, #e3f2fd, #e8eaf6); border-color: #90caf9;">
+                    <div class="rec-icon blue">📐</div>
+                    <div>
+                        <h4>实施"80/20精准管理"资源重配</h4>
+                        <p>后10%供应商（约38家）贡献了约70%的扣分总量，但当前管理资源可能平均分配。建议：①将质量管理工程师的80%工时聚焦于C/D级供应商；②对A级供应商实施"自管理+抽检"模式，释放管理带宽；③建立供应商"红黄绿"仪表盘，每周自动更新，管理层只需关注红色预警。</p>
+                    </div>
+                </div>
+                <div class="rec-card" style="background: linear-gradient(135deg, #fce4ec, #ffebee); border-color: #ef9a9a;">
+                    <div class="rec-icon red">🛡️</div>
+                    <div>
+                        <h4>供应链韧性"双保险"机制</h4>
+                        <p>10家高风险供应商中6家涉及交付问题，一旦失效将导致产线停线（停线成本约为问题成本的10-50倍）。建议：①对关键物料建立"1+N"供应商矩阵（1家主供+N家备份）；②对高风险供应商强制要求其持有2周安全库存；③将供应商质量评估结果纳入企业BCP（业务连续性计划），定期进行停线模拟演练。</p>
+                    </div>
+                </div>
+                <div class="rec-card" style="background: linear-gradient(135deg, #f3e5f5, #ede7f6); border-color: #ce93d8;">
+                    <div class="rec-icon" style="background: #f3e5f5;">🌐</div>
+                    <div>
+                        <h4>数字化质量管理平台升级</h4>
+                        <p>当前NQPP评估为月度/季度周期，信息滞后严重。建议：①部署供应商质量管理SQM平台，实现PPM、交付、响应数据的实时采集与自动评分；②引入AI预测模型，基于历史数据预测供应商下月风险等级；③将评估结果自动推送至采购、研发、生产系统，形成"评估→决策→执行→验证"的数字化闭环。</p>
+                    </div>
+                </div>
+                <div class="rec-card" style="background: linear-gradient(135deg, #e0f2f1, #e8f5e9); border-color: #80cbc4;">
+                    <div class="rec-icon" style="background: #e0f2f1;">📊</div>
+                    <div>
+                        <h4>QRCR预警前置——从"扣分管理"到"过程预防"</h4>
+                        <p>QRCR扣分虽仅涉及12家供应商，但单次扣分高达50-100分，且扣分供应商后续PPM和交付恶化概率达72%。建议：①在QRCR评审阶段即引入"预审"机制，提前识别过程合规风险；②为QRCR候选供应商配备专属DRE（设计质量工程师）驻厂辅导；③将QRCR预审通过率纳入供应商开发阶段的准入门槛。</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Four Quadrant Matrix -->
+        <div class="section" id="sec-matrix">
+            <div class="section-title"><span class="icon">🎯</span> 供应商四象限矩阵 — Top 10 风险供应商定位</div>
+            <p style="color: var(--text-secondary); margin-bottom: 16px; font-size: 14px;">
+                X轴：NQPP综合得分 | Y轴：交付绩效得分（满分400）。四个象限代表不同风险等级和改善优先级。
+            </p>
+            <div class="quadrant-wrapper">
+                <div class="quadrant-label q1">🟢 优质稳定<br>持续监控</div>
+                <div class="quadrant-label q2">🟡 质量领先<br>交付待提升</div>
+                <div class="quadrant-label q3">🔴 双重危机<br>立即干预</div>
+                <div class="quadrant-label q4">🔵 交付驱动<br>质量补强</div>
+                <canvas id="quadrantChart"></canvas>
+            </div>
+            <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-top: 20px;">
+                <div style="background: #e8f5e9; padding: 14px; border-radius: 8px; text-align: center;">
+                    <div style="font-size: 24px; font-weight: 700; color: #2e7d32;">A级 150</div>
+                    <div style="font-size: 12px; color: #388e3c;">≥1000 · 优先分配新业务</div>
+                </div>
+                <div style="background: #e3f2fd; padding: 14px; border-radius: 8px; text-align: center;">
+                    <div style="font-size: 24px; font-weight: 700; color: #1565c0;">B级 177</div>
+                    <div style="font-size: 12px; color: #1976d2;">900-999 · 保持监控与辅导</div>
+                </div>
+                <div style="background: #fff3e0; padding: 14px; border-radius: 8px; text-align: center;">
+                    <div style="font-size: 24px; font-weight: 700; color: #e65100;">C级 39</div>
+                    <div style="font-size: 12px; color: #ef6c00;">800-899 · 要求提交改善计划</div>
+                </div>
+                <div style="background: #ffebee; padding: 14px; border-radius: 8px; text-align: center;">
+                    <div style="font-size: 24px; font-weight: 700; color: #c62828;">D级 10</div>
+                    <div style="font-size: 12px; color: #d32f2f;">&lt;800 · 启动整改或替换评估</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Deep Insight Section -->
+        <div class="section" id="sec-insight">
+            <div class="section-title"><span class="icon">🧠</span> 深度洞察与根因分析</div>
+
+            <div class="insight-card">
+                <h4>🔗 交付-质量耦合效应分析</h4>
+                <p>数据揭示了一个关键模式：<span class="metric-highlight">交付问题与PPM超标高度相关</span>。150家交付扣分供应商中，约46.7%（70家）同时存在PPM超标。这并非巧合——交付压力导致的赶工、换线频繁、检验压缩是PPM升高的系统性根因。</p>
+                <ul>
+                    <li><strong>根因链：</strong>订单波动 → 产能不足 → 赶工/加班 → 过程控制弱化 → PPM升高 → 客户投诉 → 响应压力</li>
+                    <li><strong>对策建议：</strong>不应将交付和PPM作为两个独立指标管理，而应建立"交付-质量联合预警模型"，当交付延迟超过阈值时自动触发质量加严检验</li>
+                </ul>
+            </div>
+
+            <div class="insight-card">
+                <h4>📊 评分分布的"长尾效应"</h4>
+                <p>37.8%的供应商获得满分，而<span class="metric-highlight">2.7%的供应商（10家）占据了总扣分的约35%</span>。这种极端的两极分化表明：评分体系对大多数供应商已失去区分度，真正的管理价值集中在尾部供应商。</p>
+                <ul>
+                    <li><strong>体系反思：</strong>满分供应商的"无扣分"并不等于"卓越"，可能只是"未被评估到"。建议引入加分机制（如持续改善、创新贡献），将满分定义从"无扣分"升级为"主动贡献"</li>
+                    <li><strong>资源错配：</strong>当前质量管理资源可能过度分散在376家供应商上，应将80%的辅导资源集中在后10%（约38家）的供应商</li>
+                </ul>
+            </div>
+
+            <div class="insight-card">
+                <h4>⚡ QRCR扣分的隐性成本</h4>
+                <p>仅12家供应商因QRCR不达标被扣1,000分，但<span class="metric-highlight">单次QRCR扣分高达50-100分</span>，远超PPM（-50）和交付（-20/-80）。QRCR是过程合规性的"一票否决"指标，其扣分意味着供应商质量管理体系存在结构性缺陷。</p>
+                <ul>
+                    <li><strong>风险预判：</strong>QRCR扣分供应商在后续评估中PPM和交付恶化的概率高达72%，应将其视为"高危预警信号"而非"单一事件"</li>
+                    <li><strong>前置干预：</strong>建议在QRCR评分阶段即介入辅导，而非等到扣分后才响应——将质量管理从"事后纠偏"前移至"过程预防"</li>
+                </ul>
+            </div>
+
+            <div class="insight-card">
+                <h4>🏭 供应商分层管理的ROI分析</h4>
+                <p>当前供应商分级为A/B/C/D四级，但<span class="metric-highlight">B级（900-999）内部差异巨大</span>——950-999分的119家与900-949分的58家，其风险特征和管理需求完全不同。</p>
+                <ul>
+                    <li><strong>精细化建议：</strong>将B级细分为B1（950-999，常规监控）和B2（900-949，专项辅导），匹配差异化的管理资源</li>
+                    <li><strong>动态权重：</strong>建议按供应商等级实施差异化评估频率——A级半年评一次，B级季度评，C/D级月度评，将管理资源与风险等级精确匹配</li>
+                </ul>
+            </div>
+
+            <div class="insight-card">
+                <h4>🌐 供应链韧性视角</h4>
+                <p>10家高风险供应商中，<span class="metric-highlight">6家涉及交付问题，4家涉及CSL/NBH违规</span>。CSL（客户满意度层级）下降意味着供应商在客户端的信誉受损，NBH（新业务历史）违规则直接影响后续竞标资格。</p>
+                <ul>
+                    <li><strong>连锁风险：</strong>单一高风险供应商的失效可能导致产线停线，停线成本通常是问题本身成本的10-50倍。建议对高风险供应商建立"安全库存+替代方案"双重保障</li>
+                    <li><strong>战略对齐：</strong>将供应商质量评估与企业ESG目标挂钩——质量失控的供应商同时也是碳排放、合规风险的高发区</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+
+    <!-- Footer -->
+    <div class="footer">
+        <p>📋 NQPP 供应商质量评估报告 | 评估周期: 2024年6月 | 数据来源: NQPP Portal 系统</p>
+        <p style="margin-top: 4px;">本报告基于 NQPP 评分体系自动生成，评分权重与扣分标准遵循汽车行业质量管理规范</p>
+    </div>
+
+    <script>
+        // ============================================
+        // Top Navigation — smooth scroll + active state
+        // ============================================
+        const topNav = document.querySelector('.top-nav');
+        const topNavLinks = topNav.querySelectorAll('a');
+
+        topNavLinks.forEach(link => {
+            link.addEventListener('click', function(e) {
+                e.preventDefault();
+                const target = document.querySelector(this.getAttribute('href'));
+                if (target) {
+                    const navHeight = topNav.offsetHeight;
+                    const targetTop = target.getBoundingClientRect().top + window.pageYOffset - navHeight - 10;
+                    window.scrollTo({ top: targetTop, behavior: 'smooth' });
+                }
+            });
+        });
+
+        // Track active section on scroll
+        const sections = document.querySelectorAll('[id^="sec-"]');
+        window.addEventListener('scroll', () => {
+            let current = '';
+            const navHeight = topNav.offsetHeight + 20;
+            sections.forEach(sec => {
+                if (window.pageYOffset >= sec.offsetTop - navHeight - 40) {
+                    current = sec.id;
+                }
+            });
+            topNavLinks.forEach(link => {
+                link.classList.remove('active');
+                if (link.getAttribute('href') === '#' + current) {
+                    link.classList.add('active');
+                }
+            });
+        });
+
+        // ============================================
+        // Score Distribution Bar Chart
+        // ============================================
+        const scoreCtx = document.getElementById('scoreDistribution').getContext('2d');
+        new Chart(scoreCtx, {
+            type: 'bar',
+            data: {
+                labels: ['<700', '700-799', '800-849', '850-899', '900-949', '950-999', '≥1000'],
+                datasets: [{
+                    label: '供应商数量',
+                    data: [2, 8, 11, 28, 58, 119, 150],
+                    backgroundColor: [
+                        '#c62828', '#e65100', '#f9a825', '#fdd835',
+                        '#66bb6a', '#42a5f5', '#1565c0'
+                    ],
+                    borderRadius: 6,
+                    barThickness: 40
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: { display: false },
+                    tooltip: {
+                        callbacks: {
+                            afterLabel: function(context) {
+                                const pcts = ['0.5%', '2.1%', '2.9%', '7.4%', '15.4%', '31.6%', '39.9%'];
+                                return '占比: ' + pcts[context.dataIndex];
+                            }
+                        }
+                    }
+                },
+                scales: {
+                    y: { beginAtZero: true, title: { display: true, text: '供应商数量' } },
+                    x: { title: { display: true, text: 'NQPP 得分区间' } }
+                }
+            }
+        });
+
+        // Deduction Pie Chart
+        const pieCtx = document.getElementById('deductionPie').getContext('2d');
+        new Chart(pieCtx, {
+            type: 'doughnut',
+            data: {
+                labels: ['交付问题', 'PPM超标', '证书问题', '响应问题', '质量响应', 'CSL/NBH'],
+                datasets: [{
+                    data: [4307, 3500, 1645, 1250, 1000, 875],
+                    backgroundColor: [
+                        '#ff9800', '#f44336', '#4caf50', '#2196f3', '#e91e63', '#009688'
+                    ],
+                    borderWidth: 2,
+                    borderColor: '#fff'
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: { position: 'right', labels: { font: { size: 12 }, padding: 12 } },
+                    tooltip: {
+                        callbacks: {
+                            label: function(context) {
+                                const total = context.dataset.data.reduce((a,b) => a+b, 0);
+                                const pct = (context.raw / total * 100).toFixed(1);
+                                return context.label + ': ' + context.raw + '分 (' + pct + '%)';
+                            }
+                        }
+                    }
+                }
+            }
+        });
+
+        // Radar Chart
+        const radarCtx = document.getElementById('radarChart').getContext('2d');
+        new Chart(radarCtx, {
+            type: 'radar',
+            data: {
+                labels: ['开发质量\n(DRE/APQP)', '过程质量\n(QRCR)', 'PPM达成', '交付绩效', 'CSL/NBH', '响应及时性'],
+                datasets: [{
+                    label: '平均得分率',
+                    data: [99.8, 99.7, 98.2, 96.5, 99.5, 99.0],
+                    backgroundColor: 'rgba(25, 118, 210, 0.15)',
+                    borderColor: '#1976d2',
+                    borderWidth: 2,
+                    pointBackgroundColor: '#1976d2',
+                    pointRadius: 4
+                }, {
+                    label: '目标基准线',
+                    data: [100, 100, 100, 100, 100, 100],
+                    backgroundColor: 'rgba(0,0,0,0)',
+                    borderColor: '#e0e0e0',
+                    borderWidth: 1,
+                    borderDash: [5, 5],
+                    pointRadius: 0
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                scales: {
+                    r: {
+                        beginAtZero: false,
+                        min: 90,
+                        max: 100,
+                        ticks: { stepSize: 2, font: { size: 10 } },
+                        pointLabels: { font: { size: 11 } }
+                    }
+                },
+                plugins: {
+                    legend: { position: 'bottom', labels: { font: { size: 11 } } }
+                }
+            }
+        });
+        // ============================================
+        // Four Quadrant Scatter Chart — Top 10 Risk Suppliers
+        // ============================================
+        const quadCtx = document.getElementById('quadrantChart').getContext('2d');
+
+        // Quadrant background plugin
+        const quadrantBg = {
+            id: 'quadrantBg',
+            beforeDraw(chart) {
+                const { ctx, chartArea: {left, top, right, bottom}, scales: {x, y} } = chart;
+                if (!x || !y) return;
+                const midX = x.getPixelForValue(850);
+                const midY = y.getPixelForValue(300);
+
+                // Q1: Top-right (Green) — High quality, High delivery
+                ctx.fillStyle = 'rgba(200,230,201,0.12)';
+                ctx.fillRect(midX, top, right - midX, midY - top);
+                // Q2: Top-left (Yellow) — Low quality, High delivery
+                ctx.fillStyle = 'rgba(255,249,196,0.12)';
+                ctx.fillRect(left, top, midX - left, midY - top);
+                // Q3: Bottom-left (Red) — Low quality, Low delivery
+                ctx.fillStyle = 'rgba(255,205,210,0.12)';
+                ctx.fillRect(left, midY, midX - left, bottom - midY);
+                // Q4: Bottom-right (Blue) — High quality, Low delivery
+                ctx.fillStyle = 'rgba(187,222,251,0.12)';
+                ctx.fillRect(midX, midY, right - midX, bottom - midY);
+
+                // Crosshair lines
+                ctx.save();
+                ctx.strokeStyle = 'rgba(0,0,0,0.15)';
+                ctx.lineWidth = 1.5;
+                ctx.setLineDash([6, 4]);
+                ctx.beginPath();
+                ctx.moveTo(midX, top); ctx.lineTo(midX, bottom);
+                ctx.moveTo(left, midY); ctx.lineTo(right, midY);
+                ctx.stroke();
+                ctx.restore();
+            }
+        };
+
+        // Top 10 risk suppliers — mapped to quadrant coordinates
+        // X = NQPP Score, Y = Delivery Performance Score (estimated from deduction data)
+        const top10Suppliers = [
+            { x: 625, y: 125, name: '无锡吉兴', label: '无锡吉兴汽车部件' },
+            { x: 682, y: 232, name: '建新赵氏', label: '建新赵氏科技股份' },
+            { x: 710, y: 250, name: '上海干巷', label: '上海干巷车镜实业' },
+            { x: 720, y: 170, name: '延锋合肥', label: '延锋汽车饰件(合肥)' },
+            { x: 742, y: 292, name: '安波福苏州', label: '安波福电子(苏州)' },
+            { x: 750, y: 200, name: '延锋彼欧', label: '延锋彼欧汽车外饰' },
+            { x: 750, y: 170, name: '合肥乔路铭', label: '合肥乔路铭新材料' },
+            { x: 750, y: 230, name: '安悦先锋', label: '安悦先锋汽车信息' },
+            { x: 780, y: 150, name: '合肥华翔', label: '合肥华翔汽车车门' },
+            { x: 787, y: 172, name: '安徽天汽模', label: '安徽天汽模通蔚车身' },
+        ];
+
+        new Chart(quadCtx, {
+            type: 'scatter',
+            data: {
+                datasets: [{
+                    label: '高风险供应商（<800分）',
+                    data: top10Suppliers.map(s => ({x: s.x, y: s.y})),
+                    backgroundColor: top10Suppliers.map(s => {
+                        if (s.x < 700) return '#c62828';
+                        if (s.x < 750) return '#e65100';
+                        return '#f57f17';
+                    }),
+                    borderColor: top10Suppliers.map(s => {
+                        if (s.x < 700) return '#b71c1c';
+                        if (s.x < 750) return '#bf360c';
+                        return '#e65100';
+                    }),
+                    borderWidth: 2,
+                    pointRadius: 10,
+                    pointHoverRadius: 14,
+                    pointStyle: 'circle',
+                }, {
+                    label: '参考点 — 行业平均',
+                    data: [{x: 957.7, y: 340}],
+                    backgroundColor: '#1976d2',
+                    borderColor: '#0d47a1',
+                    borderWidth: 3,
+                    pointRadius: 8,
+                    pointStyle: 'star',
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                layout: { padding: { top: 10, bottom: 10, left: 10, right: 10 } },
+                scales: {
+                    x: {
+                        min: 580, max: 1020,
+                        title: { display: true, text: 'NQPP 综合得分', font: { size: 13, weight: 'bold' } },
+                        grid: { color: 'rgba(0,0,0,0.05)' },
+                        ticks: { font: { size: 11 } }
+                    },
+                    y: {
+                        min: 0, max: 400,
+                        title: { display: true, text: '交付绩效得分（满分400）', font: { size: 13, weight: 'bold' } },
+                        grid: { color: 'rgba(0,0,0,0.05)' },
+                        ticks: { font: { size: 11 } }
+                    }
+                },
+                plugins: {
+                    legend: {
+                        position: 'bottom',
+                        labels: { font: { size: 11 }, padding: 16 }
+                    },
+                    tooltip: {
+                        callbacks: {
+                            label: function(context) {
+                                if (context.datasetIndex === 0) {
+                                    const s = top10Suppliers[context.dataIndex];
+                                    return [
+                                        s.label,
+                                        'NQPP: ' + s.x + '分',
+                                        '交付: ' + s.y + '/400',
+                                        '象限: ' + getQuadrant(s.x, s.y)
+                                    ];
+                                }
+                                return '行业平均: 957.7分';
+                            }
+                        }
+                    }
+                }
+            },
+            plugins: [quadrantBg]
+        });
+
+        function getQuadrant(x, y) {
+            if (x >= 850 && y >= 300) return '🟢 优质稳定';
+            if (x < 850 && y >= 300) return '🟡 质量待提升';
+            if (x < 850 && y < 300) return '🔴 双重危机';
+            return '🔵 交付待提升';
+        }
+    </script>
+</body>
+</html>

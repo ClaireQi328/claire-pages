@@ -452,54 +452,22 @@ function getDemand(da,pat,wk){
 function sim(p){
   const wk=p.wk,base=100;
   const dem=getDemand(p.da,p.pat,wk);
-  // 每个节点有独立的预测窗口（模拟信息衰减：越上游，看到的信息越旧越模糊）
-  const fcWindows=[3,4,5,6,8,10]; // 零售商看3周，Tier3看10周
-  const stages=[p.r,p.d,p.m,p.t1,p.t2,p.t3];
-
-  function node(dn,lt,ss,ov,fw){
+  function node(dn,lt,ss,ov){
     const ord=[],inv=[];let oh=base*2;
-    let prevOrd=base; // 上一期订单（用于趋势外推）
     for(let t=0;t<wk;t++){
-      // 到货 = lt周前下的单
       const inc=t>=lt?ord[t-lt]:0;
       oh=oh+inc-dn[t];inv.push(oh);
-
-      // 预测：指数加权移动平均（近期权重更高，模拟人倾向于看近期）
-      let fc=dn[t];
-      if(t>=2){
-        let wsum=0,fsum=0;
-        for(let j=0;j<Math.min(t,fw);j++){
-          const w=Math.pow(0.75,j); // 指数衰减权重
-          fsum+=dn[t-j]*w; wsum+=w;
-        }
-        fc=fsum/wsum;
-      }
-
-      // 目标库存 + 订单
-      const target=fc*(lt+ss);
-      const gap=target-oh;
-      let order=fc*lt+gap*ov;
-
-      // 加入"人为误差"：模拟实际订货中的判断偏差（±10%）
-      order=order*(0.9+Math.random()*0.2);
-
-      // 订单惯性：不允许订单剧烈跳变（模拟实际中的审批流程、MOQ约束）
-      if(t>0){
-        const maxChange=prevOrd*0.5; // 单周最大变化50%
-        order=Math.max(prevOrd-maxChange,Math.min(prevOrd+maxChange,order));
-      }
-      prevOrd=order;
-      ord.push(Math.max(0,Math.round(order)));
+      let fc=dn[t];if(t>=4)fc=(dn[t]+dn[t-1]+dn[t-2]+dn[t-3])/4;
+      ord.push(Math.max(0,Math.round(fc*lt+(fc*(lt+ss)-oh)*ov)));
     }
     return{ord,inv};
   }
-
-  const ret=node(dem,      p.r.lt, p.r.ss, p.r.or, fcWindows[0]);
-  const dis=node(ret.ord,   p.d.lt, p.d.ss, p.d.or, fcWindows[1]);
-  const mfg=node(dis.ord,   p.m.lt, p.m.ss, p.m.or, fcWindows[2]);
-  const t1 =node(mfg.ord,  p.t1.lt,p.t1.ss,p.t1.or, fcWindows[3]);
-  const t2 =node(t1.ord,   p.t2.lt,p.t2.ss,p.t2.or, fcWindows[4]);
-  const t3 =node(t2.ord,   p.t3.lt,p.t3.ss,p.t3.or, fcWindows[5]);
+  const ret=node(dem,p.r.lt,p.r.ss,p.r.or);
+  const dis=node(ret.ord,p.d.lt,p.d.ss,p.d.or);
+  const mfg=node(dis.ord,p.m.lt,p.m.ss,p.m.or);
+  const t1=node(mfg.ord,p.t1.lt,p.t1.ss,p.t1.or);
+  const t2=node(t1.ord,p.t2.lt,p.t2.ss,p.t2.or);
+  const t3=node(t2.ord,p.t3.lt,p.t3.ss,p.t3.or);
 
   function cost(inv,pr,hc){return inv.map(v=>Math.max(0,v)*pr*(hc/100)/52)}
   const cs=[cost(ret.inv,p.r.pr,p.r.hc),cost(dis.inv,p.d.pr,p.d.hc),cost(mfg.inv,p.m.pr,p.m.hc),
