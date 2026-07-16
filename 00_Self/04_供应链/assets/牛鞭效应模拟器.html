@@ -3,514 +3,657 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>牛鞭效应模拟器 | Bullwhip Effect Simulator</title>
+<title>供应链牛鞭效应 & 全链路成本模拟器</title>
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.7/dist/chart.umd.min.js"></script>
 <style>
-:root{--bg:#0a0e17;--card:#111827;--border:#1e293b;--text:#e2e8f0;--muted:#94a3b8;--accent:#3b82f6;--green:#10b981;--red:#ef4444;--amber:#f59e0b;--purple:#8b5cf6;--cyan:#06b6d4;--pink:#ec4899}
-*{margin:0;padding:0;box-sizing:border-box}
-body{font-family:-apple-system,'Segoe UI','PingFang SC','Microsoft YaHei',sans-serif;background:var(--bg);color:var(--text);line-height:1.6;min-height:100vh}
-.header{text-align:center;padding:1.5rem 1rem 1rem;border-bottom:1px solid var(--border)}
-.header h1{font-size:1.6rem;background:linear-gradient(135deg,var(--accent),var(--cyan));-webkit-background-clip:text;-webkit-text-fill-color:transparent}
-.header p{color:var(--muted);font-size:0.85rem;margin-top:0.3rem}
-.layout{display:grid;grid-template-columns:320px 1fr;min-height:calc(100vh - 80px)}
-.sidebar{background:var(--card);border-right:1px solid var(--border);padding:1rem;overflow-y:auto;max-height:calc(100vh - 80px)}
-.main{padding:1rem 1.5rem;overflow-y:auto}
-.section-title{font-size:0.75rem;text-transform:uppercase;letter-spacing:0.1em;color:var(--muted);margin:1rem 0 0.5rem;padding-bottom:0.3rem;border-bottom:1px solid var(--border)}
-.section-title:first-child{margin-top:0}
-.param-group{margin-bottom:0.8rem}
-.param-row{display:flex;align-items:center;justify-content:space-between;margin-bottom:0.3rem;gap:0.5rem}
-.param-row label{font-size:0.8rem;color:var(--text);flex:1;white-space:nowrap}
-.param-row .val{font-size:0.8rem;color:var(--accent);font-weight:600;min-width:40px;text-align:right}
-input[type=range]{-webkit-appearance:none;width:100%;height:4px;border-radius:2px;background:var(--border);outline:none;cursor:pointer}
-input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:14px;height:14px;border-radius:50%;background:var(--accent);cursor:pointer}
-.btn-row{display:flex;gap:0.5rem;margin:1rem 0}
-.btn{flex:1;padding:0.6rem;border:none;border-radius:8px;font-size:0.85rem;font-weight:600;cursor:pointer;transition:all 0.2s}
-.btn-primary{background:var(--accent);color:#fff}.btn-primary:hover{background:#2563eb}
-.btn-secondary{background:var(--border);color:var(--text)}.btn-secondary:hover{background:#334155}
-.btn-preset{display:block;width:100%;padding:0.5rem;margin-bottom:0.4rem;background:var(--border);color:var(--text);border:1px solid transparent;border-radius:8px;font-size:0.8rem;cursor:pointer;text-align:left;transition:all 0.2s}
-.btn-preset:hover{border-color:var(--accent);background:rgba(59,130,246,0.1)}
-.btn-preset .preset-name{font-weight:600}
-.btn-preset .preset-desc{font-size:0.7rem;color:var(--muted)}
-.chart-card{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:1rem;margin-bottom:1rem}
-.chart-card h3{font-size:0.9rem;margin-bottom:0.5rem;display:flex;align-items:center;gap:0.5rem}
-.chart-wrap{position:relative;height:280px}
-.chart-wrap.tall{height:340px}
-.stats-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:0.8rem;margin-bottom:1rem}
-.stat{background:var(--card);border:1px solid var(--border);border-radius:10px;padding:0.8rem;text-align:center}
-.stat .num{font-size:1.4rem;font-weight:700}
-.stat .label{font-size:0.7rem;color:var(--muted);margin-top:0.2rem}
-.stat.c0 .num{color:var(--green)}
-.stat.c1 .num{color:var(--accent)}
-.stat.c2 .num{color:var(--amber)}
-.stat.c3 .num{color:var(--red)}
-.chain-diagram{display:flex;align-items:center;justify-content:center;gap:0;margin:0.5rem 0 1rem;flex-wrap:wrap}
-.chain-node{background:var(--border);border-radius:10px;padding:0.6rem 1rem;text-align:center;min-width:90px}
-.chain-node .name{font-size:0.75rem;color:var(--muted)}
-.chain-node .var{font-size:0.85rem;font-weight:700;margin-top:0.2rem}
-.chain-arrow{color:var(--muted);font-size:1.2rem;padding:0 0.3rem}
-.legend-inline{display:flex;gap:1rem;flex-wrap:wrap;margin:0.3rem 0 0.5rem}
-.legend-inline span{font-size:0.75rem;display:flex;align-items:center;gap:0.3rem}
-.legend-dot{width:10px;height:10px;border-radius:2px;display:inline-block}
-.insight-box{background:rgba(59,130,246,0.08);border-left:3px solid var(--accent);padding:0.8rem 1rem;border-radius:0 8px 8px 0;margin:0.5rem 0;font-size:0.85rem}
-.insight-box strong{color:var(--accent)}
-@media(max-width:900px){.layout{grid-template-columns:1fr}.sidebar{max-height:none;border-right:none;border-bottom:1px solid var(--border)}}
+:root {
+  --bg: #f8fafc; --card: #ffffff; --border: #e2e8f0;
+  --text: #1e293b; --muted: #64748b; --accent: #2563eb;
+  --green: #059669; --red: #dc2626; --amber: #d97706;
+  --purple: #7c3aed; --cyan: #0891b2; --pink: #db2777;
+  --c0: #059669; --c1: #2563eb; --c2: #d97706; --c3: #dc2626;
+  --shadow: 0 1px 3px rgba(0,0,0,0.06), 0 1px 2px rgba(0,0,0,0.04);
+  --shadow-md: 0 4px 6px rgba(0,0,0,0.05), 0 2px 4px rgba(0,0,0,0.03);
+}
+* { margin:0; padding:0; box-sizing:border-box; }
+body { font-family: -apple-system,'Segoe UI','PingFang SC','Microsoft YaHei',sans-serif; background:var(--bg); color:var(--text); line-height:1.6; }
+
+/* Header */
+.header { background:var(--card); border-bottom:1px solid var(--border); padding:1.2rem 2rem; display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:0.5rem; }
+.header h1 { font-size:1.4rem; color:var(--text); }
+.header h1 em { font-style:normal; color:var(--accent); }
+.header .subtitle { font-size:0.8rem; color:var(--muted); }
+
+/* Layout */
+.layout { display:grid; grid-template-columns:340px 1fr; min-height:calc(100vh - 60px); }
+
+/* Sidebar */
+.sidebar { background:var(--card); border-right:1px solid var(--border); overflow-y:auto; max-height:calc(100vh - 60px); }
+.module { border-bottom:1px solid var(--border); }
+.module-head { display:flex; align-items:center; justify-content:space-between; padding:0.8rem 1rem; cursor:pointer; user-select:none; transition:background 0.15s; }
+.module-head:hover { background:#f1f5f9; }
+.module-head .left { display:flex; align-items:center; gap:0.5rem; }
+.module-head .icon { font-size:1rem; }
+.module-head .title { font-size:0.85rem; font-weight:600; }
+.module-head .desc { font-size:0.7rem; color:var(--muted); }
+.module-head .arrow { font-size:0.7rem; color:var(--muted); transition:transform 0.2s; }
+.module-head.open .arrow { transform:rotate(90deg); }
+.module-body { padding:0 1rem 0.8rem; display:none; }
+.module-body.show { display:block; }
+
+/* Form controls */
+.param-row { display:flex; align-items:center; gap:0.5rem; margin-bottom:0.35rem; }
+.param-row label { font-size:0.78rem; color:var(--text); flex:1; }
+.param-row .val { font-size:0.78rem; color:var(--accent); font-weight:600; min-width:42px; text-align:right; font-variant-numeric:tabular-nums; }
+input[type=range] { -webkit-appearance:none; width:100%; height:4px; border-radius:2px; background:#e2e8f0; outline:none; cursor:pointer; }
+input[type=range]::-webkit-slider-thumb { -webkit-appearance:none; width:14px; height:14px; border-radius:50%; background:var(--accent); cursor:pointer; box-shadow:0 1px 3px rgba(37,99,235,0.3); }
+select { width:100%; padding:0.4rem 0.6rem; background:var(--card); color:var(--text); border:1px solid var(--border); border-radius:6px; font-size:0.8rem; }
+.form-note { font-size:0.7rem; color:var(--muted); margin-top:0.3rem; padding:0.4rem 0.6rem; background:#f8fafc; border-radius:6px; line-height:1.5; }
+.stage-label { font-weight:600; font-size:0.8rem; margin:0.6rem 0 0.3rem; padding:0.3rem 0.6rem; border-radius:6px; }
+.sl-retailer { background:rgba(5,150,105,0.08); color:var(--c0); }
+.sl-distributor { background:rgba(37,99,235,0.08); color:var(--c1); }
+.sl-manufacturer { background:rgba(217,119,6,0.08); color:var(--c2); }
+.sl-supplier { background:rgba(220,38,38,0.08); color:var(--c3); }
+
+/* Buttons */
+.btn-row { display:flex; gap:0.5rem; padding:0.8rem 1rem; border-top:1px solid var(--border); }
+.btn { flex:1; padding:0.55rem; border:none; border-radius:8px; font-size:0.82rem; font-weight:600; cursor:pointer; transition:all 0.15s; }
+.btn-primary { background:var(--accent); color:#fff; } .btn-primary:hover { background:#1d4ed8; }
+.btn-secondary { background:#f1f5f9; color:var(--text); border:1px solid var(--border); } .btn-secondary:hover { background:#e2e8f9; }
+
+/* Presets */
+.presets { padding:0.6rem 1rem 0.8rem; }
+.preset-grid { display:grid; grid-template-columns:1fr 1fr; gap:0.4rem; }
+.preset-btn { padding:0.5rem; background:var(--card); border:1px solid var(--border); border-radius:8px; cursor:pointer; text-align:left; transition:all 0.15s; }
+.preset-btn:hover { border-color:var(--accent); box-shadow:var(--shadow); }
+.preset-btn .pn { font-size:0.78rem; font-weight:600; }
+.preset-btn .pd { font-size:0.65rem; color:var(--muted); margin-top:0.1rem; }
+
+/* Main */
+.main { padding:1.2rem 1.5rem; overflow-y:auto; max-height:calc(100vh - 60px); }
+
+/* Stats */
+.stats-row { display:grid; grid-template-columns:repeat(4,1fr); gap:0.8rem; margin-bottom:1rem; }
+.stat { background:var(--card); border:1px solid var(--border); border-radius:10px; padding:0.8rem; text-align:center; box-shadow:var(--shadow); }
+.stat .num { font-size:1.3rem; font-weight:700; font-variant-numeric:tabular-nums; }
+.stat .label { font-size:0.7rem; color:var(--muted); margin-top:0.15rem; }
+
+/* Chain diagram */
+.chain { display:flex; align-items:center; justify-content:center; flex-wrap:wrap; gap:0; margin-bottom:1rem; }
+.chain-node { background:var(--card); border:1px solid var(--border); border-radius:10px; padding:0.5rem 0.8rem; text-align:center; min-width:80px; box-shadow:var(--shadow); }
+.chain-node .cn { font-size:0.65rem; color:var(--muted); }
+.chain-node .cv { font-size:0.8rem; font-weight:700; margin-top:0.1rem; }
+.chain-arrow { color:#cbd5e1; font-size:1.1rem; padding:0 0.2rem; }
+
+/* Chart cards */
+.chart-card { background:var(--card); border:1px solid var(--border); border-radius:12px; padding:1rem 1.2rem; margin-bottom:1rem; box-shadow:var(--shadow); }
+.chart-card h3 { font-size:0.88rem; margin-bottom:0.3rem; color:var(--text); }
+.chart-card .chart-desc { font-size:0.72rem; color:var(--muted); margin-bottom:0.5rem; }
+.chart-wrap { position:relative; height:260px; }
+.chart-wrap.tall { height:300px; }
+.legend-row { display:flex; gap:1rem; flex-wrap:wrap; margin-bottom:0.4rem; }
+.legend-row span { font-size:0.72rem; color:var(--muted); display:flex; align-items:center; gap:0.3rem; }
+.legend-dot { width:10px; height:10px; border-radius:2px; display:inline-block; }
+
+/* Insight */
+.insight { background:#eff6ff; border-left:3px solid var(--accent); padding:0.8rem 1rem; border-radius:0 8px 8px 0; margin-bottom:1rem; font-size:0.82rem; line-height:1.6; }
+.insight strong { color:var(--accent); }
+
+/* Cost table */
+.cost-table { width:100%; border-collapse:collapse; font-size:0.78rem; margin-top:0.5rem; }
+.cost-table th { background:#f8fafc; padding:0.5rem 0.6rem; text-align:left; font-weight:600; border-bottom:2px solid var(--border); color:var(--muted); font-size:0.7rem; text-transform:uppercase; letter-spacing:0.05em; }
+.cost-table td { padding:0.5rem 0.6rem; border-bottom:1px solid var(--border); }
+.cost-table tr:last-child td { border-bottom:none; }
+.cost-table .total-row { font-weight:700; background:#f0f9ff; }
+.cost-table .num { text-align:right; font-variant-numeric:tabular-nums; }
+
+/* Responsive */
+@media(max-width:960px) {
+  .layout { grid-template-columns:1fr; }
+  .sidebar { max-height:none; border-right:none; border-bottom:1px solid var(--border); }
+  .main { max-height:none; }
+  .stats-row { grid-template-columns:repeat(2,1fr); }
+}
 </style>
 </head>
 <body>
+
 <div class="header">
-  <h1>🐂 牛鞭效应模拟器</h1>
-  <p>调节参数，观察需求信号如何在供应链中被逐级放大</p>
+  <div>
+    <h1>🐂 供应链牛鞭效应 & 全链路成本模拟器</h1>
+    <div class="subtitle">调节各环节参数，观察需求放大效应和持货成本如何逐级传导</div>
+  </div>
 </div>
 
 <div class="layout">
-<!-- ===== SIDEBAR ===== -->
+
+<!-- ==================== SIDEBAR ==================== -->
 <div class="sidebar">
-  <div class="section-title">📦 供应链环节参数</div>
 
-  <div class="param-group">
-    <div style="color:var(--green);font-weight:600;font-size:0.85rem;margin-bottom:0.4rem">🟢 零售商（Retailer）</div>
-    <div class="param-row"><label>需求波动</label><span class="val" id="v_r_demand">±20%</span></div>
-    <input type="range" id="s_r_demand" min="0" max="50" value="20" step="1">
-    <div class="param-row"><label>LT（周）</label><span class="val" id="v_r_lt">2</span></div>
-    <input type="range" id="s_r_lt" min="1" max="8" value="2" step="1">
-    <div class="param-row"><label>安全库存倍数</label><span class="val" id="v_r_ss">1.0</span></div>
-    <input type="range" id="s_r_ss" min="0" max="30" value="10" step="1">
-    <div class="param-row"><label>订货策略（过度反应）</label><span class="val" id="v_r_over">1.0x</span></div>
-    <input type="range" id="s_r_over" min="10" max="30" value="10" step="1">
+  <!-- Module 1: Demand Pattern -->
+  <div class="module">
+    <div class="module-head open" onclick="toggleModule(this)">
+      <div class="left"><span class="icon">📊</span><div><div class="title">需求模式</div><div class="desc">设置终端消费者的需求波动方式</div></div></div>
+      <span class="arrow">▶</span>
+    </div>
+    <div class="module-body show">
+      <div class="param-row"><label>需求波动幅度</label><span class="val" id="v_demand_amp">±20%</span></div>
+      <input type="range" id="s_demand_amp" min="0" max="50" value="20" step="1" oninput="sync()">
+      <div style="margin-top:0.5rem">
+        <select id="demand_pattern" onchange="sync()">
+          <option value="random">🎲 随机波动 — 无规律的自然波动</option>
+          <option value="step">📈 阶跃变化 — 第 20 周突然 +50%</option>
+          <option value="seasonal">🌊 季节性 — 以 26 周为周期的正弦波</option>
+          <option value="promo">🎯 促销脉冲 — 第 20-23 周翻倍</option>
+          <option value="trend">📊 持续增长 — 每周 +0.5% 线性增长</option>
+        </select>
+      </div>
+      <div class="form-note">💡 终端需求是整个模拟的起点。波动越大，经过供应链各环节放大后，上游的波动越剧烈。</div>
+    </div>
   </div>
 
-  <div class="param-group">
-    <div style="color:var(--accent);font-weight:600;font-size:0.85rem;margin-bottom:0.4rem">🔵 分销商（Distributor）</div>
-    <div class="param-row"><label>LT（周）</label><span class="val" id="v_d_lt">2</span></div>
-    <input type="range" id="s_d_lt" min="1" max="8" value="2" step="1">
-    <div class="param-row"><label>安全库存倍数</label><span class="val" id="v_d_ss">1.0</span></div>
-    <input type="range" id="s_d_ss" min="0" max="30" value="10" step="1">
-    <div class="param-row"><label>订货策略（过度反应）</label><span class="val" id="v_d_over">1.0x</span></div>
-    <input type="range" id="s_d_over" min="10" max="30" value="10" step="1">
+  <!-- Module 2: Supply Chain Parameters -->
+  <div class="module">
+    <div class="module-head open" onclick="toggleModule(this)">
+      <div class="left"><span class="icon">🔗</span><div><div class="title">供应链环节参数</div><div class="desc">各环节的 LT、安全库存、过度反应系数</div></div></div>
+      <span class="arrow">▶</span>
+    </div>
+    <div class="module-body show">
+      <div class="form-note" style="margin-bottom:0.6rem">
+        <strong>三个关键参数</strong>：<br>
+        • <strong>LT</strong>（Lead Time）：上游交货周期，越长信息延迟越大<br>
+        • <strong>安全库存</strong>：为防缺货多备的库存，倍数越高囤货越多<br>
+        • <strong>过度反应</strong>：面对波动时放大订货的倾向（1.0=理性，>1.0=恐慌）
+      </div>
+
+      <!-- Retailer -->
+      <div class="stage-label sl-retailer">🟢 零售商（Retailer）— 最接近消费者</div>
+      <div class="param-row"><label>LT（周）</label><span class="val" id="v_r_lt">2</span></div>
+      <input type="range" id="s_r_lt" min="1" max="8" value="2" step="1" oninput="sync()">
+      <div class="param-row"><label>安全库存倍数</label><span class="val" id="v_r_ss">1.0x</span></div>
+      <input type="range" id="s_r_ss" min="0" max="30" value="10" step="1" oninput="sync()">
+      <div class="param-row"><label>过度反应系数</label><span class="val" id="v_r_over">1.0x</span></div>
+      <input type="range" id="s_r_over" min="10" max="30" value="10" step="1" oninput="sync()">
+
+      <!-- Distributor -->
+      <div class="stage-label sl-distributor">🔵 分销商（Distributor）— 连接零售与制造</div>
+      <div class="param-row"><label>LT（周）</label><span class="val" id="v_d_lt">2</span></div>
+      <input type="range" id="s_d_lt" min="1" max="8" value="2" step="1" oninput="sync()">
+      <div class="param-row"><label>安全库存倍数</label><span class="val" id="v_d_ss">1.0x</span></div>
+      <input type="range" id="s_d_ss" min="0" max="30" value="10" step="1" oninput="sync()">
+      <div class="param-row"><label>过度反应系数</label><span class="val" id="v_d_over">1.0x</span></div>
+      <input type="range" id="s_d_over" min="10" max="30" value="10" step="1" oninput="sync()">
+
+      <!-- Manufacturer -->
+      <div class="stage-label sl-manufacturer">🟡 制造商（Manufacturer）— 生产环节</div>
+      <div class="param-row"><label>LT（周）</label><span class="val" id="v_m_lt">4</span></div>
+      <input type="range" id="s_m_lt" min="1" max="12" value="4" step="1" oninput="sync()">
+      <div class="param-row"><label>安全库存倍数</label><span class="val" id="v_m_ss">1.0x</span></div>
+      <input type="range" id="s_m_ss" min="0" max="30" value="10" step="1" oninput="sync()">
+      <div class="param-row"><label>过度反应系数</label><span class="val" id="v_m_over">1.0x</span></div>
+      <input type="range" id="s_m_over" min="10" max="30" value="10" step="1" oninput="sync()">
+
+      <!-- Supplier -->
+      <div class="stage-label sl-supplier">🔴 供应商（Supplier）— 最上游</div>
+      <div class="param-row"><label>LT（周）</label><span class="val" id="v_s_lt">4</span></div>
+      <input type="range" id="s_s_lt" min="1" max="12" value="4" step="1" oninput="sync()">
+      <div class="param-row"><label>安全库存倍数</label><span class="val" id="v_s_ss">1.0x</span></div>
+      <input type="range" id="s_s_ss" min="0" max="30" value="10" step="1" oninput="sync()">
+      <div class="param-row"><label>过度反应系数</label><span class="val" id="v_s_over">1.0x</span></div>
+      <input type="range" id="s_s_over" min="10" max="30" value="10" step="1" oninput="sync()">
+    </div>
   </div>
 
-  <div class="param-group">
-    <div style="color:var(--amber);font-weight:600;font-size:0.85rem;margin-bottom:0.4rem">🟡 制造商（Manufacturer）</div>
-    <div class="param-row"><label>LT（周）</label><span class="val" id="v_m_lt">4</span></div>
-    <input type="range" id="s_m_lt" min="1" max="12" value="4" step="1">
-    <div class="param-row"><label>安全库存倍数</label><span class="val" id="v_m_ss">1.0</span></div>
-    <input type="range" id="s_m_ss" min="0" max="30" value="10" step="1">
-    <div class="param-row"><label>订货策略（过度反应）</label><span class="val" id="v_m_over">1.0x</span></div>
-    <input type="range" id="s_m_over" min="10" max="30" value="10" step="1">
+  <!-- Module 3: Cost Parameters -->
+  <div class="module">
+    <div class="module-head open" onclick="toggleModule(this)">
+      <div class="left"><span class="icon">💰</span><div><div class="title">持货成本参数</div><div class="desc">各环节的单位持货成本结构</div></div></div>
+      <span class="arrow">▶</span>
+    </div>
+    <div class="module-body show">
+      <div class="form-note" style="margin-bottom:0.6rem">
+        <strong>持货成本</strong>（Holding Cost）= 资金占用 + 仓储 + 损耗 + 保险 + 管理。<br>
+        通常占库存价值的 <strong>15-30%/年</strong>。库存越高，持货成本越大——这是牛鞭效应最直接的财务影响。
+      </div>
+
+      <div class="stage-label sl-retailer">🟢 零售商</div>
+      <div class="param-row"><label>产品单价（¥/件）</label><span class="val" id="v_r_price">200</span></div>
+      <input type="range" id="s_r_price" min="50" max="500" value="200" step="10" oninput="sync()">
+      <div class="param-row"><label>持货成本率（%/年）</label><span class="val" id="v_r_hc">25%</span></div>
+      <input type="range" id="s_r_hc" min="5" max="40" value="25" step="1" oninput="sync()">
+
+      <div class="stage-label sl-distributor">🔵 分销商</div>
+      <div class="param-row"><label>产品单价（¥/件）</label><span class="val" id="v_d_price">150</span></div>
+      <input type="range" id="s_d_price" min="30" max="400" value="150" step="10" oninput="sync()">
+      <div class="param-row"><label>持货成本率（%/年）</label><span class="val" id="v_d_hc">20%</span></div>
+      <input type="range" id="s_d_hc" min="5" max="40" value="20" step="1" oninput="sync()">
+
+      <div class="stage-label sl-manufacturer">🟡 制造商</div>
+      <div class="param-row"><label>产品单价（¥/件）</label><span class="val" id="v_m_price">100</span></div>
+      <input type="range" id="s_m_price" min="20" max="300" value="100" step="10" oninput="sync()">
+      <div class="param-row"><label>持货成本率（%/年）</label><span class="val" id="v_m_hc">18%</span></div>
+      <input type="range" id="s_m_hc" min="5" max="40" value="18" step="1" oninput="sync()">
+
+      <div class="stage-label sl-supplier">🔴 供应商</div>
+      <div class="param-row"><label>产品单价（¥/件）</label><span class="val" id="v_s_price">60</span></div>
+      <input type="range" id="s_s_price" min="10" max="200" value="60" step="5" oninput="sync()">
+      <div class="param-row"><label>持货成本率（%/年）</label><span class="val" id="v_s_hc">15%</span></div>
+      <input type="range" id="s_s_hc" min="5" max="40" value="15" step="1" oninput="sync()">
+
+      <div class="form-note">💡 一般规律：越靠近终端，单价越高、持货成本率越高（产品更新快、贬值风险大）。</div>
+    </div>
   </div>
 
-  <div class="param-group">
-    <div style="color:var(--red);font-weight:600;font-size:0.85rem;margin-bottom:0.4rem">🔴 供应商（Supplier）</div>
-    <div class="param-row"><label>LT（周）</label><span class="val" id="v_s_lt">4</span></div>
-    <input type="range" id="s_s_lt" min="1" max="12" value="4" step="1">
-    <div class="param-row"><label>安全库存倍数</label><span class="val" id="v_s_ss">1.0</span></div>
-    <input type="range" id="s_s_ss" min="0" max="30" value="10" step="1">
-    <div class="param-row"><label>订货策略（过度反应）</label><span class="val" id="v_s_over">1.0x</span></div>
-    <input type="range" id="s_s_over" min="10" max="30" value="10" step="1">
+  <!-- Module 4: Global -->
+  <div class="module">
+    <div class="module-head" onclick="toggleModule(this)">
+      <div class="left"><span class="icon">⚙️</span><div><div class="title">全局设置</div><div class="desc">模拟时长、随机种子</div></div></div>
+      <span class="arrow">▶</span>
+    </div>
+    <div class="module-body">
+      <div class="param-row"><label>模拟周数</label><span class="val" id="v_weeks">52</span></div>
+      <input type="range" id="s_weeks" min="20" max="104" value="52" step="4" oninput="sync()">
+      <div class="form-note">建议 52 周（1 年），可拉到 104 周观察长期趋势。</div>
+    </div>
   </div>
 
-  <div class="section-title">⚙️ 全局设置</div>
-  <div class="param-group">
-    <div class="param-row"><label>模拟周数</label><span class="val" id="v_weeks">52</span></div>
-    <input type="range" id="s_weeks" min="20" max="104" value="52" step="4">
-    <div class="param-row"><label>需求模式</label></div>
-    <select id="demand_pattern" style="width:100%;padding:0.4rem;background:var(--border);color:var(--text);border:1px solid #334155;border-radius:6px;font-size:0.8rem;margin-top:0.3rem">
-      <option value="random">随机波动</option>
-      <option value="step">阶跃变化（+50%）</option>
-      <option value="seasonal">季节性（正弦波）</option>
-      <option value="promo">促销脉冲（第 20 周 +100%）</option>
-      <option value="trend">持续增长趋势</option>
-    </select>
-  </div>
-
+  <!-- Actions -->
   <div class="btn-row">
     <button class="btn btn-primary" onclick="runSim()">▶ 运行模拟</button>
-    <button class="btn btn-secondary" onclick="resetParams()">↺ 重置</button>
+    <button class="btn btn-secondary" onclick="resetAll()">↺ 重置</button>
   </div>
 
-  <div class="section-title">📋 预设场景</div>
-  <button class="btn-preset" onclick="loadPreset('normal')">
-    <div class="preset-name">🟢 正常运营</div>
-    <div class="preset-desc">低波动、短LT、适度安全库存</div>
-  </button>
-  <button class="btn-preset" onclick="loadPreset('bullwhip')">
-    <div class="preset-name">🐂 典型牛鞭效应</div>
-    <div class="preset-desc">各环节过度反应 + 长LT + 高安全库存</div>
-  </button>
-  <button class="btn-preset" onclick="loadPreset('crisis')">
-    <div class="preset-name">🔴 供应危机（类 2021 缺芯）</div>
-    <div class="preset-desc">长LT + 极高过度反应 + 阶跃需求</div>
-  </button>
-  <button class="btn-preset" onclick="loadPreset('vmi')">
-    <div class="preset-name">💊 VMI 缓解方案</div>
-    <div class="preset-desc">信息共享 + 低过度反应 + 短LT</div>
-  </button>
-  <button class="btn-preset" onclick="loadPreset('cpfr')">
-    <div class="preset-name">🤝 CPFR 协同方案</div>
-    <div class="preset-desc">完全信息共享 + 无过度反应</div>
-  </button>
-</div>
+  <!-- Presets -->
+  <div class="module">
+    <div class="module-head" onclick="toggleModule(this)">
+      <div class="left"><span class="icon">📋</span><div><div class="title">预设场景</div><div class="desc">一键加载典型场景参数</div></div></div>
+      <span class="arrow">▶</span>
+    </div>
+    <div class="module-body">
+      <div class="preset-grid">
+        <div class="preset-btn" onclick="loadPreset('normal')"><div class="pn">🟢 正常运营</div><div class="pd">短LT·低波动·理性补货</div></div>
+        <div class="preset-btn" onclick="loadPreset('bullwhip')"><div class="pn">🐂 典型牛鞭</div><div class="pd">过度反应·长LT·高安全库存</div></div>
+        <div class="preset-btn" onclick="loadPreset('crisis')"><div class="pn">🔴 供应危机</div><div class="pd">类 2021 缺芯·极端LT</div></div>
+        <div class="preset-btn" onclick="loadPreset('vmi')"><div class="pn">💊 VMI 缓解</div><div class="pd">信息共享·低过度反应</div></div>
+        <div class="preset-btn" onclick="loadPreset('cpfr')"><div class="pn">🤝 CPFR 协同</div><div class="pd">完全协同·最小牛鞭</div></div>
+        <div class="preset-btn" onclick="loadPreset('promo')"><div class="pn">🎯 促销冲击</div><div class="pd">脉冲需求·看牛鞭放大</div></div>
+      </div>
+    </div>
+  </div>
 
-<!-- ===== MAIN ===== -->
+</div><!-- /sidebar -->
+
+<!-- ==================== MAIN ==================== -->
 <div class="main">
 
+  <!-- Insight -->
+  <div class="insight" id="insight_box">
+    <strong>💡 开始模拟</strong> — 调节左侧参数后点击「运行模拟」，或选择一个预设场景快速体验。尝试把各环节的「过度反应系数」调到 2.0 以上，观察牛鞭效应如何急剧恶化。
+  </div>
+
   <!-- Stats -->
-  <div class="stats-grid">
-    <div class="stat c0"><div class="num" id="stat_r">1.0x</div><div class="label">零售商波动倍数</div></div>
-    <div class="stat c1"><div class="num" id="stat_d">1.0x</div><div class="label">分销商波动倍数</div></div>
-    <div class="stat c2"><div class="num" id="stat_m">1.0x</div><div class="label">制造商波动倍数</div></div>
-    <div class="stat c3"><div class="num" id="stat_s">1.0x</div><div class="label">供应商波动倍数</div></div>
+  <div class="stats-row">
+    <div class="stat"><div class="num" style="color:var(--c0)" id="stat_r">1.0x</div><div class="label">零售商波动倍数</div></div>
+    <div class="stat"><div class="num" style="color:var(--c1)" id="stat_d">1.0x</div><div class="label">分销商波动倍数</div></div>
+    <div class="stat"><div class="num" style="color:var(--c2)" id="stat_m">1.0x</div><div class="label">制造商波动倍数</div></div>
+    <div class="stat"><div class="num" style="color:var(--c3)" id="stat_s">1.0x</div><div class="label">供应商波动倍数</div></div>
   </div>
 
-  <!-- Chain diagram -->
-  <div class="chain-diagram">
-    <div class="chain-node"><div class="name">消费者需求</div><div class="var" id="cd_demand" style="color:var(--green)">σ=20%</div></div>
+  <!-- Chain -->
+  <div class="chain">
+    <div class="chain-node"><div class="cn">消费者</div><div class="cv" id="cd0" style="color:var(--c0)">σ=?</div></div>
     <div class="chain-arrow">→</div>
-    <div class="chain-node"><div class="name">零售商订单</div><div class="var" id="cd_r" style="color:var(--green)">σ=?</div></div>
+    <div class="chain-node"><div class="cn">零售商</div><div class="cv" id="cd1" style="color:var(--c0)">σ=?</div></div>
     <div class="chain-arrow">→</div>
-    <div class="chain-node"><div class="name">分销商订单</div><div class="var" id="cd_d" style="color:var(--accent)">σ=?</div></div>
+    <div class="chain-node"><div class="cn">分销商</div><div class="cv" id="cd2" style="color:var(--c1)">σ=?</div></div>
     <div class="chain-arrow">→</div>
-    <div class="chain-node"><div class="name">制造商订单</div><div class="var" id="cd_m" style="color:var(--amber)">σ=?</div></div>
+    <div class="chain-node"><div class="cn">制造商</div><div class="cv" id="cd3" style="color:var(--c2)">σ=?</div></div>
     <div class="chain-arrow">→</div>
-    <div class="chain-node"><div class="name">供应商产量</div><div class="var" id="cd_s" style="color:var(--red)">σ=?</div></div>
+    <div class="chain-node"><div class="cn">供应商</div><div class="cv" id="cd4" style="color:var(--c3)">σ=?</div></div>
   </div>
 
-  <!-- Main chart -->
+  <!-- Chart 1: Demand signal -->
   <div class="chart-card">
-    <h3>📈 需求信号传递（各环节订单量）</h3>
-    <div class="legend-inline">
-      <span><div class="legend-dot" style="background:var(--green)"></div>消费者需求</span>
-      <span><div class="legend-dot" style="background:var(--accent)"></div>零售商订单</span>
-      <span><div class="legend-dot" style="background:var(--amber)"></div>分销商订单</span>
-      <span><div class="legend-dot" style="background:var(--red)"></div>制造商订单</span>
+    <h3>📈 需求信号传递</h3>
+    <div class="chart-desc">消费者的真实需求经过各环节逐级放大，越往上游波动越大。理想状态是所有曲线重合。</div>
+    <div class="legend-row">
+      <span><div class="legend-dot" style="background:var(--c0)"></div>消费者</span>
+      <span><div class="legend-dot" style="background:var(--c1)"></div>零售商订单</span>
+      <span><div class="legend-dot" style="background:var(--c2)"></div>分销商订单</span>
+      <span><div class="legend-dot" style="background:var(--c3)"></div>制造商订单</span>
       <span><div class="legend-dot" style="background:var(--purple)"></div>供应商产量</span>
     </div>
     <div class="chart-wrap tall"><canvas id="chart_main"></canvas></div>
   </div>
 
-  <!-- Variance chart -->
+  <!-- Chart 2: Variance -->
   <div class="chart-card">
-    <h3>📊 逐级波动放大（标准差对比）</h3>
+    <h3>📊 逐级波动放大</h3>
+    <div class="chart-desc">柱子越高，说明该环节的订单波动越大。正常情况下应接近 1.0x，超过 2x 就存在显著牛鞭效应。</div>
     <div class="chart-wrap"><canvas id="chart_var"></canvas></div>
   </div>
 
-  <!-- Inventory chart -->
+  <!-- Chart 3: Inventory -->
   <div class="chart-card">
     <h3>📦 各环节库存水平</h3>
-    <div class="legend-inline">
-      <span><div class="legend-dot" style="background:var(--accent)"></div>零售商</span>
-      <span><div class="legend-dot" style="background:var(--amber)"></div>分销商</span>
-      <span><div class="legend-dot" style="background:var(--red)"></div>制造商</span>
+    <div class="chart-desc">库存剧烈波动意味着资金占用忽高忽低——高峰时仓库爆满、资金紧张，低谷时产能闲置、人员冗余。</div>
+    <div class="legend-row">
+      <span><div class="legend-dot" style="background:var(--c1)"></div>零售商</span>
+      <span><div class="legend-dot" style="background:var(--c2)"></div>分销商</span>
+      <span><div class="legend-dot" style="background:var(--c3)"></div>制造商</span>
       <span><div class="legend-dot" style="background:var(--purple)"></div>供应商</span>
     </div>
     <div class="chart-wrap"><canvas id="chart_inv"></canvas></div>
   </div>
 
-  <!-- Insight -->
-  <div class="insight-box" id="insight_box">
-    <strong>💡 提示：</strong>点击左侧「运行模拟」或选择预设场景开始。调节各环节的 LT、安全库存倍数和过度反应系数，观察牛鞭效应如何变化。
+  <!-- Chart 4: Holding Cost -->
+  <div class="chart-card">
+    <h3>💰 各环节持货成本（¥/周）</h3>
+    <div class="chart-desc">持货成本 = 库存量 × 单价 × 年持货成本率 ÷ 52。库存越高、单价越贵，持货成本越大。牛鞭效应让上游的持货成本波动远大于下游。</div>
+    <div class="legend-row">
+      <span><div class="legend-dot" style="background:var(--c1)"></div>零售商</span>
+      <span><div class="legend-dot" style="background:var(--c2)"></div>分销商</span>
+      <span><div class="legend-dot" style="background:var(--c3)"></div>制造商</span>
+      <span><div class="legend-dot" style="background:var(--purple)"></div>供应商</span>
+    </div>
+    <div class="chart-wrap"><canvas id="chart_cost"></canvas></div>
   </div>
 
-</div>
-</div>
+  <!-- Chart 5: Cumulative Cost -->
+  <div class="chart-card">
+    <h3>📉 累计持货成本对比</h3>
+    <div class="chart-desc">全链路累计持货成本随时间推移。斜率越陡，成本增长越快。对比不同场景可以直观看到牛鞭效应对财务的影响。</div>
+    <div class="legend-row">
+      <span><div class="legend-dot" style="background:var(--c1)"></div>零售商</span>
+      <span><div class="legend-dot" style="background:var(--c2)"></div>分销商</span>
+      <span><div class="legend-dot" style="background:var(--c3)"></div>制造商</span>
+      <span><div class="legend-dot" style="background:var(--purple)"></div>供应商</span>
+    </div>
+    <div class="chart-wrap"><canvas id="chart_cumcost"></canvas></div>
+  </div>
+
+  <!-- Cost Summary Table -->
+  <div class="chart-card">
+    <h3>🧮 全链路持货成本汇总</h3>
+    <div class="chart-desc">各环节在整个模拟周期内的持货成本统计，以及全链路合计。牛鞭效应越强，上游成本增幅越大。</div>
+    <table class="cost-table" id="cost_table">
+      <thead>
+        <tr>
+          <th>环节</th>
+          <th class="num">平均库存</th>
+          <th class="num">库存波动(σ)</th>
+          <th class="num">周均持货成本</th>
+          <th class="num">累计持货成本</th>
+          <th class="num">占全链路比</th>
+        </tr>
+      </thead>
+      <tbody id="cost_tbody"></tbody>
+    </table>
+  </div>
+
+</div><!-- /main -->
+</div><!-- /layout -->
 
 <script>
-// ===== GLOBALS =====
-let chartMain, chartVar, chartInv;
+// ===== Toggle module =====
+function toggleModule(el) {
+  el.classList.toggle('open');
+  el.nextElementSibling.classList.toggle('show');
+}
+
+// ===== Sync display =====
+function sync() {
+  const p = getParams();
+  document.getElementById('v_demand_amp').textContent = '±' + p.demand_amp + '%';
+  document.getElementById('v_r_lt').textContent = p.r_lt;
+  document.getElementById('v_r_ss').textContent = (p.r_ss).toFixed(1) + 'x';
+  document.getElementById('v_r_over').textContent = (p.r_over).toFixed(1) + 'x';
+  document.getElementById('v_d_lt').textContent = p.d_lt;
+  document.getElementById('v_d_ss').textContent = (p.d_ss).toFixed(1) + 'x';
+  document.getElementById('v_d_over').textContent = (p.d_over).toFixed(1) + 'x';
+  document.getElementById('v_m_lt').textContent = p.m_lt;
+  document.getElementById('v_m_ss').textContent = (p.m_ss).toFixed(1) + 'x';
+  document.getElementById('v_m_over').textContent = (p.m_over).toFixed(1) + 'x';
+  document.getElementById('v_s_lt').textContent = p.s_lt;
+  document.getElementById('v_s_ss').textContent = (p.s_ss).toFixed(1) + 'x';
+  document.getElementById('v_s_over').textContent = (p.s_over).toFixed(1) + 'x';
+  document.getElementById('v_weeks').textContent = p.weeks;
+  document.getElementById('v_r_price').textContent = p.r_price;
+  document.getElementById('v_r_hc').textContent = p.r_hc + '%';
+  document.getElementById('v_d_price').textContent = p.d_price;
+  document.getElementById('v_d_hc').textContent = p.d_hc + '%';
+  document.getElementById('v_m_price').textContent = p.m_price;
+  document.getElementById('v_m_hc').textContent = p.m_hc + '%';
+  document.getElementById('v_s_price').textContent = p.s_price;
+  document.getElementById('v_s_hc').textContent = p.s_hc + '%';
+}
 
 function getParams() {
   return {
-    r_demand: +document.getElementById('s_r_demand').value,
-    r_lt: +document.getElementById('s_r_lt').value,
-    r_ss: +document.getElementById('s_r_ss').value / 10,
-    r_over: +document.getElementById('s_r_over').value / 10,
-    d_lt: +document.getElementById('s_d_lt').value,
-    d_ss: +document.getElementById('s_d_ss').value / 10,
-    d_over: +document.getElementById('s_d_over').value / 10,
-    m_lt: +document.getElementById('s_m_lt').value,
-    m_ss: +document.getElementById('s_m_ss').value / 10,
-    m_over: +document.getElementById('s_m_over').value / 10,
-    s_lt: +document.getElementById('s_s_lt').value,
-    s_ss: +document.getElementById('s_s_ss').value / 10,
-    s_over: +document.getElementById('s_s_over').value / 10,
-    weeks: +document.getElementById('s_weeks').value,
-    pattern: document.getElementById('demand_pattern').value,
+    demand_amp: +$('#s_demand_amp').value,
+    pattern: $('#demand_pattern').value,
+    r_lt:+$('#s_r_lt').value, r_ss:+$('#s_r_ss').value/10, r_over:+$('#s_r_over').value/10,
+    d_lt:+$('#s_d_lt').value, d_ss:+$('#s_d_ss').value/10, d_over:+$('#s_d_over').value/10,
+    m_lt:+$('#s_m_lt').value, m_ss:+$('#s_m_ss').value/10, m_over:+$('#s_m_over').value/10,
+    s_lt:+$('#s_s_lt').value, s_ss:+$('#s_s_ss').value/10, s_over:+$('#s_s_over').value/10,
+    weeks:+$('#s_weeks').value,
+    r_price:+$('#s_r_price').value, r_hc:+$('#s_r_hc').value,
+    d_price:+$('#s_d_price').value, d_hc:+$('#s_d_hc').value,
+    m_price:+$('#s_m_price').value, m_hc:+$('#s_m_hc').value,
+    s_price:+$('#s_s_price').value, s_hc:+$('#s_s_hc').value,
   };
 }
+function $(sel) { return document.querySelector(sel); }
 
-function updateDisplay() {
-  const p = getParams();
-  document.getElementById('v_r_demand').textContent = '±' + p.r_demand + '%';
-  document.getElementById('v_r_lt').textContent = p.r_lt;
-  document.getElementById('v_r_ss').textContent = p.r_ss.toFixed(1);
-  document.getElementById('v_r_over').textContent = p.r_over.toFixed(1) + 'x';
-  document.getElementById('v_d_lt').textContent = p.d_lt;
-  document.getElementById('v_d_ss').textContent = p.d_ss.toFixed(1);
-  document.getElementById('v_d_over').textContent = p.d_over.toFixed(1) + 'x';
-  document.getElementById('v_m_lt').textContent = p.m_lt;
-  document.getElementById('v_m_ss').textContent = p.m_ss.toFixed(1);
-  document.getElementById('v_m_over').textContent = p.m_over.toFixed(1) + 'x';
-  document.getElementById('v_s_lt').textContent = p.s_lt;
-  document.getElementById('v_s_ss').textContent = p.s_ss.toFixed(1);
-  document.getElementById('v_s_over').textContent = p.s_over.toFixed(1) + 'x';
-  document.getElementById('v_weeks').textContent = p.weeks;
-}
-
-// Attach listeners
-document.querySelectorAll('input[type=range], select').forEach(el => {
-  el.addEventListener('input', updateDisplay);
-});
-
-// ===== DEMAND GENERATORS =====
+// ===== Demand generator =====
 function genDemand(weeks, base, amp, pattern) {
-  const d = new Array(weeks).fill(0);
+  const d = [];
   for (let t = 0; t < weeks; t++) {
-    let v = base;
     const noise = (Math.random() - 0.5) * 2 * amp;
+    let v;
     switch (pattern) {
-      case 'random':
-        v = base + noise;
-        break;
-      case 'step':
-        v = t >= 20 ? base * 1.5 + noise : base + noise;
-        break;
-      case 'seasonal':
-        v = base + base * 0.3 * Math.sin(2 * Math.PI * t / 26) + noise;
-        break;
-      case 'promo':
-        v = (t >= 20 && t < 24) ? base * 2 + noise : base + noise;
-        break;
-      case 'trend':
-        v = base * (1 + t * 0.005) + noise;
-        break;
+      case 'step':  v = t >= 20 ? base * 1.5 + noise : base + noise; break;
+      case 'seasonal': v = base + base * 0.3 * Math.sin(2 * Math.PI * t / 26) + noise; break;
+      case 'promo': v = (t >= 20 && t < 24) ? base * 2 + noise : base + noise; break;
+      case 'trend': v = base * (1 + t * 0.005) + noise; break;
+      default: v = base + noise;
     }
-    d[t] = Math.max(0, Math.round(v));
+    d.push(Math.max(0, Math.round(v)));
   }
   return d;
 }
 
-// ===== SIMULATION ENGINE =====
-function simulate(params) {
-  const {weeks, r_demand, r_lt, r_ss, r_over, d_lt, d_ss, d_over, m_lt, m_ss, m_over, s_lt, s_ss, s_over, pattern} = params;
+// ===== Simulation =====
+function simulate(p) {
   const base = 100;
-  const amp = base * r_demand / 100;
+  const amp = base * p.demand_amp / 100;
+  const demand = genDemand(p.weeks, base, amp, p.pattern);
 
-  const consumerDemand = genDemand(weeks, base, amp, pattern);
-
-  // Each node: receives orders from downstream, places orders upstream
-  function runNode(downstreamOrders, lt, ssMult, overReact) {
-    const orders = new Array(weeks).fill(0);
-    const inventory = new Array(weeks).fill(0);
-    const incoming = new Array(weeks).fill(0);
-    let onHand = base * 2; // initial inventory
-
-    for (let t = 0; t < weeks; t++) {
-      // Receive shipment from upstream (placed lt weeks ago)
-      if (t >= lt) {
-        incoming[t] = orders[t - lt]; // simplified: order placed at t-lt arrives at t
-      }
-
-      // Demand this week
-      const demand = downstreamOrders[t];
-
-      // Update inventory
-      onHand = onHand + incoming[t] - demand;
-      inventory[t] = onHand;
-
-      // Target inventory = demand forecast + safety stock
-      // Forecast = moving average of recent demand
-      let forecast = demand;
-      if (t >= 4) {
-        forecast = (downstreamOrders[t] + downstreamOrders[t-1] + downstreamOrders[t-2] + downstreamOrders[t-3]) / 4;
-      }
-
-      const targetInv = forecast * (lt + ssMult);
-      const invError = targetInv - onHand;
-
-      // Order = forecast * lt + inventory adjustment, with overreaction
-      let order = forecast * lt + invError * overReact;
-      order = Math.max(0, Math.round(order));
-      orders[t] = order;
+  function runNode(down, lt, ssMul, over) {
+    const orders = [], inv = [];
+    let onHand = base * 2;
+    for (let t = 0; t < p.weeks; t++) {
+      const incoming = t >= lt ? orders[t - lt] : 0;
+      const need = down[t];
+      onHand = onHand + incoming - need;
+      inv.push(onHand);
+      let fc = need;
+      if (t >= 4) fc = (down[t]+down[t-1]+down[t-2]+down[t-3])/4;
+      const target = fc * (lt + ssMul);
+      const err = target - onHand;
+      orders.push(Math.max(0, Math.round(fc * lt + err * over)));
     }
-    return { orders, inventory };
+    return { orders, inv };
   }
 
-  // Chain simulation
-  const retailer = runNode(consumerDemand, r_lt, r_ss, r_over);
-  const distributor = runNode(retailer.orders, d_lt, d_ss, d_over);
-  const manufacturer = runNode(distributor.orders, m_lt, m_ss, m_over);
-  const supplier = runNode(manufacturer.orders, s_lt, s_ss, s_over);
+  const ret = runNode(demand, p.r_lt, p.r_ss, p.r_over);
+  const dis = runNode(ret.orders, p.d_lt, p.d_ss, p.d_over);
+  const mfg = runNode(dis.orders, p.m_lt, p.m_ss, p.m_over);
+  const sup = runNode(mfg.orders, p.s_lt, p.s_ss, p.s_over);
 
-  return {
-    weeks,
-    consumerDemand,
-    retailer,
-    distributor,
-    manufacturer,
-    supplier
-  };
+  // Holding cost per week
+  function weeklyCost(inv, price, hcRate) {
+    return inv.map(v => Math.max(0, v) * price * (hcRate / 100) / 52);
+  }
+  const costR = weeklyCost(ret.inv, p.r_price, p.r_hc);
+  const costD = weeklyCost(dis.inv, p.d_price, p.d_hc);
+  const costM = weeklyCost(mfg.inv, p.m_price, p.m_hc);
+  const costS = weeklyCost(sup.inv, p.s_price, p.s_hc);
+
+  return { demand, ret, dis, mfg, sup, costR, costD, costM, costS, weeks: p.weeks };
 }
 
-function calcSigma(arr) {
-  const n = arr.length;
-  const mean = arr.reduce((a, b) => a + b, 0) / n;
-  const variance = arr.reduce((a, b) => a + (b - mean) ** 2, 0) / n;
-  return Math.sqrt(variance);
+function sigma(arr) {
+  const n = arr.length, m = arr.reduce((a,b) => a+b, 0) / n;
+  return Math.sqrt(arr.reduce((a,b) => a + (b-m)**2, 0) / n);
 }
 
-// ===== CHART CREATION =====
-function createCharts() {
-  const cfg = (type, labels, datasets, opts = {}) => ({
-    type,
-    data: { labels, datasets },
-    options: {
-      responsive: true,
-      maintainAspectRatio: false,
-      animation: { duration: 600 },
-      interaction: { mode: 'index', intersect: false },
-      plugins: {
-        legend: { display: false },
-        tooltip: { backgroundColor: 'rgba(17,24,39,0.9)', titleColor: '#e2e8f0', bodyColor: '#94a3b8', borderColor: '#1e293b', borderWidth: 1 }
-      },
-      scales: {
-        x: { ticks: { color: '#64748b', maxTicksLimit: 15, font: { size: 10 } }, grid: { color: 'rgba(30,41,59,0.4)' } },
-        y: { ticks: { color: '#94a3b8', font: { size: 10 } }, grid: { color: 'rgba(30,41,59,0.3)' }, ...opts.yOpts }
-      },
-      ...opts.extra
-    }
-  });
+// ===== Charts =====
+let cMain, cVar, cInv, cCost, cCum;
+const chartOpts = (yTitle) => ({
+  responsive: true, maintainAspectRatio: false, animation: { duration: 500 },
+  interaction: { mode: 'index', intersect: false },
+  plugins: { legend: { display: false }, tooltip: { backgroundColor: '#fff', titleColor: '#1e293b', bodyColor: '#64748b', borderColor: '#e2e8f0', borderWidth: 1 } },
+  scales: {
+    x: { ticks: { color: '#94a3b8', maxTicksLimit: 14, font: { size: 10 } }, grid: { color: '#f1f5f9' } },
+    y: { ticks: { color: '#94a3b8', font: { size: 10 } }, grid: { color: '#f1f5f9' }, title: yTitle ? { display: true, text: yTitle, color: '#94a3b8', font: { size: 11 } } : {} }
+  }
+});
 
-  chartMain = new Chart(document.getElementById('chart_main'), cfg('line', [], []));
-  chartVar = new Chart(document.getElementById('chart_var'), cfg('bar', [], []));
-  chartInv = new Chart(document.getElementById('chart_inv'), cfg('line', [], []));
+function initCharts() {
+  cMain  = new Chart($('#chart_main'),   { type:'line', data:{labels:[],datasets:[]}, options: chartOpts('订单量') });
+  cVar   = new Chart($('#chart_var'),    { type:'bar',  data:{labels:[],datasets:[]}, options: chartOpts('波动倍数') });
+  cInv   = new Chart($('#chart_inv'),    { type:'line', data:{labels:[],datasets:[]}, options: chartOpts('库存量') });
+  cCost  = new Chart($('#chart_cost'),   { type:'line', data:{labels:[],datasets:[]}, options: chartOpts('¥/周') });
+  cCum   = new Chart($('#chart_cumcost'),{ type:'line', data:{labels:[],datasets:[]}, options: chartOpts('累计 ¥') });
 }
 
-function updateCharts(result) {
-  const {weeks, consumerDemand, retailer, distributor, manufacturer, supplier} = result;
-  const labels = Array.from({length: weeks}, (_, i) => 'W' + (i + 1));
+const COLORS = ['#059669','#2563eb','#d97706','#dc2626','#7c3aed'];
 
-  // Main chart
-  chartMain.data = {
-    labels,
-    datasets: [
-      { label: '消费者需求', data: consumerDemand, borderColor: '#10b981', backgroundColor: 'rgba(16,185,129,0.1)', fill: false, tension: 0.3, pointRadius: 0, borderWidth: 2 },
-      { label: '零售商订单', data: retailer.orders, borderColor: '#3b82f6', fill: false, tension: 0.3, pointRadius: 0, borderWidth: 2 },
-      { label: '分销商订单', data: distributor.orders, borderColor: '#f59e0b', fill: false, tension: 0.3, pointRadius: 0, borderWidth: 2 },
-      { label: '制造商订单', data: manufacturer.orders, borderColor: '#ef4444', fill: false, tension: 0.3, pointRadius: 0, borderWidth: 2 },
-      { label: '供应商产量', data: supplier.orders, borderColor: '#8b5cf6', fill: false, tension: 0.3, pointRadius: 0, borderWidth: 2 },
-    ]
-  };
-  chartMain.update();
+function mkLine(label, data, color, width=2) {
+  return { label, data, borderColor: color, backgroundColor: 'transparent', fill: false, tension: 0.3, pointRadius: 0, borderWidth: width };
+}
 
-  // Variance chart
-  const sigmas = [
-    calcSigma(consumerDemand),
-    calcSigma(retailer.orders),
-    calcSigma(distributor.orders),
-    calcSigma(manufacturer.orders),
-    calcSigma(supplier.orders)
-  ];
-  const sig0 = sigmas[0] || 1;
-  const ratios = sigmas.map(s => +(s / sig0).toFixed(2));
+function updateCharts(r) {
+  const L = Array.from({length: r.weeks}, (_, i) => 'W'+(i+1));
+  const sigs = [sigma(r.demand), sigma(r.ret.orders), sigma(r.dis.orders), sigma(r.mfg.orders), sigma(r.sup.orders)];
+  const base = sigs[0] || 1;
+  const ratios = sigs.map(s => +(s / base).toFixed(2));
 
-  chartVar.data = {
-    labels: ['消费者', '零售商', '分销商', '制造商', '供应商'],
-    datasets: [{
-      data: ratios,
-      backgroundColor: ['rgba(16,185,129,0.7)', 'rgba(59,130,246,0.7)', 'rgba(245,158,11,0.7)', 'rgba(239,68,68,0.7)', 'rgba(139,92,246,0.7)'],
-      borderRadius: 6,
-    }]
-  };
-  chartVar.options.scales.y.title = { display: true, text: '波动倍数（相对消费者）', color: '#64748b' };
-  chartVar.update();
+  // Main
+  cMain.data = { labels: L, datasets: [
+    mkLine('消费者', r.demand, COLORS[0]),
+    mkLine('零售商', r.ret.orders, COLORS[1]),
+    mkLine('分销商', r.dis.orders, COLORS[2]),
+    mkLine('制造商', r.mfg.orders, COLORS[3]),
+    mkLine('供应商', r.sup.orders, COLORS[4]),
+  ]};
+  cMain.update();
 
-  // Inventory chart
-  chartInv.data = {
-    labels,
-    datasets: [
-      { label: '零售商库存', data: retailer.inventory, borderColor: '#3b82f6', fill: false, tension: 0.3, pointRadius: 0, borderWidth: 1.5 },
-      { label: '分销商库存', data: distributor.inventory, borderColor: '#f59e0b', fill: false, tension: 0.3, pointRadius: 0, borderWidth: 1.5 },
-      { label: '制造商库存', data: manufacturer.inventory, borderColor: '#ef4444', fill: false, tension: 0.3, pointRadius: 0, borderWidth: 1.5 },
-      { label: '供应商库存', data: supplier.inventory, borderColor: '#8b5cf6', fill: false, tension: 0.3, pointRadius: 0, borderWidth: 1.5 },
-    ]
-  };
-  chartInv.update();
+  // Variance
+  cVar.data = { labels: ['消费者','零售商','分销商','制造商','供应商'], datasets: [{
+    data: ratios, backgroundColor: COLORS.map(c => c + 'bb'), borderRadius: 6
+  }]};
+  cVar.update();
+
+  // Inventory
+  cInv.data = { labels: L, datasets: [
+    mkLine('零售商', r.ret.inv, COLORS[1], 1.5),
+    mkLine('分销商', r.dis.inv, COLORS[2], 1.5),
+    mkLine('制造商', r.mfg.inv, COLORS[3], 1.5),
+    mkLine('供应商', r.sup.inv, COLORS[4], 1.5),
+  ]};
+  cInv.update();
+
+  // Cost
+  cCost.data = { labels: L, datasets: [
+    mkLine('零售商', r.costR, COLORS[1], 1.5),
+    mkLine('分销商', r.costD, COLORS[2], 1.5),
+    mkLine('制造商', r.costM, COLORS[3], 1.5),
+    mkLine('供应商', r.costS, COLORS[4], 1.5),
+  ]};
+  cCost.update();
+
+  // Cumulative cost
+  function cum(arr) { let s=0; return arr.map(v => s += v); }
+  cCum.data = { labels: L, datasets: [
+    mkLine('零售商', cum(r.costR), COLORS[1]),
+    mkLine('分销商', cum(r.costD), COLORS[2]),
+    mkLine('制造商', cum(r.costM), COLORS[3]),
+    mkLine('供应商', cum(r.costS), COLORS[4]),
+  ]};
+  cCum.update();
 
   // Stats
-  document.getElementById('stat_r').textContent = ratios[1].toFixed(1) + 'x';
-  document.getElementById('stat_d').textContent = ratios[2].toFixed(1) + 'x';
-  document.getElementById('stat_m').textContent = ratios[3].toFixed(1) + 'x';
-  document.getElementById('stat_s').textContent = ratios[4].toFixed(1) + 'x';
+  $('#stat_r').textContent = ratios[1].toFixed(1) + 'x';
+  $('#stat_d').textContent = ratios[2].toFixed(1) + 'x';
+  $('#stat_m').textContent = ratios[3].toFixed(1) + 'x';
+  $('#stat_s').textContent = ratios[4].toFixed(1) + 'x';
 
-  // Chain diagram
-  document.getElementById('cd_demand').textContent = 'σ=' + sigmas[0].toFixed(0);
-  document.getElementById('cd_r').textContent = 'σ=' + sigmas[1].toFixed(0) + ' (' + ratios[1].toFixed(1) + 'x)';
-  document.getElementById('cd_d').textContent = 'σ=' + sigmas[2].toFixed(0) + ' (' + ratios[2].toFixed(1) + 'x)';
-  document.getElementById('cd_m').textContent = 'σ=' + sigmas[3].toFixed(0) + ' (' + ratios[3].toFixed(1) + 'x)';
-  document.getElementById('cd_s').textContent = 'σ=' + sigmas[4].toFixed(0) + ' (' + ratios[4].toFixed(1) + 'x)';
+  // Chain
+  const names = ['消费者','零售商','分销商','制造商','供应商'];
+  [0,1,2,3,4].forEach(i => $('#cd'+i).textContent = 'σ='+sigs[i].toFixed(0)+(i>0?' ('+ratios[i].toFixed(1)+'x)':''));
+
+  // Cost table
+  const stages = ['零售商','分销商','制造商','供应商'];
+  const invArrs = [r.ret.inv, r.dis.inv, r.mfg.inv, r.sup.inv];
+  const costArrs = [r.costR, r.costD, r.costM, r.costS];
+  const totalCost = costArrs.reduce((s,a) => s + a.reduce((x,y)=>x+y,0), 0);
+  let html = '';
+  for (let i = 0; i < 4; i++) {
+    const avgInv = (invArrs[i].reduce((a,b)=>a+Math.max(0,b),0) / r.weeks).toFixed(0);
+    const invSigma = sigma(invArrs[i].map(v=>Math.max(0,v))).toFixed(0);
+    const wkAvg = (costArrs[i].reduce((a,b)=>a+b,0) / r.weeks).toFixed(0);
+    const cumCost = costArrs[i].reduce((a,b)=>a+b,0).toFixed(0);
+    const pct = totalCost > 0 ? (costArrs[i].reduce((a,b)=>a+b,0) / totalCost * 100).toFixed(1) : 0;
+    html += `<tr><td><span style="color:${COLORS[i+1]};font-weight:600">${stages[i]}</span></td><td class="num">${avgInv}</td><td class="num">${invSigma}</td><td class="num">¥${wkAvg}</td><td class="num">¥${Number(cumCost).toLocaleString()}</td><td class="num">${pct}%</td></tr>`;
+  }
+  const allCum = totalCost.toFixed(0);
+  html += `<tr class="total-row"><td>全链路合计</td><td class="num">-</td><td class="num">-</td><td class="num">-</td><td class="num">¥${Number(allCum).toLocaleString()}</td><td class="num">100%</td></tr>`;
+  $('#cost_tbody').innerHTML = html;
 
   // Insight
-  const maxRatio = Math.max(...ratios);
-  const maxIdx = ratios.indexOf(maxRatio);
-  const names = ['消费者', '零售商', '分销商', '制造商', '供应商'];
-  let insight = `<strong>💡 本次模拟结果：</strong>消费者需求波动 ±${r_demand}%，经过 ${weeks} 周传导后，`;
-  insight += `<strong>${names[maxIdx]}</strong>的波动放大到 <strong>${maxRatio.toFixed(1)}x</strong>（σ=${sigmas[maxIdx].toFixed(0)}）。`;
-  if (maxRatio > 3) {
-    insight += `<br>⚠️ 牛鞭效应显著！建议：① 缩短 LT ② 降低过度反应系数 ③ 引入信息共享（VMI/CPFR）。`;
-  } else if (maxRatio > 1.5) {
-    insight += `<br>📊 存在中度牛鞭效应，可通过信息共享和协同补货进一步优化。`;
-  } else {
-    insight += `<br>✅ 牛鞭效应控制良好，各环节波动传导较为平滑。`;
-  }
-  document.getElementById('insight_box').innerHTML = insight;
+  const mx = Math.max(...ratios);
+  const mxi = ratios.indexOf(mx);
+  let msg = `<strong>💡 模拟结果：</strong>消费者需求 ±${getParams().demand_amp}%，经 ${r.weeks} 周传导后，<strong>${names[mxi]}</strong>波动放大到 <strong>${mx.toFixed(1)}x</strong>。`;
+  msg += `<br>全链路累计持货成本 <strong>¥${Number(allCum).toLocaleString()}</strong>`;
+  if (mx > 3) msg += '。⚠️ 牛鞭效应严重！缩短 LT + 降低过度反应 + 引入 VMI/CPFR 可显著改善。';
+  else if (mx > 1.5) msg += '。📊 存在中度牛鞭效应，信息共享可进一步优化。';
+  else msg += '。✅ 牛鞭效应控制良好。';
+  $('#insight_box').innerHTML = msg;
 }
 
-// ===== PRESETS =====
-const presets = {
-  normal: { r_demand:10, r_lt:1, r_ss:5, r_over:10, d_lt:1, d_ss:5, d_over:10, m_lt:2, m_ss:5, m_over:10, s_lt:2, s_ss:5, s_over:10, weeks:52, pattern:'random' },
-  bullwhip: { r_demand:20, r_lt:2, r_ss:15, r_over:18, d_lt:2, d_ss:15, d_over:18, m_lt:4, m_ss:15, m_over:20, s_lt:4, s_ss:15, s_over:20, weeks:52, pattern:'seasonal' },
-  crisis: { r_demand:30, r_lt:4, r_ss:25, r_over:25, d_lt:4, d_ss:25, d_over:25, m_lt:8, m_ss:25, d_over:25, s_lt:8, s_ss:25, s_over:25, weeks:52, pattern:'step' },
-  vmi: { r_demand:20, r_lt:1, r_ss:5, r_over:10, d_lt:1, d_ss:5, d_over:10, m_lt:2, m_ss:5, m_over:10, s_lt:2, s_ss:5, s_over:10, weeks:52, pattern:'seasonal' },
-  cpfr: { r_demand:20, r_lt:1, r_ss:3, r_over:10, d_lt:1, d_ss:3, d_over:10, m_lt:2, m_ss:3, m_over:10, s_lt:2, s_ss:3, s_over:10, weeks:52, pattern:'seasonal' },
+// ===== Presets =====
+const P = {
+  normal:  { demand_amp:10, pattern:'random',   r_lt:1,r_ss:5,r_over:10, d_lt:1,d_ss:5,d_over:10, m_lt:2,m_ss:5,m_over:10, s_lt:2,s_ss:5,s_over:10, weeks:52, r_price:200,r_hc:25, d_price:150,d_hc:20, m_price:100,m_hc:18, s_price:60,s_hc:15 },
+  bullwhip:{ demand_amp:20, pattern:'seasonal', r_lt:2,r_ss:15,r_over:18, d_lt:2,d_ss:15,d_over:18, m_lt:4,m_ss:15,m_over:20, s_lt:4,s_ss:15,s_over:20, weeks:52, r_price:200,r_hc:25, d_price:150,d_hc:20, m_price:100,m_hc:18, s_price:60,s_hc:15 },
+  crisis:  { demand_amp:30, pattern:'step',     r_lt:4,r_ss:25,r_over:25, d_lt:4,d_ss:25,d_over:25, m_lt:8,m_ss:25,m_over:25, s_lt:8,s_ss:25,s_over:25, weeks:52, r_price:200,r_hc:25, d_price:150,d_hc:20, m_price:100,m_hc:18, s_price:60,s_hc:15 },
+  vmi:     { demand_amp:20, pattern:'seasonal', r_lt:1,r_ss:5,r_over:10,  d_lt:1,d_ss:5,d_over:10,  m_lt:2,m_ss:5,m_over:10,  s_lt:2,s_ss:5,s_over:10,  weeks:52, r_price:200,r_hc:25, d_price:150,d_hc:20, m_price:100,m_hc:18, s_price:60,s_hc:15 },
+  cpfr:    { demand_amp:20, pattern:'seasonal', r_lt:1,r_ss:3,r_over:10,  d_lt:1,d_ss:3,d_over:10,  m_lt:2,m_ss:3,m_over:10,  s_lt:2,s_ss:3,s_over:10,  weeks:52, r_price:200,r_hc:25, d_price:150,d_hc:20, m_price:100,m_hc:18, s_price:60,s_hc:15 },
+  promo:   { demand_amp:10, pattern:'promo',    r_lt:2,r_ss:10,r_over:15, d_lt:2,d_ss:10,d_over:15, m_lt:4,m_ss:10,m_over:18, s_lt:4,s_ss:10,s_over:18, weeks:52, r_price:200,r_hc:25, d_price:150,d_hc:20, m_price:100,m_hc:18, s_price:60,s_hc:15 },
 };
 
 function loadPreset(name) {
-  const p = presets[name];
-  document.getElementById('s_r_demand').value = p.r_demand;
-  document.getElementById('s_r_lt').value = p.r_lt;
-  document.getElementById('s_r_ss').value = p.r_ss;
-  document.getElementById('s_r_over').value = p.r_over;
-  document.getElementById('s_d_lt').value = p.d_lt;
-  document.getElementById('s_d_ss').value = p.d_ss;
-  document.getElementById('s_d_over').value = p.d_over;
-  document.getElementById('s_m_lt').value = p.m_lt;
-  document.getElementById('s_m_ss').value = p.m_ss;
-  document.getElementById('s_m_over').value = p.m_over;
-  document.getElementById('s_s_lt').value = p.s_lt;
-  document.getElementById('s_s_ss').value = p.s_ss;
-  document.getElementById('s_s_over').value = p.s_over;
-  document.getElementById('s_weeks').value = p.weeks;
-  document.getElementById('demand_pattern').value = p.pattern;
-  updateDisplay();
-  runSim();
+  const p = P[name];
+  $('#s_demand_amp').value = p.demand_amp; $('#demand_pattern').value = p.pattern;
+  $('#s_r_lt').value=p.r_lt; $('#s_r_ss').value=p.r_ss; $('#s_r_over').value=p.r_over;
+  $('#s_d_lt').value=p.d_lt; $('#s_d_ss').value=p.d_ss; $('#s_d_over').value=p.d_over;
+  $('#s_m_lt').value=p.m_lt; $('#s_m_ss').value=p.m_ss; $('#s_m_over').value=p.m_over;
+  $('#s_s_lt').value=p.s_lt; $('#s_s_ss').value=p.s_ss; $('#s_s_over').value=p.s_over;
+  $('#s_weeks').value=p.weeks;
+  $('#s_r_price').value=p.r_price; $('#s_r_hc').value=p.r_hc;
+  $('#s_d_price').value=p.d_price; $('#s_d_hc').value=p.d_hc;
+  $('#s_m_price').value=p.m_price; $('#s_m_hc').value=p.m_hc;
+  $('#s_s_price').value=p.s_price; $('#s_s_hc').value=p.s_hc;
+  sync(); runSim();
 }
 
-function resetParams() {
-  loadPreset('normal');
-}
+function resetAll() { loadPreset('normal'); }
 
-// ===== RUN =====
-function runSim() {
-  updateDisplay();
-  const p = getParams();
-  const result = simulate(p);
-  updateCharts(result);
-}
+function runSim() { sync(); updateCharts(simulate(getParams())); }
 
-// ===== INIT =====
-createCharts();
-updateDisplay();
-runSim();
+// ===== Init =====
+initCharts(); sync(); runSim();
 </script>
 </body>
 </html>
