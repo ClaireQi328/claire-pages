@@ -1,0 +1,422 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>牛鞭效应入门指南 — 从零理解供应链的核心问题</title>
+<style>
+:root{--bg:#f8fafc;--card:#fff;--border:#e2e8f0;--text:#1e293b;--muted:#64748b;--accent:#2563eb;--green:#059669;--red:#dc2626;--amber:#d97706;--purple:#7c3aed}
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:-apple-system,'Segoe UI','PingFang SC','Microsoft YaHei',sans-serif;background:var(--bg);color:var(--text);line-height:1.75}
+.container{max-width:860px;margin:0 auto;padding:2rem 1.5rem}
+
+/* Hero */
+.hero{text-align:center;padding:3rem 0 2rem;border-bottom:1px solid var(--border);margin-bottom:2rem}
+.hero h1{font-size:2rem;margin-bottom:.5rem}
+.hero h1 em{font-style:normal;color:var(--accent)}
+.hero .sub{color:var(--muted);font-size:1rem;margin-bottom:1rem}
+.hero .tags{display:flex;justify-content:center;gap:.5rem;flex-wrap:wrap}
+.hero .tag{padding:.25rem .7rem;border-radius:20px;font-size:.75rem;font-weight:600}
+.tag-time{background:#eff6ff;color:var(--accent)}
+.tag-level{background:#f0fdf4;color:var(--green)}
+
+/* Sections */
+h2{font-size:1.4rem;margin:2.5rem 0 1rem;padding-left:.7rem;border-left:4px solid var(--accent)}
+h3{font-size:1.1rem;margin:1.5rem 0 .6rem;color:var(--text)}
+p{margin-bottom:.8rem;font-size:.95rem}
+.lead{font-size:1.05rem;color:var(--muted);margin-bottom:1.2rem}
+
+/* Cards */
+.card{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:1.2rem 1.4rem;margin-bottom:1.2rem;box-shadow:0 1px 3px rgba(0,0,0,.04)}
+.card h4{font-size:.95rem;margin-bottom:.4rem}
+.card p{font-size:.88rem;margin-bottom:.4rem}
+.card p:last-child{margin-bottom:0}
+
+/* Story */
+.story{background:#fffbeb;border-left:4px solid var(--amber);padding:1rem 1.2rem;border-radius:0 10px 10px 0;margin:1rem 0;font-size:.9rem}
+.story .who{font-weight:700;color:var(--amber)}
+
+/* Diagrams */
+.diagram{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:1.5rem;margin:1.2rem 0;overflow-x:auto}
+.chain-viz{display:flex;align-items:flex-end;justify-content:center;gap:1rem;padding:1rem 0;flex-wrap:wrap}
+.node-v{display:flex;flex-direction:column;align-items:center;gap:.3rem}
+.node-box{border-radius:10px;padding:.6rem .9rem;text-align:center;min-width:80px;border:2px solid}
+.node-box .name{font-size:.75rem;font-weight:600}
+.node-box .val{font-size:1.1rem;font-weight:700;margin-top:.15rem}
+.arrow-v{font-size:1.5rem;color:#cbd5e1;align-self:center}
+.wave-compare{display:grid;grid-template-columns:1fr 1fr;gap:1rem;margin:1rem 0}
+.wave-box{background:var(--card);border:1px solid var(--border);border-radius:10px;padding:1rem;text-align:center}
+.wave-box h5{font-size:.8rem;color:var(--muted);margin-bottom:.5rem}
+.wave{font-family:monospace;font-size:.85rem;line-height:2;color:var(--muted);letter-spacing:0}
+
+/* KPI cards */
+.kpi-row{display:grid;grid-template-columns:repeat(3,1fr);gap:.8rem;margin:1rem 0}
+.kpi{background:var(--card);border:1px solid var(--border);border-radius:10px;padding:.8rem;text-align:center}
+.kpi .num{font-size:1.5rem;font-weight:700;color:var(--accent)}
+.kpi .label{font-size:.72rem;color:var(--muted);margin-top:.15rem}
+
+/* Interactive */
+.try-box{background:#eff6ff;border:2px solid var(--accent);border-radius:12px;padding:1.2rem;margin:1.2rem 0}
+.try-box h4{color:var(--accent);margin-bottom:.5rem}
+.slider-row{display:flex;align-items:center;gap:.5rem;margin:.5rem 0}
+.slider-row label{font-size:.85rem;min-width:100px}
+.slider-row input[type=range]{flex:1;accent-color:var(--accent)}
+.slider-row .sv{font-size:.85rem;font-weight:600;color:var(--accent);min-width:50px;text-align:right}
+.result-box{background:var(--card);border:1px solid var(--border);border-radius:8px;padding:.8rem;margin-top:.8rem;font-size:.85rem}
+.result-box .bar{height:20px;border-radius:4px;margin:.3rem 0;transition:width .3s;display:flex;align-items:center;padding-left:.5rem;font-size:.7rem;color:#fff;font-weight:600}
+
+/* Quiz */
+.quiz{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:1.2rem;margin:1rem 0}
+.quiz h4{margin-bottom:.6rem}
+.quiz .opts{display:flex;flex-direction:column;gap:.4rem}
+.quiz .opt{padding:.5rem .8rem;border:1px solid var(--border);border-radius:8px;cursor:pointer;font-size:.88rem;transition:all .15s}
+.quiz .opt:hover{border-color:var(--accent);background:#eff6ff}
+.quiz .opt.correct{border-color:var(--green);background:#f0fdf4}
+.quiz .opt.wrong{border-color:var(--red);background:#fef2f2}
+.quiz .explain{margin-top:.6rem;font-size:.82rem;color:var(--muted);display:none;padding:.5rem .8rem;background:#f9fafb;border-radius:6px}
+
+/* CTA */
+.cta{text-align:center;padding:2rem 0;margin-top:2rem;border-top:1px solid var(--border)}
+.cta a{display:inline-block;padding:.8rem 2rem;background:var(--accent);color:#fff;border-radius:10px;text-decoration:none;font-weight:600;font-size:1rem;transition:background .15s}
+.cta a:hover{background:#1d4ed8}
+.cta .note{font-size:.8rem;color:var(--muted);margin-top:.5rem}
+
+/* Steps */
+.steps{counter-reset:step;margin:1rem 0}
+.step{display:flex;gap:1rem;margin-bottom:1.2rem;align-items:flex-start}
+.step-num{counter-increment:step;width:36px;height:36px;border-radius:50%;background:var(--accent);color:#fff;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:.9rem;flex-shrink:0}
+.step-content{flex:1}
+.step-content h4{font-size:.95rem;margin-bottom:.2rem}
+.step-content p{font-size:.85rem;color:var(--muted)}
+
+/* Responsive */
+@media(max-width:640px){.kpi-row{grid-template-columns:1fr}.wave-compare{grid-template-columns:1fr}.hero h1{font-size:1.5rem}}
+
+footer{text-align:center;padding:2rem 0;color:var(--muted);font-size:.75rem;border-top:1px solid var(--border);margin-top:2rem}
+</style>
+</head>
+<body>
+<div class="container">
+
+<!-- HERO -->
+<div class="hero">
+  <h1>🐂 牛鞭效应入门指南</h1>
+  <div class="sub">从零开始，理解供应链中最经典的问题</div>
+  <div class="tags">
+    <span class="tag tag-time">⏱ 阅读 10 分钟</span>
+    <span class="tag tag-level">🟢 零基础友好</span>
+  </div>
+</div>
+
+<!-- ===== 1. WHAT IS SUPPLY CHAIN ===== -->
+<h2>一、什么是供应链？</h2>
+<p class="lead">你每天喝的牛奶、用的手机、穿的衣服——从原材料到你手上，中间经过的所有环节，就是<strong>供应链</strong>。</p>
+
+<div class="card">
+  <h4>📱 以一部手机为例</h4>
+  <p>一块手机屏幕的旅程：</p>
+  <p style="font-size:.85rem">
+    <strong>矿山</strong>（挖出石英砂）→ <strong>玻璃厂</strong>（做成玻璃基板）→ <strong>面板厂</strong>（做成 LCD/OLED 屏幕）→ <strong>手机厂</strong>（装进手机）→ <strong>品牌仓库</strong> → <strong>经销商</strong> → <strong>零售店</strong> → <strong>你</strong>
+  </p>
+  <p>这条链上有<strong>几十家企业</strong>、跨越<strong>几个国家</strong>、历时<strong>几个月</strong>。任何一个环节出问题，都可能影响你什么时候能拿到手机。</p>
+</div>
+
+<!-- ===== 2. WHAT IS BULLWHIP ===== -->
+<h2>二、什么是牛鞭效应？</h2>
+<p class="lead">一条供应链上，越往上游，需求波动越大——就像甩牛鞭，手腕轻轻一抖，鞭梢却剧烈翻飞。</p>
+
+<div class="diagram">
+  <p style="text-align:center;font-size:.8rem;color:var(--muted);margin-bottom:.8rem">需求信号的逐级放大</p>
+  <div class="chain-viz">
+    <div class="node-v">
+      <div class="node-box" style="border-color:var(--green);background:#f0fdf4">
+        <div class="name">消费者</div>
+        <div class="val" style="color:var(--green)">±10%</div>
+      </div>
+      <div style="font-size:.7rem;color:var(--muted)">真实需求</div>
+    </div>
+    <div class="arrow-v">→</div>
+    <div class="node-v">
+      <div class="node-box" style="border-color:var(--accent);background:#eff6ff">
+        <div class="name">零售商</div>
+        <div class="val" style="color:var(--accent)">±20%</div>
+      </div>
+      <div style="font-size:.7rem;color:var(--muted)">订单波动</div>
+    </div>
+    <div class="arrow-v">→</div>
+    <div class="node-v">
+      <div class="node-box" style="border-color:var(--amber);background:#fffbeb">
+        <div class="name">分销商</div>
+        <div class="val" style="color:var(--amber)">±40%</div>
+      </div>
+      <div style="font-size:.7rem;color:var(--muted)">订单波动</div>
+    </div>
+    <div class="arrow-v">→</div>
+    <div class="node-v">
+      <div class="node-box" style="border-color:var(--red);background:#fef2f2">
+        <div class="name">制造商</div>
+        <div class="val" style="color:var(--red)">±80%</div>
+      </div>
+      <div style="font-size:.7rem;color:var(--muted)">生产计划</div>
+    </div>
+    <div class="arrow-v">→</div>
+    <div class="node-v">
+      <div class="node-box" style="border-color:var(--purple);background:#f5f3ff">
+        <div class="name">供应商</div>
+        <div class="val" style="color:var(--purple)">±150%</div>
+      </div>
+      <div style="font-size:.7rem;color:var(--muted)">原材料采购</div>
+    </div>
+  </div>
+  <p style="text-align:center;font-size:.78rem;color:var(--muted);margin-top:.5rem">消费者需求只波动了 ±10%，但到原材料端变成了 ±150%——放大了 <strong>15 倍</strong></p>
+</div>
+
+<!-- ===== 3. REAL STORY ===== -->
+<h2>三、一个真实的故事</h2>
+
+<div class="story">
+  <p><span class="who">👶 宝洁公司（P&G）</span>发现了一个奇怪的现象：</p>
+  <p>帮宝适纸尿裤——婴儿每天用的数量几乎不变（一个婴儿一天换 4-6 片），<strong>消费者需求极其稳定</strong>。</p>
+  <p>但是，零售商的订单波动是消费者需求的 <strong>2-3 倍</strong>，分销商的订单波动是零售商的 <strong>2-3 倍</strong>，工厂的生产计划波动更大。</p>
+  <p>整条链上堆满了<strong>多余的库存</strong>，而真正的消费者需求——从头到尾几乎没变过。</p>
+  <p style="margin-top:.5rem;font-weight:600;color:var(--amber)">💡 这就是牛鞭效应：不是需求真的在变，而是每个环节的"猜测"在层层放大。</p>
+</div>
+
+<!-- ===== 4. WHY ===== -->
+<h2>四、为什么会发生？</h2>
+<p class="lead">不是因为某个环节"笨"，而是<strong>系统结构</strong>导致了这个结果——换谁来都一样。</p>
+
+<div class="steps">
+  <div class="step">
+    <div class="step-num">1</div>
+    <div class="step-content">
+      <h4>🔍 看不见真相</h4>
+      <p>零售商只看到自己的订单，不知道消费者真正买了多少。分销商只看到零售商的订单，不知道消费者的需求。每层都在"猜"，越猜越偏。</p>
+    </div>
+  </div>
+  <div class="step">
+    <div class="step-num">2</div>
+    <div class="step-content">
+      <h4>⏰ 反应总是慢半拍</h4>
+      <p>从下订单到收到货，需要几周甚至几个月（这就是<strong>LT，Lead Time</strong>）。等货到了，需求可能已经变了。但你已经下了单——晚了。</p>
+    </div>
+  </div>
+  <div class="step">
+    <div class="step-num">3</div>
+    <div class="step-content">
+      <h4>😰 宁多勿少的心理</h4>
+      <p>万一缺货怎么办？多订一点保险。每个环节都这么想，每层都多加一点<strong>安全库存</strong>——这些"保险"层层累加，变成了巨大的库存冗余。</p>
+    </div>
+  </div>
+  <div class="step">
+    <div class="step-num">4</div>
+    <div class="step-content">
+      <h4>😱 恐慌性放大</h4>
+      <p>一听说要涨价/缺货，所有环节同时抢购——订单暴增。等消息过去，需求恢复正常，但已经下的订单还在路上——库存堆积如山。</p>
+    </div>
+  </div>
+</div>
+
+<!-- ===== 5. THREE KEY CONCEPTS ===== -->
+<h2>五、三个关键概念</h2>
+<p class="lead">理解这三个概念，你就掌握了牛鞭效应的核心。</p>
+
+<div class="card">
+  <h4>📦 LT（Lead Time，提前期）</h4>
+  <p>从你下订单到收到货需要多长时间。</p>
+  <p><strong>例子</strong>：你在淘宝买一件衣服，快递 3 天到 → LT = 3 天。但如果是从海外代购，可能需要 30 天 → LT = 30 天。</p>
+  <p><strong>LT 越长 → 信息延迟越大 → 反应越滞后 → 牛鞭效应越严重。</strong></p>
+</div>
+
+<div class="card">
+  <h4>🛡️ 安全库存（Safety Stock）</h4>
+  <p>为了防止缺货而多备的"保险"库存。</p>
+  <p><strong>例子</strong>：你开奶茶店，每天卖 100 杯。但你怕某天突然卖 150 杯，所以备了 120 杯的原料 → 多出来的 20 杯就是安全库存。</p>
+  <p><strong>每层都加安全库存 → 层层累加 → 上游的库存远超实际需求。</strong></p>
+</div>
+
+<div class="card">
+  <h4>😤 过度反应（Overreaction）</h4>
+  <p>面对波动时，放大订货的倾向。</p>
+  <p><strong>例子</strong>：你发现上周卖了 120 杯（比平时多 20 杯），你怕下周更缺，于是订了 150 杯的原料 → 多订了 30 杯。这就是过度反应。</p>
+  <p><strong>过度反应系数 > 1.0 → 每层都放大一点 → 到上游变成巨大波动。</strong></p>
+</div>
+
+<!-- ===== 6. INTERACTIVE ===== -->
+<h2>六、动手试试</h2>
+<p class="lead">拖动下面的滑块，看看 LT 和过度反应如何影响牛鞭效应。</p>
+
+<div class="try-box">
+  <h4>🎮 牛鞭效应计算器</h4>
+  <p style="font-size:.82rem;color:var(--muted);margin-bottom:.6rem">假设消费者需求波动 ±10%，经过 4 个环节传导到上游。调节参数看效果：</p>
+
+  <div class="slider-row">
+    <label>LT（周）</label>
+    <input type="range" id="try_lt" min="1" max="10" value="2" oninput="calcBullwhip()">
+    <span class="sv" id="try_lt_v">2</span>
+  </div>
+  <div class="slider-row">
+    <label>安全库存倍数</label>
+    <input type="range" id="try_ss" min="0" max="20" value="5" oninput="calcBullwhip()">
+    <span class="sv" id="try_ss_v">0.5x</span>
+  </div>
+  <div class="slider-row">
+    <label>过度反应系数</label>
+    <input type="range" id="try_or" min="10" max="30" value="10" oninput="calcBullwhip()">
+    <span class="sv" id="try_or_v">1.0x</span>
+  </div>
+
+  <div class="result-box" id="try_result"></div>
+</div>
+
+<!-- ===== 7. IMPACT ===== -->
+<h2>七、牛鞭效应有多贵？</h2>
+
+<div class="kpi-row">
+  <div class="kpi"><div class="num">$1.1T</div><div class="label">全球每年因牛鞭效应<br>造成的库存冗余成本</div></div>
+  <div class="kpi"><div class="num">30-50%</div><div class="label">典型供应链中<br>不必要的库存占比</div></div>
+  <div class="kpi"><div class="num">2-3x</div><div class="label">宝洁案例中<br>零售商订单波动倍数</div></div>
+</div>
+
+<div class="card">
+  <h4>💸 牛鞭效应的"账单"</h4>
+  <p>• <strong>库存成本</strong>：多余的库存占用了大量资金，还要付仓储费、保险费、损耗</p>
+  <p>• <strong>缺货损失</strong>：上游产能不足时缺货，下游卖不出货，客户流失</p>
+  <p>• <strong>产能浪费</strong>：需求高峰时拼命扩产，需求回落后产能闲置</p>
+  <p>• <strong>关系恶化</strong>：缺货时互相指责，过剩时互相砍价</p>
+</div>
+
+<!-- ===== 8. SOLUTIONS ===== -->
+<h2>八、怎么解决？</h2>
+<p class="lead">核心思路：<strong>消除信息不对称 + 缩短反应时间 + 减少过度反应</strong>。</p>
+
+<div class="card">
+  <h4>🤝 方案一：信息共享（最有效）</h4>
+  <p>让消费者需求数据在整条链上透明可见——零售商卖了多少，工厂直接看到。</p>
+  <p><strong>代表做法</strong>：沃尔玛的 Retail Link 系统——供应商可以实时看到门店销售数据。帮宝适的需求波动从 ±70% 降到了 ±20%。</p>
+</div>
+
+<div class="card">
+  <h4>⚡ 方案二：缩短 LT</h4>
+  <p>从下单到收货的时间越短，信息延迟越小，反应越及时。</p>
+  <p><strong>怎么缩短</strong>：供应商本地化、柔性制造、数字化协同、VMI 补货。</p>
+</div>
+
+<div class="card">
+  <h4>💊 方案三：VMI（供应商管理库存）</h4>
+  <p>不是你下单让供应商送货，而是供应商根据你的消耗数据，<strong>主动帮你补货</strong>。</p>
+  <p><strong>代表做法</strong>：宝洁帮沃尔玛管理帮宝适的库存——宝洁直接看沃尔玛的销售数据，自动安排补货。</p>
+</div>
+
+<div class="card">
+  <h4>🤝 方案四：CPFR（协同预测补货）</h4>
+  <p>上下游企业坐在一起，<strong>用同一套数据</strong>做预测和计划——不是各猜各的。</p>
+  <p><strong>代表做法</strong>：S&OP 会议——销售、制造、采购每月对齐一次需求预测。</p>
+</div>
+
+<!-- ===== 9. QUIZ ===== -->
+<h2>九、检验一下</h2>
+
+<div class="quiz" id="q1">
+  <h4>❓ 问题 1：牛鞭效应是什么？</h4>
+  <div class="opts">
+    <div class="opt" onclick="check(this,'q1',false)">A. 消费者需求在整条链上保持一致</div>
+    <div class="opt" onclick="check(this,'q1',true)">B. 需求波动从下游到上游逐级放大</div>
+    <div class="opt" onclick="check(this,'q1',false)">C. 供应商总是比零售商更了解需求</div>
+    <div class="opt" onclick="check(this,'q1',false)">D. 库存在整条链上均匀分布</div>
+  </div>
+  <div class="explain" id="q1_exp">✅ 正确！牛鞭效应的核心就是"逐级放大"——消费者的小波动，到上游变成大波动。</div>
+</div>
+
+<div class="quiz" id="q2">
+  <h4>❓ 问题 2：以下哪个因素会<strong>加剧</strong>牛鞭效应？</h4>
+  <div class="opts">
+    <div class="opt" onclick="check(this,'q2',false)">A. 信息共享（上下游看到同样的数据）</div>
+    <div class="opt" onclick="check(this,'q2',false)">B. 缩短 LT（更快收到货）</div>
+    <div class="opt" onclick="check(this,'q2',true)">C. 每层都多加安全库存</div>
+    <div class="opt" onclick="check(this,'q2',false)">D. VMI（供应商管理库存）</div>
+  </div>
+  <div class="explain" id="q2_exp">✅ 正确！每层都加安全库存 = 每层都放大一点 → 层层累加 → 牛鞭效应加剧。ABD 都是缓解牛鞭效应的方法。</div>
+</div>
+
+<div class="quiz" id="q3">
+  <h4>❓ 问题 3：宝洁的帮宝适案例中，消费者需求是什么样的？</h4>
+  <div class="opts">
+    <div class="opt" onclick="check(this,'q3',false)">A. 高度波动（婴儿每天用的数量变化很大）</div>
+    <div class="opt" onclick="check(this,'q3',true)">B. 极其稳定（婴儿每天用的数量几乎不变）</div>
+    <div class="opt" onclick="check(this,'q3',false)">C. 季节性波动（夏天用得多，冬天用得少）</div>
+    <div class="opt" onclick="check(this,'q3',false)">D. 持续增长（每年增长 50%）</div>
+  </div>
+  <div class="explain" id="q3_exp">✅ 正确！帮宝适的消费者需求极其稳定——婴儿每天换 4-6 片，几乎不变。但零售商的订单波动是 2-3 倍，分销商更大。这就是牛鞭效应的"恐怖"之处：需求没变，但供应链自己把自己搞乱了。</div>
+</div>
+
+<!-- ===== 10. CTA ===== -->
+<div class="cta">
+  <h3 style="margin-bottom:.6rem">准备好动手了吗？</h3>
+  <a href="牛鞭效应模拟器.html">🚀 打开交互式模拟器</a>
+  <div class="note">调节参数，亲眼看到牛鞭效应如何在供应链中传导</div>
+</div>
+
+<footer>
+  <p>📊 参考资料：Hau L. Lee, "The Bullwhip Effect in Supply Chains", Sloan Management Review, 1997</p>
+  <p>MIT Beer Game | 宝洁-沃尔玛 VMI 案例</p>
+  <p>Claire Vault | 2026</p>
+</footer>
+
+</div><!-- /container -->
+
+<script>
+// ===== Bullwhip Calculator =====
+function calcBullwhip(){
+  const lt=+document.getElementById('try_lt').value;
+  const ss=+document.getElementById('try_ss').value/10;
+  const or_=+document.getElementById('try_or').value/10;
+  document.getElementById('try_lt_v').textContent=lt;
+  document.getElementById('try_ss_v').textContent=ss.toFixed(1)+'x';
+  document.getElementById('try_or_v').textContent=or_.toFixed(1)+'x';
+
+  const baseVar=10; // 消费者需求波动 ±10%
+  const stages=['消费者','零售商','分销商','制造商','供应商'];
+  const vars=[baseVar];
+  for(let i=1;i<5;i++){
+    const prevVar=vars[i-1];
+    // 简化模型：方差放大 = 1 + LT效应 + 安全库存效应 + 过度反应效应
+    const amplification=1+(lt*0.15)+(ss*0.2)+((or_-1)*0.8);
+    vars.push(prevVar*amplification);
+  }
+
+  let html='<div style="font-weight:600;margin-bottom:.5rem">📊 模拟结果</div>';
+  const maxVar=vars[4];
+  const colors=['var(--green)','var(--accent)','var(--amber)','var(--red)','var(--purple)'];
+  for(let i=0;i<5;i++){
+    const pct=Math.min(100,(vars[i]/maxVar)*100);
+    html+=`<div style="display:flex;align-items:center;gap:.5rem;margin:.3rem 0">`;
+    html+=`<span style="min-width:50px;font-size:.78rem;font-weight:600;color:${colors[i]}">${stages[i]}</span>`;
+    html+=`<div style="flex:1;background:#f1f5f9;border-radius:4px;height:20px;overflow:hidden">`;
+    html+=`<div style="width:${pct}%;height:100%;background:${colors[i]};border-radius:4px;display:flex;align-items:center;padding-left:.4rem;font-size:.7rem;color:#fff;font-weight:600">`;
+    html+=`±${vars[i].toFixed(0)}%</div></div></div>`;
+  }
+  const ratio=(vars[4]/vars[0]).toFixed(1);
+  html+=`<div style="margin-top:.6rem;padding:.5rem .7rem;background:#f9fafb;border-radius:6px;font-size:.82rem">`;
+  html+=`<strong>放大倍数：</strong>消费者 ±${vars[0]}% → 供应商 ±${vars[4].toFixed(0)}%，放大了 <strong>${ratio}x</strong>。`;
+  if(ratio>10) html+=` <span style="color:var(--red)">⚠️ 极端牛鞭！</span>`;
+  else if(ratio>3) html+=` <span style="color:var(--amber)">⚠️ 显著牛鞭</span>`;
+  else html+=` <span style="color:var(--green)">✅ 可控</span>`;
+  html+=`</div>`;
+  document.getElementById('try_result').innerHTML=html;
+}
+
+// ===== Quiz =====
+function check(el,qid,correct){
+  const quiz=document.getElementById(qid);
+  const opts=quiz.querySelectorAll('.opt');
+  opts.forEach(o=>{o.style.pointerEvents='none';o.classList.remove('correct','wrong')});
+  if(correct){el.classList.add('correct');document.getElementById(qid+'_exp').style.display='block';}
+  else{el.classList.add('wrong');document.getElementById(qid+'_exp').style.display='block';document.getElementById(qid+'_exp').innerHTML='❌ 再想想？看看上面的解释。';}
+}
+
+// Init
+calcBullwhip();
+</script>
+</body>
+</html>
