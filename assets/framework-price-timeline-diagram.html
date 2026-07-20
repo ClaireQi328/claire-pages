@@ -1,0 +1,694 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>框架协议与价格台账时间对齐问题示意图</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Noto Sans SC", sans-serif;
+            background: #f8fafc;
+            color: #1e293b;
+            line-height: 1.6;
+            padding: 40px 20px;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        h1 {
+            text-align: center;
+            font-size: 28px;
+            font-weight: 700;
+            color: #0f172a;
+            margin-bottom: 8px;
+        }
+
+        .subtitle {
+            text-align: center;
+            font-size: 15px;
+            color: #64748b;
+            margin-bottom: 48px;
+        }
+
+        /* Section styles */
+        .section {
+            background: #ffffff;
+            border-radius: 12px;
+            padding: 32px;
+            margin-bottom: 32px;
+            border: 1px solid #e2e8f0;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.04);
+        }
+
+        .section-header {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 24px;
+        }
+
+        .section-number {
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 700;
+            font-size: 16px;
+            flex-shrink: 0;
+        }
+
+        .section-title {
+            font-size: 18px;
+            font-weight: 600;
+        }
+
+        .section-desc {
+            font-size: 14px;
+            color: #64748b;
+            margin-bottom: 20px;
+            padding-left: 48px;
+        }
+
+        /* Timeline visualization */
+        .timeline-container {
+            padding: 0 48px;
+        }
+
+        .timeline-row {
+            display: flex;
+            align-items: center;
+            margin-bottom: 16px;
+            gap: 16px;
+        }
+
+        .timeline-label {
+            width: 140px;
+            font-size: 13px;
+            font-weight: 500;
+            color: #475569;
+            text-align: right;
+            flex-shrink: 0;
+        }
+
+        .timeline-bar-container {
+            flex: 1;
+            position: relative;
+            height: 40px;
+            background: #f1f5f9;
+            border-radius: 6px;
+            overflow: hidden;
+        }
+
+        .timeline-bar {
+            position: absolute;
+            height: 100%;
+            border-radius: 6px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 11px;
+            font-weight: 600;
+            color: #fff;
+            min-width: 60px;
+            transition: all 0.3s ease;
+        }
+
+        .timeline-bar:hover {
+            opacity: 0.9;
+            transform: scaleY(1.05);
+        }
+
+        /* Color schemes */
+        .bar-framework {
+            background: linear-gradient(135deg, #3b82f6, #2563eb);
+        }
+
+        .bar-ledger {
+            background: linear-gradient(135deg, #10b981, #059669);
+        }
+
+        .bar-overlap {
+            background: linear-gradient(135deg, #8b5cf6, #7c3aed);
+        }
+
+        .bar-error {
+            background: linear-gradient(135deg, #ef4444, #dc2626);
+        }
+
+        .bar-warning {
+            background: linear-gradient(135deg, #f59e0b, #d97706);
+        }
+
+        .bar-success {
+            background: linear-gradient(135deg, #10b981, #059669);
+        }
+
+        /* Month markers */
+        .month-markers {
+            display: flex;
+            padding-left: 156px;
+            margin-bottom: 8px;
+        }
+
+        .month-marker {
+            flex: 1;
+            font-size: 11px;
+            color: #94a3b8;
+            text-align: center;
+        }
+
+        /* Legend */
+        .legend {
+            display: flex;
+            gap: 24px;
+            padding: 16px 48px;
+            flex-wrap: wrap;
+        }
+
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 13px;
+            color: #475569;
+        }
+
+        .legend-dot {
+            width: 12px;
+            height: 12px;
+            border-radius: 3px;
+        }
+
+        /* Arrow connector */
+        .arrow-down {
+            text-align: center;
+            padding: 12px 0;
+            color: #94a3b8;
+            font-size: 24px;
+        }
+
+        /* Problem highlight */
+        .problem-box {
+            background: #fef2f2;
+            border: 1px solid #fecaca;
+            border-radius: 8px;
+            padding: 16px 20px;
+            margin: 16px 48px;
+            font-size: 13px;
+            color: #991b1b;
+            display: flex;
+            align-items: flex-start;
+            gap: 10px;
+        }
+
+        .problem-icon {
+            font-size: 18px;
+            flex-shrink: 0;
+        }
+
+        /* Solution highlight */
+        .solution-box {
+            background: #f0fdf4;
+            border: 1px solid #bbf7d0;
+            border-radius: 8px;
+            padding: 16px 20px;
+            margin: 16px 48px;
+            font-size: 13px;
+            color: #166534;
+            display: flex;
+            align-items: flex-start;
+            gap: 10px;
+        }
+
+        /* Comparison table */
+        .compare-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+            padding: 0 48px;
+        }
+
+        .compare-card {
+            border: 1px solid #e2e8f0;
+            border-radius: 8px;
+            padding: 20px;
+        }
+
+        .compare-card h4 {
+            font-size: 14px;
+            font-weight: 600;
+            margin-bottom: 12px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .compare-card ul {
+            font-size: 13px;
+            color: #475569;
+            padding-left: 20px;
+        }
+
+        .compare-card li {
+            margin-bottom: 6px;
+        }
+
+        /* Code/flow style */
+        .flow-steps {
+            padding: 0 48px;
+        }
+
+        .flow-step {
+            display: flex;
+            gap: 16px;
+            margin-bottom: 16px;
+        }
+
+        .flow-step-num {
+            width: 28px;
+            height: 28px;
+            border-radius: 50%;
+            background: #f1f5f9;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 12px;
+            font-weight: 600;
+            color: #475569;
+            flex-shrink: 0;
+        }
+
+        .flow-step-content {
+            font-size: 14px;
+            color: #334155;
+        }
+
+        .flow-step-content strong {
+            color: #0f172a;
+        }
+
+        /* Divider */
+        .divider {
+            height: 1px;
+            background: #e2e8f0;
+            margin: 24px 48px;
+        }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            .timeline-label {
+                width: 100px;
+                font-size: 12px;
+            }
+
+            .month-markers {
+                padding-left: 116px;
+            }
+
+            .timeline-container,
+            .legend,
+            .compare-grid,
+            .flow-steps,
+            .problem-box,
+            .solution-box {
+                padding-left: 16px;
+                padding-right: 16px;
+            }
+
+            .compare-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>框架协议与价格台账时间对齐问题</h1>
+        <p class="subtitle">业务逻辑、故障现象与处理方案示意图</p>
+
+        <!-- Section 1: 原有业务逻辑 -->
+        <div class="section">
+            <div class="section-header">
+                <div class="section-number" style="background: #dbeafe; color: #2563eb;">1</div>
+                <div class="section-title">原有业务逻辑</div>
+            </div>
+            <p class="section-desc">框架协议与价格台账为两套独立有效期管理体系，互不强制对齐</p>
+
+            <div class="timeline-container">
+                <div class="month-markers">
+                    <div class="month-marker">1月</div>
+                    <div class="month-marker">2月</div>
+                    <div class="month-marker">3月</div>
+                    <div class="month-marker">4月</div>
+                    <div class="month-marker">5月</div>
+                    <div class="month-marker">6月</div>
+                    <div class="month-marker">7月</div>
+                    <div class="month-marker">...</div>
+                    <div class="month-marker">12月</div>
+                </div>
+
+                <div class="timeline-row">
+                    <div class="timeline-label">框架协议有效期</div>
+                    <div class="timeline-bar-container">
+                        <div class="timeline-bar bar-framework" style="left: 0%; width: 100%;">
+                            2026/1/1 - 2099/12/31
+                        </div>
+                    </div>
+                </div>
+
+                <div class="timeline-row">
+                    <div class="timeline-label">台账价格有效期</div>
+                    <div class="timeline-bar-container">
+                        <div class="timeline-bar bar-ledger" style="left: 41.6%; width: 58.4%;">
+                            2026/6/1 - 2099/12/31
+                        </div>
+                    </div>
+                </div>
+
+                <div class="timeline-row">
+                    <div class="timeline-label">价格取值规则</div>
+                    <div class="timeline-bar-container">
+                        <div class="timeline-bar bar-warning" style="left: 0%; width: 41.6%;">
+                            自动沿用 6/1 起的台账价格
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="legend">
+                <div class="legend-item">
+                    <div class="legend-dot" style="background: #3b82f6;"></div>
+                    框架协议有效期
+                </div>
+                <div class="legend-item">
+                    <div class="legend-dot" style="background: #10b981;"></div>
+                    台账价格有效期
+                </div>
+                <div class="legend-item">
+                    <div class="legend-dot" style="background: #f59e0b;"></div>
+                    自动取值区间
+                </div>
+            </div>
+        </div>
+
+        <!-- Section 2: 新设计方案 -->
+        <div class="section">
+            <div class="section-header">
+                <div class="section-number" style="background: #d1fae5; color: #059669;">2</div>
+                <div class="section-title">新设计方案逻辑</div>
+            </div>
+            <p class="section-desc">统一数据口径，强制规则：正式框架协议有效期 = 价格台账有效期</p>
+
+            <div class="timeline-container">
+                <div class="month-markers">
+                    <div class="month-marker">1月</div>
+                    <div class="month-marker">2月</div>
+                    <div class="month-marker">3月</div>
+                    <div class="month-marker">4月</div>
+                    <div class="month-marker">5月</div>
+                    <div class="month-marker">6月</div>
+                    <div class="month-marker">7月</div>
+                    <div class="month-marker">...</div>
+                    <div class="month-marker">12月</div>
+                </div>
+
+                <div class="timeline-row">
+                    <div class="timeline-label">框架协议有效期</div>
+                    <div class="timeline-bar-container">
+                        <div class="timeline-bar bar-success" style="left: 41.6%; width: 58.4%;">
+                            2026/6/1 - 2099/12/31
+                        </div>
+                    </div>
+                </div>
+
+                <div class="timeline-row">
+                    <div class="timeline-label">台账价格有效期</div>
+                    <div class="timeline-bar-container">
+                        <div class="timeline-bar bar-success" style="left: 41.6%; width: 58.4%;">
+                            2026/6/1 - 2099/12/31
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="solution-box">
+                <span class="solution-icon">✅</span>
+                <div>
+                    <strong>强制对齐</strong>：框架协议与台账时间完全绑定同步，不再存在独立维护的两套有效期
+                </div>
+            </div>
+        </div>
+
+        <!-- Section 3: 历史数据迁移问题 -->
+        <div class="section">
+            <div class="section-header">
+                <div class="section-number" style="background: #fef3c7; color: #d97706;">3</div>
+                <div class="section-title">历史数据迁移与脏数据成因</div>
+            </div>
+            <p class="section-desc">迁移仅同步框架协议原始时间区间，未同步对齐台账生效时间</p>
+
+            <div class="timeline-container">
+                <div class="month-markers">
+                    <div class="month-marker">1月</div>
+                    <div class="month-marker">2月</div>
+                    <div class="month-marker">3月</div>
+                    <div class="month-marker">4月</div>
+                    <div class="month-marker">5月</div>
+                    <div class="month-marker">6月</div>
+                    <div class="month-marker">7月</div>
+                    <div class="month-marker">...</div>
+                    <div class="month-marker">12月</div>
+                </div>
+
+                <div class="timeline-row">
+                    <div class="timeline-label">迁移后框架协议</div>
+                    <div class="timeline-bar-container">
+                        <div class="timeline-bar bar-framework" style="left: 0%; width: 100%;">
+                            2026/1/1 - 2099/12/31
+                        </div>
+                    </div>
+                </div>
+
+                <div class="timeline-row">
+                    <div class="timeline-label">台账有效期</div>
+                    <div class="timeline-bar-container">
+                        <div class="timeline-bar bar-ledger" style="left: 41.6%; width: 58.4%;">
+                            2026/6/1 - 2099/12/31
+                        </div>
+                    </div>
+                </div>
+
+                <div class="timeline-row">
+                    <div class="timeline-label" style="color: #dc2626;">错位区间</div>
+                    <div class="timeline-bar-container">
+                        <div class="timeline-bar bar-error" style="left: 0%; width: 41.6%;">
+                            ⚠️ 框架早于台账，数据不匹配
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="problem-box">
+                <span class="problem-icon">⚠️</span>
+                <div>
+                    <strong>脏数据特征</strong>：正式框架协议生效起始时间早于对应台账的有效起始时间，框架时段与台账时段前后错位
+                </div>
+            </div>
+        </div>
+
+        <!-- Section 4: 当前故障现象 -->
+        <div class="section">
+            <div class="section-header">
+                <div class="section-number" style="background: #fee2e2; color: #dc2626;">4</div>
+                <div class="section-title">当前业务故障现象与根因</div>
+            </div>
+            <p class="section-desc">价格变更操作触发下游系统校验失败</p>
+
+            <div class="flow-steps">
+                <div class="flow-step">
+                    <div class="flow-step-num">1</div>
+                    <div class="flow-step-content">
+                        <strong>触发</strong>：零件发起价格变更操作
+                    </div>
+                </div>
+                <div class="flow-step">
+                    <div class="flow-step-num">2</div>
+                    <div class="flow-step-content">
+                        <strong>推送</strong>：系统以台账有效期为基准，向下游重新推送价格数据
+                    </div>
+                </div>
+                <div class="flow-step">
+                    <div class="flow-step-num">3</div>
+                    <div class="flow-step-content">
+                        <strong>调整</strong>：同步将框架协议有效期向后顺延调整
+                    </div>
+                </div>
+                <div class="flow-step">
+                    <div class="flow-step-num">4</div>
+                    <div class="flow-step-content">
+                        <strong>冲突</strong>：调整后框架协议起始时间 <strong>晚于</strong> 历史订单拉动时间
+                    </div>
+                </div>
+                <div class="flow-step">
+                    <div class="flow-step-num" style="background: #fee2e2; color: #dc2626;">!</div>
+                    <div class="flow-step-content">
+                        <strong style="color: #dc2626;">报错</strong>：下游系统校验失败 - 早期已拉动的历史订单，无匹配生效的框架协议，价格匹配失败
+                    </div>
+                </div>
+            </div>
+
+            <div class="divider"></div>
+
+            <div class="timeline-container">
+                <div class="month-markers">
+                    <div class="month-marker">1月</div>
+                    <div class="month-marker">2月</div>
+                    <div class="month-marker">3月</div>
+                    <div class="month-marker">4月</div>
+                    <div class="month-marker">5月</div>
+                    <div class="month-marker">6月</div>
+                    <div class="month-marker">7月</div>
+                    <div class="month-marker">...</div>
+                    <div class="month-marker">12月</div>
+                </div>
+
+                <div class="timeline-row">
+                    <div class="timeline-label">历史订单拉动</div>
+                    <div class="timeline-bar-container">
+                        <div class="timeline-bar bar-warning" style="left: 16%; width: 25%;">
+                            3月-5月已拉动
+                        </div>
+                    </div>
+                </div>
+
+                <div class="timeline-row">
+                    <div class="timeline-label">变价后框架协议</div>
+                    <div class="timeline-bar-container">
+                        <div class="timeline-bar bar-error" style="left: 41.6%; width: 58.4%;">
+                            2026/6/1 起始（向后顺延）
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="problem-box">
+                <span class="problem-icon">❌</span>
+                <div>
+                    <strong>根因</strong>：历史订单拉动时间（3-5月）落在框架协议有效期（6月起始）之前，导致价格匹配失败
+                </div>
+            </div>
+        </div>
+
+        <!-- Section 5: 处理方案 -->
+        <div class="section">
+            <div class="section-header">
+                <div class="section-number" style="background: #d1fae5; color: #059669;">5</div>
+                <div class="section-title">处理方案</div>
+            </div>
+
+            <div class="compare-grid">
+                <div class="compare-card">
+                    <h4>
+                        <span style="color: #10b981;">✅</span>
+                        全新拉动零件
+                    </h4>
+                    <ul>
+                        <li>新方案下创建的正式价框架协议</li>
+                        <li>框架与台账时间天然对齐</li>
+                        <li><strong>不受影响</strong></li>
+                    </ul>
+                </div>
+
+                <div class="compare-card">
+                    <h4>
+                        <span style="color: #f59e0b;">🔧</span>
+                        历史数据修复
+                    </h4>
+                    <ul>
+                        <li>正式件：台账开始时间刷为框架协议开始时间</li>
+                        <li>暂作价转正：使用商务变价将时间往前改</li>
+                        <li><strong>消除时间错位</strong></li>
+                    </ul>
+                </div>
+            </div>
+
+            <div class="divider"></div>
+
+            <div class="compare-grid">
+                <div class="compare-card" style="grid-column: 1 / -1;">
+                    <h4>
+                        <span style="color: #3b82f6;">🛡️</span>
+                        长期方案：定点申请单校验
+                    </h4>
+                    <div class="flow-steps" padding: 0;>
+                        <div class="flow-step">
+                            <div class="flow-step-num">1</div>
+                            <div class="flow-step-content">采购填写定点申请单时，系统校验零件关联的暂作价开始时间</div>
+                        </div>
+                        <div class="flow-step">
+                            <div class="flow-step-num">2</div>
+                            <div class="flow-step-content">提醒采购填写的开始时间要覆盖暂作价开始时间</div>
+                        </div>
+                        <div class="flow-step">
+                            <div class="flow-step-num">3</div>
+                            <div class="flow-step-content">从源头防止时间错位问题再次发生</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="solution-box">
+                <span class="solution-icon">💡</span>
+                <div>
+                    <strong>核心思路</strong>：存量数据修复（刷台账 + 商务变价）+ 增量数据防控（定点申请校验），双管齐下彻底解决问题
+                </div>
+            </div>
+        </div>
+
+        <!-- Summary -->
+        <div class="section" style="background: #f8fafc; border: 2px solid #e2e8f0;">
+            <div class="section-header">
+                <div class="section-number" style="background: #f1f5f9; color: #475569;">📋</div>
+                <div class="section-title">问题全景总结</div>
+            </div>
+
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px; padding: 0 16px;">
+                <div style="text-align: center; padding: 20px; background: #fff; border-radius: 8px; border: 1px solid #e2e8f0;">
+                    <div style="font-size: 32px; margin-bottom: 8px;">📊</div>
+                    <div style="font-size: 14px; font-weight: 600; margin-bottom: 4px;">根因</div>
+                    <div style="font-size: 13px; color: #64748b;">两套独立有效期<br>迁移未同步对齐</div>
+                </div>
+
+                <div style="text-align: center; padding: 20px; background: #fff; border-radius: 8px; border: 1px solid #e2e8f0;">
+                    <div style="font-size: 32px; margin-bottom: 8px;">💥</div>
+                    <div style="font-size: 14px; font-weight: 600; margin-bottom: 4px;">故障</div>
+                    <div style="font-size: 13px; color: #64748b;">价格变更后<br>历史订单匹配失败</div>
+                </div>
+
+                <div style="text-align: center; padding: 20px; background: #fff; border-radius: 8px; border: 1px solid #e2e8f0;">
+                    <div style="font-size: 32px; margin-bottom: 8px;">🔧</div>
+                    <div style="font-size: 14px; font-weight: 600; margin-bottom: 4px;">修复</div>
+                    <div style="font-size: 13px; color: #64748b;">刷台账时间<br>商务变价调整</div>
+                </div>
+
+                <div style="text-align: center; padding: 20px; background: #fff; border-radius: 8px; border: 1px solid #e2e8f0;">
+                    <div style="font-size: 32px; margin-bottom: 8px;">🛡️</div>
+                    <div style="font-size: 14px; font-weight: 600; margin-bottom: 4px;">防控</div>
+                    <div style="font-size: 13px; color: #64748b;">定点申请校验<br>源头阻断</div>
+                </div>
+            </div>
+        </div>
+    </div>
+</body>
+</html>
