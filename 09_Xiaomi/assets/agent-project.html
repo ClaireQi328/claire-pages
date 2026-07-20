@@ -1,0 +1,303 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Agent 层 - FDE 模式探索</title>
+<style>
+  *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+
+  :root {
+    --accent: #8b5cf6;
+    --accent-light: #f5f3ff;
+    --text-primary: #1a1a2e;
+    --text-secondary: #5a5a72;
+    --text-tertiary: #8e8ea0;
+    --bg-page: #f8f7f4;
+    --bg-card: #ffffff;
+    --border-light: #f0eeea;
+    --radius-sm: 10px;
+    --shadow-sm: 0 1px 3px rgba(0,0,0,0.04);
+    --shadow-md: 0 4px 20px rgba(0,0,0,0.06);
+    --font-sans: "SF Pro Display", -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Noto Sans SC", "Microsoft YaHei", sans-serif;
+    --font-mono: "SF Mono", "Fira Code", "Cascadia Code", monospace;
+  }
+
+  html { scroll-behavior: smooth; }
+
+  body {
+    font-family: var(--font-sans);
+    background: var(--bg-page);
+    color: var(--text-primary);
+    line-height: 1.6;
+    -webkit-font-smoothing: antialiased;
+    min-height: 100dvh;
+  }
+
+  .page {
+    max-width: 960px;
+    margin: 0 auto;
+    padding: 56px 24px 72px;
+  }
+
+  /* ===== Header ===== */
+  .header {
+    text-align: center;
+    margin-bottom: 48px;
+    opacity: 0;
+    transform: translateY(20px);
+    animation: fadeUp 0.7s cubic-bezier(0.16, 1, 0.3, 1) 0.1s forwards;
+  }
+
+  .header-badge {
+    display: inline-block;
+    font-size: 0.65rem;
+    font-weight: 600;
+    padding: 3px 10px;
+    border-radius: 4px;
+    background: var(--accent-light);
+    color: var(--accent);
+    letter-spacing: 0.03em;
+    margin-bottom: 12px;
+  }
+
+  .header-name {
+    font-size: 1.8rem;
+    font-weight: 700;
+    color: var(--text-primary);
+    letter-spacing: -0.02em;
+    margin-bottom: 6px;
+  }
+
+  .header-label {
+    font-size: 0.88rem;
+    color: var(--text-tertiary);
+  }
+
+  /* ===== Divider ===== */
+  .divider {
+    width: 48px;
+    height: 3px;
+    border-radius: 2px;
+    background: var(--accent);
+    margin: 0 auto 48px;
+    opacity: 0;
+    animation: fadeUp 0.6s cubic-bezier(0.16, 1, 0.3, 1) 0.25s forwards;
+  }
+
+  /* ===== Goal Card ===== */
+  .goal-card {
+    background: var(--bg-card);
+    border-radius: var(--radius-sm);
+    padding: 24px 28px;
+    border: 1px solid var(--border-light);
+    box-shadow: var(--shadow-sm);
+    margin-bottom: 32px;
+    position: relative;
+    overflow: hidden;
+    opacity: 0;
+    transform: translateY(16px);
+  }
+
+  .goal-card::after {
+    content: "";
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 3px;
+    background: linear-gradient(90deg, var(--accent), rgba(139, 92, 246, 0.3));
+  }
+
+  .goal-label {
+    font-size: 0.72rem;
+    font-weight: 600;
+    color: var(--accent);
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    margin-bottom: 8px;
+  }
+
+  .goal-text {
+    font-size: 0.88rem;
+    color: var(--text-secondary);
+    line-height: 1.55;
+  }
+
+  /* ===== Section Title ===== */
+  .section-title {
+    font-size: 1.15rem;
+    font-weight: 700;
+    color: var(--text-primary);
+    letter-spacing: -0.01em;
+    margin-bottom: 16px;
+    opacity: 0;
+    transform: translateY(12px);
+  }
+
+  /* ===== Steps ===== */
+  .steps {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+  }
+
+  .step {
+    display: flex;
+    gap: 14px;
+    align-items: flex-start;
+    background: var(--bg-card);
+    border-radius: var(--radius-sm);
+    padding: 18px 20px;
+    border: 1px solid var(--border-light);
+    box-shadow: var(--shadow-sm);
+    transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+    opacity: 0;
+    transform: translateY(16px);
+  }
+
+  .step:hover {
+    transform: translateY(-1px);
+    box-shadow: var(--shadow-md);
+  }
+
+  .step-num {
+    flex-shrink: 0;
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    background: var(--accent-light);
+    color: var(--accent);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.75rem;
+    font-weight: 650;
+    margin-top: 1px;
+  }
+
+  .step-body { flex: 1; min-width: 0; }
+
+  .step-title {
+    font-size: 0.92rem;
+    font-weight: 650;
+    color: var(--text-primary);
+    margin-bottom: 3px;
+    line-height: 1.4;
+  }
+
+  .step-desc {
+    font-size: 0.82rem;
+    color: var(--text-tertiary);
+    line-height: 1.55;
+  }
+
+  /* ===== Footer ===== */
+  .footer {
+    margin-top: 48px;
+    text-align: center;
+    opacity: 0;
+    transform: translateY(16px);
+    animation: fadeUp 0.6s cubic-bezier(0.16, 1, 0.3, 1) 0.5s forwards;
+  }
+
+  .footer-link {
+    font-size: 0.82rem;
+    color: var(--text-tertiary);
+    text-decoration: none;
+    transition: color 0.2s;
+  }
+
+  .footer-link:hover { color: var(--accent); }
+
+  @keyframes fadeUp {
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  @media (max-width: 640px) {
+    .page { padding: 40px 16px 56px; }
+    .header-name { font-size: 1.4rem; }
+    .step { padding: 16px; }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+    }
+    .header, .divider, .goal-card, .section-title, .step, .footer {
+      opacity: 1;
+      transform: none;
+    }
+  }
+</style>
+</head>
+<body>
+
+<div class="page">
+
+  <header class="header">
+    <div class="header-badge">Q3 落地</div>
+    <h1 class="header-name">Agent 层探索</h1>
+    <p class="header-label">以样件订单自动化为试点，验证 FDE 模式可行性</p>
+  </header>
+
+  <div class="divider"></div>
+
+  <!-- Goal -->
+  <div class="goal-card" data-anim>
+    <div class="goal-label">背景与目标</div>
+    <p class="goal-text">以采购业务为试验田，探索"数据基座 - 业务封装 - 智能应用"的三层实现路径。在 CLI + Skill 验证方法论可行性后，将同一思路延伸至订单域，以 FDE 模式探索自动下单 Agent，实现需求到订单交付的自动化。</p>
+  </div>
+
+  <!-- Steps -->
+  <h2 class="section-title" data-anim data-delay="0.1">进展</h2>
+
+  <div class="steps">
+    <div class="step" data-anim data-delay="0.15">
+      <div class="step-num">1</div>
+      <div class="step-body">
+        <div class="step-title">FDE 模式探索</div>
+        <div class="step-desc">以订单域为切入点，验证 Agent 自动化方案的可行性，探索从需求识别到订单交付的端到端自动化路径</div>
+      </div>
+    </div>
+    <div class="step" data-anim data-delay="0.25">
+      <div class="step-num">2</div>
+      <div class="step-body">
+        <div class="step-title">需求分析完成</div>
+        <div class="step-desc">已完成初步需求分析与方案设计，预计 Q3 落地样件订单自动化 Agent，实现从人工驱动到智能驱动的转变</div>
+      </div>
+    </div>
+  </div>
+
+  <footer class="footer">
+    <a class="footer-link" href="resume-qi-yue.html">查看个人简历</a>
+  </footer>
+
+</div>
+
+<script>
+(function() {
+  const prefersReduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  const els = document.querySelectorAll('[data-anim]');
+  if (prefersReduced) { els.forEach(e => { e.style.opacity='1'; e.style.transform='none'; }); return; }
+  const obs = new IntersectionObserver(entries => {
+    entries.forEach(entry => {
+      if (entry.isIntersecting) {
+        const d = parseFloat(entry.target.dataset.delay) || 0;
+        setTimeout(() => {
+          entry.target.style.opacity = '1';
+          entry.target.style.transform = 'translateY(0)';
+          entry.target.style.transition = 'opacity 0.6s cubic-bezier(0.16,1,0.3,1), transform 0.6s cubic-bezier(0.16,1,0.3,1)';
+        }, d * 1000);
+        obs.unobserve(entry.target);
+      }
+    });
+  }, { threshold: 0.12, rootMargin: '0px 0px -30px 0px' });
+  els.forEach(e => obs.observe(e));
+})();
+</script>
+
+</body>
+</html>
