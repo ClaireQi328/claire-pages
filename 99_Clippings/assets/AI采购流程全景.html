@@ -1,0 +1,405 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>AI × 采购：从订单自动化到供应链智能体</title>
+<style>
+:root{
+  --c-bg:#f8fafc;--c-card:#fff;--c-border:#e2e8f0;
+  --c-text:#0f172a;--c-sub:#334155;--c-muted:#94a3b8;
+  --c-teal:#0d9488;--c-teal-d:#0f766e;--c-teal-l:#ccfbf1;--c-teal-bg:#f0fdfa;
+  --c-blue:#2563eb;--c-blue-l:#dbeafe;--c-blue-bg:#eff6ff;
+  --c-amber:#d97706;--c-amber-bg:#fffbeb;--c-amber-l:#fef3c7;
+  --c-red:#dc2626;--c-red-bg:#fef2f2;
+  --c-green:#16a34a;--c-green-bg:#f0fdf4;
+  --c-purple:#7c3aed;--c-purple-bg:#f5f3ff;
+  --shadow:0 1px 3px rgba(0,0,0,.05),0 6px 24px rgba(0,0,0,.04);
+  --shadow-lg:0 4px 12px rgba(0,0,0,.05),0 16px 48px rgba(0,0,0,.08);
+  --r:14px;--r-lg:20px;
+}
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:'SF Pro Display',-apple-system,BlinkMacSystemFont,'PingFang SC','Noto Sans SC','Microsoft YaHei',sans-serif;background:var(--c-bg);color:var(--c-text);line-height:1.75;-webkit-font-smoothing:antialiased;overflow-x:hidden}
+a{color:var(--c-teal);text-decoration:none}
+
+/* ─── Hero ─── */
+.hero{padding:80px 24px 56px;background:linear-gradient(135deg,#0f172a 0%,#134e4a 40%,#0d9488 100%);color:#fff;text-align:center;position:relative}
+.hero::before{content:'';position:absolute;inset:0;background:url("data:image/svg+xml,%3Csvg width='40' height='40' viewBox='0 0 40 40' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='%23fff' fill-opacity='.025'%3E%3Cpath d='M20 0L40 20L20 40L0 20z'/%3E%3C/g%3E%3C/svg%3E");pointer-events:none}
+.hero h1{font-size:clamp(1.6rem,4vw,2.8rem);font-weight:900;letter-spacing:-1.5px;line-height:1.2}
+.hero h1 span{background:linear-gradient(135deg,#5eead4,#93c5fd);-webkit-background-clip:text;-webkit-text-fill-color:transparent}
+.hero .sub{font-size:1.05em;opacity:.7;margin:14px auto 0;max-width:640px}
+.badges{display:flex;justify-content:center;gap:14px;flex-wrap:wrap;margin-top:28px}
+.badge{display:inline-flex;align-items:center;gap:7px;padding:9px 20px;background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.12);border-radius:100px;font-size:.88em;font-weight:700;backdrop-filter:blur(6px)}
+.badge em{font-style:normal;font-size:1.15em}
+
+/* ─── Layout ─── */
+.wrap{max-width:1200px;margin:0 auto;padding:0 20px}
+.sec{padding:52px 0 24px}
+.sec-head{text-align:center;margin-bottom:36px}
+.sec-head h2{font-size:1.5em;font-weight:800;letter-spacing:-.5px}
+.sec-head p{color:var(--c-sub);font-size:.95em;margin-top:6px}
+.divider{width:52px;height:3px;background:var(--c-teal);border-radius:2px;margin:12px auto 0}
+
+/* ─── Company cards ─── */
+.co-grid{display:grid;grid-template-columns:1fr 1fr;gap:20px}
+.co-card{background:var(--c-card);border-radius:var(--r-lg);padding:28px;box-shadow:var(--shadow);border-top:4px solid transparent;transition:transform .25s,box-shadow .25s}
+.co-card:hover{transform:translateY(-4px);box-shadow:var(--shadow-lg)}
+.co-card.xiaomi{border-top-color:var(--c-amber)}
+.co-card.nio{border-top-color:var(--c-blue)}
+.co-card h3{font-size:1.15em;font-weight:800;display:flex;align-items:center;gap:8px;margin-bottom:14px}
+.co-card h3 .tag{font-size:.6em;padding:3px 10px;border-radius:100px;font-weight:700;text-transform:uppercase}
+.xiaomi .tag{background:var(--c-amber-bg);color:var(--c-amber)}
+.nio .tag{background:var(--c-blue-bg);color:var(--c-blue)}
+.co-card p{color:var(--c-sub);font-size:.9em;margin-bottom:16px}
+.co-kpis{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}
+.co-kpi{background:var(--c-bg);border-radius:var(--r);padding:14px;text-align:center}
+.co-kpi .v{font-size:1.5em;font-weight:900;line-height:1.1}
+.xiaomi .co-kpi .v{color:var(--c-amber)}
+.nio .co-kpi .v{color:var(--c-blue)}
+.co-kpi .l{font-size:.72em;color:var(--c-muted);margin-top:3px;font-weight:600}
+
+/* ─── Timeline ─── */
+.tl-wrap{position:relative}
+.tl-track{display:flex;justify-content:space-between;align-items:flex-start;position:relative;gap:2px}
+.tl-track::before{content:'';position:absolute;top:30px;left:28px;right:28px;height:3px;background:linear-gradient(90deg,var(--c-border),var(--c-teal) 30%,var(--c-teal) 70%,var(--c-border));z-index:0}
+.step{display:flex;flex-direction:column;align-items:center;cursor:pointer;flex:1;position:relative;z-index:1;transition:transform .2s}
+.step:hover{transform:translateY(-5px)}
+.dot{width:60px;height:60px;border-radius:50%;background:var(--c-card);border:3px solid var(--c-border);display:flex;align-items:center;justify-content:center;font-size:1.5em;transition:all .35s cubic-bezier(.4,0,.2,1);box-shadow:var(--shadow)}
+.step.on .dot{border-color:var(--c-teal);background:var(--c-teal);color:#fff;box-shadow:0 0 0 8px rgba(13,148,136,.12),var(--shadow-lg);transform:scale(1.1)}
+.step.done .dot{border-color:var(--c-teal);color:var(--c-teal)}
+.lbl{font-size:.74em;font-weight:700;color:var(--c-muted);margin-top:8px;text-align:center;line-height:1.3;max-width:86px;transition:color .3s}
+.step.on .lbl{color:var(--c-teal-d)}
+.idx{position:absolute;top:-4px;right:4px;width:20px;height:20px;background:var(--c-teal);color:#fff;font-size:.6em;font-weight:900;border-radius:50%;display:flex;align-items:center;justify-content:center;opacity:0;transform:scale(.4);transition:all .3s}
+.step.on .idx{opacity:1;transform:scale(1)}
+.prog{display:flex;justify-content:center;gap:5px;padding:14px 0 0}
+.pg{width:8px;height:8px;border-radius:50%;background:var(--c-border);transition:all .4s}
+.pg.on{background:var(--c-teal);width:26px;border-radius:4px}
+.khint{text-align:center;font-size:.73em;color:var(--c-muted);margin-top:8px}
+.khint kbd{display:inline-flex;align-items:center;justify-content:center;min-width:24px;height:22px;background:var(--c-card);border:1px solid var(--c-border);border-radius:5px;font-family:inherit;font-size:.9em;padding:0 5px;box-shadow:0 1px 0 var(--c-border);margin:0 2px}
+
+/* ─── Panel ─── */
+.panel{margin:24px auto;background:var(--c-card);border-radius:var(--r-lg);box-shadow:var(--shadow-lg);overflow:hidden;opacity:0;transform:translateY(20px);transition:all .4s cubic-bezier(.4,0,.2,1)}
+.panel.show{opacity:1;transform:translateY(0)}
+.p-head{padding:26px 30px 16px;border-bottom:1px solid var(--c-border);display:flex;align-items:center;gap:16px}
+.p-head .ico{font-size:2.6em;line-height:1}
+.p-head h3{font-size:1.4em;font-weight:800}
+.p-head .sub{font-size:.88em;color:var(--c-sub);margin-top:2px}
+.p-body{display:grid;grid-template-columns:1fr 1fr}
+.col{padding:20px 26px 24px}
+.col-b{background:var(--c-red-bg);border-right:1px solid #fecaca}
+.col-a{background:var(--c-green-bg)}
+.col h4{font-size:.8em;font-weight:800;text-transform:uppercase;letter-spacing:.6px;margin-bottom:10px;display:flex;align-items:center;gap:5px}
+.col-b h4{color:var(--c-red)}
+.col-a h4{color:var(--c-green)}
+.col ul{list-style:none}
+.col li{padding:5px 0;font-size:.88em;color:var(--c-sub);display:flex;align-items:flex-start;gap:8px;line-height:1.5}
+.col li::before{content:'';width:6px;height:6px;border-radius:50%;margin-top:7px;flex-shrink:0;opacity:.65}
+.col-b li::before{background:var(--c-red)}
+.col-a li::before{background:var(--c-green)}
+
+/* Case callout */
+.case{margin:0 26px 20px;padding:18px 22px;background:var(--c-blue-bg);border-radius:var(--r);border:1px solid var(--c-blue-l);font-size:.88em;line-height:1.7}
+.case strong{color:var(--c-blue)}
+.case .src{display:block;margin-top:8px;font-size:.82em;color:var(--c-muted)}
+
+/* Metrics */
+.mbar{display:grid;grid-template-columns:repeat(4,1fr);border-top:1px solid var(--c-border)}
+.met{padding:18px 14px;text-align:center;border-right:1px solid var(--c-border);transition:background .3s}
+.met:last-child{border-right:none}
+.met:hover{background:var(--c-teal-bg)}
+.met .v{font-size:1.7em;font-weight:900;background:linear-gradient(135deg,var(--c-teal),var(--c-blue));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;line-height:1.1}
+.met .l{font-size:.73em;color:var(--c-muted);margin-top:3px;font-weight:600}
+
+/* AI tags */
+.aibox{margin:0 26px 22px;padding:18px 22px;background:linear-gradient(135deg,var(--c-purple-bg),var(--c-blue-bg));border-radius:var(--r);border:1px solid #e9d5ff}
+.aibox h4{font-size:.82em;font-weight:800;color:var(--c-purple);margin-bottom:8px;display:flex;align-items:center;gap:5px}
+.tags{display:flex;flex-wrap:wrap;gap:7px}
+.tag{padding:5px 13px;background:var(--c-card);border-radius:100px;font-size:.78em;color:var(--c-text);border:1px solid var(--c-border);font-weight:600;transition:all .2s;cursor:default}
+.tag:hover{border-color:var(--c-purple);color:var(--c-purple);transform:translateY(-1px)}
+
+/* ─── Summary ─── */
+.sum-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:16px}
+.scard{background:var(--c-card);border-radius:var(--r-lg);padding:30px 18px;text-align:center;box-shadow:var(--shadow);transition:transform .25s,box-shadow .25s;position:relative;overflow:hidden}
+.scard:hover{transform:translateY(-6px);box-shadow:var(--shadow-lg)}
+.scard::before{content:'';position:absolute;top:0;left:0;right:0;height:4px}
+.scard:nth-child(1)::before{background:linear-gradient(90deg,var(--c-amber),#f59e0b)}
+.scard:nth-child(2)::before{background:linear-gradient(90deg,var(--c-blue),#3b82f6)}
+.scard:nth-child(3)::before{background:linear-gradient(90deg,var(--c-green),#22c55e)}
+.scard:nth-child(4)::before{background:linear-gradient(90deg,var(--c-purple),#a78bfa)}
+.scard .em{font-size:2.4em;margin-bottom:8px}
+.scard .n{font-size:2.5em;font-weight:900;line-height:1.1}
+.scard:nth-child(1) .n{color:var(--c-amber)}
+.scard:nth-child(2) .n{color:var(--c-blue)}
+.scard:nth-child(3) .n{color:var(--c-green)}
+.scard:nth-child(4) .n{color:var(--c-purple)}
+.scard .d{font-size:.82em;color:var(--c-muted);margin-top:5px;font-weight:600}
+
+/* ─── Roadmap ─── */
+.road{display:grid;grid-template-columns:repeat(3,1fr);gap:16px}
+.road-card{background:var(--c-card);border-radius:var(--r);padding:22px;box-shadow:var(--shadow);border-left:4px solid var(--c-border);transition:all .25s}
+.road-card:hover{transform:translateY(-3px);box-shadow:var(--shadow-lg)}
+.road-card:nth-child(1){border-left-color:var(--c-teal)}
+.road-card:nth-child(2){border-left-color:var(--c-blue)}
+.road-card:nth-child(3){border-left-color:var(--c-purple)}
+.road-card h4{font-size:.95em;font-weight:800;margin-bottom:6px}
+.road-card .time{font-size:.76em;color:var(--c-muted);margin-bottom:10px;font-weight:600}
+.road-card ul{list-style:none;font-size:.86em;color:var(--c-sub)}
+.road-card li{padding:3px 0;padding-left:14px;position:relative}
+.road-card li::before{content:'→';position:absolute;left:0;color:var(--c-teal);font-weight:700}
+
+/* ─── Footer ─── */
+.foot{text-align:center;padding:28px 20px 52px;font-size:.78em;color:var(--c-muted);line-height:1.9}
+
+/* ─── Responsive ─── */
+@media(max-width:960px){
+  .tl-track{flex-wrap:wrap;justify-content:center;gap:8px}
+  .tl-track::before{display:none}
+  .step{flex:0 0 auto;width:72px}
+  .p-body{grid-template-columns:1fr}
+  .col-b{border-right:none;border-bottom:1px solid #fecaca}
+  .co-grid{grid-template-columns:1fr}
+  .sum-grid{grid-template-columns:repeat(2,1fr)}
+  .road{grid-template-columns:1fr}
+  .mbar{grid-template-columns:repeat(2,1fr)}
+  .met{border-bottom:1px solid var(--c-border)}
+  .hero{padding:56px 20px 40px}
+}
+@media(max-width:520px){
+  .sum-grid{grid-template-columns:1fr 1fr}
+  .co-kpis{grid-template-columns:1fr 1fr}
+  .badges{flex-direction:column;align-items:center}
+}
+</style>
+</head>
+<body>
+
+<!-- ═══ HERO ═══ -->
+<div class="hero">
+  <h1>AI × 采购：<span>从订单自动化到供应链智能体</span></h1>
+  <p class="sub">基于小米 & 蔚来真实业务场景，看 AI 如何重塑汽车与科技行业的采购全链路</p>
+  <div class="badges">
+    <span class="badge"><em>🏭</em> 小米采购虾 · 770+ 自动订单</span>
+    <span class="badge"><em>🚗</em> 蔚来 NQPP · 376 家供应商评估</span>
+    <span class="badge"><em>⏱</em> 作业周期 16.2→7.1 天</span>
+  </div>
+</div>
+
+<div class="wrap">
+
+<!-- ═══ COMPANY CONTEXT ═══ -->
+<div class="sec">
+  <div class="sec-head">
+    <h2>两家企业的采购数字化现状</h2>
+    <p>不同行业、不同阶段，AI 落地路径各异</p>
+    <div class="divider"></div>
+  </div>
+  <div class="co-grid">
+    <div class="co-card xiaomi">
+      <h3>小米 · 非生产采购 <span class="tag">科技制造</span></h3>
+      <p>采购委数字员工"虾"系统，覆盖 Sourcing（寻源策略）+ Buyer（履约交付）双链路，530 首批上线后用户覆盖率 79.43%（139/175 人），5513 条消息，平均每用户 40 次对话。</p>
+      <div class="co-kpis">
+        <div class="co-kpi"><div class="v">24→4</div><div class="l">Sourcing 步骤压缩</div></div>
+        <div class="co-kpi"><div class="v">95%</div><div class="l">Buyer 自动化率</div></div>
+        <div class="co-kpi"><div class="v">99%+</div><div class="l">订单执行准确率</div></div>
+        <div class="co-kpi"><div class="v">50%</div><div class="l">Sourcing 提效</div></div>
+        <div class="co-kpi"><div class="v">16→7天</div><div class="l">单次作业周期</div></div>
+        <div class="co-kpi"><div class="v">770+</div><div class="l">自动订单行</div></div>
+      </div>
+    </div>
+    <div class="co-card nio">
+      <h3>蔚来 · 供应链质量管理 <span class="tag">新能源汽车</span></h3>
+      <p>NQPP（New Quality Performance Program）供应商质量评估体系，覆盖 376 家供应商，千分制评分，按月追踪交付延迟、PPM 超标、CSL/NBH 违规等核心指标，建立供应商质量风险预警模型。</p>
+      <div class="co-kpis">
+        <div class="co-kpi"><div class="v">376</div><div class="l">参评供应商</div></div>
+        <div class="co-kpi"><div class="v">37.8%</div><div class="l">满分供应商</div></div>
+        <div class="co-kpi"><div class="v">46.7%</div><div class="l">交付-质量耦合率</div></div>
+        <div class="co-kpi"><div class="v">71.5%</div><div class="l">950+ 高分占比</div></div>
+        <div class="co-kpi"><div class="v">2.7%</div><div class="l">高风险供应商</div></div>
+        <div class="co-kpi"><div class="v">72%</div><div class="l">QRCR→劣化概率</div></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ TIMELINE ═══ -->
+<div class="sec">
+  <div class="sec-head">
+    <h2>采购全流程 × AI 落地路径</h2>
+    <p>点击每个阶段，查看真实业务场景对比</p>
+    <div class="divider"></div>
+  </div>
+  <div class="tl-wrap">
+    <div class="tl-track" id="tl"></div>
+    <div class="prog" id="prog"></div>
+    <div class="khint">点击阶段查看详情 · <kbd>←</kbd> <kbd>→</kbd> 键盘导航</div>
+  </div>
+  <div class="panel" id="panel">
+    <div class="p-head" id="ph"></div>
+    <div class="p-body">
+      <div class="col col-b" id="cb"></div>
+      <div class="col col-a" id="ca"></div>
+    </div>
+    <div class="case" id="cs"></div>
+    <div class="mbar" id="mb"></div>
+    <div class="aibox" id="ab"></div>
+  </div>
+</div>
+
+<!-- ═══ SUMMARY ═══ -->
+<div class="sec">
+  <div class="sec-head">
+    <h2>端到端提效总览</h2>
+    <p>小米新零售实测数据 + 蔚来供应商管理数据</p>
+    <div class="divider"></div>
+  </div>
+  <div class="sum-grid" id="sg"></div>
+</div>
+
+<!-- ═══ ROADMAP ═══ -->
+<div class="sec">
+  <div class="sec-head">
+    <h2>AI 采购进阶路线</h2>
+    <p>从单点工具到供应链智能体的三阶段跃迁</p>
+    <div class="divider"></div>
+  </div>
+  <div class="road">
+    <div class="road-card">
+      <h4>🟢 阶段一：效率提升</h4>
+      <div class="time">当前阶段 · 已验证</div>
+      <ul>
+        <li>单点 Skill 建设（需求分析、寻源、对账）</li>
+        <li>被动执行 → 人负责审核</li>
+        <li>订单自动化、价格比对、政策查询</li>
+        <li>数据治理基础夯实</li>
+      </ul>
+    </div>
+    <div class="road-card">
+      <h4>🔵 阶段二：主动智能</h4>
+      <div class="time">2025 Q3-Q4 · 规划中</div>
+      <ul>
+        <li>跨品类流程打通（策略→招采→结算）</li>
+        <li>供应商绩效管理 AI 化</li>
+        <li>成本价格基线 + 宏观价格预测</li>
+        <li>组织氛围 AI 化（全员深度使用）</li>
+      </ul>
+    </div>
+    <div class="road-card">
+      <h4>🟣 阶段三：自主闭环</h4>
+      <div class="time">2026 · 愿景</div>
+      <ul>
+        <li>任务闭环：AI 端到端独立完成</li>
+        <li>主动智能：异常主动发现并处理</li>
+        <li>数据洞察：跨品类趋势预测</li>
+        <li>组织重构：采购角色从执行者变决策者</li>
+      </ul>
+    </div>
+  </div>
+</div>
+
+<div class="foot">
+  数据来源：小米非生产采购虾专项汇报（2026.06）· 蔚来 NQPP 供应商质量评估报告（2024.06）· 行业公开报告<br>
+  实际效果因企业规模、数据成熟度、实施深度而异 · 仅供内部参考
+</div>
+
+</div><!-- /.wrap -->
+
+<script>
+const S=[
+{e:'🔍',n:'需求确认',d:'AI 预测需求，自动触发采购',
+ b:['人工汇总各部门零散需求，依赖 Excel 历史数据估算','需求变更靠邮件通知，响应慢','重复采购和遗漏并存','采购与业务需求理解不对齐，反复沟通'],
+ a:['AI 集成 ERP/MRP + 销售预测，自动生成采购需求','需求深度分析 Skill：基于历史采购信息自动对齐预算和需求差异（小米已上线，使用 42 次）','需求变更实时同步，自动调整采购计划','异常需求自动标注并推送审批'],
+ m:[{v:'85%',l:'预测准确率'},{v:'-70%',l:'人工汇总时间'},{v:'2-4周',l:'预警提前量'},{v:'3天→2天',l:'需求受理周期'}],
+ ai:['小米：需求深度分析 Skill','小米：采购全局任务查询（延期风险主动提醒）','需求预测模型','ERP/MRP 数据集成'],
+ cs:'<strong>小米实战：</strong>需求受理从 3 天缩短到 2 天（寻源场景）/ 30min 缩短到 5min（下单场景）。AI 自动识别需求差异，统计相似项目需求信息及预算金额，采购不再逐条对齐。<span class="src">来源：小米非生产采购虾专项汇报 · 2026.06</span>'},
+
+{e:'🌐',n:'寻源',d:'AI 拓展供应池，库内+库外双通道',
+ b:['依赖有限的供应商数据库和人脉','资质审核靠人工逐项比对，周期长','供应商风险靠主观判断','缺乏行业价格基线，寻源无参考锚点'],
+ a:['行业供应商寻源 Skill：库外（外部数据）+ 库内双通道，自动生成符合条件的供应商清单（小米已上线，16 次）','供应商资质审查 Skill：自动审核准入信息（小米已上线，51 次）','评标专家库推荐：按规则随机生成评审专家名单','采购政策查询：快捷查询存档的采购政策制度（小米已上线，45 次）'],
+ m:[{v:'3x',l:'供应池扩展'},{v:'-85%',l:'寻源周期'},{v:'51次',l:'资质审查调用'},{v:'45次',l:'政策查询调用'}],
+ ai:['小米：行业供应商寻源 Skill','小米：供应商资质审查','小米：评标专家库推荐','小米：采购政策查询'],
+ cs:'<strong>小米实战：</strong>Sourcing 整体从 24 步压缩到 4 步，人只做决策。库外寻源打通后，不再依赖个人人脉。采购策略流程合规化（动作标准化），新人也能快速上手。<span class="src">来源：小米非生产采购虾专项汇报 · 2026.06</span>'},
+
+{e:'📊',n:'核价',d:'BOM/VSM 级成本穿透，Should-Cost 建模',
+ b:['报价不透明，成本难穿透——出厂价是"黑盒"','成本分析靠经验估算，缺乏结构化数据','比价数据散落在 Excel 和邮件中','缺乏 should-cost 模型支撑，定价无锚'],
+ a:['BOM 级成本分解：供应商自分解或 SVC 关联的 VSM 拉取','CE（Cost Engineering）核价在线化 + 多供应商对比','Should-cost 建模：原材料+加工+管理费+利润四层拆解','成本价格基线建设中（小米规划）：报价 vs 历史价 vs 行业价 vs should-be'],
+ m:[{v:'-90%',l:'核价时间'},{v:'15-25%',l:'成本优化空间'},{v:'全穿透',l:'BOM/VSM级'},{v:'实时',l:'市场价格更新'}],
+ ai:['小米：成本价格基线（建设中）','BOM/VSM 成本穿透模型','Should-cost 四层建模','CE 核价在线化'],
+ cs:'<strong>小米实践：</strong>从"出厂价黑盒"到"BOM/VSM 级全维度成本穿透"，支撑 TCO 分析和品类策略制定。下一步：AI 自动抓取大宗商品价格，分析价格变动，预测价格走势（宏观价格数据 Skill 规划中）。<span class="src">来源：小米 EP 系统报价结构升级项目</span>'},
+
+{e:'📝',n:'询报价',d:'AI 自动生成采购策略报告 + 招采单据',
+ b:['手动编写 RFQ 文件，格式不统一','采购策略 TMT 报告需人工收集历史金额+供应商资质+能力意愿经验','比价表手工整理，易出错','策略信息重复录入到招采系统'],
+ a:['采购策略 TMT 报告 Skill：基于供应商数据+交易信息+需求背景自动生成（小米已上线，42 次使用）','AI 自动生成策略、询价/招采单据（小米实现中）','定选 TMT 报告：根据策略报告及报价、评标结果自动生成（实现中）','采购策略制定从 5 天缩短到 2 天'],
+ m:[{v:'5天→2天',l:'策略制定周期'},{v:'42次',l:'TMT报告调用'},{v:'3天→1.5天',l:'招采询价周期'},{v:'-80%',l:'评标周期'}],
+ ai:['小米：采购策略 TMT 报告 Skill','小米：自动生成招采单据（实现中）','小米：定选 TMT 报告（实现中）','智能评标引擎'],
+ cs:'<strong>小米实战：</strong>采购策略报告生成是 Sourcing 链路的核心 Skill——AI 自动完成历史采购信息收集、库内+库外双通道寻源、行业价格基线输出，采购只需查漏补缺。从"人组装报告"到"人审核报告"。<span class="src">来源：小米非生产采购虾专项汇报 · 2026.06</span>'},
+
+{e:'⚖️',n:'合同管理',d:'AI 审查条款 + 自动生成合同初稿',
+ b:['合同条款逐条人工审查','关键条款（付款/交期/质保）靠人记忆','合同到期和续约靠 Excel 台账','定选结果信息重复录入合同系统'],
+ a:['AI 自动扫描合同条款，标记风险点','自动生成合同初稿 Skill：根据招采定选结果及报价数据自动触发合同生成（小米实现中）','到期预警 + 自动续约流程触发','合同从 1 天缩短到 0.5 天'],
+ m:[{v:'1天→0.5天',l:'合同周期'},{v:'95%',l:'风险条款识别'},{v:'0',l:'遗漏续约'},{v:'自动',l:'初稿生成'}],
+ ai:['小米：自动生成合同初稿（实现中）','条款风险扫描','关键条款提取','到期续约预警'],
+ cs:'<strong>小米实践：</strong>合同环节的提效来自"信息不重录"——定选结果自动流入合同生成，消除人工录入。年度 66 个合同项目，每个节省 0.5 天，合计 33 人天/年。<span class="src">来源：小米非生产采购虾专项汇报 · 2026.06</span>'},
+
+{e:'🚚',n:'订单自动化',d:'AI 批量生成订单，人只做审核',
+ b:['手动创建采购订单，逐条录入（10-15 分钟/行）','交期跟踪靠打电话/发邮件','异常（延迟/缺货）发现滞后','供应商回复不及时影响排产'],
+ a:['履约订单生成 Skill：飞书多维表格申请数据 → 批量导入易购系统采购申请单（小米已上线，36 次）','单个订单录入从 10min 缩短到 3min','已完成 770+ 订单行，零驳回，准确率 99%+','新零售品类全国推广中，预计 7 月扩展到行政/工程品类'],
+ m:[{v:'770+',l:'自动订单行'},{v:'99%+',l:'执行准确率'},{v:'10→3min',l:'单行录入时间'},{v:'0',l:'驳回率'}],
+ ai:['小米：履约订单生成 Skill','小米：采购金额查询（50 次使用）','小米：订单报价审核（对比框架合同，25 次使用）','PO 自动生成 + 交期实时追踪'],
+ cs:'<strong>小米实战（核心亮点）：</strong>订单自动化是 Buyer 方向的核心突破。将飞书多维表格中的新零售物料申请数据批量导入为易购系统采购申请单，一次性完成多门店多订单录入，采购仅做审核。770+ 行零驳回证明了 AI 的执行可靠性。<span class="src">来源：小米非生产采购虾专项汇报 · 2026.06</span>'},
+
+{e:'📦',n:'收货验收',d:'AI 验收催办 + 自动对账',
+ b:['验收处理依赖现场盘点，周期长','未验收订单积压，催办靠人工','收货单、入库单、发票逐单人工比对','数据录入错误频发，对账周期 2 周'],
+ a:['验收催办 Skill：自动查询未验收订单并催办（小米已上线）','自动对账 Skill：根据员工编号自动匹配成本中心、所属公司、部门层级（小米已上线）','对账周期从 2 周缩短到 1 天','匹配准确率 99%+，数据零手动录入'],
+ m:[{v:'99%+',l:'对账准确率'},{v:'2周→1天',l:'对账周期'},{v:'0',l:'手动录入'},{v:'-85%',l:'付款延迟率'}],
+ ai:['小米：验收催办 Skill','小米：自动对账 Skill','小米：付款进度追踪（规划中）','小米：合同执行分析（规划中）'],
+ cs:'<strong>小米实践：</strong>自动对账 Skill 已完成 5、6 月差旅账单处理（60 万+ 明细），对账准确率 100%，导入对公支付准确率 100%。下一步：实物验收 AI 化（拍照识别 + OCR + 系统对比）。<span class="src">来源：小米非生产采购虾专项汇报 · 2026.06</span>'},
+
+{e:'📈',n:'供应商绩效',d:'千分制评分 + 风险预警 + 知识沉淀',
+ b:['供应商评价靠主观印象，缺乏量化体系','风险发现滞后，出了事才知道','知识散落在个人经验中，人员流动导致流失','绩效与采购决策脱钩'],
+ a:['NQPP 千分制评估：376 家供应商量化评分（蔚来）','风险预警 Skill：每天定时跑风险预警数据，主动推送（小米已上线，40 次）','寻源知识库：自动沉淀历史采购策略、定选结果、结构化供应商信息（小米已上线）','QRCR→劣化预测：QRCR 不达标的供应商有 72% 概率后续出现 PPM 和交付恶化（蔚来）'],
+ m:[{v:'376家',l:'蔚来评估覆盖'},{v:'37.8%',l:'满分供应商'},{v:'72%',l:'QRCR→劣化概率'},{v:'46.7%',l:'交付-质量耦合率'}],
+ ai:['蔚来：NQPP 千分制评分体系','小米：供应商风险预警 Skill','小米：寻源知识库（自动沉淀）','小米：长进短供应商推荐 Skill'],
+ cs:'<strong>蔚来发现：</strong>交付延迟和 PPM 超标高度耦合——46.7% 的交付延迟供应商同时存在 PPM 问题（150 家中 70 家重叠）。QRCR 不达标的供应商有 72% 概率后续恶化。建议：AI 预测模型 + 实时 SQM 平台 + 供应商质量纳入 BCP。<span class="src">来源：蔚来 NQPP 质量评估报告 · 2024.06</span>'}
+];
+const SUM=[
+  {em:'⏱️',n:'56%↓',d:'作业周期压缩（16.2→7.1天）'},
+  {em:'💰',n:'15-25%',d:'成本优化空间（BOM穿透）'},
+  {em:'🎯',n:'99%+',d:'订单执行准确率（770+行零驳回）'},
+  {em:'👁️',n:'376家',d:'供应商量化评估覆盖'}
+];
+
+let cur=-1;const vis=new Set();
+
+function init(){
+  document.getElementById('tl').innerHTML=S.map((s,i)=>`<div class="step" onclick="go(${i})"><div class="dot">${s.e}</div><div class="lbl">${s.n}</div><div class="idx">${i+1}</div></div>`).join('');
+  document.getElementById('prog').innerHTML=S.map((_,i)=>`<div class="pg" data-i="${i}"></div>`).join('');
+  document.getElementById('sg').innerHTML=SUM.map(s=>`<div class="scard"><div class="em">${s.em}</div><div class="n">${s.n}</div><div class="d">${s.d}</div></div>`).join('');
+  go(0);
+}
+
+function go(i){
+  if(i===cur)return;cur=i;vis.add(i);
+  document.querySelectorAll('.step').forEach((el,j)=>{el.classList.toggle('on',j===i);if(vis.has(j)&&j!==i)el.classList.add('done')});
+  document.querySelectorAll('.pg').forEach((el,j)=>el.classList.toggle('on',j===i));
+  const p=document.getElementById('panel');
+  p.classList.remove('show');
+  setTimeout(()=>{
+    const s=S[i];
+    document.getElementById('ph').innerHTML=`<div class="ico">${s.e}</div><div><h3>${s.n}</h3><div class="sub">${s.d}</div></div>`;
+    document.getElementById('cb').innerHTML=`<h4>🔴 现状痛点</h4><ul>${s.b.map(t=>`<li>${t}</li>`).join('')}</ul>`;
+    document.getElementById('ca').innerHTML=`<h4>🟢 AI 赋能后</h4><ul>${s.a.map(t=>`<li>${t}</li>`).join('')}</ul>`;
+    document.getElementById('cs').innerHTML=s.cs;
+    document.getElementById('mb').innerHTML=s.m.map(m=>`<div class="met"><div class="v">${m.v}</div><div class="l">${m.l}</div></div>`).join('');
+    document.getElementById('ab').innerHTML=`<h4>🤖 AI 能力 / Skill</h4><div class="tags">${s.ai.map(t=>`<span class="tag">${t}</span>`).join('')}</div>`;
+    requestAnimationFrame(()=>p.classList.add('show'));
+  },200);
+}
+
+init();
+document.addEventListener('keydown',e=>{
+  if(e.key==='ArrowRight'&&cur<S.length-1)go(cur+1);
+  if(e.key==='ArrowLeft'&&cur>0)go(cur-1);
+});
+</script>
+</body>
+</html>
