@@ -1,0 +1,263 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>叮咚买菜 ToB · 配送追踪</title>
+<style>
+:root{--p:#1677ff;--pl:#e6f4ff;--g50:#fafafa;--g100:#f5f5f5;--g200:#e8e8e8;--g500:#8c8c8c;--g800:#262626;--success:#52c41a;--warning:#faad14;--danger:#f5222d;--frozen:#1890ff;--chilled:#13c2c2;--ambient:#fa8c16;--r:10px;--rs:6px;--sh:0 1px 3px rgba(0,0,0,.08);--tr:all .2s ease}
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif;background:var(--g100);color:var(--g800);font-size:14px;line-height:1.6}
+@keyframes fadeIn{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
+@keyframes pulse{0%,100%{box-shadow:0 0 0 0 rgba(22,119,255,.3)}50%{box-shadow:0 0 0 6px rgba(22,119,255,0)}}
+@keyframes bounce{0%,100%{transform:scale(1)}50%{transform:scale(1.1)}}
+.header{background:#fff;padding:12px 20px;box-shadow:var(--sh);display:flex;justify-content:space-between;align-items:center;position:sticky;top:0;z-index:100}
+.header h1{font-size:16px}.header h1 span{color:var(--p)}
+.toggle{display:flex;background:var(--g100);border-radius:var(--r);padding:2px}
+.toggle button{padding:6px 14px;border:none;background:transparent;border-radius:var(--rs);cursor:pointer;font-size:12px;color:var(--g500);font-weight:500;transition:var(--tr)}
+.toggle button.active{background:#fff;color:var(--p);box-shadow:var(--sh)}
+.container{max-width:420px;margin:0 auto;padding:16px}
+.container.desktop{max-width:900px}
+.view{display:none}.view.active{display:block;animation:fadeIn .3s ease}
+.card{background:#fff;border-radius:var(--r);box-shadow:var(--sh);padding:16px;margin-bottom:12px}
+.tag{display:inline-block;padding:2px 8px;border-radius:4px;font-size:11px;font-weight:500}
+.tag-frozen{background:var(--pl);color:var(--frozen)}.tag-chilled{background:#e6fffb;color:var(--chilled)}.tag-ambient{background:#fff7e6;color:var(--ambient)}
+.tag-status{padding:3px 10px;border-radius:10px;font-size:11px}
+.s-pick{background:var(--pl);color:var(--p)}.s-del{background:#f6ffed;color:var(--success)}.s-done{background:var(--g100);color:var(--g500)}
+.btn{padding:8px 16px;border:none;border-radius:var(--rs);cursor:pointer;font-size:13px;font-weight:500;transition:var(--tr)}
+.btn-p{background:var(--p);color:#fff}.btn-s{background:var(--success);color:#fff}
+.btn-d{background:var(--danger);color:#fff}.btn-w{background:var(--warning);color:#fff}
+.btn-o{background:transparent;border:1px solid var(--g300);color:var(--g800)}
+.btn-full{width:100%;display:block;margin-top:8px}
+.task{display:flex;gap:12px;align-items:center;padding:12px;background:var(--g50);border-radius:var(--r);margin-bottom:8px;cursor:pointer;transition:var(--tr);border-left:3px solid var(--g300)}
+.task.frozen{border-left-color:var(--frozen)}.task.chilled{border-left-color:var(--chilled)}.task.ambient{border-left-color:var(--ambient)}
+.task .t-body{flex:1}.task .t-id{font-weight:600;font-size:13px}.task .t-addr{font-size:11px;color:var(--g500)}
+.task .t-tags{display:flex;gap:4px;margin-top:4px}
+.progress{margin-bottom:16px}
+.prog-head{display:flex;justify-content:space-between;font-size:12px;margin-bottom:4px}
+.prog-bar{height:6px;background:var(--g200);border-radius:3px;overflow:hidden;margin-bottom:4px}
+.prog-fill{height:100%;border-radius:3px;transition:width .6s ease;width:0}
+.prog-steps{display:flex;justify-content:space-between;font-size:9px;color:var(--g500)}
+.prog-steps .s.active{color:var(--p);font-weight:600}
+.zone-section{margin-bottom:12px}
+.zone-header{font-weight:600;font-size:13px;padding:8px 12px;border-radius:var(--rs);margin-bottom:6px;display:flex;justify-content:space-between;align-items:center}
+.zone-header.frozen{background:var(--pl);color:var(--frozen)}.zone-header.chilled{background:#e6fffb;color:var(--chilled)}.zone-header.ambient{background:#fff7e6;color:var(--ambient)}
+.check-item{display:flex;align-items:center;gap:8px;padding:6px 10px;background:var(--g50);border-radius:var(--rs);margin-bottom:4px}
+.check-item.checked{background:#f6ffed}.check-item input{width:16px;height:16px;accent-color:var(--success)}
+.check-item .ci-name{flex:1;font-size:12px}.check-item .ci-qty{font-size:11px;color:var(--p);font-weight:600}
+.temp-input{width:60px;padding:4px 8px;border:1px solid var(--g300);border-radius:var(--rs);font-size:12px;text-align:center}
+.temp-ok{color:var(--success);font-weight:600}.temp-fail{color:var(--danger);font-weight:600}
+.sig-area{border:2px dashed var(--g300);border-radius:var(--r);height:120px;position:relative;background:#fff;cursor:crosshair;margin:8px 0}
+.sig-area canvas{width:100%;height:100%}
+.sig-hint{position:absolute;bottom:8px;left:50%;transform:translateX(-50%);font-size:11px;color:var(--g500);pointer-events:none}
+.map-ph{height:180px;background:linear-gradient(135deg,#e8f4e8,#d4e8f0,#e8e4f0);border-radius:var(--r);display:flex;align-items:center;justify-content:center;color:var(--g500);position:relative;overflow:hidden}
+.map-ph::before{content:"";position:absolute;width:50%;height:2px;background:var(--p);top:50%;left:25%;opacity:.4}
+.map-ph::after{content:"🛵";position:absolute;font-size:20px;top:44%;left:38%}
+.driver{display:flex;gap:12px;align-items:center}
+.driver .avatar{width:40px;height:40px;border-radius:50%;background:var(--p);color:#fff;display:flex;align-items:center;justify-content:center;font-size:16px;font-weight:600}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.exc-types{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:12px}
+.exc-opt{border:2px solid var(--g200);border-radius:var(--r);padding:12px;text-align:center;cursor:pointer;transition:var(--tr);font-size:12px}
+.exc-opt.sel{border-color:var(--p);background:var(--pl)}
+.success-overlay{display:none;position:fixed;inset:0;background:rgba(82,196,26,.9);z-index:1000;justify-content:center;align-items:center;flex-direction:column;color:#fff}
+.success-overlay.show{display:flex}
+.success-overlay .check{font-size:64px;margin-bottom:16px;animation:bounce .6s ease}
+.success-overlay h2{font-size:20px}
+@media(min-width:769px){.container{max-width:900px}}
+</style>
+</head>
+<body>
+<div class="header">
+  <h1>📦 <span>叮咚</span> ToB 配送</h1>
+  <div class="toggle">
+    <button class="active" onclick="switchMode('driver',this)">🚗 司机端</button>
+    <button onclick="switchMode('customer',this)">👤 客户追踪</button>
+  </div>
+</div>
+
+<!-- Driver Mode -->
+<div class="container" id="driverView">
+  <div class="view active" id="d-tasks">
+    <h3 style="margin-bottom:12px">📋 今日配送任务</h3>
+    <div class="task frozen" onclick="goD('load')"><div class="t-body"><div class="t-id">TOB-20260723-001</div><div class="t-addr">上海市浦东新区张江路650号</div><div class="t-tags"><span class="tag tag-frozen">🧊冷冻</span><span class="tag tag-chilled">❄️冷藏</span><span class="tag-status s-pick">待取货</span></div></div><div style="font-size:11px;color:var(--g500)">2.3km</div></div>
+    <div class="task chilled"><div class="t-body"><div class="t-id">TOB-20260723-002</div><div class="t-addr">上海市浦东新区碧波路888号</div><div class="t-tags"><span class="tag tag-chilled">❄️冷藏</span><span class="tag-status s-pick">待取货</span></div></div><div style="font-size:11px;color:var(--g500)">3.1km</div></div>
+    <div class="task ambient"><div class="t-body"><div class="t-id">TOB-20260723-003</div><div class="t-addr">上海市徐汇区漕溪路200号</div><div class="t-tags"><span class="tag tag-ambient">🌡️常温</span><span class="tag-status s-del">配送中</span></div></div><div style="font-size:11px;color:var(--g500)">5.8km</div></div>
+    <div class="task frozen" style="opacity:.6"><div class="t-body"><div class="t-id">TOB-20260723-004</div><div class="t-addr">上海市闵行区虹梅路300号</div><div class="t-tags"><span class="tag tag-frozen">🧊冷冻</span><span class="tag-status s-done">已签收</span></div></div><div style="font-size:11px;color:var(--g500)">4.2km</div></div>
+  </div>
+
+  <div class="view" id="d-load">
+    <h3 style="margin-bottom:12px">📦 装车确认 — TOB-001</h3>
+    <div class="zone-section"><div class="zone-header frozen">🧊 冷冻区 <span><input type="checkbox" onchange="chkZone(this,'fzItems')"> 全选</span></div>
+      <div id="fzItems"><div class="check-item"><input type="checkbox"><span class="ci-name">澳洲肥牛卷</span><span class="ci-qty">×20</span></div>
+      <div class="check-item"><input type="checkbox"><span class="ci-name">三全水饺</span><span class="ci-qty">×15</span></div></div>
+      <div style="display:flex;align-items:center;gap:8px;margin-top:6px;font-size:12px"><span>装车温度：</span><input class="temp-input" value="-18" id="fzTemp"> °C <span id="fzTempSt" class="temp-ok">✓ 达标</span></div>
+    </div>
+    <div class="zone-section"><div class="zone-header chilled">❄️ 冷藏区 <span><input type="checkbox" onchange="chkZone(this,'chItems')"> 全选</span></div>
+      <div id="chItems"><div class="check-item"><input type="checkbox"><span class="ci-name">光明鲜奶</span><span class="ci-qty">×30</span></div>
+      <div class="check-item"><input type="checkbox"><span class="ci-name">有机西蓝花</span><span class="ci-qty">×25</span></div></div>
+      <div style="display:flex;align-items:center;gap:8px;margin-top:6px;font-size:12px"><span>装车温度：</span><input class="temp-input" value="4" id="chTemp"> °C <span id="chTempSt" class="temp-ok">✓ 达标</span></div>
+    </div>
+    <button class="btn btn-p btn-full" onclick="goD('nav')">确认装车完成</button>
+    <button class="btn btn-o btn-full" onclick="goD('tasks')">返回</button>
+  </div>
+
+  <div class="view" id="d-nav">
+    <div class="card"><div class="driver"><div class="avatar">张</div><div><div style="font-weight:600">配送中</div><div style="font-size:12px;color:var(--g500)">TOB-001 → 上海浦东张江路650号</div></div></div></div>
+    <div class="map-ph">🗺️ 配送路线</div>
+    <div class="grid2" style="margin-top:12px">
+      <div class="card" style="text-align:center"><div style="font-size:11px;color:var(--g500)">距离</div><div style="font-size:20px;font-weight:700">2.3km</div></div>
+      <div class="card" style="text-align:center"><div style="font-size:11px;color:var(--g500)">预计到达</div><div style="font-size:20px;font-weight:700;color:var(--p)" id="eta">14:25</div></div>
+    </div>
+    <div class="grid2" style="margin-top:8px">
+      <button class="btn btn-p btn-full" onclick="window.open('https://maps.google.com')">🗺️ 导航</button>
+      <button class="btn btn-o btn-full">📞 联系客户</button>
+    </div>
+    <button class="btn btn-s btn-full" style="margin-top:8px" onclick="goD('sign')">到达，开始签收</button>
+    <button class="btn btn-d btn-full" style="margin-top:4px" onclick="goD('exc')">⚠ 报告异常</button>
+  </div>
+
+  <div class="view" id="d-sign">
+    <h3 style="margin-bottom:12px">✍️ 签收确认 — TOB-001</h3>
+    <div class="card"><div style="font-size:12px;color:var(--g500);margin-bottom:8px">温度检测</div>
+      <div style="display:flex;gap:12px;margin-bottom:8px">
+        <div style="flex:1;text-align:center"><div style="font-size:11px">🧊 冷冻</div><input class="temp-input" value="-16" id="sFz" oninput="checkTemp()"><div id="sFzSt" class="temp-ok" style="font-size:11px">✓ ≤-12°C</div></div>
+        <div style="flex:1;text-align:center"><div style="font-size:11px">❄️ 冷藏</div><input class="temp-input" value="6" id="sCh" oninput="checkTemp()"><div id="sChSt" class="temp-ok" style="font-size:11px">✓ ≤10°C</div></div>
+        <div style="flex:1;text-align:center"><div style="font-size:11px">🌡️ 常温</div><input class="temp-input" value="25" id="sAm" oninput="checkTemp()"><div id="sAmSt" class="temp-ok" style="font-size:11px">✓ 0-40°C</div></div>
+      </div>
+    </div>
+    <div class="card"><div style="font-size:12px;color:var(--g500);margin-bottom:4px">📸 送达拍照</div>
+      <div style="height:100px;background:var(--g50);border-radius:var(--rs);display:flex;align-items:center;justify-content:center;color:var(--g500);cursor:pointer;border:2px dashed var(--g300)" onclick="this.style.background='#f6ffed';this.innerHTML='✅ 已拍照'">📷 点击拍照</div>
+    </div>
+    <div class="card"><div style="font-size:12px;color:var(--g500);margin-bottom:4px">✍️ 客户签名</div>
+      <div class="sig-area"><canvas id="sigCanvas"></canvas><div class="sig-hint">在此处签名</div></div>
+      <button class="btn btn-o" style="font-size:11px;padding:3px 8px" onclick="clearSig()">清除签名</button>
+    </div>
+    <button class="btn btn-s btn-full" onclick="showSuccess()">✓ 确认签收</button>
+    <button class="btn btn-w btn-full" style="margin-top:4px">部分拒收</button>
+    <button class="btn btn-d btn-full" style="margin-top:4px">全部拒收</button>
+  </div>
+
+  <div class="view" id="d-exc">
+    <h3 style="margin-bottom:12px">⚠️ 异常上报</h3>
+    <div class="exc-types">
+      <div class="exc-opt" onclick="selExc(this)">🚫 客户不在</div>
+      <div class="exc-opt" onclick="selExc(this)">🌡️ 温度超标</div>
+      <div class="exc-opt" onclick="selExc(this)">📦 包装破损</div>
+      <div class="exc-opt" onclick="selExc(this)">📍 地址错误</div>
+      <div class="exc-opt" onclick="selExc(this)">❓ 其他</div>
+    </div>
+    <div class="card"><div style="font-size:12px;color:var(--g500);margin-bottom:4px">描述</div>
+      <textarea style="width:100%;height:80px;border:1px solid var(--g300);border-radius:var(--rs);padding:8px;font-size:13px;resize:none" placeholder="请描述异常情况..."></textarea>
+    </div>
+    <button class="btn btn-d btn-full" onclick="goD('tasks')">提交异常</button>
+    <button class="btn btn-o btn-full" style="margin-top:4px" onclick="goD('nav')">返回配送</button>
+  </div>
+</div>
+
+<!-- Customer Mode -->
+<div class="container desktop" id="custView" style="display:none">
+  <div class="card">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
+      <div><div style="font-size:18px;font-weight:700">TOB-20260723-001</div><div style="font-size:12px;color:var(--g500)">2026-07-23 10:30 下单 · ¥3,680</div></div>
+      <div><span class="tag tag-frozen">🧊冷冻</span> <span class="tag tag-chilled">❄️冷藏</span></div>
+    </div>
+    <div class="progress" id="cpFz">
+      <div class="prog-head"><span>🧊 冷冻品</span><span id="cpFzT">分拣中</span></div>
+      <div class="prog-bar"><div class="prog-fill" id="cpFzB" style="background:var(--frozen)"></div></div>
+      <div class="prog-steps"><span class="s active">待分拣</span><span class="s active">分拣中</span><span>待出库</span><span>配送中</span><span>即将到达</span></div>
+    </div>
+    <div class="progress" id="cpCh">
+      <div class="prog-head"><span>❄️ 冷藏品</span><span id="cpChT">待出库</span></div>
+      <div class="prog-bar"><div class="prog-fill" id="cpChB" style="background:var(--chilled)"></div></div>
+      <div class="prog-steps"><span class="s active">待分拣</span><span class="s active">分拣中</span><span class="s active">待出库</span><span>配送中</span><span>即将到达</span></div>
+    </div>
+  </div>
+  <div class="grid2">
+    <div class="card"><div class="driver"><div class="avatar">张</div><div><div style="font-weight:600">张师傅 · 蜂鸟专送</div><div style="font-size:12px;color:var(--g500)">距您 2.3km</div></div></div>
+      <button class="btn btn-o" style="margin-top:8px;width:100%">📞 联系骑手</button>
+    </div>
+    <div class="card"><div style="font-size:12px;color:var(--g500);margin-bottom:4px">预计送达</div>
+      <div style="font-size:28px;font-weight:700;color:var(--p)" id="cEta">14:25</div>
+      <div style="font-size:11px;color:var(--g500)" id="cCountdown">约 23 分钟后送达</div>
+    </div>
+  </div>
+  <div class="card"><div style="font-size:12px;color:var(--g500);margin-bottom:8px">🌡️ 温度监控</div>
+    <div style="display:flex;gap:16px">
+      <div style="text-align:center;flex:1"><div style="font-size:11px">🧊 冷冻</div><div style="font-size:20px;font-weight:700" id="cFzT">-16°C</div><div style="font-size:10px;color:var(--success)">✓ 达标</div></div>
+      <div style="text-align:center;flex:1"><div style="font-size:11px">❄️ 冷藏</div><div style="font-size:20px;font-weight:700" id="cChT">5°C</div><div style="font-size:10px;color:var(--success)">✓ 达标</div></div>
+    </div>
+  </div>
+  <div class="map-ph" style="height:200px">🗺️ 实时配送地图</div>
+  <div class="card"><div style="font-size:12px;color:var(--g500);margin-bottom:8px">订单商品</div>
+    <div style="font-weight:600;font-size:12px;padding:4px 0;color:var(--frozen)">🧊 冷冻品</div>
+    <div style="font-size:12px;padding:2px 0">澳洲谷饲肥牛卷 ×20 · 三全水饺 ×15 · 思念汤圆 ×10</div>
+    <div style="font-weight:600;font-size:12px;padding:4px 0;color:var(--chilled);margin-top:4px">❄️ 冷藏品</div>
+    <div style="font-size:12px;padding:2px 0">光明鲜奶 ×30 · 有机西蓝花 ×25</div>
+  </div>
+</div>
+
+<div class="success-overlay" id="successOv">
+  <div class="check">✅</div>
+  <h2>签收成功</h2>
+  <p style="opacity:.8;margin-top:8px">订单 TOB-20260723-001 已完成签收</p>
+  <button class="btn" style="margin-top:16px;background:#fff;color:var(--success);padding:10px 32px" onclick="document.getElementById('successOv').classList.remove('show');goD('tasks')">返回任务列表</button>
+</div>
+
+<script>
+function switchMode(mode,btn){
+  document.querySelectorAll('.toggle button').forEach(b=>b.classList.remove('active'));btn.classList.add('active');
+  document.getElementById('driverView').style.display=mode==='driver'?'block':'none';
+  document.getElementById('custView').style.display=mode==='customer'?'block':'none';
+}
+function goD(id){document.querySelectorAll('#driverView .view').forEach(v=>v.classList.remove('active'));document.getElementById('d-'+id).classList.add('active')}
+function chkZone(el,id){el.closest('.zone-section').querySelectorAll('input[type=checkbox]').forEach(c=>c.checked=el.checked)}
+function selExc(el){document.querySelectorAll('.exc-opt').forEach(o=>o.classList.remove('sel'));el.classList.add('sel')}
+function checkTemp(){
+  const fz=parseFloat(document.getElementById('sFz').value);
+  const ch=parseFloat(document.getElementById('sCh').value);
+  document.getElementById('sFzSt').className=fz<=-12?'temp-ok':'temp-fail';
+  document.getElementById('sFzSt').textContent=fz<=-12?'✓ ≤-12°C':'✗ 超温!';
+  document.getElementById('sChSt').className=ch<=10?'temp-ok':'temp-fail';
+  document.getElementById('sChSt').textContent=ch<=10?'✓ ≤10°C':'✗ 超温!';
+}
+function showSuccess(){document.getElementById('successOv').classList.add('show')}
+
+// Signature pad
+const canvas=document.getElementById('sigCanvas');
+const ctx=canvas.getContext('2d');let drawing=false;
+function initCanvas(){canvas.width=canvas.offsetWidth;canvas.height=canvas.offsetHeight;ctx.strokeStyle='var(--g800)';ctx.lineWidth=2;ctx.lineCap='round'}
+canvas.addEventListener('mousedown',e=>{drawing=true;ctx.beginPath();ctx.moveTo(e.offsetX,e.offsetY)});
+canvas.addEventListener('mousemove',e=>{if(drawing){ctx.lineTo(e.offsetX,e.offsetY);ctx.stroke()}});
+canvas.addEventListener('mouseup',()=>drawing=false);
+canvas.addEventListener('mouseleave',()=>drawing=false);
+canvas.addEventListener('touchstart',e=>{e.preventDefault();drawing=true;const r=canvas.getBoundingClientRect();ctx.beginPath();ctx.moveTo(e.touches[0].clientX-r.left,e.touches[0].clientY-r.top)});
+canvas.addEventListener('touchmove',e=>{e.preventDefault();if(drawing){const r=canvas.getBoundingClientRect();ctx.lineTo(e.touches[0].clientX-r.left,e.touches[0].clientY-r.top);ctx.stroke()}});
+canvas.addEventListener('touchend',()=>drawing=false);
+function clearSig(){ctx.clearRect(0,0,canvas.width,canvas.height)}
+
+// Progress animation
+let ps=0;
+setInterval(()=>{
+  ps=(ps+1)%5;const pcts=[0,20,45,70,100];const labels=['待分拣','分拣中','待出库','配送中','即将到达!'];
+  document.getElementById('cpFzB').style.width=pcts[ps]+'%';
+  document.getElementById('cpFzT').textContent=labels[ps];
+  document.getElementById('cpChB').style.width=Math.min(pcts[ps]+15,100)+'%';
+  document.getElementById('cpChT').textContent=labels[Math.min(ps+1,4)];
+},3000);
+
+// Temperature simulation
+setInterval(()=>{
+  const fz=(-16+Math.random()*2-1).toFixed(0);
+  const ch=(5+Math.random()*2-1).toFixed(0);
+  document.getElementById('cFzT').textContent=fz+'°C';
+  document.getElementById('cChT').textContent=ch+'°C';
+},3000);
+
+// ETA countdown
+let etaMin=23;
+setInterval(()=>{if(etaMin>0){etaMin--;document.getElementById('cCountdown').textContent='约 '+etaMin+' 分钟后送达'}},60000);
+
+setTimeout(initCanvas,100);
+</script>
+</body>
+</html>
