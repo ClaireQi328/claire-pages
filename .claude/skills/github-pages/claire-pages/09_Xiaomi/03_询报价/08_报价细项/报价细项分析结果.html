@@ -1,0 +1,609 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>RFQ 成本穿透分析报告</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Microsoft YaHei', sans-serif; background: #f5f6fa; color: #2d3436; }
+  .container { max-width: 1200px; margin: 0 auto; padding: 24px; }
+  h1 { font-size: 28px; font-weight: 700; color: #1a1a2e; margin-bottom: 8px; }
+  .subtitle { color: #636e72; font-size: 14px; margin-bottom: 32px; }
+  
+  .kpi-row { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; margin-bottom: 32px; }
+  .kpi-card { background: #fff; border-radius: 12px; padding: 20px; box-shadow: 0 2px 8px rgba(0,0,0,0.06); }
+  .kpi-card .label { font-size: 13px; color: #636e72; margin-bottom: 6px; }
+  .kpi-card .value { font-size: 32px; font-weight: 700; }
+  .kpi-card .sub { font-size: 12px; color: #b2bec3; margin-top: 4px; }
+  .kpi-danger .value { color: #e74c3c; }
+  .kpi-warning .value { color: #f39c12; }
+  .kpi-info .value { color: #3498db; }
+  .kpi-success .value { color: #27ae60; }
+  
+  .chart-row { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 24px; }
+  .chart-card { background: #fff; border-radius: 12px; padding: 20px; box-shadow: 0 2px 8px rgba(0,0,0,0.06); }
+  .chart-card.full { grid-column: 1 / -1; }
+  .chart-card h3 { font-size: 16px; color: #1a1a2e; margin-bottom: 16px; }
+  .chart-card canvas { max-height: 320px; }
+  
+  .table-card { background: #fff; border-radius: 12px; padding: 20px; box-shadow: 0 2px 8px rgba(0,0,0,0.06); margin-bottom: 24px; }
+  .table-card h3 { font-size: 16px; color: #1a1a2e; margin-bottom: 16px; }
+  table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  th { text-align: left; padding: 10px 12px; background: #f8f9fa; color: #636e72; font-weight: 600; border-bottom: 2px solid #e9ecef; }
+  td { padding: 10px 12px; border-bottom: 1px solid #f1f3f5; }
+  tr:hover td { background: #f8f9ff; }
+  
+  .badge { display: inline-block; padding: 2px 8px; border-radius: 10px; font-size: 11px; font-weight: 600; }
+  .badge-red { background: #ffeaea; color: #e74c3c; }
+  .badge-yellow { background: #fff8e1; color: #f39c12; }
+  .badge-blue { background: #e8f4fd; color: #3498db; }
+  .badge-green { background: #e8f8ef; color: #27ae60; }
+  
+  .insight-box { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: #fff; border-radius: 12px; padding: 24px; margin-bottom: 24px; }
+  .insight-box h3 { font-size: 18px; margin-bottom: 12px; }
+  .insight-box ul { list-style: none; }
+  .insight-box li { padding: 6px 0; font-size: 14px; }
+  .insight-box li::before { content: '▸ '; }
+  
+  .insight-warn { background: linear-gradient(135deg, #e74c3c, #c0392b); }
+  
+  .data-scroll { max-height: 400px; overflow-y: auto; }
+  
+  .section-title { font-size: 20px; font-weight: 700; color: #1a1a2e; margin: 32px 0 16px 0; padding-bottom: 8px; border-bottom: 2px solid #e9ecef; }
+</style>
+</head>
+<body>
+<div class="container">
+
+<h1>📊 RFQ 报价场景 — 成本穿透分析报告</h1>
+<p class="subtitle">数据来源：RFQ报价包下最高轮次供应商拆解统计列表 | 分析日期：2026-06-25</p>
+
+<!-- 备注说明 -->
+<div style="background:#f0f4ff; border-left:3px solid #667eea; border-radius:8px; padding:16px 20px; margin-bottom: 24px; font-size:13px; color:#4a5568; line-height:1.8;">
+  <strong style="color:#1a1a2e;">📝 备注说明</strong><br>
+  <strong>统计口径：</strong>本报告统计的数据范围为<b>活跃报价包</b>（报价细项已上线但未完成发包的RFQ报价包）。<br>
+  <strong>活跃RFQ定义：</strong>报价细项上线前、但尚未发包的RFQ，其供应商也可以参与细项拆解。即：只要报价包处于"报价细项已上线 → 待发包"这一阶段，均纳入活跃报价包统计范围。<br>
+  <strong>拆解类型说明：</strong>"自行拆解"指供应商自行填报的成本构成；"BOM结构"指按物料清单结构拆解；"BOM+VSM"指在BOM结构基础上叠加价值流映射的深层成本穿透。<br>
+  <strong>例外品类：</strong>部分品类（如导线、线束等标准化程度高或成本构成简单的品类）暂不强制要求成本拆解，待业务侧制定分品类的拆解标准后另行纳入考核。
+</div>
+
+<!-- KPI Cards -->
+<div class="kpi-row">
+  <div class="kpi-card kpi-info">
+    <div class="label">RFQ总数</div>
+    <div class="value" style="color:#1a1a2e;">101</div>
+    <div class="sub">涉及供应商参与 271 次</div>
+  </div>
+  <div class="kpi-card kpi-danger">
+    <div class="label">零穿透RFQ</div>
+    <div class="value">75</div>
+    <div class="sub">占比 74.3% — 完全无成本拆解</div>
+  </div>
+  <div class="kpi-card kpi-warning">
+    <div class="label">供应商拆解率</div>
+    <div class="value">12.5%</div>
+    <div class="sub">仅 34/271 供应商提供拆解</div>
+  </div>
+  <div class="kpi-card kpi-success">
+    <div class="label">深层穿透 (BOM+VSM)</div>
+    <div class="value">2</div>
+    <div class="sub">仅 2 个RFQ，占总量 2.0%</div>
+  </div>
+</div>
+
+<!-- Charts Row 1 -->
+<div class="chart-row">
+  <div class="chart-card">
+    <h3>成本穿透层次分布（供应商维度）</h3>
+    <canvas id="penetrationChart"></canvas>
+  </div>
+  <div class="chart-card">
+    <h3>RFQ维度穿透情况</h3>
+    <canvas id="rfqPenChart"></canvas>
+  </div>
+</div>
+
+<!-- Charts Row 2 -->
+<div class="chart-row">
+  <div class="chart-card">
+    <h3>各轮次成本拆解率趋势</h3>
+    <canvas id="roundChart"></canvas>
+  </div>
+  <div class="chart-card">
+    <h3>供应商数量与拆解率散点</h3>
+    <canvas id="scatterChart"></canvas>
+  </div>
+</div>
+
+<!-- Chart Explanations -->
+<div style="background:#fff; border-radius:12px; padding:20px 24px; box-shadow: 0 2px 8px rgba(0,0,0,0.06); margin-bottom: 24px;">
+  <h3 style="font-size:16px; color:#1a1a2e; margin-bottom:16px;">📈 图表解读</h3>
+  <div style="display:grid; grid-template-columns:1fr 1fr; gap:24px;">
+    <div>
+      <h4 style="color:#667eea; font-size:14px; margin-bottom:8px;">左图：各轮次成本拆解率趋势</h4>
+      <ul style="list-style:disc; padding-left:18px; font-size:13px; color:#4a5568; line-height:2;">
+        <li><b>整体拆解率在 12%~13% 之间徘徊</b>，各轮次之间无明显提升趋势，说明多轮询价并不能自然推动供应商提高成本透明度。</li>
+        <li><b>轮次5及之后拆解率降至 0%~9%</b>——这些高轮次RFQ（如MS13-L内饰金属面罩总成8轮、Modena-L内饰DECO 6轮）反复报价却完全无拆解，可能存在供应商配合意愿低或流程僵化的问题。</li>
+        <li><b>深层穿透（BOM+VSM）仅出现在轮次1和轮次2</b>，且比例极低（2.2%→1.0%→0%）。这意味着：即便是早期轮次，能实现真正成本透明的供应商也屈指可数，后期轮次更是空白。</li>
+        <li><b>关键结论：成本穿透与轮次无关</b>，不能指望靠多轮询价来倒逼透明化，需要从制度层面强制要求。</li>
+      </ul>
+    </div>
+    <div>
+      <h4 style="color:#667eea; font-size:14px; margin-bottom:8px;">右图：供应商数量与穿透率散点分布</h4>
+      <ul style="list-style:disc; padding-left:18px; font-size:13px; color:#4a5568; line-height:2;">
+        <li><b>底部密集的红点</b>代表零穿透的RFQ，覆盖了从1家到7家供应商的全部区间——无论供应商多少，零穿透都是普遍现象，并非"供应商少所以没拆"。</li>
+        <li><b>部分穿透（黄点）</b>集中在供应商数 3~6 的RFQ，穿透率多为 20%~50%，说明存在竞争时部分供应商愿意配合拆解。</li>
+        <li><b>完全穿透（绿点）</b>仅出现在供应商数=1的RFQ（如整车玻璃系统、天际屏2.0等），且均为自行拆解——这可能是独供场景下供应商配合度较高，但也可能是"走过场"式拆解。</li>
+        <li><b>供应商≥5的RFQ中</b>，零穿透仍占绝大多数（如高压导线DB 7家供应商全部未拆解），说明供应商越多≠竞争越充分≠透明度越高。</li>
+      </ul>
+    </div>
+  </div>
+</div>
+
+<!-- Timeline Chart -->
+<div class="chart-row">
+  <div class="chart-card full">
+    <h3>📅 月度成本拆解率变化趋势 <span style="font-size:12px; font-weight:400; color:#8899a6;">（时间 = RFQ创建时间）</span></h3>
+    <div style="display:grid; grid-template-columns:2fr 1fr; gap:20px; align-items:start;">
+      <div><canvas id="timelineChart" style="max-height:340px;"></canvas></div>
+      <div style="font-size:13px; color:#4a5568; line-height:2;">
+        <h4 style="color:#667eea; font-size:13px; margin-bottom:8px;">时间维度解读</h4>
+        <ul style="list-style:disc; padding-left:16px;">
+          <li><b>2025年8-9月</b>曾出现一次小高峰（拆解率40%），主要由被动减振器、CDC减振器、尾门电撑杆等少数RFQ贡献，但未能持续。</li>
+          <li><b>2025Q4回落至5.9%</b>，进入低谷期，几乎回到零穿透状态。</li>
+          <li><b>2026Q1-Q2</b>拆解率回升至11%~12%，但主要依赖"自行拆解"（浅层穿透），深层穿透基本空白。</li>
+          <li><b>2026年6月</b>至今8个RFQ全部零穿透（可能与月初数据未完全更新有关，但也反映近期推进乏力）。</li>
+          <li><b>结论：从2025年8月至今近一年时间，成本穿透率未见持续提升趋势</b>，整体在0%~15%之间波动，未形成稳定的增长曲线。</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Warning Box -->
+<div class="insight-box insight-warn">
+  <h3>⚠️ 核心风险提示</h3>
+  <ul>
+    <li><strong>74.3%</strong> 的RFQ完全没有任何成本拆解，采购谈判缺乏成本依据</li>
+    <li><strong>88.2%</strong> 的供应商报价未提供任何形式的成本分解</li>
+    <li>深层穿透（BOM+VSM）仅覆盖 <strong>2个RFQ（2.0%）</strong>，成本透明化程度极低</li>
+    <li>多轮次询价<strong>并未带来更高的成本穿透率</strong>——轮次越高，拆解率反而略有下降</li>
+    <li>从2025年8月至今，成本穿透率<strong>近一年未呈现持续提升趋势</strong>，推进效果不显著</li>
+  </ul>
+</div>
+
+<!-- Deep Penetration Details -->
+<div class="table-card">
+  <h3>🔬 深层穿透 (BOM+VSM) RFQ — 仅此2个实现成本透明</h3>
+  <table>
+    <thead>
+      <tr><th>RFQ编号</th><th>RFQ名称</th><th>轮次</th><th>供应商数</th><th>未拆解</th><th>BOM+VSM</th><th>BOM+VSM占比</th></tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td>RFQ-20260518-001</td>
+        <td>MX1127B-1被动减振器</td>
+        <td>2</td><td>3</td><td>2</td><td>1</td>
+        <td><span class="badge badge-yellow">33.3%</span></td>
+      </tr>
+      <tr>
+        <td>RFQ-20250829-001</td>
+        <td>国产CDC减振器总成</td>
+        <td>1</td><td>1</td><td>0</td><td>1</td>
+        <td><span class="badge badge-green">100%</span></td>
+      </tr>
+    </tbody>
+  </table>
+</div>
+
+<!-- Shallow Penetration -->
+<div class="section-title">🔸 浅层穿透 (仅自行拆解) RFQ — 共23个</div>
+<div class="table-card">
+  <div class="data-scroll">
+  <table>
+    <thead>
+      <tr><th>RFQ编号</th><th>RFQ名称</th><th>供应商数</th><th>自行拆解</th><th>未拆解</th><th>穿透率</th></tr>
+    </thead>
+    <tbody id="shallowTableBody"></tbody>
+  </table>
+  </div>
+</div>
+
+<!-- Zero Penetration Top List -->
+<div class="section-title">🔴 零穿透RFQ (重点关注) — 共75个，以下为供应商数≥3的高风险项</div>
+<div class="table-card">
+  <div class="data-scroll">
+  <table>
+    <thead>
+      <tr><th>RFQ编号</th><th>RFQ名称</th><th>供应商数</th><th>轮次</th><th>风险等级</th></tr>
+    </thead>
+    <tbody id="zeroTableBody"></tbody>
+  </table>
+  </div>
+</div>
+
+<!-- Improvement Recommendations -->
+<div class="insight-box">
+  <h3>🎯 推进建议（按时间线）</h3>
+  <ul>
+    <li><strong>短期（1-2周）</strong>：对23个已实现浅层穿透的RFQ，要求供应商升级为BOM结构拆解</li>
+    <li><strong>中期（1个月）</strong>：从75个零穿透RFQ中筛选高金额/高风险项，强制要求供应商提供成本拆解</li>
+    <li><strong>长期</strong>：建立供应商准入机制，将成本拆解能力（BOM+VSM）作为战略供应商的硬性门槛</li>
+    <li><strong>流程优化</strong>：将成本拆解要求纳入RFQ模板，在首轮报价即要求供应商提供BOM结构拆解</li>
+    <li><strong>激励机制</strong>：对主动提供BOM+VSM深度拆解的供应商在评分中给予加分权重</li>
+  </ul>
+</div>
+
+<!-- Standards Suggestions -->
+<div style="background:#fff; border-radius:12px; padding:24px; box-shadow: 0 2px 8px rgba(0,0,0,0.06); margin-bottom:24px;">
+  <h3 style="font-size:18px; color:#1a1a2e; margin-bottom:16px; padding-bottom:8px; border-bottom:2px solid #e9ecef;">📐 成本拆解标准制定建议</h3>
+  
+  <div style="display:grid; grid-template-columns:1fr 1fr; gap:20px; margin-bottom:20px;">
+    <div style="background:#f8f9ff; border-radius:8px; padding:16px;">
+      <h4 style="color:#667eea; font-size:14px; margin-bottom:10px;">一、分品类分级标准</h4>
+      <table style="font-size:12px;">
+        <thead><tr><th>品类等级</th><th>典型品类</th><th>拆解要求</th><th>推进节奏</th></tr></thead>
+        <tbody>
+          <tr><td><span class="badge badge-red">A级 · 强制</span></td><td>座椅总成、减振器、电池系统、电驱壳体、CCB镁合金</td><td>BOM+VSM</td><td>立即执行</td></tr>
+          <tr><td><span class="badge badge-yellow">B级 · 推荐</span></td><td>内饰件、安全带、门把手、保险杠、紧固件</td><td>BOM结构</td><td>3个月内</td></tr>
+          <tr><td><span class="badge badge-blue">C级 · 简化</span></td><td>通用螺栓、色漆、结构胶、膨胀胶块</td><td>至少自行拆解</td><td>6个月内</td></tr>
+          <tr><td><span class="badge" style="background:#e8f8ef;color:#27ae60;">D级 · 豁免</span></td><td>导线DB、线束总成、蜂窝网络、位置服务</td><td>暂不强制，待标准制定</td><td>标准出台后</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <div style="background:#f8f9ff; border-radius:8px; padding:16px;">
+      <h4 style="color:#667eea; font-size:14px; margin-bottom:10px;">二、标准制定路线图</h4>
+      <ol style="font-size:13px; color:#4a5568; line-height:2.2; padding-left:18px;">
+        <li><b>立项阶段：</b>由采购+财务+工程三方联合成立"成本拆解标准化工作组"</li>
+        <li><b>品类梳理（2周）：</b>对全部RFQ品类进行分类分级，输出《品类拆解等级清单》</li>
+        <li><b>模板设计（3周）：</b>按A/B/C三级分别设计标准拆解模板（Excel/系统表单）</li>
+        <li><b>试点运行（1个月）：</b>选取5~10个A级品类RFQ强制试点BOM+VSM拆解</li>
+        <li><b>复盘优化（2周）：</b>根据试点反馈调整模板和流程</li>
+        <li><b>全面推行（第3个月起）：</b>将拆解标准嵌入RFQ流程，系统自动校验拆解完整性</li>
+      </ol>
+    </div>
+  </div>
+
+  <div style="display:grid; grid-template-columns:1fr 1fr; gap:20px;">
+    <div style="background:#fffef0; border-radius:8px; padding:16px; border:1px solid #f0e6b2;">
+      <h4 style="color:#b8860b; font-size:14px; margin-bottom:10px;">三、关键决策点</h4>
+      <ul style="font-size:13px; color:#4a5568; line-height:2; list-style:disc; padding-left:18px;">
+        <li><b>是否一刀切？</b>不建议。导线、标准件等低复杂度品类强制BOM+VSM ROI低，应分级管理</li>
+        <li><b>谁来做拆解审核？</b>建议由品类采购+成本工程师双签，系统记录审核轨迹</li>
+        <li><b>新供应商怎么处理？</b>首次合作允许"自行拆解"，第2次报价起须升级为BOM结构</li>
+        <li><b>不配合怎么办？</b>与供应商评分挂钩，连续2次不拆解降低供应商等级</li>
+        <li><b>数据安全：</b>BOM+VSM数据涉及供应商核心成本，需签署保密协议并做权限管控</li>
+      </ul>
+    </div>
+    <div style="background:#fffef0; border-radius:8px; padding:16px; border:1px solid #f0e6b2;">
+      <h4 style="color:#b8860b; font-size:14px; margin-bottom:10px;">四、成功衡量指标</h4>
+      <table style="font-size:12px;">
+        <thead><tr><th>指标</th><th>现状</th><th>3个月目标</th><th>6个月目标</th></tr></thead>
+        <tbody>
+          <tr><td>A级品类RFQ BOM+VSM覆盖率</td><td style="color:#e74c3c;font-weight:700;">0%</td><td style="color:#f39c12;">≥30%</td><td style="color:#27ae60;">≥70%</td></tr>
+          <tr><td>活跃RFQ总体拆解率</td><td style="color:#e74c3c;font-weight:700;">12.5%</td><td style="color:#f39c12;">≥30%</td><td style="color:#27ae60;">≥50%</td></tr>
+          <tr><td>零穿透RFQ占比</td><td style="color:#e74c3c;font-weight:700;">74.3%</td><td style="color:#f39c12;">≤50%</td><td style="color:#27ae60;">≤30%</td></tr>
+          <tr><td>RFQ首轮拆解覆盖率</td><td style="color:#e74c3c;font-weight:700;">13.0%</td><td style="color:#f39c12;">≥40%</td><td style="color:#27ae60;">≥60%</td></tr>
+        </tbody>
+      </table>
+      <p style="font-size:11px; color:#8899a6; margin-top:10px;">* 指标可根据实际情况调整，建议每月Review一次</p>
+    </div>
+  </div>
+</div>
+
+</div>
+
+<script>
+// Color palette
+const dangerColor = '#e74c3c';
+const warningColor = '#f39c12';
+const infoColor = '#3498db';
+const successColor = '#27ae60';
+const darkColor = '#1a1a2e';
+const greyColor = '#b2bec3';
+
+// Chart 1: Penetration levels by supplier
+new Chart(document.getElementById('penetrationChart'), {
+  type: 'doughnut',
+  data: {
+    labels: ['完全未穿透 (239)', '自行拆解 (31)', 'BOM结构 (1)', 'BOM+VSM (2)'],
+    datasets: [{
+      data: [239, 31, 1, 2],
+      backgroundColor: [dangerColor, warningColor, infoColor, successColor],
+      borderWidth: 0
+    }]
+  },
+  options: {
+    responsive: true,
+    plugins: {
+      legend: { position: 'bottom', labels: { padding: 16, usePointStyle: true, pointStyleWidth: 10 } }
+    }
+  }
+});
+
+// Chart 2: RFQ-level penetration
+new Chart(document.getElementById('rfqPenChart'), {
+  type: 'bar',
+  data: {
+    labels: ['零穿透', '浅层穿透', '中层穿透', '深层穿透'],
+    datasets: [{
+      label: 'RFQ数量',
+      data: [75, 23, 1, 2],
+      backgroundColor: [dangerColor, warningColor, infoColor, successColor],
+      borderRadius: 6
+    }]
+  },
+  options: {
+    responsive: true,
+    plugins: {
+      legend: { display: false }
+    },
+    scales: {
+      y: { beginAtZero: true, title: { display: true, text: 'RFQ数量' } }
+    }
+  }
+});
+
+// Chart 3: Penetration rate by round
+new Chart(document.getElementById('roundChart'), {
+  type: 'line',
+  data: {
+    labels: ['轮次1', '轮次2', '轮次3', '轮次4', '轮次5', '轮次6', '轮次8'],
+    datasets: [{
+      label: '拆解率 %',
+      data: [13.0, 13.1, 12.8, 12.5, 9.1, 0, 0],
+      borderColor: dangerColor,
+      backgroundColor: dangerColor + '20',
+      fill: true,
+      tension: 0.3,
+      pointRadius: 6,
+      pointHoverRadius: 8
+    }, {
+      label: '深层穿透率 %',
+      data: [2.2, 1.0, 0, 0, 0, 0, 0],
+      borderColor: successColor,
+      backgroundColor: successColor + '20',
+      fill: true,
+      tension: 0.3,
+      pointRadius: 6,
+      pointHoverRadius: 8
+    }]
+  },
+  options: {
+    responsive: true,
+    plugins: {
+      legend: { position: 'bottom', labels: { usePointStyle: true } }
+    },
+    scales: {
+      y: { beginAtZero: true, max: 20, title: { display: true, text: '%' } }
+    }
+  }
+});
+
+// Chart 4: Scatter - supplier count vs penetration
+const scatterData = [
+  {x:2,y:0,l:'MX14副仪表板'},{x:1,y:0,l:'动力电池底护板'},{x:2,y:0,l:'仪表板总成'},
+  {x:3,y:0,l:'安全气囊'},{x:2,y:0,l:'ABS软件'},{x:6,y:0,l:'热成型单件包'},
+  {x:1,y:0,l:'卡钳总成'},{x:3,y:0,l:'冷冲压'},{x:5,y:20,l:'前转向节'},
+  {x:5,y:20,l:'后转向节'},{x:5,y:0,l:'后转向节铸造'},{x:3,y:33,l:'线束总成'},
+  {x:6,y:0,l:'大焊接包'},{x:1,y:0,l:'热成型门环'},{x:3,y:0,l:'膨胀结构胶'},
+  {x:3,y:33,l:'被动减振器'},{x:1,y:0,l:'B柱外饰板'},{x:1,y:100,l:'CDC减振器'},
+  {x:1,y:100,l:'加速踏板'},{x:1,y:0,l:'翼子板格栅'},{x:4,y:0,l:'镁合金压铸'},
+  {x:3,y:0,l:'高强度螺栓'},{x:4,y:0,l:'座椅logo灯'},{x:5,y:0,l:'铝垫片螺栓'},
+  {x:5,y:0,l:'普通螺栓'},{x:2,y:0,l:'压缩机'},{x:4,y:0,l:'氛围灯'},
+  {x:4,y:0,l:'出风口控制器'},{x:4,y:0,l:'色漆'},{x:1,y:100,l:'电机代工'},
+  {x:4,y:0,l:'新色开发'},{x:3,y:0,l:'铝挡泥板'},{x:1,y:0,l:'绞牙悬架'},
+  {x:4,y:0,l:'尾门电撑杆'},{x:5,y:0,l:'锻造转向节'},{x:2,y:0,l:'不锈钢挡泥板'},
+  {x:4,y:0,l:'电动锁闩'},{x:5,y:0,l:'紧固件'},{x:1,y:0,l:'车身增强垫'},
+  {x:1,y:0,l:'膨胀胶块'},{x:5,y:0,l:'减振器节叉'},{x:1,y:0,l:'机械限位器'},
+  {x:1,y:0,l:'后排安全带'},{x:1,y:0,l:'动力电池上盖'},{x:3,y:0,l:'IMU'},
+  {x:1,y:0,l:'镁合金包'},{x:1,y:0,l:'CCB'},{x:1,y:0,l:'前舱三角梁'},
+  {x:3,y:0,l:'保险杠'},{x:1,y:0,l:'CMU'},{x:4,y:50,l:'冰箱总成'},
+  {x:4,y:25,l:'后侧围轮眉'},{x:1,y:0,l:'电池系统'},{x:5,y:0,l:'组合开关'},
+  {x:1,y:0,l:'MS14SOR'},{x:1,y:0,l:'蜂窝网络'},{x:3,y:0,l:'后空调箱'},
+  {x:1,y:0,l:'电池箱体'},{x:1,y:0,l:'折边胶'},{x:5,y:0,l:'座椅总成'},
+  {x:1,y:0,l:'气缸体'},{x:1,y:0,l:'电池塑料件'},{x:2,y:0,l:'镁合金车轮'},
+  {x:5,y:0,l:'座椅骨架'},{x:2,y:100,l:'触觉交互'},{x:1,y:0,l:'汇流排'},
+  {x:1,y:0,l:'限胶条'},{x:1,y:0,l:'DECO'},{x:1,y:0,l:'挡胶条'},
+  {x:1,y:0,l:'电芯'},{x:1,y:0,l:'雨刮'},{x:3,y:33,l:'结构加强件'},
+  {x:3,y:67,l:'中控显示屏'},{x:1,y:0,l:'车门限位器'},{x:4,y:0,l:'车身开关'},
+  {x:1,y:0,l:'CDC减振器'},{x:3,y:0,l:'膨胀结构胶2'},{x:5,y:40,l:'主轮总成'},
+  {x:6,y:33,l:'后排安全带'},{x:4,y:25,l:'前排安全带'},{x:3,y:33,l:'USB充电'},
+  {x:1,y:100,l:'天际屏'},{x:3,y:33,l:'排气隔热板'},{x:5,y:40,l:'高压空气加热器'},
+  {x:5,y:40,l:'侧门外把手'},{x:1,y:0,l:'位置服务'},{x:3,y:0,l:'功能灯1'},
+  {x:6,y:17,l:'点火线圈'},{x:4,y:50,l:'曲轴减振'},{x:1,y:0,l:'出口SOR'},
+  {x:7,y:0,l:'高压导线'},{x:1,y:0,l:'黑漆件'},{x:3,y:0,l:'功能灯2'},
+  {x:1,y:0,l:'门环'},{x:1,y:0,l:'制动控制'},{x:1,y:0,l:'CNSL1'},
+  {x:3,y:0,l:'后车顶玻璃'},{x:5,y:20,l:'尾门电撑杆2'},{x:1,y:100,l:'整车玻璃'},
+  {x:1,y:100,l:'天窗总成'},{x:2,y:0,l:'面罩总成'},{x:1,y:0,l:'CNSL2'},
+];
+
+new Chart(document.getElementById('scatterChart'), {
+  type: 'scatter',
+  data: {
+    datasets: [{
+      label: '零穿透',
+      data: scatterData.filter(d => d.y === 0),
+      backgroundColor: dangerColor + '80',
+      pointRadius: 5
+    }, {
+      label: '部分穿透',
+      data: scatterData.filter(d => d.y > 0 && d.y < 100),
+      backgroundColor: warningColor + '80',
+      pointRadius: 6
+    }, {
+      label: '完全穿透',
+      data: scatterData.filter(d => d.y === 100),
+      backgroundColor: successColor + '80',
+      pointRadius: 7
+    }]
+  },
+  options: {
+    responsive: true,
+    plugins: {
+      legend: { position: 'bottom', labels: { usePointStyle: true } },
+      tooltip: {
+        callbacks: {
+          label: ctx => {
+            const pt = scatterData[ctx.dataIndex];
+            return pt ? pt.l + ': ' + pt.y + '% 穿透' : '';
+          }
+        }
+      }
+    },
+    scales: {
+      x: { title: { display: true, text: '供应商数量' }, beginAtZero: true },
+      y: { title: { display: true, text: '穿透率 %' }, beginAtZero: true, max: 105 }
+    }
+  }
+});
+
+// Timeline chart - monthly penetration trend
+const monthLabels = ['2023-08','2025-04','2025-06','2025-07','2025-08','2025-09','2025-10','2025-11','2025-12','2026-01','2026-02','2026-03','2026-04','2026-05','2026-06'];
+const decRates =    [0,0,0,0,100,33.3,0,10,0,0,0,13.0,16.0,11.8,0];
+const deepRates =   [0,0,0,0,50,0,0,0,0,0,0,0,0,1.3,0];
+const selfRates =   [0,0,0,0,50,33.3,0,10,0,0,0,13.0,16.0,10.5,0];
+const rfqCounts =   [1,1,1,2,2,2,1,4,2,1,3,23,29,21,8];
+
+new Chart(document.getElementById('timelineChart'), {
+  type: 'line',
+  data: {
+    labels: monthLabels,
+    datasets: [{
+      label: '总拆解率 %',
+      data: decRates,
+      borderColor: dangerColor,
+      backgroundColor: dangerColor + '20',
+      fill: true,
+      tension: 0.3,
+      pointRadius: 5,
+      pointHoverRadius: 8,
+      borderWidth: 2.5
+    }, {
+      label: '深层穿透率 %',
+      data: deepRates,
+      borderColor: successColor,
+      backgroundColor: successColor + '20',
+      fill: true,
+      tension: 0.3,
+      pointRadius: 5,
+      pointHoverRadius: 8,
+      borderWidth: 2.5,
+      borderDash: [6,3]
+    }, {
+      label: '自行拆解率 %',
+      data: selfRates,
+      borderColor: warningColor,
+      backgroundColor: 'transparent',
+      tension: 0.3,
+      pointRadius: 4,
+      pointHoverRadius: 7,
+      borderWidth: 1.5,
+      borderDash: [3,3]
+    }]
+  },
+  options: {
+    responsive: true,
+    plugins: {
+      legend: { position: 'bottom', labels: { usePointStyle: true, padding: 20 } },
+      tooltip: {
+        callbacks: {
+          footer: ctx => '当月RFQ数: ' + rfqCounts[ctx[0].dataIndex]
+        }
+      }
+    },
+    scales: {
+      y: { beginAtZero: true, max: 110, title: { display: true, text: '穿透率 %' },
+        ticks: { callback: v => v + '%' } },
+      x: { ticks: { maxRotation: 45, font: { size: 11 } } }
+    }
+  }
+});
+
+// Populate shallow penetration table
+const shallowData = [
+  ['RFQ-20260526-006','Leman27B前转向节SOR',5,1,4,'20.0%','badge-yellow'],
+  ['RFQ-20260526-005','Leman27B后转向节SOR',5,1,4,'20.0%','badge-yellow'],
+  ['RFQ-20260526-003','整车低压线束总成',3,1,3,'33.3%','badge-yellow'],
+  ['RFQ-20260514-001','电机代工',1,1,0,'100%','badge-green'],
+  ['RFQ-20260507-002','Mann/Kunlun00项目IMU惯性测量单元',3,1,2,'33.3%','badge-yellow'],
+  ['RFQ-20260506-003','Lemans27B中控台后部冰箱总成',4,2,2,'50.0%','badge-yellow'],
+  ['RFQ-20260506-001','LeMans27B-后侧围轮眉&后顶饰板',4,1,3,'25.0%','badge-yellow'],
+  ['RFQ-20260429-001','副驾座椅触觉交互系统',2,2,0,'100%','badge-green'],
+  ['RFQ-20260420-002','SOR1-MS13-L 结构加强件',3,1,2,'33.3%','badge-yellow'],
+  ['RFQ-20260420-001','中控显示屏',3,2,1,'66.7%','badge-yellow'],
+  ['RFQ-20260414-001','MS13-L主轮总成-锻造',5,2,3,'40.0%','badge-yellow'],
+  ['RFQ-20260408-004','LeMans27B后排安全带',6,2,4,'33.3%','badge-yellow'],
+  ['RFQ-20260408-003','LeMans27B前排安全带',4,1,3,'25.0%','badge-yellow'],
+  ['RFQ-20260408-002','MANN项目USB充电模块',3,1,2,'33.3%','badge-yellow'],
+  ['RFQ-20260403-001','天际屏2.0SOR1',1,1,0,'100%','badge-green'],
+  ['RFQ-20260401-002','排气隔热板-曼岛项目',3,1,3,'33.3%','badge-yellow'],
+  ['RFQ-20260326-001','高压空气加热器',5,2,3,'40.0%','badge-yellow'],
+  ['RFQ-20260324-002','LeMans27B侧门外把手',5,2,3,'40.0%','badge-yellow'],
+  ['RFQ-20260313-001','MANN1.5T点火线圈',6,1,5,'16.7%','badge-red'],
+  ['RFQ-20260305-004','曼岛发动机1.5T曲轴减振皮带轮SOR',4,2,2,'50.0%','badge-yellow'],
+  ['RFQ-20250918-003','后车顶玻璃SOR文件',1,1,0,'100%','badge-green'],
+  ['RFQ-20250918-001','Mann-尾门电撑杆',5,1,4,'20.0%','badge-yellow'],
+  ['RFQ-20250820-005','整车玻璃系统',1,1,0,'100%','badge-green'],
+];
+
+const shallowTbody = document.getElementById('shallowTableBody');
+shallowData.forEach(row => {
+  const tr = document.createElement('tr');
+  tr.innerHTML = `<td>${row[0]}</td><td>${row[1]}</td><td>${row[2]}</td><td>${row[3]}</td><td>${row[4]}</td><td><span class="badge ${row[5]}">${row[5]}</span></td>`;
+  shallowTbody.appendChild(tr);
+});
+
+// Populate zero penetration high risk
+const zeroHighRisk = [
+  ['RFQ-20260605-002','MX14副仪表板SOR','2','2'],
+  ['RFQ-20260604-003','Lemans 27B仪表板总成','2','2'],
+  ['RFQ-20260603-006','MX14安全气囊','3','1'],
+  ['RFQ-20260603-004','Lemans-27B热成型单件包','6','3'],
+  ['RFQ-20260603-001','Lemans-27B冷冲压上车体包','3','2'],
+  ['RFQ-20260526-004','MS12-U-27A/27B后转向节空心铸造','5','2'],
+  ['RFQ-20260526-002','LeMans-27B大焊接包','6','3'],
+  ['RFQ-20260525-001','汽车用膨胀结构胶（门槛梁）','3','3'],
+  ['RFQ-20260521-001','MS12-U项目翼子板格栅','3','1'],
+  ['RFQ-20260518-002','Lemans 27B B柱外饰板','3','1'],
+  ['RFQ-20260512-002','EDS3.0-电驱项目镁合金压铸壳体','4','3'],
+  ['RFQ-20260512-001','高强度螺栓','3','2'],
+  ['RFQ-20260511-005','定点-Modena-U27A-座椅logo灯','4','2'],
+  ['RFQ-20260511-003','带铝垫片螺栓','5','2'],
+  ['RFQ-20260511-001','普通螺栓和螺母','5','2'],
+  ['RFQ-20260506-004','定点-MX27B-氛围灯','4','2'],
+  ['RFQ-20260430-004','SU7-L & Mann出风口控制器','4','3'],
+  ['RFQ-20260428-005','储备色色漆开发定点-第二批','4','1'],
+  ['RFQ-20260428-004','Kunlun第四批新色开发定点','3','2'],
+  ['RFQ-20260428-002','MM21项目盘式制动器防护罩总成SOR','3','3'],
+  ['RFQ-20260424-002','Lemans27B-尾门电撑杆','4','2'],
+  ['RFQ-20260424-001','MS11-L锻造前转向节','5','1'],
+  ['RFQ-20260421-002','Modena-LUX后排座椅电动锁闩','4','3'],
+  ['RFQ-20260421-001','Ultra 27A DRS大尾翼新开发紧固件','5','3'],
+  ['RFQ-20260416-001','Mann前悬减振器节叉','5','2'],
+  ['RFQ-20260402-001','Lemans-27B前后保险杠SOR1','3','3'],
+  ['RFQ-20260324-003','副仪表板组合开关','5','3'],
+  ['RFQ-20260323-008','MANN后空调箱','3','4'],
+  ['RFQ-20260318-001','MANN座椅总成（五座+六座）','5','2'],
+  ['RFQ-20260316-006','Mann后排座椅骨架SOR1','5','2'],
+  ['RFQ-20260212-002','车身开关','4','5'],
+  ['RFQ-20260119-001','汽车用膨胀结构胶（升降顶）','3','3'],
+  ['RFQ-20251201-002','定点-Mann-功能灯','3','4'],
+  ['RFQ-20251119-003','高压导线DB','7','3'],
+  ['RFQ-20251023-002','定点-Modena-L-功能灯','3','5'],
+];
+
+const zeroTbody = document.getElementById('zeroTableBody');
+zeroHighRisk.forEach(row => {
+  const supCount = parseInt(row[2]);
+  const rounds = parseInt(row[3]);
+  let riskLvl = supCount >= 5 ? '<span class="badge badge-red">高风险</span>' : '<span class="badge badge-yellow">中风险</span>';
+  const tr = document.createElement('tr');
+  tr.innerHTML = `<td>${row[0]}</td><td>${row[1]}</td><td>${row[2]}</td><td>${row[3]}</td><td>${riskLvl}</td>`;
+  zeroTbody.appendChild(tr);
+});
+</script>
+</body>
+</html>

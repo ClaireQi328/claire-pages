@@ -1,0 +1,2 @@
+"use strict";(self.webpackChunkflow_web_extension=self.webpackChunkflow_web_extension||[]).push([["8855"],{585993:function(e,n,i){i.r(n),i.d(n,{receiveQSMusicCardMatcher:()=>t});var c=i(638770),s=i(885003),t={pluginIdentifier:i(118033).Q,matchPlugin:e=>!(0,c.V)(e)&&(0,s.vU5)(e)}}}]);
+//# sourceMappingURL=8855.js.map

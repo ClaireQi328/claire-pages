@@ -1,0 +1,1000 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>供应网络设计 - E2E-SCM</title>
+    <style>
+        :root {
+            --p: #1677ff; --ph: #4096ff; --pl: #e6f4ff; --pa: rgba(22,119,255,.06);
+            --s: #52c41a; --sl: #f6ffed; --sa: rgba(82,196,26,.08);
+            --w: #faad14; --wl: #fffbe6; --wa: rgba(250,173,20,.08);
+            --d: #ff4d4f; --dl: #fff2f0; --da: rgba(255,77,79,.06);
+            --g50: #fafafa; --g100: #f5f5f5; --g200: #e8e8e8; --g300: #d9d9d9;
+            --g400: #bfbfbf; --g500: #8c8c8c; --g600: #595959; --g700: #434343;
+            --g800: #262626; --g900: #1f1f1f;
+            --r: 10px; --rs: 6px; --rl: 14px;
+            --sh: 0 1px 3px rgba(0,0,0,.04), 0 1px 2px rgba(0,0,0,.06);
+            --shm: 0 4px 12px rgba(0,0,0,.07); --shl: 0 8px 24px rgba(0,0,0,.09);
+            --tr: all .2s ease;
+            --nav-bg: #001529; --nav-bg-light: #002140;
+        }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif; background: #f0f2f5; color: var(--g800); min-height: 100vh; }
+        .top-nav { background: var(--nav-bg); color: #fff; height: 56px; display: flex; align-items: center; padding: 0 24px; position: fixed; top: 0; left: 0; right: 0; z-index: 1000; box-shadow: 0 2px 8px rgba(0,0,0,.25); }
+        .logo { font-size: 18px; font-weight: 700; letter-spacing: 1px; margin-right: 48px; display: flex; align-items: center; gap: 10px; white-space: nowrap; }
+        .logo-icon { width: 32px; height: 32px; background: var(--p); border-radius: 6px; display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 800; }
+        .nav-menu { display: flex; gap: 4px; flex: 1; }
+        .nav-item { padding: 8px 16px; border-radius: var(--rs); cursor: pointer; font-size: 14px; color: rgba(255,255,255,.65); transition: var(--tr); white-space: nowrap; }
+        .nav-item:hover { color: #fff; background: rgba(255,255,255,.1); }
+        .nav-item.active { color: #fff; background: var(--p); }
+        .nav-right { display: flex; align-items: center; gap: 16px; margin-left: auto; }
+        .nav-right span { font-size: 13px; color: rgba(255,255,255,.45); }
+        .avatar { width: 32px; height: 32px; border-radius: 50%; background: var(--p); display: flex; align-items: center; justify-content: center; font-size: 13px; color: #fff; }
+        .layout { display: flex; margin-top: 56px; min-height: calc(100vh - 56px); }
+        .sidebar { width: 220px; background: var(--nav-bg); color: #fff; position: fixed; top: 56px; bottom: 0; left: 0; overflow-y: auto; padding: 12px 0; z-index: 999; }
+        .sidebar-group-title { padding: 10px 20px 6px; font-size: 11px; color: rgba(255,255,255,.35); text-transform: uppercase; letter-spacing: 1px; font-weight: 600; }
+        .sidebar-item { padding: 10px 20px; font-size: 14px; color: rgba(255,255,255,.65); cursor: pointer; display: flex; align-items: center; gap: 10px; transition: var(--tr); border-left: 3px solid transparent; }
+        .sidebar-item:hover { color: #fff; background: rgba(255,255,255,.08); }
+        .sidebar-item.active { color: #fff; background: rgba(22,119,255,.25); border-left-color: var(--p); }
+        .sidebar-icon { width: 20px; text-align: center; font-size: 15px; }
+        .sidebar-badge { margin-left: auto; background: var(--d); color: #fff; font-size: 11px; padding: 1px 6px; border-radius: 10px; min-width: 20px; text-align: center; }
+        .main-content { margin-left: 220px; flex: 1; padding: 24px; min-height: calc(100vh - 56px); }
+        .page-header { margin-bottom: 24px; }
+        .breadcrumb { font-size: 13px; color: var(--g500); margin-bottom: 8px; }
+        .breadcrumb a { color: var(--p); text-decoration: none; }
+        .page-header h1 { font-size: 22px; font-weight: 600; margin-bottom: 6px; }
+        .page-header p { font-size: 14px; color: var(--g500); }
+        .btn-p { padding: 6px 18px; border-radius: var(--rs); font-size: 13px; font-family: inherit; cursor: pointer; border: none; background: linear-gradient(135deg, var(--p), #0958d9); color: #fff; transition: var(--tr); font-weight: 500; }
+        .btn-p:hover { background: linear-gradient(135deg, var(--ph), var(--p)); box-shadow: 0 2px 8px rgba(22,119,255,.35); }
+        .btn-o { padding: 6px 18px; border-radius: var(--rs); font-size: 13px; font-family: inherit; cursor: pointer; border: 1px solid var(--g300); background: #fff; color: var(--g700); transition: var(--tr); }
+        .btn-o:hover { border-color: var(--p); color: var(--p); }
+        .btn-s { padding: 3px 10px; border-radius: var(--rs); font-size: 12px; font-family: inherit; cursor: pointer; border: 1px solid var(--g300); background: #fff; color: var(--g600); transition: var(--tr); }
+        .btn-s:hover { border-color: var(--p); color: var(--p); }
+        .btn-danger { padding: 3px 10px; border-radius: var(--rs); font-size: 12px; font-family: inherit; cursor: pointer; border: 1px solid var(--d); background: #fff; color: var(--d); transition: var(--tr); }
+        .btn-danger:hover { background: var(--dl); }
+        .stat-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; margin-bottom: 24px; }
+        .stat-card { background: #fff; border-radius: var(--r); box-shadow: var(--sh); padding: 20px; position: relative; overflow: hidden; transition: var(--tr); }
+        .stat-card:hover { box-shadow: var(--shm); transform: translateY(-1px); }
+        .stat-card::after { content: ''; position: absolute; top: 0; left: 0; right: 0; height: 3px; }
+        .stat-card:nth-child(1)::after { background: var(--p); }
+        .stat-card:nth-child(2)::after { background: var(--s); }
+        .stat-card:nth-child(3)::after { background: var(--w); }
+        .stat-card:nth-child(4)::after { background: var(--d); }
+        .stat-card-title { font-size: 13px; color: var(--g500); margin-bottom: 10px; }
+        .stat-card-value { font-size: 28px; font-weight: 700; line-height: 1; margin-bottom: 8px; }
+        .stat-card-change { font-size: 12px; display: flex; align-items: center; gap: 4px; }
+        .stat-card-change.up { color: var(--s); }
+        .stat-card-change.down { color: var(--d); }
+        .stat-card-icon { width: 44px; height: 44px; border-radius: 10px; display: flex; align-items: center; justify-content: center; position: absolute; right: 16px; top: 50%; transform: translateY(-50%); font-size: 20px; }
+        .stat-card-icon.blue { background: var(--pa); color: var(--p); }
+        .stat-card-icon.green { background: var(--sa); color: var(--s); }
+        .stat-card-icon.orange { background: var(--wa); color: var(--w); }
+        .stat-card-icon.red { background: var(--da); color: var(--d); }
+        .sp { background: #fff; border-radius: var(--r); box-shadow: var(--sh); margin-bottom: 20px; overflow: hidden; }
+        .sp-h { padding: 16px 20px; border-bottom: 1px solid var(--g200); display: flex; align-items: center; justify-content: space-between; border-left: 3px solid var(--p); }
+        .sp-h h3 { font-size: 15px; font-weight: 600; }
+        .sp-t { font-size: 13px; color: var(--g500); padding: 2px 8px; background: var(--pl); border-radius: var(--rs); font-weight: 500; }
+        .sp-body { padding: 20px; }
+        .data-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+        .data-table th { background: var(--g50); padding: 12px 16px; text-align: left; font-weight: 600; border-bottom: 1px solid var(--g200); white-space: nowrap; }
+        .data-table td { padding: 12px 16px; border-bottom: 1px solid var(--g200); }
+        .data-table tbody tr:hover { background: var(--pa); }
+        .data-table tbody tr:last-child td { border-bottom: none; }
+        .cell-link { color: var(--p); cursor: pointer; font-weight: 500; }
+        .cell-link:hover { text-decoration: underline; }
+        .tag-pending { display: inline-block; padding: 2px 8px; border-radius: var(--rs); font-size: 12px; background: var(--wl); color: #d48806; font-weight: 500; }
+        .tag-processing { display: inline-block; padding: 2px 8px; border-radius: var(--rs); font-size: 12px; background: var(--pl); color: var(--p); font-weight: 500; }
+        .tag-done { display: inline-block; padding: 2px 8px; border-radius: var(--rs); font-size: 12px; background: var(--sl); color: var(--s); font-weight: 500; }
+        .tag-closed { display: inline-block; padding: 2px 8px; border-radius: var(--rs); font-size: 12px; background: var(--g100); color: var(--g500); font-weight: 500; }
+        .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+        .three-col { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; }
+        .topo-flow { display: flex; flex-direction: column; align-items: center; gap: 0; padding: 16px 0; }
+        .topo-layer-label { font-size: 11px; color: var(--g500); letter-spacing: 1px; font-weight: 600; text-transform: uppercase; margin-bottom: 10px; text-align: center; }
+        .topo-nodes { display: flex; gap: 12px; justify-content: center; flex-wrap: wrap; }
+        .topo-node { width: 120px; border-radius: var(--r); padding: 12px 8px; text-align: center; font-size: 12px; font-weight: 500; cursor: pointer; transition: var(--tr); color: #fff; }
+        .topo-node:hover { transform: translateY(-3px); box-shadow: var(--shl); }
+        .topo-node .node-name { font-weight: 600; font-size: 13px; margin-bottom: 3px; }
+        .topo-node .node-info { font-size: 11px; opacity: .85; }
+        .topo-s1 { background: linear-gradient(135deg, #667eea, #764ba2); }
+        .topo-s2 { background: linear-gradient(135deg, #722ed1, #531dab); }
+        .topo-factory { background: linear-gradient(135deg, var(--p), #0958d9); }
+        .topo-wh { background: linear-gradient(135deg, var(--s), #389e0d); }
+        .topo-cust { background: linear-gradient(135deg, var(--w), #d48806); }
+        .topo-arrow { display: flex; align-items: center; justify-content: center; gap: 6px; padding: 6px 0; }
+        .topo-arrow .line { width: 60px; height: 2px; background: var(--g300); }
+        .topo-arrow .head { width: 0; height: 0; border-top: 5px solid transparent; border-bottom: 5px solid transparent; border-left: 7px solid var(--g300); }
+        .topo-arrow .lbl { font-size: 10px; color: var(--g500); white-space: nowrap; }
+        .bar-bg { width: 100%; height: 8px; background: var(--g100); border-radius: 4px; overflow: hidden; margin: 8px 0; }
+        .bar-fill { height: 100%; border-radius: 4px; transition: width .8s ease; }
+        .factory-detail { border: 1px solid var(--g200); border-radius: var(--r); padding: 18px; transition: var(--tr); }
+        .factory-detail:hover { border-color: var(--p); box-shadow: var(--shm); }
+        .factory-detail h4 { font-size: 14px; font-weight: 600; margin-bottom: 12px; display: flex; align-items: center; justify-content: space-between; }
+        .fd-row { display: flex; justify-content: space-between; font-size: 12px; color: var(--g600); margin-bottom: 6px; }
+        .fd-row span:last-child { font-weight: 600; color: var(--g800); }
+        .wh-map { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; }
+        .wh-box { border: 1px solid var(--g200); border-radius: var(--r); padding: 16px; text-align: center; transition: var(--tr); cursor: pointer; }
+        .wh-box:hover { border-color: var(--p); box-shadow: var(--shm); transform: translateY(-2px); }
+        .wh-box .wh-name { font-weight: 600; font-size: 14px; margin-bottom: 6px; }
+        .wh-box .wh-type { font-size: 11px; color: var(--g500); margin-bottom: 8px; }
+        .wh-box .wh-inv { font-size: 22px; font-weight: 700; margin-bottom: 4px; }
+        .line-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; }
+        .line-cell { border: 1px solid var(--g200); border-radius: var(--rs); padding: 12px; text-align: center; transition: var(--tr); }
+        .line-cell:hover { border-color: var(--p); }
+        .line-cell .line-name { font-size: 13px; font-weight: 600; margin-bottom: 4px; }
+        .line-cell .line-status { font-size: 11px; }
+        .alert-banner { display: flex; align-items: center; gap: 10px; padding: 10px 16px; border-radius: var(--r); margin-bottom: 20px; font-size: 13px; }
+        .alert-banner.warning { background: var(--wl); border: 1px solid #ffe58f; color: #ad6800; }
+        .supplier-card { border: 1px solid var(--g200); border-radius: var(--r); padding: 16px; transition: var(--tr); cursor: pointer; }
+        .supplier-card:hover { border-color: var(--p); box-shadow: var(--shm); }
+        .supplier-score { display: inline-flex; align-items: center; justify-content: center; width: 40px; height: 40px; border-radius: 50%; font-weight: 700; font-size: 14px; color: #fff; }
+        .opt-item { display: flex; align-items: flex-start; gap: 12px; padding: 14px 0; border-bottom: 1px solid var(--g200); }
+        .opt-item:last-child { border-bottom: none; }
+        .opt-icon { width: 32px; height: 32px; border-radius: var(--rs); display: flex; align-items: center; justify-content: center; font-size: 14px; flex-shrink: 0; }
+        .opt-text h4 { font-size: 13px; font-weight: 600; margin-bottom: 3px; }
+        .opt-text p { font-size: 12px; color: var(--g500); }
+        .opt-save { margin-left: auto; font-size: 13px; font-weight: 600; color: var(--s); white-space: nowrap; }
+        .trend-bars { display: flex; align-items: flex-end; gap: 12px; height: 140px; padding: 0 8px; }
+        .trend-col { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 4px; }
+        .trend-bar { width: 100%; border-radius: var(--rs) var(--rs) 0 0; transition: height .6s ease; min-width: 20px; }
+        .trend-label { font-size: 11px; color: var(--g500); }
+        .donut-wrap { display: flex; align-items: center; gap: 32px; }
+        .donut { width: 180px; height: 180px; border-radius: 50%; position: relative; flex-shrink: 0; }
+        .donut-center { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); width: 90px; height: 90px; border-radius: 50%; background: #fff; display: flex; flex-direction: column; align-items: center; justify-content: center; box-shadow: inset 0 0 8px rgba(0,0,0,.04); }
+        .donut-center .val { font-size: 22px; font-weight: 700; color: var(--g800); }
+        .donut-center .lbl { font-size: 11px; color: var(--g500); }
+        .donut-legend { display: flex; flex-direction: column; gap: 10px; }
+        .legend-item { display: flex; align-items: center; gap: 8px; font-size: 13px; }
+        .legend-dot { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; }
+        .heat-grid { display: grid; grid-template-columns: repeat(6, 1fr); gap: 8px; }
+        .heat-cell { height: 56px; border-radius: var(--rs); display: flex; flex-direction: column; align-items: center; justify-content: center; font-size: 11px; font-weight: 600; color: #fff; transition: var(--tr); cursor: pointer; }
+        .heat-cell:hover { transform: scale(1.05); box-shadow: var(--shm); }
+        .view { display: none; }
+        .view.active { display: block; }
+        .footer { text-align: center; padding: 24px; font-size: 12px; color: var(--g400); border-top: 1px solid var(--g200); margin-top: 24px; }
+        .optimizer-map { position: relative; width: 100%; height: 420px; border: 1px solid var(--g200); border-radius: var(--r); background: linear-gradient(135deg, #e6f4ff 0%, #f0f5ff 30%, #e6fffb 60%, #f6ffed 100%); overflow: hidden; }
+        .optimizer-map .map-dot { position: absolute; border-radius: 50%; display: flex; align-items: center; justify-content: center; color: #fff; font-size: 10px; font-weight: 700; cursor: pointer; transition: var(--tr); box-shadow: var(--shm); z-index: 2; }
+        .optimizer-map .map-dot:hover { transform: scale(1.3); z-index: 10; }
+        .optimizer-map .map-dot.factory { width: 32px; height: 32px; background: var(--p); }
+        .optimizer-map .map-dot.customer { width: 26px; height: 26px; background: var(--w); }
+        .optimizer-map .map-dot.warehouse-opt { width: 40px; height: 40px; background: var(--d); border: 3px solid #fff; box-shadow: 0 0 0 4px rgba(255,77,79,.3), var(--shm); z-index: 5; animation: optPulse 2s infinite; }
+        @keyframes optPulse { 0%,100%{box-shadow:0 0 0 4px rgba(255,77,79,.3),var(--shm);} 50%{box-shadow:0 0 0 8px rgba(255,77,79,.15),var(--shm);} }
+        .optimizer-map .map-label { position: absolute; font-size: 10px; color: var(--g600); font-weight: 500; white-space: nowrap; pointer-events: none; }
+        .opt-result-card { background: linear-gradient(135deg, var(--pl), #f0f5ff); border: 1px solid #91caff; border-radius: var(--r); padding: 20px; text-align: center; }
+        .opt-result-card .big-num { font-size: 32px; font-weight: 700; color: var(--p); }
+        .opt-result-card .label { font-size: 13px; color: var(--g500); margin-top: 4px; }
+        @media(max-width:1200px){.stat-grid{grid-template-columns:repeat(2,1fr);} .two-col,.three-col{grid-template-columns:1fr;} .line-grid{grid-template-columns:repeat(2,1fr);}}
+    </style>
+</head>
+<body>
+
+<!-- ============ TOP NAV ============ -->
+<nav class="top-nav">
+    <div class="logo">
+        <div class="logo-icon">E2E</div>
+        E2E-SCM
+    </div>
+    <div class="nav-menu">
+        <div class="nav-item">需求管理</div>
+        <div class="nav-item active">供应网络</div>
+        <div class="nav-item">寻源定点</div>
+        <div class="nav-item">计划排程</div>
+        <div class="nav-item">采购执行</div>
+        <div class="nav-item">生产制造</div>
+    </div>
+    <div class="nav-right">
+        <span>v2.1 | 2026-07-02</span>
+        <div class="avatar">CL</div>
+    </div>
+</nav>
+
+<div class="layout">
+
+<!-- ============ SIDEBAR ============ -->
+<aside class="sidebar">
+    <div class="sidebar-group-title">供应网络</div>
+    <div class="sidebar-item active" data-view="v-doc">
+        <span class="sidebar-icon">&#128196;</span>文档说明
+    </div>
+    <div class="sidebar-item" data-view="v-overview">
+        <span class="sidebar-icon">&#9672;</span>网络总览
+    </div>
+    <div class="sidebar-item" data-view="v-factory">
+        <span class="sidebar-icon">&#9643;</span>工厂管理<span class="sidebar-badge">4</span>
+    </div>
+    <div class="sidebar-item" data-view="v-warehouse">
+        <span class="sidebar-icon">&#9633;</span>仓库规划<span class="sidebar-badge">12</span>
+    </div>
+    <div class="sidebar-item" data-view="v-transport">
+        <span class="sidebar-icon">&#8644;</span>运输网络
+    </div>
+    <div class="sidebar-item" data-view="v-supplier">
+        <span class="sidebar-icon">&#9673;</span>供应商层级<span class="sidebar-badge">143</span>
+    </div>
+    <div class="sidebar-item" data-view="v-cost">
+        <span class="sidebar-icon">&#9878;</span>成本分析
+    </div>
+    <div class="sidebar-item" data-view="v-optimizer">
+        <span class="sidebar-icon">&#9883;</span>网络优化求解器
+    </div>
+    <div class="sidebar-group-title">管理工具</div>
+    <div class="sidebar-item">
+        <span class="sidebar-icon">&#9881;</span>风险管理
+    </div>
+    <div class="sidebar-item">
+        <span class="sidebar-icon">&#9873;</span>系统设置
+    </div>
+</aside>
+
+<!-- ============ MAIN CONTENT ============ -->
+<main class="main-content">
+
+<!-- ============ VIEW 0: 文档说明 ============ -->
+<div class="view active" id="v-doc">
+    <div class="page-header">
+        <div class="breadcrumb"><a href="#">首页</a> / 供应网络设计</div>
+        <h1>文档说明</h1>
+        <p>Supply Network Design Stage -- 阶段描述、子流程与关键指标</p>
+    </div>
+    <div class="sp">
+        <div class="sp-h"><h3>阶段概述</h3><span class="sp-t">Stage 02 of E2E-SCM</span></div>
+        <div class="sp-body">
+            <p style="font-size:14px;line-height:1.8;color:var(--g700);margin-bottom:16px;">
+                <strong>供应网络设计 (Supply Network Design)</strong> 是端到端供应链管理中的战略级阶段，负责规划和优化企业供应网络的物理布局。
+                该阶段通过分析需求分布、产能约束、运输成本和服务水平目标，确定工厂、仓库和配送中心的最优选址、数量与规模，
+                确保供应链网络在成本效率与客户响应之间取得最佳平衡。决策影响周期通常为 3-5 年。
+            </p>
+            <p style="font-size:13px;line-height:1.8;color:var(--g600);margin-bottom:16px;">
+                本看板覆盖从 Tier 2/3 原材料供应商到终端客户的完整供应网络可视化与分析功能，支持设施选址优化、
+                产能规划、运输线路管理、供应商分级评估及物流成本结构分解。核心算法采用重心法 (Center of Gravity) 进行仓库选址优化。
+            </p>
+            <div style="background:var(--g50);border-radius:var(--rs);padding:16px;font-size:13px;color:var(--g600);line-height:1.8;">
+                <strong>核心目标:</strong> 构建灵活、高效、韧性的供应网络，实现成本最小化与服务水平最大化的帕累托最优。<br>
+                <strong>决策周期:</strong> 3-5 年战略规划 | <strong>更新频率:</strong> 季度回顾 + 事件驱动<br>
+                <strong>适用范围:</strong> 制造业全品类供应链网络规划与优化
+            </div>
+        </div>
+    </div>
+    <div class="sp">
+        <div class="sp-h"><h3>子流程 (Sub-processes)</h3></div>
+        <div class="sp-body" style="padding:0;">
+            <table class="data-table">
+                <thead>
+                    <tr><th>#</th><th>子流程</th><th>英文名称</th><th>描述</th><th>关键输出</th><th>工具/方法</th></tr>
+                </thead>
+                <tbody>
+                    <tr><td style="font-weight:700;color:var(--p);">1</td><td>网络拓扑设计</td><td>Network Topology Design</td><td>确定供应链节点类型、数量及层级关系</td><td>网络架构图</td><td>拓扑可视化</td></tr>
+                    <tr><td style="font-weight:700;color:var(--p);">2</td><td>设施选址优化</td><td>Facility Location Optimization</td><td>基于需求重心法确定仓库/工厂最优选址</td><td>选址方案</td><td>CoG 求解器</td></tr>
+                    <tr><td style="font-weight:700;color:var(--p);">3</td><td>产能规划</td><td>Capacity Planning</td><td>各节点产能配置与利用率目标设定</td><td>产能规划表</td><td>工厂数字孪生</td></tr>
+                    <tr><td style="font-weight:700;color:var(--p);">4</td><td>运输网络规划</td><td>Transport Network Planning</td><td>运输线路设计、承运商选择与成本优化</td><td>运输方案</td><td>路径优化算法</td></tr>
+                    <tr><td style="font-weight:700;color:var(--p);">5</td><td>供应商层级管理</td><td>Supplier Tier Management</td><td>供应商分级、风险评估与绩效监控</td><td>供应商矩阵</td><td>评分卡体系</td></tr>
+                    <tr><td style="font-weight:700;color:var(--p);">6</td><td>网络成本分析</td><td>Network Cost Analysis</td><td>物流成本结构分解与优化机会识别</td><td>成本报告</td><td>TCO 模型</td></tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+    <div class="sp">
+        <div class="sp-h"><h3>关键绩效指标 (KPIs)</h3></div>
+        <div class="sp-body">
+            <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:16px;">
+                <div style="background:var(--pl);border-radius:var(--rs);padding:16px;text-align:center;"><div style="font-size:22px;font-weight:700;color:var(--p);">47</div><div style="font-size:12px;color:var(--g500);margin-top:4px;">网络节点总数</div><div style="font-size:11px;color:var(--s);margin-top:2px;">Target: &lt;50</div></div>
+                <div style="background:var(--sl);border-radius:var(--rs);padding:16px;text-align:center;"><div style="font-size:22px;font-weight:700;color:var(--s);">380km</div><div style="font-size:12px;color:var(--g500);margin-top:4px;">平均运输距离</div><div style="font-size:11px;color:var(--s);margin-top:2px;">Target: &lt;400km</div></div>
+                <div style="background:var(--wl);border-radius:var(--rs);padding:16px;text-align:center;"><div style="font-size:22px;font-weight:700;color:#d48806;">8.2%</div><div style="font-size:12px;color:var(--g500);margin-top:4px;">网络成本占比</div><div style="font-size:11px;color:var(--s);margin-top:2px;">Target: &lt;9%</div></div>
+                <div style="background:var(--pl);border-radius:var(--rs);padding:16px;text-align:center;"><div style="font-size:22px;font-weight:700;color:var(--p);">78.5%</div><div style="font-size:12px;color:var(--g500);margin-top:4px;">综合产能利用率</div><div style="font-size:11px;color:var(--s);margin-top:2px;">Target: 75-85%</div></div>
+                <div style="background:var(--sl);border-radius:var(--rs);padding:16px;text-align:center;"><div style="font-size:22px;font-weight:700;color:var(--s);">96.2%</div><div style="font-size:12px;color:var(--g500);margin-top:4px;">网络覆盖率</div><div style="font-size:11px;color:var(--s);margin-top:2px;">Target: &gt;95%</div></div>
+                <div style="background:var(--dl);border-radius:var(--rs);padding:16px;text-align:center;"><div style="font-size:22px;font-weight:700;color:var(--d);">2.86亿</div><div style="font-size:12px;color:var(--g500);margin-top:4px;">年度物流总成本</div><div style="font-size:11px;color:var(--s);margin-top:2px;">YoY -4.3%</div></div>
+            </div>
+        </div>
+    </div>
+    <div class="sp">
+        <div class="sp-h"><h3>模块导航说明</h3></div>
+        <div class="sp-body">
+            <div style="display:grid;grid-template-columns:repeat(2,1fr);gap:16px;">
+                <div style="background:var(--g50);border-radius:var(--rs);padding:14px;"><div style="font-weight:600;font-size:13px;margin-bottom:6px;color:var(--p);">&#9672; 网络总览</div><div style="font-size:12px;color:var(--g600);line-height:1.7;">展示供应链五层拓扑结构（Tier 2/3 供应商 -&gt; Tier 1 供应商 -&gt; 工厂 -&gt; 配送中心 -&gt; 客户），实时监控各节点状态与关键指标。</div></div>
+                <div style="background:var(--g50);border-radius:var(--rs);padding:14px;"><div style="font-weight:600;font-size:13px;margin-bottom:6px;color:var(--p);">&#9643; 工厂管理</div><div style="font-size:12px;color:var(--g600);line-height:1.7;">管理 4 座工厂的产能、利用率、产品线和人员配置，提供 6 个月趋势分析和 16 条生产线实时状态。</div></div>
+                <div style="background:var(--g50);border-radius:var(--rs);padding:14px;"><div style="font-weight:600;font-size:13px;margin-bottom:6px;color:var(--p);">&#9633; 仓库规划</div><div style="font-size:12px;color:var(--g600);line-height:1.7;">仓储网络三级体系管理（CDC -&gt; RDC -&gt; 前置仓），含库区热力图、KPI 对比表和库存水位监控。</div></div>
+                <div style="background:var(--g50);border-radius:var(--rs);padding:14px;"><div style="font-weight:600;font-size:13px;margin-bottom:6px;color:var(--p);">&#9883; 网络优化求解器</div><div style="font-size:12px;color:var(--g600);line-height:1.7;">基于重心法 (Center of Gravity) 的仓库选址优化工具，支持动态添加/移除设施，实时计算最优选址与运输总成本。</div></div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- ============ VIEW 1: 网络总览 ============ -->
+<div class="view" id="v-overview">
+    <div class="page-header">
+        <div class="breadcrumb"><a href="#">首页</a> / 供应网络 / 网络总览</div>
+        <h1>供应网络总览</h1>
+        <p>实时监控供应网络拓扑、节点状态与关键绩效指标</p>
+    </div>
+    <div class="alert-banner warning">&#9888; 华南区域配送中心利用率已达92%，建议启动扩产评估 | 上次同步: 2026-07-02 09:30</div>
+    <div class="stat-grid">
+        <div class="stat-card"><div class="stat-card-title">网络节点</div><div class="stat-card-value" data-count="47">0</div><div class="stat-card-change up">&#8593; 3 较上季度</div><div class="stat-card-icon blue">&#9672;</div></div>
+        <div class="stat-card"><div class="stat-card-title">覆盖区域</div><div class="stat-card-value"><span data-count="12">0</span>省</div><div class="stat-card-change up">&#8593; 新增西南区</div><div class="stat-card-icon green">&#9678;</div></div>
+        <div class="stat-card"><div class="stat-card-title">平均运输距离</div><div class="stat-card-value"><span data-count="380">0</span>km</div><div class="stat-card-change up">&#8595; 5.2% 优化效果</div><div class="stat-card-icon orange">&#8644;</div></div>
+        <div class="stat-card"><div class="stat-card-title">网络成本占比</div><div class="stat-card-value"><span data-count="8.2" data-decimal="1">0</span>%</div><div class="stat-card-change up">&#8595; 0.3% 同比改善</div><div class="stat-card-icon red">%</div></div>
+    </div>
+    <div class="sp">
+        <div class="sp-h"><h3>网络拓扑结构</h3><span class="sp-t">实时</span></div>
+        <div class="sp-body">
+            <div class="topo-flow">
+                <div class="topo-layer-label">Tier 2/3 供应商（原材料）</div>
+                <div class="topo-nodes">
+                    <div class="topo-node topo-s1"><div class="node-name">华星化工</div><div class="node-info">化学品 T2</div></div>
+                    <div class="topo-node topo-s1"><div class="node-name">鑫达新材</div><div class="node-info">高分子 T3</div></div>
+                    <div class="topo-node topo-s1"><div class="node-name">远东钢业</div><div class="node-info">钢材 T2</div></div>
+                    <div class="topo-node topo-s1"><div class="node-name">中硅科技</div><div class="node-info">硅片 T3</div></div>
+                </div>
+                <div class="topo-arrow"><span class="lbl">原材料</span><span class="line"></span><span class="head"></span></div>
+                <div class="topo-layer-label">Tier 1 供应商（核心组件）</div>
+                <div class="topo-nodes">
+                    <div class="topo-node topo-s2"><div class="node-name">博世中国</div><div class="node-info">电控系统 T1</div></div>
+                    <div class="topo-node topo-s2"><div class="node-name">宁德时代</div><div class="node-info">电池模组 T1</div></div>
+                    <div class="topo-node topo-s2"><div class="node-name">京东方</div><div class="node-info">显示面板 T1</div></div>
+                    <div class="topo-node topo-s2"><div class="node-name">舜宇光学</div><div class="node-info">光学模组 T1</div></div>
+                </div>
+                <div class="topo-arrow"><span class="lbl">组件</span><span class="line"></span><span class="head"></span></div>
+                <div class="topo-layer-label">生产工厂（4 座）</div>
+                <div class="topo-nodes">
+                    <div class="topo-node topo-factory"><div class="node-name">北京工厂</div><div class="node-info">利用率 82%</div></div>
+                    <div class="topo-node topo-factory"><div class="node-name">武汉工厂</div><div class="node-info">利用率 76%</div></div>
+                    <div class="topo-node topo-factory"><div class="node-name">广州工厂</div><div class="node-info">利用率 89%</div></div>
+                    <div class="topo-node topo-factory"><div class="node-name">成都工厂</div><div class="node-info">利用率 68%</div></div>
+                </div>
+                <div class="topo-arrow"><span class="lbl">成品</span><span class="line"></span><span class="head"></span></div>
+                <div class="topo-layer-label">区域配送中心（4 座）</div>
+                <div class="topo-nodes">
+                    <div class="topo-node topo-wh"><div class="node-name">华东RDC</div><div class="node-info">6省 | 85%</div></div>
+                    <div class="topo-node topo-wh"><div class="node-name">华南RDC</div><div class="node-info">3省 | 92%</div></div>
+                    <div class="topo-node topo-wh"><div class="node-name">华北RDC</div><div class="node-info">4省 | 74%</div></div>
+                    <div class="topo-node topo-wh"><div class="node-name">西南RDC</div><div class="node-info">3省 | 61%</div></div>
+                </div>
+                <div class="topo-arrow"><span class="lbl">配送</span><span class="line"></span><span class="head"></span></div>
+                <div class="topo-layer-label">客户 / 终端渠道</div>
+                <div class="topo-nodes">
+                    <div class="topo-node topo-cust"><div class="node-name">线上商城</div><div class="node-info">D2C 38%</div></div>
+                    <div class="topo-node topo-cust"><div class="node-name">经销商网络</div><div class="node-info">B2B 42%</div></div>
+                    <div class="topo-node topo-cust"><div class="node-name">大客户直销</div><div class="node-info">KA 20%</div></div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="two-col">
+        <div class="sp">
+            <div class="sp-h"><h3>工厂产能概览</h3><span class="sp-t">4 座</span></div>
+            <div class="sp-body">
+                <div style="display:flex;flex-direction:column;gap:14px;">
+                    <div class="factory-detail"><h4>北京工厂 <span class="tag-done">正常</span></h4><div class="fd-row"><span>产能</span><span>12,000 台/月</span></div><div class="fd-row"><span>利用率</span><span>82%</span></div><div class="bar-bg"><div class="bar-fill" style="width:82%;background:var(--p);"></div></div></div>
+                    <div class="factory-detail"><h4>武汉工厂 <span class="tag-done">正常</span></h4><div class="fd-row"><span>产能</span><span>9,600 台/月</span></div><div class="fd-row"><span>利用率</span><span>76%</span></div><div class="bar-bg"><div class="bar-fill" style="width:76%;background:var(--s);"></div></div></div>
+                    <div class="factory-detail"><h4>广州工厂 <span class="tag-pending">预警</span></h4><div class="fd-row"><span>产能</span><span>15,000 台/月</span></div><div class="fd-row"><span>利用率</span><span>89%</span></div><div class="bar-bg"><div class="bar-fill" style="width:89%;background:var(--w);"></div></div></div>
+                    <div class="factory-detail"><h4>成都工厂 <span class="tag-done">正常</span></h4><div class="fd-row"><span>产能</span><span>6,000 台/月</span></div><div class="fd-row"><span>利用率</span><span>68%</span></div><div class="bar-bg"><div class="bar-fill" style="width:68%;background:var(--s);"></div></div></div>
+                </div>
+            </div>
+        </div>
+        <div class="sp">
+            <div class="sp-h"><h3>运输线路摘要</h3><span class="sp-t">24 条</span></div>
+            <div class="sp-body" style="padding:0;">
+                <table class="data-table">
+                    <thead><tr><th>线路</th><th>起始</th><th>目的</th><th>距离</th><th>时效</th><th>满载率</th></tr></thead>
+                    <tbody>
+                        <tr><td class="cell-link">TR-001</td><td>北京工厂</td><td>华北RDC</td><td>180km</td><td>5h</td><td>87%</td></tr>
+                        <tr><td class="cell-link">TR-002</td><td>武汉工厂</td><td>华东RDC</td><td>520km</td><td>1.5d</td><td>83%</td></tr>
+                        <tr><td class="cell-link">TR-003</td><td>广州工厂</td><td>华南RDC</td><td>85km</td><td>2h</td><td>91%</td></tr>
+                        <tr><td class="cell-link">TR-004</td><td>成都工厂</td><td>西南RDC</td><td>150km</td><td>3h</td><td>72%</td></tr>
+                        <tr><td class="cell-link">TR-005</td><td>华东RDC</td><td>华东门店</td><td>260km</td><td>6h</td><td>78%</td></tr>
+                        <tr><td class="cell-link">TR-006</td><td>华南RDC</td><td>华南门店</td><td>310km</td><td>8h</td><td>85%</td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- ============ VIEW 2: 工厂管理 ============ -->
+<div class="view" id="v-factory">
+    <div class="page-header">
+        <div class="breadcrumb"><a href="#">首页</a> / 供应网络 / 工厂管理</div>
+        <h1>工厂管理</h1>
+        <p>工厂产能、利用率、产品线与人员配置详情</p>
+    </div>
+    <div class="stat-grid">
+        <div class="stat-card"><div class="stat-card-title">总产能</div><div class="stat-card-value"><span data-count="42600">0</span> 台/月</div><div class="stat-card-change up">&#8593; 8% 同比</div><div class="stat-card-icon blue">&#9643;</div></div>
+        <div class="stat-card"><div class="stat-card-title">综合利用率</div><div class="stat-card-value"><span data-count="78.5" data-decimal="1">0</span>%</div><div class="stat-card-change up">&#8593; 3.2%</div><div class="stat-card-icon green">%</div></div>
+        <div class="stat-card"><div class="stat-card-title">产品线数</div><div class="stat-card-value"><span data-count="16">0</span></div><div class="stat-card-change up">新增2条</div><div class="stat-card-icon orange">&#9633;</div></div>
+        <div class="stat-card"><div class="stat-card-title">在岗人员</div><div class="stat-card-value"><span data-count="3860">0</span></div><div class="stat-card-change up">&#8593; 120人</div><div class="stat-card-icon red">&#9823;</div></div>
+    </div>
+    <div class="two-col">
+        <div class="sp"><div class="sp-h"><h3>北京工厂</h3><span class="tag-done">运行正常</span></div><div class="sp-body">
+            <div class="fd-row"><span>日产能</span><span>400 台</span></div>
+            <div class="fd-row"><span>月产能</span><span>12,000 台</span></div>
+            <div class="fd-row"><span>当前利用率</span><span>82%</span></div>
+            <div class="bar-bg"><div class="bar-fill" style="width:82%;background:var(--p);"></div></div>
+            <div class="fd-row"><span>面积</span><span>28,000 m&sup2;</span></div>
+            <div class="fd-row"><span>人员</span><span>1,120 人</span></div>
+            <div class="fd-row"><span>产品线</span><span>4 条</span></div>
+            <div class="fd-row"><span>OEE</span><span>76.3%</span></div>
+        </div></div>
+        <div class="sp"><div class="sp-h"><h3>武汉工厂</h3><span class="tag-done">运行正常</span></div><div class="sp-body">
+            <div class="fd-row"><span>日产能</span><span>320 台</span></div>
+            <div class="fd-row"><span>月产能</span><span>9,600 台</span></div>
+            <div class="fd-row"><span>当前利用率</span><span>76%</span></div>
+            <div class="bar-bg"><div class="bar-fill" style="width:76%;background:var(--s);"></div></div>
+            <div class="fd-row"><span>面积</span><span>22,000 m&sup2;</span></div>
+            <div class="fd-row"><span>人员</span><span>980 人</span></div>
+            <div class="fd-row"><span>产品线</span><span>3 条</span></div>
+            <div class="fd-row"><span>OEE</span><span>71.8%</span></div>
+        </div></div>
+        <div class="sp"><div class="sp-h"><h3>广州工厂</h3><span class="tag-pending">产能预警</span></div><div class="sp-body">
+            <div class="fd-row"><span>日产能</span><span>500 台</span></div>
+            <div class="fd-row"><span>月产能</span><span>15,000 台</span></div>
+            <div class="fd-row"><span>当前利用率</span><span>89%</span></div>
+            <div class="bar-bg"><div class="bar-fill" style="width:89%;background:var(--w);"></div></div>
+            <div class="fd-row"><span>面积</span><span>35,000 m&sup2;</span></div>
+            <div class="fd-row"><span>人员</span><span>1,340 人</span></div>
+            <div class="fd-row"><span>产品线</span><span>5 条</span></div>
+            <div class="fd-row"><span>OEE</span><span>83.2%</span></div>
+        </div></div>
+        <div class="sp"><div class="sp-h"><h3>成都工厂</h3><span class="tag-done">运行正常</span></div><div class="sp-body">
+            <div class="fd-row"><span>日产能</span><span>200 台</span></div>
+            <div class="fd-row"><span>月产能</span><span>6,000 台</span></div>
+            <div class="fd-row"><span>当前利用率</span><span>68%</span></div>
+            <div class="bar-bg"><div class="bar-fill" style="width:68%;background:var(--s);"></div></div>
+            <div class="fd-row"><span>面积</span><span>15,000 m&sup2;</span></div>
+            <div class="fd-row"><span>人员</span><span>420 人</span></div>
+            <div class="fd-row"><span>产品线</span><span>4 条</span></div>
+            <div class="fd-row"><span>OEE</span><span>64.5%</span></div>
+        </div></div>
+    </div>
+    <div class="sp">
+        <div class="sp-h"><h3>产能利用率趋势（近6个月）</h3></div>
+        <div class="sp-body">
+            <div class="trend-bars" id="trendBars">
+                <div class="trend-col"><div class="trend-bar" data-h="72" style="background:var(--pl);height:0;"></div><div class="trend-label">1月</div></div>
+                <div class="trend-col"><div class="trend-bar" data-h="68" style="background:var(--pl);height:0;"></div><div class="trend-label">2月</div></div>
+                <div class="trend-col"><div class="trend-bar" data-h="75" style="background:var(--pl);height:0;"></div><div class="trend-label">3月</div></div>
+                <div class="trend-col"><div class="trend-bar" data-h="80" style="background:var(--p);height:0;"></div><div class="trend-label">4月</div></div>
+                <div class="trend-col"><div class="trend-bar" data-h="78" style="background:var(--p);height:0;"></div><div class="trend-label">5月</div></div>
+                <div class="trend-col"><div class="trend-bar" data-h="83" style="background:var(--p);height:0;"></div><div class="trend-label">6月</div></div>
+            </div>
+        </div>
+    </div>
+    <div class="sp">
+        <div class="sp-h"><h3>生产线状态</h3><span class="sp-t">16 条产线</span></div>
+        <div class="sp-body">
+            <div class="line-grid">
+                <div class="line-cell" style="border-left:3px solid var(--p);"><div class="line-name">北京-SMT-01</div><div class="line-status" style="color:var(--p);">运行中 | 85%</div></div>
+                <div class="line-cell" style="border-left:3px solid var(--p);"><div class="line-name">北京-SMT-02</div><div class="line-status" style="color:var(--p);">运行中 | 79%</div></div>
+                <div class="line-cell" style="border-left:3px solid var(--s);"><div class="line-name">北京-组装-01</div><div class="line-status" style="color:var(--s);">运行中 | 72%</div></div>
+                <div class="line-cell" style="border-left:3px solid var(--s);"><div class="line-name">北京-组装-02</div><div class="line-status" style="color:var(--s);">运行中 | 68%</div></div>
+                <div class="line-cell" style="border-left:3px solid var(--p);"><div class="line-name">武汉-SMT-01</div><div class="line-status" style="color:var(--p);">运行中 | 81%</div></div>
+                <div class="line-cell" style="border-left:3px solid var(--s);"><div class="line-name">武汉-组装-01</div><div class="line-status" style="color:var(--s);">运行中 | 74%</div></div>
+                <div class="line-cell" style="border-left:3px solid var(--d);"><div class="line-name">武汉-测试-01</div><div class="line-status" style="color:var(--d);">维护中 | 停机</div></div>
+                <div class="line-cell" style="border-left:3px solid var(--p);"><div class="line-name">广州-SMT-01</div><div class="line-status" style="color:var(--p);">运行中 | 93%</div></div>
+                <div class="line-cell" style="border-left:3px solid var(--w);"><div class="line-name">广州-SMT-02</div><div class="line-status" style="color:var(--w);">运行中 | 91%</div></div>
+                <div class="line-cell" style="border-left:3px solid var(--p);"><div class="line-name">广州-组装-01</div><div class="line-status" style="color:var(--p);">运行中 | 88%</div></div>
+                <div class="line-cell" style="border-left:3px solid var(--p);"><div class="line-name">广州-组装-02</div><div class="line-status" style="color:var(--p);">运行中 | 86%</div></div>
+                <div class="line-cell" style="border-left:3px solid var(--s);"><div class="line-name">广州-测试-01</div><div class="line-status" style="color:var(--s);">运行中 | 78%</div></div>
+                <div class="line-cell" style="border-left:3px solid var(--s);"><div class="line-name">成都-SMT-01</div><div class="line-status" style="color:var(--s);">运行中 | 65%</div></div>
+                <div class="line-cell" style="border-left:3px solid var(--s);"><div class="line-name">成都-组装-01</div><div class="line-status" style="color:var(--s);">运行中 | 62%</div></div>
+                <div class="line-cell" style="border-left:3px solid var(--g300);"><div class="line-name">成都-试产-01</div><div class="line-status" style="color:var(--g500);">试产中 | 45%</div></div>
+                <div class="line-cell" style="border-left:3px solid var(--s);"><div class="line-name">成都-包装-01</div><div class="line-status" style="color:var(--s);">运行中 | 58%</div></div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- ============ VIEW 3: 仓库规划 ============ -->
+<div class="view" id="v-warehouse">
+    <div class="page-header">
+        <div class="breadcrumb"><a href="#">首页</a> / 供应网络 / 仓库规划</div>
+        <h1>仓库规划</h1>
+        <p>仓储网络布局、库存水位与库容利用率管理</p>
+    </div>
+    <div class="stat-grid">
+        <div class="stat-card"><div class="stat-card-title">仓库总数</div><div class="stat-card-value"><span data-count="12">0</span></div><div class="stat-card-change up">&#8593; 2 新增前置仓</div><div class="stat-card-icon blue">&#9633;</div></div>
+        <div class="stat-card"><div class="stat-card-title">总库容</div><div class="stat-card-value"><span data-count="186000">0</span> m&sup2;</div><div class="stat-card-change up">&#8593; 12%</div><div class="stat-card-icon green">&#9643;</div></div>
+        <div class="stat-card"><div class="stat-card-title">平均利用率</div><div class="stat-card-value"><span data-count="74.3" data-decimal="1">0</span>%</div><div class="stat-card-change up">&#8593; 2.1%</div><div class="stat-card-icon orange">%</div></div>
+        <div class="stat-card"><div class="stat-card-title">库存周转天数</div><div class="stat-card-value"><span data-count="18">0</span> 天</div><div class="stat-card-change up">&#8595; 2天</div><div class="stat-card-icon red">&#8634;</div></div>
+    </div>
+    <div class="sp">
+        <div class="sp-h"><h3>仓储网络布局</h3><span class="sp-t">3 级体系</span></div>
+        <div class="sp-body">
+            <div class="wh-map">
+                <div class="wh-box" style="border-top:3px solid var(--p);"><div class="wh-name">上海中心仓</div><div class="wh-type">CDC | 32,000 m&sup2;</div><div class="wh-inv" style="color:var(--p);">82%</div><div class="bar-bg"><div class="bar-fill" style="width:82%;background:var(--p);"></div></div></div>
+                <div class="wh-box" style="border-top:3px solid var(--s);"><div class="wh-name">华东RDC</div><div class="wh-type">区域仓 | 18,000 m&sup2;</div><div class="wh-inv" style="color:var(--s);">76%</div><div class="bar-bg"><div class="bar-fill" style="width:76%;background:var(--s);"></div></div></div>
+                <div class="wh-box" style="border-top:3px solid var(--w);"><div class="wh-name">华南RDC</div><div class="wh-type">区域仓 | 22,000 m&sup2;</div><div class="wh-inv" style="color:var(--d);">92%</div><div class="bar-bg"><div class="bar-fill" style="width:92%;background:var(--d);"></div></div></div>
+                <div class="wh-box" style="border-top:3px solid var(--s);"><div class="wh-name">华北RDC</div><div class="wh-type">区域仓 | 20,000 m&sup2;</div><div class="wh-inv" style="color:var(--s);">74%</div><div class="bar-bg"><div class="bar-fill" style="width:74%;background:var(--s);"></div></div></div>
+                <div class="wh-box" style="border-top:3px solid var(--p);"><div class="wh-name">成都中心仓</div><div class="wh-type">CDC | 15,000 m&sup2;</div><div class="wh-inv" style="color:var(--s);">58%</div><div class="bar-bg"><div class="bar-fill" style="width:58%;background:var(--s);"></div></div></div>
+                <div class="wh-box" style="border-top:3px solid var(--s);"><div class="wh-name">西南RDC</div><div class="wh-type">区域仓 | 16,000 m&sup2;</div><div class="wh-inv" style="color:var(--s);">63%</div><div class="bar-bg"><div class="bar-fill" style="width:63%;background:var(--s);"></div></div></div>
+            </div>
+        </div>
+    </div>
+    <div class="two-col">
+        <div class="sp">
+            <div class="sp-h"><h3>库区利用率热力图</h3><span class="sp-t">上海中心仓</span></div>
+            <div class="sp-body">
+                <div class="heat-grid">
+                    <div class="heat-cell" style="background:var(--s);">A1<br>62%</div>
+                    <div class="heat-cell" style="background:var(--p);">A2<br>78%</div>
+                    <div class="heat-cell" style="background:var(--w);">A3<br>88%</div>
+                    <div class="heat-cell" style="background:var(--d);">A4<br>95%</div>
+                    <div class="heat-cell" style="background:var(--s);">A5<br>52%</div>
+                    <div class="heat-cell" style="background:var(--s);">A6<br>45%</div>
+                    <div class="heat-cell" style="background:var(--p);">B1<br>75%</div>
+                    <div class="heat-cell" style="background:var(--p);">B2<br>80%</div>
+                    <div class="heat-cell" style="background:var(--w);">B3<br>86%</div>
+                    <div class="heat-cell" style="background:var(--p);">B4<br>72%</div>
+                    <div class="heat-cell" style="background:var(--s);">B5<br>58%</div>
+                    <div class="heat-cell" style="background:var(--s);">B6<br>41%</div>
+                </div>
+            </div>
+        </div>
+        <div class="sp">
+            <div class="sp-h"><h3>库区利用率热力图 (华南RDC)</h3><span class="sp-t">华南RDC</span></div>
+            <div class="sp-body">
+                <div class="heat-grid">
+                    <div class="heat-cell" style="background:var(--p);">A1<br>73%</div>
+                    <div class="heat-cell" style="background:var(--w);">A2<br>85%</div>
+                    <div class="heat-cell" style="background:var(--d);">A3<br>94%</div>
+                    <div class="heat-cell" style="background:var(--d);">A4<br>96%</div>
+                    <div class="heat-cell" style="background:var(--p);">A5<br>82%</div>
+                    <div class="heat-cell" style="background:var(--w);">A6<br>88%</div>
+                    <div class="heat-cell" style="background:var(--p);">B1<br>77%</div>
+                    <div class="heat-cell" style="background:var(--w);">B2<br>89%</div>
+                    <div class="heat-cell" style="background:var(--d);">B3<br>91%</div>
+                    <div class="heat-cell" style="background:var(--p);">B4<br>80%</div>
+                    <div class="heat-cell" style="background:var(--w);">B5<br>87%</div>
+                    <div class="heat-cell" style="background:var(--p);">B6<br>75%</div>
+                </div>
+            </div>
+        </div>
+        <div class="sp">
+            <div class="sp-h"><h3>仓库KPI对比</h3></div>
+            <div class="sp-body" style="padding:0;">
+                <table class="data-table">
+                    <thead><tr><th>仓库</th><th>类型</th><th>利用率</th><th>周转天数</th><th>准时率</th></tr></thead>
+                    <tbody>
+                        <tr><td class="cell-link">上海中心仓</td><td>CDC</td><td>82%</td><td>12天</td><td>98.5%</td></tr>
+                        <tr><td class="cell-link">华东RDC</td><td>区域仓</td><td>76%</td><td>15天</td><td>97.2%</td></tr>
+                        <tr><td class="cell-link">华南RDC</td><td>区域仓</td><td>92%</td><td>10天</td><td>96.8%</td></tr>
+                        <tr><td class="cell-link">华北RDC</td><td>区域仓</td><td>74%</td><td>18天</td><td>97.5%</td></tr>
+                        <tr><td class="cell-link">西南RDC</td><td>区域仓</td><td>63%</td><td>22天</td><td>95.1%</td></tr>
+                        <tr><td class="cell-link">成都中心仓</td><td>CDC</td><td>58%</td><td>20天</td><td>96.3%</td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- ============ VIEW 4: 运输网络 ============ -->
+<div class="view" id="v-transport">
+    <div class="page-header">
+        <div class="breadcrumb"><a href="#">首页</a> / 供应网络 / 运输网络</div>
+        <h1>运输网络</h1>
+        <p>运输线路规划、成本优化与路线管理</p>
+    </div>
+    <div class="stat-grid">
+        <div class="stat-card"><div class="stat-card-title">运输线路</div><div class="stat-card-value"><span data-count="24">0</span> 条</div><div class="stat-card-change up">&#8593; 2条 新增</div><div class="stat-card-icon blue">&#8644;</div></div>
+        <div class="stat-card"><div class="stat-card-title">平均满载率</div><div class="stat-card-value"><span data-count="83.5" data-decimal="1">0</span>%</div><div class="stat-card-change up">&#8593; 4.2%</div><div class="stat-card-icon green">%</div></div>
+        <div class="stat-card"><div class="stat-card-title">月运输成本</div><div class="stat-card-value"><span data-count="1430">0</span> 万</div><div class="stat-card-change down">&#8593; 1.3%</div><div class="stat-card-icon orange">&#165;</div></div>
+        <div class="stat-card"><div class="stat-card-title">准时到达率</div><div class="stat-card-value"><span data-count="96.8" data-decimal="1">0</span>%</div><div class="stat-card-change up">&#8593; 0.5%</div><div class="stat-card-icon green">&#10003;</div></div>
+    </div>
+    <div class="sp">
+        <div class="sp-h"><h3>主要运输线路</h3></div>
+        <div class="sp-body" style="padding:0;">
+            <table class="data-table">
+                <thead>
+                    <tr><th>线路</th><th>起始节点</th><th>目的节点</th><th>距离</th><th>运输时效</th><th>满载率</th><th>月运量</th><th>单票成本</th></tr>
+                </thead>
+                <tbody>
+                    <tr><td class="cell-link">TR-001</td><td>北京工厂</td><td>华北RDC</td><td>180km</td><td>5小时</td><td>87%</td><td>4,200箱</td><td>2.1元</td></tr>
+                    <tr><td class="cell-link">TR-002</td><td>武汉工厂</td><td>华东RDC</td><td>520km</td><td>1.5天</td><td>83%</td><td>3,800箱</td><td>5.8元</td></tr>
+                    <tr><td class="cell-link">TR-003</td><td>广州工厂</td><td>华南RDC</td><td>85km</td><td>2小时</td><td>91%</td><td>6,100箱</td><td>1.2元</td></tr>
+                    <tr><td class="cell-link">TR-004</td><td>成都工厂</td><td>西南RDC</td><td>150km</td><td>3小时</td><td>72%</td><td>2,400箱</td><td>1.8元</td></tr>
+                    <tr><td class="cell-link">TR-005</td><td>华东RDC</td><td>华东门店</td><td>260km</td><td>6小时</td><td>78%</td><td>5,600箱</td><td>3.2元</td></tr>
+                    <tr><td class="cell-link">TR-006</td><td>华南RDC</td><td>华南门店</td><td>310km</td><td>8小时</td><td>85%</td><td>4,800箱</td><td>3.6元</td></tr>
+                    <tr><td class="cell-link">TR-007</td><td>华北RDC</td><td>华北门店</td><td>195km</td><td>4.5小时</td><td>80%</td><td>3,500箱</td><td>2.4元</td></tr>
+                    <tr><td class="cell-link">TR-008</td><td>西南RDC</td><td>西南门店</td><td>220km</td><td>5.5小时</td><td>74%</td><td>2,200箱</td><td>2.8元</td></tr>
+                    <tr><td class="cell-link">TR-009</td><td>北京工厂</td><td>华东RDC</td><td>1,050km</td><td>2天</td><td>82%</td><td>1,800箱</td><td>8.4元</td></tr>
+                    <tr><td class="cell-link">TR-010</td><td>武汉工厂</td><td>华南RDC</td><td>860km</td><td>1.8天</td><td>79%</td><td>2,100箱</td><td>7.2元</td></tr>
+                    <tr><td class="cell-link">TR-011</td><td>广州工厂</td><td>华东RDC</td><td>1,100km</td><td>2.2天</td><td>86%</td><td>3,200箱</td><td>8.8元</td></tr>
+                    <tr><td class="cell-link">TR-012</td><td>华东RDC</td><td>西南门店</td><td>1,680km</td><td>3天</td><td>76%</td><td>1,500箱</td><td>12.6元</td></tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<!-- ============ VIEW 5: 供应商层级 ============ -->
+<div class="view" id="v-supplier">
+    <div class="page-header">
+        <div class="breadcrumb"><a href="#">首页</a> / 供应网络 / 供应商层级</div>
+        <h1>供应商层级管理</h1>
+        <p>供应商分级、风险矩阵与绩效评分</p>
+    </div>
+    <div class="stat-grid">
+        <div class="stat-card"><div class="stat-card-title">供应商总数</div><div class="stat-card-value"><span data-count="143">0</span></div><div class="stat-card-change up">&#8593; 8家 新增</div><div class="stat-card-icon blue">&#9673;</div></div>
+        <div class="stat-card"><div class="stat-card-title">Tier 1 战略</div><div class="stat-card-value"><span data-count="8">0</span> 家</div><div class="stat-card-change up">核心组件</div><div class="stat-card-icon green">&#9733;</div></div>
+        <div class="stat-card"><div class="stat-card-title">Tier 2 优选</div><div class="stat-card-value"><span data-count="35">0</span> 家</div><div class="stat-card-change up">关键物料</div><div class="stat-card-icon orange">&#9670;</div></div>
+        <div class="stat-card"><div class="stat-card-title">Tier 3 通用</div><div class="stat-card-value"><span data-count="100">0</span>+ 家</div><div class="stat-card-change up">标准件/辅料</div><div class="stat-card-icon red">&#8226;</div></div>
+    </div>
+    <div class="sp">
+        <div class="sp-h"><h3>供应商层级分布</h3></div>
+        <div class="sp-body" style="padding:0;">
+            <table class="data-table">
+                <thead><tr><th>层级</th><th>数量</th><th>核心物料</th><th>平均评分</th><th>风险等级</th></tr></thead>
+                <tbody>
+                    <tr><td><strong>Tier 1 战略</strong></td><td>8 家</td><td>电池、电控、显示面板、光学模组</td><td style="color:var(--s);">92.5</td><td><span class="tag-done">低风险</span></td></tr>
+                    <tr><td><strong>Tier 2 优选</strong></td><td>35 家</td><td>传感器、连接器、结构件、PCB</td><td style="color:var(--p);">86.3</td><td><span class="tag-processing">中风险</span></td></tr>
+                    <tr><td><strong>Tier 3 通用</strong></td><td>100+ 家</td><td>标准件、包装材料、辅料</td><td style="color:var(--g500);">78.1</td><td><span class="tag-pending">关注</span></td></tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+    <div class="sp">
+        <div class="sp-h"><h3>关键供应商绩效</h3><span class="sp-t">Top 8 Tier 1</span></div>
+        <div class="sp-body">
+            <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:12px;">
+                <div class="supplier-card"><div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;"><strong style="font-size:13px;">宁德时代</strong><div class="supplier-score" style="background:var(--s);">A</div></div><div class="fd-row"><span>准时率</span><span>98.2%</span></div><div class="fd-row"><span>质量合格率</span><span>99.7%</span></div></div>
+                <div class="supplier-card"><div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;"><strong style="font-size:13px;">博世中国</strong><div class="supplier-score" style="background:var(--s);">A</div></div><div class="fd-row"><span>准时率</span><span>97.8%</span></div><div class="fd-row"><span>质量合格率</span><span>99.5%</span></div></div>
+                <div class="supplier-card"><div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;"><strong style="font-size:13px;">京东方</strong><div class="supplier-score" style="background:var(--p);">B+</div></div><div class="fd-row"><span>准时率</span><span>95.6%</span></div><div class="fd-row"><span>质量合格率</span><span>99.1%</span></div></div>
+                <div class="supplier-card"><div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;"><strong style="font-size:13px;">舜宇光学</strong><div class="supplier-score" style="background:var(--p);">A-</div></div><div class="fd-row"><span>准时率</span><span>96.3%</span></div><div class="fd-row"><span>质量合格率</span><span>99.4%</span></div></div>
+                <div class="supplier-card"><div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;"><strong style="font-size:13px;">汇川技术</strong><div class="supplier-score" style="background:var(--p);">B+</div></div><div class="fd-row"><span>准时率</span><span>95.1%</span></div><div class="fd-row"><span>质量合格率</span><span>99.0%</span></div></div>
+                <div class="supplier-card"><div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;"><strong style="font-size:13px;">德赛西威</strong><div class="supplier-score" style="background:var(--s);">A</div></div><div class="fd-row"><span>准时率</span><span>97.5%</span></div><div class="fd-row"><span>质量合格率</span><span>99.6%</span></div></div>
+                <div class="supplier-card"><div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;"><strong style="font-size:13px;">均胜电子</strong><div class="supplier-score" style="background:var(--p);">B</div></div><div class="fd-row"><span>准时率</span><span>93.8%</span></div><div class="fd-row"><span>质量合格率</span><span>98.7%</span></div></div>
+                <div class="supplier-card"><div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;"><strong style="font-size:13px;">立讯精密</strong><div class="supplier-score" style="background:var(--s);">A-</div></div><div class="fd-row"><span>准时率</span><span>96.8%</span></div><div class="fd-row"><span>质量合格率</span><span>99.3%</span></div></div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- ============ VIEW 6: 成本分析 ============ -->
+<div class="view" id="v-cost">
+    <div class="page-header">
+        <div class="breadcrumb"><a href="#">首页</a> / 供应网络 / 成本分析</div>
+        <h1>成本分析</h1>
+        <p>供应链物流成本结构、趋势与优化机会</p>
+    </div>
+    <div class="stat-grid">
+        <div class="stat-card"><div class="stat-card-title">年度物流总成本</div><div class="stat-card-value"><span data-count="2.86" data-decimal="2">0</span> 亿</div><div class="stat-card-change up">&#8595; 4.3% 同比</div><div class="stat-card-icon blue">&#165;</div></div>
+        <div class="stat-card"><div class="stat-card-title">运输成本</div><div class="stat-card-value"><span data-count="1.43" data-decimal="2">0</span> 亿</div><div class="stat-card-change up">占比 50%</div><div class="stat-card-icon green">&#8644;</div></div>
+        <div class="stat-card"><div class="stat-card-title">仓储成本</div><div class="stat-card-value"><span data-count="0.86" data-decimal="2">0</span> 亿</div><div class="stat-card-change up">占比 30%</div><div class="stat-card-icon orange">&#9633;</div></div>
+        <div class="stat-card"><div class="stat-card-title">成本费用率</div><div class="stat-card-value"><span data-count="8.2" data-decimal="1">0</span>%</div><div class="stat-card-change up">&#8595; 0.3%</div><div class="stat-card-icon red">%</div></div>
+    </div>
+    <div class="two-col">
+        <div class="sp">
+            <div class="sp-h"><h3>成本结构分布</h3></div>
+            <div class="sp-body">
+                <div class="donut-wrap">
+                    <div class="donut" style="background:conic-gradient(var(--p) 0deg 180deg, var(--s) 180deg 288deg, var(--w) 288deg 338.4deg, var(--d) 338.4deg 360deg);">
+                        <div class="donut-center">
+                            <span class="val">2.86亿</span>
+                            <span class="lbl">年度总成本</span>
+                        </div>
+                    </div>
+                    <div class="donut-legend">
+                        <div class="legend-item"><span class="legend-dot" style="background:var(--p);"></span>运输成本 1.43亿 (50%)</div>
+                        <div class="legend-item"><span class="legend-dot" style="background:var(--s);"></span>仓储成本 0.86亿 (30%)</div>
+                        <div class="legend-item"><span class="legend-dot" style="background:var(--w);"></span>包装成本 0.40亿 (14%)</div>
+                        <div class="legend-item"><span class="legend-dot" style="background:var(--d);"></span>管理成本 0.17亿 (6%)</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="sp">
+            <div class="sp-h"><h3>月度成本趋势</h3><span class="sp-t">近6个月</span></div>
+            <div class="sp-body" style="padding:0;">
+                <table class="data-table">
+                    <thead>
+                        <tr><th>月份</th><th>运输</th><th>仓储</th><th>包装</th><th>管理</th><th>合计</th><th>环比</th></tr>
+                    </thead>
+                    <tbody>
+                        <tr><td>2026-01</td><td>1,280万</td><td>720万</td><td>340万</td><td>150万</td><td><strong>2,490万</strong></td><td style="color:var(--g500);">-</td></tr>
+                        <tr><td>2026-02</td><td>1,150万</td><td>710万</td><td>310万</td><td>145万</td><td><strong>2,315万</strong></td><td style="color:var(--s);">&#8595; 7.0%</td></tr>
+                        <tr><td>2026-03</td><td>1,320万</td><td>730万</td><td>360万</td><td>155万</td><td><strong>2,565万</strong></td><td style="color:var(--d);">&#8593; 10.8%</td></tr>
+                        <tr><td>2026-04</td><td>1,380万</td><td>740万</td><td>380万</td><td>160万</td><td><strong>2,660万</strong></td><td style="color:var(--d);">&#8593; 3.7%</td></tr>
+                        <tr><td>2026-05</td><td>1,410万</td><td>750万</td><td>390万</td><td>158万</td><td><strong>2,708万</strong></td><td style="color:var(--d);">&#8593; 1.8%</td></tr>
+                        <tr><td>2026-06</td><td>1,430万</td><td>760万</td><td>400万</td><td>152万</td><td><strong>2,742万</strong></td><td style="color:var(--d);">&#8593; 1.3%</td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+    <div class="sp">
+        <div class="sp-h"><h3>季度成本汇总</h3><span class="sp-t">2026 H1</span></div>
+        <div class="sp-body" style="padding:0;">
+            <table class="data-table">
+                <thead>
+                    <tr><th>季度</th><th>运输</th><th>仓储</th><th>包装</th><th>管理</th><th>合计</th><th>同比</th></tr>
+                </thead>
+                <tbody>
+                    <tr><td><strong>Q1 2026</strong></td><td>3,750万</td><td>2,160万</td><td>1,010万</td><td>450万</td><td><strong>7,370万</strong></td><td style="color:var(--s);">&#8595; 5.1%</td></tr>
+                    <tr><td><strong>Q2 2026</strong></td><td>4,220万</td><td>2,250万</td><td>1,170万</td><td>470万</td><td><strong>8,110万</strong></td><td style="color:var(--d);">&#8593; 2.3%</td></tr>
+                    <tr><td><strong>H1 合计</strong></td><td>7,970万</td><td>4,410万</td><td>2,180万</td><td>920万</td><td><strong>15,480万</strong></td><td style="color:var(--s);">&#8595; 1.8%</td></tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+    <div class="sp">
+        <div class="sp-h"><h3>优化机会清单</h3><span class="sp-t">潜在节省</span></div>
+        <div class="sp-body">
+            <div class="opt-item"><div class="opt-icon" style="background:var(--sl);color:var(--s);">&#9670;</div><div class="opt-text"><h4>运输线路合并优化</h4><p>将华东-华南重叠线路整合，采用循环取货模式，减少空驶率 15%</p></div><div class="opt-save">&#8595; 280万/年</div><span class="tag-processing">规划中</span></div>
+            <div class="opt-item"><div class="opt-icon" style="background:var(--pl);color:var(--p);">&#9670;</div><div class="opt-text"><h4>西南仓网整合</h4><p>成都中心仓与西南RDC功能合并，减少重复库存，降低仓储费用</p></div><div class="opt-save">&#8595; 150万/年</div><span class="tag-done">已实施</span></div>
+            <div class="opt-item"><div class="opt-icon" style="background:var(--wl);color:#d48806;">&#9670;</div><div class="opt-text"><h4>包装标准化降本</h4><p>推行包装规格统一，提升装载率从78%至88%，减少包材浪费</p></div><div class="opt-save">&#8595; 120万/年</div><span class="tag-pending">评估中</span></div>
+            <div class="opt-item"><div class="opt-icon" style="background:var(--pl);color:var(--p);">&#9670;</div><div class="opt-text"><h4>承运商集约化采购</h4><p>整合零散运力需求，通过年度合同谈判降低干线运输单价 8%</p></div><div class="opt-save">&#8595; 200万/年</div><span class="tag-processing">规划中</span></div>
+        </div>
+    </div>
+</div>
+
+<!-- ============ VIEW 7: 网络优化求解器 ============ -->
+<div class="view" id="v-optimizer">
+    <div class="page-header">
+        <div class="breadcrumb"><a href="#">首页</a> / 供应网络 / 网络优化求解器</div>
+        <h1>网络优化求解器</h1>
+        <p>基于重心法 (Center of Gravity) 的仓库选址优化 -- 最小化加权运输成本</p>
+    </div>
+    <div class="sp">
+        <div class="sp-h"><h3>求解器输入参数</h3><span class="sp-t">CoG Method</span></div>
+        <div class="sp-body">
+            <div style="display:flex;gap:20px;flex-wrap:wrap;margin-bottom:16px;align-items:flex-end;">
+                <div style="display:flex;flex-direction:column;gap:4px;">
+                    <label style="font-size:11px;color:var(--g500);font-weight:600;">单位运输成本 (元/km)</label>
+                    <input id="costPerKm" type="number" value="0.5" min="0.01" step="0.1" style="padding:6px 10px;border:1px solid var(--g300);border-radius:var(--rs);font-size:13px;width:120px;">
+                </div>
+                <button class="btn-p" onclick="runOptimizer()" style="height:32px;">&#9883; 运行求解器</button>
+                <button class="btn-o" onclick="resetOptimizer()" style="height:32px;">&#8634; 重置</button>
+            </div>
+        </div>
+    </div>
+    <div class="two-col">
+        <div style="display:flex;flex-direction:column;gap:20px;">
+            <div class="sp">
+                <div class="sp-h"><h3>网络布局地图</h3><span id="mapStatus" class="sp-t" style="background:var(--sl);color:#389e0d;">待计算</span></div>
+                <div class="sp-body" style="padding:8px;">
+                    <div class="optimizer-map" id="optMap"></div>
+                </div>
+            </div>
+            <div class="sp">
+                <div class="sp-h"><h3>工厂 (Supply Nodes)</h3><button class="btn-s" onclick="addFacility('factory')">+ 添加</button></div>
+                <div class="sp-body" style="padding:0;">
+                    <div style="overflow-x:auto;">
+                        <table class="data-table" id="factoryTable">
+                            <thead><tr><th>名称</th><th>X</th><th>Y</th><th>产能</th><th>操作</th></tr></thead>
+                            <tbody></tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+            <div class="sp">
+                <div class="sp-h"><h3>客户 (Demand Nodes)</h3><button class="btn-s" onclick="addFacility('customer')">+ 添加</button></div>
+                <div class="sp-body" style="padding:0;">
+                    <div style="overflow-x:auto;">
+                        <table class="data-table" id="customerTable">
+                            <thead><tr><th>名称</th><th>X</th><th>Y</th><th>需求量</th><th>操作</th></tr></thead>
+                            <tbody></tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div style="display:flex;flex-direction:column;gap:20px;">
+            <div class="sp">
+                <div class="sp-h"><h3>求解结果</h3></div>
+                <div class="sp-body">
+                    <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:16px;">
+                        <div class="opt-result-card"><div class="big-num" id="optX">--</div><div class="label">最优 X 坐标</div></div>
+                        <div class="opt-result-card"><div class="big-num" id="optY">--</div><div class="label">最优 Y 坐标</div></div>
+                    </div>
+                    <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+                        <div style="background:var(--sl);border-radius:var(--rs);padding:16px;text-align:center;">
+                            <div style="font-size:20px;font-weight:700;color:var(--s);" id="totalCost">--</div>
+                            <div style="font-size:12px;color:var(--g500);margin-top:4px;">总运输成本 (元)</div>
+                        </div>
+                        <div style="background:var(--wl);border-radius:var(--rs);padding:16px;text-align:center;">
+                            <div style="font-size:20px;font-weight:700;color:#d48806;" id="avgDist">--</div>
+                            <div style="font-size:12px;color:var(--g500);margin-top:4px;">加权平均距离 (km)</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="sp">
+                <div class="sp-h"><h3>计算过程 (CoG Formula)</h3></div>
+                <div class="sp-body">
+                    <div style="background:var(--g50);padding:12px;border-radius:var(--rs);font-family:monospace;font-size:13px;margin-bottom:8px;">
+                        x* = &Sigma;(d<sub>i</sub> &times; x<sub>i</sub>) / &Sigma;(d<sub>i</sub>)<br>
+                        y* = &Sigma;(d<sub>i</sub> &times; y<sub>i</sub>) / &Sigma;(d<sub>i</sub>)
+                    </div>
+                    <div id="formulaSteps" style="font-size:12px;color:var(--g600);line-height:2;"></div>
+                </div>
+            </div>
+            <div class="sp">
+                <div class="sp-h"><h3>距离与成本明细</h3></div>
+                <div class="sp-body" style="padding:0;">
+                    <div style="overflow-x:auto;">
+                        <table class="data-table" id="costDetailTable">
+                            <thead><tr><th>客户</th><th>距离</th><th>权重</th><th>成本</th></tr></thead>
+                            <tbody>
+                                <tr><td colspan="4" style="text-align:center;color:var(--g400);padding:20px;">请先运行求解器</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="footer">
+    E2E-SCM 供应网络设计模块 v2.1 | 供应链架构组 | 数据截止: 2026-07-02 | 建议浏览器: Chrome 120+ / Edge 120+
+</div>
+</main>
+</div>
+
+<script>
+(function(){
+    var factories=[
+        {name:'北京工厂',x:116,y:40,capacity:12000},
+        {name:'武汉工厂',x:114,y:30,capacity:9600},
+        {name:'广州工厂',x:113,y:23,capacity:15000},
+        {name:'成都工厂',x:104,y:30,capacity:6000}
+    ];
+    var customers=[
+        {name:'上海客户',x:121,y:31,demand:5000},
+        {name:'北京客户',x:116,y:40,demand:3200},
+        {name:'广州客户',x:113,y:23,demand:4500},
+        {name:'成都客户',x:104,y:30,demand:2800},
+        {name:'武汉客户',x:114,y:30,demand:3600},
+        {name:'西安客户',x:109,y:34,demand:1800}
+    ];
+    var fCounter=1,cCounter=7;
+
+    var sidebarItems=document.querySelectorAll('.sidebar-item[data-view]');
+    var views=document.querySelectorAll('.view');
+    sidebarItems.forEach(function(item){
+        item.addEventListener('click',function(){
+            var tid=this.getAttribute('data-view');
+            sidebarItems.forEach(function(s){s.classList.remove('active');});
+            this.classList.add('active');
+            views.forEach(function(v){v.classList.remove('active');});
+            var t=document.getElementById(tid);
+            if(t){t.classList.add('active');animateCounters(t);animateTrendBars(t);window.scrollTo(0,0);}
+        });
+    });
+
+    function animateCounters(scope){
+        (scope||document).querySelectorAll('[data-count]').forEach(function(el){
+            var target=parseFloat(el.getAttribute('data-count'));
+            var dec=parseInt(el.getAttribute('data-decimal'))||0;
+            var start=0,dur=800,st=null;
+            function step(ts){
+                if(!st)st=ts;
+                var p=Math.min((ts-st)/dur,1);
+                var e=1-Math.pow(1-p,3);
+                el.textContent=dec>0?(start+(target-start)*e).toFixed(dec):Math.round(start+(target-start)*e).toLocaleString();
+                if(p<1)requestAnimationFrame(step);
+            }
+            requestAnimationFrame(step);
+        });
+    }
+
+    function animateTrendBars(scope){
+        (scope||document).querySelectorAll('.trend-bar[data-h]').forEach(function(b,i){
+            setTimeout(function(){b.style.height=b.getAttribute('data-h')+'%';},i*80);
+        });
+    }
+
+    setTimeout(function(){
+        animateCounters(document.getElementById('v-doc'));
+        animateTrendBars(document.getElementById('v-factory'));
+    },100);
+
+    document.querySelectorAll('.nav-item').forEach(function(i){
+        i.addEventListener('click',function(){
+            document.querySelectorAll('.nav-item').forEach(function(n){n.classList.remove('active');});
+            this.classList.add('active');
+        });
+    });
+
+    function renderTables(){
+        var fb=document.querySelector('#factoryTable tbody');fb.innerHTML='';
+        factories.forEach(function(f,i){
+            fb.innerHTML+='<tr><td><strong>'+f.name+'</strong></td><td><input type="number" value="'+f.x+'" style="width:60px;padding:3px;border:1px solid var(--g300);border-radius:4px;font-size:12px;" onchange="factories['+i+'].x=parseFloat(this.value)"></td><td><input type="number" value="'+f.y+'" style="width:60px;padding:3px;border:1px solid var(--g300);border-radius:4px;font-size:12px;" onchange="factories['+i+'].y=parseFloat(this.value)"></td><td><input type="number" value="'+f.capacity+'" style="width:70px;padding:3px;border:1px solid var(--g300);border-radius:4px;font-size:12px;" onchange="factories['+i+'].capacity=parseInt(this.value)"></td><td><button class="btn-danger" style="padding:2px 6px;font-size:11px;" onclick="removeFacility(\'factory\','+i+')">&#10005;</button></td></tr>';
+        });
+        var cb=document.querySelector('#customerTable tbody');cb.innerHTML='';
+        customers.forEach(function(c,i){
+            cb.innerHTML+='<tr><td><strong>'+c.name+'</strong></td><td><input type="number" value="'+c.x+'" style="width:60px;padding:3px;border:1px solid var(--g300);border-radius:4px;font-size:12px;" onchange="customers['+i+'].x=parseFloat(this.value)"></td><td><input type="number" value="'+c.y+'" style="width:60px;padding:3px;border:1px solid var(--g300);border-radius:4px;font-size:12px;" onchange="customers['+i+'].y=parseFloat(this.value)"></td><td><input type="number" value="'+c.demand+'" style="width:70px;padding:3px;border:1px solid var(--g300);border-radius:4px;font-size:12px;" onchange="customers['+i+'].demand=parseInt(this.value)"></td><td><button class="btn-danger" style="padding:2px 6px;font-size:11px;" onclick="removeFacility(\'customer\','+i+')">&#10005;</button></td></tr>';
+        });
+    }
+
+    window.addFacility=function(type){
+        if(type==='factory'){factories.push({name:'新工厂'+(fCounter++),x:110+Math.round(Math.random()*10),y:25+Math.round(Math.random()*15),capacity:8000});}
+        else{customers.push({name:'新客户'+(cCounter++),x:105+Math.round(Math.random()*18),y:22+Math.round(Math.random()*20),demand:2000+Math.round(Math.random()*3000)});}
+        renderTables();drawMap();
+    };
+
+    window.removeFacility=function(type,idx){
+        if(type==='factory'&&factories.length>1)factories.splice(idx,1);
+        else if(type==='customer'&&customers.length>1)customers.splice(idx,1);
+        renderTables();drawMap();
+    };
+
+    function mapCoord(x,y,w,h){
+        var minX=100,maxX=125,minY=18,maxY=45;
+        return{px:((x-minX)/(maxX-minX))*w,py:h-((y-minY)/(maxY-minY))*h};
+    }
+
+    function drawMap(ox,oy){
+        var map=document.getElementById('optMap');
+        var w=map.offsetWidth,h=map.offsetHeight;
+        var html='';
+        factories.forEach(function(f){
+            var p=mapCoord(f.x,f.y,w,h);
+            html+='<div class="map-dot factory" style="left:'+(p.px-16)+'px;top:'+(p.py-16)+'px;" title="'+f.name+'">'+f.name.charAt(0)+'</div>';
+            html+='<div class="map-label" style="left:'+(p.px+18)+'px;top:'+(p.py-6)+'px;">'+f.name+'</div>';
+        });
+        customers.forEach(function(c){
+            var p=mapCoord(c.x,c.y,w,h);
+            html+='<div class="map-dot customer" style="left:'+(p.px-13)+'px;top:'+(p.py-13)+'px;" title="'+c.name+'">'+c.name.charAt(0)+'</div>';
+            html+='<div class="map-label" style="left:'+(p.px+16)+'px;top:'+(p.py-6)+'px;">'+c.name+'</div>';
+        });
+        if(ox!==undefined){
+            var p=mapCoord(ox,oy,w,h);
+            html+='<div class="map-dot warehouse-opt" style="left:'+(p.px-20)+'px;top:'+(p.py-20)+'px;">W</div>';
+            html+='<div class="map-label" style="left:'+(p.px+24)+'px;top:'+(p.py-8)+'px;font-weight:700;color:var(--d);">最优仓库</div>';
+            customers.forEach(function(c){
+                var pc=mapCoord(c.x,c.y,w,h);
+                html+='<svg style="position:absolute;left:0;top:0;width:100%;height:100%;pointer-events:none;"><line x1="'+p.px+'" y1="'+p.py+'" x2="'+pc.px+'" y2="'+pc.py+'" stroke="rgba(255,77,79,.3)" stroke-width="1.5" stroke-dasharray="4,3"/></svg>';
+            });
+            factories.forEach(function(f){
+                var pf=mapCoord(f.x,f.y,w,h);
+                html+='<svg style="position:absolute;left:0;top:0;width:100%;height:100%;pointer-events:none;"><line x1="'+p.px+'" y1="'+p.py+'" x2="'+pf.px+'" y2="'+pf.py+'" stroke="rgba(22,119,255,.3)" stroke-width="1.5" stroke-dasharray="4,3"/></svg>';
+            });
+        }
+        map.innerHTML=html;
+    }
+
+    window.runOptimizer=function(){
+        if(!customers.length)return;
+        var sdx=0,sdy=0,sd=0;
+        customers.forEach(function(c){sdx+=c.demand*c.x;sdy+=c.demand*c.y;sd+=c.demand;});
+        var ox=sdx/sd,oy=sdy/sd;
+        var cpk=parseFloat(document.getElementById('costPerKm').value)||0.5;
+        var tc=0,twd=0,rows='';
+        customers.forEach(function(c){
+            var d=Math.sqrt(Math.pow(c.x-ox,2)+Math.pow(c.y-oy,2))*111;
+            var cost=c.demand*d*cpk;
+            tc+=cost;twd+=c.demand*d;
+            rows+='<tr><td>'+c.name+'</td><td>'+d.toFixed(1)+' km</td><td>'+c.demand.toLocaleString()+'</td><td>&#165;'+Math.round(cost).toLocaleString()+'</td></tr>';
+        });
+        var ad=twd/sd;
+        document.getElementById('optX').textContent=ox.toFixed(4);
+        document.getElementById('optY').textContent=oy.toFixed(4);
+        document.getElementById('totalCost').innerHTML='&#165;'+Math.round(tc).toLocaleString();
+        document.getElementById('avgDist').textContent=ad.toFixed(1)+' km';
+        document.getElementById('mapStatus').textContent='已求解';
+        document.getElementById('mapStatus').style.background='var(--pl)';
+        document.getElementById('mapStatus').style.color='var(--p)';
+        document.getElementById('costDetailTable').querySelector('tbody').innerHTML=rows;
+        document.getElementById('formulaSteps').innerHTML='<div style="font-weight:600;">Sum(d_i)='+sd.toLocaleString()+'</div><div>Sum(d_i*x_i)='+sdx.toFixed(2)+'</div><div>Sum(d_i*y_i)='+sdy.toFixed(2)+'</div><div style="font-weight:600;color:var(--p);margin-top:6px;">x* = '+sdx.toFixed(2)+' / '+sd+' = <strong>'+ox.toFixed(4)+'</strong></div><div style="font-weight:600;color:var(--p);">y* = '+sdy.toFixed(2)+' / '+sd+' = <strong>'+oy.toFixed(4)+'</strong></div>';
+        drawMap(ox,oy);
+    };
+
+    window.resetOptimizer=function(){
+        document.getElementById('optX').textContent='--';
+        document.getElementById('optY').textContent='--';
+        document.getElementById('totalCost').textContent='--';
+        document.getElementById('avgDist').textContent='--';
+        document.getElementById('mapStatus').textContent='待计算';
+        document.getElementById('mapStatus').style.background='var(--sl)';
+        document.getElementById('mapStatus').style.color='#389e0d';
+        document.getElementById('costDetailTable').querySelector('tbody').innerHTML='<tr><td colspan="4" style="text-align:center;color:var(--g400);padding:20px;">请先运行求解器</td></tr>';
+        document.getElementById('formulaSteps').innerHTML='';
+        drawMap();
+    };
+
+    renderTables();drawMap();
+})();
+</script>
+</body>
+</html>
+

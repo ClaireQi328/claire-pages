@@ -1,0 +1,2 @@
+"use strict";(self.webpackChunkflow_web_extension=self.webpackChunkflow_web_extension||[]).push([["43623"],{822582:function(e,i,n){n.r(i),n.d(i,{receiveLyricsToSongMusicMatcher:()=>t});var c=n(638770),s=n(885003),t={pluginIdentifier:n(899585).D,matchPlugin:e=>!(0,c.V)(e)&&(0,s.C_i)(e)}}}]);
+//# sourceMappingURL=43623.js.map

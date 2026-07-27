@@ -1,0 +1,1 @@
+const e={pageOpen:0,pageSwitch:1,mouseClick:2,keyboardInput:3,keyboardCombo:4,mouseDragStart:5,mouseDragEnd:6,screenshot:7,mouseDrag:8,customItem:10,warning:19,annotation:20,title:21,videoScreenshot:30};export{e as E};

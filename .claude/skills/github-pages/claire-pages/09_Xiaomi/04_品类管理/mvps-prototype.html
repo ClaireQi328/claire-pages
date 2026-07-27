@@ -1,0 +1,1204 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>EP 品类管理与VPPS绑定品类 - 原型</title>
+<style>
+/* ==================== RESET & BASE ==================== */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+:root {
+  --c-bg: #f8fafc; --c-surface: #ffffff; --c-border: #e2e8f0;
+  --c-text: #1e293b; --c-text-sec: #64748b; --c-text-hint: #94a3b8;
+  --c-primary: #2563eb; --c-primary-hover: #1d4ed8;
+  --c-success: #16a34a; --c-success-bg: #dcfce7; --c-success-text: #166534;
+  --c-danger: #dc2626; --c-danger-bg: #fee2e2; --c-danger-text: #991b1b;
+  --c-warning: #d97706; --c-warning-bg: #fef3c7; --c-warning-text: #92400e;
+  --c-info: #0891b2; --c-info-bg: #cffafe; --c-info-text: #155e75;
+  --c-frozen: #6b7280; --c-frozen-bg: #f3f4f6; --c-frozen-text: #374151;
+  --sidebar-w: 220px; --topbar-h: 52px; --anno-w: 340px;
+  --radius: 6px; --radius-lg: 10px;
+}
+html { font-size: 14px; }
+body { font-family: -apple-system, 'Segoe UI', 'Microsoft YaHei', sans-serif; background: var(--c-bg); color: var(--c-text); line-height: 1.5; }
+
+/* ==================== LAYOUT ==================== */
+.app { display: flex; height: 100vh; overflow: hidden; }
+.sidebar { width: var(--sidebar-w); background: #0f172a; color: #cbd5e1; display: flex; flex-direction: column; flex-shrink: 0; }
+.sidebar-brand { height: var(--topbar-h); display: flex; align-items: center; padding: 0 16px; font-weight: 700; font-size: 15px; color: #fff; border-bottom: 1px solid #1e293b; letter-spacing: -0.3px; }
+.sidebar-brand span { color: var(--c-primary); }
+.sidebar-nav { flex: 1; padding: 12px 8px; overflow-y: auto; }
+.nav-group-label { font-size: 11px; text-transform: uppercase; letter-spacing: 0.08em; color: #475569; padding: 12px 12px 4px; font-weight: 600; }
+.nav-item { display: flex; align-items: center; gap: 10px; padding: 9px 12px; border-radius: var(--radius); cursor: pointer; font-size: 13px; color: #94a3b8; transition: all 0.15s; user-select: none; }
+.nav-item:hover { background: #1e293b; color: #e2e8f0; }
+.nav-item.active { background: var(--c-primary); color: #fff; }
+.nav-item .icon { width: 18px; text-align: center; font-size: 14px; flex-shrink: 0; }
+
+/* main area */
+.main-wrap { flex: 1; display: flex; flex-direction: column; overflow: hidden; }
+.topbar { height: var(--topbar-h); background: var(--c-surface); border-bottom: 1px solid var(--c-border); display: flex; align-items: center; justify-content: space-between; padding: 0 20px; flex-shrink: 0; }
+.topbar-left { display: flex; align-items: center; gap: 8px; font-size: 13px; color: var(--c-text-sec); }
+.topbar-left .bc-sep { color: var(--c-text-hint); }
+.topbar-left .bc-current { color: var(--c-text); font-weight: 600; }
+.topbar-right { display: flex; align-items: center; gap: 12px; }
+.topbar-right .user-info { font-size: 12px; color: var(--c-text-sec); }
+.topbar-right .user-info strong { color: var(--c-text); }
+.btn-anno-toggle { padding: 5px 12px; font-size: 12px; border: 1px solid var(--c-border); border-radius: var(--radius); background: var(--c-surface); cursor: pointer; color: var(--c-text-sec); transition: all 0.15s; }
+.btn-anno-toggle:hover { border-color: var(--c-primary); color: var(--c-primary); }
+
+.content-area { flex: 1; display: flex; overflow: hidden; }
+.page-content { flex: 1; overflow-y: auto; padding: 20px; }
+.view { display: none; }
+.view.active { display: block; }
+
+/* ==================== ANNOTATION PANEL ==================== */
+.anno-panel { width: var(--anno-w); flex-shrink: 0; background: #fffbeb; border-left: 2px dashed #fbbf24; overflow-y: auto; padding: 16px; transition: width 0.2s, padding 0.2s; }
+.anno-panel.hidden { width: 0; padding: 0; overflow: hidden; border: none; }
+.anno-panel h3 { font-size: 14px; font-weight: 700; color: #92400e; margin-bottom: 12px; display: flex; align-items: center; gap: 6px; }
+.anno-panel h3::before { content: "📌"; }
+.anno-section { margin-bottom: 16px; }
+.anno-section h4 { font-size: 12px; font-weight: 600; color: #b45309; margin-bottom: 6px; text-transform: uppercase; letter-spacing: 0.04em; }
+.anno-item { font-size: 12px; color: #78350f; line-height: 1.6; padding: 4px 0; border-bottom: 1px dashed #fde68a; }
+.anno-item:last-child { border-bottom: none; }
+.anno-item .tag { display: inline-block; font-size: 10px; padding: 1px 6px; border-radius: 3px; margin-right: 4px; font-weight: 600; }
+.tag-req { background: #dcfce7; color: #166534; }
+.tag-warn { background: #fef3c7; color: #92400e; }
+.tag-note { background: #dbeafe; color: #1e40af; }
+.tag-tip { background: #f3e8ff; color: #6b21a8; }
+
+/* ==================== SEARCH / FILTER BAR ==================== */
+.filter-bar { background: var(--c-surface); border: 1px solid var(--c-border); border-radius: var(--radius-lg); padding: 16px; margin-bottom: 16px; }
+.filter-row { display: flex; flex-wrap: wrap; gap: 12px; align-items: flex-end; }
+.filter-item { display: flex; flex-direction: column; gap: 4px; min-width: 160px; }
+.filter-item label { font-size: 12px; color: var(--c-text-sec); font-weight: 500; }
+.filter-item input, .filter-item select { height: 32px; padding: 0 10px; border: 1px solid var(--c-border); border-radius: var(--radius); font-size: 13px; background: #fff; color: var(--c-text); outline: none; transition: border-color 0.15s; }
+.filter-item input:focus, .filter-item select:focus { border-color: var(--c-primary); box-shadow: 0 0 0 2px rgba(37,99,235,0.12); }
+.filter-actions { display: flex; gap: 8px; align-items: flex-end; margin-left: auto; }
+
+/* ==================== BUTTONS ==================== */
+.btn { display: inline-flex; align-items: center; justify-content: center; gap: 5px; height: 32px; padding: 0 14px; border-radius: var(--radius); font-size: 13px; font-weight: 500; cursor: pointer; border: 1px solid transparent; transition: all 0.15s; white-space: nowrap; }
+.btn:active { transform: translateY(1px); }
+.btn-primary { background: var(--c-primary); color: #fff; }
+.btn-primary:hover { background: var(--c-primary-hover); }
+.btn-default { background: #fff; border-color: var(--c-border); color: var(--c-text); }
+.btn-default:hover { border-color: var(--c-primary); color: var(--c-primary); }
+.btn-danger { background: #fff; border-color: var(--c-danger); color: var(--c-danger); }
+.btn-danger:hover { background: var(--c-danger); color: #fff; }
+.btn-success { background: var(--c-success); color: #fff; }
+.btn-success:hover { background: #15803d; }
+.btn-warning { background: #fff; border-color: var(--c-warning); color: var(--c-warning); }
+.btn-warning:hover { background: var(--c-warning); color: #fff; }
+.btn-link { background: none; border: none; color: var(--c-primary); padding: 0; height: auto; font-size: 13px; cursor: pointer; }
+.btn-link:hover { text-decoration: underline; }
+.btn-text { background: none; border: none; color: var(--c-text-sec); padding: 0 6px; height: auto; font-size: 13px; cursor: pointer; }
+.btn-text:hover { color: var(--c-primary); }
+.btn-group { display: flex; gap: 8px; }
+.btn[disabled] { opacity: 0.45; cursor: not-allowed; pointer-events: none; }
+
+/* ==================== TABLE ==================== */
+.table-wrap { background: var(--c-surface); border: 1px solid var(--c-border); border-radius: var(--radius-lg); overflow: hidden; }
+.table-header { display: flex; align-items: center; justify-content: space-between; padding: 12px 16px; border-bottom: 1px solid var(--c-border); }
+.table-header h3 { font-size: 14px; font-weight: 600; }
+.table-header .count { font-size: 12px; color: var(--c-text-hint); font-weight: 400; margin-left: 6px; }
+.table-scroll { overflow-x: auto; }
+table { width: 100%; border-collapse: collapse; font-size: 13px; }
+thead { background: #f8fafc; position: sticky; top: 0; z-index: 1; }
+th { padding: 10px 12px; text-align: left; font-weight: 600; color: var(--c-text-sec); font-size: 12px; border-bottom: 1px solid var(--c-border); white-space: nowrap; }
+td { padding: 10px 12px; border-bottom: 1px solid #f1f5f9; vertical-align: middle; }
+tbody tr:hover { background: #f8fafc; }
+tbody tr:last-child td { border-bottom: none; }
+
+/* ==================== TAGS / BADGES ==================== */
+.tag { display: inline-block; padding: 2px 8px; border-radius: 4px; font-size: 12px; font-weight: 500; line-height: 1.5; }
+.tag-active { background: var(--c-success-bg); color: var(--c-success-text); }
+.tag-frozen { background: var(--c-frozen-bg); color: var(--c-frozen-text); }
+.tag-pending { background: var(--c-info-bg); color: var(--c-info-text); }
+.tag-bound { background: var(--c-success-bg); color: var(--c-success-text); }
+.tag-nobind { background: var(--c-warning-bg); color: var(--c-warning-text); }
+.tag-valid { background: var(--c-success-bg); color: var(--c-success-text); }
+.tag-invalid { background: var(--c-danger-bg); color: var(--c-danger-text); }
+.tag-multi { display: inline-block; padding: 1px 6px; border-radius: 3px; font-size: 11px; background: #f1f5f9; color: var(--c-text-sec); margin: 1px 2px; }
+.tag-source { padding: 2px 6px; border-radius: 3px; font-size: 11px; background: #ede9fe; color: #5b21b6; }
+
+/* ==================== MODAL ==================== */
+.modal-overlay { position: fixed; inset: 0; background: rgba(15,23,42,0.45); backdrop-filter: blur(4px); z-index: 1000; display: none; align-items: center; justify-content: center; }
+.modal-overlay.show { display: flex; }
+.modal { background: var(--c-surface); border-radius: var(--radius-lg); box-shadow: 0 20px 60px rgba(0,0,0,0.2); max-height: 85vh; overflow-y: auto; }
+.modal-sm { width: 440px; }
+.modal-md { width: 600px; }
+.modal-lg { width: 860px; }
+.modal-xl { width: 1080px; }
+.modal-header { display: flex; align-items: center; justify-content: space-between; padding: 16px 20px; border-bottom: 1px solid var(--c-border); }
+.modal-header h3 { font-size: 15px; font-weight: 600; }
+.modal-close { width: 28px; height: 28px; border: none; background: none; cursor: pointer; font-size: 18px; color: var(--c-text-hint); border-radius: var(--radius); display: flex; align-items: center; justify-content: center; }
+.modal-close:hover { background: #f1f5f9; color: var(--c-text); }
+.modal-body { padding: 20px; }
+.modal-footer { padding: 12px 20px; border-top: 1px solid var(--c-border); display: flex; justify-content: flex-end; gap: 8px; }
+
+/* ==================== FORM ==================== */
+.form-group { margin-bottom: 16px; }
+.form-group label { display: block; font-size: 13px; font-weight: 500; margin-bottom: 4px; color: var(--c-text); }
+.form-group label .req { color: var(--c-danger); margin-left: 2px; }
+.form-group .hint { font-size: 11px; color: var(--c-text-hint); margin-top: 3px; }
+.form-group input, .form-group select, .form-group textarea {
+  width: 100%; padding: 7px 10px; border: 1px solid var(--c-border); border-radius: var(--radius);
+  font-size: 13px; color: var(--c-text); background: #fff; outline: none; transition: border-color 0.15s;
+  font-family: inherit;
+}
+.form-group input:focus, .form-group select:focus, .form-group textarea:focus { border-color: var(--c-primary); box-shadow: 0 0 0 2px rgba(37,99,235,0.1); }
+.form-group input[readonly] { background: #f8fafc; color: var(--c-text-hint); cursor: not-allowed; }
+.form-group input:disabled, .form-group select:disabled { background: #f1f5f9; color: var(--c-text-hint); cursor: not-allowed; }
+.form-group textarea { min-height: 60px; resize: vertical; }
+.form-row { display: flex; gap: 16px; }
+.form-row .form-group { flex: 1; }
+
+/* section divider in edit form */
+.form-section { margin-bottom: 20px; }
+.form-section-title { font-size: 13px; font-weight: 600; color: var(--c-text); padding: 8px 0; border-bottom: 2px solid var(--c-primary); margin-bottom: 14px; display: flex; align-items: center; gap: 6px; }
+.form-section-title::before { content: ""; width: 3px; height: 14px; background: var(--c-primary); border-radius: 2px; }
+
+/* ==================== MISC ==================== */
+.empty-state { text-align: center; padding: 48px 20px; color: var(--c-text-hint); }
+.empty-state .icon { font-size: 36px; margin-bottom: 8px; }
+.pagination { display: flex; align-items: center; justify-content: space-between; padding: 12px 16px; border-top: 1px solid var(--c-border); font-size: 12px; color: var(--c-text-sec); }
+.page-btns { display: flex; gap: 4px; }
+.page-btns button { width: 28px; height: 28px; border: 1px solid var(--c-border); border-radius: 4px; background: #fff; cursor: pointer; font-size: 12px; }
+.page-btns button.active { background: var(--c-primary); color: #fff; border-color: var(--c-primary); }
+.section-title { font-size: 15px; font-weight: 600; margin-bottom: 12px; }
+.divider { height: 1px; background: var(--c-border); margin: 16px 0; }
+.confirm-box { background: #fffbeb; border: 1px solid #fde68a; border-radius: var(--radius); padding: 12px 16px; margin-bottom: 16px; font-size: 13px; color: #92400e; }
+.warn-box { background: var(--c-danger-bg); border: 1px solid #fca5a5; border-radius: var(--radius); padding: 12px 16px; margin-bottom: 16px; font-size: 13px; color: var(--c-danger-text); }
+.checkbox-group { display: flex; flex-direction: column; gap: 8px; }
+.checkbox-group label { display: flex; align-items: center; gap: 8px; font-size: 13px; cursor: pointer; }
+.checkbox-group input[type="checkbox"] { width: 16px; height: 16px; accent-color: var(--c-primary); }
+.radio-group { display: flex; gap: 16px; flex-wrap: wrap; }
+.radio-group label { display: flex; align-items: center; gap: 4px; font-size: 13px; cursor: pointer; }
+
+/* ==================== SCROLLBAR ==================== */
+::-webkit-scrollbar { width: 6px; height: 6px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+</style>
+</head>
+<body>
+<div class="app">
+  <!-- ==================== SIDEBAR ==================== -->
+  <aside class="sidebar">
+    <div class="sidebar-brand">EP <span>品类管理</span></div>
+    <nav class="sidebar-nav">
+      <div class="nav-group-label">品类管理</div>
+      <div class="nav-item active" data-view="category-list"><span class="icon">📋</span>品类列表</div>
+      <div class="nav-item" data-view="category-edit"><span class="icon">✏️</span>编辑品类</div>
+      <div class="nav-item" data-view="change-log"><span class="icon">📝</span>变更记录</div>
+      <div class="nav-group-label">VPPS绑定</div>
+      <div class="nav-item" data-view="vpps-bind"><span class="icon">🔗</span>VPPS绑定品类</div>
+    </nav>
+  </aside>
+
+  <!-- ==================== MAIN ==================== -->
+  <div class="main-wrap">
+    <header class="topbar">
+      <div class="topbar-left">
+        <span>MVPS</span><span class="bc-sep">/</span>
+        <span class="bc-current" id="breadcrumb">品类管理</span>
+      </div>
+      <div class="topbar-right">
+        <span class="user-info">当前用户: <strong>张明 (品类管理员)</strong></span>
+        <button class="btn-anno-toggle" onclick="toggleAnno()">📌 标注</button>
+      </div>
+    </header>
+
+    <div class="content-area">
+      <div class="page-content">
+
+        <!-- ==================== VIEW 1: 品类列表 ==================== -->
+        <div class="view active" id="view-category-list">
+          <div class="filter-bar">
+            <div class="filter-row">
+              <div class="filter-item"><label>品类编码</label><input type="text" placeholder="输入编码查询"></div>
+              <div class="filter-item"><label>品类名称</label><input type="text" placeholder="输入名称查询"></div>
+              <div class="filter-item"><label>VPPS节点</label><select><option>请选择</option><option>10.01</option><option>10.01.01</option><option>10.02</option></select></div>
+              <div class="filter-item"><label>品类专家</label><input type="text" placeholder="按姓名搜索"></div>
+              <div class="filter-item"><label>SQE主管</label><input type="text" placeholder="按姓名搜索"></div>
+              <div class="filter-item"><label>采购工程师</label><input type="text" placeholder="按姓名搜索"></div>
+              <div class="filter-item"><label>专业组</label><select><option>全部</option><option>电子件</option><option>结构件</option><option>底盘件</option><option>内外饰</option></select></div>
+            </div>
+            <div class="filter-row" style="margin-top:12px;">
+              <div class="filter-actions">
+                <button class="btn btn-primary">🔍 查询</button>
+                <button class="btn btn-default">重置</button>
+              </div>
+            </div>
+          </div>
+
+          <div class="table-wrap">
+            <div class="table-header">
+              <h3>品类列表 <span class="count">共 6 条</span></h3>
+              <div class="btn-group">
+                <button class="btn btn-default">📥 批量导入</button>
+                <button class="btn btn-default">📤 导出</button>
+                <button class="btn btn-default" onclick="openModal('modal-transfer')">↗️ 转派</button>
+                <button class="btn btn-default" onclick="openModal('modal-freeze')">❄️ 冻结</button>
+                <button class="btn btn-primary" onclick="openModal('modal-add')">＋ 新增品类</button>
+              </div>
+            </div>
+            <div class="table-scroll">
+              <table>
+                <thead>
+                  <tr>
+                    <th><input type="checkbox"></th>
+                    <th>品类编码</th><th>品类名称</th><th>品类专家</th><th>品类状态</th>
+                    <th>专业组</th><th>材料品类</th><th>工艺品类</th><th>定点供应商</th>
+                    <th>品类描述/说明</th><th>操作</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td><input type="checkbox"></td>
+                    <td>CAT-00001</td><td>电芯模组</td><td>李婷</td>
+                    <td><span class="tag tag-active">生效</span></td>
+                    <td>电子件</td>
+                    <td><span class="tag-multi">三元锂</span><span class="tag-multi">磷酸铁锂</span></td>
+                    <td><span class="tag-multi">焊接</span><span class="tag-multi">涂覆</span></td>
+                    <td>宁德时代、比亚迪</td>
+                    <td>动力电池电芯及模组采购品类</td>
+                    <td><button class="btn-link" onclick="openModal('modal-edit')">编辑</button> · <button class="btn-link" onclick="openModal('modal-changelog-single')">变更记录</button></td>
+                  </tr>
+                  <tr>
+                    <td><input type="checkbox"></td>
+                    <td>CAT-00002</td><td>域控制器</td><td>王浩</td>
+                    <td><span class="tag tag-active">生效</span></td>
+                    <td>电子件</td>
+                    <td><span class="tag-multi">PCB</span><span class="tag-multi">芯片</span></td>
+                    <td><span class="tag-multi">SMT贴片</span></td>
+                    <td>德赛西威、经纬恒润</td>
+                    <td>智能驾驶/座舱域控制器</td>
+                    <td><button class="btn-link" onclick="openModal('modal-edit')">编辑</button> · <button class="btn-link" onclick="openModal('modal-changelog-single')">变更记录</button></td>
+                  </tr>
+                  <tr>
+                    <td><input type="checkbox"></td>
+                    <td>CAT-00003</td><td>车身结构件</td><td>赵磊</td>
+                    <td><span class="tag tag-active">生效</span></td>
+                    <td>结构件</td>
+                    <td><span class="tag-multi">铝合金</span><span class="tag-multi">高强钢</span></td>
+                    <td><span class="tag-multi">冲压</span><span class="tag-multi">压铸</span></td>
+                    <td>博世、海斯坦普</td>
+                    <td>车身框架、纵梁、横梁等结构件</td>
+                    <td><button class="btn-link" onclick="openModal('modal-edit')">编辑</button> · <button class="btn-link" onclick="openModal('modal-changelog-single')">变更记录</button></td>
+                  </tr>
+                  <tr>
+                    <td><input type="checkbox"></td>
+                    <td>CAT-00004</td><td>线束总成</td><td>陈晨</td>
+                    <td><span class="tag tag-active">生效</span></td>
+                    <td>电子件</td>
+                    <td><span class="tag-multi">铜导线</span><span class="tag-multi">连接器</span></td>
+                    <td><span class="tag-multi">端子压接</span></td>
+                    <td>安波福、矢崎</td>
+                    <td>整车高压/低压线束总成</td>
+                    <td><button class="btn-link" onclick="openModal('modal-edit')">编辑</button> · <button class="btn-link" onclick="openModal('modal-changelog-single')">变更记录</button></td>
+                  </tr>
+                  <tr>
+                    <td><input type="checkbox"></td>
+                    <td>CAT-00005</td><td>制动系统</td><td>孙伟</td>
+                    <td><span class="tag tag-frozen">已冻结</span></td>
+                    <td>底盘件</td>
+                    <td><span class="tag-multi">铸铁</span></td>
+                    <td><span class="tag-multi">机加工</span></td>
+                    <td>大陆、采埃孚</td>
+                    <td>盘式制动器、EPB等制动系统零件</td>
+                    <td><button class="btn-link" onclick="openModal('modal-edit')">编辑</button> · <button class="btn-link" onclick="openModal('modal-changelog-single')">变更记录</button></td>
+                  </tr>
+                  <tr>
+                    <td><input type="checkbox"></td>
+                    <td>CAT-00006</td><td>座椅总成</td><td>周敏</td>
+                    <td><span class="tag tag-active">生效</span></td>
+                    <td>内外饰</td>
+                    <td><span class="tag-multi">皮革</span><span class="tag-multi">发泡</span></td>
+                    <td><span class="tag-multi">缝纫</span><span class="tag-multi">发泡成型</span></td>
+                    <td>安道拓、李尔</td>
+                    <td>前排/后排座椅总成及骨架</td>
+                    <td><button class="btn-link" onclick="openModal('modal-edit')">编辑</button> · <button class="btn-link" onclick="openModal('modal-changelog-single')">变更记录</button></td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+            <div class="pagination">
+              <span>共 6 条，第 1/1 页</span>
+              <div class="page-btns"><button class="active">1</button></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- ==================== VIEW 2: 编辑品类 ==================== -->
+        <div class="view" id="view-category-edit">
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;">
+            <div style="display:flex;align-items:center;gap:12px;">
+              <button class="btn btn-default" onclick="switchView('category-list')">← 返回列表</button>
+              <h2 style="font-size:16px;">编辑品类</h2>
+              <span class="tag tag-active">生效</span>
+            </div>
+            <div class="btn-group">
+              <button class="btn btn-primary" onclick="openModal('modal-transfer')">↗️ 转派</button>
+              <button class="btn btn-danger" onclick="openModal('modal-freeze')">❄️ 冻结</button>
+            </div>
+          </div>
+
+          <!-- 基础信息 -->
+          <div class="form-section">
+            <div class="form-section-title">基础信息</div>
+            <div class="form-row">
+              <div class="form-group">
+                <label>品类编码</label>
+                <input type="text" value="CAT-00001" readonly>
+                <div class="hint">系统自动生成，不可修改</div>
+              </div>
+              <div class="form-group">
+                <label>品类名称 <span class="req">*</span></label>
+                <input type="text" value="电芯模组">
+              </div>
+            </div>
+          </div>
+
+          <!-- 品类属性 -->
+          <div class="form-section">
+            <div class="form-section-title">品类属性</div>
+            <div class="form-row">
+              <div class="form-group">
+                <label>品类状态</label>
+                <input type="text" value="生效" readonly>
+              </div>
+              <div class="form-group">
+                <label>专业组 <span class="req">*</span></label>
+                <select><option selected>电子件</option><option>结构件</option><option>底盘件</option><option>内外饰</option></select>
+              </div>
+            </div>
+            <div class="form-row">
+              <div class="form-group">
+                <label>材料品类</label>
+                <input type="text" value="三元锂, 磷酸铁锂" placeholder="支持搜索多选">
+                <div class="hint">输入搜索并选择，支持多选</div>
+              </div>
+              <div class="form-group">
+                <label>工艺品类</label>
+                <input type="text" value="焊接, 涂覆" placeholder="支持搜索多选">
+                <div class="hint">输入搜索并选择，支持多选</div>
+              </div>
+            </div>
+            <div class="form-group">
+              <label>品类描述/说明</label>
+              <textarea rows="3">动力电池电芯及模组采购品类，涵盖方形、圆柱、软包电芯及其成组方案。</textarea>
+            </div>
+          </div>
+
+          <!-- 人员关系 -->
+          <div class="form-section">
+            <div class="form-section-title">人员关系</div>
+            <div class="form-row">
+              <div class="form-group">
+                <label>品类专家</label>
+                <input type="text" value="李婷" disabled style="background:#f1f5f9;color:#94a3b8;">
+                <div class="hint">品类专家不可直接修改，请通过「转派」操作</div>
+              </div>
+              <div class="form-group">
+                <label>SQE主管</label>
+                <input type="text" value="刘强" placeholder="按姓名搜索">
+              </div>
+              <div class="form-group">
+                <label>默认采购工程师</label>
+                <input type="text" value="张伟" placeholder="按姓名搜索">
+              </div>
+            </div>
+          </div>
+
+          <!-- VPPS关系 -->
+          <div class="form-section">
+            <div class="form-section-title">已绑定 VPPS</div>
+            <div class="table-wrap">
+              <div class="table-scroll">
+                <table>
+                  <thead>
+                    <tr>
+                      <th>VPPS编码</th><th>结构编码</th><th>结构简码</th><th>位置码</th>
+                      <th>中文描述</th><th>英文描述</th><th>编码状态</th>
+                      <th>编码生效日期</th><th>编码失效日期</th><th>绑定时间</th><th>操作</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr>
+                      <td>VP-20260101</td><td>ST-1001</td><td>S1001</td><td>LOC-A01</td>
+                      <td>电芯正极片</td><td>Cell Positive Electrode</td>
+                      <td><span class="tag tag-valid">生效</span></td>
+                      <td>2026-01-01</td><td>2027-12-31</td><td>2026-03-15 10:23:45</td>
+                      <td><button class="btn btn-danger" style="height:26px;font-size:12px;padding:0 8px;" onclick="openModal('modal-unbind')">解绑</button></td>
+                    </tr>
+                    <tr>
+                      <td>VP-20260102</td><td>ST-1002</td><td>S1002</td><td>LOC-A02</td>
+                      <td>电芯负极片</td><td>Cell Negative Electrode</td>
+                      <td><span class="tag tag-valid">生效</span></td>
+                      <td>2026-01-01</td><td>2027-12-31</td><td>2026-03-15 10:25:12</td>
+                      <td><button class="btn btn-danger" style="height:26px;font-size:12px;padding:0 8px;" onclick="openModal('modal-unbind')">解绑</button></td>
+                    </tr>
+                    <tr>
+                      <td>VP-20260201</td><td>ST-2001</td><td>S2001</td><td>LOC-B01</td>
+                      <td>模组外壳</td><td>Module Housing</td>
+                      <td><span class="tag tag-invalid">失效</span></td>
+                      <td>2025-06-01</td><td>2026-06-01</td><td>2026-02-20 14:08:33</td>
+                      <td><button class="btn btn-danger" style="height:26px;font-size:12px;padding:0 8px;" onclick="openModal('modal-unbind')">解绑</button></td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+            <div style="margin-top:12px;text-align:right;">
+              <button class="btn btn-primary">💾 保存修改</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- ==================== VIEW 3: 变更记录 ==================== -->
+        <div class="view" id="view-change-log">
+          <h2 style="font-size:16px;margin-bottom:16px;">变更记录</h2>
+          <div class="filter-bar">
+            <div class="filter-row">
+              <div class="filter-item"><label>品类编码</label><input type="text" placeholder="输入品类编码"></div>
+              <div class="filter-item" style="min-width:280px;">
+                <label>变更字段</label>
+                <div class="radio-group" style="margin-top:4px;">
+                  <label><input type="radio" name="field-filter" checked> 全部</label>
+                  <label><input type="radio" name="field-filter"> 品类专家</label>
+                  <label><input type="radio" name="field-filter"> SQE主管</label>
+                  <label><input type="radio" name="field-filter"> 采购工程师</label>
+                  <label><input type="radio" name="field-filter"> 材料品类</label>
+                  <label><input type="radio" name="field-filter"> 工艺品类</label>
+                  <label><input type="radio" name="field-filter"> 品类描述</label>
+                  <label><input type="radio" name="field-filter"> 品类状态</label>
+                  <label><input type="radio" name="field-filter"> VPPS关系</label>
+                </div>
+              </div>
+              <div class="filter-item" style="min-width:240px;">
+                <label>时间范围</label>
+                <div class="radio-group" style="margin-top:4px;">
+                  <label><input type="radio" name="time-filter" checked> 全部时间</label>
+                  <label><input type="radio" name="time-filter"> 近3个月</label>
+                  <label><input type="radio" name="time-filter"> 近6个月</label>
+                  <label><input type="radio" name="time-filter"> 近1年</label>
+                </div>
+              </div>
+              <div class="filter-item"><label>VPPS编码</label><input type="text" placeholder="输入VPPS编码"></div>
+            </div>
+            <div class="filter-row" style="margin-top:12px;">
+              <div class="filter-actions"><button class="btn btn-primary">🔍 查询</button><button class="btn btn-default">重置</button></div>
+            </div>
+          </div>
+
+          <div class="table-wrap">
+            <div class="table-header">
+              <h3>变更记录 <span class="count">共 8 条</span></h3>
+              <button class="btn btn-default">📤 导出</button>
+            </div>
+            <div class="table-scroll">
+              <table>
+                <thead>
+                  <tr>
+                    <th>品类编码</th><th>VPPS编码</th><th>操作对象</th><th>操作类型</th>
+                    <th>变更字段</th><th>变更前值</th><th>变更后值</th>
+                    <th>操作人</th><th>操作时间</th><th>来源</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td>CAT-00001</td><td>-</td><td>品类</td>
+                    <td><span class="tag tag-active">新增</span></td>
+                    <td>全部字段</td><td>-</td><td>电芯模组 / 电子件 / 李婷</td>
+                    <td>张明</td><td>2026-03-10 09:15:22</td>
+                    <td><span class="tag-source">手动编辑</span></td>
+                  </tr>
+                  <tr>
+                    <td>CAT-00001</td><td>-</td><td>品类</td>
+                    <td><span class="tag" style="background:#dbeafe;color:#1e40af;">编辑</span></td>
+                    <td>材料品类</td><td>三元锂</td><td>三元锂, 磷酸铁锂</td>
+                    <td>李婷</td><td>2026-03-12 14:30:05</td>
+                    <td><span class="tag-source">手动编辑</span></td>
+                  </tr>
+                  <tr>
+                    <td>CAT-00001</td><td>-</td><td>品类</td>
+                    <td><span class="tag" style="background:#dbeafe;color:#1e40af;">编辑</span></td>
+                    <td>品类描述</td><td>动力电池电芯采购品类</td><td>动力电池电芯及模组采购品类</td>
+                    <td>李婷</td><td>2026-03-12 14:32:18</td>
+                    <td><span class="tag-source">手动编辑</span></td>
+                  </tr>
+                  <tr>
+                    <td>CAT-00001</td><td>VP-20260101</td><td>VPPS</td>
+                    <td><span class="tag tag-bound">绑定</span></td>
+                    <td>绑定状态</td><td>待绑定</td><td>已绑定</td>
+                    <td>李婷</td><td>2026-03-15 10:23:45</td>
+                    <td><span class="tag-source">手动编辑</span></td>
+                  </tr>
+                  <tr>
+                    <td>CAT-00002</td><td>-</td><td>人员关系</td>
+                    <td><span class="tag" style="background:#fef3c7;color:#92400e;">转派</span></td>
+                    <td>品类专家</td><td>刘洋</td><td>王浩</td>
+                    <td>张明</td><td>2026-04-01 11:05:30</td>
+                    <td><span class="tag-source">手动编辑</span></td>
+                  </tr>
+                  <tr>
+                    <td>CAT-00005</td><td>-</td><td>品类</td>
+                    <td><span class="tag tag-frozen">冻结</span></td>
+                    <td>品类状态</td><td>生效</td><td>已冻结</td>
+                    <td>张明</td><td>2026-05-20 16:45:12</td>
+                    <td><span class="tag-source">手动编辑</span></td>
+                  </tr>
+                  <tr>
+                    <td>CAT-00003</td><td>VP-20260301</td><td>VPPS</td>
+                    <td><span class="tag tag-pending">解绑</span></td>
+                    <td>绑定状态</td><td>已绑定</td><td>待绑定</td>
+                    <td>赵磊</td><td>2026-06-05 09:22:10</td>
+                    <td><span class="tag-source">手动编辑</span></td>
+                  </tr>
+                  <tr>
+                    <td>CAT-00004</td><td>-</td><td>品类</td>
+                    <td><span class="tag" style="background:#dbeafe;color:#1e40af;">编辑</span></td>
+                    <td>SQE主管</td><td>黄磊</td><td>郑涛</td>
+                    <td>张明</td><td>2026-06-10 10:08:55</td>
+                    <td><span class="tag-source">批量导入</span></td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+            <div class="pagination">
+              <span>共 8 条，第 1/1 页</span>
+              <div class="page-btns"><button class="active">1</button></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- ==================== VIEW 4: VPPS绑定品类 ==================== -->
+        <div class="view" id="view-vpps-bind">
+          <div class="filter-bar">
+            <div class="filter-row">
+              <div class="filter-item"><label>绑定状态</label><select><option>全部</option><option>待绑定</option><option>已绑定</option><option>无需绑定</option></select></div>
+              <div class="filter-item"><label>VPPS编码</label><input type="text" placeholder="输入VPPS编码"></div>
+              <div class="filter-item"><label>结构编码</label><input type="text" placeholder="输入结构编码"></div>
+              <div class="filter-item"><label>中文描述</label><input type="text" placeholder="模糊查询"></div>
+              <div class="filter-item"><label>状态</label><select><option>全部</option><option>生效</option><option>失效</option></select></div>
+              <div class="filter-item"><label>编码状态</label><select><option>全部</option><option>生效</option><option>失效</option></select></div>
+            </div>
+            <div class="filter-row" style="margin-top:12px;">
+              <div class="filter-actions">
+                <button class="btn btn-primary">🔍 查询</button>
+                <button class="btn btn-default">重置</button>
+              </div>
+            </div>
+          </div>
+
+          <div class="table-wrap">
+            <div class="table-header">
+              <h3>VPPS绑定列表 <span class="count">共 8 条</span></h3>
+              <div class="btn-group">
+                <button class="btn btn-default">📤 导出</button>
+              </div>
+            </div>
+            <div class="table-scroll">
+              <table>
+                <thead>
+                  <tr>
+                    <th>序号</th><th>绑定状态</th><th>VPPS编码</th><th>结构编码</th>
+                    <th>结构简码</th><th>位置码</th><th>中文描述</th><th>英文描述</th>
+                    <th>创建人</th><th>编码状态</th><th>编码生效日期</th>
+                    <th>编码失效日期</th><th>绑定品类</th><th>操作</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td>1</td>
+                    <td><span class="tag tag-pending">待绑定</span></td>
+                    <td>VP-20260501</td><td>ST-5001</td><td>S5001</td><td>LOC-E01</td>
+                    <td>电池管理系统</td><td>Battery Management System</td>
+                    <td>MiBOM</td>
+                    <td><span class="tag tag-valid">生效</span></td>
+                    <td>2026-05-01</td><td>2027-05-01</td>
+                    <td>-</td>
+                    <td>
+                      <button class="btn btn-primary" style="height:26px;font-size:12px;padding:0 8px;" onclick="openModal('modal-bind')">绑定</button>
+                      <button class="btn btn-warning" style="height:26px;font-size:12px;padding:0 8px;" onclick="openModal('modal-nobind')">无需绑定</button>
+                    </td>
+                  </tr>
+                  <tr>
+                    <td>2</td>
+                    <td><span class="tag tag-pending">待绑定</span></td>
+                    <td>VP-20260502</td><td>ST-5002</td><td>S5002</td><td>LOC-E02</td>
+                    <td>电池热管理组件</td><td>Battery Thermal Management</td>
+                    <td>MiBOM</td>
+                    <td><span class="tag tag-valid">生效</span></td>
+                    <td>2026-05-01</td><td>2027-05-01</td>
+                    <td>-</td>
+                    <td>
+                      <button class="btn btn-primary" style="height:26px;font-size:12px;padding:0 8px;" onclick="openModal('modal-bind')">绑定</button>
+                      <button class="btn btn-warning" style="height:26px;font-size:12px;padding:0 8px;" onclick="openModal('modal-nobind')">无需绑定</button>
+                    </td>
+                  </tr>
+                  <tr>
+                    <td>3</td>
+                    <td><span class="tag tag-pending">待绑定</span></td>
+                    <td>VP-20260401</td><td>ST-4001</td><td>S4001</td><td>LOC-D01</td>
+                    <td>高压连接器</td><td>High Voltage Connector</td>
+                    <td>MiBOM</td>
+                    <td><span class="tag tag-valid">生效</span></td>
+                    <td>2026-04-01</td><td>2027-04-01</td>
+                    <td>-</td>
+                    <td>
+                      <button class="btn btn-primary" style="height:26px;font-size:12px;padding:0 8px;" onclick="openModal('modal-bind')">绑定</button>
+                      <button class="btn btn-warning" style="height:26px;font-size:12px;padding:0 8px;" onclick="openModal('modal-nobind')">无需绑定</button>
+                    </td>
+                  </tr>
+                  <tr>
+                    <td>4</td>
+                    <td><span class="tag tag-bound">已绑定</span></td>
+                    <td>VP-20260101</td><td>ST-1001</td><td>S1001</td><td>LOC-A01</td>
+                    <td>电芯正极片</td><td>Cell Positive Electrode</td>
+                    <td>MiBOM</td>
+                    <td><span class="tag tag-valid">生效</span></td>
+                    <td>2026-01-01</td><td>2027-12-31</td>
+                    <td><span class="tag tag-active">CAT-00001 电芯模组</span></td>
+                    <td>-</td>
+                  </tr>
+                  <tr>
+                    <td>5</td>
+                    <td><span class="tag tag-bound">已绑定</span></td>
+                    <td>VP-20260102</td><td>ST-1002</td><td>S1002</td><td>LOC-A02</td>
+                    <td>电芯负极片</td><td>Cell Negative Electrode</td>
+                    <td>MiBOM</td>
+                    <td><span class="tag tag-valid">生效</span></td>
+                    <td>2026-01-01</td><td>2027-12-31</td>
+                    <td><span class="tag tag-active">CAT-00001 电芯模组</span></td>
+                    <td>-</td>
+                  </tr>
+                  <tr>
+                    <td>6</td>
+                    <td><span class="tag tag-bound">已绑定</span></td>
+                    <td>VP-20260201</td><td>ST-2001</td><td>S2001</td><td>LOC-B01</td>
+                    <td>模组外壳</td><td>Module Housing</td>
+                    <td>MiBOM</td>
+                    <td><span class="tag tag-invalid">失效</span></td>
+                    <td>2025-06-01</td><td>2026-06-01</td>
+                    <td><span class="tag tag-active">CAT-00001 电芯模组</span></td>
+                    <td>-</td>
+                  </tr>
+                  <tr>
+                    <td>7</td>
+                    <td><span class="tag tag-nobind">无需绑定</span></td>
+                    <td>VP-20260601</td><td>ST-6001</td><td>S6001</td><td>LOC-F01</td>
+                    <td>标准件-螺栓M8</td><td>Standard Bolt M8</td>
+                    <td>MiBOM</td>
+                    <td><span class="tag tag-valid">生效</span></td>
+                    <td>2026-06-01</td><td>-</td>
+                    <td>-</td>
+                    <td><button class="btn btn-default" style="height:26px;font-size:12px;padding:0 8px;" onclick="openModal('modal-recall')">撤回</button></td>
+                  </tr>
+                  <tr>
+                    <td>8</td>
+                    <td><span class="tag tag-nobind">无需绑定</span></td>
+                    <td>VP-20260602</td><td>ST-6002</td><td>S6002</td><td>LOC-F02</td>
+                    <td>标准件-螺母M8</td><td>Standard Nut M8</td>
+                    <td>MiBOM</td>
+                    <td><span class="tag tag-valid">生效</span></td>
+                    <td>2026-06-01</td><td>-</td>
+                    <td>-</td>
+                    <td><button class="btn btn-default" style="height:26px;font-size:12px;padding:0 8px;" onclick="openModal('modal-recall')">撤回</button></td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+            <div class="pagination">
+              <span>共 8 条，第 1/1 页</span>
+              <div class="page-btns"><button class="active">1</button></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ==================== ANNOTATION PANEL ==================== -->
+      <aside class="anno-panel" id="annoPanel">
+        <!-- default: category-list annotations -->
+        <div class="anno-view active" id="anno-category-list">
+          <h3>原型注意事项 - 品类管理</h3>
+          <div class="anno-section">
+            <h4>查询条件</h4>
+            <div class="anno-item"><span class="tag tag-req">7个</span> 筛选字段：品类编码、品类名称、VPPS节点(多选)、品类专家、SQE主管、采购工程师、专业组</div>
+          </div>
+          <div class="anno-section">
+            <h4>列表字段</h4>
+            <div class="anno-item"><span class="tag tag-req">10列</span> 品类编码、名称、专家、状态、专业组、材料品类(多标签)、工艺品类(多标签)、定点供应商、描述、操作</div>
+          </div>
+          <div class="anno-section">
+            <h4>权限矩阵</h4>
+            <div class="anno-item"><span class="tag tag-warn">⚠️</span> 品类管理员 / ADMIN：可操作全部品类</div>
+            <div class="anno-item"><span class="tag tag-warn">⚠️</span> 品类专家：仅查询自己名下数据</div>
+            <div class="anno-item"><span class="tag tag-warn">⚠️</span> 普通采购员：仅查询自己名下数据</div>
+          </div>
+          <div class="anno-section">
+            <h4>操作按钮</h4>
+            <div class="anno-item"><span class="tag tag-note">📋</span> 批量导入 / 导出：admin与品类管理员可见</div>
+            <div class="anno-item"><span class="tag tag-note">📋</span> 转派 / 冻结 / 新增品类：admin与品类管理员可见</div>
+          </div>
+          <div class="anno-section">
+            <h4>关键规则</h4>
+            <div class="anno-item"><span class="tag tag-tip">💡</span> 冻结前需先解绑该品类关联的全部 VPPS</div>
+            <div class="anno-item"><span class="tag tag-tip">💡</span> 新增品类保存即发布，无草稿态</div>
+            <div class="anno-item"><span class="tag tag-tip">💡</span> 品类编码规则：CAT-五位流水号</div>
+          </div>
+          <div class="anno-section">
+            <h4>排序规则</h4>
+            <div class="anno-item">品类列表默认按品类编码升序排列</div>
+          </div>
+        </div>
+
+        <div class="anno-view" id="anno-category-edit" style="display:none;">
+          <h3>原型注意事项 - 编辑品类</h3>
+          <div class="anno-section">
+            <h4>信息分组</h4>
+            <div class="anno-item"><span class="tag tag-req">4组</span> 基础信息、品类属性、人员关系、VPPS关系</div>
+          </div>
+          <div class="anno-section">
+            <h4>字段规则</h4>
+            <div class="anno-item"><span class="tag tag-warn">⚠️</span> 品类编码：只读，不可修改</div>
+            <div class="anno-item"><span class="tag tag-warn">⚠️</span> 品类状态：只读，不可修改</div>
+            <div class="anno-item"><span class="tag tag-warn">⚠️</span> 品类专家：置灰，需通过「转派」修改</div>
+            <div class="anno-item"><span class="tag tag-req">必填</span> 品类名称、专业组</div>
+            <div class="anno-item"><span class="tag tag-note">选填</span> 材料品类、工艺品类、品类描述</div>
+          </div>
+          <div class="anno-section">
+            <h4>VPPS解绑规则</h4>
+            <div class="anno-item"><span class="tag tag-warn">⚠️</span> 解绑仅在品类管理页面操作</div>
+            <div class="anno-item"><span class="tag tag-warn">⚠️</span> VPPS绑定品类页面不支持解绑</div>
+            <div class="anno-item"><span class="tag tag-note">📋</span> 解绑后VPPS状态恢复为「待绑定」</div>
+            <div class="anno-item"><span class="tag tag-note">📋</span> 解绑无需填写原因，仅二次确认</div>
+            <div class="anno-item"><span class="tag tag-tip">💡</span> 解绑操作需写入变更记录</div>
+          </div>
+          <div class="anno-section">
+            <h4>权限</h4>
+            <div class="anno-item"><span class="tag tag-req">可编辑</span> 品类管理员、当前品类专家、ADMIN</div>
+            <div class="anno-item"><span class="tag tag-warn">不可编辑</span> 普通采购员</div>
+          </div>
+          <div class="anno-section">
+            <h4>验收标准</h4>
+            <div class="anno-item"><span class="tag tag-tip">AC-3</span> 当前品类专家可编辑自己负责品类</div>
+            <div class="anno-item"><span class="tag tag-tip">AC-4</span> 其他品类专家不可编辑他人品类</div>
+            <div class="anno-item"><span class="tag tag-tip">AC-12</span> 品类管理页解绑VPPS</div>
+          </div>
+        </div>
+
+        <div class="anno-view" id="anno-change-log" style="display:none;">
+          <h3>原型注意事项 - 变更记录</h3>
+          <div class="anno-section">
+            <h4>记录范围</h4>
+            <div class="anno-item"><span class="tag tag-req">12类</span> 新增品类、编辑材料/工艺品类、编辑描述、编辑专家/SQE/采购工程师、编辑VPPS关系、转派、冻结、绑定、解绑</div>
+          </div>
+          <div class="anno-section">
+            <h4>不记录的操作</h4>
+            <div class="anno-item"><span class="tag tag-warn">⚠️</span> 上游同步编码状态变化不写入变更记录</div>
+          </div>
+          <div class="anno-section">
+            <h4>筛选维度</h4>
+            <div class="anno-item"><span class="tag tag-note">📋</span> 字段类型：全部/品类专家/SQE/采购工程师/VPPS关系/材料/工艺/描述/状态/转派</div>
+            <div class="anno-item"><span class="tag tag-note">📋</span> 时间范围：全部/近3月/近6月/近1年</div>
+          </div>
+          <div class="anno-section">
+            <h4>数据来源</h4>
+            <div class="anno-item"><span class="tag tag-source">手动编辑</span> 用户主动操作</div>
+            <div class="anno-item"><span class="tag tag-source">批量导入</span> Excel导入</div>
+            <div class="anno-item"><span class="tag tag-source">上游同步</span> MiBOM/总基线</div>
+          </div>
+        </div>
+
+        <div class="anno-view" id="anno-vpps-bind" style="display:none;">
+          <h3>原型注意事项 - VPPS绑定品类</h3>
+          <div class="anno-section">
+            <h4>三种状态</h4>
+            <div class="anno-item"><span class="tag tag-pending">待绑定</span> 尚未绑定品类，也未标记无需绑定</div>
+            <div class="anno-item"><span class="tag tag-bound">已绑定</span> 已绑定到某个生效品类</div>
+            <div class="anno-item"><span class="tag tag-nobind">无需绑定</span> 被标记为不需要绑定品类</div>
+          </div>
+          <div class="anno-section">
+            <h4>排序规则</h4>
+            <div class="anno-item"><span class="tag tag-note">📋</span> ① 待绑定排最前（按编码生效日期倒序）</div>
+            <div class="anno-item"><span class="tag tag-note">📋</span> ② 已绑定排第二（按编码生效日期倒序）</div>
+            <div class="anno-item"><span class="tag tag-note">📋</span> ③ 无需绑定排最后（按编码生效日期倒序）</div>
+            <div class="anno-item"><span class="tag tag-note">📋</span> ④ 同状态同日期，按VPPS编码升序</div>
+          </div>
+          <div class="anno-section">
+            <h4>操作规则</h4>
+            <div class="anno-item"><span class="tag tag-warn">⚠️</span> 已绑定VPPS不可在此页面解绑</div>
+            <div class="anno-item"><span class="tag tag-warn">⚠️</span> 失效编码不允许新绑定</div>
+            <div class="anno-item"><span class="tag tag-warn">⚠️</span> 冻结品类不可选择用于绑定</div>
+            <div class="anno-item"><span class="tag tag-req">绑定</span> 品类专家仅可选自己负责的生效品类</div>
+            <div class="anno-item"><span class="tag tag-req">ADMIN</span> 可操作全部生效品类</div>
+          </div>
+          <div class="anno-section">
+            <h4>状态流转</h4>
+            <div class="anno-item">待绑定 → 绑定品类 → 已绑定</div>
+            <div class="anno-item">待绑定 → 标记无需绑定 → 无需绑定</div>
+            <div class="anno-item">无需绑定 → 撤回 → 待绑定</div>
+            <div class="anno-item">已绑定 → 解绑(品类管理页) → 待绑定</div>
+          </div>
+          <div class="anno-section">
+            <h4>验收标准</h4>
+            <div class="anno-item"><span class="tag tag-tip">AC-7</span> 品类专家绑定自己负责的生效品类</div>
+            <div class="anno-item"><span class="tag tag-tip">AC-8</span> 不可绑定他人负责品类</div>
+            <div class="anno-item"><span class="tag tag-tip">AC-9</span> ADMIN可绑定全部生效品类</div>
+            <div class="anno-item"><span class="tag tag-tip">AC-10</span> 标记无需绑定</div>
+            <div class="anno-item"><span class="tag tag-tip">AC-11</span> 撤回无需绑定</div>
+            <div class="anno-item"><span class="tag tag-tip">AC-13</span> 此页面不支持解绑</div>
+          </div>
+          <div class="anno-section">
+            <h4>待确认项</h4>
+            <div class="anno-item"><span class="tag tag-warn">❓</span> MiBOM同步字段来源与频率</div>
+            <div class="anno-item"><span class="tag tag-warn">❓</span> 编码状态失效后的展示样式</div>
+          </div>
+        </div>
+      </aside>
+    </div>
+  </div>
+</div>
+
+<!-- ==================== MODALS ==================== -->
+
+<!-- 新增品类 -->
+<div class="modal-overlay" id="modal-add">
+  <div class="modal modal-md">
+    <div class="modal-header"><h3>新增品类</h3><button class="modal-close" onclick="closeModal('modal-add')">&times;</button></div>
+    <div class="modal-body">
+      <div class="form-row">
+        <div class="form-group">
+          <label>品类编码 <span class="req">*</span></label>
+          <input type="text" value="CAT-00007" readonly>
+          <div class="hint">系统自动生成，发布后不可修改</div>
+        </div>
+        <div class="form-group">
+          <label>品类名称 <span class="req">*</span></label>
+          <input type="text" placeholder="请输入品类名称">
+          <div class="hint">需校验名称是否重复</div>
+        </div>
+      </div>
+      <div class="form-group">
+        <label>专业组 <span class="req">*</span></label>
+        <select><option value="">请选择专业组</option><option>电子件</option><option>结构件</option><option>底盘件</option><option>内外饰</option></select>
+      </div>
+      <div class="form-group">
+        <label>品类描述/说明</label>
+        <textarea rows="2" placeholder="说明品类适用范围或维护说明（选填）"></textarea>
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label>材料品类</label>
+          <input type="text" placeholder="输入搜索并选择，支持多选">
+        </div>
+        <div class="form-group">
+          <label>工艺品类</label>
+          <input type="text" placeholder="输入搜索并选择，支持多选">
+        </div>
+      </div>
+      <div class="form-group">
+        <label>品类专家 <span class="req">*</span></label>
+        <input type="text" placeholder="搜索品类专家（需具备品类专家角色）">
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-default" onclick="closeModal('modal-add')">取消</button>
+      <button class="btn btn-primary" onclick="closeModal('modal-add');openModal('modal-publish-confirm')">发布</button>
+    </div>
+  </div>
+</div>
+
+<!-- 发布确认 -->
+<div class="modal-overlay" id="modal-publish-confirm">
+  <div class="modal modal-sm">
+    <div class="modal-header"><h3>确认发布</h3><button class="modal-close" onclick="closeModal('modal-publish-confirm')">&times;</button></div>
+    <div class="modal-body">
+      <div class="confirm-box">
+        ⚠️ 新增品类保存后将立即发布为生效状态，品类编码发布后不可修改，请确认信息无误。
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-default" onclick="closeModal('modal-publish-confirm')">取消</button>
+      <button class="btn btn-primary" onclick="closeModal('modal-publish-confirm')">确认发布</button>
+    </div>
+  </div>
+</div>
+
+<!-- 编辑品类 (复用 view-category-edit，此处仅作弹窗入口示意) -->
+
+<!-- 品类转派 -->
+<div class="modal-overlay" id="modal-transfer">
+  <div class="modal modal-sm">
+    <div class="modal-header"><h3>品类转派</h3><button class="modal-close" onclick="closeModal('modal-transfer')">&times;</button></div>
+    <div class="modal-body">
+      <div class="form-group">
+        <label>当前品类</label>
+        <input type="text" value="CAT-00001 电芯模组" readonly>
+      </div>
+      <div class="form-group">
+        <label>当前品类专家</label>
+        <input type="text" value="李婷" readonly>
+      </div>
+      <div class="form-group">
+        <label>转派至 <span class="req">*</span></label>
+        <input type="text" placeholder="搜索新的品类专家（需具备品类专家角色）">
+      </div>
+      <div class="form-group">
+        <label>转派原因</label>
+        <textarea rows="2" placeholder="如组织调整 / 人员调岗（选填）"></textarea>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-default" onclick="closeModal('modal-transfer')">取消</button>
+      <button class="btn btn-primary" onclick="closeModal('modal-transfer')">确认转派</button>
+    </div>
+  </div>
+</div>
+
+<!-- 冻结品类 -->
+<div class="modal-overlay" id="modal-freeze">
+  <div class="modal modal-sm">
+    <div class="modal-header"><h3>冻结品类</h3><button class="modal-close" onclick="closeModal('modal-freeze')">&times;</button></div>
+    <div class="modal-body">
+      <div class="warn-box">
+        ❄️ 冻结之后品类不可恢复，谨慎操作！
+      </div>
+      <div class="form-group">
+        <label>品类编码</label>
+        <input type="text" value="CAT-00001" readonly>
+      </div>
+      <div class="form-group">
+        <label>品类名称</label>
+        <input type="text" value="电芯模组" readonly>
+      </div>
+      <div style="font-size:12px;color:var(--c-text-sec);margin-top:8px;line-height:1.8;">
+        <p>冻结后：</p>
+        <p>· 该品类不可继续绑定 VPPS</p>
+        <p>· 不可在 VPPS 绑定品类页面被选择</p>
+        <p>· 不可执行转派或其他常规维护</p>
+        <p>· 仅支持解绑已绑定 VPPS</p>
+        <p>· 历史业务保留</p>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-default" onclick="closeModal('modal-freeze')">取消</button>
+      <button class="btn btn-danger" onclick="closeModal('modal-freeze')">确认冻结</button>
+    </div>
+  </div>
+</div>
+
+<!-- VPPS绑定品类 -->
+<div class="modal-overlay" id="modal-bind">
+  <div class="modal modal-sm">
+    <div class="modal-header"><h3>绑定品类</h3><button class="modal-close" onclick="closeModal('modal-bind')">&times;</button></div>
+    <div class="modal-body">
+      <div class="form-group">
+        <label>VPPS编码</label>
+        <input type="text" value="VP-20260501" readonly>
+      </div>
+      <div class="form-group">
+        <label>中文描述</label>
+        <input type="text" value="电池管理系统" readonly>
+      </div>
+      <div class="form-group">
+        <label>选择品类 <span class="req">*</span></label>
+        <select>
+          <option value="">请选择生效品类</option>
+          <option>CAT-00001 电芯模组 (李婷)</option>
+          <option>CAT-00002 域控制器 (王浩)</option>
+          <option>CAT-00003 车身结构件 (赵磊)</option>
+          <option>CAT-00004 线束总成 (陈晨)</option>
+          <option>CAT-00006 座椅总成 (周敏)</option>
+        </select>
+        <div class="hint">仅展示生效状态品类（已冻结品类不可选择）</div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-default" onclick="closeModal('modal-bind')">取消</button>
+      <button class="btn btn-primary" onclick="closeModal('modal-bind')">确认绑定</button>
+    </div>
+  </div>
+</div>
+
+<!-- 标记无需绑定 -->
+<div class="modal-overlay" id="modal-nobind">
+  <div class="modal modal-sm">
+    <div class="modal-header"><h3>标记无需绑定</h3><button class="modal-close" onclick="closeModal('modal-nobind')">&times;</button></div>
+    <div class="modal-body">
+      <div class="confirm-box">
+        确认将以下 VPPS 标记为「无需绑定」？
+      </div>
+      <div class="form-group">
+        <label>VPPS编码</label>
+        <input type="text" value="VP-20260501" readonly>
+      </div>
+      <div class="form-group">
+        <label>中文描述</label>
+        <input type="text" value="电池管理系统" readonly>
+      </div>
+      <div style="font-size:12px;color:var(--c-text-sec);">标记后可在 VPPS 绑定品类页面撤回。</div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-default" onclick="closeModal('modal-nobind')">取消</button>
+      <button class="btn btn-warning" onclick="closeModal('modal-nobind')">确认标记</button>
+    </div>
+  </div>
+</div>
+
+<!-- 撤回无需绑定 -->
+<div class="modal-overlay" id="modal-recall">
+  <div class="modal modal-sm">
+    <div class="modal-header"><h3>撤回无需绑定</h3><button class="modal-close" onclick="closeModal('modal-recall')">&times;</button></div>
+    <div class="modal-body">
+      <div class="confirm-box">
+        确认撤回？撤回后该 VPPS 状态将恢复为「待绑定」。
+      </div>
+      <div class="form-group">
+        <label>VPPS编码</label>
+        <input type="text" value="VP-20260601" readonly>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-default" onclick="closeModal('modal-recall')">取消</button>
+      <button class="btn btn-primary" onclick="closeModal('modal-recall')">确认撤回</button>
+    </div>
+  </div>
+</div>
+
+<!-- 解绑VPPS -->
+<div class="modal-overlay" id="modal-unbind">
+  <div class="modal modal-sm">
+    <div class="modal-header"><h3>解绑 VPPS</h3><button class="modal-close" onclick="closeModal('modal-unbind')">&times;</button></div>
+    <div class="modal-body">
+      <div class="confirm-box">
+        ⚠️ 解绑后该 VPPS 将恢复为待绑定状态，请确认。
+      </div>
+      <div class="form-group">
+        <label>VPPS编码</label>
+        <input type="text" value="VP-20260101" readonly>
+      </div>
+      <div class="form-group">
+        <label>当前绑定品类</label>
+        <input type="text" value="CAT-00001 电芯模组" readonly>
+      </div>
+      <div style="font-size:12px;color:var(--c-text-sec);">解绑无需填写原因。解绑操作将写入变更记录。</div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-default" onclick="closeModal('modal-unbind')">取消</button>
+      <button class="btn btn-danger" onclick="closeModal('modal-unbind')">确认解绑</button>
+    </div>
+  </div>
+</div>
+
+<!-- 变更记录（单品类视角） -->
+<div class="modal-overlay" id="modal-changelog-single">
+  <div class="modal modal-xl">
+    <div class="modal-header"><h3>变更记录 - CAT-00001 电芯模组</h3><button class="modal-close" onclick="closeModal('modal-changelog-single')">&times;</button></div>
+    <div class="modal-body" style="padding:0;">
+      <div class="table-scroll">
+        <table>
+          <thead>
+            <tr><th>操作类型</th><th>变更字段</th><th>变更前值</th><th>变更后值</th><th>操作人</th><th>操作时间</th><th>来源</th></tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><span class="tag tag-active">新增</span></td><td>全部字段</td><td>-</td><td>电芯模组 / 电子件 / 李婷</td>
+              <td>张明</td><td>2026-03-10 09:15:22</td><td><span class="tag-source">手动编辑</span></td>
+            </tr>
+            <tr>
+              <td><span class="tag" style="background:#dbeafe;color:#1e40af;">编辑</span></td><td>材料品类</td><td>三元锂</td><td>三元锂, 磷酸铁锂</td>
+              <td>李婷</td><td>2026-03-12 14:30:05</td><td><span class="tag-source">手动编辑</span></td>
+            </tr>
+            <tr>
+              <td><span class="tag" style="background:#dbeafe;color:#1e40af;">编辑</span></td><td>品类描述</td><td>动力电池电芯采购品类</td><td>动力电池电芯及模组采购品类</td>
+              <td>李婷</td><td>2026-03-12 14:32:18</td><td><span class="tag-source">手动编辑</span></td>
+            </tr>
+            <tr>
+              <td><span class="tag tag-bound">绑定</span></td><td>绑定状态</td><td>待绑定</td><td>已绑定(VP-20260101)</td>
+              <td>李婷</td><td>2026-03-15 10:23:45</td><td><span class="tag-source">手动编辑</span></td>
+            </tr>
+            <tr>
+              <td><span class="tag tag-bound">绑定</span></td><td>绑定状态</td><td>待绑定</td><td>已绑定(VP-20260102)</td>
+              <td>李婷</td><td>2026-03-15 10:25:12</td><td><span class="tag-source">手动编辑</span></td>
+            </tr>
+            <tr>
+              <td><span class="tag tag-bound">绑定</span></td><td>绑定状态</td><td>待绑定</td><td>已绑定(VP-20260201)</td>
+              <td>李婷</td><td>2026-02-20 14:08:33</td><td><span class="tag-source">手动编辑</span></td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-default" onclick="closeModal('modal-changelog-single')">关闭</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// ==================== VIEW SWITCHING ====================
+const viewMap = {
+  'category-list': { title: '品类管理', anno: 'anno-category-list' },
+  'category-edit': { title: '编辑品类', anno: 'anno-category-edit' },
+  'change-log':    { title: '变更记录', anno: 'anno-change-log' },
+  'vpps-bind':     { title: 'VPPS绑定品类', anno: 'anno-vpps-bind' },
+};
+
+function switchView(viewId) {
+  document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
+  document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+  document.querySelectorAll('.anno-view').forEach(a => a.style.display = 'none');
+
+  const view = document.getElementById('view-' + viewId);
+  if (view) view.classList.add('active');
+
+  const nav = document.querySelector(`.nav-item[data-view="${viewId}"]`);
+  if (nav) nav.classList.add('active');
+
+  const info = viewMap[viewId];
+  if (info) {
+    document.getElementById('breadcrumb').textContent = info.title;
+    const anno = document.getElementById(info.anno);
+    if (anno) anno.style.display = 'block';
+  }
+}
+
+document.querySelectorAll('.nav-item').forEach(item => {
+  item.addEventListener('click', () => {
+    const viewId = item.dataset.view;
+    if (viewId) switchView(viewId);
+  });
+});
+
+// ==================== MODAL ====================
+function openModal(id) {
+  const el = document.getElementById(id);
+  if (el) el.classList.add('show');
+}
+function closeModal(id) {
+  const el = document.getElementById(id);
+  if (el) el.classList.remove('show');
+}
+// Close modal on overlay click
+document.querySelectorAll('.modal-overlay').forEach(overlay => {
+  overlay.addEventListener('click', e => {
+    if (e.target === overlay) overlay.classList.remove('show');
+  });
+});
+// Close modal on Escape
+document.addEventListener('keydown', e => {
+  if (e.key === 'Escape') {
+    document.querySelectorAll('.modal-overlay.show').forEach(m => m.classList.remove('show'));
+  }
+});
+
+// ==================== ANNOTATION TOGGLE ====================
+function toggleAnno() {
+  document.getElementById('annoPanel').classList.toggle('hidden');
+}
+</script>
+</body>
+</html>

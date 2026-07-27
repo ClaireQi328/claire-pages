@@ -1,0 +1,1 @@
+const r=(r,t)=>{if("string"==typeof r){return r.trim()||t}if(r instanceof Error){return r.message.trim()||t}if(r&&"object"==typeof r){const t=r.message;if("string"==typeof t&&t.trim())return t.trim()}return t};export{r as n};

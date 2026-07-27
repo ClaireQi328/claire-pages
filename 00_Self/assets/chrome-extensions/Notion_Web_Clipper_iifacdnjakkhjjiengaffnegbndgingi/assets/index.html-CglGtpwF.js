@@ -1,0 +1,1 @@
+import{c as t,j as r,L as e,P as n}from"./tailwind-rOUsCtl3.js";import"./watermarkSettings-ByXn_IC8.js";import"./KeyboardShortcutService-COE3iRMU.js";import"./siteRegistration-DS0bYdVe.js";function i(){const o=document.querySelector("#__root");if(!o)throw new Error("Can't find Popup root element");t.createRoot(o).render(r.jsx(e,{children:r.jsx(n,{})}))}i();

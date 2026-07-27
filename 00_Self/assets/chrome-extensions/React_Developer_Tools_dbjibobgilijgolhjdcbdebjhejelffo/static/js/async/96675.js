@@ -1,0 +1,2 @@
+"use strict";(self.webpackChunkflow_web_extension=self.webpackChunkflow_web_extension||[]).push([["96675"],{478496:function(e,s,o){o.r(s),o.d(s,{tlb429ErrorInterceptor:()=>l});var r=o(785619),n=o(362034),t=null,l=e=>429===e.status?(null!==t&&n.dbxToastAPI.dismiss(t),t=n.dbxToastAPI.error((0,r.X9)("web_toast_sendMsg_fail_highDemand")),Promise.resolve({done:!0,reason:"sse_open_error"})):Promise.resolve({done:!1})}}]);
+//# sourceMappingURL=96675.js.map

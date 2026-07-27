@@ -1,0 +1,2055 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>叮咚买菜 B2B 商户工作台</title>
+<style>
+/* ========== CSS Variables / Design Tokens ========== */
+:root {
+  --p: #1677ff;
+  --p-light: #e6f4ff;
+  --p-dark: #0958d9;
+  --g50: #fafafa;
+  --g100: #f5f5f5;
+  --g200: #e8e8e8;
+  --g300: #d9d9d9;
+  --g500: #8c8c8c;
+  --g800: #262626;
+  --g900: #141414;
+  --success: #52c41a;
+  --success-light: #f6ffed;
+  --warning: #faad14;
+  --warning-light: #fffbe6;
+  --danger: #f5222d;
+  --danger-light: #fff2f0;
+  --frozen: #1677ff;
+  --frozen-bg: #e6f4ff;
+  --chilled: #13c2c2;
+  --chilled-bg: #e6fffb;
+  --ambient: #fa8c16;
+  --ambient-bg: #fff7e6;
+  --font: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
+  --r: 10px;
+  --rs: 6px;
+  --sh: 0 1px 3px rgba(0,0,0,.08);
+  --shm: 0 4px 12px rgba(0,0,0,.1);
+  --tr: all .2s ease;
+  --sidebar-w: 220px;
+  --header-h: 56px;
+}
+
+/* ========== Reset ========== */
+*, *::before, *::after { margin:0; padding:0; box-sizing:border-box; }
+html { font-size:14px; }
+body {
+  font-family: var(--font);
+  background: var(--g100);
+  color: var(--g800);
+  line-height: 1.6;
+  min-height: 100vh;
+}
+a { color: var(--p); text-decoration:none; }
+button { cursor:pointer; border:none; font-family:inherit; }
+input, select { font-family:inherit; }
+
+/* ========== Animations ========== */
+@keyframes fadeIn { from{opacity:0} to{opacity:1} }
+@keyframes fadeUp { from{opacity:0;transform:translateY(16px)} to{opacity:1;transform:translateY(0)} }
+@keyframes pulse {
+  0%,100% { box-shadow:0 0 0 0 rgba(22,119,255,.4); }
+  50% { box-shadow:0 0 0 8px rgba(22,119,255,0); }
+}
+@keyframes slideIn { from{opacity:0;transform:translateX(-12px)} to{opacity:1;transform:translateX(0)} }
+@keyframes progressPulse {
+  0%,100% { opacity:1; }
+  50% { opacity:.6; }
+}
+@keyframes barGrow { from{height:0} to{height:var(--h)} }
+
+/* ========== Layout ========== */
+.app { display:flex; min-height:100vh; }
+
+/* Sidebar */
+.sidebar {
+  width: var(--sidebar-w);
+  background: var(--g900);
+  color: #fff;
+  display: flex;
+  flex-direction: column;
+  position: fixed;
+  top:0; left:0; bottom:0;
+  z-index: 100;
+  transition: var(--tr);
+}
+.sidebar-logo {
+  padding: 20px 24px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  border-bottom: 1px solid rgba(255,255,255,.08);
+}
+.sidebar-logo .logo-icon {
+  width: 36px; height: 36px;
+  background: var(--p);
+  border-radius: 8px;
+  display: flex; align-items:center; justify-content:center;
+  font-size: 20px;
+  flex-shrink: 0;
+}
+.sidebar-logo .logo-text {
+  font-size: 16px;
+  font-weight: 600;
+  letter-spacing: .5px;
+}
+.sidebar-logo .logo-sub {
+  font-size: 11px;
+  color: var(--g500);
+  margin-top: 2px;
+}
+.sidebar-nav {
+  flex: 1;
+  padding: 12px 0;
+  overflow-y: auto;
+}
+.nav-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 24px;
+  color: rgba(255,255,255,.65);
+  font-size: 14px;
+  transition: var(--tr);
+  cursor: pointer;
+  position: relative;
+}
+.nav-item:hover {
+  color: #fff;
+  background: rgba(255,255,255,.06);
+}
+.nav-item.active {
+  color: #fff;
+  background: var(--p);
+  border-radius: 0;
+}
+.nav-item.active::before {
+  content: '';
+  position: absolute;
+  left: 0; top:0; bottom:0;
+  width: 3px;
+  background: #fff;
+  border-radius: 0 2px 2px 0;
+}
+.nav-item .nav-icon {
+  font-size: 18px;
+  width: 24px;
+  text-align: center;
+  flex-shrink: 0;
+}
+.nav-item .nav-badge {
+  margin-left: auto;
+  background: var(--danger);
+  color: #fff;
+  font-size: 11px;
+  padding: 1px 6px;
+  border-radius: 10px;
+  min-width: 18px;
+  text-align: center;
+}
+.sidebar-footer {
+  padding: 16px 24px;
+  border-top: 1px solid rgba(255,255,255,.08);
+  font-size: 12px;
+  color: var(--g500);
+}
+
+/* Main Content */
+.main {
+  margin-left: var(--sidebar-w);
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+}
+.header {
+  height: var(--header-h);
+  background: #fff;
+  border-bottom: 1px solid var(--g200);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 24px;
+  position: sticky;
+  top: 0;
+  z-index: 50;
+}
+.header-left {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+.header-left h2 {
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--g900);
+}
+.breadcrumb {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  color: var(--g500);
+}
+.breadcrumb span { color: var(--g800); }
+.header-right {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+.header-btn {
+  width: 36px; height: 36px;
+  border-radius: var(--rs);
+  background: var(--g50);
+  display: flex; align-items:center; justify-content:center;
+  font-size: 18px;
+  color: var(--g500);
+  transition: var(--tr);
+  position: relative;
+}
+.header-btn:hover { background: var(--g200); color: var(--g800); }
+.header-btn .dot {
+  position: absolute;
+  top:6px; right:6px;
+  width:6px; height:6px;
+  background: var(--danger);
+  border-radius: 50%;
+}
+.user-avatar {
+  width: 32px; height: 32px;
+  border-radius: 50%;
+  background: var(--p);
+  color: #fff;
+  display: flex; align-items:center; justify-content:center;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.content {
+  flex: 1;
+  padding: 24px;
+  animation: fadeIn .3s ease;
+}
+
+/* Page sections */
+.page { display: none; }
+.page.active { display: block; animation: fadeUp .4s ease; }
+
+/* ========== Dashboard ========== */
+.welcome-banner {
+  background: linear-gradient(135deg, #1677ff 0%, #4096ff 100%);
+  border-radius: var(--r);
+  padding: 28px 32px;
+  color: #fff;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 24px;
+}
+.welcome-banner h1 {
+  font-size: 22px;
+  font-weight: 600;
+  margin-bottom: 6px;
+}
+.welcome-banner p {
+  font-size: 14px;
+  opacity: .85;
+}
+.welcome-banner .banner-actions {
+  display: flex;
+  gap: 12px;
+}
+.banner-btn {
+  padding: 8px 20px;
+  border-radius: var(--rs);
+  font-size: 14px;
+  font-weight: 500;
+  transition: var(--tr);
+}
+.banner-btn.primary {
+  background: #fff;
+  color: var(--p);
+}
+.banner-btn.primary:hover { background: var(--p-light); }
+.banner-btn.ghost {
+  background: rgba(255,255,255,.15);
+  color: #fff;
+  border: 1px solid rgba(255,255,255,.3);
+}
+.banner-btn.ghost:hover { background: rgba(255,255,255,.25); }
+
+/* Stat Cards */
+.stats-row {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 16px;
+  margin-bottom: 24px;
+}
+.stat-card {
+  background: #fff;
+  border-radius: var(--r);
+  padding: 20px 24px;
+  box-shadow: var(--sh);
+  transition: var(--tr);
+  cursor: default;
+}
+.stat-card:hover { box-shadow: var(--shm); transform: translateY(-2px); }
+.stat-card .stat-label {
+  font-size: 13px;
+  color: var(--g500);
+  margin-bottom: 8px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.stat-card .stat-value {
+  font-size: 28px;
+  font-weight: 700;
+  color: var(--g900);
+  line-height: 1.2;
+}
+.stat-card .stat-trend {
+  font-size: 12px;
+  margin-top: 6px;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+.stat-card .stat-trend.up { color: var(--success); }
+.stat-card .stat-trend.down { color: var(--danger); }
+
+/* Dashboard Grid */
+.dash-grid {
+  display: grid;
+  grid-template-columns: 2fr 1fr;
+  gap: 20px;
+}
+.card {
+  background: #fff;
+  border-radius: var(--r);
+  box-shadow: var(--sh);
+  overflow: hidden;
+}
+.card-header {
+  padding: 16px 20px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border-bottom: 1px solid var(--g100);
+}
+.card-header h3 {
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--g900);
+}
+.card-header .more-link {
+  font-size: 13px;
+  color: var(--g500);
+  cursor: pointer;
+}
+.card-header .more-link:hover { color: var(--p); }
+.card-body { padding: 20px; }
+
+/* Bar Chart (CSS-only) */
+.bar-chart {
+  display: flex;
+  align-items: flex-end;
+  gap: 8px;
+  height: 180px;
+  padding-top: 20px;
+}
+.bar-col {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  height: 100%;
+  justify-content: flex-end;
+}
+.bar {
+  width: 100%;
+  max-width: 40px;
+  background: var(--p);
+  border-radius: 4px 4px 0 0;
+  transition: height .6s ease;
+  position: relative;
+  min-height: 4px;
+}
+.bar:hover { background: var(--p-dark); }
+.bar-label {
+  font-size: 11px;
+  color: var(--g500);
+}
+.bar-value {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--g800);
+}
+
+/* Recent Orders */
+.order-list-item {
+  display: flex;
+  align-items: center;
+  padding: 12px 0;
+  border-bottom: 1px solid var(--g100);
+  gap: 12px;
+}
+.order-list-item:last-child { border-bottom: none; }
+.order-id {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--p);
+  min-width: 120px;
+}
+.order-info {
+  flex: 1;
+  font-size: 13px;
+  color: var(--g500);
+}
+.order-amount {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--g900);
+  min-width: 80px;
+  text-align: right;
+}
+
+/* Status Badge */
+.status {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 10px;
+  border-radius: 12px;
+  font-size: 12px;
+  font-weight: 500;
+  white-space: nowrap;
+}
+.status.pending { background: var(--warning-light); color: #d48806; }
+.status.processing { background: var(--p-light); color: var(--p); }
+.status.delivering { background: #f0f5ff; color: #2f54eb; }
+.status.completed { background: var(--success-light); color: #389e0d; }
+.status.exception { background: var(--danger-light); color: var(--danger); }
+
+/* ========== Products Page ========== */
+.filter-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 20px;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+.temp-tabs {
+  display: flex;
+  gap: 4px;
+  background: var(--g100);
+  padding: 4px;
+  border-radius: var(--rs);
+}
+.temp-tab {
+  padding: 6px 16px;
+  border-radius: 4px;
+  font-size: 13px;
+  color: var(--g500);
+  background: transparent;
+  transition: var(--tr);
+  cursor: pointer;
+  border: none;
+  white-space: nowrap;
+}
+.temp-tab:hover { color: var(--g800); }
+.temp-tab.active {
+  background: #fff;
+  color: var(--p);
+  font-weight: 500;
+  box-shadow: var(--sh);
+}
+.search-box {
+  display: flex;
+  align-items: center;
+  background: var(--g50);
+  border: 1px solid var(--g200);
+  border-radius: var(--rs);
+  padding: 0 12px;
+  gap: 8px;
+  transition: var(--tr);
+}
+.search-box:focus-within {
+  border-color: var(--p);
+  box-shadow: 0 0 0 2px rgba(22,119,255,.1);
+}
+.search-box input {
+  border: none;
+  background: transparent;
+  padding: 8px 0;
+  font-size: 13px;
+  width: 200px;
+  outline: none;
+  color: var(--g800);
+}
+.search-box input::placeholder { color: var(--g300); }
+.search-icon { color: var(--g500); font-size: 16px; }
+
+.products-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+  gap: 16px;
+}
+.product-card {
+  background: #fff;
+  border-radius: var(--r);
+  box-shadow: var(--sh);
+  overflow: hidden;
+  transition: var(--tr);
+  display: flex;
+  flex-direction: column;
+}
+.product-card:hover {
+  box-shadow: var(--shm);
+  transform: translateY(-2px);
+}
+.product-img {
+  height: 160px;
+  background: var(--g100);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 48px;
+  position: relative;
+}
+.product-img .temp-badge {
+  position: absolute;
+  top: 8px; left: 8px;
+  padding: 2px 8px;
+  border-radius: 4px;
+  font-size: 11px;
+  font-weight: 500;
+}
+.temp-badge.frozen { background: var(--frozen-bg); color: var(--frozen); }
+.temp-badge.chilled { background: var(--chilled-bg); color: var(--chilled); }
+.temp-badge.ambient { background: var(--ambient-bg); color: var(--ambient); }
+.product-body {
+  padding: 12px 16px;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+}
+.product-name {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--g900);
+  margin-bottom: 4px;
+  line-height: 1.4;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+.product-spec {
+  font-size: 12px;
+  color: var(--g500);
+  margin-bottom: 8px;
+}
+.product-price-row {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  margin-bottom: 4px;
+}
+.price-tob {
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--danger);
+}
+.price-tob .unit {
+  font-size: 12px;
+  font-weight: 500;
+}
+.price-retail {
+  font-size: 12px;
+  color: var(--g500);
+  text-decoration: line-through;
+}
+.stock-status {
+  font-size: 12px;
+  margin-bottom: 12px;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+.stock-status.in-stock { color: var(--success); }
+.stock-status.low-stock { color: var(--warning); }
+.stock-status.out-stock { color: var(--danger); }
+.product-footer {
+  margin-top: auto;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.qty-selector {
+  display: flex;
+  align-items: center;
+  border: 1px solid var(--g200);
+  border-radius: var(--rs);
+  overflow: hidden;
+}
+.qty-btn {
+  width: 28px; height: 28px;
+  background: var(--g50);
+  color: var(--g800);
+  font-size: 14px;
+  display: flex; align-items:center; justify-content:center;
+  transition: var(--tr);
+}
+.qty-btn:hover { background: var(--g200); }
+.qty-val {
+  width: 36px; height: 28px;
+  text-align: center;
+  font-size: 13px;
+  font-weight: 500;
+  border: none;
+  border-left: 1px solid var(--g200);
+  border-right: 1px solid var(--g200);
+  background: #fff;
+  color: var(--g900);
+  outline: none;
+}
+.btn-add-cart {
+  flex: 1;
+  height: 32px;
+  background: var(--p);
+  color: #fff;
+  border-radius: var(--rs);
+  font-size: 13px;
+  font-weight: 500;
+  transition: var(--tr);
+}
+.btn-add-cart:hover { background: var(--p-dark); }
+.btn-add-cart:active { transform: scale(.97); }
+
+/* ========== Cart Page ========== */
+.cart-layout {
+  display: grid;
+  grid-template-columns: 1fr 340px;
+  gap: 20px;
+}
+.cart-items { display: flex; flex-direction: column; gap: 16px; }
+.cart-group {
+  background: #fff;
+  border-radius: var(--r);
+  box-shadow: var(--sh);
+  overflow: hidden;
+}
+.cart-group-header {
+  padding: 12px 20px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-weight: 600;
+  font-size: 14px;
+}
+.cart-group-header.frozen { background: var(--frozen-bg); color: var(--frozen); }
+.cart-group-header.chilled { background: var(--chilled-bg); color: var(--chilled); }
+.cart-group-header.ambient { background: var(--ambient-bg); color: var(--ambient); }
+.cart-item {
+  display: flex;
+  align-items: center;
+  padding: 14px 20px;
+  border-bottom: 1px solid var(--g100);
+  gap: 14px;
+}
+.cart-item:last-child { border-bottom: none; }
+.cart-item-img {
+  width: 56px; height: 56px;
+  background: var(--g100);
+  border-radius: var(--rs);
+  display: flex; align-items:center; justify-content:center;
+  font-size: 28px;
+  flex-shrink: 0;
+}
+.cart-item-info { flex: 1; }
+.cart-item-name {
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--g900);
+  margin-bottom: 2px;
+}
+.cart-item-spec {
+  font-size: 12px;
+  color: var(--g500);
+}
+.cart-item-price {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--g900);
+  min-width: 80px;
+  text-align: right;
+}
+.cart-item-subtotal {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--danger);
+  min-width: 90px;
+  text-align: right;
+}
+.cart-item-remove {
+  width: 28px; height: 28px;
+  background: transparent;
+  color: var(--g500);
+  font-size: 16px;
+  border-radius: var(--rs);
+  display: flex; align-items:center; justify-content:center;
+  transition: var(--tr);
+}
+.cart-item-remove:hover { background: var(--danger-light); color: var(--danger); }
+
+/* Cart Summary Sidebar */
+.cart-summary {
+  position: sticky;
+  top: calc(var(--header-h) + 24px);
+}
+.summary-card {
+  background: #fff;
+  border-radius: var(--r);
+  box-shadow: var(--sh);
+  padding: 20px;
+}
+.summary-title {
+  font-size: 15px;
+  font-weight: 600;
+  margin-bottom: 16px;
+  color: var(--g900);
+}
+.summary-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 8px 0;
+  font-size: 13px;
+  color: var(--g500);
+}
+.summary-row .val {
+  font-weight: 500;
+  color: var(--g800);
+}
+.summary-divider {
+  height: 1px;
+  background: var(--g200);
+  margin: 12px 0;
+}
+.summary-total {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  padding: 8px 0;
+}
+.summary-total .label { font-size: 14px; color: var(--g800); font-weight: 500; }
+.summary-total .amount {
+  font-size: 24px;
+  font-weight: 700;
+  color: var(--danger);
+}
+.summary-total .amount .currency { font-size: 14px; }
+
+.delivery-select {
+  width: 100%;
+  padding: 8px 12px;
+  border: 1px solid var(--g200);
+  border-radius: var(--rs);
+  font-size: 13px;
+  color: var(--g800);
+  background: #fff;
+  margin: 12px 0;
+  outline: none;
+}
+.delivery-select:focus { border-color: var(--p); }
+
+.btn-submit-order {
+  width: 100%;
+  padding: 12px;
+  background: var(--p);
+  color: #fff;
+  border-radius: var(--rs);
+  font-size: 15px;
+  font-weight: 600;
+  transition: var(--tr);
+  margin-top: 12px;
+}
+.btn-submit-order:hover { background: var(--p-dark); }
+.btn-submit-order:disabled {
+  background: var(--g300);
+  cursor: not-allowed;
+}
+
+.temp-split-preview {
+  margin-top: 16px;
+  padding: 12px;
+  background: var(--g50);
+  border-radius: var(--rs);
+}
+.temp-split-preview h4 {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--g800);
+  margin-bottom: 8px;
+}
+.split-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 0;
+  font-size: 12px;
+}
+.split-dot {
+  width: 8px; height: 8px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+.split-item .split-name { flex:1; color: var(--g500); }
+.split-item .split-count { font-weight: 600; color: var(--g800); }
+
+/* ========== Order Tracking Page ========== */
+.tracking-layout {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 20px;
+}
+.order-card {
+  background: #fff;
+  border-radius: var(--r);
+  box-shadow: var(--sh);
+  padding: 20px;
+  grid-column: 1 / -1;
+}
+.order-card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+}
+.order-card-header h3 {
+  font-size: 16px;
+  font-weight: 600;
+}
+.order-meta {
+  display: flex;
+  gap: 24px;
+  margin-bottom: 24px;
+  font-size: 13px;
+  color: var(--g500);
+}
+.order-meta span { color: var(--g800); font-weight: 500; }
+
+/* Progress Trackers */
+.progress-section { margin-bottom: 20px; }
+.progress-section:last-child { margin-bottom: 0; }
+.progress-label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 10px;
+  font-size: 13px;
+  font-weight: 600;
+}
+.progress-label .zone-dot {
+  width: 10px; height: 10px;
+  border-radius: 50%;
+}
+.progress-track {
+  display: flex;
+  align-items: center;
+  gap: 0;
+  position: relative;
+}
+.progress-step {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  position: relative;
+  z-index: 1;
+}
+.progress-step .step-dot {
+  width: 24px; height: 24px;
+  border-radius: 50%;
+  background: var(--g200);
+  display: flex; align-items:center; justify-content:center;
+  font-size: 12px;
+  color: #fff;
+  transition: var(--tr);
+  position: relative;
+  z-index: 2;
+}
+.progress-step.done .step-dot { background: var(--success); }
+.progress-step.active .step-dot {
+  background: var(--p);
+  animation: pulse 2s infinite;
+}
+.progress-step .step-label {
+  font-size: 11px;
+  color: var(--g500);
+  margin-top: 6px;
+  white-space: nowrap;
+}
+.progress-step.done .step-label { color: var(--success); }
+.progress-step.active .step-label { color: var(--p); font-weight: 600; }
+.progress-line {
+  flex: 1;
+  height: 3px;
+  background: var(--g200);
+  margin: 0 -4px;
+  position: relative;
+  top: -12px;
+  z-index: 0;
+}
+.progress-line.done { background: var(--success); }
+.progress-line.active { background: linear-gradient(90deg, var(--success), var(--p)); }
+
+/* Delivery Info */
+.delivery-card {
+  background: #fff;
+  border-radius: var(--r);
+  box-shadow: var(--sh);
+  padding: 20px;
+}
+.delivery-card h3 {
+  font-size: 15px;
+  font-weight: 600;
+  margin-bottom: 16px;
+}
+.driver-info {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  margin-bottom: 16px;
+}
+.driver-avatar {
+  width: 48px; height: 48px;
+  border-radius: 50%;
+  background: var(--p-light);
+  color: var(--p);
+  display: flex; align-items:center; justify-content:center;
+  font-size: 22px;
+}
+.driver-detail .driver-name {
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--g900);
+}
+.driver-detail .driver-phone {
+  font-size: 13px;
+  color: var(--g500);
+}
+.delivery-time {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px;
+  background: var(--success-light);
+  border-radius: var(--rs);
+  margin-bottom: 16px;
+}
+.delivery-time .time-icon { font-size: 20px; }
+.delivery-time .time-text {
+  font-size: 13px;
+  color: var(--g800);
+}
+.delivery-time .time-text strong {
+  color: var(--success);
+  font-size: 16px;
+}
+
+/* Map Placeholder */
+.map-placeholder {
+  background: #fff;
+  border-radius: var(--r);
+  box-shadow: var(--sh);
+  overflow: hidden;
+}
+.map-placeholder h3 {
+  font-size: 15px;
+  font-weight: 600;
+  padding: 20px 20px 0;
+}
+.map-area {
+  height: 300px;
+  background:
+    linear-gradient(90deg, var(--g100) 1px, transparent 1px),
+    linear-gradient(var(--g100) 1px, transparent 1px);
+  background-size: 30px 30px;
+  margin: 16px;
+  border-radius: var(--rs);
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+}
+.map-area::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(circle at 30% 60%, rgba(22,119,255,.06) 0%, transparent 60%),
+              radial-gradient(circle at 70% 40%, rgba(82,196,26,.06) 0%, transparent 60%);
+}
+.map-route {
+  position: absolute;
+  width: 60%;
+  height: 2px;
+  background: var(--p);
+  top: 55%;
+  left: 20%;
+  transform: rotate(-8deg);
+}
+.map-route::before {
+  content: '';
+  position: absolute;
+  left: 0; top: -4px;
+  width: 10px; height: 10px;
+  background: var(--success);
+  border-radius: 50%;
+  border: 2px solid #fff;
+  box-shadow: var(--sh);
+}
+.map-route::after {
+  content: '';
+  position: absolute;
+  right: 0; top: -4px;
+  width: 10px; height: 10px;
+  background: var(--p);
+  border-radius: 50%;
+  border: 2px solid #fff;
+  box-shadow: var(--sh);
+  animation: pulse 2s infinite;
+}
+.map-label {
+  position: absolute;
+  padding: 4px 10px;
+  background: #fff;
+  border-radius: 4px;
+  font-size: 11px;
+  color: var(--g800);
+  box-shadow: var(--sh);
+  z-index: 1;
+}
+.map-label.start { bottom: 35%; left: 14%; }
+.map-label.end { top: 25%; right: 14%; }
+.map-label.start::before { content: '🏪 '; }
+.map-label.end::before { content: '📍 '; }
+
+/* ========== Billing Page ========== */
+.billing-header {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 16px;
+  margin-bottom: 24px;
+}
+.bill-stat {
+  background: #fff;
+  border-radius: var(--r);
+  box-shadow: var(--sh);
+  padding: 20px 24px;
+}
+.bill-stat .bill-stat-label {
+  font-size: 13px;
+  color: var(--g500);
+  margin-bottom: 8px;
+}
+.bill-stat .bill-stat-val {
+  font-size: 24px;
+  font-weight: 700;
+  color: var(--g900);
+}
+.bill-stat .bill-stat-val.danger { color: var(--danger); }
+
+.billing-table-card {
+  background: #fff;
+  border-radius: var(--r);
+  box-shadow: var(--sh);
+  overflow: hidden;
+  margin-bottom: 20px;
+}
+.table-toolbar {
+  padding: 14px 20px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border-bottom: 1px solid var(--g100);
+}
+.table-toolbar h3 {
+  font-size: 15px;
+  font-weight: 600;
+}
+.table-actions {
+  display: flex;
+  gap: 8px;
+}
+.btn-sm {
+  padding: 6px 14px;
+  border-radius: var(--rs);
+  font-size: 12px;
+  font-weight: 500;
+  transition: var(--tr);
+}
+.btn-sm.outline {
+  background: #fff;
+  border: 1px solid var(--g200);
+  color: var(--g800);
+}
+.btn-sm.outline:hover { border-color: var(--p); color: var(--p); }
+.btn-sm.primary {
+  background: var(--p);
+  color: #fff;
+}
+.btn-sm.primary:hover { background: var(--p-dark); }
+
+.data-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+.data-table th {
+  padding: 12px 16px;
+  text-align: left;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--g500);
+  background: var(--g50);
+  border-bottom: 1px solid var(--g200);
+  white-space: nowrap;
+  cursor: pointer;
+  user-select: none;
+  transition: var(--tr);
+}
+.data-table th:hover { color: var(--p); }
+.data-table th .sort-icon {
+  margin-left: 4px;
+  font-size: 10px;
+  opacity: .4;
+}
+.data-table th.sorted .sort-icon { opacity: 1; color: var(--p); }
+.data-table td {
+  padding: 12px 16px;
+  font-size: 13px;
+  border-bottom: 1px solid var(--g100);
+  color: var(--g800);
+}
+.data-table tr:hover td { background: var(--p-light); }
+.data-table .link { color: var(--p); cursor: pointer; }
+.data-table .link:hover { text-decoration: underline; }
+.data-table .amount { font-weight: 600; text-align: right; }
+.data-table .text-right { text-align: right; }
+
+/* Invoice Section */
+.invoice-section {
+  background: #fff;
+  border-radius: var(--r);
+  box-shadow: var(--sh);
+  padding: 20px;
+}
+.invoice-section h3 {
+  font-size: 15px;
+  font-weight: 600;
+  margin-bottom: 16px;
+}
+.invoice-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 12px;
+}
+.invoice-item {
+  border: 1px solid var(--g200);
+  border-radius: var(--rs);
+  padding: 14px 16px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  transition: var(--tr);
+  cursor: pointer;
+}
+.invoice-item:hover {
+  border-color: var(--p);
+  box-shadow: 0 0 0 1px var(--p);
+}
+.invoice-icon {
+  width: 40px; height: 40px;
+  background: var(--p-light);
+  border-radius: var(--rs);
+  display: flex; align-items:center; justify-content:center;
+  font-size: 20px;
+  flex-shrink: 0;
+}
+.invoice-info .invoice-title {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--g900);
+}
+.invoice-info .invoice-date {
+  font-size: 12px;
+  color: var(--g500);
+}
+
+/* Empty State */
+.empty-state {
+  text-align: center;
+  padding: 60px 20px;
+  color: var(--g500);
+}
+.empty-state .empty-icon {
+  font-size: 48px;
+  margin-bottom: 12px;
+}
+.empty-state p { font-size: 14px; }
+
+/* Toast Notification */
+.toast-container {
+  position: fixed;
+  top: 24px;
+  right: 24px;
+  z-index: 1000;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.toast {
+  padding: 12px 20px;
+  background: #fff;
+  border-radius: var(--rs);
+  box-shadow: var(--shm);
+  font-size: 13px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  animation: slideIn .3s ease;
+  border-left: 3px solid var(--p);
+  min-width: 240px;
+}
+.toast.success { border-left-color: var(--success); }
+.toast.warning { border-left-color: var(--warning); }
+.toast.error { border-left-color: var(--danger); }
+
+/* Mobile Menu Toggle */
+.mobile-menu-btn {
+  display: none;
+  width: 36px; height: 36px;
+  background: var(--g50);
+  border-radius: var(--rs);
+  align-items: center;
+  justify-content: center;
+  font-size: 20px;
+  color: var(--g800);
+  cursor: pointer;
+}
+.sidebar-overlay {
+  display: none;
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,.4);
+  z-index: 99;
+}
+
+/* ========== Responsive ========== */
+@media (max-width: 768px) {
+  :root { --sidebar-w: 0px; }
+  .sidebar {
+    transform: translateX(-100%);
+    width: 240px;
+  }
+  .sidebar.open { transform: translateX(0); }
+  .sidebar-overlay.open { display: block; }
+  .mobile-menu-btn { display: flex; }
+  .stats-row { grid-template-columns: repeat(2, 1fr); }
+  .dash-grid { grid-template-columns: 1fr; }
+  .cart-layout { grid-template-columns: 1fr; }
+  .tracking-layout { grid-template-columns: 1fr; }
+  .billing-header { grid-template-columns: 1fr; }
+  .welcome-banner { flex-direction: column; gap: 16px; text-align: center; }
+  .welcome-banner .banner-actions { justify-content: center; }
+  .products-grid { grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); }
+  .filter-bar { flex-direction: column; align-items: stretch; }
+  .header-left h2 { font-size: 14px; }
+}
+</style>
+</head>
+<body>
+
+<!-- ========== App Shell ========== -->
+<div class="app">
+  <!-- Sidebar Overlay (mobile) -->
+  <div class="sidebar-overlay" id="sidebarOverlay" onclick="toggleSidebar()"></div>
+
+  <!-- Sidebar -->
+  <aside class="sidebar" id="sidebar">
+    <div class="sidebar-logo">
+      <div class="logo-icon">🛒</div>
+      <div>
+        <div class="logo-text">叮咚买菜</div>
+        <div class="logo-sub">B2B 商户工作台</div>
+      </div>
+    </div>
+    <nav class="sidebar-nav">
+      <div class="nav-item active" data-page="dashboard" onclick="switchPage('dashboard', this)">
+        <span class="nav-icon">📊</span>
+        <span>首页概览</span>
+      </div>
+      <div class="nav-item" data-page="products" onclick="switchPage('products', this)">
+        <span class="nav-icon">🛍️</span>
+        <span>商品选购</span>
+      </div>
+      <div class="nav-item" data-page="cart" onclick="switchPage('cart', this)">
+        <span class="nav-icon">🛒</span>
+        <span>购物车</span>
+        <span class="nav-badge" id="cartBadge">0</span>
+      </div>
+      <div class="nav-item" data-page="tracking" onclick="switchPage('tracking', this)">
+        <span class="nav-icon">🚚</span>
+        <span>订单追踪</span>
+      </div>
+      <div class="nav-item" data-page="billing" onclick="switchPage('billing', this)">
+        <span class="nav-icon">📋</span>
+        <span>账单中心</span>
+      </div>
+    </nav>
+    <div class="sidebar-footer">
+      <div style="margin-bottom:4px;font-weight:500;color:rgba(255,255,255,.7)">悦来餐厅</div>
+      <div>商户编号：DD-B2B-2026001</div>
+    </div>
+  </aside>
+
+  <!-- Main -->
+  <div class="main">
+    <header class="header">
+      <div class="header-left">
+        <button class="mobile-menu-btn" onclick="toggleSidebar()">☰</button>
+        <div class="breadcrumb">
+          工作台 / <span id="breadcrumbCurrent">首页概览</span>
+        </div>
+      </div>
+      <div class="header-right">
+        <button class="header-btn" title="消息">
+          🔔<span class="dot"></span>
+        </button>
+        <button class="header-btn" title="帮助">❓</button>
+        <div class="user-avatar">悦</div>
+      </div>
+    </header>
+
+    <div class="content">
+
+      <!-- ===== Page: Dashboard ===== -->
+      <section class="page active" id="page-dashboard">
+        <div class="welcome-banner">
+          <div>
+            <h1>早上好，悦来餐厅 👋</h1>
+            <p>今日已有 3 笔订单待处理，及时下单确保食材新鲜送达</p>
+          </div>
+          <div class="banner-actions">
+            <button class="banner-btn primary" onclick="switchPage('products', document.querySelector('[data-page=products]'))">立即选购</button>
+            <button class="banner-btn ghost" onclick="switchPage('tracking', document.querySelector('[data-page=tracking]'))">查看配送</button>
+          </div>
+        </div>
+
+        <div class="stats-row">
+          <div class="stat-card">
+            <div class="stat-label">📦 今日订单</div>
+            <div class="stat-value">12</div>
+            <div class="stat-trend up">↑ 20% 较昨日</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-label">⏳ 待处理</div>
+            <div class="stat-value">3</div>
+            <div class="stat-trend down">需尽快确认</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-label">🚚 配送中</div>
+            <div class="stat-value">5</div>
+            <div class="stat-trend up">预计 30 分钟内到达</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-label">✅ 已完成</div>
+            <div class="stat-value">4</div>
+            <div class="stat-trend up">全部验收通过</div>
+          </div>
+        </div>
+
+        <div class="dash-grid">
+          <div class="card">
+            <div class="card-header">
+              <h3>近 7 日订单金额趋势</h3>
+              <span class="more-link">查看详情 →</span>
+            </div>
+            <div class="card-body">
+              <div class="bar-chart" id="barChart">
+                <!-- JS renders bars -->
+              </div>
+            </div>
+          </div>
+          <div class="card">
+            <div class="card-header">
+              <h3>最近订单</h3>
+              <span class="more-link" onclick="switchPage('tracking', document.querySelector('[data-page=tracking]'))">全部订单 →</span>
+            </div>
+            <div class="card-body" id="recentOrders">
+              <!-- JS renders list -->
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ===== Page: Products ===== -->
+      <section class="page" id="page-products">
+        <div class="filter-bar">
+          <div class="temp-tabs" id="tempTabs">
+            <button class="temp-tab active" data-filter="all">全部</button>
+            <button class="temp-tab" data-filter="frozen">🧊 冷冻</button>
+            <button class="temp-tab" data-filter="chilled">❄️ 冷藏</button>
+            <button class="temp-tab" data-filter="ambient">🌡️ 常温</button>
+          </div>
+          <div class="search-box">
+            <span class="search-icon">🔍</span>
+            <input type="text" placeholder="搜索商品名称..." id="productSearch" oninput="filterProducts()">
+          </div>
+        </div>
+        <div class="products-grid" id="productsGrid">
+          <!-- JS renders product cards -->
+        </div>
+      </section>
+
+      <!-- ===== Page: Cart ===== -->
+      <section class="page" id="page-cart">
+        <div class="cart-layout">
+          <div class="cart-items" id="cartItems">
+            <!-- JS renders cart groups -->
+          </div>
+          <div class="cart-summary" id="cartSummary">
+            <!-- JS renders summary -->
+          </div>
+        </div>
+      </section>
+
+      <!-- ===== Page: Order Tracking ===== -->
+      <section class="page" id="page-tracking">
+        <div class="tracking-layout">
+          <div class="order-card">
+            <div class="order-card-header">
+              <h3>订单 DD20260723001 追踪</h3>
+              <span class="status delivering">配送中</span>
+            </div>
+            <div class="order-meta">
+              <div>下单时间：<span>2026-07-23 06:30</span></div>
+              <div>预计送达：<span>2026-07-23 08:00</span></div>
+              <div>订单金额：<span style="color:var(--danger);font-weight:700">¥1,286.50</span></div>
+            </div>
+
+            <div class="progress-section" id="trackFrozen">
+              <div class="progress-label">
+                <span class="zone-dot" style="background:var(--frozen)"></span>
+                🧊 冷冻商品（3 件）
+              </div>
+              <div class="progress-track" id="progressFrozen"></div>
+            </div>
+
+            <div class="progress-section" id="trackChilled">
+              <div class="progress-label">
+                <span class="zone-dot" style="background:var(--chilled)"></span>
+                ❄️ 冷藏商品（4 件）
+              </div>
+              <div class="progress-track" id="progressChilled"></div>
+            </div>
+
+            <div class="progress-section" id="trackAmbient">
+              <div class="progress-label">
+                <span class="zone-dot" style="background:var(--ambient)"></span>
+                🌡️ 常温商品（2 件）
+              </div>
+              <div class="progress-track" id="progressAmbient"></div>
+            </div>
+          </div>
+
+          <div class="delivery-card">
+            <h3>配送信息</h3>
+            <div class="driver-info">
+              <div class="driver-avatar">🧑</div>
+              <div class="driver-detail">
+                <div class="driver-name">李师傅</div>
+                <div class="driver-phone">138-0000-1234</div>
+              </div>
+            </div>
+            <div class="delivery-time">
+              <span class="time-icon">⏱️</span>
+              <div class="time-text">
+                预计 <strong id="etaCountdown">28</strong> 分钟后送达
+              </div>
+            </div>
+            <div style="font-size:13px;color:var(--g500);line-height:1.8">
+              <div>📍 配送地址：上海市浦东新区张江高科技园区 3 号楼 101</div>
+              <div>📦 冷冻商品独立冷链车配送</div>
+              <div>🧊 冷藏+常温合并配送</div>
+            </div>
+          </div>
+
+          <div class="map-placeholder">
+            <h3>实时配送轨迹</h3>
+            <div class="map-area">
+              <div class="map-route"></div>
+              <div class="map-label start">悦来餐厅</div>
+              <div class="map-label end">叮咚前置仓</div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ===== Page: Billing ===== -->
+      <section class="page" id="page-billing">
+        <div class="billing-header">
+          <div class="bill-stat">
+            <div class="bill-stat-label">本月消费</div>
+            <div class="bill-stat-val danger">¥38,642.80</div>
+          </div>
+          <div class="bill-stat">
+            <div class="bill-stat-label">待对账金额</div>
+            <div class="bill-stat-val" style="color:var(--warning)">¥6,230.00</div>
+          </div>
+          <div class="bill-stat">
+            <div class="bill-stat-label">本月订单数</div>
+            <div class="bill-stat-val">86</div>
+          </div>
+        </div>
+
+        <div class="billing-table-card">
+          <div class="table-toolbar">
+            <h3>账单明细</h3>
+            <div class="table-actions">
+              <button class="btn-sm outline">导出 Excel</button>
+              <button class="btn-sm primary">申请开票</button>
+            </div>
+          </div>
+          <table class="data-table" id="billingTable">
+            <thead>
+              <tr>
+                <th onclick="sortTable(0)">日期 <span class="sort-icon">↕</span></th>
+                <th onclick="sortTable(1)">订单号 <span class="sort-icon">↕</span></th>
+                <th onclick="sortTable(2)">商品摘要 <span class="sort-icon">↕</span></th>
+                <th onclick="sortTable(3)" class="text-right">金额 <span class="sort-icon">↕</span></th>
+                <th onclick="sortTable(4)">对账状态 <span class="sort-icon">↕</span></th>
+                <th>操作</th>
+              </tr>
+            </thead>
+            <tbody id="billingBody">
+              <!-- JS renders rows -->
+            </tbody>
+          </table>
+        </div>
+
+        <div class="invoice-section">
+          <h3>发票管理</h3>
+          <div class="invoice-grid">
+            <div class="invoice-item">
+              <div class="invoice-icon">📄</div>
+              <div class="invoice-info">
+                <div class="invoice-title">2026年6月增值税专用发票</div>
+                <div class="invoice-date">开票日期：2026-07-01 · 金额：¥35,210.00</div>
+              </div>
+            </div>
+            <div class="invoice-item">
+              <div class="invoice-icon">📄</div>
+              <div class="invoice-info">
+                <div class="invoice-title">2026年5月增值税专用发票</div>
+                <div class="invoice-date">开票日期：2026-06-01 · 金额：¥31,850.00</div>
+              </div>
+            </div>
+            <div class="invoice-item">
+              <div class="invoice-icon">📄</div>
+              <div class="invoice-info">
+                <div class="invoice-title">2026年4月增值税专用发票</div>
+                <div class="invoice-date">开票日期：2026-05-01 · 金额：¥28,960.00</div>
+              </div>
+            </div>
+            <div class="invoice-item" style="border-style:dashed;color:var(--g500)">
+              <div class="invoice-icon" style="background:var(--g100)">➕</div>
+              <div class="invoice-info">
+                <div class="invoice-title">申请新发票</div>
+                <div class="invoice-date">点击申请本月开票</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+    </div><!-- /.content -->
+  </div><!-- /.main -->
+</div><!-- /.app -->
+
+<!-- Toast Container -->
+<div class="toast-container" id="toastContainer"></div>
+
+<script>
+/* ========================================================================
+   Data Layer
+   ======================================================================== */
+
+// Products
+const products = [
+  { id:1,  name:'澳洲谷饲肥牛卷',    spec:'500g/盒',   price:42.8,  retail:56.0,  stock:'in',   zone:'frozen',  emoji:'🥩' },
+  { id:2,  name:'厄瓜多尔白虾',      spec:'30/40 1kg',  price:58.0,  retail:72.0,  stock:'in',   zone:'frozen',  emoji:'🦐' },
+  { id:3,  name:'三都港速冻鱿鱼圈',   spec:'400g/袋',    price:18.5,  retail:25.0,  stock:'low',  zone:'frozen',  emoji:'🦑' },
+  { id:4,  name:'光明鲜奶',          spec:'1L/瓶',      price:8.5,   retail:12.8,  stock:'in',   zone:'chilled', emoji:'🥛' },
+  { id:5,  name:'有机西蓝花',        spec:'300g/份',    price:6.8,   retail:9.9,   stock:'in',   zone:'chilled', emoji:'🥦' },
+  { id:6,  name:'黑猪五花肉',        spec:'350g/盒',    price:28.6,  retail:38.0,  stock:'in',   zone:'chilled', emoji:'🥓' },
+  { id:7,  name:'日日鲜鸡蛋',        spec:'10枚/盒',    price:12.0,  retail:15.8,  stock:'in',   zone:'chilled', emoji:'🥚' },
+  { id:8,  name:'金龙鱼菜籽油',      spec:'5L/桶',      price:52.0,  retail:65.9,  stock:'in',   zone:'ambient', emoji:'🫒' },
+  { id:9,  name:'东北五常大米',       spec:'10kg/袋',    price:68.0,  retail:89.9,  stock:'in',   zone:'ambient', emoji:'🌾' },
+  { id:10, name:'海天特级酱油',      spec:'500ml/瓶',   price:8.2,   retail:11.5,  stock:'in',   zone:'ambient', emoji:'🫙' },
+  { id:11, name:'内蒙古羔羊排',      spec:'500g/盒',    price:65.0,  retail:82.0,  stock:'low',  zone:'frozen',  emoji:'🍖' },
+  { id:12, name:'鲜活鲈鱼',         spec:'约500g/条',   price:22.0,  retail:30.0,  stock:'out',  zone:'chilled', emoji:'🐟' },
+];
+
+// Cart state: { productId: quantity }
+let cart = {};
+
+// Chart data (last 7 days)
+const chartData = [
+  { day:'07-17', amount:2860 },
+  { day:'07-18', amount:3420 },
+  { day:'07-19', amount:2150 },
+  { day:'07-20', amount:4100 },
+  { day:'07-21', amount:3780 },
+  { day:'07-22', amount:4560 },
+  { day:'07-23', amount:3200 },
+];
+
+// Recent orders
+const recentOrders = [
+  { id:'DD20260723001', info:'肥牛卷 x2、鲜奶 x5 ...', amount:'¥1,286.50', status:'delivering' },
+  { id:'DD20260723002', info:'有机西蓝花 x10、鸡蛋 x3 ...', amount:'¥204.00',   status:'processing' },
+  { id:'DD20260723003', info:'大米 x2、菜籽油 x1 ...',   amount:'¥188.00',   status:'pending' },
+  { id:'DD20260722008', info:'白虾 x3、五花肉 x4 ...',    amount:'¥288.20',   status:'completed' },
+  { id:'DD20260722007', info:'酱油 x12、菜籽油 x2 ...',   amount:'¥202.40',   status:'completed' },
+];
+
+// Billing data
+const billingData = [
+  { date:'2026-07-23', id:'DD20260723001', items:'肥牛卷、鲜奶等 6 项',   amount:1286.50, status:'pending' },
+  { date:'2026-07-23', id:'DD20260723002', items:'西蓝花、鸡蛋等 4 项',   amount:204.00,  status:'pending' },
+  { date:'2026-07-22', id:'DD20260722008', items:'白虾、五花肉等 5 项',   amount:288.20,  status:'reconciled' },
+  { date:'2026-07-22', id:'DD20260722007', items:'酱油、菜籽油等 3 项',   amount:202.40,  status:'reconciled' },
+  { date:'2026-07-21', id:'DD20260721006', items:'大米、肥牛卷等 8 项',   amount:456.80,  status:'reconciled' },
+  { date:'2026-07-21', id:'DD20260721005', items:'鲜奶、西蓝花等 5 项',   amount:178.60,  status:'exception' },
+  { date:'2026-07-20', id:'DD20260720004', items:'白虾、鱿鱼圈等 4 项',   amount:320.00,  status:'reconciled' },
+  { date:'2026-07-19', id:'DD20260719003', items:'鸡蛋、鲈鱼等 3 项',     amount:156.00,  status:'reconciled' },
+  { date:'2026-07-18', id:'DD20260718002', items:'肥牛卷、羊排等 6 项',   amount:680.00,  status:'reconciled' },
+  { date:'2026-07-17', id:'DD20260717001', items:'大米、酱油等 7 项',     amount:420.50,  status:'reconciled' },
+];
+
+// Tracking steps
+const trackingSteps = ['待分拣', '分拣中', '待出库', '配送中', '即将到达'];
+// Current active step index for each zone (0-based; -1 means all done)
+let trackState = {
+  frozen:  3, // "配送中"
+  chilled: 4, // "即将到达"
+  ambient: 2, // "待出库"
+};
+
+/* ========================================================================
+   Rendering Functions
+   ======================================================================== */
+
+// -- Bar Chart --
+function renderBarChart() {
+  const container = document.getElementById('barChart');
+  const max = Math.max(...chartData.map(d => d.amount));
+  container.innerHTML = chartData.map((d, i) => `
+    <div class="bar-col">
+      <div class="bar-value">¥${(d.amount/1000).toFixed(1)}k</div>
+      <div class="bar" style="--h:${(d.amount/max*140)}px;height:${(d.amount/max*140)}px;animation:barGrow .6s ease ${i*0.08}s both;opacity:.85"></div>
+      <div class="bar-label">${d.day}</div>
+    </div>
+  `).join('');
+}
+
+// -- Recent Orders --
+function renderRecentOrders() {
+  const statusMap = {
+    pending:    { label:'待确认',  cls:'pending' },
+    processing: { label:'处理中',  cls:'processing' },
+    delivering: { label:'配送中',  cls:'delivering' },
+    completed:  { label:'已完成',  cls:'completed' },
+  };
+  document.getElementById('recentOrders').innerHTML = recentOrders.map(o => `
+    <div class="order-list-item">
+      <span class="order-id">${o.id}</span>
+      <span class="order-info">${o.info}</span>
+      <span class="status ${statusMap[o.status].cls}">${statusMap[o.status].label}</span>
+      <span class="order-amount">${o.amount}</span>
+    </div>
+  `).join('');
+}
+
+// -- Products --
+let currentFilter = 'all';
+
+function renderProducts() {
+  const grid = document.getElementById('productsGrid');
+  const search = document.getElementById('productSearch').value.trim().toLowerCase();
+  const filtered = products.filter(p => {
+    const matchZone = currentFilter === 'all' || p.zone === currentFilter;
+    const matchSearch = !search || p.name.toLowerCase().includes(search);
+    return matchZone && matchSearch;
+  });
+
+  if (filtered.length === 0) {
+    grid.innerHTML = '<div class="empty-state"><div class="empty-icon">🔍</div><p>未找到匹配的商品</p></div>';
+    return;
+  }
+
+  const zoneLabel = { frozen:'冷冻', chilled:'冷藏', ambient:'常温' };
+  const stockLabel = { in:'库存充足', low:'库存紧张', out:'暂时缺货' };
+
+  grid.innerHTML = filtered.map(p => {
+    const qty = cart[p.id] || 0;
+    return `
+    <div class="product-card" data-zone="${p.zone}">
+      <div class="product-img">
+        ${p.emoji}
+        <span class="temp-badge ${p.zone}">${zoneLabel[p.zone]}</span>
+      </div>
+      <div class="product-body">
+        <div class="product-name">${p.name}</div>
+        <div class="product-spec">${p.spec}</div>
+        <div class="product-price-row">
+          <span class="price-tob">¥${p.price.toFixed(1)}<span class="unit">/份</span></span>
+          <span class="price-retail">¥${p.retail.toFixed(1)}</span>
+        </div>
+        <div class="stock-status ${p.stock === 'in' ? 'in-stock' : p.stock === 'low' ? 'low-stock' : 'out-stock'}">
+          ${p.stock === 'in' ? '● ' : p.stock === 'low' ? '▲ ' : '✕ '}${stockLabel[p.stock]}
+        </div>
+        <div class="product-footer">
+          <div class="qty-selector">
+            <button class="qty-btn" onclick="changeQty(${p.id}, -1)">−</button>
+            <input class="qty-val" id="qty-${p.id}" type="text" value="${qty}" readonly>
+            <button class="qty-btn" onclick="changeQty(${p.id}, 1)">+</button>
+          </div>
+          <button class="btn-add-cart" onclick="addToCart(${p.id})" ${p.stock === 'out' ? 'disabled style="background:var(--g300);cursor:not-allowed"' : ''}>
+            ${p.stock === 'out' ? '缺货' : '加入购物车'}
+          </button>
+        </div>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function filterProducts() {
+  renderProducts();
+}
+
+// -- Cart --
+function renderCart() {
+  const itemsEl = document.getElementById('cartItems');
+  const summaryEl = document.getElementById('cartSummary');
+  const entries = Object.entries(cart).filter(([,q]) => q > 0);
+
+  if (entries.length === 0) {
+    itemsEl.innerHTML = '<div class="card"><div class="empty-state"><div class="empty-icon">🛒</div><p>购物车空空如也</p><button class="btn-add-cart" style="width:auto;padding:8px 24px;margin-top:12px" onclick="switchPage(\'products\',document.querySelector(\'[data-page=products]\'))">去选购</button></div></div>';
+    summaryEl.innerHTML = '';
+    return;
+  }
+
+  // Group by zone
+  const groups = { frozen:[], chilled:[], ambient:[] };
+  entries.forEach(([pid, qty]) => {
+    const p = products.find(x => x.id === +pid);
+    if (p) groups[p.zone].push({ ...p, qty });
+  });
+
+  const zoneConfig = {
+    frozen:  { label:'🧊 冷冻商品', cls:'frozen' },
+    chilled: { label:'❄️ 冷藏商品', cls:'chilled' },
+    ambient: { label:'🌡️ 常温商品', cls:'ambient' },
+  };
+
+  let html = '';
+  let totalAmount = 0;
+  let totalItems = 0;
+  let zoneCounts = {};
+
+  ['frozen','chilled','ambient'].forEach(zone => {
+    const items = groups[zone];
+    if (items.length === 0) return;
+    zoneCounts[zone] = items.reduce((s,i) => s + i.qty, 0);
+    html += `<div class="cart-group"><div class="cart-group-header ${zoneConfig[zone].cls}">${zoneConfig[zone].label}（${items.length} 种商品）</div>`;
+    items.forEach(item => {
+      const sub = item.price * item.qty;
+      totalAmount += sub;
+      totalItems += item.qty;
+      html += `
+        <div class="cart-item">
+          <div class="cart-item-img">${item.emoji}</div>
+          <div class="cart-item-info">
+            <div class="cart-item-name">${item.name}</div>
+            <div class="cart-item-spec">${item.spec}</div>
+          </div>
+          <div class="cart-item-price">¥${item.price.toFixed(1)}</div>
+          <div class="qty-selector">
+            <button class="qty-btn" onclick="updateCart(${item.id}, ${item.qty - 1})">−</button>
+            <input class="qty-val" value="${item.qty}" readonly>
+            <button class="qty-btn" onclick="updateCart(${item.id}, ${item.qty + 1})">+</button>
+          </div>
+          <div class="cart-item-subtotal">¥${sub.toFixed(2)}</div>
+          <button class="cart-item-remove" onclick="updateCart(${item.id}, 0)">✕</button>
+        </div>`;
+    });
+    html += '</div>';
+  });
+
+  itemsEl.innerHTML = html;
+
+  // Summary
+  const deliveryFee = totalAmount >= 500 ? 0 : 15;
+  const splitPreview = Object.entries(zoneCounts).map(([z,c]) => {
+    const dot = z === 'frozen' ? 'var(--frozen)' : z === 'chilled' ? 'var(--chilled)' : 'var(--ambient)';
+    const name = z === 'frozen' ? '冷冻专车' : z === 'chilled' ? '冷藏配送' : '常温配送';
+    return `<div class="split-item"><span class="split-dot" style="background:${dot}"></span><span class="split-name">${name}</span><span class="split-count">${c} 件</span></div>`;
+  }).join('');
+
+  summaryEl.innerHTML = `
+    <div class="summary-card">
+      <div class="summary-title">订单汇总</div>
+      <div class="summary-row"><span>商品数量</span><span class="val">${totalItems} 件</span></div>
+      <div class="summary-row"><span>商品金额</span><span class="val">¥${totalAmount.toFixed(2)}</span></div>
+      <div class="summary-row"><span>配送费</span><span class="val" style="color:${deliveryFee === 0 ? 'var(--success)' : 'var(--g800)'}">${deliveryFee === 0 ? '免运费' : '¥' + deliveryFee.toFixed(2)}</span></div>
+      <div class="summary-row" style="font-size:12px;color:var(--g500)"><span>满 500 元免配送费</span><span></span></div>
+      <div class="summary-divider"></div>
+      <div class="summary-total">
+        <span class="label">应付金额</span>
+        <span class="amount"><span class="currency">¥</span>${(totalAmount + deliveryFee).toFixed(2)}</span>
+      </div>
+      <div class="delivery-select-wrapper" style="margin-top:16px">
+        <label style="font-size:13px;font-weight:500;color:var(--g800);display:block;margin-bottom:6px">期望配送时间</label>
+        <select class="delivery-select">
+          <option>尽快配送</option>
+          <option>今日 10:00 - 12:00</option>
+          <option>今日 14:00 - 16:00</option>
+          <option>明日 06:00 - 08:00</option>
+          <option>明日 10:00 - 12:00</option>
+        </select>
+      </div>
+      <div class="temp-split-preview">
+        <h4>温区拆单预览</h4>
+        ${splitPreview}
+        <div style="font-size:11px;color:var(--g500);margin-top:8px">💡 不同温区将独立包装、独立配送</div>
+      </div>
+      <button class="btn-submit-order" onclick="submitOrder()">提交订单</button>
+    </div>`;
+}
+
+// -- Order Tracking --
+function renderTracking() {
+  ['frozen','chilled','ambient'].forEach(zone => {
+    const container = document.getElementById('progress' + zone.charAt(0).toUpperCase() + zone.slice(1));
+    const activeIdx = trackState[zone];
+    let html = '';
+    trackingSteps.forEach((step, i) => {
+      const isDone = i < activeIdx;
+      const isActive = i === activeIdx;
+      const cls = isDone ? 'done' : isActive ? 'active' : '';
+      html += `<div class="progress-step ${cls}"><div class="step-dot">${isDone ? '✓' : (i+1)}</div><div class="step-label">${step}</div></div>`;
+      if (i < trackingSteps.length - 1) {
+        const lineCls = i < activeIdx ? 'done' : i === activeIdx ? 'active' : '';
+        html += `<div class="progress-line ${lineCls}"></div>`;
+      }
+    });
+    container.innerHTML = html;
+  });
+}
+
+// Animate tracking progression
+let trackInterval;
+function animateTracking() {
+  trackInterval = setInterval(() => {
+    ['frozen','chilled','ambient'].forEach(zone => {
+      if (trackState[zone] < trackingSteps.length - 1) {
+        trackState[zone]++;
+      } else {
+        trackState[zone] = 0; // reset for demo
+      }
+    });
+    renderTracking();
+  }, 3000);
+}
+
+// ETA countdown
+function startCountdown() {
+  let eta = 28;
+  setInterval(() => {
+    eta = eta <= 1 ? 28 : eta - 1;
+    document.getElementById('etaCountdown').textContent = eta;
+  }, 60000);
+}
+
+// -- Billing Table --
+let sortCol = -1, sortDir = 1;
+
+function renderBilling() {
+  const statusMap = {
+    reconciled: { label:'已对账', cls:'completed' },
+    pending:    { label:'待对账', cls:'pending' },
+    exception:  { label:'异常',   cls:'exception' },
+  };
+  document.getElementById('billingBody').innerHTML = billingData.map(b => `
+    <tr>
+      <td>${b.date}</td>
+      <td><span class="link">${b.id}</span></td>
+      <td>${b.items}</td>
+      <td class="amount">¥${b.amount.toFixed(2)}</td>
+      <td><span class="status ${statusMap[b.status].cls}">${statusMap[b.status].label}</span></td>
+      <td><button class="btn-sm outline" style="padding:4px 10px;font-size:11px">详情</button></td>
+    </tr>
+  `).join('');
+}
+
+function sortTable(col) {
+  const keys = ['date','id','items','amount','status'];
+  const key = keys[col];
+  if (sortCol === col) { sortDir *= -1; } else { sortCol = col; sortDir = 1; }
+  billingData.sort((a,b) => {
+    let va = a[key], vb = b[key];
+    if (typeof va === 'number') return (va - vb) * sortDir;
+    return String(va).localeCompare(String(vb)) * sortDir;
+  });
+  renderBilling();
+  // Update header indicators
+  document.querySelectorAll('.data-table th').forEach((th, i) => {
+    th.classList.toggle('sorted', i === col);
+    const icon = th.querySelector('.sort-icon');
+    if (icon) icon.textContent = i === col ? (sortDir === 1 ? '↑' : '↓') : '↕';
+  });
+}
+
+/* ========================================================================
+   Interaction Handlers
+   ======================================================================== */
+
+function switchPage(page, navItem) {
+  // Hide all pages
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.getElementById('page-' + page).classList.add('active');
+  // Update nav
+  document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+  if (navItem) navItem.classList.add('active');
+  // Update breadcrumb
+  const names = { dashboard:'首页概览', products:'商品选购', cart:'购物车', tracking:'订单追踪', billing:'账单中心' };
+  document.getElementById('breadcrumbCurrent').textContent = names[page] || page;
+  // Close mobile sidebar
+  document.getElementById('sidebar').classList.remove('open');
+  document.getElementById('sidebarOverlay').classList.remove('open');
+}
+
+function toggleSidebar() {
+  document.getElementById('sidebar').classList.toggle('open');
+  document.getElementById('sidebarOverlay').classList.toggle('open');
+}
+
+// Temperature filter
+document.getElementById('tempTabs').addEventListener('click', e => {
+  const tab = e.target.closest('.temp-tab');
+  if (!tab) return;
+  document.querySelectorAll('.temp-tab').forEach(t => t.classList.remove('active'));
+  tab.classList.add('active');
+  currentFilter = tab.dataset.filter;
+  renderProducts();
+});
+
+function changeQty(pid, delta) {
+  const input = document.getElementById('qty-' + pid);
+  let val = parseInt(input.value) + delta;
+  if (val < 0) val = 0;
+  if (val > 999) val = 999;
+  input.value = val;
+}
+
+function addToCart(pid) {
+  const input = document.getElementById('qty-' + pid);
+  const qty = parseInt(input.value) || 1;
+  cart[pid] = (cart[pid] || 0) + qty;
+  if (cart[pid] > 999) cart[pid] = 999;
+  input.value = 0;
+  updateCartBadge();
+  const p = products.find(x => x.id === pid);
+  showToast(`已添加 ${qty} 件「${p.name}」到购物车`, 'success');
+}
+
+function updateCart(pid, newQty) {
+  if (newQty <= 0) {
+    delete cart[pid];
+  } else {
+    cart[pid] = newQty;
+  }
+  updateCartBadge();
+  renderCart();
+  renderProducts(); // update qty display
+}
+
+function updateCartBadge() {
+  const total = Object.values(cart).reduce((s, q) => s + q, 0);
+  document.getElementById('cartBadge').textContent = total;
+  document.getElementById('cartBadge').style.display = total > 0 ? 'inline' : 'none';
+}
+
+function submitOrder() {
+  const total = Object.values(cart).reduce((s, q) => s + q, 0);
+  if (total === 0) {
+    showToast('购物车为空，请先选购商品', 'warning');
+    return;
+  }
+  showToast('订单提交成功！正在跳转订单追踪...', 'success');
+  cart = {};
+  updateCartBadge();
+  setTimeout(() => {
+    switchPage('tracking', document.querySelector('[data-page=tracking]'));
+    renderCart();
+  }, 1200);
+}
+
+// Toast
+function showToast(msg, type = 'info') {
+  const container = document.getElementById('toastContainer');
+  const icons = { success:'✅', warning:'⚠️', error:'❌', info:'ℹ️' };
+  const toast = document.createElement('div');
+  toast.className = 'toast ' + type;
+  toast.innerHTML = `<span>${icons[type] || 'ℹ️'}</span><span>${msg}</span>`;
+  container.appendChild(toast);
+  setTimeout(() => {
+    toast.style.opacity = '0';
+    toast.style.transform = 'translateX(20px)';
+    toast.style.transition = 'all .3s ease';
+    setTimeout(() => toast.remove(), 300);
+  }, 2500);
+}
+
+/* ========================================================================
+   Initialization
+   ======================================================================== */
+document.addEventListener('DOMContentLoaded', () => {
+  renderBarChart();
+  renderRecentOrders();
+  renderProducts();
+  renderCart();
+  renderTracking();
+  renderBilling();
+  animateTracking();
+  startCountdown();
+  updateCartBadge();
+});
+</script>
+</body>
+</html>

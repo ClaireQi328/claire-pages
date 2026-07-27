@@ -1,0 +1,2 @@
+"use strict";(self.webpackChunkflow_web_extension=self.webpackChunkflow_web_extension||[]).push([["51778"],{342082:function(e,n,t){t.r(n),t.d(n,{receiveUGCCreateBotCardMessageBoxPluginMatcher:()=>a});var i=t(638770),s=t(885003),a={pluginIdentifier:t(707445).X,matchPlugin:e=>(0,i.V)(e)&&(0,s.td$)(e)}}}]);
+//# sourceMappingURL=51778.js.map

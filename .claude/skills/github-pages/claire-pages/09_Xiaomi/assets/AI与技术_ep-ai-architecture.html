@@ -1,0 +1,279 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>采购 EP AI 数字化架构</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #f8fafc; color: #1e293b; }
+  .container { max-width: 1200px; margin: 0 auto; padding: 40px 20px; }
+  h1 { font-size: 28px; font-weight: 700; text-align: center; margin-bottom: 8px; }
+  .subtitle { text-align: center; color: #64748b; margin-bottom: 40px; font-size: 14px; }
+
+  .arch { display: grid; grid-template-rows: auto auto auto auto auto; gap: 20px; }
+
+  .layer { background: white; border-radius: 12px; padding: 24px; box-shadow: 0 1px 3px rgba(0,0,0,0.08); }
+  .layer-header { display: flex; align-items: center; gap: 12px; margin-bottom: 16px; }
+  .layer-tag { padding: 4px 12px; border-radius: 6px; font-size: 12px; font-weight: 600; color: white; }
+  .layer-title { font-size: 16px; font-weight: 600; }
+
+  .tag-user { background: #3b82f6; }
+  .tag-ai { background: #8b5cf6; }
+  .tag-data { background: #10b981; }
+  .tag-infra { background: #f59e0b; }
+
+  .items { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 12px; }
+  .item { background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 12px; text-align: center; }
+  .item-icon { font-size: 24px; margin-bottom: 4px; }
+  .item-name { font-size: 13px; font-weight: 500; }
+  .item-desc { font-size: 11px; color: #64748b; margin-top: 2px; }
+
+  .ai-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 12px; }
+  .ai-card { background: linear-gradient(135deg, #f5f3ff 0%, #ede9fe 100%); border: 1px solid #c4b5fd; border-radius: 8px; padding: 16px; text-align: center; position: relative; }
+  .ai-card.active { border-color: #8b5cf6; box-shadow: 0 0 0 2px rgba(139,92,246,0.2); }
+  .ai-card .level { font-size: 24px; font-weight: 700; color: #7c3aed; }
+  .ai-card .name { font-size: 12px; font-weight: 600; margin: 4px 0; }
+  .ai-card .desc { font-size: 11px; color: #6b7280; }
+  .ai-card .status { position: absolute; top: 8px; right: 8px; width: 8px; height: 8px; border-radius: 50%; }
+  .status-green { background: #10b981; }
+  .status-yellow { background: #f59e0b; }
+  .status-red { background: #ef4444; }
+
+  .data-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; }
+  .data-card { background: linear-gradient(135deg, #ecfdf5 0%, #d1fae5 100%); border: 1px solid #6ee7b7; border-radius: 8px; padding: 16px; text-align: center; }
+  .data-card .icon { font-size: 28px; margin-bottom: 4px; }
+  .data-card .name { font-size: 13px; font-weight: 600; }
+  .data-card .count { font-size: 11px; color: #059669; }
+
+  .arrow { text-align: center; color: #94a3b8; font-size: 20px; margin: -8px 0; }
+
+  .security-bar { background: linear-gradient(90deg, #fef2f2 0%, #fee2e2 100%); border: 1px solid #fca5a5; border-radius: 8px; padding: 16px 24px; display: flex; align-items: center; gap: 16px; }
+  .security-bar .icon { font-size: 24px; }
+  .security-bar .text { flex: 1; }
+  .security-bar .title { font-size: 14px; font-weight: 600; color: #dc2626; }
+  .security-bar .desc { font-size: 12px; color: #991b1b; }
+  .security-items { display: flex; gap: 8px; flex-wrap: wrap; }
+  .security-chip { background: white; border: 1px solid #fca5a5; border-radius: 4px; padding: 4px 8px; font-size: 11px; color: #991b1b; }
+
+  .flow { background: white; border-radius: 12px; padding: 24px; box-shadow: 0 1px 3px rgba(0,0,0,0.08); margin-top: 20px; }
+  .flow-title { font-size: 16px; font-weight: 600; margin-bottom: 16px; }
+  .flow-steps { display: flex; align-items: center; gap: 8px; overflow-x: auto; padding: 8px 0; }
+  .flow-step { background: #f1f5f9; border: 1px solid #e2e8f0; border-radius: 8px; padding: 12px 16px; min-width: 120px; text-align: center; flex-shrink: 0; }
+  .flow-step .num { font-size: 20px; font-weight: 700; color: #8b5cf6; }
+  .flow-step .name { font-size: 12px; font-weight: 500; margin-top: 4px; }
+  .flow-arrow { color: #94a3b8; font-size: 18px; flex-shrink: 0; }
+
+  @media (max-width: 768px) {
+    .ai-grid, .data-grid { grid-template-columns: repeat(2, 1fr); }
+    .security-bar { flex-direction: column; text-align: center; }
+  }
+</style>
+</head>
+<body>
+<div class="container">
+  <h1>采购 EP AI 数字化架构</h1>
+  <p class="subtitle">L1-L5 五层递进 · 全链路防幻觉 · 基于已有 Ontology / CLI / Agent / 岗位虾实践</p>
+
+  <div class="arch">
+    <!-- 用户层 -->
+    <div class="layer">
+      <div class="layer-header">
+        <span class="layer-tag tag-user">用户层</span>
+        <span class="layer-title">交互入口</span>
+      </div>
+      <div class="items">
+        <div class="item">
+          <div class="item-icon">💬</div>
+          <div class="item-name">EP 工作台 AI 助手</div>
+          <div class="item-desc">对话式交互入口</div>
+        </div>
+        <div class="item">
+          <div class="item-icon">🔔</div>
+          <div class="item-name">飞书主动推送</div>
+          <div class="item-desc">告警 / 预警 / 推荐</div>
+        </div>
+        <div class="item">
+          <div class="item-icon">📊</div>
+          <div class="item-name">分析看板</div>
+          <div class="item-desc">Drill-down 可视化</div>
+        </div>
+        <div class="item">
+          <div class="item-icon">⚡</div>
+          <div class="item-name">CLI 命令行</div>
+          <div class="item-desc">dx-ep 统一命名空间</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="arrow">▼</div>
+
+    <!-- AI 层 -->
+    <div class="layer">
+      <div class="layer-header">
+        <span class="layer-tag tag-ai">AI 层</span>
+        <span class="layer-title">五层递进能力</span>
+      </div>
+      <div class="ai-grid">
+        <div class="ai-card active">
+          <div class="status status-green"></div>
+          <div class="level">L1</div>
+          <div class="name">知识问答</div>
+          <div class="desc">RAG + Ontology</div>
+        </div>
+        <div class="ai-card active">
+          <div class="status status-green"></div>
+          <div class="level">L2</div>
+          <div class="name">单域操作</div>
+          <div class="desc">NL2CLI + 域 Agent</div>
+        </div>
+        <div class="ai-card">
+          <div class="status status-yellow"></div>
+          <div class="level">L3</div>
+          <div class="name">跨域协同</div>
+          <div class="desc">编排引擎 + 状态机</div>
+        </div>
+        <div class="ai-card">
+          <div class="status status-yellow"></div>
+          <div class="level">L4</div>
+          <div class="name">智能分析</div>
+          <div class="desc">分析 Agent + 规则引擎</div>
+        </div>
+        <div class="ai-card">
+          <div class="status status-red"></div>
+          <div class="level">L5</div>
+          <div class="name">智能推荐</div>
+          <div class="desc">推荐引擎 + 反馈闭环</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="arrow">▼</div>
+
+    <!-- 数据层 -->
+    <div class="layer">
+      <div class="layer-header">
+        <span class="layer-tag tag-data">数据层</span>
+        <span class="layer-title">数据资产</span>
+      </div>
+      <div class="data-grid">
+        <div class="data-card">
+          <div class="icon">🧠</div>
+          <div class="name">知识图谱</div>
+          <div class="count">7 大本体域 · 13 核心实体</div>
+        </div>
+        <div class="data-card">
+          <div class="icon">⚙️</div>
+          <div class="name">CLI 指令集</div>
+          <div class="count">18+ 命令 · WAVE1</div>
+        </div>
+        <div class="data-card">
+          <div class="icon">🗄️</div>
+          <div class="name">EP 后端 API</div>
+          <div class="count">供应商/SOR/RFQ/定点/合同</div>
+        </div>
+        <div class="data-card">
+          <div class="icon">📈</div>
+          <div class="name">数据湖</div>
+          <div class="count">业务数据 + 分析数据</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 防幻觉横条 -->
+    <div class="security-bar">
+      <div class="icon">🛡️</div>
+      <div class="text">
+        <div class="title">全链路防幻觉机制</div>
+        <div class="desc">每层最适配的防护策略，贯穿 L1-L5</div>
+      </div>
+      <div class="security-items">
+        <span class="security-chip">Schema 约束</span>
+        <span class="security-chip">指令白名单</span>
+        <span class="security-chip">来源标注</span>
+        <span class="security-chip">置信度评分</span>
+        <span class="security-chip">反馈闭环</span>
+      </div>
+    </div>
+
+    <div class="arrow">▼</div>
+
+    <!-- 基础设施层 -->
+    <div class="layer">
+      <div class="layer-header">
+        <span class="layer-tag tag-infra">基础设施</span>
+        <span class="layer-title">技术底座</span>
+      </div>
+      <div class="items">
+        <div class="item">
+          <div class="item-icon">🔍</div>
+          <div class="item-name">Milvus</div>
+          <div class="item-desc">向量数据库</div>
+        </div>
+        <div class="item">
+          <div class="item-icon">🤖</div>
+          <div class="item-name">mimo-v2.5</div>
+          <div class="item-desc">LLM 推理（内网）</div>
+        </div>
+        <div class="item">
+          <div class="item-icon">⚡</div>
+          <div class="item-name">Redis</div>
+          <div class="item-desc">编排状态 + 缓存</div>
+        </div>
+        <div class="item">
+          <div class="item-icon">🐘</div>
+          <div class="item-name">PostgreSQL</div>
+          <div class="item-desc">业务数据 + 审计</div>
+        </div>
+        <div class="item">
+          <div class="item-icon">🔗</div>
+          <div class="item-name">API 网关</div>
+          <div class="item-desc">统一鉴权 + 路由</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 信息流 -->
+  <div class="flow">
+    <div class="flow-title">📍 典型信息流（L2 NL2CLI）</div>
+    <div class="flow-steps">
+      <div class="flow-step">
+        <div class="num">1</div>
+        <div class="name">用户提问</div>
+      </div>
+      <div class="flow-arrow">→</div>
+      <div class="flow-step">
+        <div class="num">2</div>
+        <div class="name">意图分类</div>
+      </div>
+      <div class="flow-arrow">→</div>
+      <div class="flow-step">
+        <div class="num">3</div>
+        <div class="name">参数提取</div>
+      </div>
+      <div class="flow-arrow">→</div>
+      <div class="flow-step">
+        <div class="num">4</div>
+        <div class="name">Schema 校验</div>
+      </div>
+      <div class="flow-arrow">→</div>
+      <div class="flow-step">
+        <div class="num">5</div>
+        <div class="name">指令组装</div>
+      </div>
+      <div class="flow-arrow">→</div>
+      <div class="flow-step">
+        <div class="num">6</div>
+        <div class="name">执行 CLI</div>
+      </div>
+      <div class="flow-arrow">→</div>
+      <div class="flow-step">
+        <div class="num">7</div>
+        <div class="name">结果格式化</div>
+      </div>
+    </div>
+  </div>
+</div>
+</body>
+</html>

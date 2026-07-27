@@ -1,0 +1,2 @@
+"use strict";(self.webpackChunkflow_web_extension=self.webpackChunkflow_web_extension||[]).push([["96231"],{356315:function(e,n,t){t.d(n,{R:()=>l});var i=t(980933),l=e=>e.type===i.MetaType.DocumentRef},412086:function(e,n,t){t.r(n),t.d(n,{receiveReadTextContentMatcher:()=>r});var i=t(511700),l=t(638770),u=t(885003),o=t(356315),r={pluginIdentifier:t(320406).E,matchPlugin(e){var n;return!(0,l.V)(e)&&(0,i._B)(null!==(n=null==e?void 0:e.meta_infos)&&void 0!==n?n:[]).filter(o.R).length>0&&(0,u.G7Q)(e)&&!(0,u.jSN)(e)}}}}]);
+//# sourceMappingURL=96231.js.map

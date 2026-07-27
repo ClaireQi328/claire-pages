@@ -1,0 +1,445 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>采购 EP AI 数字化路径 · 技术实现</title>
+<style>
+  :root{
+    --bg:#f4f6f9; --surface:#ffffff;
+    --ink:#15212e; --sub:#5d6b7a;
+    --line:#e4e9f0; --line-strong:#d4dce7;
+    --tech:#1565c0; --tech-d:#0d2847; --tech-soft:#eaf1fb;
+    --code-bg:#0f1b2d; --code-fg:#e6edf3;
+    --r-card:14px; --r-sm:9px; --r-pill:999px;
+    --shadow-sm:0 1px 2px rgba(13,40,71,.05);
+    --shadow-md:0 8px 24px rgba(13,40,71,.08);
+    --shadow-lg:0 14px 38px rgba(13,40,71,.11);
+    --ease:cubic-bezier(.16,1,.3,1);
+  }
+  *{box-sizing:border-box;}
+  html{scroll-behavior:smooth;}
+  body{margin:0;background:var(--bg);color:var(--ink);
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif;
+    line-height:1.7;font-size:15px;
+    -webkit-font-smoothing:antialiased;text-rendering:optimizeLegibility;}
+  ::selection{background:var(--tech-soft);color:var(--tech-d);}
+  .wrap{max-width:940px;margin:0 auto;padding:44px 26px 68px;}
+  header{border-bottom:2px solid var(--tech);padding-bottom:18px;margin-bottom:26px;}
+  h1{font-size:25px;margin:0 0 8px;color:var(--tech-d);letter-spacing:-.2px;font-weight:700;}
+  h1 .tag{font-family:"SF Mono",Consolas,Menlo,monospace;font-size:12px;background:var(--tech);color:#fff;
+    padding:3px 9px;border-radius:var(--r-pill);vertical-align:middle;margin-left:8px;letter-spacing:.3px;}
+  .lede{color:var(--sub);margin:0;font-size:14px;max-width:72ch;}
+  h2{font-size:19px;margin:40px 0 14px;color:var(--tech-d);border-left:4px solid var(--tech);
+    padding-left:12px;letter-spacing:-.1px;font-weight:700;}
+  .arch{width:100%;height:auto;display:block;background:var(--surface);border:1px solid var(--line);
+    border-radius:var(--r-card);padding:6px;margin:4px 0;box-shadow:var(--shadow-sm);}
+  .layer{border:1px solid var(--line);border-radius:var(--r-card);background:var(--surface);margin:18px 0;
+    overflow:hidden;box-shadow:var(--shadow-sm);transition:box-shadow .35s var(--ease),transform .35s var(--ease);}
+  .layer:hover{box-shadow:var(--shadow-md);transform:translateY(-2px);}
+  .lv-head{background:var(--tech-d);color:#fff;padding:11px 17px;font-weight:600;font-size:15px;
+    display:flex;align-items:center;gap:10px;}
+  .lv-head .type{margin-left:auto;font-family:"SF Mono",Consolas,Menlo,monospace;font-size:11px;
+    background:rgba(255,255,255,.15);padding:2px 9px;border-radius:var(--r-pill);}
+  .lv-head em{font-style:normal;font-weight:400;font-size:12.5px;opacity:.85;}
+  .body{padding:16px 19px;}
+  .goal{background:var(--tech-soft);border-left:4px solid var(--tech);border-radius:var(--r-sm);
+    padding:10px 14px;margin-bottom:13px;font-size:13.5px;color:var(--ink);}
+  .grid2{display:grid;grid-template-columns:1fr 1fr;gap:15px;}
+  .blk{background:#fafcfe;border:1px solid var(--line);border-radius:var(--r-sm);padding:12px 14px;
+    transition:box-shadow .3s var(--ease),transform .3s var(--ease),border-color .3s var(--ease);}
+  .blk:hover{box-shadow:var(--shadow-sm);border-color:var(--line-strong);transform:translateY(-1px);}
+  .blk b{display:block;color:var(--tech);font-size:12.5px;margin-bottom:5px;letter-spacing:.3px;}
+  .blk span{color:var(--sub);font-size:12.5px;line-height:1.6;}
+  code{background:#eef1f5;padding:1px 6px;border-radius:5px;font-size:12.5px;color:var(--tech-d);
+    font-family:"SF Mono",Consolas,Menlo,monospace;}
+  pre.code{background:var(--code-bg);color:var(--code-fg);border-radius:var(--r-sm);padding:14px 16px;margin:13px 0;
+    border:1px solid #1c2c40;font-family:"SF Mono",Consolas,Menlo,monospace;font-size:12px;line-height:1.6;
+    overflow-x:auto;box-shadow:var(--shadow-sm);}
+  pre.code .c{color:#7f8ea3;} pre.code .k{color:#79c0ff;} pre.code .s{color:#a5d6ff;}
+  pre.code .n{color:#d2a8ff;} pre.code .t{color:#7ee787;}
+  .phase{border:1px solid var(--line);border-left:4px solid var(--tech);border-radius:var(--r-sm);
+    padding:13px 17px;margin:11px 0;background:var(--surface);box-shadow:var(--shadow-sm);}
+  .phase b{color:var(--tech-d);}
+  .phase ul{margin:6px 0 0;padding-left:18px;color:var(--sub);font-size:13px;}
+  .phase li{margin:4px 0;}
+  .matrix{border-collapse:separate;border-spacing:0;width:100%;font-size:13px;margin:6px 0 4px;
+    border:1px solid var(--line);border-radius:var(--r-card);overflow:hidden;box-shadow:var(--shadow-sm);}
+  .matrix th{background:var(--tech-d);color:#fff;text-align:left;padding:10px 13px;font-weight:600;font-size:12.5px;}
+  .matrix td{border-top:1px solid var(--line);padding:9px 13px;vertical-align:top;color:var(--ink);}
+  .matrix tbody tr{transition:background .2s var(--ease);}
+  .matrix tbody tr:hover td{background:var(--tech-soft);}
+  .matrix .lv{font-weight:700;white-space:nowrap;color:var(--tech);}
+  .flownote{color:var(--sub);font-size:12.5px;margin:8px 0 24px;max-width:72ch;line-height:1.6;}
+  .dist{background:#fafcfe;border:1px solid var(--line);border-left:3px solid var(--tech);border-radius:var(--r-sm);padding:11px 14px;margin:0 0 13px;}
+  .dist-top{display:flex;align-items:center;justify-content:space-between;margin-bottom:9px;gap:10px;}
+  .dist-top b{color:var(--tech);font-size:12.5px;letter-spacing:.3px;}
+  .dist-top span{color:var(--sub);font-size:11px;font-family:"SF Mono",Consolas,Menlo,monospace;}
+  .bar{height:7px;background:#e4e9f0;border-radius:999px;overflow:hidden;}
+  .bar i{display:block;height:100%;background:var(--tech);border-radius:999px;}
+  .dist-note{display:block;color:var(--ink);font-size:12px;margin-top:9px;line-height:1.6;}
+  .dist-note b{color:var(--tech-d);}
+  .phase.soft{border-left-color:var(--line-strong);box-shadow:none;background:#fafcfe;}
+  .phase.soft b{color:var(--sub);font-weight:600;}
+  footer{margin-top:40px;padding-top:16px;border-top:1px solid var(--line);color:#9aa7b4;font-size:12px;
+    display:flex;align-items:center;gap:8px;}
+  footer::before{content:"";width:18px;height:2px;background:var(--tech);border-radius:2px;display:inline-block;}
+  /* scroll reveal (progressive enhancement, gated by .js + reduced-motion) */
+  html.js .reveal{opacity:0;transform:translateY(14px);
+    transition:opacity .6s var(--ease),transform .6s var(--ease);}
+  html.js .reveal.in{opacity:1;transform:none;}
+  @media (prefers-reduced-motion: reduce){
+    html{scroll-behavior:auto;}
+    html.js .reveal{opacity:1!important;transform:none!important;transition:none!important;}
+    .layer:hover,.blk:hover{transform:none;}
+  }
+  @media(max-width:640px){.grid2{grid-template-columns:1fr;}.wrap{padding:26px 14px 52px;}}
+</style>
+</head>
+<script>document.documentElement.classList.add('js')</script>
+<body>
+<div class="wrap">
+
+<header>
+  <h1>采购 EP AI 数字化路径<span class="tag">L1–L5 · 技术实现</span></h1>
+  <p class="lede">基于 L1–L5 五层递进框架，结合 Ontology 建模、CLI 指令集、Agent 架构等实践成果，构建可落地的采购 AI 系统。本文从<b>全局系统架构</b>到<b>分层技术实现</b>展开：核心工程主线是把采购知识 <b>Schema 化</b>，让 AI 在强约束下运行，<b>全链路防幻觉</b>贯穿每层。</p>
+</header>
+
+<h2>全局系统架构</h2>
+<p class="lede" style="margin-top:0">一张图看清 L1–L5 在企业系统中的位置：请求自上而下穿透「接入层 → 智能能力层 → 底座」，结果与采纳反馈自下回流，构成闭环。<b>SCHEMA 契约层</b>作为机器可消费的单一事实源，约束贯穿每一层。</p>
+<svg class="arch" viewBox="0 0 840 360" xmlns="http://www.w3.org/2000/svg">
+  <defs><marker id="fb" markerWidth="8" markerHeight="8" refX="5" refY="3" orient="auto"><path d="M0,0 L5,3 L0,6 Z" fill="#1565c0"/></marker></defs>
+  <!-- 1 接入层 -->
+  <rect x="15" y="14" width="790" height="64" rx="12" fill="#ffffff" stroke="#e4e9f0"/>
+  <rect x="15" y="14" width="5" height="64" rx="2.5" fill="#64748b"/>
+  <text x="32" y="33" font-family="'SF Mono',Consolas,Menlo,monospace" font-size="9.5" letter-spacing="1.5" fill="#64748b" font-weight="700">ACCESS</text>
+  <text x="32" y="53" font-size="14" font-weight="700" fill="#15212e">接入层</text>
+  <rect x="208" y="31" width="148" height="30" rx="15" fill="#64748b" fill-opacity="0.10" stroke="#64748b" stroke-opacity="0.38"/>
+  <text x="282" y="51" font-size="11.5" fill="#475569" text-anchor="middle">统一工作台</text>
+  <rect x="366" y="31" width="112" height="30" rx="15" fill="#64748b" fill-opacity="0.10" stroke="#64748b" stroke-opacity="0.38"/>
+  <text x="422" y="51" font-size="11.5" fill="#475569" text-anchor="middle">飞书机器人</text>
+  <rect x="490" y="31" width="96" height="30" rx="15" fill="#64748b" fill-opacity="0.10" stroke="#64748b" stroke-opacity="0.38"/>
+  <text x="538" y="51" font-size="11.5" fill="#475569" text-anchor="middle">开放 API</text>
+  <rect x="600" y="22" width="196" height="26" rx="13" fill="#1565c0" fill-opacity="0.08" stroke="#1565c0" stroke-opacity="0.35"/>
+  <text x="698" y="39" font-size="10.5" fill="#1565c0" text-anchor="middle">&#8635; 结果回流 · 数据反哺</text>
+  <text x="410" y="88" font-size="13" fill="#94a3b8" text-anchor="middle">&#9662;</text>
+  <!-- 2 智能层 -->
+  <rect x="15" y="90" width="790" height="64" rx="12" fill="#ffffff" stroke="#e4e9f0"/>
+  <rect x="15" y="90" width="5" height="64" rx="2.5" fill="#1565c0"/>
+  <text x="32" y="109" font-family="'SF Mono',Consolas,Menlo,monospace" font-size="9.5" letter-spacing="1.5" fill="#1565c0" font-weight="700">INTELLIGENCE</text>
+  <text x="32" y="129" font-size="14" font-weight="700" fill="#15212e">智能能力层</text>
+  <rect x="208" y="106" width="74" height="30" rx="15" fill="#1565c0" fill-opacity="0.10" stroke="#1565c0" stroke-opacity="0.38"/>
+  <text x="245" y="126" font-size="11" fill="#1565c0" text-anchor="middle">L1·问答</text>
+  <text x="294" y="126" font-size="12" fill="#94a3b8" text-anchor="middle">&#8594;</text>
+  <rect x="308" y="106" width="74" height="30" rx="15" fill="#1565c0" fill-opacity="0.10" stroke="#1565c0" stroke-opacity="0.38"/>
+  <text x="345" y="126" font-size="11" fill="#1565c0" text-anchor="middle">L2·操作</text>
+  <text x="394" y="126" font-size="12" fill="#94a3b8" text-anchor="middle">&#8594;</text>
+  <rect x="408" y="106" width="74" height="30" rx="15" fill="#1565c0" fill-opacity="0.10" stroke="#1565c0" stroke-opacity="0.38"/>
+  <text x="445" y="126" font-size="11" fill="#1565c0" text-anchor="middle">L3·协同</text>
+  <text x="494" y="126" font-size="12" fill="#94a3b8" text-anchor="middle">&#8594;</text>
+  <rect x="508" y="106" width="74" height="30" rx="15" fill="#1565c0" fill-opacity="0.10" stroke="#1565c0" stroke-opacity="0.38"/>
+  <text x="545" y="126" font-size="11" fill="#1565c0" text-anchor="middle">L4·分析</text>
+  <text x="594" y="126" font-size="12" fill="#94a3b8" text-anchor="middle">&#8594;</text>
+  <rect x="608" y="106" width="74" height="30" rx="15" fill="#1565c0" fill-opacity="0.10" stroke="#1565c0" stroke-opacity="0.38"/>
+  <text x="645" y="126" font-size="11" fill="#1565c0" text-anchor="middle">L5·推荐</text>
+  <text x="410" y="164" font-size="13" fill="#94a3b8" text-anchor="middle">&#9662;</text>
+  <!-- 3 SCHEMA -->
+  <rect x="15" y="166" width="790" height="48" rx="12" fill="#0d2847"/>
+  <text x="32" y="186" font-family="'SF Mono',Consolas,Menlo,monospace" font-size="9.5" letter-spacing="1.5" fill="#79c0ff" font-weight="700">SCHEMA CONTRACT · SSOT</text>
+  <text x="32" y="204" font-size="13" font-weight="700" fill="#ffffff">SCHEMA 契约层</text>
+  <rect x="560" y="179" width="64" height="24" rx="12" fill="#ffffff" fill-opacity="0.10" stroke="#79c0ff" stroke-opacity="0.35"/>
+  <text x="592" y="195" font-size="10.5" fill="#cfe3f7" text-anchor="middle">本体</text>
+  <rect x="632" y="179" width="64" height="24" rx="12" fill="#ffffff" fill-opacity="0.10" stroke="#79c0ff" stroke-opacity="0.35"/>
+  <text x="664" y="195" font-size="10.5" fill="#cfe3f7" text-anchor="middle">参数</text>
+  <rect x="704" y="179" width="64" height="24" rx="12" fill="#ffffff" fill-opacity="0.10" stroke="#79c0ff" stroke-opacity="0.35"/>
+  <text x="736" y="195" font-size="10.5" fill="#cfe3f7" text-anchor="middle">规则</text>
+  <text x="410" y="222" font-size="13" fill="#94a3b8" text-anchor="middle">&#9662;</text>
+  <!-- 4 底座 -->
+  <rect x="15" y="226" width="790" height="64" rx="12" fill="#ffffff" stroke="#e4e9f0"/>
+  <rect x="15" y="226" width="5" height="64" rx="2.5" fill="#0d9488"/>
+  <text x="32" y="245" font-family="'SF Mono',Consolas,Menlo,monospace" font-size="9.5" letter-spacing="1.5" fill="#0d9488" font-weight="700">FOUNDATION</text>
+  <text x="32" y="265" font-size="14" font-weight="700" fill="#15212e">系统 &amp; 数据底座</text>
+  <rect x="228" y="243" width="134" height="30" rx="15" fill="#0d9488" fill-opacity="0.10" stroke="#0d9488" stroke-opacity="0.38"/>
+  <text x="295" y="263" font-size="11.5" fill="#0f766e" text-anchor="middle">EP 业务系统</text>
+  <rect x="374" y="243" width="160" height="30" rx="15" fill="#0d9488" fill-opacity="0.10" stroke="#0d9488" stroke-opacity="0.38"/>
+  <text x="454" y="263" font-size="11.5" fill="#0f766e" text-anchor="middle">知识库 RAG 语料</text>
+  <rect x="546" y="243" width="96" height="30" rx="15" fill="#0d9488" fill-opacity="0.10" stroke="#0d9488" stroke-opacity="0.38"/>
+  <text x="594" y="263" font-size="11.5" fill="#0f766e" text-anchor="middle">数据湖</text>
+  <text x="410" y="294" font-size="13" fill="#94a3b8" text-anchor="middle">&#9662;</text>
+  <!-- 5 治理带 -->
+  <rect x="15" y="302" width="790" height="52" rx="12" fill="#ffffff" stroke="#e4e9f0"/>
+  <rect x="15" y="302" width="5" height="52" rx="2.5" fill="#16a34a"/>
+  <text x="32" y="321" font-family="'SF Mono',Consolas,Menlo,monospace" font-size="9.5" letter-spacing="1.5" fill="#16a34a" font-weight="700">GOVERNANCE</text>
+  <text x="32" y="339" font-size="14" font-weight="700" fill="#15212e">治理带</text>
+  <rect x="208" y="317" width="126" height="28" rx="14" fill="#16a34a" fill-opacity="0.10" stroke="#16a34a" stroke-opacity="0.38"/>
+  <text x="271" y="336" font-size="11.5" fill="#15803d" text-anchor="middle">防幻觉基线</text>
+  <rect x="346" y="317" width="126" height="28" rx="14" fill="#16a34a" fill-opacity="0.10" stroke="#16a34a" stroke-opacity="0.38"/>
+  <text x="409" y="336" font-size="11.5" fill="#15803d" text-anchor="middle">权限 &amp; 审计</text>
+  <rect x="484" y="317" width="126" height="28" rx="14" fill="#16a34a" fill-opacity="0.10" stroke="#16a34a" stroke-opacity="0.38"/>
+  <text x="547" y="336" font-size="11.5" fill="#15803d" text-anchor="middle">版本 &amp; 回滚</text>
+  <!-- 反馈闭环 -->
+  <path d="M820,350 C840,350 840,44 820,44 L796,44" fill="none" stroke="#1565c0" stroke-width="1.8" stroke-dasharray="5 4" marker-end="url(#fb)"/>
+</svg>
+
+<h2>分层架构</h2>
+<svg class="arch" viewBox="0 0 820 348" xmlns="http://www.w3.org/2000/svg" font-family="'SF Mono',Consolas,Menlo,monospace">
+  <defs><marker id="ah" markerWidth="9" markerHeight="9" refX="6" refY="3" orient="auto"><path d="M0,0 L6,3 L0,6 Z" fill="#9fb0c0"/></marker></defs>
+  <!-- L1 -->
+  <g><rect x="15" y="20" width="145" height="188" rx="9" fill="#fff" stroke="#e3e8ef"/>
+    <rect x="15" y="20" width="5" height="188" rx="2.5" fill="#1565c0"/>
+    <text x="30" y="48" font-size="19" font-weight="700" fill="#1565c0">L1</text>
+    <text x="30" y="68" font-size="12.5" font-weight="600" fill="#16202b">知识问答</text>
+    <text x="30" y="92" font-size="10.5" fill="#5b6b7b">RAG · Ontology</text>
+    <rect x="30" y="150" width="86" height="18" rx="4" fill="#eef4fb"/><text x="37" y="163" font-size="9.5" fill="#1565c0">type: RAG</text>
+    <rect x="30" y="174" width="74" height="20" rx="10" fill="#e6f4ea"/><text x="67" y="188" font-size="10" fill="#1a7f37" text-anchor="middle">🟢 已启动</text></g>
+  <!-- L2 -->
+  <g><rect x="175" y="20" width="145" height="188" rx="9" fill="#fff" stroke="#e3e8ef"/>
+    <rect x="175" y="20" width="5" height="188" rx="2.5" fill="#00897b"/>
+    <text x="190" y="48" font-size="19" font-weight="700" fill="#00897b">L2</text>
+    <text x="190" y="68" font-size="12.5" font-weight="600" fill="#16202b">单域操作</text>
+    <text x="190" y="92" font-size="10.5" fill="#5b6b7b">NL2CLI · Schema</text>
+    <rect x="190" y="150" width="98" height="18" rx="4" fill="#e8f3f1"/><text x="197" y="163" font-size="9.5" fill="#00897b">type: NL2CLI</text>
+    <rect x="190" y="174" width="74" height="20" rx="10" fill="#e6f4ea"/><text x="227" y="188" font-size="10" fill="#1a7f37" text-anchor="middle">🟢 已启动</text></g>
+  <!-- L3 -->
+  <g><rect x="335" y="20" width="145" height="188" rx="9" fill="#fff" stroke="#e3e8ef"/>
+    <rect x="335" y="20" width="5" height="188" rx="2.5" fill="#f9a825"/>
+    <text x="350" y="48" font-size="19" font-weight="700" fill="#c77f00">L3</text>
+    <text x="350" y="68" font-size="12.5" font-weight="600" fill="#16202b">跨域协同</text>
+    <text x="350" y="92" font-size="10.5" fill="#5b6b7b">DAG · 编排</text>
+    <rect x="350" y="150" width="104" height="18" rx="4" fill="#fdf3e0"/><text x="357" y="163" font-size="9.5" fill="#c77f00">type: Orchestr.</text>
+    <rect x="350" y="174" width="74" height="20" rx="10" fill="#fff4e5"/><text x="387" y="188" font-size="10" fill="#b7791f" text-anchor="middle">🟡 待启动</text></g>
+  <!-- L4 -->
+  <g><rect x="495" y="20" width="145" height="188" rx="9" fill="#fff" stroke="#e3e8ef"/>
+    <rect x="495" y="20" width="5" height="188" rx="2.5" fill="#7e57c2"/>
+    <text x="510" y="48" font-size="19" font-weight="700" fill="#7e57c2">L4</text>
+    <text x="510" y="68" font-size="12.5" font-weight="600" fill="#16202b">智能分析</text>
+    <text x="510" y="92" font-size="10.5" fill="#5b6b7b">Rule · 预警</text>
+    <rect x="510" y="150" width="106" height="18" rx="4" fill="#efeafb"/><text x="517" y="163" font-size="9.5" fill="#7e57c2">type: RuleEng</text>
+    <rect x="510" y="174" width="74" height="20" rx="10" fill="#fff4e5"/><text x="547" y="188" font-size="10" fill="#b7791f" text-anchor="middle">🟡 规划中</text></g>
+  <!-- L5 -->
+  <g><rect x="655" y="20" width="145" height="188" rx="9" fill="#fff" stroke="#e3e8ef"/>
+    <rect x="655" y="20" width="5" height="188" rx="2.5" fill="#ef6c00"/>
+    <text x="670" y="48" font-size="19" font-weight="700" fill="#ef6c00">L5</text>
+    <text x="670" y="68" font-size="12.5" font-weight="600" fill="#16202b">智能推荐</text>
+    <text x="670" y="92" font-size="10.5" fill="#5b6b7b">Rec · 闭环</text>
+    <rect x="670" y="150" width="100" height="18" rx="4" fill="#fdeede"/><text x="677" y="163" font-size="9.5" fill="#ef6c00">type: RecEng</text>
+    <rect x="670" y="174" width="74" height="20" rx="10" fill="#eef0f3"/><text x="707" y="188" font-size="10" fill="#8a97a5" text-anchor="middle">⚪ 远期</text></g>
+  <!-- arrows -->
+  <line x1="162" y1="114" x2="171" y2="114" stroke="#9fb0c0" stroke-width="2" marker-end="url(#ah)"/>
+  <line x1="322" y1="114" x2="331" y2="114" stroke="#9fb0c0" stroke-width="2" marker-end="url(#ah)"/>
+  <line x1="482" y1="114" x2="491" y2="114" stroke="#9fb0c0" stroke-width="2" marker-end="url(#ah)"/>
+  <line x1="642" y1="114" x2="651" y2="114" stroke="#9fb0c0" stroke-width="2" marker-end="url(#ah)"/>
+  <!-- connectors to schema base -->
+  <line x1="87" y1="208" x2="87" y2="262" stroke="#c3cedb" stroke-width="1"/>
+  <line x1="247" y1="208" x2="247" y2="262" stroke="#c3cedb" stroke-width="1"/>
+  <line x1="407" y1="208" x2="407" y2="262" stroke="#c3cedb" stroke-width="1"/>
+  <line x1="567" y1="208" x2="567" y2="262" stroke="#c3cedb" stroke-width="1"/>
+  <line x1="727" y1="208" x2="727" y2="262" stroke="#c3cedb" stroke-width="1"/>
+  <!-- schema base band -->
+  <rect x="15" y="262" width="785" height="46" rx="9" fill="#0d2847"/>
+  <text x="28" y="284" font-size="12" fill="#79c0ff" font-weight="700">SCHEMA 契约层</text>
+  <text x="28" y="300" font-size="10.5" fill="#c7d3e0">本体 Schema · 参数 Schema · 规则 Schema — 机器可消费的单一事实源（Single Source of Truth）</text>
+</svg>
+
+<h2>全局能力矩阵</h2>
+<table class="matrix">
+  <thead><tr><th>层</th><th>核心交付</th><th>关键技术</th><th>Schema 契约</th><th>成熟度</th></tr></thead>
+  <tbody>
+    <tr><td class="lv">L1 知识问答</td><td>带引用的精准问答，不编造</td><td>RAG · 混合检索 · 重排 · 实体校验</td><td>本体 Schema</td><td>🟢 已启动</td></tr>
+    <tr><td class="lv">L2 单域操作</td><td>NL → CLI 自动查 / 执行</td><td>意图分类 · 参数提取 · Schema 校验</td><td>参数 Schema</td><td>🟢 已启动</td></tr>
+    <tr><td class="lv">L3 跨域协同</td><td>多步流程编排串联</td><td>DAG 运行时 · asyncio · 状态机</td><td>规则 Schema</td><td>🟡 待启动</td></tr>
+    <tr><td class="lv">L4 智能分析</td><td>异常预警 / 分析报告</td><td>规则引擎 · 统计模型 · 事件触发</td><td>规则 Schema</td><td>🟡 规划中</td></tr>
+    <tr><td class="lv">L5 智能推荐</td><td>主动推荐 + 反馈闭环</td><td>推荐引擎 · ML · A/B 测试</td><td>规则 Schema</td><td>⚪ 远期</td></tr>
+  </tbody>
+</table>
+
+<h2>Schema 化：把采购知识变成机器可消费的契约</h2>
+<p class="lede" style="margin-top:0">防幻觉不靠「提示词祈祷」，而靠<b>结构化契约</b>。三类 Schema 贯穿全链路：本体定义「有什么」，参数 Schema 约束「能传什么」，规则 Schema 固化「什么算对」。</p>
+
+<div class="grid2">
+  <div class="blk" style="grid-column:1 / -1">
+    <b>① 本体 Schema（L1 直接可用）— 七大域 → JSON Schema</b>
+    <span>把 Ontology 的实体/关系落成强类型 JSON Schema，作为 RAG 检索与实体校验的底座。</span>
+<pre class="code"><span class="c"># 供应商实体 Schema（节选）</span>
+<span class="k">Supplier</span>:
+  type: object
+  properties:
+    supplier_id:  { type: string, <span class="n">pattern</span>: <span class="s">"^SUP-\d{6}$"</span> }
+    tier:         { type: integer, enum: [1, 2, 3] }
+    grade:        { type: string,  enum: [<span class="s">"A"</span>, <span class="s">"B"</span>, <span class="s">"C"</span>] }
+    bank_account: { type: object, required: [bic, iban] }
+  required: [supplier_id, company_name]</pre>
+  </div>
+  <div class="blk">
+    <b>② 参数 Schema（L2 NL2CLI）</b>
+    <span>每个 CLI 参数限定类型/格式/枚举，并绑定数据库存在性校验，防止编造实体。</span>
+<pre class="code"><span class="n">part_no</span>:
+  pattern: <span class="s">"^[A-Z]{2,4}-[A-Z]{2,4}-\d{4}-\d{3}$"</span>
+  validate: <span class="s">"SELECT 1 FROM parts WHERE part_no=:v"</span>
+  on_fail: <span class="s">"零件号不存在，格式 XX-XX-XXXX-XXX"</span>
+<span class="n">supplier_id</span>:
+  pattern: <span class="s">"^SUP-\d{6}$"</span></pre>
+  </div>
+  <div class="blk">
+    <b>③ 规则 Schema（L3/L4 可执行）</b>
+    <span>业务规则与编排流程声明式落盘，版本可控、可回滚。</span>
+<pre class="code"><span class="c"># L3 编排 DAG（节选）</span>
+steps:
+  - id: check_sor
+    cli: <span class="n">dx-ep</span> sor info --material-num {{part_no}}
+    next:
+      - when: data.state == <span class="s">"ACTIVE"</span>; goto: check_rfq
+      - when: true; fail: <span class="s">"SOR 未激活"</span></pre>
+  </div>
+</div>
+
+<h2>信息闭环：一次请求的旅程</h2>
+<svg class="arch" viewBox="0 0 820 170" xmlns="http://www.w3.org/2000/svg" font-family="'SF Mono',Consolas,Menlo,monospace">
+  <defs><marker id="ah3" markerWidth="9" markerHeight="9" refX="6" refY="3" orient="auto"><path d="M0,0 L6,3 L0,6 Z" fill="#9fb0c0"/></marker></defs>
+  <rect x="15" y="58" width="118" height="44" rx="8" fill="#eef4fb" stroke="#cdd8e4"/><text x="27" y="85" font-size="11.5" fill="#16202b">用户意图</text>
+  <rect x="150" y="58" width="118" height="44" rx="8" fill="#eef4fb" stroke="#cdd8e4"/><text x="160" y="85" font-size="11.5" fill="#16202b">接入 &amp; 路由</text>
+  <rect x="285" y="58" width="125" height="44" rx="8" fill="#eef4fb" stroke="#cdd8e4"/><text x="295" y="85" font-size="11.5" fill="#16202b">L1/L2/L3 执行</text>
+  <rect x="425" y="58" width="115" height="44" rx="8" fill="#eef4fb" stroke="#cdd8e4"/><text x="437" y="85" font-size="11.5" fill="#16202b">dx-ep CLI</text>
+  <rect x="555" y="58" width="120" height="44" rx="8" fill="#eef4fb" stroke="#cdd8e4"/><text x="567" y="85" font-size="11.5" fill="#16202b">EP 业务系统</text>
+  <rect x="690" y="58" width="115" height="44" rx="8" fill="#eef4fb" stroke="#cdd8e4"/><text x="700" y="85" font-size="11.5" fill="#16202b">L4 分析 / L5</text>
+  <line x1="133" y1="80" x2="148" y2="80" stroke="#9fb0c0" stroke-width="2" marker-end="url(#ah3)"/>
+  <line x1="268" y1="80" x2="283" y2="80" stroke="#9fb0c0" stroke-width="2" marker-end="url(#ah3)"/>
+  <line x1="410" y1="80" x2="423" y2="80" stroke="#9fb0c0" stroke-width="2" marker-end="url(#ah3)"/>
+  <line x1="540" y1="80" x2="553" y2="80" stroke="#9fb0c0" stroke-width="2" marker-end="url(#ah3)"/>
+  <line x1="675" y1="80" x2="688" y2="80" stroke="#9fb0c0" stroke-width="2" marker-end="url(#ah3)"/>
+  <path d="M802,56 C828,32 700,16 410,16 C150,16 55,32 74,56" fill="none" stroke="#1565c0" stroke-width="2" stroke-dasharray="5 4" marker-end="url(#ah3)"/>
+  <text x="300" y="34" font-size="10.5" fill="#1565c0">采纳 / 拒绝反馈闭环 → 模型迭代</text>
+</svg>
+<p class="flownote">请求自上而下穿透「接入层 → 智能能力层 → dx-ep CLI → EP 业务系统」；执行结果与用户对推荐的采纳 / 拒绝反馈自下回流至模型与规则库，构成持续优化的闭环。</p>
+
+<h2>分层技术实现</h2>
+
+<div class="layer">
+  <div class="lv-head"><span>L1</span> 知识问答 <em>让 AI 听懂采购语言</em><span class="type">RAG</span></div>
+  <div class="body">
+    <div class="goal"><b>目标：</b>新人直接问，AI 基于 EP 知识库给带引用的精准答案，不编造。</div>
+    <div class="dist">
+      <div class="dist-top"><b>距离 / 进度</b><span>已启动 · 试点</span></div>
+      <div class="bar"><i style="width:30%"></i></div>
+      <span class="dist-note"><b>当前</b>：本体七大域图谱已梳理、3 个高频问答 RAG POC 试点 → <b>目标</b>：JSON Schema v1 全量落地、问答准确率 ≥95%、检索召回 ≥90%</span>
+    </div>
+    <div class="grid2">
+      <div class="blk"><b>技术实现</b><span>Query 改写 → 混合检索（向量 BM25）→ 重排 → 上下文组装+业务规则注入 → 生成（带引用）→ 实体一致性校验。组件：Milvus / bge-large-zh-v1.5 / mimo-v2.5 / bge-reranker。</span></div>
+      <div class="blk"><b>Schema 约束</b><span>检索片段余弦相似度 &lt;0.6 直接丢弃；答案实体必须出现在检索结果中；相关度不足明确拒答「文档未找到」。</span></div>
+    </div>
+    <div class="blk" style="margin-top:12px"><b>需要做些什么</b><span>① 七大域图谱 → JSON Schema v1；② 选 3 个高频问答做 RAG POC；③ 知识运营岗常态化审核口径。</span></div>
+  </div>
+</div>
+
+<div class="layer">
+  <div class="lv-head"><span>L2</span> 单域操作 <em>一条指令，全链路状态一目了然</em><span class="type">NL2CLI</span></div>
+  <div class="body">
+    <div class="goal"><b>目标：</b>自然语言 → 预定义 CLI 命令，自动查/自动执行，参数强制校验。</div>
+    <div class="dist">
+      <div class="dist-top"><b>距离 / 进度</b><span>已启动 · 定义完成</span></div>
+      <div class="bar"><i style="width:35%"></i></div>
+      <span class="dist-note"><b>当前</b>：18 条 WAVE1 CLI 命名空间已定义（dx-ep &lt;domain&gt; &lt;resource&gt; &lt;action&gt;）→ <b>目标</b>：对接 EP 后端 API、NL2CLI 转译准确率 ≥92%、5 条命令优先 POC</span>
+    </div>
+    <div class="grid2">
+      <div class="blk"><b>技术实现</b><span>意图分类 → 参数提取 → Schema 校验 → 指令组装 → 执行+格式化。18+ WAVE1 命令统一命名空间 <code>dx-ep &lt;domain&gt; &lt;resource&gt; &lt;action&gt;</code>，返回 <code>{state,message,data}</code>。</span></div>
+      <div class="blk"><b>Schema 约束</b><span>指令白名单（仅 18 条）；参数正则+DB 存在性校验；操作类二次确认；temperature=0.1 低温解码。</span></div>
+    </div>
+<pre class="code"><span class="c"># 例子：查零件报价进度</span>
+输入: <span class="s">"查 MOT-ED-2025-001 的报价进度"</span>
+→ intent: QUERY
+→ param:  part_no = <span class="s">"MOT-ED-2025-001"</span>  <span class="c"># 过参数 Schema</span>
+→ cli:    <span class="n">dx-ep</span> rfq quote list --part-no MOT-ED-2025-001
+→ out:    <span class="s">"RFQ-2025-0089 第2轮，截止 2025-06-20，已发 3 家"</span></pre>
+    <div class="blk" style="margin-top:12px"><b>需要做些什么</b><span>① 18 CLI 对接 EP 后端 API（后端）；② NL2CLI 引擎（LLM+Schema 约束，AI 团队）；③ 锁定 5 个 WAVE1 命令优先转译 POC。</span></div>
+  </div>
+</div>
+
+<div class="layer">
+  <div class="lv-head"><span>L3</span> 跨域协同 <em>一个意图，串联全流程</em><span class="type">Orchestration</span></div>
+  <div class="body">
+    <div class="goal"><b>目标：</b>一句话触发多步 CLI 编排（SOR→RFQ→预选→物流→定点），每步校验前置条件。</div>
+    <div class="dist">
+      <div class="dist-top"><b>距离 / 进度</b><span>待启动</span></div>
+      <div class="bar"><i style="width:8%"></i></div>
+      <span class="dist-note"><b>当前</b>：YAML DAG 编排范式已验证（SOR→RFQ→定点 demo）→ <b>目标</b>：编排引擎上线、4 大场景模板、断点续跑 / 超时回滚</span>
+    </div>
+    <div class="grid2">
+      <div class="blk"><b>技术实现</b><span>YAML DAG 声明式定义；Python+asyncio 轻量执行；Redis 存状态（断点续跑/超时回滚）；关键节点嵌飞书审批流。</span></div>
+      <div class="blk"><b>Schema 约束</b><span>每步执行前校验数据状态；失败提示具体断点+原因；写操作失败自动回滚；连续失败升级人工。</span></div>
+    </div>
+    <div class="blk" style="margin-top:12px"><b>需要做些什么</b><span>① 编排引擎（DAG 运行时）；② 4 大场景模板（定点可行性/供应商360/价格影响/订单异常）；③ 场景识别框架接入真实业务流。</span></div>
+  </div>
+</div>
+
+<div class="layer">
+  <div class="lv-head"><span>L4</span> 智能分析 <em>从人找数据到数据找人</em><span class="type">Rule Engine</span></div>
+  <div class="body">
+    <div class="goal"><b>目标：</b>基于全链路数据主动识别异常、预警风险、产出分析报告。</div>
+    <div class="dist">
+      <div class="dist-top"><b>距离 / 进度</b><span>规划中</span></div>
+      <div class="bar"><i style="width:12%"></i></div>
+      <span class="dist-note"><b>当前</b>：8 条业务规则已梳理（如 SOR 滞留 &gt;3 天预警）→ <b>目标</b>：规则引擎可执行、4 个分析 Agent、低置信度自动标「需人工确认」</span>
+    </div>
+    <div class="grid2">
+      <div class="blk"><b>技术实现</b><span>规则引擎+统计模型：节点滞留 / 报价竞争力 / 供应商绩效 / 采购成本 四类分析；事件触发（status_change / price.update）→ 飞书告警。</span></div>
+      <div class="blk"><b>Schema 约束</b><span>结论标注数据源+时间范围；低置信度标「⚠️ 需人工确认」；脏数据自动检测；与历史基线对比。</span></div>
+    </div>
+<pre class="code"><span class="c"># 规则示例</span>
+- <span class="k">id</span>: sor_stuck
+  when: sor.status == <span class="s">"PENDING"</span> && sor.pending_days > <span class="n">3</span>
+  then: alert(buyer, feishu, <span class="s">"SOR {{code}} 滞留 {{n}} 天"</span>)
+  escalate_when: pending_days > <span class="n">7</span>  <span class="c"># → 主管</span></pre>
+    <div class="blk" style="margin-top:12px"><b>需要做些什么</b><span>① 数据湖（CLI 结果落盘，覆盖 SOR/RFQ/定点/合同）；② 规则引擎（8 条业务规则可执行化）；③ 分析 Agent ×4。</span></div>
+  </div>
+</div>
+
+<div class="layer">
+  <div class="lv-head"><span>L5</span> 智能推荐 <em>AI 不只告诉你发生了什么，还告诉你该做什么</em><span class="type">Rec Engine</span></div>
+  <div class="body">
+    <div class="goal"><b>目标：</b>基于历史+规则主动推送最优方案，推荐可解释、可反馈。</div>
+    <div class="dist">
+      <div class="dist-top"><b>距离 / 进度</b><span>远期</span></div>
+      <div class="bar"><i style="width:3%"></i></div>
+      <span class="dist-note"><b>当前</b>：推荐规则库 Schema 设计 → <b>目标</b>：推荐引擎 + ML、采纳率 ≥40%、采纳 / 拒绝反馈闭环 + A/B 测试</span>
+    </div>
+    <div class="grid2">
+      <div class="blk"><b>技术实现</b><span>推荐规则库 + ML 推荐；事件驱动主动推送（操作指引/供应商推荐/价格预警/风险预警/智能督办）；采纳/拒绝反馈闭环 + A/B 测试。</span></div>
+      <div class="blk"><b>Schema 约束</b><span>每个推荐附带 reason + confidence；低置信度标「参考建议」；反馈回流驱动模型迭代。</span></div>
+    </div>
+    <div class="blk" style="margin-top:12px"><b>需要做些什么</b><span>① 推荐规则库（L4 结果→规则）；② 推荐引擎；③ 反馈闭环 + 事件驱动推送服务。</span></div>
+  </div>
+</div>
+
+<h2>落地节奏（先 / 中 / 后）</h2>
+<div class="phase soft"><b>先期 · L1 + L2</b>
+  <ul><li>本体 Schema v1：七大域图谱 → JSON Schema（AI 团队）</li>
+  <li>RAG Pipeline：操作手册 + 业务规则接入（AI 团队）</li>
+  <li>18 CLI 对接 EP 后端 API（后端）</li>
+  <li>NL2CLI 引擎：LLM + 参数 Schema 约束（AI 团队）</li>
+  <li>域 Agent ×5 + 工作台对话入口灰度（前端）</li></ul></div>
+<div class="phase soft"><b>中期 · L3 + L4</b>
+  <ul><li>编排引擎 + 4 大跨域场景模板（DAG 运行时）</li>
+  <li>数据湖：CLI 结果落盘（数据团队）</li>
+  <li>规则引擎：8 条业务规则可执行化</li>
+  <li>分析 Agent ×4（节点滞留 / 价格 / 绩效 / 成本）</li></ul></div>
+<div class="phase soft"><b>后期 · L5</b>
+  <ul><li>推荐规则库 + 推荐引擎（规则 + ML）</li>
+  <li>反馈闭环（采纳/拒绝优化）+ 事件驱动主动推送</li></ul></div>
+<div class="phase"><b>团队配置（先期，合计 7 人）</b>
+  <ul><li>AI 算法工程师 ×2（RAG / NL2CLI）· 后端 ×2（API 网关 / CLI）· 前端 ×1（工作台 UI）· 知识运营 ×1 · 产品经理 ×1</li></ul></div>
+
+<footer>采购 EP AI 数字化路径 · 技术实现版 · 单文件离线 · 浅底深代码面板</footer>
+
+</div>
+<script>
+(function(){
+  var els = document.querySelectorAll('header, svg.arch, .grid2, .layer, .phase, table.matrix, .flownote');
+  if(!('IntersectionObserver' in window)){ els.forEach(function(e){e.classList.add('in');}); return; }
+  var io = new IntersectionObserver(function(entries){
+    entries.forEach(function(en){ if(en.isIntersecting){ en.target.classList.add('in'); io.unobserve(en.target); } });
+  }, {threshold:0.12, rootMargin:'0px 0px -8% 0px'});
+  els.forEach(function(e){ e.classList.add('reveal'); io.observe(e); });
+})();
+</script>
+</body>
+</html>

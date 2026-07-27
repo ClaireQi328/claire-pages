@@ -1,0 +1,2 @@
+"use strict";(self.webpackChunkflow_web_extension=self.webpackChunkflow_web_extension||[]).push([["86462"],{664970:function(e,n,i){i.r(n),i.d(n,{receiveWritingOutlineMatcher:()=>c});var t=i(638770),u=i(885003),c={pluginIdentifier:i(162314).J,matchPlugin:e=>!(0,t.V)(e)&&(0,u.fdv)(e)}}}]);
+//# sourceMappingURL=86462.js.map

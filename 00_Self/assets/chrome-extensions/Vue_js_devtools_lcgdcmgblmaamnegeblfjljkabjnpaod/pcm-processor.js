@@ -1,0 +1,1 @@
+class r extends AudioWorkletProcessor{process(r){const s=r[0];if(!s||!s[0])return!0;const e=s[0],o=new Float32Array(e.length);return o.set(e),this.port.postMessage(o.buffer,[o.buffer]),!0}}registerProcessor("pcm-processor",r);

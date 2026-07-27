@@ -1,0 +1,2 @@
+"use strict";(self.webpackChunkflow_web_extension=self.webpackChunkflow_web_extension||[]).push([["44283"],{543438:function(e,n,t){t.r(n),t.d(n,{receiveMinutesMeetingContentMatcher:()=>l});var i=t(638770),u=t(885003),r=t(74533),l={pluginIdentifier:t(463499).B,matchPlugin(e){if((0,i.V)(e))return!1;var n,{intention:t}=null!==(n=(0,r.le)(e))&&void 0!==n?n:{};return"meeting_minutes"===t&&(0,u.G7Q)(e)&&!(0,u.jSN)(e)}}}}]);
+//# sourceMappingURL=44283.js.map

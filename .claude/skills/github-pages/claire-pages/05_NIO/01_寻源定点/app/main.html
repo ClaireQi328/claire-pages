@@ -1,0 +1,956 @@
+﻿<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>NIO 寻源定点</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: { extend: {
+        colors: { primary:'#FF7A00', secondary:'#FFB400', neutral:{50:'#FAFAFA',100:'#F5F5F5',200:'#E5E5E5',300:'#D4D4D4',400:'#A3A3A3',500:'#737373',600:'#525252',700:'#404040',800:'#262626',900:'#171717'} },
+        fontFamily: { sans:['Inter','system-ui','sans-serif'] },
+        boxShadow: { 'card':'0 4px 20px 0 rgba(0,0,0,0.05)', 'card-hover':'0 10px 30px 0 rgba(0,0,0,0.1)' }
+      }}
+    }
+  </script>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300..700&display=swap" rel="stylesheet">
+  <link href="https://cdn.bootcdn.net/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+  <script src="https://cdn.bootcdn.net/ajax/libs/echarts/5.4.3/echarts.min.js"></script>
+  <style>
+    /* === Design System === */
+    .header-gradient { background: linear-gradient(135deg, #FF7A00 0%, #FFB400 100%); }
+    .btn { display:inline-flex; align-items:center; justify-content:center; gap:0.5rem; font-weight:500; border-radius:0.5rem; transition:all 0.2s; cursor:pointer; user-select:none; }
+    .btn:disabled { opacity:0.5; cursor:not-allowed; }
+    .btn-sm { font-size:0.75rem; padding:0.375rem 0.75rem; }
+    .btn-md { font-size:0.875rem; padding:0.5rem 1rem; }
+    .btn-primary { background:#FF7A00; color:#fff; } .btn-primary:hover { background:rgba(255,122,0,0.9); box-shadow:0 4px 12px rgba(255,122,0,0.3); }
+    .btn-secondary { background:#fff; color:#FF7A00; border:1px solid #FF7A00; } .btn-secondary:hover { background:rgba(255,122,0,0.05); }
+    .btn-ghost { color:#525252; } .btn-ghost:hover { background:#F5F5F5; color:#262626; }
+    .btn-danger { background:#ef4444; color:#fff; } .btn-danger:hover { background:#dc2626; }
+    .card { background:#fff; border-radius:0.75rem; box-shadow:0 4px 20px rgba(0,0,0,0.05); padding:1.5rem; transition:box-shadow 0.3s; }
+    .card:hover { box-shadow:0 10px 30px rgba(0,0,0,0.1); }
+    .card-flat { background:#fff; border-radius:0.75rem; border:1px solid #E5E5E5; padding:1.5rem; }
+    .form-input { width:100%; padding:0.5rem 0.75rem; font-size:0.875rem; border:1px solid #D4D4D4; border-radius:0.5rem; outline:none; transition:border-color 0.2s; }
+    .form-input:focus { border-color:#FF7A00; box-shadow:0 0 0 3px rgba(255,122,0,0.15); }
+    .form-select { width:100%; padding:0.5rem 0.75rem; font-size:0.875rem; border:1px solid #D4D4D4; border-radius:0.5rem; outline:none; background:#fff; appearance:none;
+      background-image:url('data:image/svg+xml;charset=utf-8,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 20 20%22 fill=%22%23737373%22%3E%3Cpath fill-rule=%22evenodd%22 d=%22M5.23 7.21a.75.75 0 011.06.02L10 11.168l3.71-3.938a.75.75 0 111.08 1.04l-4.25 4.5a.75.75 0 01-1.08 0l-4.25-4.5a.75.75 0 01.02-1.06z%22 clip-rule=%22evenodd%22/%3E%3C/svg%3E');
+      background-size:1.25rem; background-position:right 0.5rem center; background-repeat:no-repeat; padding-right:2rem; }
+    .form-select:focus { border-color:#FF7A00; box-shadow:0 0 0 3px rgba(255,122,0,0.15); }
+    .form-label { display:block; font-size:0.875rem; font-weight:500; color:#404040; margin-bottom:0.375rem; }
+    .badge { display:inline-flex; align-items:center; padding:0.125rem 0.625rem; border-radius:9999px; font-size:0.75rem; font-weight:500; }
+    .badge-primary { background:rgba(255,122,0,0.1); color:#FF7A00; }
+    .badge-success { background:#d1fae5; color:#047857; }
+    .badge-warning { background:#fef3c7; color:#b45309; }
+    .badge-danger { background:#fee2e2; color:#b91c1c; }
+    .badge-info { background:#dbeafe; color:#1d4ed8; }
+    .badge-neutral { background:#F5F5F5; color:#525252; }
+    .nav-item { display:flex; align-items:center; gap:0.75rem; padding:0.625rem 1rem; font-size:0.875rem; color:#525252; border-radius:0.5rem; cursor:pointer; transition:all 0.2s; text-decoration:none; }
+    .nav-item:hover { background:#F5F5F5; color:#262626; }
+    .nav-item.active { background:rgba(255,122,0,0.1); color:#FF7A00; font-weight:500; }
+    .tab-nav { display:flex; border-bottom:1px solid #E5E5E5; }
+    .tab-item { padding:0.75rem 1.25rem; font-size:0.875rem; font-weight:500; color:#737373; border-bottom:2px solid transparent; cursor:pointer; transition:all 0.2s; }
+    .tab-item:hover { color:#404040; border-color:#D4D4D4; }
+    .tab-item.active { color:#FF7A00; border-color:#FF7A00; }
+    .page-btn { width:2rem; height:2rem; display:flex; align-items:center; justify-content:center; font-size:0.875rem; border-radius:0.5rem; border:1px solid #E5E5E5; color:#525252; cursor:pointer; transition:all 0.2s; background:#fff; }
+    .page-btn:hover { background:#F5F5F5; }
+    .page-btn.active { background:#FF7A00; color:#fff; border-color:#FF7A00; }
+    .table-w { overflow-x:auto; border-radius:0.75rem; border:1px solid #E5E5E5; }
+    .table-m { width:100%; font-size:0.875rem; text-align:left; }
+    .table-m thead { background:#FAFAFA; color:#525252; font-size:0.75rem; text-transform:uppercase; letter-spacing:0.05em; }
+    .table-m thead th { padding:0.75rem 1rem; font-weight:600; white-space:nowrap; }
+    .table-m tbody tr { border-top:1px solid #F5F5F5; transition:background 0.15s; }
+    .table-m tbody tr:hover { background:rgba(250,250,250,0.5); }
+    .table-m tbody td { padding:0.75rem 1rem; color:#404040; white-space:nowrap; }
+    .table-z tbody tr:nth-child(even) { background:rgba(250,250,250,0.3); }
+    .modal-overlay { position:fixed; inset:0; z-index:50; display:flex; align-items:center; justify-content:center; background:rgba(0,0,0,0.4); backdrop-filter:blur(4px); }
+    .modal-box { background:#fff; border-radius:1rem; box-shadow:0 25px 50px rgba(0,0,0,0.25); max-height:85vh; display:flex; flex-direction:column; overflow:hidden; }
+    .modal-header { display:flex; align-items:center; justify-content:space-between; padding:1rem 1.5rem; border-bottom:1px solid #E5E5E5; }
+    .modal-body { padding:1rem 1.5rem; overflow-y:auto; flex:1; }
+    .modal-footer { display:flex; align-items:center; justify-content:flex-end; gap:0.75rem; padding:1rem 1.5rem; border-top:1px solid #E5E5E5; }
+    .empty-state { display:flex; flex-direction:column; align-items:center; justify-content:center; padding:4rem 0; color:#A3A3A3; }
+    .empty-state i { font-size:2.5rem; margin-bottom:1rem; }
+    .fade-in { animation:fadeIn 0.2s ease-out; }
+    @keyframes fadeIn { from{opacity:0;transform:translateY(8px)} to{opacity:1;transform:translateY(0)} }
+    ::-webkit-scrollbar{width:6px;height:6px} ::-webkit-scrollbar-track{background:transparent} ::-webkit-scrollbar-thumb{background:#d4d4d4;border-radius:3px} ::-webkit-scrollbar-thumb:hover{background:#a3a3a3}
+    .step-dot { width:2rem; height:2rem; border-radius:9999px; display:flex; align-items:center; justify-content:center; font-size:0.75rem; font-weight:700; }
+  </style>
+</head>
+<body class="bg-neutral-50 min-h-screen flex" style="font-family:'Inter',system-ui,sans-serif">
+
+  <!-- Sidebar -->
+  <aside id="sidebar" class="w-56 bg-white border-r border-neutral-200 flex-shrink-0 flex flex-col sticky top-0 h-screen z-30 transition-all">
+    <div class="p-4 border-b border-neutral-200">
+      <a onclick="navigate('home')" class="flex items-center gap-2 cursor-pointer">
+        <div class="w-8 h-8 header-gradient rounded-lg flex items-center justify-center"><i class="fas fa-cubes text-white text-sm"></i></div>
+        <span class="font-bold text-neutral-800 text-sm">寻源定点</span>
+      </a>
+    </div>
+    <nav class="flex-1 p-3 space-y-1 overflow-y-auto" id="side-nav"></nav>
+    <div class="p-3 border-t border-neutral-200">
+      <a onclick="navigate('home')" class="nav-item text-neutral-400"><i class="fas fa-arrow-left w-5 text-center"></i> 总览</a>
+    </div>
+  </aside>
+
+  <!-- Main -->
+  <div class="flex-1 flex flex-col min-w-0">
+    <header id="topbar" class="bg-white border-b border-neutral-200 px-6 py-3 flex items-center justify-between sticky top-0 z-20">
+      <div class="flex items-center gap-3">
+        <button onclick="document.getElementById('sidebar').classList.toggle('-ml-56')" class="lg:hidden text-neutral-500 hover:text-neutral-700"><i class="fas fa-bars"></i></button>
+        <div><h1 id="page-title" class="text-lg font-bold text-neutral-800"></h1><p id="page-breadcrumb" class="text-xs text-neutral-400"></p></div>
+      </div>
+      <div id="page-actions" class="flex items-center gap-2"></div>
+    </header>
+    <main id="app" class="flex-1 p-6 overflow-y-auto"></main>
+  </div>
+
+  <!-- Dialog Container -->
+  <div id="dc"></div>
+
+  <script>
+  // ============================================================
+  // ROUTER
+  // ============================================================
+  const ROUTES = {};
+  function registerRoute(name, fn) { ROUTES[name] = fn; }
+  function navigate(name, params) {
+    location.hash = name + (params ? '?' + new URLSearchParams(params).toString() : '');
+  }
+  function getRoute() {
+    const [name, qs] = location.hash.slice(1).split('?');
+    return { name: name || 'home', params: qs ? Object.fromEntries(new URLSearchParams(qs)) : {} };
+  }
+  function render() {
+    const { name, params } = getRoute();
+    const route = ROUTES[name];
+    if (!route) { ROUTES.home(); return; }
+    route(params);
+    // highlight sidebar
+    document.querySelectorAll('#side-nav .nav-item').forEach(el => {
+      el.classList.toggle('active', el.dataset.route === name);
+    });
+    window.scrollTo(0, 0);
+  }
+  window.addEventListener('hashchange', render);
+
+  // ============================================================
+  // SIDEBAR NAV
+  // ============================================================
+  function buildNav() {
+    document.getElementById('side-nav').innerHTML = `
+      <div class="text-xs font-semibold text-neutral-400 uppercase tracking-wider px-4 py-2">寻源报价</div>
+      <a class="nav-item" data-route="rfq-list" onclick="navigate('rfq-list')"><i class="fas fa-file-invoice w-5 text-center"></i> 询报价管理</a>
+      <a class="nav-item" data-route="supplier-list" onclick="navigate('supplier-list')"><i class="fas fa-store w-5 text-center"></i> 供应商报价</a>
+      <a class="nav-item" data-route="partner-eval" onclick="navigate('partner-eval')"><i class="fas fa-user-check w-5 text-center"></i> 合作伙伴评估</a>
+      <div class="text-xs font-semibold text-neutral-400 uppercase tracking-wider px-4 py-2 mt-4">工具</div>
+      <a class="nav-item" data-route="price-cmp" onclick="navigate('price-cmp')"><i class="fas fa-balance-scale w-5 text-center"></i> 价格比较</a>
+      <a class="nav-item" data-route="dimension" onclick="navigate('dimension')"><i class="fas fa-ruler w-5 text-center"></i> 量纲管理</a>
+      <a class="nav-item" data-route="ladder" onclick="navigate('ladder')"><i class="fas fa-layer-group w-5 text-center"></i> 阶梯价</a>
+      <a class="nav-item" data-route="attachment" onclick="navigate('attachment')"><i class="fas fa-folder w-5 text-center"></i> 附件管理</a>
+    `;
+  }
+
+  // ============================================================
+  // DIALOG SYSTEM
+  // ============================================================
+  function showDialog(type, opts) {
+    const dc = document.getElementById('dc');
+    const w = opts?.width || 600;
+    dc.innerHTML = `<div class="modal-overlay fade-in" onclick="if(event.target===this)closeDialog()">
+      <div class="modal-box" style="width:${w}px;max-width:90vw">
+        <div class="modal-header"><h3 class="font-bold text-neutral-800">${opts?.title||type}</h3>
+          <button onclick="closeDialog()" class="text-neutral-400 hover:text-neutral-600 w-8 h-8 flex items-center justify-center rounded-lg hover:bg-neutral-100"><i class="fas fa-times"></i></button>
+        </div>
+        <div class="modal-body">${opts?.body||''}</div>
+        <div class="modal-footer">${opts?.footer||'<button class="btn btn-ghost" onclick="closeDialog()">关闭</button>'}</div>
+      </div>
+    </div>`;
+  }
+  function closeDialog() { document.getElementById('dc').innerHTML = ''; }
+
+  // ============================================================
+  // PAGE HELPERS
+  // ============================================================
+  function setPage(title, breadcrumb, actions, html) {
+    document.getElementById('page-title').textContent = title;
+    document.getElementById('page-breadcrumb').innerHTML = breadcrumb || '';
+    document.getElementById('page-actions').innerHTML = actions || '';
+    document.getElementById('app').innerHTML = html;
+  }
+  function renderStatus(s) {
+    const m = {'询报价':'badge-info','竞价中':'badge-warning','已定点':'badge-success','已关闭':'badge-neutral','未报价':'badge-warning','已报价':'badge-success'};
+    return `<span class="${m[s]||'badge-neutral'}">${s}</span>`;
+  }
+
+  // ============================================================
+  // HOME PAGE
+  // ============================================================
+  registerRoute('home', () => {
+    setPage('NIO 寻源定点', '功能模块总览', '', `
+      <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
+        <div class="card flex items-center gap-4"><div class="w-12 h-12 rounded-xl bg-primary/10 flex items-center justify-center"><i class="fas fa-file-invoice text-primary text-xl"></i></div><div><p class="text-2xl font-bold text-neutral-800">6</p><p class="text-xs text-neutral-500">核心页面</p></div></div>
+        <div class="card flex items-center gap-4"><div class="w-12 h-12 rounded-xl bg-blue-100 flex items-center justify-center"><i class="fas fa-window-restore text-blue-500 text-xl"></i></div><div><p class="text-2xl font-bold text-neutral-800">16</p><p class="text-xs text-neutral-500">弹窗组件</p></div></div>
+        <div class="card flex items-center gap-4"><div class="w-12 h-12 rounded-xl bg-emerald-100 flex items-center justify-center"><i class="fas fa-check-circle text-emerald-500 text-xl"></i></div><div><p class="text-2xl font-bold text-neutral-800">7</p><p class="text-xs text-neutral-500">辅助工具</p></div></div>
+        <div class="card flex items-center gap-4"><div class="w-12 h-12 rounded-xl bg-amber-100 flex items-center justify-center"><i class="fas fa-puzzle-piece text-amber-500 text-xl"></i></div><div><p class="text-2xl font-bold text-neutral-800">1</p><p class="text-xs text-neutral-500">HTML文件</p></div></div>
+      </div>
+      <section class="mb-8">
+        <h2 class="text-lg font-bold text-neutral-800 mb-4"><i class="fas fa-star text-primary mr-2"></i>核心页面</h2>
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          ${[
+            {route:'rfq-list', icon:'fa-list', color:'primary', title:'询报价列表', desc:'RFQ 工单列表，筛选/分页/导出', tags:['列表','筛选','分页']},
+            {route:'rfq-detail', icon:'fa-eye', color:'blue-500', title:'询报价详情', desc:'基础信息/物料/合作伙伴/审批/附件', tags:['详情','Tabs','审批']},
+            {route:'rfq-create', icon:'fa-plus-circle', color:'emerald-500', title:'新增询报价', desc:'创建RFQ：基本信息/零部件/商务/量纲', tags:['表单','多步','校验']},
+            {route:'supplier-list', icon:'fa-store', color:'amber-500', title:'供应商报价列表', desc:'供应商视角报价列表', tags:['列表','报价','状态']},
+            {route:'supplier-quote', icon:'fa-calculator', color:'purple-500', title:'供应商参与报价', desc:'物料报价/阶梯报价/模具费用', tags:['报价','阶梯','模具']},
+            {route:'partner-eval', icon:'fa-user-check', color:'rose-500', title:'合作伙伴评估', desc:'评估结果/定点通知函', tags:['评估','通知函','定点']},
+          ].map(p=>`
+            <a onclick="navigate('${p.route}')" class="card group cursor-pointer block">
+              <div class="flex items-start justify-between mb-3">
+                <div class="w-10 h-10 rounded-lg bg-${p.color}/10 flex items-center justify-center"><i class="fas ${p.icon} text-${p.color}"></i></div>
+                <i class="fas fa-arrow-right text-neutral-300 group-hover:text-primary transition-colors"></i>
+              </div>
+              <h3 class="font-bold text-neutral-800 mb-1">${p.title}</h3>
+              <p class="text-sm text-neutral-500">${p.desc}</p>
+              <div class="mt-3 flex gap-2">${p.tags.map(t=>`<span class="badge-neutral">${t}</span>`).join('')}</div>
+            </a>
+          `).join('')}
+        </div>
+      </section>
+      <section class="mb-8">
+        <h2 class="text-lg font-bold text-neutral-800 mb-4"><i class="fas fa-tools text-neutral-500 mr-2"></i>辅助工具</h2>
+        <div class="grid grid-cols-2 md:grid-cols-4 gap-3">
+          ${[
+            {route:'price-cmp', icon:'fa-balance-scale', title:'价格比较'},
+            {route:'ladder', icon:'fa-chart-bar', title:'阶梯价'},
+            {route:'dimension', icon:'fa-ruler-combined', title:'量纲'},
+            {route:'attachment', icon:'fa-folder-open', title:'附件列表'},
+          ].map(p=>`
+            <a onclick="navigate('${p.route}')" class="card-flat cursor-pointer block p-4 hover:shadow-card transition-shadow">
+              <div class="flex items-center gap-3"><i class="fas ${p.icon} text-primary"></i><span class="text-sm font-medium text-neutral-700">${p.title}</span></div>
+            </a>
+          `).join('')}
+        </div>
+      </section>
+      <section>
+        <h2 class="text-lg font-bold text-neutral-800 mb-4"><i class="fas fa-window-restore text-blue-500 mr-2"></i>弹窗组件</h2>
+        <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
+          ${[
+            {id:'material', icon:'fa-box', title:'物料信息'},
+            {id:'partner', icon:'fa-building', title:'合作伙伴信息'},
+            {id:'person', icon:'fa-users', title:'选择人员'},
+            {id:'add-material', icon:'fa-plus-square', title:'新增物料'},
+            {id:'temp-material', icon:'fa-clock', title:'新增临时物料'},
+            {id:'quote-round', icon:'fa-sync', title:'新增报价轮次'},
+            {id:'attachment-upload', icon:'fa-paperclip', title:'新增附件'},
+            {id:'ladder-set', icon:'fa-layer-group', title:'设置阶梯'},
+            {id:'dimension-view', icon:'fa-ruler', title:'量纲查看'},
+            {id:'material-quote', icon:'fa-receipt', title:'查看物料报价'},
+            {id:'partner-quote', icon:'fa-file-invoice-dollar', title:'查看合作伙伴报价'},
+            {id:'cancel', icon:'fa-ban', title:'取消报价'},
+            {id:'sor', icon:'fa-file-signature', title:'SOR更新'},
+            {id:'download', icon:'fa-download', title:'文件下载'},
+            {id:'mold', icon:'fa-project-diagram', title:'模具对应物料号'},
+            {id:'select-material', icon:'fa-check-double', title:'选择定点物料'},
+          ].map(d=>`
+            <button onclick="openDialog('${d.id}')" class="card-flat p-4 text-left hover:shadow-card transition-shadow cursor-pointer">
+              <i class="fas ${d.icon} text-primary mb-2 text-lg"></i>
+              <p class="text-sm font-medium text-neutral-800">${d.title}</p>
+            </button>
+          `).join('')}
+        </div>
+      </section>
+      <footer class="text-center text-xs text-neutral-400 py-8 mt-8 border-t border-neutral-200">
+        NIO 寻源定点 v2.0 · 单文件 SPA · Tailwind CSS · 替代 Axure 原型 47 个 HTML
+      </footer>
+    `);
+  });
+
+  buildNav();
+  render();
+  </script>
+
+  <script>
+  // ============================================================
+  // MOCK DATA
+  // ============================================================
+  const RFQ_DATA = [
+    { code:'RFQ20221030100001', name:'Firefly Rear Knuckle后转向节', bidNo:'BJ2022103001', category:'铝/纯铝/铝锭', project:'Pegasus-G1.F', factory:'ShangHai', needSor:'是', sorStatus:'Initial', sealed:'是', status:'询报价', deadline:'2022/8/27', buyer:'任亦喆 Yizhe REN', created:'2022/6/27 13:43:00' },
+    { code:'RFQ2022103100002', name:'Firefly Rear Knuckle前转向节', bidNo:'BJ2022103102', category:'铝/纯铝/铝液', project:'Leo-G1.1', factory:'HeFei', needSor:'是', sorStatus:'Nomination', sealed:'是', status:'竞价中', deadline:'2022/8/27', buyer:'任亦喆 Yizhe REN', created:'2022/6/27 13:33:00' },
+    { code:'RFQ2022103100003', name:'LEO IDO 集成驱动模块', bidNo:'BJ2022103103', category:'电子/传感器', project:'Leo-G1.1', factory:'ShangHai', needSor:'否', sorStatus:'-', sealed:'否', status:'已定点', deadline:'2022/8/20', buyer:'张小米', created:'2022/6/27 13:13:00' },
+    { code:'RFQ2022103100004', name:'ORION IDO 电驱总成', bidNo:'BJ2022103104', category:'电驱/电机', project:'Orion-G2', factory:'Beijing', needSor:'是', sorStatus:'Approved', sealed:'是', status:'询报价', deadline:'2022/9/15', buyer:'李大米', created:'2022/6/26 16:53:00' },
+    { code:'RFQ2022103100005', name:'Pegasus Seat System 座椅总成', bidNo:'BJ2022103105', category:'内饰/座椅', project:'Pegasus-G1.F', factory:'ShangHai', needSor:'是', sorStatus:'Initial', sealed:'是', status:'竞价中', deadline:'2022/9/1', buyer:'王大锤', created:'2022/6/25 15:25:00' },
+    { code:'RFQ2022103100006', name:'LEO Windshield 挡风玻璃', bidNo:'BJ2022103106', category:'玻璃/外饰', project:'Leo-G1.1', factory:'HeFei', needSor:'否', sorStatus:'-', sealed:'否', status:'已关闭', deadline:'2022/7/30', buyer:'赵小刀', created:'2022/6/24 13:33:00' },
+    { code:'RFQ2022103100007', name:'FORCE G1.F Rim 轮毂', bidNo:'BJ2022103107', category:'底盘/轮毂', project:'Pegasus-G1.F', factory:'ShangHai', needSor:'是', sorStatus:'Nomination', sealed:'是', status:'询报价', deadline:'2022/9/10', buyer:'孙大力', created:'2022/6/22 16:53:00' },
+    { code:'RFQ2022103100008', name:'SU9 座椅总成-报价明细', bidNo:'BJ2022103108', category:'内饰/座椅', project:'SU9', factory:'Beijing', needSor:'是', sorStatus:'Approved', sealed:'是', status:'竞价中', deadline:'2025/12/31', buyer:'张小米', created:'2022/6/21 10:20:00' },
+  ];
+
+  const SQ_DATA = [
+    { code:'RFQ20221030100001', name:'Firefly Rear Knuckle后转向节', status:'未报价', round:1, deadline:'2022/7/27 20:00', created:'2022/6/27 13:43' },
+    { code:'RFQ2022103100002', name:'Firefly Rear Knuckle前转向节', status:'已报价', round:2, deadline:'2022/7/27 20:00', created:'2022/6/27 13:33' },
+    { code:'RFQ2022103100003', name:'LEO IDO 集成驱动模块', status:'未报价', round:1, deadline:'2022/7/27 20:00', created:'2022/6/27 13:13' },
+    { code:'RFQ2022103100004', name:'ORION IDO 电驱总成', status:'已报价', round:2, deadline:'2022/7/27 20:00', created:'2022/6/26 16:53' },
+    { code:'RFQ2022103100005', name:'Pegasus Seat System 座椅总成', status:'未报价', round:1, deadline:'2022/7/27 20:00', created:'2022/6/25 15:25' },
+    { code:'RFQ2022103100006', name:'LEO Windshield 挡风玻璃', status:'已关闭', round:2, deadline:'2022/7/27 20:00', created:'2022/6/24 13:33' },
+  ];
+
+  // ============================================================
+  // PAGE: 询报价列表
+  // ============================================================
+  registerRoute('rfq-list', () => {
+    setPage('询报价管理', '寻源报价 / 询报价管理',
+      '<button class="btn btn-primary btn-sm" onclick="navigate(\'rfq-create\')"><i class="fas fa-plus"></i> 新增</button><button class="btn btn-secondary btn-sm"><i class="fas fa-file-export"></i> 导出</button>',
+      `
+      <div class="card mb-6">
+        <div class="flex flex-wrap items-end gap-4">
+          <div class="flex-1 min-w-[180px]"><label class="form-label">报价包编码</label><input type="text" class="form-input" placeholder="搜索编码..." id="fl-code"></div>
+          <div class="flex-1 min-w-[180px]"><label class="form-label">车型</label><select class="form-select" id="fl-model"><option value="">全部</option><option>Pegasus-G1.F</option><option>Leo-G1.1</option><option>Orion-G2</option><option>SU9</option></select></div>
+          <div class="flex-1 min-w-[180px]"><label class="form-label">报价状态</label><select class="form-select" id="fl-status"><option value="">全部</option><option>询报价</option><option>竞价中</option><option>已定点</option><option>已关闭</option></select></div>
+          <div class="flex gap-2">
+            <button class="btn btn-primary" onclick="filterRFQ()"><i class="fas fa-search"></i> 查询</button>
+            <button class="btn btn-ghost" onclick="document.getElementById('fl-code').value='';document.getElementById('fl-model').value='';document.getElementById('fl-status').value='';filterRFQ()"><i class="fas fa-undo"></i> 重置</button>
+          </div>
+        </div>
+      </div>
+      <div class="flex items-center justify-between mb-4">
+        <span class="text-sm text-neutral-500">共 <b id="rfq-total">${RFQ_DATA.length}</b> 条</span>
+      </div>
+      <div class="table-w bg-white"><table class="table-m table-z"><thead><tr>
+        <th>报价包编码</th><th>报价包名称</th><th>品类</th><th>项目</th><th>工厂</th><th>是否封标</th><th>报价状态</th><th>截止时间</th><th>采购员</th><th>操作</th>
+      </tr></thead><tbody id="rfq-tbody"></tbody></table></div>
+      <div class="flex items-center justify-between mt-4">
+        <div class="flex items-center gap-2 text-sm text-neutral-500">每页 <select class="form-select w-20 py-1" id="pg-size"><option>20</option><option>50</option></select></div>
+        <div class="flex items-center gap-1" id="pg-bar"></div>
+      </div>
+    `);
+    window._rfqFiltered = [...RFQ_DATA];
+    renderRFQTable();
+  });
+
+  function renderRFQTable() {
+    const data = window._rfqFiltered || RFQ_DATA;
+    const tb = document.getElementById('rfq-tbody');
+    const total = document.getElementById('rfq-total');
+    if (!tb) return;
+    total.textContent = data.length;
+    if (!data.length) { tb.innerHTML = '<tr><td colspan="10" class="text-center py-16 text-neutral-400"><i class="fas fa-inbox text-3xl mb-2 block"></i>暂无数据</td></tr>'; return; }
+    tb.innerHTML = data.map(r => `<tr>
+      <td><a class="text-primary font-medium cursor-pointer hover:underline" onclick="navigate('rfq-detail',{code:'${r.code}'})">${r.code}</a></td>
+      <td class="max-w-[200px] truncate" title="${r.name}">${r.name}</td>
+      <td><span class="badge-neutral">${r.category}</span></td>
+      <td>${r.project}</td><td>${r.factory}</td>
+      <td>${r.sealed==='是'?'<span class="badge-warning"><i class="fas fa-lock mr-1"></i>是</span>':'<span class="badge-neutral">否</span>'}</td>
+      <td>${renderStatus(r.status)}</td>
+      <td class="text-neutral-500">${r.deadline}</td><td>${r.buyer}</td>
+      <td><div class="flex gap-1">
+        <button class="btn btn-ghost btn-sm !p-1.5" onclick="navigate('rfq-detail',{code:'${r.code}'})"><i class="fas fa-eye text-xs"></i></button>
+        <button class="btn btn-ghost btn-sm !p-1.5" onclick="navigate('rfq-create',{edit:'${r.code}'})"><i class="fas fa-pen text-xs"></i></button>
+      </div></td>
+    </tr>`).join('');
+  }
+
+  function filterRFQ() {
+    const code = (document.getElementById('fl-code')?.value||'').toLowerCase();
+    const model = document.getElementById('fl-model')?.value||'';
+    const status = document.getElementById('fl-status')?.value||'';
+    window._rfqFiltered = RFQ_DATA.filter(r => {
+      if (code && !r.code.toLowerCase().includes(code)) return false;
+      if (model && r.project !== model) return false;
+      if (status && r.status !== status) return false;
+      return true;
+    });
+    renderRFQTable();
+  }
+
+  // ============================================================
+  // PAGE: 询报价详情
+  // ============================================================
+  registerRoute('rfq-detail', (params) => {
+    const code = params.code || 'RFQ20221030100001';
+    const r = RFQ_DATA.find(d => d.code === code) || RFQ_DATA[0];
+    setPage('询报价详情', `寻源报价 / 询报价管理 / <span class="text-primary">${r.code}</span>`,
+      '<button class="btn btn-secondary btn-sm" onclick="navigate(\'rfq-create\',{edit:\''+r.code+'\'})"><i class="fas fa-pen"></i> 编辑</button><button class="btn btn-primary btn-sm"><i class="fas fa-paper-plane"></i> 发布</button>',
+      `
+      <div class="card mb-6 flex items-center justify-between">
+        <div class="flex items-center gap-4">
+          <div class="w-12 h-12 rounded-xl bg-primary/10 flex items-center justify-center"><i class="fas fa-file-invoice text-primary text-xl"></i></div>
+          <div><h2 class="text-lg font-bold text-neutral-800">${r.name}</h2><p class="text-sm text-neutral-500">${r.code} · ${renderStatus(r.status)}</p></div>
+        </div>
+        <div class="flex gap-2">${r.needSor==='是'?'<span class="badge-success"><i class="fas fa-check mr-1"></i>已关联SOR</span>':''}${r.sealed==='是'?'<span class="badge-warning"><i class="fas fa-lock mr-1"></i>已封标</span>':''}</div>
+      </div>
+      <div class="tab-nav mb-6">
+        <div class="tab-item active" onclick="switchDetailTab(this,'db')">基础信息</div>
+        <div class="tab-item" onclick="switchDetailTab(this,'dm')">物料信息</div>
+        <div class="tab-item" onclick="switchDetailTab(this,'dp')">合作伙伴</div>
+        <div class="tab-item" onclick="switchDetailTab(this,'da')">定点审批流程</div>
+        <div class="tab-item" onclick="switchDetailTab(this,'df')">附件</div>
+      </div>
+      <div id="detail-tabs">
+        <!-- 基础信息 -->
+        <div id="tab-db"><div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <div class="card"><h3 class="font-bold text-neutral-800 mb-4"><i class="fas fa-file-alt text-primary mr-2"></i>报价包信息</h3>
+            <div class="grid grid-cols-2 gap-y-3 gap-x-6 text-sm">
+              <div><span class="text-neutral-400">报价包编码</span><p class="font-medium">${r.code}</p></div>
+              <div><span class="text-neutral-400">报价包名称</span><p class="font-medium">${r.name}</p></div>
+              <div><span class="text-neutral-400">品类</span><p class="font-medium">${r.category}</p></div>
+              <div><span class="text-neutral-400">项目</span><p class="font-medium">${r.project}</p></div>
+              <div><span class="text-neutral-400">工厂</span><p class="font-medium">${r.factory}</p></div>
+              <div><span class="text-neutral-400">竞价单号</span><p class="font-medium">${r.bidNo}</p></div>
+              <div><span class="text-neutral-400">是否封标</span><p>${r.sealed==='是'?'<span class="badge-warning">是</span>':'<span class="badge-neutral">否</span>'}</p></div>
+              <div><span class="text-neutral-400">报价状态</span><p>${renderStatus(r.status)}</p></div>
+              <div><span class="text-neutral-400">截止时间</span><p class="font-medium">${r.deadline}</p></div>
+              <div><span class="text-neutral-400">采购员</span><p class="font-medium">${r.buyer}</p></div>
+              <div><span class="text-neutral-400">创建时间</span><p class="font-medium text-neutral-600">${r.created}</p></div>
+              <div><span class="text-neutral-400">定点要求完成时间</span><p class="font-medium">2025-12-31</p></div>
+            </div>
+          </div>
+          <div class="card"><h3 class="font-bold text-neutral-800 mb-4"><i class="fas fa-handshake text-primary mr-2"></i>商务前提</h3>
+            <div class="grid grid-cols-2 gap-y-3 gap-x-6 text-sm">
+              <div><span class="text-neutral-400">报价货币</span><p class="font-medium">人民币-元</p></div>
+              <div><span class="text-neutral-400">基础汇率</span><p class="font-medium">1</p></div>
+              <div><span class="text-neutral-400">是否分摊</span><p class="font-medium">是</p></div>
+              <div><span class="text-neutral-400">报价方式</span><p class="font-medium">单价报价</p></div>
+            </div>
+            <h4 class="font-bold text-neutral-700 mt-6 mb-3 text-sm"><i class="fas fa-user-tie text-neutral-400 mr-2"></i>关键人员</h4>
+            <div class="grid grid-cols-2 gap-y-3 gap-x-6 text-sm">
+              <div><span class="text-neutral-400">采购工程师</span><p class="font-medium">张小米</p></div>
+              <div><span class="text-neutral-400">采购员</span><p class="font-medium">Gavin TANG 唐帆</p></div>
+              <div><span class="text-neutral-400">研发工程师</span><p class="font-medium">李大米</p></div>
+              <div><span class="text-neutral-400">Buyer Team Leader</span><p class="font-medium">Luca Luo 罗聪</p></div>
+            </div>
+          </div>
+        </div></div>
+        <!-- 物料信息 -->
+        <div id="tab-dm" class="hidden">
+          <div class="card mb-6"><div class="flex items-center justify-between mb-4"><h3 class="font-bold text-neutral-800"><i class="fas fa-box text-primary mr-2"></i>采购零部件</h3><div class="flex gap-2"><button class="btn btn-primary btn-sm" onclick="openDialog('add-material')"><i class="fas fa-plus"></i> 新增</button><button class="btn btn-danger btn-sm"><i class="fas fa-trash"></i> 删除</button></div></div>
+            <div class="table-w"><table class="table-m table-z"><thead><tr><th><input type="checkbox" class="rounded text-primary"></th><th>序号</th><th>标识</th><th>零部件号</th><th>物料名称</th><th>单位</th><th>技术方案变化</th><th>类型</th><th>开发策略</th><th>研发工程师</th><th>单车用量</th><th>装配比例</th></tr></thead><tbody>
+              <tr><td><input type="checkbox" class="rounded text-primary"></td><td>1</td><td><span class="badge-primary">新增</span></td><td class="font-medium text-primary">P1000010100032</td><td><div>A PILLAR LOWER LH</div><div class="text-xs text-neutral-400">左A柱下内饰板总成</div></td><td>个</td><td><span class="badge-success">是</span></td><td>BOM件</td><td>New</td><td>李大米</td><td>1</td><td>100%</td></tr>
+              <tr><td><input type="checkbox" class="rounded text-primary"></td><td>2</td><td><span class="badge-primary">新增</span></td><td class="font-medium text-primary">P1000010100033</td><td><div>A PILLAR LOWER RH</div><div class="text-xs text-neutral-400">右A柱下内饰板总成</div></td><td>个</td><td><span class="badge-neutral">否</span></td><td>BOM件</td><td>New</td><td>李大米</td><td>1</td><td>100%</td></tr>
+            </tbody></table></div>
+          </div>
+          <div class="card"><h3 class="font-bold text-neutral-800 mb-4"><i class="fas fa-chart-line text-primary mr-2"></i>预计采购量</h3>
+            <div class="table-w"><table class="table-m table-z"><thead><tr><th>序号</th><th>工厂</th><th>零部件号</th><th>零部件名称</th><th>2029</th><th>2030</th><th>2031</th><th>全部</th></tr></thead><tbody>
+              <tr><td>1</td><td>小米工厂</td><td>P1000010100032</td><td>左A柱下内饰板总成</td><td class="text-right">50,000</td><td class="text-right">80,000</td><td class="text-right">100,000</td><td class="text-right font-medium">230,000</td></tr>
+              <tr><td>2</td><td>小米工厂</td><td>P1000010100033</td><td>右A柱下内饰板总成</td><td class="text-right">50,000</td><td class="text-right">80,000</td><td class="text-right">100,000</td><td class="text-right font-medium">230,000</td></tr>
+            </tbody></table></div>
+          </div>
+        </div>
+        <!-- 合作伙伴 -->
+        <div id="tab-dp" class="hidden"><div class="card"><div class="flex items-center justify-between mb-4"><h3 class="font-bold text-neutral-800"><i class="fas fa-building text-primary mr-2"></i>合作伙伴</h3><button class="btn btn-primary btn-sm"><i class="fas fa-plus"></i> 新增</button></div>
+          <div class="table-w"><table class="table-m table-z"><thead><tr><th>合作伙伴</th><th>工厂</th><th>联系人</th><th>邮箱</th><th>技术</th><th>质量</th><th>财务</th><th>状态</th><th>通知函</th><th>操作</th></tr></thead><tbody>
+            <tr><td><div class="flex items-center gap-2"><div class="w-7 h-7 bg-blue-100 rounded flex items-center justify-center text-xs font-bold text-blue-600">V</div><div><p class="font-medium text-sm">V21994</p><p class="text-xs text-neutral-400">培奇爱汽车配件</p></div></div></td><td>ShangHai</td><td>吴唯一</td><td class="text-primary text-sm">12345678@163.com</td><td><span class="badge-success">G</span></td><td><span class="badge-success">G</span></td><td><span class="badge-success">G</span></td><td><span class="badge-success">定点</span></td><td><span class="badge-info">已发送</span></td><td><button class="btn btn-ghost btn-sm !p-1.5" onclick="openDialog('partner-quote')"><i class="fas fa-eye text-xs"></i></button></td></tr>
+            <tr><td><div class="flex items-center gap-2"><div class="w-7 h-7 bg-emerald-100 rounded flex items-center justify-center text-xs font-bold text-emerald-600">B</div><div><p class="font-medium text-sm">B0821</p><p class="text-xs text-neutral-400">博世汽车部件</p></div></div></td><td>HeFei</td><td>张三</td><td class="text-primary text-sm">zhangsan@bosch.com</td><td><span class="badge-warning">Y</span></td><td><span class="badge-success">G</span></td><td><span class="badge-success">G</span></td><td><span class="badge-warning">评审中</span></td><td><span class="badge-neutral">未发送</span></td><td><button class="btn btn-ghost btn-sm !p-1.5"><i class="fas fa-eye text-xs"></i></button></td></tr>
+            <tr><td><div class="flex items-center gap-2"><div class="w-7 h-7 bg-amber-100 rounded flex items-center justify-center text-xs font-bold text-amber-600">C</div><div><p class="font-medium text-sm">C15032</p><p class="text-xs text-neutral-400">采埃孚汽车系统</p></div></div></td><td>ShangHai</td><td>王五</td><td class="text-primary text-sm">wangwu@zf.com</td><td><span class="badge-success">G</span></td><td><span class="badge-danger">R</span></td><td><span class="badge-success">G</span></td><td><span class="badge-danger">未通过</span></td><td><span class="badge-neutral">-</span></td><td><button class="btn btn-ghost btn-sm !p-1.5"><i class="fas fa-eye text-xs"></i></button></td></tr>
+          </tbody></table></div>
+        </div></div>
+        <!-- 审批流程 -->
+        <div id="tab-da" class="hidden"><div class="card"><h3 class="font-bold text-neutral-800 mb-6"><i class="fas fa-tasks text-primary mr-2"></i>定点审批流程</h3>
+          <div class="space-y-0">${[
+            {role:'Buyer', name:'Gavin TANG 唐帆', time:'2022/07/23 13:50:22', status:'已通过', icon:'fa-check', bg:'emerald'},
+            {role:'Buyer Team Leader', name:'Luca Luo 罗聪', time:'2022/07/23 16:20:32', status:'已通过', icon:'fa-check', bg:'emerald'},
+            {role:'Buyer Department Head', name:'Gary LIN 林雄', time:'2022/07/24 13:21:12', status:'已通过', icon:'fa-check', bg:'emerald'},
+            {role:'Buyer Department VP', name:'Jack WANG 王意', time:'2022/07/25 09:21:52', status:'已通过', icon:'fa-check', bg:'emerald'},
+            {role:'Applicant', name:'Essie DING 丁紫薇', time:'2022/07/25 13:10:52', status:'审批中', icon:'fa-spinner', bg:'primary', spin:true},
+            {role:'Fina BP', name:'Cassie ZHANG 张燕', time:'-', status:'待审批', icon:'fa-clock', bg:'neutral'},
+            {role:'Attachments Confirm', name:'Chelsea XING 邢辰', time:'-', status:'待审批', icon:'fa-clock', bg:'neutral'},
+          ].map((s,i,arr)=>`<div class="flex gap-4"><div class="flex flex-col items-center">
+            <div class="w-10 h-10 rounded-full bg-${s.bg}-100 flex items-center justify-center${s.bg==='primary'?' ring-2 ring-primary':''}"><i class="fas ${s.icon} text-${s.bg==='primary'?'primary':s.bg+'-500'}${s.spin?' animate-spin':''}"></i></div>
+            ${i<arr.length-1?'<div class="w-0.5 h-12 bg-'+s.bg+'-200"></div>':''}</div>
+            <div class="${i<arr.length-1?'pb-6':''}"><div class="flex items-center gap-2 mb-1"><span class="font-bold ${s.bg==='primary'?'text-primary':'text-neutral-800'}">${s.role}</span><span class="badge-${s.bg==='primary'?'warning':s.bg==='emerald'?'success':'neutral'}">${s.status}</span></div>
+            <p class="text-sm text-neutral-600">${s.name}</p><p class="text-xs text-neutral-400">${s.time}</p></div></div>`).join('')}
+          </div>
+          <div class="mt-6 p-4 bg-emerald-50 rounded-lg border border-emerald-200"><p class="text-sm text-emerald-700"><i class="fas fa-comment mr-2"></i><b>审批意见：</b>加快流程，予以通过。</p></div>
+        </div></div>
+        <!-- 附件 -->
+        <div id="tab-df" class="hidden"><div class="card"><div class="flex items-center justify-between mb-4"><h3 class="font-bold text-neutral-800"><i class="fas fa-paperclip text-primary mr-2"></i>附件</h3><button class="btn btn-primary btn-sm"><i class="fas fa-upload"></i> 上传</button></div>
+          <div class="table-w"><table class="table-m table-z"><thead><tr><th>文件名称</th><th>类型</th><th>部门</th><th>大小</th><th>操作</th></tr></thead><tbody>
+            <tr><td><div class="flex items-center gap-2"><i class="fas fa-file-pdf text-red-500"></i>Legal-PP-032-蔚来汽车零公里质量索赔协议.pdf</div></td><td><span class="badge-neutral">合同协议类</span></td><td>质量部、法务部、采购部</td><td>2.3 MB</td><td><button class="btn btn-ghost btn-sm !p-1.5"><i class="fas fa-download text-xs"></i></button></td></tr>
+            <tr><td><div class="flex items-center gap-2"><i class="fas fa-file-excel text-emerald-500"></i>报价模板-Firefly-Rear-Knuckle.xlsx</div></td><td><span class="badge-neutral">报价模板</span></td><td>采购部</td><td>156 KB</td><td><button class="btn btn-ghost btn-sm !p-1.5"><i class="fas fa-download text-xs"></i></button></td></tr>
+            <tr><td><div class="flex items-center gap-2"><i class="fas fa-file-pdf text-red-500"></i>采购通则 v3.2.pdf</div></td><td><span class="badge-neutral">采购通则</span></td><td>采购部</td><td>5.1 MB</td><td><button class="btn btn-ghost btn-sm !p-1.5"><i class="fas fa-download text-xs"></i></button></td></tr>
+          </tbody></table></div>
+        </div></div>
+      </div>
+    `);
+  });
+
+  function switchDetailTab(el, id) {
+    el.parentElement.querySelectorAll('.tab-item').forEach(t=>t.classList.remove('active'));
+    el.classList.add('active');
+    document.getElementById('detail-tabs').querySelectorAll(':scope > div').forEach(d=>d.classList.add('hidden'));
+    document.getElementById('tab-'+id).classList.remove('hidden');
+  }
+
+  // ============================================================
+  // PAGE: 新增询报价
+  // ============================================================
+  registerRoute('rfq-create', (params) => {
+    const isEdit = !!params.edit;
+    setPage(isEdit?'编辑询报价':'新增询报价', isEdit?`寻源报价 / 编辑 ${params.edit}`:'寻源报价 / 新增询报价',
+      '<button class="btn btn-ghost" onclick="navigate(\'rfq-list\')"><i class="fas fa-save mr-1"></i>保存草稿</button><button class="btn btn-primary" onclick="if(confirm(\'确认发布？\')){alert(\'发布成功\');navigate(\'rfq-list\')}"><i class="fas fa-paper-plane mr-1"></i>发布</button>',
+      `
+      <div class="card mb-6"><div class="flex items-center justify-between">
+        ${['基本信息','采购零部件','商务前提','预计采购量','附件'].map((s,i)=>`<div class="flex items-center gap-2${i>0?'':''}">${i>0?'<div class="w-12 h-0.5 bg-neutral-200"></div>':''}<div class="step-dot ${i===0?'bg-primary text-white':'bg-neutral-200 text-neutral-400'}">${i+1}</div><span class="text-xs ${i===0?'text-primary font-medium':'text-neutral-400'}">${s}</span></div>`).join('')}
+      </div></div>
+
+      <section class="card mb-6"><h2 class="text-base font-bold text-neutral-800 mb-4"><i class="fas fa-info-circle text-primary mr-2"></i>基本信息</h2>
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+          <div><label class="form-label">报价包名称 <span class="text-red-500">*</span></label><input type="text" class="form-input" value="SU9-座椅总成-报价明细"></div>
+          <div><label class="form-label">RFQ名称</label><input type="text" class="form-input" value="SU9-座椅总成-报价明细" readonly></div>
+          <div><label class="form-label">项目编号</label><input type="text" class="form-input" value="xiaomibeijing2025"></div>
+          <div><label class="form-label">工厂 <span class="text-red-500">*</span></label><select class="form-select"><option selected>北京小米汽车B2（8043）</option><option>ShangHai</option><option>HeFei</option></select></div>
+          <div><label class="form-label">品类 <span class="text-red-500">*</span></label><input type="text" class="form-input" value="内饰/座椅"></div>
+          <div><label class="form-label">关联SOR</label><div class="flex gap-2"><input type="text" class="form-input flex-1" value="SOR-SU9-座椅总成_20260123" readonly><button class="btn btn-secondary btn-sm !px-3"><i class="fas fa-link"></i></button></div></div>
+          <div><label class="form-label">采购工程师 <span class="text-red-500">*</span></label><div class="flex gap-2"><input type="text" class="form-input flex-1" value="张小米" readonly><button class="btn btn-secondary btn-sm !px-3" onclick="openDialog('person')"><i class="fas fa-search"></i></button></div></div>
+          <div><label class="form-label">采购员 <span class="text-red-500">*</span></label><div class="flex gap-2"><input type="text" class="form-input flex-1" value="Gavin TANG 唐帆" readonly><button class="btn btn-secondary btn-sm !px-3" onclick="openDialog('person')"><i class="fas fa-search"></i></button></div></div>
+          <div><label class="form-label">研发工程师</label><div class="flex gap-2"><input type="text" class="form-input flex-1" value="李大米" readonly><button class="btn btn-secondary btn-sm !px-3" onclick="openDialog('person')"><i class="fas fa-search"></i></button></div></div>
+          <div><label class="form-label">单车平均目标价</label><input type="number" class="form-input" value="617"></div>
+          <div><label class="form-label">定点要求完成时间</label><input type="date" class="form-input" value="2025-12-31"></div>
+          <div><label class="form-label">是否封标 <span class="text-red-500">*</span></label><select class="form-select"><option selected>是</option><option>否</option></select></div>
+        </div>
+      </section>
+
+      <section class="card mb-6"><div class="flex items-center justify-between mb-4"><h2 class="text-base font-bold text-neutral-800"><i class="fas fa-box text-primary mr-2"></i>采购零部件</h2><div class="flex gap-2"><button class="btn btn-primary btn-sm" onclick="openDialog('add-material')"><i class="fas fa-plus"></i> 新增</button><button class="btn btn-ghost btn-sm" onclick="openDialog('temp-material')"><i class="fas fa-clock"></i> 临时物料</button></div></div>
+        <div class="table-w"><table class="table-m table-z"><thead><tr><th><input type="checkbox" class="rounded text-primary"></th><th>序号</th><th>标识</th><th>零部件号</th><th>物料名称</th><th>单位</th><th>技术方案变化</th><th>类型</th><th>开发策略</th><th>研发工程师</th><th>单车用量</th><th>装配比例</th></tr></thead><tbody>
+          <tr><td><input type="checkbox"></td><td>1</td><td><span class="badge-primary">新增</span></td><td class="font-medium text-primary">P1000010100032</td><td>左A柱下内饰板总成</td><td>个</td><td><span class="badge-success">是</span></td><td>BOM件</td><td>New</td><td>李大米</td><td>1</td><td>100%</td></tr>
+          <tr><td><input type="checkbox"></td><td>2</td><td><span class="badge-primary">新增</span></td><td class="font-medium text-primary">P1000010100033</td><td>右A柱下内饰板总成</td><td>个</td><td><span class="badge-neutral">否</span></td><td>BOM件</td><td>New</td><td>李大米</td><td>1</td><td>100%</td></tr>
+        </tbody></table></div>
+      </section>
+
+      <section class="card mb-6"><h2 class="text-base font-bold text-neutral-800 mb-4"><i class="fas fa-handshake text-primary mr-2"></i>商务前提</h2>
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+          <div><label class="form-label">报价货币 <span class="text-red-500">*</span></label><select class="form-select"><option selected>人民币-元</option><option>美元-USD</option></select></div>
+          <div><label class="form-label">报价方式 <span class="text-red-500">*</span></label><select class="form-select"><option selected>单价报价</option><option>总价报价</option></select></div>
+          <div><label class="form-label">本轮截止时间 <span class="text-red-500">*</span></label><input type="datetime-local" class="form-input"></div>
+          <div><label class="form-label">是否分摊</label><select class="form-select"><option selected>是</option><option>否</option></select></div>
+          <div><label class="form-label">是否自动发送通知函</label><select class="form-select"><option selected>是</option><option>否</option></select></div>
+        </div>
+        <div class="mt-4"><label class="form-label">其他说明</label><textarea class="form-input" rows="2">无</textarea></div>
+      </section>
+
+      <section class="card mb-6"><div class="flex items-center justify-between mb-4"><h2 class="text-base font-bold text-neutral-800"><i class="fas fa-chart-line text-primary mr-2"></i>预计采购量</h2><button class="btn btn-ghost btn-sm"><i class="fas fa-plus mr-1"></i>新增</button></div>
+        <div class="table-w"><table class="table-m table-z"><thead><tr><th>序号</th><th>工厂</th><th>零部件号</th><th>零部件名称</th><th>2029</th><th>2030</th><th>2031</th><th>全部</th></tr></thead><tbody>
+          <tr><td>1</td><td>小米工厂</td><td>P1000010100032</td><td>左A柱下内饰板总成</td><td><input type="number" class="form-input !py-1 text-right" value="50000"></td><td><input type="number" class="form-input !py-1 text-right" value="80000"></td><td><input type="number" class="form-input !py-1 text-right" value="100000"></td><td class="text-right font-medium">230,000</td></tr>
+          <tr><td>2</td><td>小米工厂</td><td>P1000010100033</td><td>右A柱下内饰板总成</td><td><input type="number" class="form-input !py-1 text-right" value="50000"></td><td><input type="number" class="form-input !py-1 text-right" value="80000"></td><td><input type="number" class="form-input !py-1 text-right" value="100000"></td><td class="text-right font-medium">230,000</td></tr>
+        </tbody></table></div>
+      </section>
+
+      <section class="card mb-6"><div class="flex items-center justify-between mb-4"><h2 class="text-base font-bold text-neutral-800"><i class="fas fa-paperclip text-primary mr-2"></i>附件</h2><button class="btn btn-primary btn-sm"><i class="fas fa-upload"></i> 上传</button></div>
+        <div class="table-w"><table class="table-m table-z"><thead><tr><th>文件名称</th><th>类型</th><th>部门</th><th>操作</th></tr></thead><tbody>
+          <tr><td><div class="flex items-center gap-2"><i class="fas fa-file-pdf text-red-500"></i>Legal-PP-032 Claim Agreement</div></td><td><span class="badge-neutral">合同协议类</span></td><td>质量部、法务部、采购部</td><td><button class="btn btn-ghost btn-sm !p-1.5 text-red-400"><i class="fas fa-trash text-xs"></i></button></td></tr>
+        </tbody></table></div>
+      </section>
+
+      <div class="flex items-center justify-between">
+        <button class="btn btn-ghost" onclick="navigate('rfq-list')"><i class="fas fa-arrow-left mr-1"></i>取消</button>
+        <div class="flex gap-3"><button class="btn btn-ghost"><i class="fas fa-save mr-1"></i>保存草稿</button><button class="btn btn-primary" onclick="if(confirm('确认发布？')){alert('发布成功');navigate('rfq-list')}"><i class="fas fa-paper-plane mr-1"></i>发布</button></div>
+      </div>
+    `);
+  });
+
+  // ============================================================
+  // PAGE: 供应商报价列表
+  // ============================================================
+  registerRoute('supplier-list', () => {
+    setPage('供应商报价列表', '采购协同 / 生产报价列表', '',
+      `<div class="card mb-6"><div class="flex flex-wrap items-end gap-4">
+        <div class="flex-1 min-w-[180px]"><label class="form-label">报价包编码</label><input type="text" class="form-input" placeholder="搜索..." id="sq-code"></div>
+        <div class="flex-1 min-w-[180px]"><label class="form-label">报价状态</label><select class="form-select" id="sq-st"><option value="">全部</option><option>未报价</option><option>已报价</option><option>已关闭</option></select></div>
+        <div class="flex gap-2"><button class="btn btn-primary" onclick="filterSQ()"><i class="fas fa-search"></i> 查询</button><button class="btn btn-ghost" onclick="document.getElementById('sq-code').value='';document.getElementById('sq-st').value='';filterSQ()"><i class="fas fa-undo"></i> 重置</button></div>
+      </div></div>
+      <div class="table-w bg-white"><table class="table-m table-z"><thead><tr><th>报价包编码</th><th>报价包名称</th><th>报价状态</th><th>轮次</th><th>截止时间</th><th>创建时间</th><th>操作</th></tr></thead><tbody id="sq-tbody"></tbody></table></div>
+    `);
+    window._sqFiltered = [...SQ_DATA];
+    renderSQTable();
+  });
+
+  function renderSQTable() {
+    const data = window._sqFiltered || SQ_DATA;
+    const tb = document.getElementById('sq-tbody');
+    if (!tb) return;
+    tb.innerHTML = data.map(r => `<tr>
+      <td><a class="text-primary font-medium cursor-pointer hover:underline" onclick="navigate('supplier-quote',{code:'${r.code}'})">${r.code}</a></td>
+      <td class="max-w-[200px] truncate">${r.name}</td>
+      <td>${renderStatus(r.status)}</td><td class="text-center">${r.round}</td>
+      <td class="text-neutral-500">${r.deadline}</td><td class="text-neutral-400 text-xs">${r.created}</td>
+      <td>${r.status==='未报价'?`<a class="btn btn-primary btn-sm !py-1 cursor-pointer" onclick="navigate('supplier-quote',{code:'${r.code}'})">报价</a>`:r.status==='已报价'?`<a class="btn btn-secondary btn-sm !py-1 cursor-pointer" onclick="navigate('supplier-quote',{code:'${r.code}'})">修改</a>`:'<span class="text-neutral-300 text-xs">-</span>'}</td>
+    </tr>`).join('');
+  }
+  function filterSQ() {
+    const code = (document.getElementById('sq-code')?.value||'').toLowerCase();
+    const st = document.getElementById('sq-st')?.value||'';
+    window._sqFiltered = SQ_DATA.filter(r => {
+      if (code && !r.code.toLowerCase().includes(code) && !r.name.toLowerCase().includes(code)) return false;
+      if (st && r.status !== st) return false;
+      return true;
+    });
+    renderSQTable();
+  }
+
+  </script>
+
+  <script>
+
+// ============================================================
+// PAGE: 供应商参与报价
+// ============================================================
+registerRoute('supplier-quote', (params) => {
+  setPage('供应商参与报价', `RFQ2022103100002 · Firefly Rear Knuckle前转向节 · <span class="badge-warning">第2轮</span>`,
+    '<button class="btn btn-ghost btn-sm"><i class="fas fa-download mr-1"></i>下载模板</button><button class="btn btn-primary btn-sm" onclick="if(confirm(\'确认提交？\'))alert(\'提交成功\')"><i class="fas fa-paper-plane mr-1"></i>提交报价</button>',
+    `
+    <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+      <div class="card flex items-center gap-3"><div class="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center"><i class="fas fa-box text-primary"></i></div><div><p class="text-xs text-neutral-400">物料总数</p><p class="text-xl font-bold">2</p></div></div>
+      <div class="card flex items-center gap-3"><div class="w-10 h-10 rounded-lg bg-emerald-100 flex items-center justify-center"><i class="fas fa-check text-emerald-500"></i></div><div><p class="text-xs text-neutral-400">已报价</p><p class="text-xl font-bold text-emerald-600">1</p></div></div>
+      <div class="card flex items-center gap-3"><div class="w-10 h-10 rounded-lg bg-amber-100 flex items-center justify-center"><i class="fas fa-clock text-amber-500"></i></div><div><p class="text-xs text-neutral-400">待报价</p><p class="text-xl font-bold text-amber-600">1</p></div></div>
+      <div class="card flex items-center gap-3"><div class="w-10 h-10 rounded-lg bg-blue-100 flex items-center justify-center"><i class="fas fa-percentage text-blue-500"></i></div><div><p class="text-xs text-neutral-400">目标价达成</p><p class="text-xl font-bold text-blue-600">87%</p></div></div>
+    </div>
+
+    <!-- A价 -->
+    <div class="card mb-6">
+      <div class="flex items-center justify-between mb-4">
+        <div><h3 class="font-bold text-neutral-800"><span class="badge-primary mr-2">A价</span>P1000010100032 — 左A柱下内饰板总成</h3><p class="text-xs text-neutral-400 mt-1">目标价: ¥156.00</p></div>
+        <div class="flex gap-2"><button class="btn btn-ghost btn-sm" onclick="openDialog('ladder-set')"><i class="fas fa-layer-group mr-1"></i>设置阶梯</button></div>
+      </div>
+      <div class="table-w mb-4"><table class="table-m"><thead><tr><th>成本项</th><th class="text-right">单价 (元)</th><th class="text-right">占比</th></tr></thead><tbody>
+        ${[['材料费',68.50],['加工费',42.30],['表面处理',15.80],['包装费',3.20],['运输费',5.60],['管理费',12.40],['利润',8.20]].map(([n,v])=>
+          `<tr><td class="font-medium">${n}</td><td class="text-right"><input type="number" class="form-input !py-1 text-right w-28" value="${v}"></td><td class="text-right text-neutral-500">${(v/156*100).toFixed(1)}%</td></tr>`
+        ).join('')}
+        <tr class="bg-neutral-50 font-bold"><td>合计 (不含税)</td><td class="text-right text-primary">¥156.00</td><td class="text-right">100%</td></tr>
+        <tr class="bg-neutral-50"><td class="font-medium">税费 (13%)</td><td class="text-right">¥20.28</td><td></td></tr>
+        <tr class="bg-neutral-50 font-bold text-lg"><td>含税总价</td><td class="text-right text-primary">¥176.28</td><td></td></tr>
+      </tbody></table></div>
+      <div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
+        <div class="bg-neutral-50 rounded-xl p-4"><h4 class="text-sm font-medium text-neutral-600 mb-2">成本构成</h4><div id="pie-a" class="w-full h-[200px]"></div></div>
+        <div class="bg-neutral-50 rounded-xl p-4"><h4 class="text-sm font-medium text-neutral-600 mb-2">阶梯报价</h4>
+          <div class="table-w"><table class="table-m text-xs"><thead><tr><th>数量区间</th><th class="text-right">单价</th><th class="text-right">降幅</th></tr></thead><tbody>
+            <tr><td>1 - 10,000</td><td class="text-right">¥156.00</td><td class="text-right text-neutral-400">基准</td></tr>
+            <tr><td>10,001 - 50,000</td><td class="text-right">¥148.20</td><td class="text-right text-emerald-600">-5.0%</td></tr>
+            <tr><td>50,001 - 100,000</td><td class="text-right">¥142.00</td><td class="text-right text-emerald-600">-9.0%</td></tr>
+            <tr><td>100,001+</td><td class="text-right">¥136.50</td><td class="text-right text-emerald-600">-12.5%</td></tr>
+          </tbody></table></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 模具费用 -->
+    <div class="card mb-6"><div class="flex items-center justify-between mb-4"><h3 class="font-bold text-neutral-800"><i class="fas fa-project-diagram text-primary mr-2"></i>模具费用</h3><button class="btn btn-primary btn-sm"><i class="fas fa-plus"></i> 新增</button></div>
+      <div class="table-w"><table class="table-m table-z"><thead><tr><th>模具编号</th><th>名称</th><th>物料号</th><th class="text-right">费用</th><th>分摊方式</th><th class="text-right">数量</th><th class="text-right">单件分摊</th></tr></thead><tbody>
+        <tr><td class="font-medium text-primary">M-2022-001</td><td>左A柱内饰板注塑模具</td><td>P1000010100032</td><td class="text-right">¥380,000</td><td><span class="badge-neutral">按产量</span></td><td class="text-right">230,000</td><td class="text-right font-medium">¥1.65</td></tr>
+        <tr><td class="font-medium text-primary">M-2022-002</td><td>右A柱内饰板注塑模具</td><td>P1000010100033</td><td class="text-right">¥380,000</td><td><span class="badge-neutral">按产量</span></td><td class="text-right">230,000</td><td class="text-right font-medium">¥1.65</td></tr>
+      </tbody></table></div>
+    </div>
+
+    <!-- 合作伙伴对比 -->
+    <div class="card"><h3 class="font-bold text-neutral-800 mb-4"><i class="fas fa-building text-primary mr-2"></i>合作伙伴报价对比</h3>
+      <div class="table-w mb-4"><table class="table-m table-z"><thead><tr><th>合作伙伴</th><th>物料号</th><th class="text-right">A价</th><th class="text-right">模具费</th><th class="text-right">含税总价</th><th>状态</th></tr></thead><tbody>
+        <tr><td><div class="flex items-center gap-2"><div class="w-6 h-6 bg-blue-100 rounded flex items-center justify-center text-xs font-bold text-blue-600">V</div>V21994 培奇爱</div></td><td>P1000010100032</td><td class="text-right">¥156.00</td><td class="text-right">¥380,000</td><td class="text-right font-medium">¥176.28</td><td><span class="badge-success">已报价</span></td></tr>
+        <tr><td><div class="flex items-center gap-2"><div class="w-6 h-6 bg-emerald-100 rounded flex items-center justify-center text-xs font-bold text-emerald-600">B</div>B0821 博世</div></td><td>P1000010100032</td><td class="text-right">¥162.50</td><td class="text-right">¥420,000</td><td class="text-right font-medium">¥183.63</td><td><span class="badge-success">已报价</span></td></tr>
+      </tbody></table></div>
+      <div class="bg-neutral-50 rounded-xl p-4"><h4 class="text-sm font-medium text-neutral-600 mb-2">报价对比</h4><div id="cmp-chart" class="w-full h-[250px]"></div></div>
+    </div>
+  `);
+  // init charts
+  setTimeout(() => {
+    const pie = echarts.init(document.getElementById('pie-a'));
+    pie.setOption({ color:['#FF7A00','#FFB400','#60A5FA','#34D399','#A78BFA','#F472B6','#FBBF24'], tooltip:{trigger:'item',formatter:'{b}: ¥{c} ({d}%)'},
+      series:[{type:'pie',radius:['40%','70%'],itemStyle:{borderRadius:6,borderColor:'#fff',borderWidth:2},label:{show:false},emphasis:{label:{show:true,fontSize:14,fontWeight:'bold'}},
+        data:[{value:68.50,name:'材料费'},{value:42.30,name:'加工费'},{value:15.80,name:'表面处理'},{value:3.20,name:'包装费'},{value:5.60,name:'运输费'},{value:12.40,name:'管理费'},{value:8.20,name:'利润'}]}] });
+    const bar = echarts.init(document.getElementById('cmp-chart'));
+    bar.setOption({ color:['#FF7A00','#FFB400'], tooltip:{trigger:'axis',axisPointer:{type:'shadow'}}, legend:{data:['培奇爱 V21994','博世 B0821']},
+      grid:{left:'3%',right:'4%',bottom:'3%',containLabel:true}, xAxis:{type:'category',data:['材料费','加工费','表面处理','包装费','运输费','管理费','利润']},
+      yAxis:{type:'value',name:'元'}, series:[ {name:'培奇爱 V21994',type:'bar',barWidth:'35%',data:[68.50,42.30,15.80,3.20,5.60,12.40,8.20],itemStyle:{borderRadius:[4,4,0,0]}},
+        {name:'博世 B0821',type:'bar',barWidth:'35%',data:[72.00,45.50,16.20,3.50,6.00,11.80,7.50],itemStyle:{borderRadius:[4,4,0,0]}}] });
+    window.addEventListener('resize',()=>{pie.resize();bar.resize();});
+  }, 100);
+});
+
+// ============================================================
+// PAGE: 合作伙伴评估
+// ============================================================
+registerRoute('partner-eval', () => {
+  setPage('维护合作伙伴评估结果', 'RFQ20221030100001 · Firefly Rear Knuckle后转向节',
+    '<button class="btn btn-primary btn-sm" onclick="alert(\'评估已保存\')"><i class="fas fa-save mr-1"></i>保存评估</button>',
+    `${[
+      { letter:'V', code:'V21994', name:'培奇爱汽车配件（太仓）有限公司', loc:'ShangHai', contact:'吴唯一', email:'12345678@163.com', status:'定点', letterStatus:'已发送',
+        evals:[{label:'技术评估',icon:'fa-cogs',val:'G',note:'技术方案成熟'},{label:'质量评估',icon:'fa-shield-alt',val:'G',note:'IATF16949认证'},{label:'财务评估',icon:'fa-chart-pie',val:'G',note:'信用评级A'}] },
+      { letter:'B', code:'B0821', name:'博世汽车部件（苏州）有限公司', loc:'HeFei', contact:'张三', email:'zhangsan@bosch.com', status:'评审中', letterStatus:'未发送',
+        evals:[{label:'技术评估',icon:'fa-cogs',val:'Y',note:'部分工艺需优化'},{label:'质量评估',icon:'fa-shield-alt',val:'G',note:'质量体系健全'},{label:'财务评估',icon:'fa-chart-pie',val:'G',note:'财务稳定'}] },
+      { letter:'C', code:'C15032', name:'采埃孚汽车系统（上海）有限公司', loc:'ShangHai', contact:'王五', email:'wangwu@zf.com', status:'未通过', letterStatus:'-',
+        evals:[{label:'技术评估',icon:'fa-cogs',val:'G',note:'技术能力达标'},{label:'质量评估',icon:'fa-shield-alt',val:'R',note:'近期质量事故较多'},{label:'财务评估',icon:'fa-chart-pie',val:'G',note:'财务良好'}] },
+    ].map(p=>`
+      <div class="card mb-4">
+        <div class="flex items-center justify-between mb-4">
+          <div class="flex items-center gap-3"><div class="w-10 h-10 bg-${p.letter==='V'?'blue':p.letter==='B'?'emerald':'amber'}-100 rounded-xl flex items-center justify-center font-bold text-${p.letter==='V'?'blue':p.letter==='B'?'emerald':'amber'}-600">${p.letter}</div>
+            <div><h3 class="font-bold text-neutral-800">${p.code} ${p.name}</h3><p class="text-xs text-neutral-400">${p.loc} · ${p.contact} · ${p.email}</p></div></div>
+          <span class="badge-${p.status==='定点'?'success':p.status==='评审中'?'warning':'danger'}">${p.status}</span>
+        </div>
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+          ${p.evals.map(e=>`<div class="p-4 bg-neutral-50 rounded-xl">
+            <div class="flex items-center justify-between mb-3"><span class="text-sm font-medium text-neutral-700"><i class="fas ${e.icon} text-${e.val==='G'?'primary':e.val==='Y'?'amber-500':'red-500'} mr-2"></i>${e.label}</span><span class="badge-${e.val==='G'?'success':e.val==='Y'?'warning':'danger'}">${e.val}</span></div>
+            <select class="form-select text-sm"><option ${e.val==='G'?'selected':''}>G - Good (通过)</option><option ${e.val==='Y'?'selected':''}>Y - Yellow (待改进)</option><option ${e.val==='R'?'selected':''}>R - Red (不通过)</option></select>
+            <textarea class="form-input mt-2 text-xs" rows="2">${e.note}</textarea>
+          </div>`).join('')}
+        </div>
+        <div class="mt-4 p-4 border border-neutral-200 rounded-xl flex items-center justify-between">
+          <div class="flex items-center gap-3"><i class="fas fa-file-signature text-xl ${p.letterStatus==='已发送'?'text-primary':'text-neutral-300'}"></i><div><p class="text-sm font-medium">定点通知函</p><p class="text-xs text-neutral-400">状态: ${p.letterStatus==='已发送'?'<span class="badge-info">已发送</span>':'<span class="badge-neutral">未发送</span>'}</p></div></div>
+          ${p.letterStatus==='已发送'?'<button class="btn btn-secondary btn-sm"><i class="fas fa-paper-plane mr-1"></i>重新发送</button>':'<button class="btn btn-primary btn-sm"><i class="fas fa-paper-plane mr-1"></i>发送通知函</button>'}
+        </div>
+      </div>
+    `).join('')}`
+  );
+});
+
+// ============================================================
+// PAGE: 价格比较
+// ============================================================
+registerRoute('price-cmp', () => {
+  const suppliers = [
+    { name:'供应商 A', data:[120.50,85.75,60.20,45.30,15.80,22.45] },
+    { name:'供应商 B', data:[110.25,92.50,55.75,50.10,18.30,20.85] },
+    { name:'供应商 C', data:[135.80,78.40,65.30,42.60,12.50,24.15] },
+  ];
+  const labels = ['材料成本','制造成本','人工成本','设备成本','运输成本','税费'];
+  setPage('价格比较工具', '', '<button class="btn btn-sm" style="background:rgba(255,255,255,0.2);color:#fff" onclick="alert(\'已保存\')"><i class="fas fa-save mr-1"></i>保存</button>',
+    `<div class="card mb-6"><h2 class="text-base font-bold text-neutral-800 mb-4"><i class="fas fa-cog text-primary mr-2"></i>比较设置</h2>
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <div><label class="form-label">产品名称</label><input type="text" class="form-input" value="左A柱下内饰板总成"></div>
+        <div><label class="form-label">比较维度</label><div class="grid grid-cols-2 gap-2">${labels.slice(0,4).map(l=>`<label class="flex items-center p-2 border border-neutral-300 rounded-lg cursor-pointer hover:bg-neutral-50 text-sm"><input type="checkbox" checked class="mr-2 text-primary"> ${l}</label>`).join('')}</div></div>
+        <div><label class="form-label">供应商数量</label><div class="flex items-center gap-2"><button class="w-9 h-9 flex items-center justify-center border rounded-lg hover:bg-neutral-50"><i class="fas fa-minus text-xs"></i></button><input type="number" class="form-input w-16 text-center" value="3"><button class="w-9 h-9 flex items-center justify-center border rounded-lg hover:bg-neutral-50"><i class="fas fa-plus text-xs"></i></button></div></div>
+      </div></div>
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
+      <div class="card"><h3 class="text-sm font-semibold mb-3 text-neutral-600">总成本比较</h3><div id="pc-bar" class="w-full h-[250px]"></div></div>
+      <div class="card"><h3 class="text-sm font-semibold mb-3 text-neutral-600">成本构成</h3><div id="pc-pie" class="w-full h-[250px]"></div></div>
+    </div>
+    <div class="card mb-6 overflow-x-auto"><h3 class="text-sm font-semibold mb-3 text-neutral-600">详细比较表</h3>
+      <table class="w-full text-sm"><thead><tr class="bg-neutral-100 text-neutral-600"><th class="py-2 px-4 text-left">成本类型</th>${suppliers.map(s=>`<th class="py-2 px-4 text-right">${s.name}</th>`).join('')}<th class="py-2 px-4 text-right">Benchmark</th></tr></thead><tbody>
+        ${labels.map((l,i)=>`<tr><td class="py-2 px-4 font-medium">${l}</td>${suppliers.map(s=>`<td class="py-2 px-4 text-right">${s.data[i].toFixed(2)}</td>`).join('')}<td class="py-2 px-4 text-right font-medium">${(suppliers.reduce((a,s)=>a+s.data[i],0)/3).toFixed(2)}</td></tr>`).join('')}
+        <tr class="bg-neutral-100 font-bold"><td class="py-2 px-4">总成本</td>${suppliers.map(s=>`<td class="py-2 px-4 text-right ${s.data.reduce((a,b)=>a+b,0)<350?'text-emerald-600':''}">${s.data.reduce((a,b)=>a+b,0).toFixed(2)}</td>`).join('')}<td class="py-2 px-4 text-right">${(suppliers.reduce((a,s)=>a+s.data.reduce((a,b)=>a+b,0),0)/3).toFixed(2)}</td></tr>
+      </tbody></table>
+    </div>
+    <div class="card"><h2 class="text-base font-bold text-neutral-800 mb-4"><i class="fas fa-lightbulb text-primary mr-2"></i>分析与建议</h2>
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div class="bg-emerald-50 p-4 rounded-xl border border-emerald-200"><h3 class="font-bold text-emerald-800 text-sm mb-2"><i class="fas fa-trophy mr-2"></i>最佳选择</h3><p class="text-sm text-emerald-700">供应商 B 总成本最低 (347.75元)，比基准值低 4.41元。</p></div>
+        <div class="bg-blue-50 p-4 rounded-xl border border-blue-200"><h3 class="font-bold text-blue-800 text-sm mb-2"><i class="fas fa-chart-bar mr-2"></i>成本分析</h3><ul class="text-sm text-blue-700 space-y-1"><li><i class="fas fa-arrow-down text-emerald-500 mr-1"></i>供应商 B 人工成本最低</li><li><i class="fas fa-arrow-up text-red-500 mr-1"></i>供应商 C 材料成本最高</li></ul></div>
+        <div class="bg-amber-50 p-4 rounded-xl border border-amber-200"><h3 class="font-bold text-amber-800 text-sm mb-2"><i class="fas fa-lightbulb mr-2"></i>优化建议</h3><p class="text-sm text-amber-700">建议与供应商 B 进一步谈判降低制造和运输成本。</p></div>
+      </div>
+    </div>`
+  );
+  setTimeout(()=>{
+    echarts.init(document.getElementById('pc-bar')).setOption({color:['#FF7A00','#FFB400','#FFD166','#34D399'],tooltip:{trigger:'axis',axisPointer:{type:'shadow'}},grid:{left:'3%',right:'4%',bottom:'3%',containLabel:true},
+      xAxis:{type:'category',data:suppliers.map(s=>s.name)},yAxis:{type:'value',name:'元'},series:[{type:'bar',barWidth:'60%',data:[349.00,347.75,358.75],itemStyle:{borderRadius:[6,6,0,0]}}]});
+    echarts.init(document.getElementById('pc-pie')).setOption({color:['#FF7A00','#FFB400','#60A5FA','#34D399','#A78BFA','#F472B6'],tooltip:{trigger:'item'},
+      legend:{orient:'vertical',left:10,data:labels},series:[{type:'pie',radius:['40%','70%'],itemStyle:{borderRadius:6,borderColor:'#fff',borderWidth:2},label:{show:false},data:labels.map((l,i)=>({value:suppliers[0].data[i],name:l}))}]});
+  },100);
+});
+
+// ============================================================
+// PAGE: 量纲
+// ============================================================
+registerRoute('dimension', () => {
+  setPage('量纲管理', '管理各零部件年度/季度产量预测',
+    '<button class="btn btn-secondary btn-sm"><i class="fas fa-file-export mr-1"></i>导出</button><button class="btn btn-primary btn-sm"><i class="fas fa-file-import mr-1"></i>导入</button>',
+    `<div class="card mb-6"><div class="flex flex-wrap items-end gap-4">
+      <div class="flex-1 min-w-[180px]"><label class="form-label">零部件号</label><input type="text" class="form-input" placeholder="搜索..."></div>
+      <div class="flex-1 min-w-[180px]"><label class="form-label">项目</label><select class="form-select"><option>全部</option><option>Pegasus-G1.F</option><option>SU9</option></select></div>
+      <button class="btn btn-primary"><i class="fas fa-search mr-1"></i>查询</button>
+    </div></div>
+    <div class="card"><div class="flex items-center justify-between mb-4"><h2 class="font-bold text-neutral-800"><i class="fas fa-table text-primary mr-2"></i>量纲明细</h2><button class="btn btn-ghost btn-sm"><i class="fas fa-plus mr-1"></i>新增行</button></div>
+      <div class="table-w"><table class="table-m table-z"><thead><tr><th>序号</th><th>工厂</th><th>零部件号</th><th>名称</th><th>2029</th><th>2030</th><th>2031</th><th class="font-bold">合计</th><th>操作</th></tr></thead><tbody>
+        ${[
+          ['小米工厂','P1000010100032','左A柱下内饰板总成',50000,80000,100000],
+          ['小米工厂','P1000010100033','右A柱下内饰板总成',50000,80000,100000],
+          ['小米工厂','P1000010100034','B柱上内饰板 LH',41500,66000,88000],
+        ].map((r,i)=>`<tr><td>${i+1}</td><td>${r[0]}</td><td class="font-medium text-primary">${r[1]}</td><td>${r[2]}</td><td class="text-right">${r[3].toLocaleString()}</td><td class="text-right">${r[4].toLocaleString()}</td><td class="text-right">${r[5].toLocaleString()}</td><td class="text-right font-bold text-primary">${(r[3]+r[4]+r[5]).toLocaleString()}</td><td><button class="btn btn-ghost btn-sm !p-1.5"><i class="fas fa-pen text-xs"></i></button></td></tr>`).join('')}
+      </tbody></table></div>
+    </div>`
+  );
+});
+
+// ============================================================
+// PAGE: 阶梯价
+// ============================================================
+registerRoute('ladder', () => {
+  setPage('阶梯价管理', 'P1000010100032 · 左A柱下内饰板总成 · V21994 培奇爱',
+    '<button class="btn btn-secondary btn-sm"><i class="fas fa-file-export mr-1"></i>导出</button><button class="btn btn-primary btn-sm" onclick="alert(\'已保存\')"><i class="fas fa-save mr-1"></i>保存</button>',
+    `<div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+      <div class="card flex items-center gap-3"><div class="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center"><i class="fas fa-layer-group text-primary"></i></div><div><p class="text-xs text-neutral-400">阶梯数</p><p class="text-xl font-bold">4</p></div></div>
+      <div class="card flex items-center gap-3"><div class="w-10 h-10 rounded-lg bg-emerald-100 flex items-center justify-center"><i class="fas fa-tag text-emerald-500"></i></div><div><p class="text-xs text-neutral-400">基准单价</p><p class="text-xl font-bold text-emerald-600">¥156.00</p></div></div>
+      <div class="card flex items-center gap-3"><div class="w-10 h-10 rounded-lg bg-blue-100 flex items-center justify-center"><i class="fas fa-percentage text-blue-500"></i></div><div><p class="text-xs text-neutral-400">最大降幅</p><p class="text-xl font-bold text-blue-600">-12.5%</p></div></div>
+      <div class="card flex items-center gap-3"><div class="w-10 h-10 rounded-lg bg-amber-100 flex items-center justify-center"><i class="fas fa-chart-line text-amber-500"></i></div><div><p class="text-xs text-neutral-400">预计采购量</p><p class="text-xl font-bold text-amber-600">230,000</p></div></div>
+    </div>
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      <div class="card"><h2 class="font-bold text-neutral-800 mb-4"><i class="fas fa-list-ol text-primary mr-2"></i>阶梯设置</h2>
+        <div class="table-w"><table class="table-m"><thead><tr><th>阶梯</th><th>起始</th><th>结束</th><th class="text-right">单价</th><th class="text-right">降幅</th><th class="text-right">适用数量</th><th class="text-right">小计</th></tr></thead><tbody>
+          ${[[1,10000,156.00],[10001,50000,148.20],[50001,100000,142.00],[100001,230000,136.50]].map((r,i)=>{
+            const qty=r[1]-r[0]+1, sub=qty*r[2], disc=((156-r[2])/156*100).toFixed(1);
+            return `<tr><td class="font-medium">${i+1}</td><td>${r[0].toLocaleString()}</td><td>${r[1].toLocaleString()}</td><td class="text-right">¥${r[2].toFixed(2)}</td><td class="text-right"><span class="badge-success">-${disc}%</span></td><td class="text-right text-neutral-500">${qty.toLocaleString()}</td><td class="text-right font-medium">¥${sub.toLocaleString()}</td></tr>`;
+          }).join('')}
+        </tbody></table></div>
+      </div>
+      <div class="card"><h2 class="font-bold text-neutral-800 mb-4"><i class="fas fa-chart-area text-primary mr-2"></i>价格曲线</h2><div id="ld-chart" class="w-full h-[300px]"></div>
+        <div class="mt-4 p-4 bg-neutral-50 rounded-xl grid grid-cols-2 gap-3 text-sm">
+          <div><span class="text-neutral-400">加权平均单价</span><p class="font-bold text-primary">¥143.07</p></div>
+          <div><span class="text-neutral-400">总成本（含模具）</span><p class="font-bold">¥33,283,100</p></div>
+        </div>
+      </div>
+    </div>`
+  );
+  setTimeout(()=>{
+    echarts.init(document.getElementById('ld-chart')).setOption({color:['#FF7A00'],tooltip:{trigger:'axis'},grid:{left:'3%',right:'4%',bottom:'3%',containLabel:true},
+      xAxis:{type:'category',data:['阶梯1\n1-10K','阶梯2\n10K-50K','阶梯3\n50K-100K','阶梯4\n100K-230K']},
+      yAxis:{type:'value',name:'元',min:v=>Math.floor(v.min*0.95)},
+      series:[{type:'line',data:[156,148.20,142,136.50],smooth:true,areaStyle:{color:{type:'linear',x:0,y:0,x2:0,y2:1,colorStops:[{offset:0,color:'rgba(255,122,0,0.3)'},{offset:1,color:'rgba(255,122,0,0)'}]}},lineStyle:{width:3},symbol:'circle',symbolSize:8,itemStyle:{borderWidth:2,borderColor:'#fff'}}]});
+  },100);
+});
+
+// ============================================================
+// PAGE: 附件管理
+// ============================================================
+registerRoute('attachment', () => {
+  setPage('附件管理', 'RFQ20221030100001 · Firefly Rear Knuckle后转向节',
+    '<button class="btn btn-secondary btn-sm"><i class="fas fa-download mr-1"></i>批量下载</button><button class="btn btn-primary btn-sm" onclick="openDialog(\'attachment-upload\')"><i class="fas fa-upload mr-1"></i>上传</button>',
+    `<div class="card mb-6"><div class="flex flex-wrap items-end gap-4">
+      <div class="flex-1 min-w-[180px]"><label class="form-label">文件名称</label><input type="text" class="form-input" placeholder="搜索..."></div>
+      <div class="flex-1 min-w-[180px]"><label class="form-label">文件类型</label><select class="form-select"><option value="">全部</option><option>合同协议类</option><option>报价模板</option><option>技术规范</option><option>采购通则</option></select></div>
+      <button class="btn btn-primary"><i class="fas fa-search mr-1"></i>查询</button>
+    </div></div>
+    <div class="card"><div class="flex items-center justify-between mb-4"><h2 class="font-bold text-neutral-800"><i class="fas fa-folder-open text-primary mr-2"></i>文件列表 <span class="badge-neutral ml-2">共 8 个</span></h2></div>
+      <div class="table-w"><table class="table-m table-z"><thead><tr><th><input type="checkbox" class="rounded text-primary"></th><th>文件名称</th><th>类型</th><th>部门</th><th>上传者</th><th>时间</th><th>大小</th><th>操作</th></tr></thead><tbody>
+        ${[
+          ['fa-file-pdf','text-red-500','Legal-PP-032-蔚来汽车零公里质量索赔协议.pdf','合同协议类','质量部、法务部','Gavin TANG','2022/7/20','2.3 MB'],
+          ['fa-file-excel','text-emerald-500','报价模板-Firefly-Rear-Knuckle.xlsx','报价模板','采购部','任亦喆','2022/7/18','156 KB'],
+          ['fa-file-pdf','text-red-500','采购通则 v3.2.pdf','采购通则','采购部','Gavin TANG','2022/6/27','5.1 MB'],
+          ['fa-file-pdf','text-red-500','技术规范-A柱内饰板-Rev2.pdf','技术规范','研发部','李大米','2022/7/15','3.8 MB'],
+          ['fa-file-word','text-blue-500','质量协议-Firefly项目.docx','合同协议类','质量部','王大锤','2022/7/12','890 KB'],
+          ['fa-file-excel','text-emerald-500','报价明细-V21994-第2轮.xlsx','报价模板','采购部','V21994 培奇爱','2022/7/25','312 KB'],
+          ['fa-file-pdf','text-red-500','模具报价单-M-2022-001.pdf','报价模板','采购部','V21994 培奇爱','2022/7/22','1.2 MB'],
+          ['fa-file-excel','text-emerald-500','材料成分报告-6061铝合金.xlsx','技术规范','研发部','李大米','2022/7/5','780 KB'],
+        ].map(f=>`<tr><td><input type="checkbox" class="rounded text-primary"></td><td><div class="flex items-center gap-2"><i class="fas ${f[0]} ${f[1]} text-lg"></i><span class="font-medium">${f[2]}</span></div></td><td><span class="badge-neutral">${f[3]}</span></td><td class="text-neutral-500 text-xs">${f[4]}</td><td>${f[5]}</td><td class="text-neutral-400 text-xs">${f[6]}</td><td class="text-neutral-400">${f[7]}</td><td><div class="flex gap-1"><button class="btn btn-ghost btn-sm !p-1.5"><i class="fas fa-download text-xs"></i></button><button class="btn btn-ghost btn-sm !p-1.5"><i class="fas fa-eye text-xs"></i></button><button class="btn btn-ghost btn-sm !p-1.5 text-red-400"><i class="fas fa-trash text-xs"></i></button></div></td></tr>`).join('')}
+      </tbody></table></div>
+    </div>`
+  );
+});
+
+// ============================================================
+// DIALOG DEFINITIONS
+// ============================================================
+const DIALOGS = {
+  'material': { title:'物料信息', w:600, body:`<div class="grid grid-cols-2 gap-4 text-sm">
+    <div><span class="text-neutral-400">零部件号</span><p class="font-medium">P1000010100032</p></div><div><span class="text-neutral-400">物料名称</span><p class="font-medium">A PILLAR LOWER LH</p></div>
+    <div><span class="text-neutral-400">中文名称</span><p class="font-medium">左A柱下内饰板总成</p></div><div><span class="text-neutral-400">单位</span><p class="font-medium">个</p></div>
+    <div><span class="text-neutral-400">类型</span><p class="font-medium">BOM件</p></div><div><span class="text-neutral-400">开发策略</span><p class="font-medium">New</p></div>
+    <div><span class="text-neutral-400">单车用量</span><p class="font-medium">1</p></div><div><span class="text-neutral-400">装配比例</span><p class="font-medium">100%</p></div>
+    <div><span class="text-neutral-400">技术方案变化</span><p><span class="badge-success">是</span></p></div><div><span class="text-neutral-400">研发工程师</span><p class="font-medium">李大米</p></div>
+    <div class="col-span-2"><span class="text-neutral-400">技术状态</span><p class="font-medium">采用新型铝合金材料，减重15%</p></div></div>` },
+
+  'partner': { title:'合作伙伴信息', w:550, body:`<div class="flex items-center gap-4 p-4 bg-neutral-50 rounded-xl mb-4">
+    <div class="w-14 h-14 bg-blue-100 rounded-xl flex items-center justify-center text-xl font-bold text-blue-600">V</div>
+    <div><p class="font-bold">V21994</p><p class="text-sm text-neutral-500">培奇爱汽车配件（太仓）有限公司</p><p class="text-xs text-neutral-400">ShangHai · 吴唯一</p></div></div>
+    <div class="grid grid-cols-2 gap-4 text-sm"><div><span class="text-neutral-400">邮箱</span><p class="text-primary">12345678@163.com</p></div><div><span class="text-neutral-400">技术评估</span><p><span class="badge-success">G</span></p></div><div><span class="text-neutral-400">质量评估</span><p><span class="badge-success">G</span></p></div><div><span class="text-neutral-400">财务评估</span><p><span class="badge-success">G</span></p></div></div>` },
+
+  'person': { title:'选择人员', w:500, body:`<input type="text" class="form-input mb-4" placeholder="搜索姓名..." oninput="document.querySelectorAll('.pi').forEach(e=>{e.style.display=e.dataset.n.toLowerCase().includes(this.value.toLowerCase())?'':'none'})">
+    <div class="space-y-2 max-h-[300px] overflow-y-auto">${[
+      ['张小米','采购工程师','采购部'],['Gavin TANG 唐帆','Buyer','采购部'],['李大米','研发工程师','研发部'],
+      ['Luca Luo 罗聪','Buyer Team Leader','采购部'],['Gary LIN 林雄','Department Head','采购部'],['Jack WANG 王意','Department VP','采购部'],
+      ['Essie DING 丁紫薇','Applicant','采购部'],['王大锤','质量工程师','质量部'],
+    ].map(([n,r,d])=>`<label class="pi flex items-center gap-3 p-3 rounded-lg border border-neutral-200 cursor-pointer hover:bg-neutral-50" data-n="${n}"><input type="radio" name="person" class="text-primary"><div class="w-8 h-8 bg-primary/10 rounded-full flex items-center justify-center text-xs font-bold text-primary">${n[0]}</div><div class="flex-1"><p class="text-sm font-medium">${n}</p><p class="text-xs text-neutral-400">${r} · ${d}</p></div></label>`).join('')}</div>`,
+    footer:'<button class="btn btn-ghost" onclick="closeDialog()">取消</button><button class="btn btn-primary" onclick="closeDialog()">确定</button>' },
+
+  'add-material': { title:'新增物料', w:600, body:`<input type="text" class="form-input mb-4" placeholder="搜索零部件号或名称...">
+    <div class="table-w max-h-[300px] overflow-y-auto"><table class="table-m table-z text-xs"><thead><tr><th><input type="checkbox" class="rounded text-primary"></th><th>零部件号</th><th>名称</th><th>类型</th><th>工程师</th></tr></thead><tbody>
+      ${[['P1000010100034','B柱上内饰板 LH','BOM件','李大米'],['P1000010100035','B柱上内饰板 RH','BOM件','李大米'],['P1000010100036','顶棚总成','BOM件','王大锤'],['P1000010100037','门槛内饰板 LH','BOM件','李大米']].map(r=>`<tr><td><input type="checkbox" class="rounded text-primary"></td><td class="font-medium">${r[0]}</td><td>${r[1]}</td><td>${r[2]}</td><td>${r[3]}</td></tr>`).join('')}
+    </tbody></table></div>`,
+    footer:'<button class="btn btn-ghost" onclick="closeDialog()">取消</button><button class="btn btn-primary" onclick="closeDialog()">添加</button>' },
+
+  'temp-material': { title:'新增临时物料', w:500, body:`<div class="space-y-4">
+    <div><label class="form-label">临时物料名称 <span class="text-red-500">*</span></label><input type="text" class="form-input" placeholder="输入名称"></div>
+    <div><label class="form-label">描述</label><textarea class="form-input" rows="3" placeholder="描述..."></textarea></div>
+    <div class="grid grid-cols-2 gap-4"><div><label class="form-label">单位</label><select class="form-select"><option>个</option><option>件</option><option>套</option></select></div><div><label class="form-label">单车用量</label><input type="number" class="form-input" value="1"></div></div>
+    <div class="p-3 bg-amber-50 rounded-lg border border-amber-200 text-sm text-amber-700"><i class="fas fa-exclamation-triangle mr-1"></i>临时物料需在正式系统中补录后方可定点。</div></div>`,
+    footer:'<button class="btn btn-ghost" onclick="closeDialog()">取消</button><button class="btn btn-primary" onclick="closeDialog()">确定</button>' },
+
+  'quote-round': { title:'新增报价轮次', w:450, body:`<div class="space-y-4">
+    <div class="p-4 bg-neutral-50 rounded-lg text-sm"><p class="text-neutral-400">当前轮次</p><p class="text-2xl font-bold">第 2 轮</p></div>
+    <div><label class="form-label">新轮次截止时间 <span class="text-red-500">*</span></label><input type="datetime-local" class="form-input"></div>
+    <div><label class="form-label">是否封标</label><select class="form-select"><option>是</option><option>否</option></select></div>
+    <div class="p-3 bg-blue-50 rounded-lg border border-blue-200 text-sm text-blue-700"><i class="fas fa-info-circle mr-1"></i>新增轮次后，所有供应商将收到通知。</div></div>`,
+    footer:'<button class="btn btn-ghost" onclick="closeDialog()">取消</button><button class="btn btn-primary" onclick="closeDialog()">创建第 3 轮</button>' },
+
+  'attachment-upload': { title:'上传附件', w:500, body:`<div class="space-y-4">
+    <div class="border-2 border-dashed border-neutral-300 rounded-xl p-8 text-center hover:border-primary transition-colors cursor-pointer">
+      <i class="fas fa-cloud-upload-alt text-3xl text-neutral-300 mb-2"></i><p class="text-sm text-neutral-500">点击或拖拽文件上传</p></div>
+    <div><label class="form-label">文件类型 <span class="text-red-500">*</span></label><select class="form-select"><option>合同协议类</option><option>报价模板</option><option>技术规范</option><option>其他</option></select></div></div>`,
+    footer:'<button class="btn btn-ghost" onclick="closeDialog()">取消</button><button class="btn btn-primary" onclick="closeDialog()">上传</button>' },
+
+  'ladder-set': { title:'设置阶梯报价', w:550, body:`<div class="table-w"><table class="table-m text-sm"><thead><tr><th>阶梯</th><th>起始</th><th>结束</th><th class="text-right">单价</th></tr></thead><tbody>
+    ${[[1,10000,156.00],[10001,50000,148.20],[50001,100000,142.00],[100001,999999,136.50]].map((r,i)=>`<tr><td>${i+1}</td><td><input type="number" class="form-input !py-1" value="${r[0]}"></td><td><input type="number" class="form-input !py-1" value="${r[1]}"></td><td><input type="number" class="form-input !py-1 text-right" value="${r[2]}"></td></tr>`).join('')}
+  </tbody></table></div><button class="btn btn-ghost btn-sm mt-3"><i class="fas fa-plus mr-1"></i>添加阶梯</button>`,
+    footer:'<button class="btn btn-ghost" onclick="closeDialog()">取消</button><button class="btn btn-primary" onclick="closeDialog()">保存</button>' },
+
+  'dimension-view': { title:'量纲查看', w:600, body:`<div class="table-w"><table class="table-m table-z text-sm"><thead><tr><th>年份</th><th class="text-right">Q1</th><th class="text-right">Q2</th><th class="text-right">Q3</th><th class="text-right">Q4</th><th class="text-right">合计</th></tr></thead><tbody>
+    <tr><td class="font-medium">2029</td><td class="text-right">12,000</td><td class="text-right">13,500</td><td class="text-right">12,500</td><td class="text-right">12,000</td><td class="text-right font-medium">50,000</td></tr>
+    <tr><td class="font-medium">2030</td><td class="text-right">18,000</td><td class="text-right">20,000</td><td class="text-right">22,000</td><td class="text-right">20,000</td><td class="text-right font-medium">80,000</td></tr>
+    <tr><td class="font-medium">2031</td><td class="text-right">23,000</td><td class="text-right">25,000</td><td class="text-right">27,000</td><td class="text-right">25,000</td><td class="text-right font-medium">100,000</td></tr>
+    <tr class="bg-neutral-100 font-bold"><td>合计</td><td class="text-right">53,000</td><td class="text-right">58,500</td><td class="text-right">61,500</td><td class="text-right">57,000</td><td class="text-right text-primary">230,000</td></tr>
+  </tbody></table></div>` },
+
+  'material-quote': { title:'查看物料报价', w:600, body:`<div class="flex items-center justify-between p-3 bg-neutral-50 rounded-lg mb-4"><p class="text-sm">P1000010100032 · 左A柱下内饰板总成</p><span class="badge-success">已报价</span></div>
+    <div class="table-w"><table class="table-m text-sm"><thead><tr><th>成本项</th><th class="text-right">金额</th><th class="text-right">占比</th></tr></thead><tbody>
+    ${[['材料费',68.50],['加工费',42.30],['表面处理',15.80],['包装费',3.20],['运输费',5.60],['管理费',12.40],['利润',8.20]].map(([n,v])=>`<tr><td>${n}</td><td class="text-right">¥${v.toFixed(2)}</td><td class="text-right">${(v/156*100).toFixed(1)}%</td></tr>`).join('')}
+    <tr class="font-bold bg-neutral-50"><td>不含税合计</td><td class="text-right text-primary">¥156.00</td><td class="text-right">100%</td></tr></tbody></table></div>` },
+
+  'partner-quote': { title:'查看合作伙伴报价', w:600, body:`<div class="flex items-center gap-3 p-3 bg-blue-50 rounded-lg mb-4"><div class="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center font-bold text-blue-600">V</div><div><p class="font-bold">V21994 培奇爱</p><p class="text-xs text-neutral-400">ShangHai · 吴唯一</p></div></div>
+    <div class="table-w"><table class="table-m table-z text-sm"><thead><tr><th>物料号</th><th>名称</th><th class="text-right">A价</th><th class="text-right">含税价</th><th>状态</th></tr></thead><tbody>
+    <tr><td class="font-medium text-primary">P1000010100032</td><td>左A柱下内饰板总成</td><td class="text-right">¥156.00</td><td class="text-right">¥176.28</td><td><span class="badge-success">已报价</span></td></tr>
+    <tr><td class="font-medium text-primary">P1000010100033</td><td>右A柱下内饰板总成</td><td class="text-right">¥152.30</td><td class="text-right">¥172.10</td><td><span class="badge-success">已报价</span></td></tr></tbody></table></div>`,
+    footer:'<button class="btn btn-ghost" onclick="closeDialog()">关闭</button><button class="btn btn-primary" onclick="closeDialog()">导出</button>' },
+
+  'cancel': { title:'取消报价', w:450, body:`<div class="flex items-center gap-3 p-4 bg-red-50 rounded-lg border border-red-200 mb-4"><i class="fas fa-exclamation-circle text-red-500 text-xl"></i><div><p class="font-medium text-red-800">确认取消此报价？</p><p class="text-sm text-red-600">取消后将通知供应商，不可撤销。</p></div></div>
+    <div><label class="form-label">取消原因 <span class="text-red-500">*</span></label><select class="form-select"><option>需求变更</option><option>项目取消</option><option>供应商不足</option><option>其他</option></select></div>
+    <div class="mt-3"><label class="form-label">备注</label><textarea class="form-input" rows="3" placeholder="说明..."></textarea></div>`,
+    footer:'<button class="btn btn-ghost" onclick="closeDialog()">返回</button><button class="btn btn-danger" onclick="closeDialog()">确认取消</button>' },
+
+  'sor': { title:'SOR 更新', w:500, body:`<div class="p-4 bg-neutral-50 rounded-lg mb-4 text-sm"><p class="text-neutral-400">当前SOR</p><p class="font-medium text-primary">SOR-SU9-座椅总成_20260123</p></div>
+    <div class="mb-4"><label class="form-label">新SOR文件 <span class="text-red-500">*</span></label><div class="border-2 border-dashed border-neutral-300 rounded-lg p-4 text-center hover:border-primary cursor-pointer"><i class="fas fa-upload text-neutral-400 mr-2"></i><span class="text-sm text-neutral-500">点击上传</span></div></div>
+    <div><label class="form-label">更新说明</label><textarea class="form-input" rows="2" placeholder="说明更新内容..."></textarea></div>`,
+    footer:'<button class="btn btn-ghost" onclick="closeDialog()">取消</button><button class="btn btn-primary" onclick="closeDialog()">更新SOR</button>' },
+
+  'download': { title:'文件下载', w:500, body:`<div class="space-y-3">${[
+    ['fa-file-pdf','text-red-500','Legal-PP-032.pdf','合同协议类','2.3 MB'],
+    ['fa-file-excel','text-emerald-500','报价模板.xlsx','报价模板','156 KB'],
+    ['fa-file-pdf','text-red-500','采购通则 v3.2.pdf','采购通则','5.1 MB'],
+    ['fa-file-pdf','text-red-500','技术规范.pdf','技术规范','3.8 MB'],
+  ].map(f=>`<label class="flex items-center gap-3 p-3 border border-neutral-200 rounded-lg cursor-pointer hover:bg-neutral-50"><input type="checkbox" checked class="rounded text-primary"><i class="fas ${f[0]} ${f[1]} text-lg"></i><div class="flex-1 min-w-0"><p class="text-sm font-medium truncate">${f[2]}</p><p class="text-xs text-neutral-400">${f[3]} · ${f[4]}</p></div></label>`).join('')}</div>`,
+    footer:'<button class="btn btn-ghost" onclick="closeDialog()">取消</button><button class="btn btn-primary" onclick="closeDialog()"><i class="fas fa-download mr-1"></i>下载 (4)</button>' },
+
+  'mold': { title:'模具对应物料号', w:550, body:`<div class="table-w"><table class="table-m table-z text-sm"><thead><tr><th>模具编号</th><th>名称</th><th>物料号</th><th class="text-right">费用</th></tr></thead><tbody>
+    <tr><td class="font-medium text-primary">M-2022-001</td><td>左A柱内饰板注塑模具</td><td>P1000010100032</td><td class="text-right">¥380,000</td></tr>
+    <tr><td class="font-medium text-primary">M-2022-002</td><td>右A柱内饰板注塑模具</td><td>P1000010100033</td><td class="text-right">¥380,000</td></tr>
+    <tr><td class="font-medium text-primary">M-2022-003</td><td>B柱内饰板冲压模具</td><td>P1000010100034/35</td><td class="text-right">¥520,000</td></tr></tbody></table></div>` },
+
+  'select-material': { title:'选择定点物料', w:600, body:`<input type="text" class="form-input mb-4" placeholder="搜索零部件号或名称...">
+    <div class="table-w max-h-[300px] overflow-y-auto"><table class="table-m table-z text-xs"><thead><tr><th><input type="checkbox" class="rounded text-primary"></th><th>零部件号</th><th>名称</th><th>状态</th><th>推荐供应商</th></tr></thead><tbody>
+    <tr><td><input type="checkbox" class="rounded text-primary"></td><td class="font-medium">P1000010100032</td><td>左A柱下内饰板总成</td><td><span class="badge-success">已完成</span></td><td>V21994 培奇爱</td></tr>
+    <tr><td><input type="checkbox" class="rounded text-primary"></td><td class="font-medium">P1000010100033</td><td>右A柱下内饰板总成</td><td><span class="badge-success">已完成</span></td><td>V21994 培奇爱</td></tr>
+    <tr><td><input type="checkbox" disabled></td><td class="font-medium text-neutral-400">P1000010100034</td><td class="text-neutral-400">B柱上内饰板 LH</td><td><span class="badge-warning">报价中</span></td><td>-</td></tr></tbody></table></div>`,
+    footer:'<button class="btn btn-ghost" onclick="closeDialog()">取消</button><button class="btn btn-primary" onclick="closeDialog()">确认定点 (2)</button>' },
+};
+
+// Override openDialog to use DIALOGS map
+const _origOpenDialog = window.openDialog;
+window.openDialog = function(type) {
+  const d = DIALOGS[type];
+  if (!d) { _origOpenDialog(type); return; }
+  const dc = document.getElementById('dc');
+  dc.innerHTML = `<div class="modal-overlay fade-in" onclick="if(event.target===this)closeDialog()">
+    <div class="modal-box" style="width:${d.w||600}px;max-width:90vw">
+      <div class="modal-header"><h3 class="font-bold text-neutral-800">${d.title}</h3><button onclick="closeDialog()" class="text-neutral-400 hover:text-neutral-600 w-8 h-8 flex items-center justify-center rounded-lg hover:bg-neutral-100"><i class="fas fa-times"></i></button></div>
+      <div class="modal-body">${d.body}</div>
+      <div class="modal-footer">${d.footer||'<button class="btn btn-ghost" onclick="closeDialog()">关闭</button>'}</div>
+    </div>
+  </div>`;
+};
+
+// Navigate to home on first load
+if (!location.hash) navigate('home');
+
+</body>
+</html>

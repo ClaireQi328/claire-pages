@@ -1,0 +1,499 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>报价细项明细数据分析 · 增量分析（0713）</title>
+<style>
+  :root{
+    --bg:#0d0f14;
+    --bg2:#141821;
+    --card:#1b202c;
+    --card2:#222a39;
+    --line:#2c3445;
+    --txt:#eef1f6;
+    --muted:#9aa3b2;
+    --accent:#ff6700;
+    --accent2:#ff9a4d;
+    --good:#37d39b;
+    --warn:#ffcf5c;
+    --bad:#ff6b6b;
+    --shadow:0 18px 50px rgba(0,0,0,.45);
+  }
+  *{box-sizing:border-box;margin:0;padding:0;}
+  html,body{height:100%;}
+  body{
+    font-family:"PingFang SC","Microsoft YaHei","Segoe UI",system-ui,sans-serif;
+    background:radial-gradient(1200px 800px at 80% -10%,rgba(255,103,0,.10),transparent 60%),
+               radial-gradient(900px 700px at -10% 110%,rgba(55,211,155,.07),transparent 55%),
+               var(--bg);
+    color:var(--txt);
+    overflow:hidden;
+    -webkit-font-smoothing:antialiased;
+  }
+  /* ---------- top bar ---------- */
+  .topbar{position:fixed;top:18px;right:20px;display:flex;gap:10px;z-index:60;}
+  .tb-btn{
+    font:600 15px/1 inherit;color:var(--txt);
+    background:rgba(255,255,255,.06);
+    border:1px solid var(--line);
+    padding:10px 18px;border-radius:10px;cursor:pointer;
+    backdrop-filter:blur(6px);transition:.15s;
+  }
+  .tb-btn:hover{background:rgba(255,255,255,.12);}
+  .tb-btn-accent{background:var(--accent);border-color:var(--accent);color:#fff;}
+  .tb-btn-accent:hover{background:var(--accent2);border-color:var(--accent2);}
+
+  /* ---------- progress + counter ---------- */
+  .progress{position:fixed;top:0;left:0;height:4px;width:0;background:linear-gradient(90deg,var(--accent),var(--accent2));z-index:60;transition:width .35s ease;}
+  .counter{position:fixed;top:16px;left:50%;transform:translateX(-50%);font:600 14px/1 inherit;color:var(--muted);z-index:60;letter-spacing:1px;}
+
+  /* ---------- nav arrows ---------- */
+  .nav-arrow{
+    position:fixed;top:50%;transform:translateY(-50%);
+    width:54px;height:54px;border-radius:50%;
+    background:rgba(255,255,255,.06);border:1px solid var(--line);
+    color:var(--txt);font-size:28px;cursor:pointer;z-index:55;
+    transition:.15s;display:flex;align-items:center;justify-content:center;
+  }
+  .nav-arrow:hover{background:var(--accent);border-color:var(--accent);color:#fff;}
+  .nav-prev{left:18px;}
+  .nav-next{right:18px;}
+
+  /* ---------- deck ---------- */
+  .deck{position:relative;width:100vw;height:100vh;}
+  .slide{
+    position:absolute;inset:0;display:none;
+    flex-direction:column;align-items:center;justify-content:center;
+    padding:72px 96px;
+  }
+  .slide.active{display:flex;animation:fade .4s ease;}
+  @keyframes fade{from{opacity:0;transform:translateY(12px);}to{opacity:1;transform:none;}}
+
+  .wrap{width:100%;max-width:1180px;}
+  .kicker{display:inline-block;font:600 15px/1 inherit;letter-spacing:2px;color:var(--accent);text-transform:uppercase;margin-bottom:18px;
+    padding:7px 14px;border:1px solid rgba(255,103,0,.4);border-radius:999px;background:rgba(255,103,0,.08);}
+  h1.title{font-size:54px;font-weight:800;line-height:1.12;letter-spacing:1px;margin-bottom:14px;}
+  .subtitle{font-size:22px;color:var(--muted);font-weight:500;margin-bottom:8px;}
+  .lead{font-size:20px;color:var(--muted);line-height:1.7;margin-top:6px;}
+
+  /* metric cards */
+  .cards{display:grid;gap:22px;margin-top:30px;}
+  .grid3{grid-template-columns:repeat(3,1fr);}
+  .grid4{grid-template-columns:repeat(4,1fr);}
+  .grid2{grid-template-columns:repeat(2,1fr);}
+  .card{
+    background:linear-gradient(180deg,var(--card),var(--card2));
+    border:1px solid var(--line);border-radius:18px;padding:28px 26px;
+    box-shadow:var(--shadow);position:relative;overflow:hidden;
+  }
+  .card::before{content:"";position:absolute;left:0;top:0;bottom:0;width:4px;background:var(--accent);opacity:.85;}
+  .card .num{font-size:60px;font-weight:800;color:#fff;line-height:1;letter-spacing:1px;}
+  .card .lab{font-size:18px;color:var(--muted);margin-top:12px;font-weight:500;}
+  .card.accent-good::before{background:var(--good);}
+  .card.accent-warn::before{background:var(--warn);}
+  .card.accent-bad::before{background:var(--bad);}
+  .card.accent-good .num{color:var(--good);}
+  .card.accent-warn .num{color:var(--warn);}
+  .card.accent-bad .num{color:var(--bad);}
+
+  /* level rows */
+  .levels{margin-top:26px;display:grid;gap:12px;}
+  .lvl{display:flex;align-items:center;gap:16px;background:var(--card);border:1px solid var(--line);border-radius:12px;padding:14px 20px;}
+  .lvl .tag{font:700 15px/1 inherit;color:#0d0f14;background:var(--accent);padding:6px 12px;border-radius:8px;min-width:42px;text-align:center;}
+  .lvl .txt{font-size:18px;color:var(--txt);}
+
+  /* callout */
+  .callout{margin-top:26px;background:rgba(255,103,0,.08);border:1px solid rgba(255,103,0,.35);
+    border-radius:14px;padding:20px 24px;font-size:19px;line-height:1.65;color:#ffd9b8;}
+  .callout b{color:var(--accent2);}
+
+  /* comparison */
+  .cmp{display:grid;grid-template-columns:1fr 1fr;gap:22px;margin-top:24px;}
+  .cmp .card .num{font-size:54px;}
+
+  /* list for purchasers / suggestions */
+  .rows{margin-top:24px;display:grid;gap:14px;}
+  .row{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:18px 22px;font-size:19px;line-height:1.55;}
+  .row .hl{color:var(--accent2);font-weight:700;}
+
+  /* cover */
+  .cover .kicker{margin-bottom:24px;}
+  .cover h1.title{font-size:74px;}
+  .cover .lead{font-size:22px;margin-top:22px;}
+
+  /* ---------- edit mode ---------- */
+  .edit-mode [data-editable]{cursor:text;outline:1px dashed rgba(255,103,0,.35);outline-offset:3px;border-radius:6px;transition:outline-color .15s;}
+  .edit-mode [data-editable]:hover{outline-color:rgba(255,103,0,.7);}
+  [data-editable].selected{outline:2px solid var(--accent);outline-offset:4px;background:rgba(255,103,0,.07);border-radius:6px;}
+  [data-editable]{transition:transform .12s ease, font-size .12s ease;}
+
+  /* ---------- floating toolbar ---------- */
+  .toolbar{position:fixed;bottom:22px;left:50%;transform:translateX(-50%);z-index:70;
+    display:none;align-items:center;gap:18px;padding:12px 18px;border-radius:14px;
+    background:rgba(20,24,33,.96);border:1px solid var(--line);box-shadow:var(--shadow);backdrop-filter:blur(8px);}
+  .toolbar.show{display:flex;}
+  .tb-group{display:flex;align-items:center;gap:8px;}
+  .tb-label{font:600 13px/1 inherit;color:var(--muted);letter-spacing:1px;}
+  .tb-val{font:700 15px/1 inherit;color:var(--txt);min-width:52px;text-align:center;}
+  .toolbar button{font:700 18px/1 inherit;color:var(--txt);background:rgba(255,255,255,.07);
+    border:1px solid var(--line);width:34px;height:34px;border-radius:9px;cursor:pointer;transition:.12s;}
+  .toolbar button:hover{background:var(--accent);border-color:var(--accent);color:#fff;}
+  .toolbar .tb-move{width:38px;}
+  .tb-reset{font:600 14px/1 inherit;color:var(--bad);background:transparent;border:1px solid rgba(255,107,107,.5);
+    padding:0 14px;width:auto;height:34px;border-radius:9px;cursor:pointer;}
+  .tb-reset:hover{background:rgba(255,107,107,.15);}
+  .tb-divider{width:1px;height:26px;background:var(--line);}
+</style>
+</head>
+<body>
+
+<div class="progress" id="progress"></div>
+<div class="counter" id="counter">1 / 9</div>
+
+<div class="topbar">
+  <button class="tb-btn" id="btnEdit">编辑</button>
+  <button class="tb-btn tb-btn-accent" id="btnExport">导出</button>
+</div>
+
+<button class="nav-arrow nav-prev" id="navPrev" title="上一页">‹</button>
+<button class="nav-arrow nav-next" id="navNext" title="下一页">›</button>
+
+<div class="deck" id="deck">
+
+  <!-- Slide 1 · Cover -->
+  <section class="slide active cover">
+    <div class="wrap" style="text-align:center;">
+      <span class="kicker" data-editable data-id="s1-kicker">小米汽车 · EP 系统报价细项功能</span>
+      <h1 class="title" data-editable data-id="s1-title">报价细项明细数据分析</h1>
+      <div class="subtitle" data-editable data-id="s1-subtitle">增量分析报告 · 2026 / 07 / 13</div>
+      <div class="lead" data-editable data-id="s1-desc">数据截止 2026-07-13　|　活跃报价包 138 个　|　参与供应商 243 家</div>
+    </div>
+  </section>
+
+  <!-- Slide 2 · 全局概览 -->
+  <section class="slide">
+    <div class="wrap">
+      <span class="kicker" data-editable data-id="s2-kicker">OVERVIEW</span>
+      <h1 class="title" data-editable data-id="s2-title">全局概览</h1>
+      <div class="subtitle" data-editable data-id="s2-sub">整体拆解分布一览</div>
+      <div class="cards grid3">
+        <div class="card"><div class="num" data-editable data-id="s2-c1-num">138</div><div class="lab" data-editable data-id="s2-c1-lab">活跃报价包</div></div>
+        <div class="card"><div class="num" data-editable data-id="s2-c2-num">243</div><div class="lab" data-editable data-id="s2-c2-lab">参与供应商</div></div>
+        <div class="card accent-good"><div class="num" data-editable data-id="s2-c3-num">31.9%</div><div class="lab" data-editable data-id="s2-c3-lab">整体拆解渗透率</div></div>
+      </div>
+      <div class="levels">
+        <div class="lvl"><span class="tag">L4</span><span class="txt" data-editable data-id="s2-l4">BOM+VSM：2 个报价包 / 1 家供应商（1.5% / 0.4%）</span></div>
+        <div class="lvl"><span class="tag">L3</span><span class="txt" data-editable data-id="s2-l3">BOM结构：7 个报价包 / 8 家供应商（5.1% / 3.3%）</span></div>
+        <div class="lvl"><span class="tag">L2</span><span class="txt" data-editable data-id="s2-l2">自行拆解：35 个报价包 / 36 家供应商（25.4% / 14.8%）</span></div>
+        <div class="lvl"><span class="tag">L1</span><span class="txt" data-editable data-id="s2-l1">未拆解：94 个报价包 / 198 家供应商（68.1% / 81.5%）</span></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Slide 3 · 增量对比 -->
+  <section class="slide">
+    <div class="wrap">
+      <span class="kicker" data-editable data-id="s3-kicker">WEEKLY DELTA</span>
+      <h1 class="title" data-editable data-id="s3-title">本周增量对比（0707 → 0713）</h1>
+      <div class="subtitle" data-editable data-id="s3-sub">核心指标较上周变化</div>
+      <div class="cards grid3">
+        <div class="card accent-good"><div class="num" data-editable data-id="s3-d1-num">+5</div><div class="lab" data-editable data-id="s3-d1-lab">报价包总数（133 → 138）</div></div>
+        <div class="card accent-good"><div class="num" data-editable data-id="s3-d2-num">+8</div><div class="lab" data-editable data-id="s3-d2-lab">供应商总数（235 → 243）</div></div>
+        <div class="card accent-good"><div class="num" data-editable data-id="s3-d3-num">+0.3pp</div><div class="lab" data-editable data-id="s3-d3-lab">整体拆解渗透率（31.6% → 31.9%）</div></div>
+      </div>
+      <div class="callout" data-editable data-id="s3-note"><b>L2 浅层拆解</b>持续扩张（+2 包 +4 家），<b>L3/L4 本周零增长</b>；新增报价包仍以 L1 为主，拆解引导仍需加强。</div>
+    </div>
+  </section>
+
+  <!-- Slide 4 · 各层级分布 -->
+  <section class="slide">
+    <div class="wrap">
+      <span class="kicker" data-editable data-id="s4-kicker">LEVEL DISTRIBUTION</span>
+      <h1 class="title" data-editable data-id="s4-title">各层级拆解分布</h1>
+      <div class="cards grid4">
+        <div class="card"><div class="num" data-editable data-id="s4-n4">2</div><div class="lab" data-editable data-id="s4-l4">L4 · BOM+VSM</div></div>
+        <div class="card"><div class="num" data-editable data-id="s4-n3">7</div><div class="lab" data-editable data-id="s4-l3">L3 · BOM结构</div></div>
+        <div class="card accent-warn"><div class="num" data-editable data-id="s4-n2">35</div><div class="lab" data-editable data-id="s4-l2">L2 · 自行拆解</div></div>
+        <div class="card accent-bad"><div class="num" data-editable data-id="s4-n1">94</div><div class="lab" data-editable data-id="s4-l1">L1 · 未拆解</div></div>
+      </div>
+      <div class="callout" data-editable data-id="s4-callout"><b>关键发现：</b>L3/L4 深层拆解本周零增长，深层拆解进入平台期；L2 作为过渡形态仍是主要拆解载体，但向 L3 的转化通道尚未打通。</div>
+    </div>
+  </section>
+
+  <!-- Slide 5 · 预选 vs 正式 -->
+  <section class="slide">
+    <div class="wrap">
+      <span class="kicker" data-editable data-id="s5-kicker">PRE-SELECT vs FORMAl</span>
+      <h1 class="title" data-editable data-id="s5-title">预选 vs 正式供应商拆解率</h1>
+      <div class="cmp">
+        <div class="card accent-bad"><div class="num" data-editable data-id="s5-c1-num">17.0%</div><div class="lab" data-editable data-id="s5-c1-lab">预选供应商拆解率（88 家）</div></div>
+        <div class="card accent-good"><div class="num" data-editable data-id="s5-c2-num">19.4%</div><div class="lab" data-editable data-id="s5-c2-lab">正式供应商拆解率（155 家）</div></div>
+      </div>
+      <div class="callout" data-editable data-id="s5-note"><b>差距 -2.4pp：</b>预选供应商拆解意愿优势正在缩小（上周领先 8pp）。含预选供应商的报价包拆解率 <b>46.9%</b>，仍远高于仅正式供应商的 <b>18.9%</b>。</div>
+    </div>
+  </section>
+
+  <!-- Slide 6 · 近一周动态 -->
+  <section class="slide">
+    <div class="wrap">
+      <span class="kicker" data-editable data-id="s6-kicker">RECENT ACTIVITY</span>
+      <h1 class="title" data-editable data-id="s6-title">近一周动态（07-08 → 07-13）</h1>
+      <div class="cards grid3">
+        <div class="card accent-good"><div class="num" data-editable data-id="s6-d1">47</div><div class="lab" data-editable data-id="s6-d1-lab">提交记录数</div></div>
+        <div class="card"><div class="num" data-editable data-id="s6-d2">38</div><div class="lab" data-editable data-id="s6-d2-lab">活跃供应商</div></div>
+        <div class="card accent-warn"><div class="num" data-editable data-id="s6-d3">16</div><div class="lab" data-editable data-id="s6-d3-lab">预选供应商首次入场</div></div>
+      </div>
+      <div class="callout" data-editable data-id="s6-note">近半数非 L1 提交集中在 L2/L3（<b>29.8%</b>），高于整体平均拆解率；上海海拉、北京握奇、芜湖埃泰克、浙江万丰等 L3 供应商本周二次提交，持续维护 BOM 数据。</div>
+    </div>
+  </section>
+
+  <!-- Slide 7 · 采购员 TOP -->
+  <section class="slide">
+    <div class="wrap">
+      <span class="kicker" data-editable data-id="s7-kicker">BUYER LEADERBOARD</span>
+      <h1 class="title" data-editable data-id="s7-title">采购员拆解表现 TOP</h1>
+      <div class="rows">
+        <div class="row"><span class="hl" data-editable data-id="s7-r1">王瑞玚 · 66.7%</span> — 6 个 RFQ 中 4 个达 L2，L2 推进最有效采购员之一</div>
+        <div class="row"><span class="hl" data-editable data-id="s7-r2">张俊 / 徐颖晟 / 白雪 · 100%</span> — 负责报价包全部已实现拆解</div>
+        <div class="row"><span class="hl" data-editable data-id="s7-r3">仓基伟 · 0%</span> — 12 个 RFQ 全部为 L1，需重点支持与辅导</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Slide 8 · 运营建议 -->
+  <section class="slide">
+    <div class="wrap">
+      <span class="kicker" data-editable data-id="s8-kicker">ACTION PLAN</span>
+      <h1 class="title" data-editable data-id="s8-title">后续运营方向建议</h1>
+      <div class="cards grid2">
+        <div class="card accent-warn"><div class="lab" data-editable data-id="s8-d1-t" style="font-size:22px;font-weight:700;color:#fff;">方向一 · 补数据</div><div class="lead" data-editable data-id="s8-d1" style="margin-top:12px;font-size:18px;">历史线下数据补充 → 报价成本库。75 个"已完成"RFQ 仅 10 个有拆解数据（13.3%），建议对高价值品类回溯拆解。</div></div>
+        <div class="card accent-good"><div class="lab" data-editable data-id="s8-d2-t" style="font-size:22px;font-weight:700;color:#fff;">方向二 · 定目标</div><div class="lead" data-editable data-id="s8-d2" style="margin-top:12px;font-size:18px;">按品类设拆解目标 → 与业务打合。聚焦"询价中"48 个 RFQ（拆解率 20.8%）；推动 L3 深入 VSM；支持低拆解率采购员。</div></div>
+      </div>
+      <div class="callout" data-editable data-id="s8-special"><b>本周特别关注：</b>① kunlun 流媒体内后视镜新 RFQ 即达 L2；② 预选供应商拆解率优势收窄；③ 近一周 16 家预选供应商以 L1 入场。</div>
+    </div>
+  </section>
+
+  <!-- Slide 9 · 结尾 -->
+  <section class="slide cover">
+    <div class="wrap" style="text-align:center;">
+      <h1 class="title" data-editable data-id="s9-title">谢谢观看</h1>
+      <div class="subtitle" data-editable data-id="s9-sub">报价细项功能运营周报 · 数据截止 2026-07-13</div>
+    </div>
+  </section>
+
+</div>
+
+<!-- floating edit toolbar -->
+<div class="toolbar" id="toolbar">
+  <div class="tb-group">
+    <span class="tb-label">字号</span>
+    <button data-act="fs-">−</button>
+    <span class="tb-val" id="tb-fs">—</span>
+    <button data-act="fs+">+</button>
+  </div>
+  <div class="tb-divider"></div>
+  <div class="tb-group">
+    <span class="tb-label">比例</span>
+    <button data-act="sc-">−</button>
+    <span class="tb-val" id="tb-sc">—</span>
+    <button data-act="sc+">+</button>
+  </div>
+  <div class="tb-divider"></div>
+  <div class="tb-group">
+    <span class="tb-label">移动</span>
+    <button class="tb-move" data-act="up" title="上移">↑</button>
+    <button class="tb-move" data-act="down" title="下移">↓</button>
+    <button class="tb-move" data-act="left" title="左移">←</button>
+    <button class="tb-move" data-act="right" title="右移">→</button>
+  </div>
+  <div class="tb-divider"></div>
+  <button class="tb-reset" data-act="reset">重置此框</button>
+</div>
+
+<script>
+(function(){
+  "use strict";
+  var KEY="bid_0713_preso_v1";
+  var MOVE_STEP=8;       // px per move button press
+  var FS_STEP=2;         // px per font-size press
+  var SC_STEP=0.1;       // multiplier per scale press
+
+  var slides=[].slice.call(document.querySelectorAll(".slide"));
+  var editables=[].slice.call(document.querySelectorAll("[data-editable]"));
+  var toolbar=document.getElementById("toolbar");
+  var btnEdit=document.getElementById("btnEdit");
+  var btnExport=document.getElementById("btnExport");
+  var counter=document.getElementById("counter");
+  var progress=document.getElementById("progress");
+  var tbFs=document.getElementById("tb-fs");
+  var tbSc=document.getElementById("tb-sc");
+
+  var cur=0, editMode=false, selected=null;
+  var edits=loadEdits();
+
+  function loadEdits(){ try{return JSON.parse(localStorage.getItem(KEY))||{};}catch(e){return {};} }
+  function saveEdits(){ try{localStorage.setItem(KEY,JSON.stringify(edits));}catch(e){} }
+
+  function curTransform(el){
+    var t=getComputedStyle(el).transform;
+    if(t && t!=="none"){
+      var m=t.match(/matrix\(([^)]+)\)/)||t.match(/matrix3d\(([^)]+)\)/);
+      if(m){ var v=m[1].split(",").map(parseFloat); return {x:v[v.length-2]||0,y:v[v.length-1]||0}; }
+    }
+    return {x:0,y:0};
+  }
+
+  function applyStyle(el,st){
+    var sc=st.sc||1;
+    el.style.fontSize=(st.fs*(sc))+"px";
+    el.style.transform="translate("+(st.x||0)+"px,"+(st.y||0)+"px)";
+  }
+
+  // initialise: restore stored edits OR capture defaults
+  editables.forEach(function(el){
+    var id=el.getAttribute("data-id");
+    var st=edits[id];
+    if(st){
+      if(st.text!==undefined) el.textContent=st.text;
+      applyStyle(el,st);
+    }else{
+      var cs=getComputedStyle(el);
+      var tr=curTransform(el);
+      edits[id]={text:el.textContent, fs:parseFloat(cs.fontSize), sc:1, x:tr.x, y:tr.y};
+    }
+  });
+
+  /* ---------- slide navigation ---------- */
+  function show(i){
+    cur=(i+slides.length)%slides.length;
+    slides.forEach(function(s,idx){ s.classList.toggle("active",idx===cur); });
+    counter.textContent=(cur+1)+" / "+slides.length;
+    progress.style.width=((cur+1)/slides.length*100)+"%";
+    if(editMode) deselect();
+  }
+  document.getElementById("navPrev").addEventListener("click",function(){show(cur-1);});
+  document.getElementById("navNext").addEventListener("click",function(){show(cur+1);});
+  document.addEventListener("keydown",function(e){
+    if(editMode && selected && (e.target===selected) && (e.key==="ArrowUp"||e.key==="ArrowDown"||e.key==="ArrowLeft"||e.key==="ArrowRight")) return;
+    if(e.key==="ArrowRight"||e.key==="PageDown"||e.key===" "){show(cur+1);e.preventDefault();}
+    else if(e.key==="ArrowLeft"||e.key==="PageUp"){show(cur-1);}
+    else if(e.key==="Home"){show(0);}
+    else if(e.key==="End"){show(slides.length-1);}
+  });
+
+  /* ---------- edit mode ---------- */
+  function toggleEdit(){
+    editMode=!editMode;
+    document.body.classList.toggle("edit-mode",editMode);
+    btnEdit.textContent=editMode?"完成":"编辑";
+    if(!editMode){ deselect(); toolbar.classList.remove("show"); }
+  }
+  btnEdit.addEventListener("click",toggleEdit);
+
+  function selectEl(el){
+    if(selected) selected.classList.remove("selected");
+    selected=el;
+    el.classList.add("selected");
+    el.setAttribute("contenteditable","true");
+    el.focus();
+    updateToolbar();
+    toolbar.classList.add("show");
+  }
+  function deselect(){
+    if(selected){
+      selected.classList.remove("selected");
+      selected.removeAttribute("contenteditable");
+      selected=null;
+    }
+    toolbar.classList.remove("show");
+  }
+
+  editables.forEach(function(el){
+    el.addEventListener("click",function(e){
+      if(!editMode) return;
+      e.stopPropagation();
+      selectEl(el);
+    });
+    el.addEventListener("input",function(){
+      var id=el.getAttribute("data-id");
+      if(!edits[id]) edits[id]={text:el.textContent,fs:parseFloat(getComputedStyle(el).fontSize),sc:1,x:0,y:0};
+      edits[id].text=el.textContent;
+      saveEdits();
+    });
+  });
+
+  document.addEventListener("click",function(e){
+    if(!editMode) return;
+    if(e.target.closest("[data-editable]")||e.target.closest("#toolbar")||e.target.closest("#topbar")||e.target.closest(".nav-arrow")) return;
+    deselect();
+  });
+
+  /* ---------- toolbar actions ---------- */
+  function updateToolbar(){
+    if(!selected) return;
+    var st=edits[selected.getAttribute("data-id")];
+    if(!st) return;
+    tbFs.textContent=Math.round(st.fs*(st.sc||1))+"px";
+    tbSc.textContent=(st.sc||1).toFixed(1)+"×";
+  }
+
+  toolbar.addEventListener("click",function(e){
+    var btn=e.target.closest("button"); if(!btn||!selected) return;
+    var act=btn.getAttribute("data-act");
+    var id=selected.getAttribute("data-id");
+    var st=edits[id]; if(!st) return;
+    if(act==="fs+"){ st.fs=Math.min(200,st.fs+FS_STEP); }
+    else if(act==="fs-"){ st.fs=Math.max(8,st.fs-FS_STEP); }
+    else if(act==="sc+"){ st.sc=Math.min(4,+(st.sc+SC_STEP).toFixed(2)); }
+    else if(act==="sc-"){ st.sc=Math.max(0.3,+(st.sc-SC_STEP).toFixed(2)); }
+    else if(act==="up"){ st.y=(st.y||0)-MOVE_STEP; }
+    else if(act==="down"){ st.y=(st.y||0)+MOVE_STEP; }
+    else if(act==="left"){ st.x=(st.x||0)-MOVE_STEP; }
+    else if(act==="right"){ st.x=(st.x||0)+MOVE_STEP; }
+    else if(act==="reset"){
+      var cs=getComputedStyle(selected); var tr=curTransform(selected);
+      st.text=selected.textContent; st.fs=parseFloat(cs.fontSize); st.sc=1; st.x=tr.x; st.y=tr.y;
+      // remove stored entry entirely -> falls back to live DOM text
+      delete edits[id];
+      selected.style.fontSize=""; selected.style.transform="";
+      saveEdits();
+      updateToolbar();
+      return;
+    }
+    applyStyle(selected,st);
+    saveEdits();
+    updateToolbar();
+  });
+
+  /* ---------- export ---------- */
+  btnExport.addEventListener("click",function(){
+    var clone=document.documentElement.cloneNode(true);
+    if(clone.body) clone.body.classList.remove("edit-mode");
+    [].slice.call(clone.querySelectorAll(".selected")).forEach(function(n){n.classList.remove("selected");});
+    [].slice.call(clone.querySelectorAll("[contenteditable]")).forEach(function(n){n.removeAttribute("contenteditable");});
+    var tb=clone.querySelector("#toolbar"); if(tb) tb.remove();
+    // bake current edits as inline styles so the downloaded file is faithful
+    [].slice.call(clone.querySelectorAll("[data-editable]")).forEach(function(el){
+      var id=el.getAttribute("data-id"); var st=edits[id];
+      if(st){
+        el.style.fontSize=(st.fs*(st.sc||1))+"px";
+        el.style.transform="translate("+(st.x||0)+"px,"+(st.y||0)+"px)";
+      }
+    });
+    var html="<!DOCTYPE html>\n"+clone.outerHTML;
+    var blob=new Blob([html],{type:"text/html;charset=utf-8"});
+    var url=URL.createObjectURL(blob);
+    var a=document.createElement("a");
+    a.href=url;
+    a.download="报价细项明细数据分析0713_演示.html";
+    document.body.appendChild(a); a.click(); document.body.removeChild(a);
+    setTimeout(function(){URL.revokeObjectURL(url);},1000);
+  });
+
+  // first paint
+  show(0);
+})();
+</script>
+</body>
+</html>

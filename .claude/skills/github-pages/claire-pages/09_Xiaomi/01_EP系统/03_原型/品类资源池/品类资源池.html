@@ -1,0 +1,1288 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>品类资源池 · EP 生产采购系统</title>
+<style>
+:root{
+  --p:#1677ff;--ph:#4096ff;--pl:#e6f4ff;--pa:rgba(22,119,255,.06);
+  --s:#52c41a;--sl:#f6ffed;--sa:rgba(82,196,26,.08);
+  --w:#faad14;--wl:#fffbe6;--wa:rgba(250,173,20,.08);
+  --d:#ff4d4f;--dl:#fff2f0;--da:rgba(255,77,79,.06);
+  --g50:#fafafa;--g100:#f5f5f5;--g200:#e8e8e8;--g300:#d9d9d9;
+  --g400:#bfbfbf;--g500:#8c8c8c;--g600:#595959;--g700:#434343;
+  --g800:#262626;--g900:#1f1f1f;
+  --r:10px;--rs:6px;--rl:14px;
+  --sh:0 1px 3px rgba(0,0,0,.04),0 1px 2px rgba(0,0,0,.06);
+  --shm:0 4px 12px rgba(0,0,0,.07);
+  --shl:0 8px 24px rgba(0,0,0,.09);
+  --tr:all .2s ease;
+  --nav-bg:#001529;
+  --purple:#722ed1;--purple-l:#f9f0ff;
+  --cyan:#13c2c2;--cyan-l:#e6fffb;
+  --orange:#fa8c16;--orange-l:#fff7e6;
+}
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif;background:#f0f2f5;color:var(--g800);line-height:1.6;font-size:13px;min-height:100vh;overflow:hidden}
+
+/* Top Nav */
+.topnav{background:var(--nav-bg);height:48px;display:flex;align-items:center;padding:0 16px;position:fixed;top:0;left:0;right:0;z-index:1000}
+.topnav-logo{display:flex;align-items:center;gap:8px;margin-right:24px;flex-shrink:0}
+.topnav-logo .mi{width:28px;height:28px;background:linear-gradient(135deg,#ff6700,#ff4d00);border-radius:6px;display:flex;align-items:center;justify-content:center;color:#fff;font-size:12px;font-weight:700}
+.topnav-logo span{color:#fff;font-size:14px;font-weight:600;letter-spacing:.5px;white-space:nowrap}
+.topnav-menu{display:flex;align-items:center;gap:0;flex:1;overflow-x:auto;scrollbar-width:none}
+.topnav-menu::-webkit-scrollbar{display:none}
+.topnav-item{padding:0 14px;height:48px;display:flex;align-items:center;color:rgba(255,255,255,.65);font-size:13px;cursor:pointer;white-space:nowrap;transition:all .2s;position:relative}
+.topnav-item:hover{color:#fff;background:rgba(255,255,255,.08)}
+.topnav-item.active{color:#fff;background:rgba(255,255,255,.12)}
+.topnav-item.active::after{content:'';position:absolute;bottom:0;left:8px;right:8px;height:2px;background:var(--p);border-radius:2px 2px 0 0}
+.topnav-right{display:flex;align-items:center;gap:12px;margin-left:auto;flex-shrink:0;padding-left:16px}
+.topnav-right .icon{width:32px;height:32px;border-radius:50%;display:flex;align-items:center;justify-content:center;color:rgba(255,255,255,.65);cursor:pointer;transition:all .2s;font-size:14px}
+.topnav-right .icon:hover{background:rgba(255,255,255,.1);color:#fff}
+.topnav-user{display:flex;align-items:center;gap:6px;color:rgba(255,255,255,.85);font-size:12px;cursor:pointer}
+.topnav-avatar{width:28px;height:28px;border-radius:50%;background:linear-gradient(135deg,var(--p),#4096ff);display:flex;align-items:center;justify-content:center;color:#fff;font-size:11px;font-weight:600}
+
+/* Layout */
+.srm-layout{display:flex;height:calc(100vh - 48px);margin-top:48px}
+.sidebar{width:260px;background:#fff;border-right:1px solid var(--g200);display:flex;flex-direction:column;flex-shrink:0;overflow:hidden}
+.sidebar-hdr{padding:16px;border-bottom:1px solid var(--g100)}
+.sidebar-hdr h3{font-size:14px;font-weight:700;color:var(--g900);margin-bottom:4px}
+.sidebar-hdr .count{font-size:12px;color:var(--g500)}
+.sidebar-hdr .count strong{color:var(--p);font-weight:600}
+.sp-menu{flex:1;overflow-y:auto;padding:8px 0}
+.sp-menu-item{display:flex;align-items:center;gap:10px;padding:10px 16px;font-size:13px;color:var(--g600);cursor:pointer;transition:all .15s;border-left:3px solid transparent;position:relative}
+.sp-menu-item:hover{color:var(--p);background:var(--pl)}
+.sp-menu-item.active{color:var(--p);background:var(--pl);font-weight:600;border-left-color:var(--p)}
+.sp-menu-item .mi-icon{width:22px;height:22px;border-radius:4px;display:flex;align-items:center;justify-content:center;font-size:12px;flex-shrink:0}
+.mi-icon.blue{background:var(--pl);color:var(--p)}
+.mi-icon.green{background:var(--sl);color:var(--s)}
+.mi-icon.orange{background:var(--wl);color:#d46b08}
+.mi-icon.purple{background:var(--purple-l);color:var(--purple)}
+.mi-icon.cyan{background:var(--cyan-l);color:var(--cyan)}
+.sp-menu-item .mi-badge{margin-left:auto;font-size:10px;padding:1px 6px;border-radius:8px;background:var(--g100);color:var(--g500);font-weight:500}
+.sp-menu-item.active .mi-badge{background:var(--pl);color:var(--p)}
+
+/* Main Content */
+.main-content{flex:1;overflow-y:auto;background:#f0f2f5;padding:0}
+
+/* Metrics */
+.metrics-bar{display:flex;gap:16px;padding:16px 24px}
+.metric-card{flex:1;background:#fff;border:1px solid var(--g200);border-radius:var(--r);padding:16px 20px;display:flex;align-items:center;gap:14px;transition:var(--tr);cursor:pointer}
+.metric-card:hover{border-color:var(--p);box-shadow:var(--shm);transform:translateY(-1px)}
+.mc-icon{width:44px;height:44px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:20px;flex-shrink:0}
+.mc-icon.blue{background:linear-gradient(135deg,var(--pl),#d6e8ff)}
+.mc-icon.green{background:linear-gradient(135deg,var(--sl),#d9f7be)}
+.mc-icon.orange{background:linear-gradient(135deg,var(--wl),#ffe58f)}
+.mc-icon.purple{background:linear-gradient(135deg,var(--purple-l),#efdbff)}
+.mc-icon.cyan{background:linear-gradient(135deg,var(--cyan-l),#b5f5ec)}
+.mc-info{display:flex;flex-direction:column}
+.mc-val{font-size:22px;font-weight:700;color:var(--g900);line-height:1.2}
+.mc-label{font-size:11px;color:var(--g500);margin-top:2px}
+
+/* Section */
+.section{background:#fff;border-radius:var(--r);border:1px solid var(--g200);margin:0 24px 16px;overflow:hidden}
+.section-hdr{display:flex;align-items:center;justify-content:space-between;padding:14px 20px;border-bottom:1px solid var(--g100);background:linear-gradient(180deg,#fafafa,#f8f8f8)}
+.section-title{font-size:14px;font-weight:700;color:var(--g900);display:flex;align-items:center;gap:8px}
+.section-title::before{content:'';width:3px;height:16px;border-radius:2px;background:var(--p);flex-shrink:0}
+.section-body{padding:20px}
+.section-actions{display:flex;gap:8px}
+
+/* Tags */
+.tag{display:inline-block;font-size:10px;padding:2px 8px;border-radius:4px;font-weight:500;white-space:nowrap}
+.tag-blue{background:var(--pl);color:var(--p)}
+.tag-green{background:var(--sl);color:var(--s)}
+.tag-orange{background:var(--wl);color:#d46b08}
+.tag-purple{background:var(--purple-l);color:var(--purple)}
+.tag-red{background:var(--dl);color:var(--d)}
+.tag-cyan{background:var(--cyan-l);color:var(--cyan)}
+.tag-gray{background:var(--g100);color:var(--g600)}
+
+/* Progress Bar */
+.prog-bar{display:flex;align-items:center;gap:8px}
+.prog-track{width:80px;height:6px;background:var(--g100);border-radius:3px;overflow:hidden}
+.prog-fill{height:100%;border-radius:3px;transition:width .5s ease}
+.prog-fill.blue{background:var(--p)}.prog-fill.green{background:var(--s)}.prog-fill.orange{background:var(--w)}.prog-fill.red{background:var(--d)}
+.prog-pct{font-size:11px;color:var(--g500);font-weight:500}
+
+/* Buttons */
+.btn{border:none;padding:7px 16px;border-radius:var(--rs);font-size:12px;font-weight:500;cursor:pointer;transition:var(--tr);display:inline-flex;align-items:center;gap:5px;white-space:nowrap}
+.btn:active{transform:scale(.97)}
+.btn-p{background:linear-gradient(135deg,var(--p) 0%,#4096ff 100%);color:#fff;box-shadow:0 2px 6px rgba(22,119,255,.25)}
+.btn-p:hover{box-shadow:0 4px 12px rgba(22,119,255,.35);transform:translateY(-1px)}
+.btn-o{background:#fff;color:var(--g700);border:1px solid var(--g300)}
+.btn-o:hover{color:var(--p);border-color:var(--p);background:var(--pa)}
+.btn-s{padding:4px 10px;font-size:11px;border-radius:4px}
+
+/* Cat Layout */
+.cat-layout{display:flex;gap:0;min-height:500px}
+.cat-tree-panel{width:280px;border-right:1px solid var(--g200);padding:12px 0;flex-shrink:0;overflow-y:auto}
+.cat-tree-search{padding:0 12px;margin-bottom:10px}
+.cat-tree-search input{width:100%;padding:6px 10px;border:1px solid var(--g300);border-radius:var(--rs);font-size:12px;outline:none}
+.cat-tree-search input:focus{border-color:var(--p);box-shadow:0 0 0 3px rgba(22,119,255,.1)}
+.cat-node{padding:6px 16px;display:flex;align-items:center;gap:6px;cursor:pointer;font-size:12px;color:var(--g700);transition:var(--tr);border-left:3px solid transparent;white-space:nowrap}
+.cat-node:hover{color:var(--p);background:var(--pl)}
+.cat-node.active{color:var(--p);background:var(--pl);font-weight:600;border-left-color:var(--p)}
+.cat-node .arrow{font-size:10px;width:14px;color:var(--g400);transition:transform .2s}
+.cat-node .arrow.expand{transform:rotate(90deg)}
+.cat-node .dot{width:6px;height:6px;border-radius:50%;flex-shrink:0;margin-right:2px}
+.cat-node .dot.l1{background:var(--p)}.cat-node .dot.l2{background:var(--s)}.cat-node .dot.l3{background:var(--w)}.cat-node .dot.l4{background:var(--purple)}
+.cat-node.l2{padding-left:36px}.cat-node.l3{padding-left:56px}.cat-node.l4{padding-left:72px}
+.cat-node .count-tag{font-size:10px;color:var(--g500);margin-left:auto}
+.cat-node .selected-indicator{width:6px;height:6px;border-radius:50%;background:var(--p);margin-left:auto;display:none}
+.cat-node.highlight{background:#fff7e6}
+.cat-node.highlight .selected-indicator{display:block}
+
+.cat-detail-panel{flex:1;padding:20px 24px;overflow-y:auto;display:flex;flex-direction:column;gap:16px}
+
+/* Category Info */
+.cat-info-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:14px}
+.cat-info-item{background:var(--g50);border-radius:var(--rs);padding:14px 16px;border:1px solid var(--g100)}
+.cat-info-label{font-size:11px;color:var(--g500);margin-bottom:4px;font-weight:500}
+.cat-info-val{font-size:14px;color:var(--g800);font-weight:600}
+.cat-info-val.link{color:var(--p);cursor:pointer}
+.cat-info-val.link:hover{text-decoration:underline}
+
+/* Supply Table */
+.supply-table-wrap{overflow-x:auto}
+.supply-table{width:100%;border-collapse:collapse;font-size:12px;min-width:1100px}
+.supply-table th{background:linear-gradient(180deg,#fafafa,#f5f5f5);color:var(--g700);font-size:11px;font-weight:600;padding:10px 14px;text-align:left;border-bottom:1px solid var(--g200);white-space:nowrap;position:sticky;top:0;z-index:2}
+.supply-table td{padding:9px 14px;border-bottom:1px solid var(--g100);vertical-align:middle}
+.supply-table tbody tr{transition:var(--tr)}
+.supply-table tbody tr:hover td{background:#f0f7ff}
+.cell-name{color:var(--p);font-weight:500;cursor:pointer}
+.cell-name:hover{text-decoration:underline}
+
+/* Category-Supplier Coverage Matrix */
+.coverage-matrix{overflow-x:auto;margin-top:12px}
+.cov-table{border-collapse:collapse;font-size:11px;width:100%;min-width:900px}
+.cov-table th{background:linear-gradient(180deg,#fafafa,#f5f5f5);color:var(--g700);font-size:11px;font-weight:600;padding:8px 10px;text-align:center;border:1px solid var(--g200);white-space:nowrap}
+.cov-table th:first-child{text-align:left;min-width:160px}
+.cov-table td{border:1px solid var(--g100);padding:6px 8px;text-align:center;font-size:10px;transition:var(--tr)}
+.cov-table td:first-child{text-align:left;font-weight:500;color:var(--g700)}
+.cov-cell{min-width:90px}
+.cov-cell.cov-full{background:#d9f7be;color:#237804;font-weight:600}
+.cov-cell.cov-partial{background:#fff7e6;color:#ad6800}
+.cov-cell.cov-reduced{background:#fff2f0;color:#cf1322}
+.cov-cell.cov-none{background:var(--g50);color:var(--g400)}
+.cov-score{font-size:10px;color:var(--g500);margin-top:2px}
+
+/* Radar Chart Container */
+.radar-grid{display:flex;gap:20px}
+.radar-compare{flex:1;background:var(--g50);border-radius:var(--rs);padding:16px;border:1px solid var(--g100);text-align:center}
+.radar-compare svg{display:block;margin:0 auto}
+.radar-legend{display:flex;gap:16px;justify-content:center;margin-top:8px;flex-wrap:wrap}
+.radar-legend-item{display:flex;align-items:center;gap:4px;font-size:11px;color:var(--g600)}
+.radar-legend-dot{width:10px;height:10px;border-radius:50%;flex-shrink:0}
+
+/* Supplier Capability Cards */
+.capability-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:16px}
+.cap-card{background:#fff;border:1px solid var(--g200);border-radius:var(--r);overflow:hidden;transition:var(--tr)}
+.cap-card:hover{box-shadow:var(--shm);border-color:var(--p)}
+.cap-card-hdr{display:flex;align-items:center;justify-content:space-between;padding:14px 16px;border-bottom:1px solid var(--g100);background:linear-gradient(180deg,#fafafa,#f8f8f8)}
+.cap-card-name{font-size:14px;font-weight:700;color:var(--g900);display:flex;align-items:center;gap:6px}
+.cap-card-score{font-size:22px;font-weight:700;color:var(--p)}
+.cap-card-body{padding:12px 16px}
+.cap-dim-row{display:flex;align-items:center;margin-bottom:8px;gap:10px}
+.cap-dim-label{width:52px;font-size:11px;color:var(--g600);text-align:right;flex-shrink:0}
+.cap-dim-bar{flex:1;height:8px;background:var(--g100);border-radius:4px;overflow:hidden}
+.cap-dim-fill{height:100%;border-radius:4px;transition:width .6s ease}
+.cap-dim-fill.a{background:var(--s)}.cap-dim-fill.b{background:var(--p)}.cap-dim-fill.c{background:var(--w)}.cap-dim-fill.d{background:var(--d)}
+.cap-dim-val{width:36px;font-size:11px;font-weight:600;color:var(--g700);text-align:right;flex-shrink:0}
+.cap-card-footer{display:flex;gap:8px;padding:0 16px 14px;flex-wrap:wrap}
+
+/* Category-Supplier Cross Table */
+.cross-table{border-collapse:collapse;font-size:11px;width:100%}
+.cross-table th{background:linear-gradient(180deg,#fafafa,#f5f5f5);color:var(--g700);font-size:11px;font-weight:600;padding:8px 12px;text-align:left;border-bottom:2px solid var(--g200)}
+.cross-table td{padding:8px 12px;border-bottom:1px solid var(--g100)}
+.cross-table td.check{text-align:center}
+.cross-table tbody tr:hover td{background:#f0f7ff}
+
+/* Mini Score Bar */
+.score-bar{display:flex;align-items:center;gap:6px;min-width:140px}
+.score-number{font-size:20px;font-weight:700;white-space:nowrap}
+.score-number.green{color:var(--s)}.score-number.blue{color:var(--p)}.score-number.orange{color:var(--w)}
+.score-label{font-size:10px;color:var(--g400)}
+
+/* Capability Comparison Table */
+.comp-table{border-collapse:collapse;font-size:12px;width:100%}
+.comp-table th{background:linear-gradient(180deg,#fafafa,#f5f5f5);color:var(--g700);font-size:11px;font-weight:600;padding:10px 12px;text-align:center;border-bottom:2px solid var(--g200)}
+.comp-table th:first-child{text-align:left}
+.comp-table td{padding:8px 12px;border-bottom:1px solid var(--g100);text-align:center}
+.comp-table td:first-child{text-align:left;font-weight:500}
+.comp-table .best{background:var(--sl);color:var(--s);font-weight:600;border-radius:3px}
+.comp-table .good{background:var(--pl);color:var(--p);border-radius:3px}
+.comp-table .avg{color:var(--g600)}
+.comp-table tbody tr:hover td{background:#f0f7ff}
+.comp-table tbody tr:hover td.best{background:var(--sl)}
+.comp-table tbody tr:hover td.good{background:var(--pl)}
+
+/* Filter Chips */
+.filter-bar{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:14px}
+.chip{padding:4px 12px;border:1px solid var(--g300);border-radius:16px;font-size:11px;color:var(--g600);cursor:pointer;transition:var(--tr);white-space:nowrap}
+.chip:hover{color:var(--p);border-color:var(--p)}
+.chip.active{background:var(--p);color:#fff;border-color:var(--p)}
+.chip.warn{background:var(--wl);color:#d46b08;border-color:var(--w)}
+.chip.warn:hover{background:var(--w);color:#fff}
+
+/* Stat Mini Cards */
+.mini-metrics{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:16px}
+.mini-card{background:var(--g50);border-radius:var(--rs);padding:12px;border-left:3px solid var(--p);display:flex;flex-direction:column;cursor:pointer;transition:var(--tr)}
+.mini-card.g{border-left-color:var(--s)}.mini-card.o{border-left-color:var(--w)}.mini-card.p{border-left-color:var(--purple)}.mini-card.r{border-left-color:var(--d)}
+.mini-card:hover{background:#fff;box-shadow:var(--shm)}
+.mini-card .mv{font-size:20px;font-weight:700;color:var(--g900)}
+.mini-card .ml{font-size:11px;color:var(--g500);margin-top:2px}
+.mini-card .msub{font-size:10px;color:var(--g400);margin-top:1px}
+
+/* KPI Row */
+.kpi-row{display:flex;gap:16px;margin-bottom:12px}
+.kpi-card{flex:1;background:#fff;border:1px solid var(--g200);border-radius:var(--rs);padding:14px 16px;display:flex;flex-direction:column;gap:6px}
+.kpi-card .kpi-val{font-size:24px;font-weight:700;color:var(--g900)}
+.kpi-card .kpi-label{font-size:11px;color:var(--g500)}
+.kpi-card .kpi-trend{font-size:10px;display:flex;align-items:center;gap:3px}
+.kpi-trend.up{color:var(--s)}.kpi-trend.down{color:var(--d)}
+
+/* Two Col Layout */
+.two-col{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+
+/* Divider */
+.divider-slim{height:1px;background:var(--g100);margin:16px 0}
+
+/* Supplier highlight card */
+.sup-highlight{display:flex;align-items:center;gap:12px;padding:12px 16px;background:var(--g50);border-radius:var(--rs);border:1px solid var(--g200);cursor:pointer;transition:var(--tr)}
+.sup-highlight:hover{border-color:var(--p);background:var(--pl)}
+.sup-highlight .sup-avatar{width:40px;height:40px;border-radius:8px;background:linear-gradient(135deg,var(--p),#4096ff);display:flex;align-items:center;justify-content:center;color:#fff;font-size:14px;font-weight:700;flex-shrink:0}
+.sup-highlight .sup-info{flex:1}
+.sup-highlight .sup-info .sup-name{font-size:14px;font-weight:600;color:var(--g900)}
+.sup-highlight .sup-info .sup-detail{font-size:11px;color:var(--g500);margin-top:2px}
+.sup-highlight .sup-score-lg{font-size:28px;font-weight:700;color:var(--p)}
+</style>
+</head>
+<body>
+
+<!-- ==================== TOP NAV ==================== -->
+<div class="topnav">
+    <div class="topnav-logo"><div class="mi">MI</div><span>小米汽车</span></div>
+    <div class="topnav-menu">
+        <div class="topnav-item">首页</div>
+        <div class="topnav-item">供应商管理</div>
+        <div class="topnav-item">采购项目管理</div>
+        <div class="topnav-item">RFQ询报价管理</div>
+        <div class="topnav-item">采购定点与台账</div>
+        <div class="topnav-item active">品类资源池</div>
+    </div>
+    <div class="topnav-right">
+        <div class="topnav-user"><div class="topnav-avatar">齐</div><span>齐岳</span></div>
+        <div class="icon">🔔</div>
+        <div class="icon">⚙</div>
+    </div>
+</div>
+
+<!-- ==================== LAYOUT ==================== -->
+<div class="srm-layout">
+
+<!-- Sidebar -->
+<div class="sidebar">
+    <div class="sidebar-hdr">
+        <h3>品类资源池</h3>
+        <div class="count">共覆盖 <strong>8</strong> 个一级品类，<strong>86</strong> 个二级品类</div>
+    </div>
+    <div class="sp-menu" id="sidebarMenu">
+        <div class="sp-menu-item active" onclick="selectCategory('battery', this)">
+            <div class="mi-icon orange">🔋</div>动力电池<span class="mi-badge">4大组·15供方</span>
+        </div>
+        <div class="sp-menu-item" onclick="selectCategory('seat', this)">
+            <div class="mi-icon blue">💺</div>座椅系统<span class="mi-badge">5大组·9供方</span>
+        </div>
+        <div class="sp-menu-item" onclick="selectCategory('motor', this)">
+            <div class="mi-icon green">⚡</div>电驱系统<span class="mi-badge">3大组·8供方</span>
+        </div>
+        <div class="sp-menu-item" onclick="selectCategory('body', this)">
+            <div class="mi-icon purple">🚗</div>白车身<span class="mi-badge">6大组·14供方</span>
+        </div>
+        <div class="sp-menu-item" onclick="selectCategory('chassis', this)">
+            <div class="mi-icon cyan">🛞</div>底盘系统<span class="mi-badge">5大组·11供方</span>
+        </div>
+        <div class="sp-menu-item" onclick="selectCategory('elec', this)">
+            <div class="mi-icon blue">💡</div>电子电器<span class="mi-badge">7大组·18供方</span>
+        </div>
+        <div class="sp-menu-item" onclick="selectCategory('thermal', this)">
+            <div class="mi-icon orange">🌡️</div>热管理系统<span class="mi-badge">3大组·6供方</span>
+        </div>
+        <div class="sp-menu-item" onclick="selectCategory('ad', this)">
+            <div class="mi-icon purple">🧠</div>智能驾驶<span class="mi-badge">3大组·5供方</span>
+        </div>
+    </div>
+</div>
+
+<!-- Main Content -->
+<div class="main-content" id="mainContent">
+
+<!-- ============ CATEGORY: 动力电池 ============ -->
+<div id="cat-battery" class="cat-detail active">
+
+<!-- Metrics -->
+<div class="metrics-bar">
+    <div class="metric-card"><div class="mc-icon blue">🔋</div><div class="mc-info"><div class="mc-val">4</div><div class="mc-label">一级品类分组</div></div></div>
+    <div class="metric-card"><div class="mc-icon green">🏭</div><div class="mc-info"><div class="mc-val">15</div><div class="mc-label">合格供应商</div></div></div>
+    <div class="metric-card"><div class="mc-icon orange">📦</div><div class="mc-info"><div class="mc-val">127</div><div class="mc-label">在报零件</div></div></div>
+    <div class="metric-card"><div class="mc-icon purple">📊</div><div class="mc-info"><div class="mc-val">92%</div><div class="mc-label">报价覆盖率</div></div></div>
+    <div class="metric-card"><div class="mc-icon cyan">💰</div><div class="mc-info"><div class="mc-val">¥8.2亿</div><div class="mc-label">年预估采购额</div></div></div>
+</div>
+
+<!-- ===== SIMPLE SECTION 1: 品类-供应商覆盖矩阵 ===== -->
+<div class="section">
+    <div class="section-hdr">
+        <div class="section-title">品类-供应商覆盖矩阵</div>
+        <div style="display:flex;align-items:center;gap:12px;font-size:11px;color:var(--g500)">
+            <span style="display:flex;align-items:center;gap:4px"><span style="width:12px;height:12px;border-radius:2px;background:#d9f7be;border:1px solid #b7eb8f"></span>全面覆盖</span>
+            <span style="display:flex;align-items:center;gap:4px"><span style="width:12px;height:12px;border-radius:2px;background:#fff7e6;border:1px solid #ffd591"></span>部分覆盖</span>
+            <span style="display:flex;align-items:center;gap:4px"><span style="width:12px;height:12px;border-radius:2px;background:#fff2f0;border:1px solid #ffa39e"></span>能力不足</span>
+            <span style="display:flex;align-items:center;gap:4px"><span style="width:12px;height:12px;border-radius:2px;background:var(--g50);border:1px solid var(--g200)"></span>不适用</span>
+        </div>
+    </div>
+    <div class="section-body" style="padding-top:8px">
+        <div class="coverage-matrix">
+            <table class="cov-table">
+                <thead>
+                    <tr>
+                        <th>二级品类 \ 供应商</th>
+                        <th>宁德时代<br><small style="color:var(--g500);font-weight:400">A+ · 战略</small></th>
+                        <th>弗迪电池<br><small style="color:var(--g500);font-weight:400">A · 战略</small></th>
+                        <th>中创新航<br><small style="color:var(--g500);font-weight:400">B+ · 正式</small></th>
+                        <th>国轩高科<br><small style="color:var(--g500);font-weight:400">B · 潜在</small></th>
+                        <th>蜂巢能源<br><small style="color:var(--g500);font-weight:400">B- · 潜在</small></th>
+                        <th>欣旺达<br><small style="color:var(--g500);font-weight:400">B+ · 潜在</small></th>
+                        <th>三星SDI<br><small style="color:var(--g500);font-weight:400">A · 备选</small></th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td>方形铝壳电芯 LFP</td>
+                        <td class="cov-cell cov-full">主力供方<div class="cov-score">综合 95</div></td>
+                        <td class="cov-cell cov-full">主力供方<div class="cov-score">综合 92</div></td>
+                        <td class="cov-cell cov-partial">二供<div class="cov-score">综合 78</div></td>
+                        <td class="cov-cell cov-partial">开发中<div class="cov-score">综合 65</div></td>
+                        <td class="cov-cell cov-reduced">送样<div class="cov-score">综合 52</div></td>
+                        <td class="cov-cell cov-reduced">询价中<div class="cov-score">综合 48</div></td>
+                        <td class="cov-cell cov-none">—</td>
+                    </tr>
+                    <tr>
+                        <td>刀片电芯 LFP</td>
+                        <td class="cov-cell cov-partial">非核心<div class="cov-score">综合 72</div></td>
+                        <td class="cov-cell cov-full">独家供方<div class="cov-score">综合 96</div></td>
+                        <td class="cov-cell cov-none">—</td>
+                        <td class="cov-cell cov-none">—</td>
+                        <td class="cov-cell cov-none">—</td>
+                        <td class="cov-cell cov-none">—</td>
+                        <td class="cov-cell cov-none">—</td>
+                    </tr>
+                    <tr>
+                        <td>圆柱电芯 21700 NCM</td>
+                        <td class="cov-cell cov-full">主力供方<div class="cov-score">综合 94</div></td>
+                        <td class="cov-cell cov-none">—</td>
+                        <td class="cov-cell cov-partial">送样<div class="cov-score">综合 62</div></td>
+                        <td class="cov-cell cov-partial">开发中<div class="cov-score">综合 68</div></td>
+                        <td class="cov-cell cov-full">主力供方<div class="cov-score">综合 88</div></td>
+                        <td class="cov-cell cov-none">—</td>
+                        <td class="cov-cell cov-full">主力供方<div class="cov-score">综合 90</div></td>
+                    </tr>
+                    <tr>
+                        <td>软包电芯 NCM</td>
+                        <td class="cov-cell cov-full">主力供方<div class="cov-score">综合 93</div></td>
+                        <td class="cov-cell cov-partial">小批量<div class="cov-score">综合 70</div></td>
+                        <td class="cov-cell cov-reduced">送样<div class="cov-score">综合 55</div></td>
+                        <td class="cov-cell cov-none">—</td>
+                        <td class="cov-cell cov-none">—</td>
+                        <td class="cov-cell cov-partial">开发中<div class="cov-score">综合 60</div></td>
+                        <td class="cov-cell cov-none">—</td>
+                    </tr>
+                    <tr>
+                        <td>CTP 2.0 标准包</td>
+                        <td class="cov-cell cov-full">独家供方<div class="cov-score">综合 96</div></td>
+                        <td class="cov-cell cov-full">主力供方<div class="cov-score">综合 94</div></td>
+                        <td class="cov-cell cov-partial">二供<div class="cov-score">综合 75</div></td>
+                        <td class="cov-cell cov-none">—</td>
+                        <td class="cov-cell cov-none">—</td>
+                        <td class="cov-cell cov-none">—</td>
+                        <td class="cov-cell cov-none">—</td>
+                    </tr>
+                    <tr>
+                        <td>CTP 3.0 麒麟包</td>
+                        <td class="cov-cell cov-full">独家供方<div class="cov-score">综合 97</div></td>
+                        <td class="cov-cell cov-reduced">预研<div class="cov-score">综合 58</div></td>
+                        <td class="cov-cell cov-none">—</td>
+                        <td class="cov-cell cov-none">—</td>
+                        <td class="cov-cell cov-none">—</td>
+                        <td class="cov-cell cov-none">—</td>
+                        <td class="cov-cell cov-none">—</td>
+                    </tr>
+                    <tr>
+                        <td>CTC电池底盘</td>
+                        <td class="cov-cell cov-full">独家供方<div class="cov-score">综合 95</div></td>
+                        <td class="cov-cell cov-partial">开发中<div class="cov-score">综合 70</div></td>
+                        <td class="cov-cell cov-none">—</td>
+                        <td class="cov-cell cov-none">—</td>
+                        <td class="cov-cell cov-none">—</td>
+                        <td class="cov-cell cov-none">—</td>
+                        <td class="cov-cell cov-none">—</td>
+                    </tr>
+                    <tr>
+                        <td>BMS主控板</td>
+                        <td class="cov-cell cov-full">自研+代工<div class="cov-score">综合 98</div></td>
+                        <td class="cov-cell cov-partial">二供<div class="cov-score">综合 80</div></td>
+                        <td class="cov-cell cov-none">—</td>
+                        <td class="cov-cell cov-none">—</td>
+                        <td class="cov-cell cov-none">—</td>
+                        <td class="cov-cell cov-partial">送样<div class="cov-score">综合 65</div></td>
+                        <td class="cov-cell cov-none">—</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+        <div style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap">
+            <span class="chip warn">⚠ 风险提示：刀片电芯为独家供方（弗迪），建议储备二供</span>
+            <span class="chip warn">⚠ 风险提示：CTP 3.0 与 CTC 仅宁德时代可量产</span>
+        </div>
+    </div>
+</div>
+
+<!-- ===== SECTION 2: 供应商能力雷达对比 ===== -->
+<div class="section">
+    <div class="section-hdr">
+        <div class="section-title">供应商六维能力雷达对比</div>
+        <div class="section-actions">
+            <button class="btn btn-o btn-s">全选</button>
+            <span class="chip active" onclick="toggleRadarSupplier(this,'all')">全部</span>
+            <span class="chip" onclick="toggleRadarSupplier(this,'catl')">宁德</span>
+            <span class="chip" onclick="toggleRadarSupplier(this,'byd')">弗迪</span>
+            <span class="chip" onclick="toggleRadarSupplier(this,'calb')">中创</span>
+            <span class="chip" onclick="toggleRadarSupplier(this,'gotion')">国轩</span>
+            <span class="chip" onclick="toggleRadarSupplier(this,'hive')">蜂巢</span>
+        </div>
+    </div>
+    <div class="section-body">
+        <div class="radar-grid">
+            <!-- 综合能力雷达图 -->
+            <div class="radar-compare" style="flex:1.2">
+                <div style="font-size:13px;font-weight:600;color:var(--g800);margin-bottom:12px">综合能力对比 (动力电池品类)</div>
+                <svg viewBox="0 0 340 340" width="340" height="340">
+                    <!-- Axis lines -->
+                    <g transform="translate(170,170)">
+                        <!-- Background grid -->
+                        <polygon points="0,-150 129.9,-75 129.9,75 0,150 -129.9,75 -129.9,-75" fill="none" stroke="var(--g200)" stroke-width="1"/>
+                        <polygon points="0,-120 103.9,-60 103.9,60 0,120 -103.9,60 -103.9,-60" fill="none" stroke="var(--g200)" stroke-width="1"/>
+                        <polygon points="0,-90 77.9,-45 77.9,45 0,90 -77.9,45 -77.9,-45" fill="none" stroke="var(--g200)" stroke-width="1"/>
+                        <polygon points="0,-60 51.9,-30 51.9,30 0,60 -51.9,30 -51.9,-30" fill="none" stroke="var(--g200)" stroke-width="1"/>
+                        <polygon points="0,-30 25.9,-15 25.9,15 0,30 -25.9,15 -25.9,-15" fill="none" stroke="var(--g200)" stroke-width="1"/>
+                        <!-- Axes -->
+                        <line x1="0" y1="0" x2="0" y2="-155" stroke="var(--g300)" stroke-width="1"/>
+                        <line x1="0" y1="0" x2="134" y2="-77.5" stroke="var(--g300)" stroke-width="1"/>
+                        <line x1="0" y1="0" x2="134" y2="77.5" stroke="var(--g300)" stroke-width="1"/>
+                        <line x1="0" y1="0" x2="0" y2="155" stroke="var(--g300)" stroke-width="1"/>
+                        <line x1="0" y1="0" x2="-134" y2="77.5" stroke="var(--g300)" stroke-width="1"/>
+                        <line x1="0" y1="0" x2="-134" y2="-77.5" stroke="var(--g300)" stroke-width="1"/>
+                        <!-- Labels -->
+                        <text x="0" y="-158" text-anchor="middle" font-size="11" fill="var(--g700)" font-weight="600">质量</text>
+                        <text x="138" y="-80" text-anchor="start" font-size="11" fill="var(--g700)" font-weight="600">成本</text>
+                        <text x="138" y="84" text-anchor="start" font-size="11" fill="var(--g700)" font-weight="600">交付</text>
+                        <text x="0" y="168" text-anchor="middle" font-size="11" fill="var(--g700)" font-weight="600">技术</text>
+                        <text x="-138" y="84" text-anchor="end" font-size="11" fill="var(--g700)" font-weight="600">服务</text>
+                        <text x="-138" y="-80" text-anchor="end" font-size="11" fill="var(--g700)" font-weight="600">产能</text>
+                        <!-- Scale labels -->
+                        <text x="0" y="-8" text-anchor="middle" font-size="9" fill="var(--g400)">100</text>
+                        <text x="0" y="14" text-anchor="middle" font-size="9" fill="var(--g400)">50</text>
+                    </g>
+                    <!-- CATL: quality=95 cost=82 delivery=98 tech=96 service=90 capacity=94 -->
+                    <!-- Angles: top=90°(0,-y), top-right=30°, bottom-right=-30°, bottom=-90°, bottom-left=-150°, top-left=150° -->
+                    <g transform="translate(170,170)">
+                        <!-- CATL polygon -->
+                        <!-- quality(150*0.95)=142.5 top, cost(150*0.82=123) 30°, delivery(150*0.98=147) -30°, tech(150*0.96=144) bottom, service(150*0.90=135) -150°, capacity(150*0.94=141) 150° -->
+                        <polygon points="0,-142.5 106.5,-61.5 127.3,73.5 0,144 -116.9,67.5 -122.1,-70.5"
+                            fill="rgba(22,119,255,0.12)" stroke="#1677ff" stroke-width="2.5" stroke-linejoin="round"/>
+                        <!-- Nodes -->
+                        <circle cx="0" cy="-142.5" r="4" fill="#1677ff"/>
+                        <circle cx="106.5" cy="-61.5" r="4" fill="#1677ff"/>
+                        <circle cx="127.3" cy="73.5" r="4" fill="#1677ff"/>
+                        <circle cx="0" cy="144" r="4" fill="#1677ff"/>
+                        <circle cx="-116.9" cy="67.5" r="4" fill="#1677ff"/>
+                        <circle cx="-122.1" cy="-70.5" r="4" fill="#1677ff"/>
+                    </g>
+                    <!-- BYD: quality=90 cost=95 delivery=85 tech=82 service=75 capacity=92 -->
+                    <g transform="translate(170,170)">
+                        <polygon points="0,-135 131.7,-76 127.5,63.8 0,123 -103.9,60 -137.4,-79.3"
+                            fill="rgba(82,196,26,0.08)" stroke="#52c41a" stroke-width="2.5" stroke-linejoin="round"/>
+                        <circle cx="0" cy="-135" r="4" fill="#52c41a"/>
+                        <circle cx="131.7" cy="-76" r="4" fill="#52c41a"/>
+                        <circle cx="127.5" cy="63.8" r="4" fill="#52c41a"/>
+                        <circle cx="0" cy="123" r="4" fill="#52c41a"/>
+                        <circle cx="-103.9" cy="60" r="4" fill="#52c41a"/>
+                        <circle cx="-137.4" cy="-79.3" r="4" fill="#52c41a"/>
+                    </g>
+                    <!-- CALB: quality=75 cost=80 delivery=72 tech=70 service=65 capacity=78 -->
+                    <g transform="translate(170,170)">
+                        <polygon points="0,-112.5 107.2,-62 105.8,54 0,105 -92.3,53.3 -116.7,-67.4"
+                            fill="rgba(250,173,20,0.06)" stroke="#faad14" stroke-width="2" stroke-linejoin="round" stroke-dasharray="5,3"/>
+                        <circle cx="0" cy="-112.5" r="3.5" fill="#faad14"/>
+                        <circle cx="107.2" cy="-62" r="3.5" fill="#faad14"/>
+                        <circle cx="105.8" cy="54" r="3.5" fill="#faad14"/>
+                        <circle cx="0" cy="105" r="3.5" fill="#faad14"/>
+                        <circle cx="-92.3" cy="53.3" r="3.5" fill="#faad14"/>
+                        <circle cx="-116.7" cy="-67.4" r="3.5" fill="#faad14"/>
+                    </g>
+                    <!-- Gotion: quality=68 cost=75 delivery=65 tech=62 service=60 capacity=72 -->
+                    <g transform="translate(170,170)">
+                        <polygon points="0,-102 100.3,-58 97.5,48.8 0,93 -83.1,48 -104.4,-60.3"
+                            fill="rgba(179,179,179,0.05)" stroke="#bfbfbf" stroke-width="1.5" stroke-linejoin="round" stroke-dasharray="4,4"/>
+                    </g>
+                    <!-- SVolt: quality=55 cost=72 delivery=50 tech=58 service=48 capacity=60 -->
+                    <g transform="translate(170,170)">
+                        <polygon points="0,-82.5 96.3,-55.6 86.6,37.5 0,87 -66.4,38.3 -90.1,-52"
+                            fill="rgba(179,179,179,0.03)" stroke="#d9d9d9" stroke-width="1" stroke-linejoin="round" stroke-dasharray="3,3"/>
+                    </g>
+                </svg>
+                <div class="radar-legend">
+                    <div class="radar-legend-item"><div class="radar-legend-dot" style="background:#1677ff"></div>宁德时代 综合92.5</div>
+                    <div class="radar-legend-item"><div class="radar-legend-dot" style="background:#52c41a"></div>弗迪电池 综合86.5</div>
+                    <div class="radar-legend-item"><div class="radar-legend-dot" style="background:#faad14"></div>中创新航 综合73.3</div>
+                    <div class="radar-legend-item"><div class="radar-legend-dot" style="background:#bfbfbf"></div>国轩高科 综合67.0</div>
+                    <div class="radar-legend-item"><div class="radar-legend-dot" style="background:#d9d9d9"></div>蜂巢能源 综合60.8</div>
+                </div>
+            </div>
+            <!-- 成本能力雷达图 -->
+            <div class="radar-compare" style="flex:1">
+                <div style="font-size:13px;font-weight:600;color:var(--g800);margin-bottom:12px">成本竞争力细分</div>
+                <svg viewBox="0 0 300 300" width="300" height="300">
+                    <g transform="translate(150,150)">
+                        <polygon points="0,-130 112.6,-65 112.6,65 0,130 -112.6,65 -112.6,-65" fill="none" stroke="var(--g200)" stroke-width="1"/>
+                        <polygon points="0,-100 86.6,-50 86.6,50 0,100 -86.6,50 -86.6,-50" fill="none" stroke="var(--g200)" stroke-width="1"/>
+                        <polygon points="0,-70 60.6,-35 60.6,35 0,70 -60.6,35 -60.6,-35" fill="none" stroke="var(--g200)" stroke-width="1"/>
+                        <polygon points="0,-40 34.6,-20 34.6,20 0,40 -34.6,20 -34.6,-20" fill="none" stroke="var(--g200)" stroke-width="1"/>
+                        <line x1="0" y1="0" x2="0" y2="-135" stroke="var(--g300)" stroke-width="1"/>
+                        <line x1="0" y1="0" x2="117" y2="-67.5" stroke="var(--g300)" stroke-width="1"/>
+                        <line x1="0" y1="0" x2="117" y2="67.5" stroke="var(--g300)" stroke-width="1"/>
+                        <line x1="0" y1="0" x2="0" y2="135" stroke="var(--g300)" stroke-width="1"/>
+                        <line x1="0" y1="0" x2="-117" y2="67.5" stroke="var(--g300)" stroke-width="1"/>
+                        <line x1="0" y1="0" x2="-117" y2="-67.5" stroke="var(--g300)" stroke-width="1"/>
+                        <text x="0" y="-140" text-anchor="middle" font-size="10" fill="var(--g700)" font-weight="600">BOM成本</text>
+                        <text x="122" y="-70" text-anchor="start" font-size="10" fill="var(--g700)" font-weight="600">制造费用</text>
+                        <text x="122" y="74" text-anchor="start" font-size="10" fill="var(--g700)" font-weight="600">年降幅度</text>
+                        <text x="0" y="148" text-anchor="middle" font-size="10" fill="var(--g700)" font-weight="600">模具摊销</text>
+                        <text x="-122" y="74" text-anchor="end" font-size="10" fill="var(--g700)" font-weight="600">物流成本</text>
+                        <text x="-122" y="-70" text-anchor="end" font-size="10" fill="var(--g700)" font-weight="600">付款条件</text>
+                    </g>
+                    <!-- CATL cost radar: BOM=78 mfg=85 yoy=90 tool=82 log=75 pay=88 -->
+                    <g transform="translate(150,150)">
+                        <polygon points="0,-101.4 99.7,-57.8 105.3,58.5 0,106.6 -84.1,64.7 -102.5,-59.4"
+                            fill="rgba(22,119,255,0.1)" stroke="#1677ff" stroke-width="2.5"/>
+                        <circle cx="0" cy="-101.4" r="3.5" fill="#1677ff"/>
+                        <circle cx="99.7" cy="-57.8" r="3.5" fill="#1677ff"/>
+                        <circle cx="105.3" cy="58.5" r="3.5" fill="#1677ff"/>
+                        <circle cx="0" cy="106.6" r="3.5" fill="#1677ff"/>
+                        <circle cx="-84.1" cy="64.7" r="3.5" fill="#1677ff"/>
+                        <circle cx="-102.5" cy="-59.4" r="3.5" fill="#1677ff"/>
+                    </g>
+                    <!-- BYD cost radar: BOM=92 mfg=95 yoy=85 tool=90 log=88 pay=82 -->
+                    <g transform="translate(150,150)">
+                        <polygon points="0,-119.6 111.1,-64.3 118.3,55.3 0,117 -98.7,76.1 -109.7,-63.6"
+                            fill="rgba(82,196,26,0.08)" stroke="#52c41a" stroke-width="2.5"/>
+                        <circle cx="0" cy="-119.6" r="3.5" fill="#52c41a"/>
+                        <circle cx="111.1" cy="-64.3" r="3.5" fill="#52c41a"/>
+                        <circle cx="118.3" cy="55.3" r="3.5" fill="#52c41a"/>
+                        <circle cx="0" cy="117" r="3.5" fill="#52c41a"/>
+                        <circle cx="-98.7" cy="76.1" r="3.5" fill="#52c41a"/>
+                        <circle cx="-109.7" cy="-63.6" r="3.5" fill="#52c41a"/>
+                    </g>
+                </svg>
+                <div class="radar-legend">
+                    <div class="radar-legend-item"><div class="radar-legend-dot" style="background:#1677ff"></div>宁德时代 综合83.0</div>
+                    <div class="radar-legend-item"><div class="radar-legend-dot" style="background:#52c41a"></div>弗迪电池 综合88.7</div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- ===== SECTION 3: 供应商能力详细评分 ===== -->
+<div class="section">
+    <div class="section-hdr">
+        <div class="section-title">核心供应商能力详细评分卡</div>
+        <div class="section-actions">
+            <span class="chip active" onclick="filterCapCards(this,'all')">全部</span>
+            <span class="chip" onclick="filterCapCards(this,'strategic')">战略合作</span>
+            <span class="chip" onclick="filterCapCards(this,'active')">正式供方</span>
+            <span class="chip" onclick="filterCapCards(this,'potential')">潜在供方</span>
+        </div>
+    </div>
+    <div class="section-body">
+        <div class="capability-grid" id="capabilityGrid">
+            <!-- 宁德时代 -->
+            <div class="cap-card" data-tier="strategic">
+                <div class="cap-card-hdr">
+                    <div class="cap-card-name">
+                        <div style="width:32px;height:32px;border-radius:6px;background:linear-gradient(135deg,#1677ff,#4096ff);display:flex;align-items:center;justify-content:center;color:#fff;font-size:12px;font-weight:700">CATL</div>
+                        宁德时代
+                        <span class="tag tag-green">战略合作</span>
+                    </div>
+                    <div class="cap-card-score">92.5</div>
+                </div>
+                <div class="cap-card-body">
+                    <div class="cap-dim-row"><div class="cap-dim-label">质量</div><div class="cap-dim-bar"><div class="cap-dim-fill a" style="width:95%"></div></div><div class="cap-dim-val">95</div></div>
+                    <div class="cap-dim-row"><div class="cap-dim-label">成本</div><div class="cap-dim-bar"><div class="cap-dim-fill b" style="width:82%"></div></div><div class="cap-dim-val">82</div></div>
+                    <div class="cap-dim-row"><div class="cap-dim-label">交付</div><div class="cap-dim-bar"><div class="cap-dim-fill a" style="width:98%"></div></div><div class="cap-dim-val">98</div></div>
+                    <div class="cap-dim-row"><div class="cap-dim-label">技术</div><div class="cap-dim-bar"><div class="cap-dim-fill a" style="width:96%"></div></div><div class="cap-dim-val">96</div></div>
+                    <div class="cap-dim-row"><div class="cap-dim-label">服务</div><div class="cap-dim-bar"><div class="cap-dim-fill b" style="width:90%"></div></div><div class="cap-dim-val">90</div></div>
+                    <div class="cap-dim-row"><div class="cap-dim-label">产能</div><div class="cap-dim-bar"><div class="cap-dim-fill a" style="width:94%"></div></div><div class="cap-dim-val">94</div></div>
+                </div>
+                <div class="cap-card-footer">
+                    <span class="tag tag-green">IATF 16949</span><span class="tag tag-blue">ISO 14001</span><span class="tag tag-purple">CNAS认证</span><span class="tag tag-green">年降-5.2%</span><span class="tag tag-blue">120GWh产能</span>
+                </div>
+            </div>
+            <!-- 弗迪电池 -->
+            <div class="cap-card" data-tier="strategic">
+                <div class="cap-card-hdr">
+                    <div class="cap-card-name">
+                        <div style="width:32px;height:32px;border-radius:6px;background:linear-gradient(135deg,#52c41a,#73d13d);display:flex;align-items:center;justify-content:center;color:#fff;font-size:12px;font-weight:700">BYD</div>
+                        弗迪电池
+                        <span class="tag tag-green">战略合作</span>
+                    </div>
+                    <div class="cap-card-score">86.5</div>
+                </div>
+                <div class="cap-card-body">
+                    <div class="cap-dim-row"><div class="cap-dim-label">质量</div><div class="cap-dim-bar"><div class="cap-dim-fill a" style="width:90%"></div></div><div class="cap-dim-val">90</div></div>
+                    <div class="cap-dim-row"><div class="cap-dim-label">成本</div><div class="cap-dim-bar"><div class="cap-dim-fill a" style="width:95%"></div></div><div class="cap-dim-val">95</div></div>
+                    <div class="cap-dim-row"><div class="cap-dim-label">交付</div><div class="cap-dim-bar"><div class="cap-dim-fill b" style="width:85%"></div></div><div class="cap-dim-val">85</div></div>
+                    <div class="cap-dim-row"><div class="cap-dim-label">技术</div><div class="cap-dim-bar"><div class="cap-dim-fill b" style="width:82%"></div></div><div class="cap-dim-val">82</div></div>
+                    <div class="cap-dim-row"><div class="cap-dim-label">服务</div><div class="cap-dim-bar"><div class="cap-dim-fill c" style="width:75%"></div></div><div class="cap-dim-val">75</div></div>
+                    <div class="cap-dim-row"><div class="cap-dim-label">产能</div><div class="cap-dim-bar"><div class="cap-dim-fill a" style="width:92%"></div></div><div class="cap-dim-val">92</div></div>
+                </div>
+                <div class="cap-card-footer">
+                    <span class="tag tag-green">IATF 16949</span><span class="tag tag-blue">ISO 14001</span><span class="tag tag-green">年降-6.0%</span><span class="tag tag-blue">95GWh产能</span><span class="tag tag-orange">刀片专利</span>
+                </div>
+            </div>
+            <!-- 中创新航 -->
+            <div class="cap-card" data-tier="active">
+                <div class="cap-card-hdr">
+                    <div class="cap-card-name">
+                        <div style="width:32px;height:32px;border-radius:6px;background:linear-gradient(135deg,#faad14,#ffc53d);display:flex;align-items:center;justify-content:center;color:#fff;font-size:12px;font-weight:700">CALB</div>
+                        中创新航
+                        <span class="tag tag-blue">正式供方</span>
+                    </div>
+                    <div class="cap-card-score">73.3</div>
+                </div>
+                <div class="cap-card-body">
+                    <div class="cap-dim-row"><div class="cap-dim-label">质量</div><div class="cap-dim-bar"><div class="cap-dim-fill c" style="width:75%"></div></div><div class="cap-dim-val">75</div></div>
+                    <div class="cap-dim-row"><div class="cap-dim-label">成本</div><div class="cap-dim-bar"><div class="cap-dim-fill b" style="width:80%"></div></div><div class="cap-dim-val">80</div></div>
+                    <div class="cap-dim-row"><div class="cap-dim-label">交付</div><div class="cap-dim-bar"><div class="cap-dim-fill c" style="width:72%"></div></div><div class="cap-dim-val">72</div></div>
+                    <div class="cap-dim-row"><div class="cap-dim-label">技术</div><div class="cap-dim-bar"><div class="cap-dim-fill c" style="width:70%"></div></div><div class="cap-dim-val">70</div></div>
+                    <div class="cap-dim-row"><div class="cap-dim-label">服务</div><div class="cap-dim-bar"><div class="cap-dim-fill d" style="width:65%"></div></div><div class="cap-dim-val">65</div></div>
+                    <div class="cap-dim-row"><div class="cap-dim-label">产能</div><div class="cap-dim-bar"><div class="cap-dim-fill c" style="width:78%"></div></div><div class="cap-dim-val">78</div></div>
+                </div>
+                <div class="cap-card-footer">
+                    <span class="tag tag-green">IATF 16949</span><span class="tag tag-blue">ISO 14001</span><span class="tag tag-orange">年降-3.5%</span><span class="tag tag-blue">50GWh产能</span>
+                </div>
+            </div>
+            <!-- 国轩高科 -->
+            <div class="cap-card" data-tier="potential">
+                <div class="cap-card-hdr">
+                    <div class="cap-card-name">
+                        <div style="width:32px;height:32px;border-radius:6px;background:linear-gradient(135deg,#bfbfbf,#d9d9d9);display:flex;align-items:center;justify-content:center;color:#fff;font-size:12px;font-weight:700">GT</div>
+                        国轩高科
+                        <span class="tag tag-orange">潜在供方</span>
+                    </div>
+                    <div class="cap-card-score">67.0</div>
+                </div>
+                <div class="cap-card-body">
+                    <div class="cap-dim-row"><div class="cap-dim-label">质量</div><div class="cap-dim-bar"><div class="cap-dim-fill c" style="width:68%"></div></div><div class="cap-dim-val">68</div></div>
+                    <div class="cap-dim-row"><div class="cap-dim-label">成本</div><div class="cap-dim-bar"><div class="cap-dim-fill c" style="width:75%"></div></div><div class="cap-dim-val">75</div></div>
+                    <div class="cap-dim-row"><div class="cap-dim-label">交付</div><div class="cap-dim-bar"><div class="cap-dim-fill d" style="width:65%"></div></div><div class="cap-dim-val">65</div></div>
+                    <div class="cap-dim-row"><div class="cap-dim-label">技术</div><div class="cap-dim-bar"><div class="cap-dim-fill d" style="width:62%"></div></div><div class="cap-dim-val">62</div></div>
+                    <div class="cap-dim-row"><div class="cap-dim-label">服务</div><div class="cap-dim-bar"><div class="cap-dim-fill d" style="width:60%"></div></div><div class="cap-dim-val">60</div></div>
+                    <div class="cap-dim-row"><div class="cap-dim-label">产能</div><div class="cap-dim-bar"><div class="cap-dim-fill c" style="width:72%"></div></div><div class="cap-dim-val">72</div></div>
+                </div>
+                <div class="cap-card-footer">
+                    <span class="tag tag-orange">IATF审核中</span><span class="tag tag-blue">35GWh产能</span><span class="tag tag-gray">合肥基地</span>
+                </div>
+            </div>
+            <!-- 蜂巢能源 -->
+            <div class="cap-card" data-tier="potential">
+                <div class="cap-card-hdr">
+                    <div class="cap-card-name">
+                        <div style="width:32px;height:32px;border-radius:6px;background:linear-gradient(135deg,#d9d9d9,#e8e8e8);display:flex;align-items:center;justify-content:center;color:#8c8c8c;font-size:12px;font-weight:700">SV</div>
+                        蜂巢能源
+                        <span class="tag tag-orange">潜在供方</span>
+                    </div>
+                    <div class="cap-card-score">60.8</div>
+                </div>
+                <div class="cap-card-body">
+                    <div class="cap-dim-row"><div class="cap-dim-label">质量</div><div class="cap-dim-bar"><div class="cap-dim-fill d" style="width:55%"></div></div><div class="cap-dim-val">55</div></div>
+                    <div class="cap-dim-row"><div class="cap-dim-label">成本</div><div class="cap-dim-bar"><div class="cap-dim-fill c" style="width:72%"></div></div><div class="cap-dim-val">72</div></div>
+                    <div class="cap-dim-row"><div class="cap-dim-label">交付</div><div class="cap-dim-bar"><div class="cap-dim-fill d" style="width:50%"></div></div><div class="cap-dim-val">50</div></div>
+                    <div class="cap-dim-row"><div class="cap-dim-label">技术</div><div class="cap-dim-bar"><div class="cap-dim-fill d" style="width:58%"></div></div><div class="cap-dim-val">58</div></div>
+                    <div class="cap-dim-row"><div class="cap-dim-label">服务</div><div class="cap-dim-bar"><div class="cap-dim-fill d" style="width:48%"></div></div><div class="cap-dim-val">48</div></div>
+                    <div class="cap-dim-row"><div class="cap-dim-label">产能</div><div class="cap-dim-bar"><div class="cap-dim-fill d" style="width:60%"></div></div><div class="cap-dim-val">60</div></div>
+                </div>
+                <div class="cap-card-footer">
+                    <span class="tag tag-orange">IATF审核中</span><span class="tag tag-blue">25GWh产能</span><span class="tag tag-gray">常州基地</span>
+                </div>
+            </div>
+            <!-- 欣旺达 -->
+            <div class="cap-card" data-tier="potential">
+                <div class="cap-card-hdr">
+                    <div class="cap-card-name">
+                        <div style="width:32px;height:32px;border-radius:6px;background:linear-gradient(135deg,#13c2c2,#36cfc9);display:flex;align-items:center;justify-content:center;color:#fff;font-size:12px;font-weight:700">SW</div>
+                        欣旺达
+                        <span class="tag tag-orange">潜在供方</span>
+                    </div>
+                    <div class="cap-card-score">56.3</div>
+                </div>
+                <div class="cap-card-body">
+                    <div class="cap-dim-row"><div class="cap-dim-label">质量</div><div class="cap-dim-bar"><div class="cap-dim-fill d" style="width:52%"></div></div><div class="cap-dim-val">52</div></div>
+                    <div class="cap-dim-row"><div class="cap-dim-label">成本</div><div class="cap-dim-bar"><div class="cap-dim-fill c" style="width:70%"></div></div><div class="cap-dim-val">70</div></div>
+                    <div class="cap-dim-row"><div class="cap-dim-label">交付</div><div class="cap-dim-bar"><div class="cap-dim-fill d" style="width:48%"></div></div><div class="cap-dim-val">48</div></div>
+                    <div class="cap-dim-row"><div class="cap-dim-label">技术</div><div class="cap-dim-bar"><div class="cap-dim-fill d" style="width:55%"></div></div><div class="cap-dim-val">55</div></div>
+                    <div class="cap-dim-row"><div class="cap-dim-label">服务</div><div class="cap-dim-bar"><div class="cap-dim-fill d" style="width:45%"></div></div><div class="cap-dim-val">45</div></div>
+                    <div class="cap-dim-row"><div class="cap-dim-label">产能</div><div class="cap-dim-bar"><div class="cap-dim-fill d" style="width:52%"></div></div><div class="cap-dim-val">52</div></div>
+                </div>
+                <div class="cap-card-footer">
+                    <span class="tag tag-gray">IATF未认证</span><span class="tag tag-blue">18GWh产能</span><span class="tag tag-gray">深圳基地</span>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- ===== SECTION 4: 品类对比表 — 最强 vs 推荐 ===== -->
+<div class="section">
+    <div class="section-hdr">
+        <div class="section-title">供应商能力横向对比 — 动力电池核心二级品类</div>
+        <div class="section-actions"><button class="btn btn-o btn-s">导出对比报告</button></div>
+    </div>
+    <div class="section-body">
+        <table class="comp-table">
+            <thead>
+                <tr>
+                    <th style="min-width:160px">二级品类</th>
+                    <th>可用供方数</th>
+                    <th>最佳供方</th>
+                    <th>综合分</th>
+                    <th>推荐二供</th>
+                    <th>综合分</th>
+                    <th>独家风险</th>
+                    <th>策略建议</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td>方形铝壳电芯 LFP</td>
+                    <td>5</td>
+                    <td>宁德时代</td><td><span class="score-number blue">95</span></td>
+                    <td>弗迪电池</td><td><span class="score-number blue">92</span></td>
+                    <td><span class="tag tag-green">低</span></td>
+                    <td style="font-size:11px;color:var(--g600)">维持 65%/25% 份额比，中创新航备选</td>
+                </tr>
+                <tr>
+                    <td>刀片电芯 LFP</td>
+                    <td>1</td>
+                    <td>弗迪电池</td><td><span class="score-number blue">96</span></td>
+                    <td>—</td><td>—</td>
+                    <td><span class="tag tag-red">高</span></td>
+                    <td style="font-size:11px;color:var(--d)">⚠ 独家供方！建议开发二供或自主技术路线</td>
+                </tr>
+                <tr>
+                    <td>圆柱电芯 21700 NCM</td>
+                    <td>4</td>
+                    <td>宁德时代</td><td><span class="score-number blue">94</span></td>
+                    <td>三星SDI</td><td><span class="score-number blue">90</span></td>
+                    <td><span class="tag tag-green">低</span></td>
+                    <td style="font-size:11px;color:var(--g600)">双供策略，蜂巢作为国产备选</td>
+                </tr>
+                <tr>
+                    <td>软包电芯 NCM</td>
+                    <td>3</td>
+                    <td>宁德时代</td><td><span class="score-number blue">93</span></td>
+                    <td>弗迪电池</td><td><span class="score-number orange">70</span></td>
+                    <td><span class="tag tag-orange">中</span></td>
+                    <td style="font-size:11px;color:var(--g600)">宁德为主力，弗迪小批量验证中</td>
+                </tr>
+                <tr>
+                    <td>CTP 2.0 标准包</td>
+                    <td>3</td>
+                    <td>宁德时代</td><td><span class="score-number blue">96</span></td>
+                    <td>弗迪电池</td><td><span class="score-number blue">94</span></td>
+                    <td><span class="tag tag-green">低</span></td>
+                    <td style="font-size:11px;color:var(--g600)">双供充分竞争，按车型分配份额</td>
+                </tr>
+                <tr>
+                    <td>CTP 3.0 麒麟包</td>
+                    <td>1</td>
+                    <td>宁德时代</td><td><span class="score-number blue">97</span></td>
+                    <td>—</td><td>—</td>
+                    <td><span class="tag tag-red">高</span></td>
+                    <td style="font-size:11px;color:var(--d)">⚠ 技术壁垒垄断，建议与CATL锁定长协</td>
+                </tr>
+                <tr>
+                    <td>CTC电池底盘</td>
+                    <td>2</td>
+                    <td>宁德时代</td><td><span class="score-number blue">95</span></td>
+                    <td>弗迪电池</td><td><span class="score-number orange">70</span></td>
+                    <td><span class="tag tag-orange">中</span></td>
+                    <td style="font-size:11px;color:var(--g600)">加速弗迪CTC能力验证</td>
+                </tr>
+                <tr>
+                    <td>BMS主控板</td>
+                    <td>3</td>
+                    <td>宁德时代</td><td><span class="score-number blue">98</span></td>
+                    <td>欣旺达</td><td><span class="score-number orange">65</span></td>
+                    <td><span class="tag tag-orange">中</span></td>
+                    <td style="font-size:11px;color:var(--g600)">自研+BMS，欣旺达送样验证中</td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<!-- ===== SECTION 5: 品类树 + 供应商详情 ===== -->
+<div class="section">
+    <div class="section-hdr">
+        <div class="section-title">品类结构 &amp; 供应商资源明细</div>
+        <div class="section-actions">
+            <button class="btn btn-o btn-s">导出</button>
+            <button class="btn btn-p btn-s">+ 新增品类</button>
+        </div>
+    </div>
+    <div class="section-body" style="padding:0">
+        <div class="cat-layout">
+            <!-- Category Tree -->
+            <div class="cat-tree-panel">
+                <div class="cat-tree-search"><input type="text" placeholder="搜索品类..."></div>
+                <div class="cat-node active" onclick="showSubDetail('cell-lfp', this)" data-node="cell-lfp">
+                    <span class="arrow expand">▶</span><span class="dot l1"></span>电芯 &amp; 模组 <span class="selected-indicator"></span>
+                </div>
+                <div class="cat-node l2" onclick="showSubDetail('lfp-square', this)" data-node="lfp-square">
+                    <span class="arrow">▶</span><span class="dot l2"></span>磷酸铁锂电芯 (LFP) <span class="selected-indicator"></span>
+                </div>
+                <div class="cat-node l3" onclick="showSubDetail('lfp-square-shell', this)" data-node="lfp-square-shell">
+                    <span class="dot l3"></span>方形铝壳电芯 <span class="selected-indicator"></span>
+                </div>
+                <div class="cat-node l3" onclick="showSubDetail('blade-cell', this)" data-node="blade-cell">
+                    <span class="dot l3"></span>刀片电芯 <span class="selected-indicator"></span>
+                </div>
+                <div class="cat-node l2" onclick="showSubDetail('ncm-cell', this)" data-node="ncm-cell">
+                    <span class="arrow">▶</span><span class="dot l2"></span>三元锂电芯 (NCM) <span class="selected-indicator"></span>
+                </div>
+                <div class="cat-node l3" onclick="showSubDetail('ncm-21700', this)" data-node="ncm-21700">
+                    <span class="dot l3"></span>圆柱电芯 (21700) <span class="selected-indicator"></span>
+                </div>
+                <div class="cat-node l3" onclick="showSubDetail('ncm-pouch', this)" data-node="ncm-pouch">
+                    <span class="dot l3"></span>软包电芯 <span class="selected-indicator"></span>
+                </div>
+                <div class="cat-node" onclick="showSubDetail('pack-group', this)" data-node="pack-group">
+                    <span class="arrow">▶</span><span class="dot l1"></span>电池包 (Pack) <span class="selected-indicator"></span>
+                </div>
+                <div class="cat-node l2" onclick="showSubDetail('ctp-pack', this)" data-node="ctp-pack">
+                    <span class="arrow">▶</span><span class="dot l2"></span>CTP电池包 <span class="selected-indicator"></span>
+                </div>
+                <div class="cat-node l3" onclick="showSubDetail('ctp2', this)" data-node="ctp2">
+                    <span class="dot l3"></span>CTP 2.0 标准包 <span class="selected-indicator"></span>
+                </div>
+                <div class="cat-node l3" onclick="showSubDetail('ctp3', this)" data-node="ctp3">
+                    <span class="dot l3"></span>CTP 3.0 麒麟包 <span class="selected-indicator"></span>
+                </div>
+                <div class="cat-node l2" onclick="showSubDetail('ctc', this)" data-node="ctc">
+                    <span class="dot l2"></span>CTC电池底盘 <span class="selected-indicator"></span>
+                </div>
+                <div class="cat-node" onclick="showSubDetail('bms-group', this)" data-node="bms-group">
+                    <span class="arrow">▶</span><span class="dot l1"></span>BMS 电池管理系统 <span class="selected-indicator"></span>
+                </div>
+                <div class="cat-node l2" onclick="showSubDetail('bms-hw', this)" data-node="bms-hw">
+                    <span class="dot l2"></span>硬件BMS主控板 <span class="selected-indicator"></span>
+                </div>
+                <div class="cat-node l2" onclick="showSubDetail('bms-sw', this)" data-node="bms-sw">
+                    <span class="dot l2"></span>软件算法策略 <span class="selected-indicator"></span>
+                </div>
+                <div class="cat-node" onclick="showSubDetail('thermal-group', this)" data-node="thermal-group">
+                    <span class="dot l1"></span>电池热管理组件 <span class="selected-indicator"></span>
+                </div>
+            </div>
+            <!-- Detail + Supplier Table -->
+            <div class="cat-detail-panel" id="subDetail">
+                <div class="cat-info-grid">
+                    <div class="cat-info-item"><div class="cat-info-label">品类编码</div><div class="cat-info-val">BAT-CELL-LFP-001</div></div>
+                    <div class="cat-info-item"><div class="cat-info-label">采购策略</div><div class="cat-info-val link">策略竞价 (3选2)</div></div>
+                    <div class="cat-info-item"><div class="cat-info-label">定厂方式</div><div class="cat-info-val">按车型项目定点</div></div>
+                    <div class="cat-info-item"><div class="cat-info-label">主责采购</div><div class="cat-info-val link">张伟 / GCM-电池组</div></div>
+                    <div class="cat-info-item"><div class="cat-info-label">工艺路线</div><div class="cat-info-val">涂布→辊压→分切→叠片→装配→注液</div></div>
+                    <div class="cat-info-item"><div class="cat-info-label">年降目标</div><div class="cat-info-val" style="color:var(--s)">-5.2% YoY</div></div>
+                </div>
+                <div style="font-size:13px;font-weight:700;color:var(--g900);margin:8px 0 4px">📋 合格供应商资源 &amp; 能力对比 (方形铝壳电芯)</div>
+                <!-- Enhanced supplier table with capability columns -->
+                <div class="supply-table-wrap">
+                    <table class="supply-table">
+                        <thead>
+                            <tr>
+                                <th>供应商</th><th>资质状态</th><th>产地</th><th>年产能</th><th>综合评分</th>
+                                <th>质量</th><th>成本</th><th>交付</th><th>技术</th><th>报价状态</th><th>合作车型</th><th>定点占比</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td class="cell-name">宁德时代 (CATL)</td>
+                                <td><span class="tag tag-green">战略合作</span></td>
+                                <td>福建宁德/江苏溧阳</td><td>120 GWh</td>
+                                <td><div class="score-bar"><span class="score-number blue">95</span><span class="score-label">综合</span></div></td>
+                                <td><span class="tag tag-green">A+</span></td>
+                                <td>★★★★★</td>
+                                <td><span class="prog-bar"><span class="prog-track"><span class="prog-fill green" style="width:98%"></span></span><span class="prog-pct">98%</span></span></td>
+                                <td><span class="tag tag-green">领先</span></td>
+                                <td><span class="tag tag-green">已报价</span></td>
+                                <td>SU7 / MS11</td>
+                                <td><span class="prog-bar"><span class="prog-track"><span class="prog-fill blue" style="width:65%"></span></span><span class="prog-pct">65%</span></span></td>
+                            </tr>
+                            <tr>
+                                <td class="cell-name">弗迪电池 (BYD)</td>
+                                <td><span class="tag tag-green">战略合作</span></td>
+                                <td>深圳/重庆/西安</td><td>95 GWh</td>
+                                <td><div class="score-bar"><span class="score-number blue">92</span><span class="score-label">综合</span></div></td>
+                                <td><span class="tag tag-green">A</span></td>
+                                <td>★★★★★</td>
+                                <td><span class="prog-bar"><span class="prog-track"><span class="prog-fill green" style="width:95%"></span></span><span class="prog-pct">95%</span></span></td>
+                                <td><span class="tag tag-blue">先进</span></td>
+                                <td><span class="tag tag-green">已报价</span></td>
+                                <td>SU7</td>
+                                <td><span class="prog-bar"><span class="prog-track"><span class="prog-fill blue" style="width:25%"></span></span><span class="prog-pct">25%</span></span></td>
+                            </tr>
+                            <tr>
+                                <td class="cell-name">中创新航 (CALB)</td>
+                                <td><span class="tag tag-blue">正式供方</span></td>
+                                <td>江苏常州/厦门</td><td>50 GWh</td>
+                                <td><div class="score-bar"><span class="score-number orange">78</span><span class="score-label">综合</span></div></td>
+                                <td><span class="tag tag-blue">B+</span></td>
+                                <td>★★★★</td>
+                                <td><span class="prog-bar"><span class="prog-track"><span class="prog-fill blue" style="width:88%"></span></span><span class="prog-pct">88%</span></span></td>
+                                <td><span class="tag tag-orange">一般</span></td>
+                                <td><span class="tag tag-green">已报价</span></td>
+                                <td>MS11</td>
+                                <td><span class="prog-bar"><span class="prog-track"><span class="prog-fill blue" style="width:10%"></span></span><span class="prog-pct">10%</span></span></td>
+                            </tr>
+                            <tr>
+                                <td class="cell-name">国轩高科</td>
+                                <td><span class="tag tag-orange">潜在供方</span></td>
+                                <td>安徽合肥</td><td>35 GWh</td>
+                                <td><div class="score-bar"><span class="score-number orange">65</span><span class="score-label">综合</span></div></td>
+                                <td><span class="tag tag-blue">B</span></td>
+                                <td>★★★☆</td>
+                                <td><span class="prog-bar"><span class="prog-track"><span class="prog-fill orange" style="width:72%"></span></span><span class="prog-pct">72%</span></span></td>
+                                <td><span class="tag tag-orange">开发中</span></td>
+                                <td><span class="tag tag-orange">询价中</span></td>
+                                <td>—</td>
+                                <td><span class="prog-bar"><span class="prog-track"><span class="prog-fill blue" style="width:0%"></span></span><span class="prog-pct">0%</span></span></td>
+                            </tr>
+                            <tr>
+                                <td class="cell-name">蜂巢能源</td>
+                                <td><span class="tag tag-orange">潜在供方</span></td>
+                                <td>江苏常州</td><td>25 GWh</td>
+                                <td><div class="score-bar"><span class="score-number" style="color:var(--d)">52</span><span class="score-label">综合</span></div></td>
+                                <td><span class="tag tag-orange">B-</span></td>
+                                <td>★★★</td>
+                                <td><span class="prog-bar"><span class="prog-track"><span class="prog-fill red" style="width:58%"></span></span><span class="prog-pct">58%</span></span></td>
+                                <td><span class="tag tag-red">待提升</span></td>
+                                <td><span class="tag tag-red">未报价</span></td>
+                                <td>—</td>
+                                <td><span class="prog-bar"><span class="prog-track"><span class="prog-fill blue" style="width:0%"></span></span><span class="prog-pct">0%</span></span></td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- ===== SECTION 6: 能力缺口分析 ===== -->
+<div class="two-col" style="padding:0 24px 16px">
+    <div class="section" style="margin:0">
+        <div class="section-hdr"><div class="section-title">品类覆盖统计</div></div>
+        <div class="section-body">
+            <div class="mini-metrics">
+                <div class="mini-card"><div class="mv">38</div><div class="ml">二级品类</div><div class="msub">总计</div></div>
+                <div class="mini-card g"><div class="mv">28</div><div class="ml">已有报价</div><div class="msub">覆盖率 74%</div></div>
+                <div class="mini-card o"><div class="mv">7</div><div class="ml">询价中</div><div class="msub">供应商开发中</div></div>
+                <div class="mini-card r"><div class="mv">3</div><div class="ml">待覆盖</div><div class="msub">⚠ 存在断供风险</div></div>
+            </div>
+            <div class="filter-bar">
+                <span class="chip active">全部</span><span class="chip">电芯&amp;模组 12</span><span class="chip">电池包 8</span><span class="chip">BMS 6</span><span class="chip">热管理 5</span><span class="chip">结构件 7</span>
+            </div>
+            <table class="supply-table" style="min-width:100%">
+                <thead>
+                    <tr><th>二级品类</th><th>零件数</th><th>供应商数</th><th>报价覆盖率</th><th>策略</th><th>风险等级</th></tr>
+                </thead>
+                <tbody>
+                    <tr><td>方形铝壳电芯</td><td>8</td><td>5</td><td><span class="prog-bar"><span class="prog-track"><span class="prog-fill green" style="width:100%"></span></span><span class="prog-pct">100%</span></span></td><td><span class="tag tag-blue">竞争性竞价</span></td><td><span class="tag tag-green">低</span></td></tr>
+                    <tr><td>刀片电芯</td><td>4</td><td>1</td><td><span class="prog-bar"><span class="prog-track"><span class="prog-fill red" style="width:25%"></span></span><span class="prog-pct">25%</span></span></td><td><span class="tag tag-red">独家供方</span></td><td><span class="tag tag-red">高</span></td></tr>
+                    <tr><td>圆柱电芯 21700</td><td>6</td><td>4</td><td><span class="prog-bar"><span class="prog-track"><span class="prog-fill green" style="width:100%"></span></span><span class="prog-pct">100%</span></span></td><td><span class="tag tag-blue">竞争性竞价</span></td><td><span class="tag tag-green">低</span></td></tr>
+                    <tr><td>软包电芯</td><td>2</td><td>3</td><td><span class="prog-bar"><span class="prog-track"><span class="prog-fill green" style="width:100%"></span></span><span class="prog-pct">100%</span></span></td><td><span class="tag tag-orange">双供策略</span></td><td><span class="tag tag-orange">中</span></td></tr>
+                    <tr><td>CTP 2.0 标准包</td><td>3</td><td>3</td><td><span class="prog-bar"><span class="prog-track"><span class="prog-fill green" style="width:100%"></span></span><span class="prog-pct">100%</span></span></td><td><span class="tag tag-green">框架协议</span></td><td><span class="tag tag-green">低</span></td></tr>
+                    <tr><td>CTP 3.0 麒麟包</td><td>2</td><td>1</td><td><span class="prog-bar"><span class="prog-track"><span class="prog-fill red" style="width:50%"></span></span><span class="prog-pct">50%</span></span></td><td><span class="tag tag-red">独家供方</span></td><td><span class="tag tag-red">高</span></td></tr>
+                    <tr><td>CTC电池底盘</td><td>2</td><td>2</td><td><span class="prog-bar"><span class="prog-track"><span class="prog-fill orange" style="width:75%"></span></span><span class="prog-pct">75%</span></span></td><td><span class="tag tag-orange">主力+验证</span></td><td><span class="tag tag-orange">中</span></td></tr>
+                    <tr><td>BMS主控板</td><td>5</td><td>3</td><td><span class="prog-bar"><span class="prog-track"><span class="prog-fill orange" style="width:80%"></span></span><span class="prog-pct">80%</span></span></td><td><span class="tag tag-blue">竞争性竞价</span></td><td><span class="tag tag-orange">中</span></td></tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+    <div class="section" style="margin:0">
+        <div class="section-hdr"><div class="section-title">能力缺口 &amp; 行动建议</div></div>
+        <div class="section-body">
+            <div class="kpi-row" style="margin-bottom:16px">
+                <div class="kpi-card"><div class="kpi-val">15</div><div class="kpi-label">合格供应商</div><div class="kpi-trend up">↑ 较H1 +2家</div></div>
+                <div class="kpi-card"><div class="kpi-val">85%</div><div class="kpi-label">国产化率</div><div class="kpi-trend up">↑ 较H1 +5%</div></div>
+                <div class="kpi-card"><div class="kpi-val">3.2</div><div class="kpi-label">平均定点报价数</div><div class="kpi-trend up">↑ 充分竞争</div></div>
+            </div>
+            <div style="display:flex;flex-direction:column;gap:10px">
+                <div class="sup-highlight" style="border-left:3px solid var(--d)">
+                    <div class="sup-avatar" style="background:linear-gradient(135deg,var(--d),#ff7875)">!</div>
+                    <div class="sup-info">
+                        <div class="sup-name" style="color:var(--d)">刀片电芯独家风险</div>
+                        <div class="sup-detail">仅弗迪电池1家供方，2026年SU7定点占比100%。建议：12个月内完成二供开发（宁德时代/蜂巢能源送样验证中）</div>
+                    </div>
+                    <span class="tag tag-red">P0 紧急</span>
+                </div>
+                <div class="sup-highlight" style="border-left:3px solid var(--w)">
+                    <div class="sup-avatar" style="background:linear-gradient(135deg,var(--w),#ffc53d)">!</div>
+                    <div class="sup-info">
+                        <div class="sup-name" style="color:#d46b08">CTP 3.0 / CTC 技术壁垒</div>
+                        <div class="sup-detail">宁德时代独家掌握核心专利，弗迪CTC能力仅达70分。建议：锁定长协+支持弗迪研发认证</div>
+                    </div>
+                    <span class="tag tag-orange">P1 关注</span>
+                </div>
+                <div class="sup-highlight" style="border-left:3px solid var(--w)">
+                    <div class="sup-avatar" style="background:linear-gradient(135deg,var(--w),#ffc53d)">!</div>
+                    <div class="sup-info">
+                        <div class="sup-name" style="color:#d46b08">BMS 二供能力不足</div>
+                        <div class="sup-detail">欣旺达综合分仅65，蜂巢58分未达门槛。建议：加快国轩高科BMS能力验证进度</div>
+                    </div>
+                    <span class="tag tag-orange">P1 关注</span>
+                </div>
+                <div class="sup-highlight" style="border-left:3px solid var(--s)">
+                    <div class="sup-avatar" style="background:linear-gradient(135deg,var(--s),#73d13d)">✓</div>
+                    <div class="sup-info">
+                        <div class="sup-name" style="color:var(--s)">方形铝壳电芯供应充足</div>
+                        <div class="sup-detail">5家供方充分竞争，CATL/BYD双主力格局稳固，中创新航稳定二供。无需额外动作</div>
+                    </div>
+                    <span class="tag tag-green">健康</span>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+</div><!-- /cat-battery -->
+
+<!-- ============ CATEGORY: 座椅系统 (精简版，保留品类-供应商对比核心功能) ============ -->
+<div id="cat-seat" class="cat-detail" style="display:none">
+<div class="metrics-bar">
+    <div class="metric-card"><div class="mc-icon blue">💺</div><div class="mc-info"><div class="mc-val">5</div><div class="mc-label">一级品类分组</div></div></div>
+    <div class="metric-card"><div class="mc-icon green">🏭</div><div class="mc-info"><div class="mc-val">9</div><div class="mc-label">合格供应商</div></div></div>
+    <div class="metric-card"><div class="mc-icon orange">📦</div><div class="mc-info"><div class="mc-val">86</div><div class="mc-label">在报零件</div></div></div>
+    <div class="metric-card"><div class="mc-icon purple">📊</div><div class="mc-info"><div class="mc-val">88%</div><div class="mc-label">报价覆盖率</div></div></div>
+    <div class="metric-card"><div class="mc-icon cyan">💰</div><div class="mc-info"><div class="mc-val">¥3.6亿</div><div class="mc-label">年预估采购额</div></div></div>
+</div>
+
+<!-- Seat: coverage matrix -->
+<div class="section">
+    <div class="section-hdr"><div class="section-title">品类-供应商覆盖矩阵 · 座椅系统</div></div>
+    <div class="section-body">
+        <div class="coverage-matrix">
+            <table class="cov-table">
+                <thead>
+                    <tr>
+                        <th>二级品类 \ 供应商</th>
+                        <th>延锋国际<br><small style="color:var(--g500);font-weight:400">A+ · 战略</small></th>
+                        <th>李尔 (Lear)<br><small style="color:var(--g500);font-weight:400">A · 战略</small></th>
+                        <th>继峰股份<br><small style="color:var(--g500);font-weight:400">B+ · 正式</small></th>
+                        <th>天成自控<br><small style="color:var(--g500);font-weight:400">B · 潜在</small></th>
+                        <th>安道拓<br><small style="color:var(--g500);font-weight:400">A · 备选</small></th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td>驾驶座椅总成</td>
+                        <td class="cov-cell cov-full">主力<div class="cov-score">95</div></td>
+                        <td class="cov-cell cov-full">主力<div class="cov-score">92</div></td>
+                        <td class="cov-cell cov-partial">二供<div class="cov-score">78</div></td>
+                        <td class="cov-cell cov-partial">开发中<div class="cov-score">62</div></td>
+                        <td class="cov-cell cov-partial">询价中<div class="cov-score">88</div></td>
+                    </tr>
+                    <tr><td>副驾座椅总成</td><td class="cov-cell cov-full">主力<div class="cov-score">95</div></td><td class="cov-cell cov-full">主力<div class="cov-score">90</div></td><td class="cov-cell cov-partial">二供<div class="cov-score">76</div></td><td class="cov-cell cov-reduced">—</td><td class="cov-cell cov-partial">备选<div class="cov-score">85</div></td></tr>
+                    <tr><td>后排座椅总成</td><td class="cov-cell cov-full">主力<div class="cov-score">93</div></td><td class="cov-cell cov-partial">二供<div class="cov-score">80</div></td><td class="cov-cell cov-full">主力<div class="cov-score">88</div></td><td class="cov-cell cov-partial">送样<div class="cov-score">58</div></td><td class="cov-cell cov-none">—</td></tr>
+                    <tr><td>座椅骨架</td><td class="cov-cell cov-full">主力<div class="cov-score">92</div></td><td class="cov-cell cov-partial">二供<div class="cov-score">78</div></td><td class="cov-cell cov-full">主力<div class="cov-score">90</div></td><td class="cov-cell cov-full">主力<div class="cov-score">85</div></td><td class="cov-cell cov-none">—</td></tr>
+                    <tr><td>电动调节机构</td><td class="cov-cell cov-full">独家<div class="cov-score">96</div></td><td class="cov-cell cov-reduced">—</td><td class="cov-cell cov-partial">开发中<div class="cov-score">68</div></td><td class="cov-cell cov-partial">送样<div class="cov-score">55</div></td><td class="cov-cell cov-partial">备选<div class="cov-score">82</div></td></tr>
+                    <tr><td>加热/通风/按摩模块</td><td class="cov-cell cov-partial">二供<div class="cov-score">82</div></td><td class="cov-cell cov-full">主力<div class="cov-score">94</div></td><td class="cov-cell cov-reduced">—</td><td class="cov-cell cov-none">—</td><td class="cov-cell cov-full">主力<div class="cov-score">90</div></td></tr>
+                    <tr><td>真皮面套</td><td class="cov-cell cov-partial">二供<div class="cov-score">85</div></td><td class="cov-cell cov-partial">二供<div class="cov-score">82</div></td><td class="cov-cell cov-full">主力<div class="cov-score">94</div></td><td class="cov-cell cov-none">—</td><td class="cov-cell cov-none">—</td></tr>
+                    <tr><td>Nappa真皮</td><td class="cov-cell cov-full">独家<div class="cov-score">95</div></td><td class="cov-cell cov-reduced">—</td><td class="cov-cell cov-none">—</td><td class="cov-cell cov-none">—</td><td class="cov-cell cov-reduced">小批量<div class="cov-score">60</div></td></tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<!-- Seat: supplier comparison table -->
+<div class="section">
+    <div class="section-hdr"><div class="section-title">供应商六维能力对比 · 座椅系统</div></div>
+    <div class="section-body">
+        <table class="comp-table">
+            <thead>
+                <tr><th>供应商</th><th>资质</th><th>质量</th><th>成本</th><th>交付</th><th>技术</th><th>服务</th><th>产能</th><th>综合</th><th>推荐等级</th></tr>
+            </thead>
+            <tbody>
+                <tr><td>延锋国际</td><td><span class="tag tag-green">战略合作</span></td><td class="best">95</td><td class="good">85</td><td class="best">96</td><td class="best">94</td><td class="best">93</td><td class="best">95</td><td><span class="score-number blue">93.0</span></td><td><span class="tag tag-green">首选</span></td></tr>
+                <tr><td>李尔 (Lear)</td><td><span class="tag tag-green">战略合作</span></td><td class="best">93</td><td>82</td><td class="good">88</td><td class="best">92</td><td class="good">88</td><td class="good">85</td><td><span class="score-number blue">88.0</span></td><td><span class="tag tag-blue">推荐</span></td></tr>
+                <tr><td>继峰股份</td><td><span class="tag tag-blue">正式供方</span></td><td>80</td><td class="best">92</td><td>78</td><td>80</td><td>75</td><td>82</td><td><span class="score-number orange">81.2</span></td><td><span class="tag tag-orange">可用</span></td></tr>
+                <tr><td>天成自控</td><td><span class="tag tag-orange">潜在供方</span></td><td>68</td><td>85</td><td>65</td><td>62</td><td>60</td><td>72</td><td><span class="score-number orange">68.7</span></td><td><span class="tag tag-gray">观察</span></td></tr>
+                <tr><td>安道拓 (Adient)</td><td><span class="tag tag-blue">备选供方</span></td><td class="good">90</td><td>75</td><td class="good">85</td><td class="good">88</td><td class="good">86</td><td class="good">88</td><td><span class="score-number blue">85.3</span></td><td><span class="tag tag-blue">推荐</span></td></tr>
+            </tbody>
+        </table>
+    </div>
+</div>
+</div>
+
+</div><!-- /main-content -->
+</div><!-- /srm-layout -->
+
+<script>
+// Category switching
+function selectCategory(cat, el) {
+    document.querySelectorAll('#mainContent > .cat-detail').forEach(d => d.style.display = 'none');
+    var target = document.getElementById('cat-' + cat);
+    if (target) target.style.display = 'block';
+    document.querySelectorAll('.sp-menu-item').forEach(i => i.classList.remove('active'));
+    el.classList.add('active');
+}
+
+// Sub-category detail highlighting
+function showSubDetail(nodeId, el) {
+    // Highlight the clicked node
+    document.querySelectorAll('.cat-node').forEach(n => {
+        n.classList.remove('active');
+        n.classList.remove('highlight');
+    });
+    if (el) {
+        el.classList.add('active');
+        el.classList.add('highlight');
+    }
+
+    // Update detail panel content based on node
+    var detailPanel = document.getElementById('subDetail');
+    if (!detailPanel) return;
+
+    var detailData = {
+        'cell-lfp': { code: 'BAT-CELL-LFP-000', strategy: '策略竞价 (3选2)', factory: '按车型项目定点', buyer: '张伟 / GCM-电池组', process: '涂布→辊压→分切→叠片→装配→注液', yoy: '-5.2% YoY', title: '电芯 & 模组 · 可用供应商', risk: '低', riskTag: 'tag-green' },
+        'lfp-square': { code: 'BAT-CELL-LFP-SQ-001', strategy: '策略竞价 (3选2)', factory: '按车型项目定点', buyer: '张伟 / GCM-电池组', process: '涂布→辊压→分切→叠片→装配→注液', yoy: '-5.2% YoY', title: '磷酸铁锂电芯 (LFP) · 可用供应商', risk: '低', riskTag: 'tag-green' },
+        'lfp-square-shell': { code: 'BAT-CELL-LFP-SQAL-001', strategy: '策略竞价 (3选2)', factory: '按车型项目定点', buyer: '张伟 / GCM-电池组', process: '涂布→辊压→分切→叠片→装配→注液', yoy: '-5.2% YoY', title: '方形铝壳电芯 · 可用供应商', risk: '低', riskTag: 'tag-green' },
+        'blade-cell': { code: 'BAT-CELL-BLADE-001', strategy: '策略性议价 (独家)', factory: '按车型项目定点', buyer: '张伟 / GCM-电池组', process: '叠片→装配→注液→化成', yoy: '-6.0% YoY', title: '刀片电芯 · ⚠ 独家供方', risk: '高', riskTag: 'tag-red' },
+        'ncm-cell': { code: 'BAT-CELL-NCM-000', strategy: '竞争性竞价', factory: '按车型项目定点', buyer: '张伟 / GCM-电池组', process: '涂布→辊压→卷绕→装配→注液', yoy: '-4.5% YoY', title: '三元锂电芯 (NCM) · 可用供应商', risk: '低', riskTag: 'tag-green' },
+        'ncm-21700': { code: 'BAT-CELL-NCM-21700-001', strategy: '竞争性竞价 (双供)', factory: '按车型项目定点', buyer: '张伟 / GCM-电池组', process: '卷绕→装配→注液→化成', yoy: '-4.0% YoY', title: '圆柱电芯 21700 · 可用供应商', risk: '低', riskTag: 'tag-green' },
+        'ncm-pouch': { code: 'BAT-CELL-NCM-POUCH-001', strategy: '双供策略', factory: '按车型项目定点', buyer: '张伟 / GCM-电池组', process: '叠片→热压→封装→注液', yoy: '-3.8% YoY', title: '软包电芯 · 可用供应商', risk: '中', riskTag: 'tag-orange' },
+        'pack-group': { code: 'BAT-PACK-000', strategy: '框架协议', factory: '按车型平台定点', buyer: '张伟 / GCM-电池组', process: '模组装配→焊接→测试→Pack集成', yoy: '-4.8% YoY', title: '电池包 (Pack) · 可用供应商', risk: '低', riskTag: 'tag-green' },
+        'ctp2': { code: 'BAT-PACK-CTP2-001', strategy: '框架协议 (双供)', factory: '按车型平台定点', buyer: '张伟 / GCM-电池组', process: '电芯堆叠→焊接→Pack测试', yoy: '-5.0% YoY', title: 'CTP 2.0 标准包 · 可用供应商', risk: '低', riskTag: 'tag-green' },
+        'ctp3': { code: 'BAT-PACK-CTP3-001', strategy: '独家供方 (长协)', factory: '按车型平台定点', buyer: '张伟 / GCM-电池组', process: '麒麟架构集成→Pack测试', yoy: '-4.0% YoY', title: 'CTP 3.0 麒麟包 · ⚠ 独家供方', risk: '高', riskTag: 'tag-red' },
+        'ctc': { code: 'BAT-PACK-CTC-001', strategy: '主力+验证', factory: '按车型平台定点', buyer: '张伟 / GCM-电池组', process: '底盘一体化集成→密封测试', yoy: '-3.5% YoY', title: 'CTC电池底盘 · 可用供应商', risk: '中', riskTag: 'tag-orange' },
+        'bms-group': { code: 'BAT-BMS-000', strategy: '竞争性竞价', factory: '按车型项目定点', buyer: '张伟 / GCM-电池组', process: 'SMT→DIP→测试→烧录', yoy: '-3.0% YoY', title: 'BMS 电池管理系统 · 可用供应商', risk: '中', riskTag: 'tag-orange' },
+        'bms-hw': { code: 'BAT-BMS-HW-001', strategy: '竞争性竞价', factory: '按车型项目定点', buyer: '张伟 / GCM-电池组', process: 'SMT→DIP→ICT→FCT→烧录', yoy: '-3.0% YoY', title: '硬件BMS主控板 · 可用供应商', risk: '中', riskTag: 'tag-orange' },
+        'bms-sw': { code: 'BAT-BMS-SW-001', strategy: '自研为主', factory: '按项目', buyer: '张伟 / GCM-电池组', process: '模型开发→MIL/SIL→HIL→标定', yoy: 'N/A', title: 'BMS软件算法策略 · 开发中', risk: '低', riskTag: 'tag-green' },
+        'thermal-group': { code: 'BAT-THERMAL-000', strategy: '竞争性竞价', factory: '按车型项目定点', buyer: '张伟 / GCM-电池组', process: '冲压→焊接→气密测试→装配', yoy: '-4.2% YoY', title: '电池热管理组件 · 可用供应商', risk: '低', riskTag: 'tag-green' }
+    };
+
+    var data = detailData[nodeId] || detailData['lfp-square-shell'];
+    var riskColor = data.risk === '高' ? 'var(--d)' : data.risk === '中' ? 'var(--w)' : 'var(--s)';
+
+    detailPanel.innerHTML = `
+        <div class="cat-info-grid">
+            <div class="cat-info-item"><div class="cat-info-label">品类编码</div><div class="cat-info-val">${data.code}</div></div>
+            <div class="cat-info-item"><div class="cat-info-label">采购策略</div><div class="cat-info-val link">${data.strategy}</div></div>
+            <div class="cat-info-item"><div class="cat-info-label">定厂方式</div><div class="cat-info-val">${data.factory}</div></div>
+            <div class="cat-info-item"><div class="cat-info-label">主责采购</div><div class="cat-info-val link">${data.buyer}</div></div>
+            <div class="cat-info-item"><div class="cat-info-label">工艺路线</div><div class="cat-info-val">${data.process}</div></div>
+            <div class="cat-info-item"><div class="cat-info-label">年降目标</div><div class="cat-info-val" style="color:var(--s)">${data.yoy}</div></div>
+        </div>
+        <div style="font-size:13px;font-weight:700;color:var(--g900);margin:8px 0 4px">📋 合格供应商资源 &amp; 能力对比 — ${data.title}</div>
+        <div class="supply-table-wrap">
+            <table class="supply-table">
+                <thead>
+                    <tr><th>供应商</th><th>资质状态</th><th>产地</th><th>年产能</th><th>综合评分</th><th>质量</th><th>成本</th><th>交付</th><th>报价状态</th><th>合作车型</th><th>定点占比</th></tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td class="cell-name">宁德时代 (CATL)</td>
+                        <td><span class="tag tag-green">战略合作</span></td><td>福建宁德/江苏溧阳</td><td>120 GWh</td>
+                        <td><div class="score-bar"><span class="score-number blue">95</span></div></td>
+                        <td><span class="tag tag-green">A+</span></td><td>★★★★★</td><td><span class="prog-bar"><span class="prog-track"><span class="prog-fill green" style="width:98%"></span></span><span class="prog-pct">98%</span></span></td>
+                        <td><span class="tag tag-green">已报价</span></td><td>SU7 / MS11</td>
+                        <td><span class="prog-bar"><span class="prog-track"><span class="prog-fill blue" style="width:65%"></span></span><span class="prog-pct">65%</span></span></td>
+                    </tr>
+                    <tr>
+                        <td class="cell-name">弗迪电池 (BYD)</td>
+                        <td><span class="tag tag-green">战略合作</span></td><td>深圳/重庆/西安</td><td>95 GWh</td>
+                        <td><div class="score-bar"><span class="score-number blue">92</span></div></td>
+                        <td><span class="tag tag-green">A</span></td><td>★★★★★</td><td><span class="prog-bar"><span class="prog-track"><span class="prog-fill green" style="width:95%"></span></span><span class="prog-pct">95%</span></span></td>
+                        <td><span class="tag tag-green">已报价</span></td><td>SU7</td>
+                        <td><span class="prog-bar"><span class="prog-track"><span class="prog-fill blue" style="width:25%"></span></span><span class="prog-pct">25%</span></span></td>
+                    </tr>
+                    <tr>
+                        <td class="cell-name">中创新航 (CALB)</td>
+                        <td><span class="tag tag-blue">正式供方</span></td><td>江苏常州/厦门</td><td>50 GWh</td>
+                        <td><div class="score-bar"><span class="score-number orange">78</span></div></td>
+                        <td><span class="tag tag-blue">B+</span></td><td>★★★★</td><td><span class="prog-bar"><span class="prog-track"><span class="prog-fill blue" style="width:88%"></span></span><span class="prog-pct">88%</span></span></td>
+                        <td><span class="tag tag-green">已报价</span></td><td>MS11</td>
+                        <td><span class="prog-bar"><span class="prog-track"><span class="prog-fill blue" style="width:10%"></span></span><span class="prog-pct">10%</span></span></td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+        <div style="margin-top:8px;font-size:11px;color:var(--g500);display:flex;align-items:center;gap:6px">
+            <span style="display:inline-block;width:6px;height:6px;border-radius:50%;background:${riskColor}"></span>
+            供应风险等级：<span class="tag ${data.riskTag}">${data.risk}</span>
+        </div>`;
+}
+
+// Capability card filter
+function filterCapCards(el, tier) {
+    document.querySelectorAll('#capabilityGrid + .section-hdr .chip, .section-hdr .chip').forEach(function(c) {
+        if (c.parentElement && c.parentElement.parentElement && c.parentElement.parentElement.querySelector('#capabilityGrid')) {
+            // scope to this section only
+        }
+    });
+
+    // Simplified filter for capability grid
+    var grid = document.getElementById('capabilityGrid');
+    if (!grid) return;
+
+    // Update chip active states in radar section
+    var radarChips = document.querySelectorAll('.section-hdr .chip');
+    // ... just do simple chip toggle
+    var cards = grid.querySelectorAll('.cap-card');
+    cards.forEach(function(card) {
+        if (tier === 'all' || card.getAttribute('data-tier') === tier) {
+            card.style.display = '';
+        } else {
+            card.style.display = 'none';
+        }
+    });
+
+    // Update chip state within the capability section
+    var parentSection = el.closest('.section');
+    if (parentSection) {
+        parentSection.querySelectorAll('.chip').forEach(function(c) { c.classList.remove('active'); });
+    }
+    el.classList.add('active');
+}
+
+// Radar supplier toggle
+function toggleRadarSupplier(el, supplier) {
+    el.classList.toggle('active');
+    // Visual feedback only - in a real app this would filter radar layers
+}
+</script>
+
+</body>
+</html>

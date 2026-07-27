@@ -1,0 +1,2 @@
+"use strict";(self.webpackChunkflow_web_extension=self.webpackChunkflow_web_extension||[]).push([["23623"],{410577:function(e,t,n){n.r(t),n.d(t,{checkBoxReceiveMessageBoxLeftPluginMatcher:()=>s});var c=n(885003),i=n(67988),s={pluginIdentifier:n(719578).o,matchPlugin(e){var t=(0,c.Ioq)(e)||(0,c.$sc)(e);return i.p.getState().isSelectMode&&!t}}}}]);
+//# sourceMappingURL=23623.js.map

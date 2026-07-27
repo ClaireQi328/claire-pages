@@ -1,0 +1,2574 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>叮咚买菜 ToB 配送追踪系统</title>
+<style>
+:root {
+  --p: #1677ff;
+  --p-light: #e6f4ff;
+  --p-dark: #0958d9;
+  --g50: #fafafa;
+  --g100: #f5f5f5;
+  --g200: #e8e8e8;
+  --g300: #d9d9d9;
+  --g500: #8c8c8c;
+  --g800: #262626;
+  --g900: #141414;
+  --success: #52c41a;
+  --success-light: #f6ffed;
+  --warning: #faad14;
+  --warning-light: #fffbe6;
+  --danger: #f5222d;
+  --danger-light: #fff2f0;
+  --frozen: #1890ff;
+  --chilled: #13c2c2;
+  --ambient: #fa8c16;
+  --frozen-bg: #e6f4ff;
+  --chilled-bg: #e6fffb;
+  --ambient-bg: #fff7e6;
+  --shadow-sm: 0 1px 3px rgba(0,0,0,0.08);
+  --shadow-md: 0 4px 12px rgba(0,0,0,0.1);
+  --shadow-lg: 0 8px 24px rgba(0,0,0,0.12);
+  --radius-card: 10px;
+  --radius-btn: 6px;
+  --font: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
+}
+
+* { margin: 0; padding: 0; box-sizing: border-box; }
+
+body {
+  font-family: var(--font);
+  background: var(--g100);
+  color: var(--g900);
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* ===== HEADER ===== */
+.app-header {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 100;
+  background: var(--p);
+  color: #fff;
+  padding: 0 16px;
+  height: 56px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  box-shadow: var(--shadow-md);
+}
+
+.app-header .logo {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 17px;
+  font-weight: 600;
+}
+
+.app-header .logo-icon {
+  width: 32px;
+  height: 32px;
+  background: rgba(255,255,255,0.2);
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 18px;
+}
+
+.view-toggle {
+  display: flex;
+  background: rgba(255,255,255,0.15);
+  border-radius: 8px;
+  padding: 3px;
+  gap: 2px;
+}
+
+.view-toggle button {
+  border: none;
+  background: transparent;
+  color: rgba(255,255,255,0.7);
+  padding: 6px 14px;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 13px;
+  font-weight: 500;
+  transition: all 0.2s;
+  font-family: var(--font);
+}
+
+.view-toggle button.active {
+  background: #fff;
+  color: var(--p);
+  box-shadow: 0 1px 4px rgba(0,0,0,0.15);
+}
+
+/* ===== VIEW CONTAINERS ===== */
+.view-container { display: none; }
+.view-container.active { display: block; }
+
+/* ===== DRIVER VIEW ===== */
+.driver-view {
+  max-width: 420px;
+  margin: 0 auto;
+  padding: 64px 0 80px;
+  min-height: 100vh;
+}
+
+.driver-page {
+  display: none;
+  padding: 12px 16px;
+  animation: fadeIn 0.25s ease;
+}
+
+.driver-page.active { display: block; }
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+/* ===== BOTTOM NAV (DRIVER) ===== */
+.bottom-nav {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  max-width: 420px;
+  margin: 0 auto;
+  z-index: 100;
+  background: #fff;
+  border-top: 1px solid var(--g200);
+  display: flex;
+  height: 64px;
+}
+
+.nav-item {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  cursor: pointer;
+  color: var(--g500);
+  font-size: 11px;
+  transition: color 0.2s;
+  border: none;
+  background: none;
+  font-family: var(--font);
+}
+
+.nav-item .nav-icon {
+  font-size: 22px;
+  line-height: 1;
+}
+
+.nav-item.active { color: var(--p); }
+
+/* ===== CARDS ===== */
+.card {
+  background: #fff;
+  border-radius: var(--radius-card);
+  box-shadow: var(--shadow-sm);
+  padding: 16px;
+  margin-bottom: 12px;
+}
+
+.card-title {
+  font-size: 16px;
+  font-weight: 600;
+  margin-bottom: 12px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+/* ===== TASK LIST ===== */
+.task-date-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 12px;
+}
+
+.task-date-bar .date {
+  font-size: 15px;
+  font-weight: 600;
+}
+
+.task-date-bar .summary {
+  font-size: 12px;
+  color: var(--g500);
+}
+
+.task-stats {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 16px;
+}
+
+.stat-chip {
+  flex: 1;
+  background: #fff;
+  border-radius: 8px;
+  padding: 10px;
+  text-align: center;
+  box-shadow: var(--shadow-sm);
+}
+
+.stat-chip .num {
+  font-size: 22px;
+  font-weight: 700;
+  color: var(--p);
+}
+
+.stat-chip .label {
+  font-size: 11px;
+  color: var(--g500);
+  margin-top: 2px;
+}
+
+.task-card {
+  background: #fff;
+  border-radius: var(--radius-card);
+  box-shadow: var(--shadow-sm);
+  padding: 14px;
+  margin-bottom: 10px;
+  border-left: 4px solid var(--p);
+  transition: box-shadow 0.2s;
+  cursor: pointer;
+}
+
+.task-card:active { box-shadow: var(--shadow-md); }
+
+.task-card.status-pickup { border-left-color: var(--p); }
+.task-card.status-delivering { border-left-color: var(--success); }
+.task-card.status-delivered { border-left-color: var(--g300); }
+
+.task-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 8px;
+}
+
+.task-id {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--g800);
+}
+
+.status-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 8px;
+  border-radius: 4px;
+  font-size: 11px;
+  font-weight: 500;
+}
+
+.status-badge.pickup {
+  background: var(--p-light);
+  color: var(--p);
+}
+
+.status-badge.delivering {
+  background: var(--success-light);
+  color: var(--success);
+}
+
+.status-badge.delivered {
+  background: var(--g100);
+  color: var(--g500);
+}
+
+.task-customer {
+  font-size: 15px;
+  font-weight: 600;
+  margin-bottom: 4px;
+}
+
+.task-address {
+  font-size: 12px;
+  color: var(--g500);
+  margin-bottom: 10px;
+  display: flex;
+  align-items: flex-start;
+  gap: 4px;
+}
+
+.task-meta {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 10px;
+  font-size: 12px;
+  color: var(--g500);
+}
+
+.task-meta .meta-item {
+  display: flex;
+  align-items: center;
+  gap: 3px;
+}
+
+.zone-badges {
+  display: flex;
+  gap: 6px;
+  margin-bottom: 10px;
+}
+
+.zone-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  padding: 2px 8px;
+  border-radius: 4px;
+  font-size: 11px;
+  font-weight: 500;
+}
+
+.zone-badge.frozen {
+  background: var(--frozen-bg);
+  color: var(--frozen);
+}
+
+.zone-badge.chilled {
+  background: var(--chilled-bg);
+  color: var(--chilled);
+}
+
+.zone-badge.ambient {
+  background: var(--ambient-bg);
+  color: var(--ambient);
+}
+
+.task-action {
+  width: 100%;
+  padding: 10px;
+  border: none;
+  border-radius: var(--radius-btn);
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s;
+  font-family: var(--font);
+}
+
+.btn-primary {
+  background: var(--p);
+  color: #fff;
+}
+
+.btn-primary:hover { background: var(--p-dark); }
+.btn-primary:active { transform: scale(0.98); }
+
+.btn-outline {
+  background: #fff;
+  color: var(--p);
+  border: 1px solid var(--p);
+}
+
+.btn-success {
+  background: var(--success);
+  color: #fff;
+}
+
+.btn-gray {
+  background: var(--g200);
+  color: var(--g500);
+}
+
+/* ===== LOADING PAGE ===== */
+.loading-page-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 16px;
+}
+
+.back-btn {
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: none;
+  background: var(--g100);
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 18px;
+}
+
+.zone-section {
+  background: #fff;
+  border-radius: var(--radius-card);
+  box-shadow: var(--shadow-sm);
+  margin-bottom: 12px;
+  overflow: hidden;
+}
+
+.zone-header {
+  padding: 12px 14px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-weight: 600;
+  font-size: 15px;
+}
+
+.zone-header.frozen { background: var(--frozen-bg); color: var(--frozen); }
+.zone-header.chilled { background: var(--chilled-bg); color: var(--chilled); }
+.zone-header.ambient { background: var(--ambient-bg); color: var(--ambient); }
+
+.zone-status {
+  font-size: 12px;
+  font-weight: 500;
+  padding: 2px 8px;
+  border-radius: 4px;
+  background: rgba(0,0,0,0.06);
+}
+
+.zone-items { padding: 8px 14px; }
+
+.zone-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 0;
+  border-bottom: 1px solid var(--g100);
+}
+
+.zone-item:last-child { border-bottom: none; }
+
+.zone-item input[type="checkbox"] {
+  width: 20px;
+  height: 20px;
+  accent-color: var(--p);
+  cursor: pointer;
+}
+
+.zone-item .item-info { flex: 1; }
+
+.zone-item .item-name {
+  font-size: 14px;
+  font-weight: 500;
+}
+
+.zone-item .item-detail {
+  font-size: 12px;
+  color: var(--g500);
+}
+
+.zone-temp-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 14px;
+  background: var(--g50);
+  border-top: 1px solid var(--g100);
+}
+
+.zone-temp-row label {
+  font-size: 13px;
+  color: var(--g500);
+  white-space: nowrap;
+}
+
+.zone-temp-row input {
+  flex: 1;
+  padding: 6px 10px;
+  border: 1px solid var(--g300);
+  border-radius: 6px;
+  font-size: 14px;
+  font-family: var(--font);
+}
+
+.zone-temp-row input:focus {
+  outline: none;
+  border-color: var(--p);
+  box-shadow: 0 0 0 2px var(--p-light);
+}
+
+.zone-temp-row .temp-unit {
+  font-size: 13px;
+  color: var(--g500);
+}
+
+.photo-capture-btn {
+  width: 100%;
+  padding: 12px;
+  border: 2px dashed var(--g300);
+  border-radius: var(--radius-card);
+  background: var(--g50);
+  color: var(--g500);
+  font-size: 14px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  margin-bottom: 12px;
+  transition: all 0.2s;
+  font-family: var(--font);
+}
+
+.photo-capture-btn:hover {
+  border-color: var(--p);
+  color: var(--p);
+  background: var(--p-light);
+}
+
+.photo-capture-btn.captured {
+  border-color: var(--success);
+  color: var(--success);
+  background: var(--success-light);
+}
+
+.confirm-loading-btn {
+  width: 100%;
+  padding: 14px;
+  border: none;
+  border-radius: var(--radius-btn);
+  font-size: 16px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+  font-family: var(--font);
+}
+
+.confirm-loading-btn:disabled {
+  background: var(--g200);
+  color: var(--g500);
+  cursor: not-allowed;
+}
+
+.confirm-loading-btn.enabled {
+  background: var(--success);
+  color: #fff;
+}
+
+.confirm-loading-btn.enabled:active { transform: scale(0.98); }
+
+/* ===== NAVIGATION PAGE ===== */
+.map-placeholder {
+  width: 100%;
+  height: 280px;
+  border-radius: var(--radius-card);
+  position: relative;
+  overflow: hidden;
+  margin-bottom: 12px;
+  background:
+    linear-gradient(135deg, #e8f5e9 0%, #c8e6c9 20%, #a5d6a7 40%, #e8f5e9 60%, #c8e6c9 80%, #a5d6a7 100%);
+}
+
+.map-placeholder::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background:
+    repeating-linear-gradient(0deg, transparent, transparent 28px, rgba(255,255,255,0.4) 28px, rgba(255,255,255,0.4) 30px),
+    repeating-linear-gradient(90deg, transparent, transparent 28px, rgba(255,255,255,0.4) 28px, rgba(255,255,255,0.4) 30px);
+}
+
+.map-route {
+  position: absolute;
+  top: 50%;
+  left: 10%;
+  width: 80%;
+  height: 3px;
+  background: var(--p);
+  transform: rotate(-8deg);
+  border-radius: 2px;
+}
+
+.map-route::before {
+  content: '🚛';
+  position: absolute;
+  left: 35%;
+  top: -16px;
+  font-size: 24px;
+  animation: truckMove 3s ease-in-out infinite;
+}
+
+@keyframes truckMove {
+  0%, 100% { left: 30%; }
+  50% { left: 55%; }
+}
+
+.map-route::after {
+  content: '📍';
+  position: absolute;
+  right: -6px;
+  top: -18px;
+  font-size: 22px;
+}
+
+.map-label {
+  position: absolute;
+  bottom: 10px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: rgba(0,0,0,0.6);
+  color: #fff;
+  padding: 4px 12px;
+  border-radius: 12px;
+  font-size: 12px;
+}
+
+.nav-info-card {
+  background: #fff;
+  border-radius: var(--radius-card);
+  box-shadow: var(--shadow-sm);
+  padding: 14px;
+  margin-bottom: 10px;
+}
+
+.nav-customer-name {
+  font-size: 16px;
+  font-weight: 600;
+  margin-bottom: 2px;
+}
+
+.nav-address {
+  font-size: 13px;
+  color: var(--g500);
+  margin-bottom: 10px;
+}
+
+.nav-route-info {
+  display: flex;
+  gap: 16px;
+  padding: 10px 0;
+  border-top: 1px solid var(--g100);
+  margin-bottom: 10px;
+}
+
+.route-stat {
+  display: flex;
+  flex-direction: column;
+}
+
+.route-stat .value {
+  font-size: 20px;
+  font-weight: 700;
+  color: var(--g900);
+}
+
+.route-stat .label {
+  font-size: 11px;
+  color: var(--g500);
+}
+
+.multi-stop-indicator {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 12px;
+  background: var(--warning-light);
+  border-radius: 8px;
+  margin-bottom: 10px;
+  font-size: 13px;
+  color: #ad6800;
+}
+
+.quick-actions {
+  display: flex;
+  gap: 8px;
+}
+
+.quick-action-btn {
+  flex: 1;
+  padding: 10px;
+  border: 1px solid var(--g200);
+  border-radius: var(--radius-btn);
+  background: #fff;
+  font-size: 13px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  transition: all 0.2s;
+  font-family: var(--font);
+  color: var(--g800);
+}
+
+.quick-action-btn:hover {
+  border-color: var(--p);
+  color: var(--p);
+}
+
+.quick-action-btn.danger {
+  color: var(--danger);
+  border-color: #ffccc7;
+}
+
+.quick-action-btn.danger:hover {
+  background: var(--danger-light);
+}
+
+/* ===== SIGNATURE PAD ===== */
+.sig-pad-area {
+  border: 2px dashed var(--g300);
+  border-radius: var(--radius-card);
+  background: #fff;
+  position: relative;
+  margin-bottom: 12px;
+}
+
+.sig-pad-area canvas {
+  width: 100%;
+  height: 180px;
+  display: block;
+  cursor: crosshair;
+  touch-action: none;
+}
+
+.sig-pad-hint {
+  position: absolute;
+  bottom: 10px;
+  left: 50%;
+  transform: translateX(-50%);
+  font-size: 12px;
+  color: var(--g300);
+  pointer-events: none;
+}
+
+.sig-clear-btn {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  padding: 4px 10px;
+  font-size: 12px;
+  border: 1px solid var(--g300);
+  border-radius: 4px;
+  background: #fff;
+  cursor: pointer;
+  color: var(--g500);
+  font-family: var(--font);
+}
+
+/* ===== DELIVERY CONFIRM PAGE ===== */
+.temp-check-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 0;
+  border-bottom: 1px solid var(--g100);
+}
+
+.temp-check-row:last-child { border-bottom: none; }
+
+.temp-check-zone {
+  width: 64px;
+  font-size: 13px;
+  font-weight: 500;
+}
+
+.temp-check-input {
+  flex: 1;
+  padding: 8px 10px;
+  border: 1px solid var(--g300);
+  border-radius: 6px;
+  font-size: 14px;
+  font-family: var(--font);
+  text-align: center;
+}
+
+.temp-check-input:focus {
+  outline: none;
+  border-color: var(--p);
+}
+
+.temp-check-input.pass { border-color: var(--success); background: var(--success-light); }
+.temp-check-input.fail { border-color: var(--danger); background: var(--danger-light); }
+
+.temp-check-result {
+  width: 28px;
+  text-align: center;
+  font-size: 16px;
+}
+
+.camera-viewfinder {
+  width: 100%;
+  height: 180px;
+  border: 2px dashed var(--g300);
+  border-radius: var(--radius-card);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  background: var(--g50);
+  margin-bottom: 12px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.camera-viewfinder:hover {
+  border-color: var(--p);
+  background: var(--p-light);
+}
+
+.camera-viewfinder .cam-icon {
+  font-size: 36px;
+  margin-bottom: 8px;
+}
+
+.camera-viewfinder .cam-text {
+  font-size: 13px;
+  color: var(--g500);
+}
+
+.camera-viewfinder.captured {
+  border-style: solid;
+  border-color: var(--success);
+  background: var(--success-light);
+}
+
+.delivery-notes {
+  width: 100%;
+  padding: 10px 12px;
+  border: 1px solid var(--g300);
+  border-radius: var(--radius-btn);
+  font-size: 14px;
+  font-family: var(--font);
+  resize: vertical;
+  min-height: 64px;
+  margin-bottom: 12px;
+}
+
+.delivery-notes:focus {
+  outline: none;
+  border-color: var(--p);
+  box-shadow: 0 0 0 2px var(--p-light);
+}
+
+.confirm-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.confirm-actions .btn-main {
+  width: 100%;
+  padding: 14px;
+  border: none;
+  border-radius: var(--radius-btn);
+  font-size: 16px;
+  font-weight: 600;
+  cursor: pointer;
+  font-family: var(--font);
+  transition: all 0.2s;
+}
+
+.confirm-actions .btn-main:active { transform: scale(0.98); }
+
+.btn-row {
+  display: flex;
+  gap: 8px;
+}
+
+.btn-row .btn-main {
+  flex: 1;
+  padding: 12px;
+  border: none;
+  border-radius: var(--radius-btn);
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  font-family: var(--font);
+  transition: all 0.2s;
+}
+
+/* ===== EXCEPTION PAGE ===== */
+.exception-types {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+  margin-bottom: 16px;
+}
+
+.exception-type-btn {
+  padding: 14px 10px;
+  border: 2px solid var(--g200);
+  border-radius: var(--radius-card);
+  background: #fff;
+  text-align: center;
+  cursor: pointer;
+  transition: all 0.2s;
+  font-family: var(--font);
+}
+
+.exception-type-btn .ex-icon {
+  font-size: 24px;
+  display: block;
+  margin-bottom: 4px;
+}
+
+.exception-type-btn .ex-label {
+  font-size: 13px;
+  color: var(--g800);
+}
+
+.exception-type-btn.selected {
+  border-color: var(--danger);
+  background: var(--danger-light);
+}
+
+.exception-type-btn.selected .ex-label {
+  color: var(--danger);
+  font-weight: 600;
+}
+
+.exception-desc {
+  width: 100%;
+  padding: 10px 12px;
+  border: 1px solid var(--g300);
+  border-radius: var(--radius-btn);
+  font-size: 14px;
+  font-family: var(--font);
+  resize: vertical;
+  min-height: 80px;
+  margin-bottom: 12px;
+}
+
+.exception-desc:focus {
+  outline: none;
+  border-color: var(--danger);
+  box-shadow: 0 0 0 2px var(--danger-light);
+}
+
+.submit-exception-btn {
+  width: 100%;
+  padding: 14px;
+  border: none;
+  border-radius: var(--radius-btn);
+  background: var(--danger);
+  color: #fff;
+  font-size: 16px;
+  font-weight: 600;
+  cursor: pointer;
+  font-family: var(--font);
+  transition: all 0.2s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+}
+
+.submit-exception-btn:active { transform: scale(0.98); }
+
+.submit-exception-btn .spinner {
+  display: none;
+  width: 16px;
+  height: 16px;
+  border: 2px solid rgba(255,255,255,0.3);
+  border-top-color: #fff;
+  border-radius: 50%;
+  animation: spin 0.6s linear infinite;
+}
+
+.submit-exception-btn.loading .spinner { display: inline-block; }
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+/* ===== SUCCESS OVERLAY ===== */
+.success-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 999;
+  background: rgba(0,0,0,0.5);
+  display: none;
+  align-items: center;
+  justify-content: center;
+  backdrop-filter: blur(4px);
+}
+
+.success-overlay.show {
+  display: flex;
+  animation: fadeIn 0.3s ease;
+}
+
+.success-card {
+  background: #fff;
+  border-radius: 16px;
+  padding: 40px 32px;
+  text-align: center;
+  box-shadow: var(--shadow-lg);
+  max-width: 300px;
+  width: 90%;
+  animation: scaleIn 0.3s ease;
+}
+
+@keyframes scaleIn {
+  from { transform: scale(0.8); opacity: 0; }
+  to { transform: scale(1); opacity: 1; }
+}
+
+.success-check {
+  width: 72px;
+  height: 72px;
+  border-radius: 50%;
+  background: var(--success-light);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0 auto 16px;
+  font-size: 36px;
+  animation: checkBounce 0.5s ease 0.2s both;
+}
+
+@keyframes checkBounce {
+  0% { transform: scale(0); }
+  60% { transform: scale(1.2); }
+  100% { transform: scale(1); }
+}
+
+.success-title {
+  font-size: 20px;
+  font-weight: 700;
+  margin-bottom: 8px;
+  color: var(--g900);
+}
+
+.success-desc {
+  font-size: 14px;
+  color: var(--g500);
+  margin-bottom: 20px;
+}
+
+.success-btn {
+  width: 100%;
+  padding: 12px;
+  border: none;
+  border-radius: var(--radius-btn);
+  background: var(--success);
+  color: #fff;
+  font-size: 15px;
+  font-weight: 600;
+  cursor: pointer;
+  font-family: var(--font);
+}
+
+/* ===== CUSTOMER VIEW ===== */
+.customer-view {
+  max-width: 1100px;
+  margin: 0 auto;
+  padding: 72px 24px 40px;
+}
+
+.customer-header-card {
+  background: #fff;
+  border-radius: var(--radius-card);
+  box-shadow: var(--shadow-sm);
+  padding: 24px;
+  margin-bottom: 20px;
+}
+
+.cust-order-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 16px;
+}
+
+.cust-order-id {
+  font-size: 18px;
+  font-weight: 700;
+}
+
+.cust-order-date {
+  font-size: 13px;
+  color: var(--g500);
+}
+
+.cust-order-amount {
+  font-size: 20px;
+  font-weight: 700;
+  color: var(--p);
+}
+
+/* ===== PROGRESS BARS ===== */
+.zone-progress-section {
+  background: #fff;
+  border-radius: var(--radius-card);
+  box-shadow: var(--shadow-sm);
+  padding: 20px 24px;
+  margin-bottom: 20px;
+}
+
+.zone-progress-section .section-title {
+  font-size: 16px;
+  font-weight: 600;
+  margin-bottom: 16px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.zone-progress-row {
+  margin-bottom: 16px;
+}
+
+.zone-progress-row:last-child { margin-bottom: 0; }
+
+.zone-progress-label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 8px;
+  font-size: 14px;
+  font-weight: 500;
+}
+
+.zone-progress-label .zone-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+}
+
+.zone-dot.frozen { background: var(--frozen); }
+.zone-dot.chilled { background: var(--chilled); }
+.zone-dot.ambient { background: var(--ambient); }
+
+.progress-track {
+  display: flex;
+  gap: 4px;
+  align-items: center;
+}
+
+.progress-step {
+  flex: 1;
+  height: 8px;
+  border-radius: 4px;
+  background: var(--g200);
+  position: relative;
+  overflow: hidden;
+}
+
+.progress-step.done {
+  background: var(--success);
+}
+
+.progress-step.active {
+  background: var(--g200);
+  overflow: hidden;
+}
+
+.progress-step.active::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: 4px;
+  animation: progressPulse 1.5s ease-in-out infinite;
+}
+
+.frozen .progress-step.active::after { background: var(--frozen); }
+.chilled .progress-step.active::after { background: var(--chilled); }
+.ambient .progress-step.active::after { background: var(--ambient); }
+
+@keyframes progressPulse {
+  0%, 100% { opacity: 0.6; transform: scaleX(0.8); }
+  50% { opacity: 1; transform: scaleX(1); }
+}
+
+.progress-labels {
+  display: flex;
+  gap: 4px;
+  margin-top: 6px;
+}
+
+.progress-label {
+  flex: 1;
+  text-align: center;
+  font-size: 10px;
+  color: var(--g500);
+}
+
+.progress-label.active { color: var(--p); font-weight: 600; }
+.progress-label.done { color: var(--success); }
+
+/* ===== CUSTOMER GRID LAYOUT ===== */
+.cust-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 20px;
+  margin-bottom: 20px;
+}
+
+.cust-card {
+  background: #fff;
+  border-radius: var(--radius-card);
+  box-shadow: var(--shadow-sm);
+  padding: 20px;
+}
+
+.cust-card .section-title {
+  font-size: 15px;
+  font-weight: 600;
+  margin-bottom: 12px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.driver-info-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+.driver-avatar {
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  background: var(--p-light);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 22px;
+}
+
+.driver-detail .driver-name {
+  font-size: 15px;
+  font-weight: 600;
+}
+
+.driver-detail .driver-vehicle {
+  font-size: 12px;
+  color: var(--g500);
+}
+
+.driver-contact-btn {
+  width: 100%;
+  padding: 10px;
+  border: 1px solid var(--p);
+  border-radius: var(--radius-btn);
+  background: var(--p-light);
+  color: var(--p);
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  font-family: var(--font);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  transition: all 0.2s;
+}
+
+.driver-contact-btn:hover { background: var(--p); color: #fff; }
+
+/* ===== TEMP MONITORING ===== */
+.temp-monitor-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 0;
+  border-bottom: 1px solid var(--g100);
+}
+
+.temp-monitor-item:last-child { border-bottom: none; }
+
+.temp-mon-zone {
+  width: 56px;
+  font-size: 13px;
+  font-weight: 500;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.temp-mon-value {
+  font-size: 24px;
+  font-weight: 700;
+  min-width: 72px;
+}
+
+.temp-mon-value.normal { color: var(--success); }
+.temp-mon-value.warning { color: var(--warning); }
+.temp-mon-value.danger { color: var(--danger); }
+
+.temp-mon-range {
+  font-size: 11px;
+  color: var(--g500);
+}
+
+.temp-mon-indicator {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  margin-left: auto;
+}
+
+.temp-mon-indicator.normal { background: var(--success); box-shadow: 0 0 6px var(--success); }
+.temp-mon-indicator.warning { background: var(--warning); box-shadow: 0 0 6px var(--warning); animation: blink 1s infinite; }
+.temp-mon-indicator.danger { background: var(--danger); box-shadow: 0 0 6px var(--danger); animation: blink 0.5s infinite; }
+
+@keyframes blink {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.3; }
+}
+
+/* ===== CUSTOMER MAP ===== */
+.cust-map {
+  width: 100%;
+  height: 240px;
+  border-radius: var(--radius-card);
+  position: relative;
+  overflow: hidden;
+  margin-bottom: 12px;
+  background:
+    linear-gradient(135deg, #e3f2fd 0%, #bbdefb 25%, #e8f5e9 50%, #c8e6c9 75%, #e3f2fd 100%);
+}
+
+.cust-map::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background:
+    repeating-linear-gradient(0deg, transparent, transparent 35px, rgba(0,0,0,0.04) 35px, rgba(0,0,0,0.04) 37px),
+    repeating-linear-gradient(90deg, transparent, transparent 35px, rgba(0,0,0,0.04) 35px, rgba(0,0,0,0.04) 37px);
+}
+
+.cust-map .map-route {
+  top: 45%;
+  left: 15%;
+  width: 70%;
+  transform: rotate(-5deg);
+}
+
+.cust-map .map-route::before {
+  left: 50%;
+  animation: truckMove 4s ease-in-out infinite;
+}
+
+.eta-display {
+  text-align: center;
+  padding: 12px;
+  background: var(--p-light);
+  border-radius: 8px;
+}
+
+.eta-label {
+  font-size: 12px;
+  color: var(--g500);
+  margin-bottom: 4px;
+}
+
+.eta-time {
+  font-size: 28px;
+  font-weight: 700;
+  color: var(--p);
+}
+
+.eta-time .eta-unit {
+  font-size: 14px;
+  font-weight: 500;
+}
+
+/* ===== ORDER ITEMS ===== */
+.order-items-card {
+  background: #fff;
+  border-radius: var(--radius-card);
+  box-shadow: var(--shadow-sm);
+  padding: 20px 24px;
+}
+
+.order-items-card .section-title {
+  font-size: 16px;
+  font-weight: 600;
+  margin-bottom: 12px;
+}
+
+.item-group-title {
+  font-size: 13px;
+  font-weight: 600;
+  padding: 8px 12px;
+  border-radius: 6px;
+  margin-bottom: 8px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.item-group-title.frozen { background: var(--frozen-bg); color: var(--frozen); }
+.item-group-title.chilled { background: var(--chilled-bg); color: var(--chilled); }
+.item-group-title.ambient { background: var(--ambient-bg); color: var(--ambient); }
+
+.order-item-row {
+  display: flex;
+  align-items: center;
+  padding: 10px 12px;
+  border-bottom: 1px solid var(--g100);
+  font-size: 14px;
+}
+
+.order-item-row:last-child { border-bottom: none; }
+
+.order-item-name { flex: 1; }
+
+.order-item-qty {
+  color: var(--g500);
+  margin-right: 16px;
+  font-size: 13px;
+}
+
+.order-item-price {
+  font-weight: 600;
+  min-width: 60px;
+  text-align: right;
+}
+
+/* ===== ORDER SUMMARY (CONFIRM PAGE) ===== */
+.order-summary-card {
+  background: #fff;
+  border-radius: var(--radius-card);
+  box-shadow: var(--shadow-sm);
+  padding: 14px;
+  margin-bottom: 12px;
+}
+
+.order-summary-header {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 8px;
+}
+
+.order-summary-items {
+  padding: 6px 0;
+}
+
+.order-summary-item {
+  display: flex;
+  justify-content: space-between;
+  font-size: 13px;
+  padding: 4px 0;
+  color: var(--g800);
+}
+
+.order-summary-item .qty { color: var(--g500); }
+
+/* ===== RESPONSIVE ===== */
+@media (max-width: 768px) {
+  .cust-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* ===== UTILITIES ===== */
+.section-title {
+  font-size: 15px;
+  font-weight: 600;
+  margin-bottom: 12px;
+}
+
+.text-muted { color: var(--g500); }
+.text-sm { font-size: 12px; }
+.text-center { text-align: center; }
+.mt-8 { margin-top: 8px; }
+.mt-12 { margin-top: 12px; }
+.mt-16 { margin-top: 16px; }
+.mb-8 { margin-bottom: 8px; }
+.mb-12 { margin-bottom: 12px; }
+.mb-16 { margin-bottom: 16px; }
+.gap-8 { gap: 8px; }
+.flex { display: flex; }
+.items-center { align-items: center; }
+.justify-between { justify-content: space-between; }
+
+.hidden { display: none !important; }
+</style>
+</head>
+<body>
+
+<!-- ===== HEADER ===== -->
+<header class="app-header">
+  <div class="logo">
+    <div class="logo-icon">🥬</div>
+    <span>叮咚 ToB 配送</span>
+  </div>
+  <div class="view-toggle">
+    <button id="btn-driver-view" class="active" onclick="switchView('driver')">司机端</button>
+    <button id="btn-customer-view" onclick="switchView('customer')">客户追踪</button>
+  </div>
+</header>
+
+<!-- ============================= -->
+<!-- ===== DRIVER VIEW ===== -->
+<!-- ============================= -->
+<div id="driver-view-container" class="view-container active">
+  <div class="driver-view">
+
+    <!-- PAGE: 任务列表 -->
+    <div id="driver-task-list" class="driver-page active">
+      <div class="task-date-bar">
+        <div class="date">📅 2026年7月23日 周四</div>
+        <div class="summary">共 6 单</div>
+      </div>
+
+      <div class="task-stats">
+        <div class="stat-chip">
+          <div class="num" id="stat-pending">3</div>
+          <div class="label">待取货</div>
+        </div>
+        <div class="stat-chip">
+          <div class="num" id="stat-delivering">2</div>
+          <div class="label">配送中</div>
+        </div>
+        <div class="stat-chip">
+          <div class="num" id="stat-done">1</div>
+          <div class="label">已完成</div>
+        </div>
+      </div>
+
+      <div id="task-cards-container"></div>
+    </div>
+
+    <!-- PAGE: 装车确认 -->
+    <div id="driver-loading" class="driver-page">
+      <div class="loading-page-header">
+        <button class="back-btn" onclick="navigateTo('task-list')">←</button>
+        <span class="card-title" style="margin-bottom:0">装车确认</span>
+      </div>
+
+      <div id="loading-zones-container"></div>
+
+      <button class="photo-capture-btn" id="loading-photo-btn" onclick="capturePhoto('loading-photo-btn')">
+        📷 拍摄装车照片
+      </button>
+
+      <button class="confirm-loading-btn" id="confirm-loading-btn" disabled onclick="confirmLoading()">
+        确认装车完成
+      </button>
+    </div>
+
+    <!-- PAGE: 配送导航 -->
+    <div id="driver-nav" class="driver-page">
+      <div class="loading-page-header">
+        <button class="back-btn" onclick="navigateTo('task-list')">←</button>
+        <span class="card-title" style="margin-bottom:0">配送导航</span>
+      </div>
+
+      <div class="map-placeholder">
+        <div class="map-route"></div>
+        <div class="map-label">实时路线 · 全程 5.2km</div>
+      </div>
+
+      <div class="nav-info-card">
+        <div class="nav-customer-name" id="nav-customer-name">海底捞（人民广场店）</div>
+        <div class="nav-address" id="nav-address">📍 上海市黄浦区南京东路800号</div>
+        <div class="nav-route-info">
+          <div class="route-stat">
+            <span class="value" id="nav-distance">5.2</span>
+            <span class="label">距离(km)</span>
+          </div>
+          <div class="route-stat">
+            <span class="value" id="nav-eta">18</span>
+            <span class="label">预计(分钟)</span>
+          </div>
+          <div class="route-stat">
+            <span class="value" id="nav-stops">3</span>
+            <span class="label">剩余站点</span>
+          </div>
+        </div>
+
+        <div class="multi-stop-indicator">
+          ⚡ 多温区联合配送：冷冻 + 冷藏 + 常温
+        </div>
+
+        <div class="quick-actions">
+          <button class="quick-action-btn" onclick="alert('正在打开导航...')">🧭 导航</button>
+          <button class="quick-action-btn" onclick="alert('正在拨打客户电话...')">📞 联系客户</button>
+          <button class="quick-action-btn danger" onclick="navigateTo('exception')">⚠️ 报告异常</button>
+        </div>
+      </div>
+
+      <button class="task-action btn-success mt-12" onclick="navigateTo('confirm')" style="font-size:15px; padding:14px;">
+        ✅ 到达客户位置，开始签收
+      </button>
+    </div>
+
+    <!-- PAGE: 签收确认 -->
+    <div id="driver-confirm" class="driver-page">
+      <div class="loading-page-header">
+        <button class="back-btn" onclick="navigateTo('task-list')">←</button>
+        <span class="card-title" style="margin-bottom:0">签收确认</span>
+      </div>
+
+      <div class="order-summary-card">
+        <div class="order-summary-header">
+          <span style="font-weight:600;">DD-20260723-0042</span>
+          <span style="font-size:13px; color:var(--g500);">海底捞（人民广场店）</span>
+        </div>
+        <div class="order-summary-items">
+          <div class="order-summary-item"><span>澳洲肥牛卷 × 20</span><span class="qty">冷冻</span></div>
+          <div class="order-summary-item"><span>鲜切羊肉片 × 15</span><span class="qty">冷冻</span></div>
+          <div class="order-summary-item"><span>有机生菜 × 30</span><span class="qty">冷藏</span></div>
+          <div class="order-summary-item"><span>特级金针菇 × 25</span><span class="qty">冷藏</span></div>
+          <div class="order-summary-item"><span>矿泉水(箱) × 10</span><span class="qty">常温</span></div>
+          <div class="order-summary-item"><span>调味料套装 × 8</span><span class="qty">常温</span></div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-title">🌡️ 温度验收</div>
+        <div class="temp-check-row">
+          <span class="temp-check-zone" style="color:var(--frozen)">🧊 冷冻</span>
+          <input type="number" class="temp-check-input" id="temp-frozen" placeholder="输入温度" step="0.1" oninput="validateTemp('frozen')">
+          <span style="font-size:13px; color:var(--g500);">°C</span>
+          <span class="temp-check-result" id="temp-frozen-result"></span>
+        </div>
+        <div class="temp-check-row">
+          <span class="temp-check-zone" style="color:var(--chilled)">❄️ 冷藏</span>
+          <input type="number" class="temp-check-input" id="temp-chilled" placeholder="输入温度" step="0.1" oninput="validateTemp('chilled')">
+          <span style="font-size:13px; color:var(--g500);">°C</span>
+          <span class="temp-check-result" id="temp-chilled-result"></span>
+        </div>
+        <div class="temp-check-row">
+          <span class="temp-check-zone" style="color:var(--ambient)">🌡️ 常温</span>
+          <input type="number" class="temp-check-input" id="temp-ambient" placeholder="输入温度" step="0.1" oninput="validateTemp('ambient')">
+          <span style="font-size:13px; color:var(--g500);">°C</span>
+          <span class="temp-check-result" id="temp-ambient-result"></span>
+        </div>
+        <div class="text-sm text-muted mt-8">验收标准：冷冻 ≤ -12°C · 冷藏 ≤ 10°C · 常温 0~40°C</div>
+      </div>
+
+      <div class="card">
+        <div class="card-title">📷 签收照片</div>
+        <div class="camera-viewfinder" id="confirm-photo" onclick="capturePhoto('confirm-photo')">
+          <span class="cam-icon">📸</span>
+          <span class="cam-text">点击拍照记录签收现场</span>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-title">✍️ 客户签名</div>
+        <div class="sig-pad-area">
+          <canvas id="sig-canvas"></canvas>
+          <span class="sig-pad-hint" id="sig-hint">请在此处签名</span>
+          <button class="sig-clear-btn" onclick="clearSignature()">清除</button>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-title">📝 备注</div>
+        <textarea class="delivery-notes" id="delivery-notes" placeholder="输入配送备注（选填）"></textarea>
+      </div>
+
+      <div class="confirm-actions">
+        <button class="btn-main btn-success" onclick="confirmDelivery('full')">✅ 确认签收</button>
+        <div class="btn-row">
+          <button class="btn-main btn-outline" style="border:1px solid var(--warning); color:var(--warning);" onclick="confirmDelivery('partial')">⚠️ 部分拒收</button>
+          <button class="btn-main" style="background:var(--danger); color:#fff;" onclick="confirmDelivery('reject')">❌ 全部拒收</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- PAGE: 异常上报 -->
+    <div id="driver-exception" class="driver-page">
+      <div class="loading-page-header">
+        <button class="back-btn" onclick="navigateTo('task-list')">←</button>
+        <span class="card-title" style="margin-bottom:0">异常上报</span>
+      </div>
+
+      <div class="card">
+        <div class="card-title">⚠️ 异常类型</div>
+        <div class="exception-types" id="exception-types">
+          <div class="exception-type-btn" onclick="selectExceptionType(this, '不在')">
+            <span class="ex-icon">🚪</span>
+            <span class="ex-label">客户不在</span>
+          </div>
+          <div class="exception-type-btn" onclick="selectExceptionType(this, '温度超标')">
+            <span class="ex-icon">🌡️</span>
+            <span class="ex-label">温度超标</span>
+          </div>
+          <div class="exception-type-btn" onclick="selectExceptionType(this, '包装破损')">
+            <span class="ex-icon">📦</span>
+            <span class="ex-label">包装破损</span>
+          </div>
+          <div class="exception-type-btn" onclick="selectExceptionType(this, '地址错误')">
+            <span class="ex-icon">📍</span>
+            <span class="ex-label">地址错误</span>
+          </div>
+          <div class="exception-type-btn" onclick="selectExceptionType(this, '其他')">
+            <span class="ex-icon">❓</span>
+            <span class="ex-label">其他</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-title">📷 现场照片</div>
+        <button class="photo-capture-btn" id="exception-photo-btn" onclick="capturePhoto('exception-photo-btn')">
+          📷 拍摄异常照片
+        </button>
+      </div>
+
+      <div class="card">
+        <div class="card-title">📝 异常描述</div>
+        <textarea class="exception-desc" id="exception-desc" placeholder="请详细描述异常情况..."></textarea>
+      </div>
+
+      <button class="submit-exception-btn" id="submit-exception-btn" onclick="submitException()">
+        <span class="spinner"></span>
+        提交异常报告
+      </button>
+    </div>
+
+  </div>
+
+  <!-- BOTTOM NAV -->
+  <nav class="bottom-nav">
+    <button class="nav-item active" onclick="navigateTo('task-list')">
+      <span class="nav-icon">📋</span>
+      <span>任务</span>
+    </button>
+    <button class="nav-item" onclick="navigateTo('loading')">
+      <span class="nav-icon">📦</span>
+      <span>装车</span>
+    </button>
+    <button class="nav-item" onclick="navigateTo('nav')">
+      <span class="nav-icon">🧭</span>
+      <span>导航</span>
+    </button>
+    <button class="nav-item" onclick="navigateTo('confirm')">
+      <span class="nav-icon">✅</span>
+      <span>签收</span>
+    </button>
+    <button class="nav-item" onclick="navigateTo('exception')">
+      <span class="nav-icon">⚠️</span>
+      <span>异常</span>
+    </button>
+  </nav>
+</div>
+
+<!-- ============================= -->
+<!-- ===== CUSTOMER VIEW ===== -->
+<!-- ============================= -->
+<div id="customer-view-container" class="view-container">
+  <div class="customer-view">
+
+    <!-- Order Header -->
+    <div class="customer-header-card">
+      <div class="cust-order-row">
+        <div>
+          <div class="cust-order-id">DD-20260723-0042</div>
+          <div class="cust-order-date">下单时间：2026-07-23 08:30 · 预计 14:00 前送达</div>
+        </div>
+        <div style="text-align:right;">
+          <div style="font-size:12px; color:var(--g500);">订单金额</div>
+          <div class="cust-order-amount">¥ 12,680.00</div>
+        </div>
+      </div>
+      <div style="display:flex; gap:12px; font-size:13px;">
+        <span style="color:var(--g500);">收货方：海底捞（人民广场店）</span>
+        <span style="color:var(--g500);">|</span>
+        <span style="color:var(--g500);">上海市黄浦区南京东路800号</span>
+      </div>
+    </div>
+
+    <!-- Progress Bars -->
+    <div class="zone-progress-section">
+      <div class="section-title">📊 多温区配送进度</div>
+
+      <div class="zone-progress-row">
+        <div class="zone-progress-label frozen">
+          <span class="zone-dot frozen"></span>
+          🧊 冷冻区 · 澳洲肥牛卷、鲜切羊肉片
+        </div>
+        <div class="progress-track frozen" id="progress-frozen">
+          <div class="progress-step done"></div>
+          <div class="progress-step done"></div>
+          <div class="progress-step done"></div>
+          <div class="progress-step active"></div>
+          <div class="progress-step"></div>
+        </div>
+        <div class="progress-labels">
+          <span class="progress-label done">待分拣</span>
+          <span class="progress-label done">分拣中</span>
+          <span class="progress-label done">待出库</span>
+          <span class="progress-label active">配送中</span>
+          <span class="progress-label">即将到达</span>
+        </div>
+      </div>
+
+      <div class="zone-progress-row">
+        <div class="zone-progress-label chilled">
+          <span class="zone-dot chilled"></span>
+          ❄️ 冷藏区 · 有机生菜、特级金针菇
+        </div>
+        <div class="progress-track chilled" id="progress-chilled">
+          <div class="progress-step done"></div>
+          <div class="progress-step done"></div>
+          <div class="progress-step done"></div>
+          <div class="progress-step active"></div>
+          <div class="progress-step"></div>
+        </div>
+        <div class="progress-labels">
+          <span class="progress-label done">待分拣</span>
+          <span class="progress-label done">分拣中</span>
+          <span class="progress-label done">待出库</span>
+          <span class="progress-label active">配送中</span>
+          <span class="progress-label">即将到达</span>
+        </div>
+      </div>
+
+      <div class="zone-progress-row">
+        <div class="zone-progress-label ambient">
+          <span class="zone-dot ambient"></span>
+          🌡️ 常温区 · 矿泉水、调味料套装
+        </div>
+        <div class="progress-track ambient" id="progress-ambient">
+          <div class="progress-step done"></div>
+          <div class="progress-step done"></div>
+          <div class="progress-step done"></div>
+          <div class="progress-step done"></div>
+          <div class="progress-step active"></div>
+        </div>
+        <div class="progress-labels">
+          <span class="progress-label done">待分拣</span>
+          <span class="progress-label done">分拣中</span>
+          <span class="progress-label done">待出库</span>
+          <span class="progress-label done">配送中</span>
+          <span class="progress-label active">即将到达</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="cust-grid">
+      <!-- Driver Info -->
+      <div class="cust-card">
+        <div class="section-title">🚛 配送信息</div>
+        <div class="driver-info-row">
+          <div class="driver-avatar">👨‍✈️</div>
+          <div class="driver-detail">
+            <div class="driver-name">张师傅</div>
+            <div class="driver-vehicle">沪A·12345 · 冷链厢式货车</div>
+          </div>
+        </div>
+        <div style="display:flex; justify-content:space-between; margin-bottom:12px; font-size:13px;">
+          <span style="color:var(--g500);">当前距离</span>
+          <span style="font-weight:600;">3.8 km</span>
+        </div>
+        <div style="display:flex; justify-content:space-between; margin-bottom:12px; font-size:13px;">
+          <span style="color:var(--g500);">订单状态</span>
+          <span style="font-weight:600; color:var(--success);">● 配送中</span>
+        </div>
+        <button class="driver-contact-btn" onclick="alert('正在拨打司机电话 138****6789')">
+          📞 联系司机
+        </button>
+      </div>
+
+      <!-- ETA + Map -->
+      <div class="cust-card">
+        <div class="section-title">📍 配送路线</div>
+        <div class="cust-map">
+          <div class="map-route"></div>
+          <div class="map-label">实时跟踪 · 已行驶 1.4km</div>
+        </div>
+        <div class="eta-display">
+          <div class="eta-label">预计送达</div>
+          <div class="eta-time" id="eta-countdown">42 <span class="eta-unit">分钟</span></div>
+        </div>
+      </div>
+
+      <!-- Temperature Monitoring -->
+      <div class="cust-card">
+        <div class="section-title">🌡️ 温度监控</div>
+        <div class="temp-monitor-item">
+          <span class="temp-mon-zone" style="color:var(--frozen)">🧊 冷冻</span>
+          <span class="temp-mon-value normal" id="cust-temp-frozen">-18.2°C</span>
+          <span class="temp-mon-range">标准 ≤-12°C</span>
+          <span class="temp-mon-indicator normal" id="cust-temp-ind-frozen"></span>
+        </div>
+        <div class="temp-monitor-item">
+          <span class="temp-mon-zone" style="color:var(--chilled)">❄️ 冷藏</span>
+          <span class="temp-mon-value normal" id="cust-temp-chilled">4.5°C</span>
+          <span class="temp-mon-range">标准 ≤10°C</span>
+          <span class="temp-mon-indicator normal" id="cust-temp-ind-chilled"></span>
+        </div>
+        <div class="temp-monitor-item">
+          <span class="temp-mon-zone" style="color:var(--ambient)">🌡️ 常温</span>
+          <span class="temp-mon-value normal" id="cust-temp-ambient">26.8°C</span>
+          <span class="temp-mon-range">标准 0~40°C</span>
+          <span class="temp-mon-indicator normal" id="cust-temp-ind-ambient"></span>
+        </div>
+        <div style="font-size:11px; color:var(--g500); margin-top:8px;">
+          数据每 30 秒更新 · 最后更新 14:23:05
+        </div>
+      </div>
+
+      <!-- Order Summary -->
+      <div class="cust-card">
+        <div class="section-title">📦 配送清单</div>
+        <div class="item-group-title frozen">🧊 冷冻区</div>
+        <div class="order-item-row">
+          <span class="order-item-name">澳洲肥牛卷</span>
+          <span class="order-item-qty">× 20</span>
+          <span class="order-item-price">¥3,200</span>
+        </div>
+        <div class="order-item-row">
+          <span class="order-item-name">鲜切羊肉片</span>
+          <span class="order-item-qty">× 15</span>
+          <span class="order-item-price">¥2,700</span>
+        </div>
+
+        <div class="item-group-title chilled" style="margin-top:12px;">❄️ 冷藏区</div>
+        <div class="order-item-row">
+          <span class="order-item-name">有机生菜</span>
+          <span class="order-item-qty">× 30</span>
+          <span class="order-item-price">¥900</span>
+        </div>
+        <div class="order-item-row">
+          <span class="order-item-name">特级金针菇</span>
+          <span class="order-item-qty">× 25</span>
+          <span class="order-item-price">¥1,250</span>
+        </div>
+
+        <div class="item-group-title ambient" style="margin-top:12px;">🌡️ 常温区</div>
+        <div class="order-item-row">
+          <span class="order-item-name">矿泉水(箱)</span>
+          <span class="order-item-qty">× 10</span>
+          <span class="order-item-price">¥320</span>
+        </div>
+        <div class="order-item-row">
+          <span class="order-item-name">调味料套装</span>
+          <span class="order-item-qty">× 8</span>
+          <span class="order-item-price">¥4,310</span>
+        </div>
+
+        <div style="display:flex; justify-content:space-between; padding:12px 0 0; border-top:1px solid var(--g200); margin-top:8px;">
+          <span style="font-weight:600;">合计</span>
+          <span style="font-weight:700; color:var(--p); font-size:16px;">¥ 12,680.00</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ===== SUCCESS OVERLAY ===== -->
+<div class="success-overlay" id="success-overlay">
+  <div class="success-card">
+    <div class="success-check">✅</div>
+    <div class="success-title" id="success-title">签收成功</div>
+    <div class="success-desc" id="success-desc">订单 DD-20260723-0042 已完成签收</div>
+    <button class="success-btn" onclick="closeSuccess()">返回任务列表</button>
+  </div>
+</div>
+
+<script>
+// ============================================================
+// DATA
+// ============================================================
+const TASKS = [
+  {
+    id: 'DD-20260723-0038',
+    customer: '盒马鲜生（徐汇店）',
+    address: '上海市徐汇区漕溪北路595号',
+    distance: 2.1,
+    eta: 12,
+    status: 'delivered',
+    zones: ['frozen', 'chilled'],
+    items: [
+      { name: '三文鱼刺身', qty: 10, zone: 'frozen' },
+      { name: '北极甜虾', qty: 8, zone: 'frozen' },
+      { name: '鲜切水果拼盘', qty: 20, zone: 'chilled' }
+    ]
+  },
+  {
+    id: 'DD-20260723-0039',
+    customer: '西贝莜面村（中山公园店）',
+    address: '上海市长宁区长宁路1018号龙之梦6F',
+    distance: 3.5,
+    eta: 20,
+    status: 'delivering',
+    zones: ['frozen', 'chilled', 'ambient'],
+    items: [
+      { name: '草原羊排', qty: 12, zone: 'frozen' },
+      { name: '莜面鱼鱼', qty: 15, zone: 'frozen' },
+      { name: '西兰花', qty: 20, zone: 'chilled' },
+      { name: '酱料组合', qty: 10, zone: 'ambient' }
+    ]
+  },
+  {
+    id: 'DD-20260723-0040',
+    customer: '外婆家（环球港店）',
+    address: '上海市普陀区中山北路3300号',
+    distance: 4.8,
+    eta: 25,
+    status: 'delivering',
+    zones: ['chilled', 'ambient'],
+    items: [
+      { name: '麻婆豆腐料', qty: 30, zone: 'chilled' },
+      { name: '绿茶饼', qty: 20, zone: 'ambient' },
+      { name: '茶饮料', qty: 15, zone: 'ambient' }
+    ]
+  },
+  {
+    id: 'DD-20260723-0041',
+    customer: '必胜客（五角场店）',
+    address: '上海市杨浦区淞沪路8号百联又一城',
+    distance: 6.2,
+    eta: 30,
+    status: 'pickup',
+    zones: ['frozen', 'ambient'],
+    items: [
+      { name: '冷冻披萨底', qty: 50, zone: 'frozen' },
+      { name: '芝士碎', qty: 20, zone: 'frozen' },
+      { name: '番茄酱桶', qty: 5, zone: 'ambient' }
+    ]
+  },
+  {
+    id: 'DD-20260723-0042',
+    customer: '海底捞（人民广场店）',
+    address: '上海市黄浦区南京东路800号',
+    distance: 5.2,
+    eta: 18,
+    status: 'pickup',
+    zones: ['frozen', 'chilled', 'ambient'],
+    items: [
+      { name: '澳洲肥牛卷', qty: 20, zone: 'frozen' },
+      { name: '鲜切羊肉片', qty: 15, zone: 'frozen' },
+      { name: '有机生菜', qty: 30, zone: 'chilled' },
+      { name: '特级金针菇', qty: 25, zone: 'chilled' },
+      { name: '矿泉水(箱)', qty: 10, zone: 'ambient' },
+      { name: '调味料套装', qty: 8, zone: 'ambient' }
+    ]
+  },
+  {
+    id: 'DD-20260723-0043',
+    customer: '星巴克烘焙工坊（南京西路）',
+    address: '上海市静安区南京西路789号',
+    distance: 1.8,
+    eta: 8,
+    status: 'pickup',
+    zones: ['chilled', 'ambient'],
+    items: [
+      { name: '鲜牛奶', qty: 40, zone: 'chilled' },
+      { name: '燕麦奶', qty: 20, zone: 'chilled' },
+      { name: '咖啡豆(袋)', qty: 15, zone: 'ambient' }
+    ]
+  }
+];
+
+const ZONE_CONFIG = {
+  frozen: { icon: '🧊', label: '冷冻区', color: 'frozen' },
+  chilled: { icon: '❄️', label: '冷藏区', color: 'chilled' },
+  ambient: { icon: '🌡️', label: '常温区', color: 'ambient' }
+};
+
+const ZONE_TEMPS = {
+  frozen: { recorded: -15, min: null, max: -12, unit: '°C' },
+  chilled: { recorded: 3.5, min: null, max: 10, unit: '°C' },
+  ambient: { recorded: 25, min: 0, max: 40, unit: '°C' }
+};
+
+// ============================================================
+// STATE
+// ============================================================
+let currentPage = 'task-list';
+let currentTaskId = null;
+let loadingChecked = {};
+let exceptionType = '';
+let signatureActive = false;
+
+// ============================================================
+// VIEW SWITCHING
+// ============================================================
+function switchView(view) {
+  const btnDriver = document.getElementById('btn-driver-view');
+  const btnCustomer = document.getElementById('btn-customer-view');
+  const driverContainer = document.getElementById('driver-view-container');
+  const customerContainer = document.getElementById('customer-view-container');
+
+  if (view === 'driver') {
+    btnDriver.classList.add('active');
+    btnCustomer.classList.remove('active');
+    driverContainer.classList.add('active');
+    customerContainer.classList.remove('active');
+  } else {
+    btnDriver.classList.remove('active');
+    btnCustomer.classList.add('active');
+    driverContainer.classList.remove('active');
+    customerContainer.classList.add('active');
+  }
+}
+
+// ============================================================
+// DRIVER NAVIGATION
+// ============================================================
+function navigateTo(page) {
+  const pages = document.querySelectorAll('.driver-page');
+  pages.forEach(p => p.classList.remove('active'));
+
+  const targetId = 'driver-' + page;
+  const target = document.getElementById(targetId);
+  if (target) target.classList.add('active');
+
+  currentPage = page;
+
+  // Update bottom nav
+  const navItems = document.querySelectorAll('.nav-item');
+  navItems.forEach(item => item.classList.remove('active'));
+  const navMap = { 'task-list': 0, 'loading': 1, 'nav': 2, 'confirm': 3, 'exception': 4 };
+  if (navMap[page] !== undefined) {
+    navItems[navMap[page]].classList.add('active');
+  }
+
+  // Init signature pad when entering confirm page
+  if (page === 'confirm') {
+    initSignaturePad();
+  }
+}
+
+// ============================================================
+// RENDER TASK CARDS
+// ============================================================
+function renderTaskCards() {
+  const container = document.getElementById('task-cards-container');
+  container.innerHTML = '';
+
+  TASKS.forEach(task => {
+    const statusMap = {
+      pickup: { badge: '<span class="status-badge pickup">待取货</span>', btnClass: 'btn-primary', btnText: '📦 去装车', action: `startLoading('${task.id}')` },
+      delivering: { badge: '<span class="status-badge delivering">配送中</span>', btnClass: 'btn-success', btnText: '🧭 导航配送', action: `startNav('${task.id}')` },
+      delivered: { badge: '<span class="status-badge delivered">已签收</span>', btnClass: 'btn-gray', btnText: '已完成', action: '' }
+    };
+
+    const s = statusMap[task.status];
+    const cardClass = 'status-' + task.status;
+
+    const zoneBadges = task.zones.map(z => {
+      const zc = ZONE_CONFIG[z];
+      return `<span class="zone-badge ${zc.color}">${zc.icon} ${zc.label}</span>`;
+    }).join('');
+
+    container.innerHTML += `
+      <div class="task-card ${cardClass}">
+        <div class="task-header">
+          <span class="task-id">${task.id}</span>
+          ${s.badge}
+        </div>
+        <div class="task-customer">${task.customer}</div>
+        <div class="task-address">📍 ${task.address}</div>
+        <div class="task-meta">
+          <span class="meta-item">📏 ${task.distance}km</span>
+          <span class="meta-item">⏱️ 约${task.eta}分钟</span>
+          <span class="meta-item">📦 ${task.items.length}件</span>
+        </div>
+        <div class="zone-badges">${zoneBadges}</div>
+        ${task.status !== 'delivered' ? `<button class="task-action ${s.btnClass}" onclick="${s.action}">${s.btnText}</button>` : ''}
+      </div>
+    `;
+  });
+}
+
+// ============================================================
+// LOADING PAGE
+// ============================================================
+function startLoading(taskId) {
+  currentTaskId = taskId;
+  const task = TASKS.find(t => t.id === taskId);
+  if (!task) return;
+
+  loadingChecked = {};
+  const container = document.getElementById('loading-zones-container');
+  container.innerHTML = '';
+
+  const zonesInOrder = ['frozen', 'chilled', 'ambient'];
+  zonesInOrder.forEach(zone => {
+    const itemsInZone = task.items.filter(i => i.zone === zone);
+    if (itemsInZone.length === 0) return;
+
+    const zc = ZONE_CONFIG[zone];
+    const zoneId = 'zone-' + zone;
+
+    let itemsHtml = itemsInZone.map((item, idx) => {
+      const cbId = `cb-${zone}-${idx}`;
+      return `
+        <div class="zone-item">
+          <input type="checkbox" id="${cbId}" onchange="onLoadingCheck('${zone}', ${idx})">
+          <div class="item-info">
+            <div class="item-name">${item.name}</div>
+            <div class="item-detail">× ${item.qty}</div>
+          </div>
+        </div>
+      `;
+    }).join('');
+
+    container.innerHTML += `
+      <div class="zone-section">
+        <div class="zone-header ${zc.color}">
+          <span>${zc.icon} ${zc.label}</span>
+          <span class="zone-status" id="${zoneId}-status">0/${itemsInZone.length}</span>
+        </div>
+        <div class="zone-items">${itemsHtml}</div>
+        <div class="zone-temp-row">
+          <label>温度记录</label>
+          <input type="number" id="temp-input-${zone}" placeholder="输入温度" step="0.1">
+          <span class="temp-unit">°C</span>
+        </div>
+      </div>
+    `;
+
+    loadingChecked[zone] = { total: itemsInZone.length, checked: 0, allChecked: false };
+  });
+
+  navigateTo('loading');
+}
+
+function onLoadingCheck(zone, idx) {
+  const cb = document.getElementById(`cb-${zone}-${idx}`);
+  const state = loadingChecked[zone];
+  if (cb.checked) {
+    state.checked++;
+  } else {
+    state.checked--;
+  }
+  state.allChecked = state.checked >= state.total;
+
+  const statusEl = document.getElementById(`zone-${zone}-status`);
+  if (statusEl) {
+    statusEl.textContent = `${state.checked}/${state.total}`;
+  }
+
+  updateLoadingButton();
+}
+
+function updateLoadingButton() {
+  const btn = document.getElementById('confirm-loading-btn');
+  const allDone = Object.values(loadingChecked).every(z => z.allChecked);
+
+  if (allDone) {
+    btn.disabled = false;
+    btn.classList.remove('confirm-loading-btn');
+    btn.classList.add('confirm-loading-btn', 'enabled');
+  } else {
+    btn.disabled = true;
+    btn.classList.remove('enabled');
+  }
+}
+
+function confirmLoading() {
+  showSuccess('装车确认完成', `订单 ${currentTaskId} 已确认装车，可以出发配送`);
+}
+
+// ============================================================
+// NAVIGATION PAGE
+// ============================================================
+function startNav(taskId) {
+  currentTaskId = taskId;
+  const task = TASKS.find(t => t.id === taskId);
+  if (!task) return;
+
+  document.getElementById('nav-customer-name').textContent = task.customer;
+  document.getElementById('nav-address').textContent = '📍 ' + task.address;
+  document.getElementById('nav-distance').textContent = task.distance;
+  document.getElementById('nav-eta').textContent = task.eta;
+
+  navigateTo('nav');
+}
+
+// ============================================================
+// SIGNATURE PAD
+// ============================================================
+function initSignaturePad() {
+  const canvas = document.getElementById('sig-canvas');
+  if (!canvas) return;
+
+  const rect = canvas.parentElement.getBoundingClientRect();
+  canvas.width = rect.width;
+  canvas.height = 180;
+
+  const ctx = canvas.getContext('2d');
+  ctx.strokeStyle = '#141414';
+  ctx.lineWidth = 2;
+  ctx.lineCap = 'round';
+  ctx.lineJoin = 'round';
+
+  let drawing = false;
+  let lastX = 0;
+  let lastY = 0;
+
+  function getPos(e) {
+    const r = canvas.getBoundingClientRect();
+    const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+    const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+    return {
+      x: (clientX - r.left) * (canvas.width / r.width),
+      y: (clientY - r.top) * (canvas.height / r.height)
+    };
+  }
+
+  function onStart(e) {
+    e.preventDefault();
+    drawing = true;
+    const pos = getPos(e);
+    lastX = pos.x;
+    lastY = pos.y;
+    document.getElementById('sig-hint').style.display = 'none';
+  }
+
+  function onMove(e) {
+    if (!drawing) return;
+    e.preventDefault();
+    const pos = getPos(e);
+    ctx.beginPath();
+    ctx.moveTo(lastX, lastY);
+    ctx.lineTo(pos.x, pos.y);
+    ctx.stroke();
+    lastX = pos.x;
+    lastY = pos.y;
+  }
+
+  function onEnd() {
+    drawing = false;
+  }
+
+  canvas.addEventListener('mousedown', onStart);
+  canvas.addEventListener('mousemove', onMove);
+  canvas.addEventListener('mouseup', onEnd);
+  canvas.addEventListener('mouseleave', onEnd);
+  canvas.addEventListener('touchstart', onStart, { passive: false });
+  canvas.addEventListener('touchmove', onMove, { passive: false });
+  canvas.addEventListener('touchend', onEnd);
+}
+
+function clearSignature() {
+  const canvas = document.getElementById('sig-canvas');
+  const ctx = canvas.getContext('2d');
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+  document.getElementById('sig-hint').style.display = '';
+}
+
+// ============================================================
+// TEMPERATURE VALIDATION
+// ============================================================
+function validateTemp(zone) {
+  const input = document.getElementById(`temp-${zone}`);
+  const result = document.getElementById(`temp-${zone}-result`);
+  const val = parseFloat(input.value);
+
+  if (isNaN(val) || input.value === '') {
+    input.classList.remove('pass', 'fail');
+    result.textContent = '';
+    return;
+  }
+
+  let pass = false;
+  if (zone === 'frozen') pass = val <= -12;
+  else if (zone === 'chilled') pass = val <= 10;
+  else if (zone === 'ambient') pass = val >= 0 && val <= 40;
+
+  if (pass) {
+    input.classList.add('pass');
+    input.classList.remove('fail');
+    result.textContent = '✅';
+  } else {
+    input.classList.add('fail');
+    input.classList.remove('pass');
+    result.textContent = '❌';
+  }
+}
+
+// ============================================================
+// PHOTO CAPTURE SIMULATION
+// ============================================================
+function capturePhoto(btnId) {
+  const btn = document.getElementById(btnId);
+  if (!btn) return;
+
+  btn.classList.add('captured');
+  if (btnId === 'confirm-photo') {
+    btn.innerHTML = '<span class="cam-icon" style="font-size:36px;">✅</span><span class="cam-text" style="font-size:13px; color:var(--success);">照片已拍摄</span>';
+  } else {
+    btn.textContent = '✅ 照片已拍摄';
+  }
+}
+
+// ============================================================
+// DELIVERY CONFIRMATION
+// ============================================================
+function confirmDelivery(type) {
+  const titles = {
+    full: '签收成功',
+    partial: '部分拒收已记录',
+    reject: '全部拒收已记录'
+  };
+  const descs = {
+    full: `订单 ${currentTaskId || 'DD-20260723-0042'} 已完成签收`,
+    partial: `订单 ${currentTaskId || 'DD-20260723-0042'} 部分商品已拒收，退回仓库处理`,
+    reject: `订单 ${currentTaskId || 'DD-20260723-0042'} 全部商品已拒收，退回仓库处理`
+  };
+  showSuccess(titles[type], descs[type]);
+}
+
+function showSuccess(title, desc) {
+  document.getElementById('success-title').textContent = title;
+  document.getElementById('success-desc').textContent = desc;
+  document.getElementById('success-overlay').classList.add('show');
+}
+
+function closeSuccess() {
+  document.getElementById('success-overlay').classList.remove('show');
+  navigateTo('task-list');
+}
+
+// ============================================================
+// EXCEPTION REPORTING
+// ============================================================
+function selectExceptionType(btn, type) {
+  const buttons = document.querySelectorAll('.exception-type-btn');
+  buttons.forEach(b => b.classList.remove('selected'));
+  btn.classList.add('selected');
+  exceptionType = type;
+}
+
+function submitException() {
+  if (!exceptionType) {
+    alert('请选择异常类型');
+    return;
+  }
+
+  const btn = document.getElementById('submit-exception-btn');
+  btn.classList.add('loading');
+  btn.disabled = true;
+
+  setTimeout(() => {
+    btn.classList.remove('loading');
+    btn.disabled = false;
+    showSuccess('异常已上报', `异常类型：${exceptionType}，调度中心将尽快处理`);
+    exceptionType = '';
+    const buttons = document.querySelectorAll('.exception-type-btn');
+    buttons.forEach(b => b.classList.remove('selected'));
+    document.getElementById('exception-desc').value = '';
+  }, 1500);
+}
+
+// ============================================================
+// CUSTOMER VIEW - PROGRESS ANIMATION
+// ============================================================
+let progressCycleTimer = null;
+
+function startProgressAnimation() {
+  const tracks = [
+    { id: 'progress-frozen', steps: [1,1,1,1,0], activeStep: 3 },
+    { id: 'progress-chilled', steps: [1,1,1,1,0], activeStep: 3 },
+    { id: 'progress-ambient', steps: [1,1,1,1,1], activeStep: 4 }
+  ];
+
+  let currentStep = 0;
+
+  function updateProgress() {
+    tracks.forEach(track => {
+      const el = document.getElementById(track.id);
+      if (!el) return;
+
+      const steps = el.querySelectorAll('.progress-step');
+      const labels = el.parentElement.querySelectorAll('.progress-label');
+
+      steps.forEach((step, i) => {
+        step.classList.remove('done', 'active');
+        labels[i].classList.remove('done', 'active');
+
+        if (i < track.activeStep) {
+          step.classList.add('done');
+          labels[i].classList.add('done');
+        } else if (i === track.activeStep) {
+          step.classList.add('active');
+          labels[i].classList.add('active');
+        }
+      });
+    });
+  }
+
+  updateProgress();
+}
+
+// ============================================================
+// CUSTOMER VIEW - ETA COUNTDOWN
+// ============================================================
+let etaMinutes = 42;
+
+function startEtaCountdown() {
+  setInterval(() => {
+    if (etaMinutes > 0) {
+      etaMinutes--;
+      const el = document.getElementById('eta-countdown');
+      if (el) {
+        el.innerHTML = `${etaMinutes} <span class="eta-unit">分钟</span>`;
+      }
+    }
+  }, 60000); // every minute
+}
+
+// ============================================================
+// CUSTOMER VIEW - TEMPERATURE SIMULATION
+// ============================================================
+function simulateTemperatures() {
+  setInterval(() => {
+    const frozenBase = -18;
+    const chilledBase = 4;
+    const ambientBase = 26;
+
+    const frozenTemp = (frozenBase + (Math.random() - 0.5) * 2).toFixed(1);
+    const chilledTemp = (chilledBase + (Math.random() - 0.5) * 1.5).toFixed(1);
+    const ambientTemp = (ambientBase + (Math.random() - 0.5) * 3).toFixed(1);
+
+    updateTempDisplay('frozen', parseFloat(frozenTemp));
+    updateTempDisplay('chilled', parseFloat(chilledTemp));
+    updateTempDisplay('ambient', parseFloat(ambientTemp));
+  }, 3000);
+}
+
+function updateTempDisplay(zone, temp) {
+  const valueEl = document.getElementById(`cust-temp-${zone}`);
+  const indEl = document.getElementById(`cust-temp-ind-${zone}`);
+
+  if (!valueEl || !indEl) return;
+
+  let status = 'normal';
+  let displayTemp = temp + '°C';
+
+  if (zone === 'frozen') {
+    if (temp > -12) status = 'danger';
+    else if (temp > -15) status = 'warning';
+  } else if (zone === 'chilled') {
+    if (temp > 10) status = 'danger';
+    else if (temp > 8) status = 'warning';
+  } else if (zone === 'ambient') {
+    if (temp < 0 || temp > 40) status = 'danger';
+    else if (temp > 35) status = 'warning';
+  }
+
+  valueEl.textContent = displayTemp;
+  valueEl.className = 'temp-mon-value ' + status;
+  indEl.className = 'temp-mon-indicator ' + status;
+}
+
+// ============================================================
+// INIT
+// ============================================================
+function init() {
+  renderTaskCards();
+  startProgressAnimation();
+  startEtaCountdown();
+  simulateTemperatures();
+}
+
+init();
+</script>
+</body>
+</html>

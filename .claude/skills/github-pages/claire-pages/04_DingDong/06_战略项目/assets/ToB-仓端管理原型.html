@@ -1,0 +1,544 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>叮咚买菜 ToB · 仓端管理系统</title>
+<style>
+:root{
+  --p:#1677ff;--pl:#e6f4ff;--pd:#0958d9;
+  --g50:#fafafa;--g100:#f5f5f5;--g200:#e8e8e8;--g300:#d9d9d9;--g500:#8c8c8c;--g800:#262626;--g900:#141414;
+  --success:#52c41a;--success-bg:#f6ffed;--warning:#faad14;--warning-bg:#fffbe6;--danger:#f5222d;--danger-bg:#fff2f0;
+  --frozen:#1890ff;--chilled:#13c2c2;--ambient:#fa8c16;
+  --r:10px;--rs:6px;--rl:14px;
+  --sh:0 1px 3px rgba(0,0,0,.08);--shm:0 4px 12px rgba(0,0,0,.1);--shl:0 8px 24px rgba(0,0,0,.12);
+  --tr:all .2s ease;
+}
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif;background:var(--g100);color:var(--g800);font-size:14px;line-height:1.6}
+@keyframes fadeIn{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
+@keyframes pulse{0%,100%{box-shadow:0 0 0 0 rgba(22,119,255,.4)}50%{box-shadow:0 0 0 6px rgba(22,119,255,0)}}
+@keyframes slideIn{from{opacity:0;transform:translateX(-12px)}to{opacity:1;transform:translateX(0)}}
+
+/* Layout */
+.app{display:flex;min-height:100vh}
+.sidebar{width:220px;background:var(--g900);color:#fff;padding:20px 0;flex-shrink:0;position:sticky;top:0;height:100vh;overflow-y:auto}
+.sidebar .logo{padding:0 20px 24px;border-bottom:1px solid rgba(255,255,255,.1);margin-bottom:12px}
+.sidebar .logo h2{font-size:16px;font-weight:600}.sidebar .logo span{font-size:12px;color:var(--g500)}
+.nav-item{display:flex;align-items:center;gap:10px;padding:10px 20px;cursor:pointer;color:rgba(255,255,255,.65);transition:var(--tr);font-size:13px;border-left:3px solid transparent}
+.nav-item:hover{color:#fff;background:rgba(255,255,255,.06)}
+.nav-item.active{color:#fff;background:rgba(22,119,255,.2);border-left-color:var(--p)}
+.nav-item .icon{font-size:16px;width:20px;text-align:center}
+.main{flex:1;padding:24px;overflow-x:hidden}
+.header{display:flex;justify-content:space-between;align-items:center;margin-bottom:24px}
+.header h1{font-size:20px;font-weight:600}.header .time{color:var(--g500);font-size:13px}
+.view{display:none}.view.active{display:block;animation:fadeIn .3s ease}
+
+/* Cards */
+.card{background:#fff;border-radius:var(--r);box-shadow:var(--sh);padding:20px;margin-bottom:16px;transition:var(--tr)}
+.card:hover{box-shadow:var(--shm)}
+.stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:16px;margin-bottom:24px}
+.stat-card{background:#fff;border-radius:var(--r);box-shadow:var(--sh);padding:16px 20px;animation:fadeIn .4s ease}
+.stat-card .label{font-size:12px;color:var(--g500);margin-bottom:4px}
+.stat-card .value{font-size:28px;font-weight:700;color:var(--g900)}
+.stat-card .trend{font-size:11px;margin-top:4px}
+.stat-card .trend.up{color:var(--danger)}.stat-card .trend.down{color:var(--success)}
+
+/* Zone columns */
+.zone-cols{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;margin-bottom:24px}
+.zone-col{border-radius:var(--r);padding:16px;border-top:3px solid}
+.zone-col.frozen{border-color:var(--frozen);background:linear-gradient(to bottom,#e6f4ff,#fff)}
+.zone-col.chilled{border-color:var(--chilled);background:linear-gradient(to bottom,#e6fffb,#fff)}
+.zone-col.ambient{border-color:var(--ambient);background:linear-gradient(to bottom,#fff7e6,#fff)}
+.zone-col .zone-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:12px}
+.zone-col .zone-name{font-weight:600;font-size:15px}
+.zone-col .zone-count{background:var(--g200);border-radius:12px;padding:2px 10px;font-size:12px;font-weight:600}
+
+/* Kanban */
+.kanban{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;min-height:400px}
+.kanban-col{background:var(--g50);border-radius:var(--r);padding:12px;border:1px solid var(--g200)}
+.kanban-header{font-weight:600;font-size:14px;padding:8px 12px;border-radius:var(--rs);margin-bottom:12px;display:flex;justify-content:space-between;align-items:center}
+.kanban-header .badge{background:rgba(255,255,255,.3);border-radius:10px;padding:1px 8px;font-size:11px}
+.kanban-col:nth-child(1) .kanban-header{background:var(--p);color:#fff}
+.kanban-col:nth-child(2) .kanban-header{background:var(--warning);color:#fff}
+.kanban-col:nth-child(3) .kanban-header{background:var(--success);color:#fff}
+.task-card{background:#fff;border-radius:var(--rs);padding:12px;margin-bottom:8px;box-shadow:var(--sh);cursor:pointer;transition:var(--tr);border-left:3px solid transparent;animation:slideIn .3s ease}
+.task-card:hover{box-shadow:var(--shm);transform:translateY(-2px)}
+.task-card.frozen-card{border-left-color:var(--frozen)}
+.task-card.chilled-card{border-left-color:var(--chilled)}
+.task-card.ambient-card{border-left-color:var(--ambient)}
+.task-card .task-order{font-weight:600;font-size:13px;margin-bottom:4px}
+.task-card .task-customer{font-size:12px;color:var(--g500)}
+.task-card .task-meta{display:flex;gap:8px;margin-top:6px;flex-wrap:wrap}
+.tag{display:inline-block;padding:1px 6px;border-radius:4px;font-size:11px;font-weight:500}
+.tag-frozen{background:var(--pl);color:var(--frozen)}
+.tag-chilled{background:#e6fffb;color:var(--chilled)}
+.tag-ambient{background:#fff7e6;color:var(--ambient)}
+.tag-urgent{background:var(--danger-bg);color:var(--danger)}
+.task-card .task-time{font-size:11px;color:var(--danger);margin-top:6px}
+.task-card .task-actions{display:flex;gap:6px;margin-top:8px}
+.btn{padding:4px 12px;border:none;border-radius:var(--rs);cursor:pointer;font-size:12px;transition:var(--tr);font-weight:500}
+.btn-primary{background:var(--p);color:#fff}.btn-primary:hover{background:var(--pd)}
+.btn-sm{padding:3px 8px;font-size:11px}
+.btn-outline{background:transparent;border:1px solid var(--g300);color:var(--g800)}.btn-outline:hover{border-color:var(--p);color:var(--p)}
+.btn-success{background:var(--success);color:#fff}
+.btn-danger{background:var(--danger);color:#fff}
+.btn-warning{background:var(--warning);color:#fff}
+
+/* Tables */
+table{width:100%;border-collapse:collapse}
+th,td{padding:10px 12px;text-align:left;border-bottom:1px solid var(--g200);font-size:13px}
+th{background:var(--g50);font-weight:600;color:var(--g500);font-size:12px;text-transform:uppercase;letter-spacing:.5px}
+tr:hover td{background:var(--g50)}
+.input-sm{width:60px;padding:4px 8px;border:1px solid var(--g300);border-radius:var(--rs);font-size:13px;text-align:center}
+
+/* Modal */
+.modal-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:1000;justify-content:center;align-items:center}
+.modal-overlay.show{display:flex}
+.modal{background:#fff;border-radius:var(--rl);width:90%;max-width:640px;max-height:80vh;overflow-y:auto;box-shadow:var(--shl);animation:fadeIn .2s ease}
+.modal-header{padding:16px 20px;border-bottom:1px solid var(--g200);display:flex;justify-content:space-between;align-items:center}
+.modal-header h3{font-size:16px}
+.modal-close{background:none;border:none;font-size:20px;cursor:pointer;color:var(--g500);padding:4px}
+.modal-body{padding:20px}
+.modal-footer{padding:12px 20px;border-top:1px solid var(--g200);display:flex;justify-content:flex-end;gap:8px}
+
+/* Checklist */
+.checklist-item{display:flex;align-items:center;gap:10px;padding:8px 12px;border-radius:var(--rs);margin-bottom:6px;transition:var(--tr);background:var(--g50)}
+.checklist-item.checked{background:var(--success-bg)}
+.checklist-item input[type="checkbox"]{width:18px;height:18px;accent-color:var(--success)}
+.checklist-item .item-name{flex:1;font-size:13px}
+.checklist-item .item-loc{font-size:11px;color:var(--g500);background:var(--g200);padding:1px 6px;border-radius:4px}
+.checklist-item .item-qty{font-size:12px;color:var(--p);font-weight:600}
+
+/* Aggregation */
+.agg-card{background:#fff;border-radius:var(--r);box-shadow:var(--sh);padding:16px;margin-bottom:12px}
+.agg-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:12px}
+.agg-steps{display:flex;align-items:center;gap:4px;margin:12px 0}
+.agg-step{display:flex;align-items:center;gap:4px;font-size:12px}
+.agg-step .dot{width:24px;height:24px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:11px;color:#fff;font-weight:600}
+.agg-step .dot.done{background:var(--success)}.agg-step .dot.active{background:var(--p);animation:pulse 2s infinite}
+.agg-step .dot.pending{background:var(--g300)}
+.agg-arrow{color:var(--g300);font-size:16px}
+
+/* Exception */
+.exc-card{background:#fff;border-radius:var(--r);box-shadow:var(--sh);padding:16px;margin-bottom:12px;border-left:4px solid}
+.exc-card.p-high{border-left-color:var(--danger)}.exc-card.p-mid{border-left-color:var(--warning)}.exc-card.p-low{border-left-color:var(--p)}
+.exc-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:8px}
+.exc-type{font-weight:600;font-size:14px}
+.exc-desc{font-size:13px;color:var(--g500);margin-bottom:8px}
+.exc-actions{display:flex;gap:8px}
+
+/* Alert panel */
+.alert-panel{background:#fff;border-radius:var(--r);box-shadow:var(--sh);padding:16px}
+.alert-item{display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid var(--g100)}
+.alert-item:last-child{border-bottom:none}
+.alert-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0}
+.alert-dot.red{background:var(--danger)}.alert-dot.orange{background:var(--warning)}.alert-dot.green{background:var(--success)}
+
+/* Packaging selector */
+.pkg-options{display:flex;gap:12px;margin:12px 0}
+.pkg-option{flex:1;border:2px solid var(--g200);border-radius:var(--r);padding:16px;text-align:center;cursor:pointer;transition:var(--tr)}
+.pkg-option.selected{border-color:var(--p);background:var(--pl)}
+.pkg-option:hover{border-color:var(--p)}
+.pkg-option .pkg-icon{font-size:28px;margin-bottom:8px}
+.pkg-option .pkg-name{font-weight:600;font-size:13px}
+.pkg-option .pkg-desc{font-size:11px;color:var(--g500)}
+
+/* Responsive */
+@media(max-width:768px){
+  .sidebar{display:none}.app{flex-direction:column}
+  .kanban,.zone-cols{grid-template-columns:1fr}
+  .stats{grid-template-columns:repeat(2,1fr)}
+  .mobile-menu{display:block!important}
+}
+.mobile-menu{display:none;position:fixed;bottom:0;left:0;right:0;background:#fff;box-shadow:0 -2px 8px rgba(0,0,0,.1);z-index:100;padding:8px;display:flex;justify-content:space-around}
+.mobile-menu .m-item{display:flex;flex-direction:column;align-items:center;font-size:10px;color:var(--g500);cursor:pointer;padding:4px 8px}
+.mobile-menu .m-item.active{color:var(--p)}
+.mobile-menu .m-item .m-icon{font-size:18px;margin-bottom:2px}
+
+/* Confirm dialog */
+.confirm-dialog{display:none;position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:1100;justify-content:center;align-items:center}
+.confirm-dialog.show{display:flex}
+.confirm-box{background:#fff;border-radius:var(--rl);padding:24px;text-align:center;max-width:360px;box-shadow:var(--shl)}
+.confirm-box .confirm-icon{font-size:48px;margin-bottom:12px}
+.confirm-box h3{margin-bottom:8px}.confirm-box p{color:var(--g500);font-size:13px;margin-bottom:16px}
+.confirm-box .confirm-btns{display:flex;gap:8px;justify-content:center}
+</style>
+</head>
+<body>
+<div class="app">
+  <!-- Sidebar -->
+  <aside class="sidebar">
+    <div class="logo"><h2>🏭 仓端管理</h2><span>ToB 仓储作业系统</span></div>
+    <div class="nav-item active" data-view="dashboard"><span class="icon">📊</span> 仓端 Dashboard</div>
+    <div class="nav-item" data-view="kanban"><span class="icon">📋</span> 分拣看板</div>
+    <div class="nav-item" data-view="outbound"><span class="icon">📤</span> 出库复核</div>
+    <div class="nav-item" data-view="aggregate"><span class="icon">🔄</span> 跨仓聚合</div>
+    <div class="nav-item" data-view="exception"><span class="icon">⚠️</span> 异常处理</div>
+  </aside>
+
+  <!-- Mobile menu -->
+  <nav class="mobile-menu">
+    <div class="m-item active" data-view="dashboard"><span class="m-icon">📊</span>概览</div>
+    <div class="m-item" data-view="kanban"><span class="m-icon">📋</span>分拣</div>
+    <div class="m-item" data-view="outbound"><span class="m-icon">📤</span>出库</div>
+    <div class="m-item" data-view="aggregate"><span class="m-icon">🔄</span>聚合</div>
+    <div class="m-item" data-view="exception"><span class="m-icon">⚠️</span>异常</div>
+  </nav>
+
+  <main class="main">
+    <div class="header"><h1 id="pageTitle">仓端 Dashboard</h1><div class="time" id="clock"></div></div>
+
+    <!-- Dashboard -->
+    <section class="view active" id="v-dashboard">
+      <div class="stats">
+        <div class="stat-card"><div class="label">📋 待处理订单</div><div class="value" id="s1">24</div><div class="trend up">↑ 12% 较昨日</div></div>
+        <div class="stat-card"><div class="label">🔧 拣货中</div><div class="value" id="s2">8</div><div class="trend down">↓ 5% 较昨日</div></div>
+        <div class="stat-card"><div class="label">📤 待出库</div><div class="value" id="s3">6</div><div class="trend down">↓ 8% 较昨日</div></div>
+        <div class="stat-card"><div class="label">⚠️ 异常订单</div><div class="value" id="s4" style="color:var(--danger)">3</div><div class="trend up">↑ 1 较昨日</div></div>
+      </div>
+
+      <h3 style="margin-bottom:12px;font-size:15px">温区作业负载</h3>
+      <div class="zone-cols">
+        <div class="zone-col frozen">
+          <div class="zone-header"><span class="zone-name">🧊 冷冻区</span><span class="zone-count">5 单</span></div>
+          <div style="font-size:12px;color:var(--g500)">待拣货 3 · 拣货中 1 · 待出库 1</div>
+          <div style="margin-top:8px;background:rgba(24,144,255,.1);border-radius:var(--rs);padding:8px;font-size:12px">库容利用率: <strong>78%</strong> <span style="float:right;color:var(--success)">正常</span></div>
+        </div>
+        <div class="zone-col chilled">
+          <div class="zone-header"><span class="zone-name">❄️ 冷藏区</span><span class="zone-count">8 单</span></div>
+          <div style="font-size:12px;color:var(--g500)">待拣货 5 · 拣货中 2 · 待出库 1</div>
+          <div style="margin-top:8px;background:rgba(19,194,194,.1);border-radius:var(--rs);padding:8px;font-size:12px">库容利用率: <strong>88%</strong> <span style="float:right;color:var(--warning)">偏高</span></div>
+        </div>
+        <div class="zone-col ambient">
+          <div class="zone-header"><span class="zone-name">🌡️ 常温区</span><span class="zone-count">11 单</span></div>
+          <div style="font-size:12px;color:var(--g500)">待拣货 7 · 拣货中 3 · 待出库 1</div>
+          <div style="margin-top:8px;background:rgba(250,140,22,.1);border-radius:var(--rs);padding:8px;font-size:12px">库容利用率: <strong>65%</strong> <span style="float:right;color:var(--success)">正常</span></div>
+        </div>
+      </div>
+
+      <h3 style="margin-bottom:12px;font-size:15px">预警信息</h3>
+      <div class="alert-panel">
+        <div class="alert-item"><span class="alert-dot red"></span> <span>FDC-039 冷藏区库容 88%，接近预警线</span> <span style="margin-left:auto;font-size:11px;color:var(--g500)">5 min 前</span></div>
+        <div class="alert-item"><span class="alert-dot orange"></span> <span>SKU「光明鲜奶1L」库存仅余 12 件，低于安全库存</span> <span style="margin-left:auto;font-size:11px;color:var(--g500)">18 min 前</span></div>
+        <div class="alert-item"><span class="alert-dot orange"></span> <span>订单 TOB-20260723-008 分拣超时 5 分钟</span> <span style="margin-left:auto;font-size:11px;color:var(--g500)">22 min 前</span></div>
+        <div class="alert-item"><span class="alert-dot green"></span> <span>跨仓调拨 TOB-TF-015 已到达 FDC-039</span> <span style="margin-left:auto;font-size:11px;color:var(--g500)">35 min 前</span></div>
+      </div>
+    </section>
+
+    <!-- Kanban -->
+    <section class="view" id="v-kanban">
+      <div class="kanban" id="kanbanBoard"></div>
+    </section>
+
+    <!-- Outbound -->
+    <section class="view" id="v-outbound">
+      <div class="card">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px">
+          <div><strong>出库复核</strong> — 订单 TOB-20260723-003</div>
+          <span class="tag tag-frozen">🧊 冷冻</span>
+        </div>
+        <div style="font-size:12px;color:var(--g500);margin-bottom:12px">客户：上海XX餐饮管理有限公司 | 配送窗口：明日 10:00-12:00 | 金额：¥3,680</div>
+        <table>
+          <thead><tr><th>SKU</th><th>温区</th><th>应出</th><th>实出</th><th>状态</th></tr></thead>
+          <tbody>
+            <tr><td>澳洲谷饲肥牛卷 200g</td><td><span class="tag tag-frozen">冷冻</span></td><td>20</td><td><input class="input-sm" type="number" value="20" min="0"></td><td style="color:var(--success)">✓</td></tr>
+            <tr><td>三全水饺 500g</td><td><span class="tag tag-frozen">冷冻</span></td><td>15</td><td><input class="input-sm" type="number" value="15" min="0"></td><td style="color:var(--success)">✓</td></tr>
+            <tr><td>思念汤圆 400g</td><td><span class="tag tag-frozen">冷冻</span></td><td>10</td><td><input class="input-sm" type="number" value="10" min="0"></td><td style="color:var(--success)">✓</td></tr>
+            <tr><td>湾仔码头蒸饺 360g</td><td><span class="tag tag-frozen">冷冻</span></td><td>8</td><td><input class="input-sm" type="number" value="8" min="0"></td><td style="color:var(--success)">✓</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="card">
+        <h4 style="margin-bottom:12px">包装方案</h4>
+        <div class="pkg-options">
+          <div class="pkg-option selected" onclick="selectPkg(this)"><div class="pkg-icon">📦</div><div class="pkg-name">标准包装</div><div class="pkg-desc">保温箱 + 干冰 2kg</div></div>
+          <div class="pkg-option" onclick="selectPkg(this)"><div class="pkg-icon">🧊</div><div class="pkg-name">加强冷链</div><div class="pkg-desc">双层保温箱 + 干冰 4kg</div></div>
+          <div class="pkg-option" onclick="selectPkg(this)"><div class="pkg-icon">🏷️</div><div class="pkg-name">大单专供</div><div class="pkg-desc">整托包装 + 冷冻车直送</div></div>
+        </div>
+      </div>
+
+      <div class="card" style="text-align:center">
+        <div style="margin-bottom:12px;font-size:13px;color:var(--g500)">温控标签预览</div>
+        <div style="display:inline-block;border:2px dashed var(--frozen);border-radius:var(--r);padding:16px 32px;background:var(--pl)">
+          <div style="font-size:24px">🧊</div>
+          <div style="font-weight:700;font-size:16px;color:var(--frozen)">冷冻品</div>
+          <div style="font-size:12px;color:var(--g500)">储存温度 ≤ -18°C</div>
+          <div style="font-size:11px;margin-top:4px">TOB-20260723-003 | FDC-039</div>
+        </div>
+      </div>
+
+      <div style="text-align:center;margin-top:16px">
+        <button class="btn btn-primary" style="padding:10px 40px;font-size:14px;border-radius:var(--r)" onclick="showConfirm('确认出库？','请确认所有 SKU 数量无误，温控标签已贴附。')">确认出库</button>
+      </div>
+    </section>
+
+    <!-- Aggregate -->
+    <section class="view" id="v-aggregate">
+      <div class="agg-card">
+        <div class="agg-header">
+          <div><strong>AGG-20260723-001</strong> <span class="tag tag-frozen">冷冻</span> <span class="tag tag-chilled">冷藏</span></div>
+          <span class="tag" style="background:var(--pl);color:var(--p)">运输中</span>
+        </div>
+        <div style="font-size:12px;color:var(--g500);margin-bottom:8px">FDC-012 → FDC-039 | 3 个 SKU | 预计 14:30 到达</div>
+        <div class="agg-steps">
+          <div class="agg-step"><span class="dot done">✓</span> 待调出</div>
+          <span class="agg-arrow">→</span>
+          <div class="agg-step"><span class="dot done">✓</span> 已出库</div>
+          <span class="agg-arrow">→</span>
+          <div class="agg-step"><span class="dot active">3</span> 运输中</div>
+          <span class="agg-arrow">→</span>
+          <div class="agg-step"><span class="dot pending">4</span> 已到达</div>
+          <span class="agg-arrow">→</span>
+          <div class="agg-step"><span class="dot pending">5</span> 已入库</div>
+        </div>
+        <table style="margin-top:8px">
+          <thead><tr><th>SKU</th><th>数量</th><th>温区</th></tr></thead>
+          <tbody>
+            <tr><td>光明鲜奶 1L</td><td>30 件</td><td><span class="tag tag-chilled">冷藏</span></td></tr>
+            <tr><td>有机西蓝花 300g</td><td>25 件</td><td><span class="tag tag-chilled">冷藏</span></td></tr>
+            <tr><td>三全水饺 500g</td><td>20 件</td><td><span class="tag tag-frozen">冷冻</span></td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="agg-card">
+        <div class="agg-header">
+          <div><strong>AGG-20260723-002</strong> <span class="tag tag-ambient">常温</span></div>
+          <span class="tag" style="background:var(--success-bg);color:var(--success)">已入库</span>
+        </div>
+        <div style="font-size:12px;color:var(--g500);margin-bottom:8px">大仓 RDC-SH-01 → FDC-039 | 5 个 SKU | 已完成</div>
+        <div class="agg-steps">
+          <div class="agg-step"><span class="dot done">✓</span> 待调出</div>
+          <span class="agg-arrow">→</span>
+          <div class="agg-step"><span class="dot done">✓</span> 已出库</div>
+          <span class="agg-arrow">→</span>
+          <div class="agg-step"><span class="dot done">✓</span> 运输中</div>
+          <span class="agg-arrow">→</span>
+          <div class="agg-step"><span class="dot done">✓</span> 已到达</div>
+          <span class="agg-arrow">→</span>
+          <div class="agg-step"><span class="dot done">✓</span> 已入库</div>
+        </div>
+      </div>
+
+      <div class="agg-card">
+        <div class="agg-header">
+          <div><strong>AGG-20260723-003</strong> <span class="tag tag-frozen">冷冻</span></div>
+          <span class="tag" style="background:var(--warning-bg);color:var(--warning)">待调出</span>
+        </div>
+        <div style="font-size:12px;color:var(--g500);margin-bottom:8px">FDC-025 → FDC-039 | 2 个 SKU | 截止 16:00</div>
+        <div class="agg-steps">
+          <div class="agg-step"><span class="dot active">1</span> 待调出</div>
+          <span class="agg-arrow">→</span>
+          <div class="agg-step"><span class="dot pending">2</span> 已出库</div>
+          <span class="agg-arrow">→</span>
+          <div class="agg-step"><span class="dot pending">3</span> 运输中</div>
+          <span class="agg-arrow">→</span>
+          <div class="agg-step"><span class="dot pending">4</span> 已到达</div>
+          <span class="agg-arrow">→</span>
+          <div class="agg-step"><span class="dot pending">5</span> 已入库</div>
+        </div>
+        <div style="margin-top:8px"><button class="btn btn-primary btn-sm">确认调出</button></div>
+      </div>
+    </section>
+
+    <!-- Exception -->
+    <section class="view" id="v-exception">
+      <div class="exc-card p-high">
+        <div class="exc-header">
+          <span class="exc-type">🔴 缺货异常</span>
+          <span class="tag" style="background:var(--danger-bg);color:var(--danger)">紧急</span>
+        </div>
+        <div class="exc-desc">订单 TOB-20260723-005 · SKU「澳洲谷饲肥牛卷 200g」库存不足，需求 30 件，仅存 12 件</div>
+        <div style="font-size:12px;color:var(--g500);margin-bottom:8px">客户：上海XX餐饮 | 发现时间：14:23</div>
+        <div class="exc-actions">
+          <button class="btn btn-danger btn-sm" onclick="showConfirm('申请跨仓调拨？','将从 FDC-012 调拨 18 件，预计 45 分钟到达')">申请调拨</button>
+          <button class="btn btn-warning btn-sm" onclick="showConfirm('推荐替代商品？','推荐「国产精品肥牛卷 200g」作为替代')">推荐替代</button>
+          <button class="btn btn-outline btn-sm">转交运营</button>
+        </div>
+      </div>
+
+      <div class="exc-card p-mid">
+        <div class="exc-header">
+          <span class="exc-type">🟠 温控异常</span>
+          <span class="tag" style="background:var(--warning-bg);color:var(--warning)">中等</span>
+        </div>
+        <div class="exc-desc">冷藏区 3 号冷柜温度升至 10°C（标准 ≤ 8°C），已持续 15 分钟</div>
+        <div style="font-size:12px;color:var(--g500);margin-bottom:8px">影响 SKU：12 个 | 影响库存：约 200 件</div>
+        <div class="exc-actions">
+          <button class="btn btn-warning btn-sm" onclick="showConfirm('已通知维修？','将创建设备维修工单并通知仓经理')">通知维修</button>
+          <button class="btn btn-outline btn-sm">转移库存</button>
+          <button class="btn btn-outline btn-sm">关闭</button>
+        </div>
+      </div>
+
+      <div class="exc-card p-low">
+        <div class="exc-header">
+          <span class="exc-type">🔵 包装破损</span>
+          <span class="tag" style="background:var(--pl);color:var(--p)">一般</span>
+        </div>
+        <div class="exc-desc">订单 TOB-20260723-001 · SKU「光明鲜奶 1L」3 件外包装破损，无法出库</div>
+        <div style="font-size:12px;color:var(--g500);margin-bottom:8px">发现环节：出库复核 | 发现时间：13:50</div>
+        <div class="exc-actions">
+          <button class="btn btn-primary btn-sm" onclick="showConfirm('已更换包装？','3 件已更换新包装，可继续出库')">更换包装</button>
+          <button class="btn btn-outline btn-sm">报废处理</button>
+          <button class="btn btn-outline btn-sm">关闭</button>
+        </div>
+      </div>
+    </section>
+  </main>
+</div>
+
+<!-- Picking Modal -->
+<div class="modal-overlay" id="pickModal">
+  <div class="modal">
+    <div class="modal-header"><h3 id="modalTitle">分拣详情</h3><button class="modal-close" onclick="closeModal('pickModal')">&times;</button></div>
+    <div class="modal-body" id="modalBody"></div>
+    <div class="modal-footer">
+      <button class="btn btn-outline" onclick="closeModal('pickModal')">关闭</button>
+      <button class="btn btn-danger btn-sm" id="excBtn" onclick="closeModal('pickModal')">⚠ 缺货</button>
+      <button class="btn btn-success" id="completeBtn" onclick="completePick()">✓ 完成拣货</button>
+    </div>
+  </div>
+</div>
+
+<!-- Confirm Dialog -->
+<div class="confirm-dialog" id="confirmDialog">
+  <div class="confirm-box">
+    <div class="confirm-icon">✅</div>
+    <h3 id="confirmTitle">确认操作</h3>
+    <p id="confirmMsg">确定要执行此操作？</p>
+    <div class="confirm-btns">
+      <button class="btn btn-outline" onclick="closeConfirm()">取消</button>
+      <button class="btn btn-primary" onclick="closeConfirm()">确认</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// Data
+const tasks = [
+  {id:'TOB-20260723-001',customer:'上海XX餐饮管理有限公司',skus:4,status:'待拣货',zone:'frozen',time:'15:00',urgent:false,items:[
+    {name:'澳洲谷饲肥牛卷 200g',loc:'C-01-03',qty:20},{name:'三全水饺 500g',loc:'C-02-01',qty:15},
+    {name:'思念汤圆 400g',loc:'C-01-05',qty:10},{name:'湾仔码头蒸饺 360g',loc:'C-03-02',qty:8}
+  ]},
+  {id:'TOB-20260723-002',customer:'杭州XX食品有限公司',skus:3,status:'待拣货',zone:'chilled',time:'14:30',urgent:true,items:[
+    {name:'光明鲜奶 1L',loc:'B-01-02',qty:30},{name:'有机西蓝花 300g',loc:'B-02-01',qty:25},
+    {name:'蒙牛酸奶 200g×12',loc:'B-01-04',qty:20}
+  ]},
+  {id:'TOB-20260723-003',customer:'苏州XX团餐服务',skus:5,status:'待拣货',zone:'ambient',time:'16:00',urgent:false,items:[
+    {name:'金龙鱼调和油 5L',loc:'A-01-01',qty:10},{name:'福临门大米 10kg',loc:'A-01-03',qty:8},
+    {name:'海天酱油 1.9L',loc:'A-02-01',qty:15},{name:'老干妈辣酱 280g',loc:'A-02-03',qty:20},
+    {name:'农夫山泉 550ml×24',loc:'A-03-01',qty:6}
+  ]},
+  {id:'TOB-20260723-004',customer:'南京XX企业食堂',skus:3,status:'拣货中',zone:'frozen',time:'15:30',urgent:false,items:[
+    {name:'思念手抓饼 900g',loc:'C-02-04',qty:12},{name:'安井鱼丸 250g',loc:'C-03-01',qty:18},
+    {name:'海霸王虾饺 300g',loc:'C-01-06',qty:10}
+  ]},
+  {id:'TOB-20260723-005',customer:'上海XX连锁餐饮',skus:6,status:'拣货中',zone:'chilled',time:'14:00',urgent:true,items:[
+    {name:'新鲜猪五花 500g',loc:'B-03-01',qty:25},{name:'鸡胸肉 300g',loc:'B-03-02',qty:30},
+    {name:'鸡蛋 30枚',loc:'B-04-01',qty:20}
+  ]},
+  {id:'TOB-20260723-006',customer:'无锡XX超市',skus:4,status:'已完成',zone:'ambient',time:'13:00',urgent:false,items:[
+    {name:'康师傅方便面 5连包',loc:'A-04-01',qty:50},{name:'可口可乐 330ml×24',loc:'A-03-02',qty:15},
+    {name:'乐事薯片 75g',loc:'A-04-03',qty:40},{name:'农夫山泉 1.5L×12',loc:'A-03-01',qty:10}
+  ]}
+];
+
+const statusCol = {'待拣货':0,'拣货中':1,'已完成':2};
+const titles = {dashboard:'仓端 Dashboard',kanban:'分拣任务看板',outbound:'出库复核',aggregate:'跨仓聚合调度',exception:'异常处理'};
+
+// Nav
+function switchView(viewId){
+  document.querySelectorAll('.view').forEach(v=>v.classList.remove('active'));
+  document.getElementById('v-'+viewId).classList.add('active');
+  document.querySelectorAll('.nav-item, .m-item').forEach(n=>{
+    n.classList.toggle('active',n.dataset.view===viewId);
+  });
+  document.getElementById('pageTitle').textContent=titles[viewId];
+}
+document.querySelectorAll('.nav-item, .m-item').forEach(n=>{
+  n.addEventListener('click',()=>switchView(n.dataset.view));
+});
+
+// Clock
+function updateClock(){
+  const d=new Date();
+  const pad=n=>String(n).padStart(2,'0');
+  document.getElementById('clock').textContent=
+    `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`;
+}
+setInterval(updateClock,1000);updateClock();
+
+// Kanban
+function renderKanban(){
+  const board=document.getElementById('kanbanBoard');
+  const cols=[[],[],[]];
+  tasks.forEach(t=>cols[statusCol[t.status]].push(t));
+  board.innerHTML=cols.map((items,i)=>{
+    const labels=['待拣货','拣货中','已完成'];
+    const counts=[items.length,items.length,items.length];
+    return `<div class="kanban-col"><div class="kanban-header">${labels[i]} <span class="badge">${counts[i]}</span></div>
+      ${items.map(t=>`<div class="task-card ${t.zone}-card" onclick="openPickModal('${t.id}')">
+        <div class="task-order">${t.id}</div>
+        <div class="task-customer">${t.customer}</div>
+        <div class="task-meta"><span class="tag tag-${t.zone}">${{frozen:'🧊冷冻',chilled:'❄️冷藏',ambient:'🌡️常温'}[t.zone]}</span>
+          <span class="tag" style="background:var(--g100);color:var(--g800)">${t.skus} SKU</span>
+          ${t.urgent?'<span class="tag tag-urgent">加急</span>':''}</div>
+        ${t.status!=='已完成'?`<div class="task-time">⏰ 截止 ${t.time}</div>`:''}
+      </div>`).join('')}
+    </div>`;
+  }).join('');
+}
+renderKanban();
+
+// Modal
+function openPickModal(orderId){
+  const task=tasks.find(t=>t.id===orderId);
+  if(!task)return;
+  document.getElementById('modalTitle').textContent=`分拣 — ${task.id}`;
+  const body=document.getElementById('modalBody');
+  body.innerHTML=`<div style="margin-bottom:12px;font-size:13px;color:var(--g500)">${task.customer} · ${task.skus} SKU · 截止 ${task.time}</div>
+    <div id="checklist">${task.items.map((it,idx)=>`<div class="checklist-item" id="ci-${idx}">
+      <input type="checkbox" onchange="checkItem(${idx})">
+      <span class="item-name">${it.name}</span>
+      <span class="item-loc">${it.loc}</span>
+      <span class="item-qty">×${it.qty}</span>
+    </div>`).join('')}</div>
+    <div style="margin-top:12px;text-align:center"><button class="btn btn-outline" onclick="scanSimulate()">📱 模拟扫码</button></div>`;
+  body.dataset.orderId=orderId;
+  document.getElementById('pickModal').classList.add('show');
+}
+function closeModal(id){document.getElementById(id).classList.remove('show')}
+function checkItem(idx){document.getElementById('ci-'+idx).classList.toggle('checked')}
+let scanIdx=0;
+function scanSimulate(){
+  const items=document.querySelectorAll('.checklist-item');
+  if(scanIdx<items.length){items[scanIdx].querySelector('input').checked=true;items[scanIdx].classList.add('checked');scanIdx++}
+  if(scanIdx>=items.length)scanIdx=0;
+}
+function completePick(){
+  const orderId=document.getElementById('modalBody').dataset.orderId;
+  const task=tasks.find(t=>t.id===orderId);
+  if(task){const si=statusCol[task.status];if(si<2)task.status=['待拣货','拣货中','已完成'][si+1]}
+  closeModal('pickModal');renderKanban();updateStats();
+}
+function updateStats(){document.getElementById('s1').textContent=tasks.filter(t=>t.status==='待拣货').length;
+  document.getElementById('s2').textContent=tasks.filter(t=>t.status==='拣货中').length;
+}
+
+// Packaging
+function selectPkg(el){document.querySelectorAll('.pkg-option').forEach(o=>o.classList.remove('selected'));el.classList.add('selected')}
+
+// Confirm
+function showConfirm(title,msg){document.getElementById('confirmTitle').textContent=title;document.getElementById('confirmMsg').textContent=msg;document.getElementById('confirmDialog').classList.add('show')}
+function closeConfirm(){document.getElementById('confirmDialog').classList.remove('show')}
+
+// Close modals on overlay click
+document.querySelectorAll('.modal-overlay,.confirm-dialog').forEach(o=>{
+  o.addEventListener('click',e=>{if(e.target===o)o.classList.remove('show')});
+});
+</script>
+</body>
+</html>
