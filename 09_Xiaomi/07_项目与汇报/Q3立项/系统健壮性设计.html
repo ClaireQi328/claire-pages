@@ -1,0 +1,233 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>EP 系统健壮性设计 · 让 Wave 骨架站得稳</title>
+<style>
+:root{
+  --bg:#ffffff;--card:#ffffff;--ink:#1f2430;--ink2:#3d4351;--muted:#6b7180;
+  --line:#ece8e3;--shadow:rgba(60,52,42,.07);--pale:#faf7f3;
+  --cost:#e07b1a;--cost-l:#fff6ec;--cost-b:#f6d3a8;
+  --eff:#2563eb; --eff-l:#eef4ff; --eff-b:#bfd3f6;
+  --comp:#10a37f;--comp-l:#e9f8f2;--comp-b:#abe5d2;
+  --robust:#7c3aed;--robust-l:#f5f3ff;--robust-b:#ddd6fe;
+  --deep:#3d4351;--mid:#8a7f70;--light:#b8ad9e;
+}
+*{margin:0;padding:0;box-sizing:border-box;}
+body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif;
+  background:#fff;color:var(--ink);line-height:1.6;font-size:13px;-webkit-font-smoothing:antialiased;}
+.wrap{max-width:1240px;margin:0 auto;padding:34px 30px 60px;}
+
+/* 标题 */
+.ptitle h1{font-size:25px;font-weight:800;letter-spacing:.3px;}
+.ptitle h1 .accent{color:var(--robust);}
+.lead{margin:10px 0 26px;padding:16px 20px;border-radius:12px;background:var(--robust-l);border:1px solid var(--robust-b);}
+.lead p{font-size:13.5px;color:var(--ink2);line-height:1.75;}
+.lead p b{color:var(--robust);font-weight:800;}
+.lead .q{margin-top:8px;font-size:13px;color:var(--ink);font-style:italic;padding-left:12px;border-left:3px solid var(--robust);}
+
+/* section header */
+.sec{margin:32px 0 14px;display:flex;align-items:center;gap:12px;}
+.sec .num{background:var(--deep);color:#fff;font-size:13px;font-weight:800;border-radius:7px;padding:4px 9px;letter-spacing:1px;}
+.sec h2{font-size:18px;font-weight:800;}
+.sec .en{font-size:12px;color:var(--muted);font-weight:600;}
+
+/* ===== 架构地图（还原 Wave 模块图）===== */
+.map{border:1px solid var(--line);border-radius:14px;padding:16px;background:var(--pale);box-shadow:0 1px 3px var(--shadow);}
+.band{background:#fff;border:1px solid var(--line);border-radius:10px;padding:11px 13px;margin-bottom:11px;}
+.band .bt{font-size:12px;font-weight:800;color:var(--ink);margin-bottom:9px;display:flex;align-items:center;gap:8px;}
+.band .wv{font-size:10px;font-weight:700;color:#fff;border-radius:5px;padding:2px 7px;background:var(--mid);}
+.chips{display:flex;flex-wrap:wrap;gap:7px;}
+.chip{font-size:11px;font-weight:600;border-radius:7px;padding:6px 11px;border:1px solid;}
+.chip.eff{background:var(--eff-l);border-color:var(--eff-b);color:#1e40af;}
+.chip.cost{background:var(--cost-l);border-color:var(--cost-b);color:#92400e;}
+.chip.comp{background:var(--comp-l);border-color:var(--comp-b);color:#065f46;}
+.chip.plain{background:#fff;border-color:var(--line);color:var(--ink2);}
+.cols{display:grid;grid-template-columns:repeat(5,1fr);gap:11px;}
+.col{background:#fff;border:1px solid var(--line);border-radius:10px;padding:11px 12px;}
+.col .ct{font-size:12px;font-weight:800;margin-bottom:8px;}
+.col.eff .ct{color:var(--eff);} .col.cost .ct{color:var(--cost);} .col.comp .ct{color:var(--comp);}
+.col .wv{font-size:9.5px;font-weight:700;color:var(--muted);display:block;margin-top:8px;}
+.col ul{list-style:none;display:flex;flex-direction:column;gap:5px;}
+.col li{font-size:11px;color:var(--ink2);padding:5px 8px;border-radius:6px;background:var(--pale);border:1px solid var(--line);}
+.maphint{margin-top:6px;font-size:11.5px;color:var(--muted);text-align:center;}
+
+/* 转折条 */
+.turn{margin:26px 0 6px;background:var(--deep);color:#fff;border-radius:12px;padding:16px 22px;}
+.turn .big{font-size:15px;font-weight:800;margin-bottom:4px;}
+.turn p{font-size:12.5px;color:#e8e4de;line-height:1.7;}
+.turn p b{color:#fff;}
+
+/* ===== 5 个不怕 ===== */
+.robust{display:flex;flex-direction:column;gap:14px;margin-top:14px;}
+.rcard{background:#fff;border:1px solid var(--line);border-left:5px solid var(--robust);border-radius:12px;padding:16px 18px;box-shadow:0 1px 3px var(--shadow);}
+.rcard .rh{display:flex;align-items:center;gap:12px;margin-bottom:6px;flex-wrap:wrap;}
+.rcard .rno{width:30px;height:30px;border-radius:8px;background:var(--robust);color:#fff;font-weight:800;font-size:15px;display:flex;align-items:center;justify-content:center;flex-shrink:0;}
+.rcard .rt{font-size:16px;font-weight:800;}
+.rcard .rdim{font-size:11px;font-weight:700;color:var(--robust);background:var(--robust-l);border:1px solid var(--robust-b);border-radius:20px;padding:3px 11px;}
+.rcard .rwhy{font-size:12px;color:var(--muted);margin-left:auto;}
+.rgrid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:10px;}
+.ritem{background:var(--pale);border:1px solid var(--line);border-radius:9px;padding:10px 12px;}
+.ritem .rk{font-size:12.5px;font-weight:800;color:var(--ink);margin-bottom:3px;}
+.ritem .rv{font-size:11.5px;color:var(--ink2);line-height:1.55;}
+.ritem .rv .mod{display:inline-block;font-size:10px;font-weight:700;border-radius:5px;padding:1px 6px;margin-right:4px;}
+.ritem .rv .mod.eff{background:var(--eff-l);color:#1e40af;border:1px solid var(--eff-b);}
+.ritem .rv .mod.cost{background:var(--cost-l);color:#92400e;border:1px solid var(--cost-b);}
+.ritem .rv .mod.comp{background:var(--comp-l);color:#065f46;border:1px solid var(--comp-b);}
+
+/* 收敛 */
+.closing{margin-top:28px;background:linear-gradient(180deg,var(--robust-l),#fff 70%);border:1px solid var(--robust-b);border-radius:14px;padding:20px 24px;}
+.closing .ct{font-size:15px;font-weight:800;color:var(--robust);margin-bottom:8px;}
+.closing p{font-size:13px;color:var(--ink2);line-height:1.8;}
+.closing p b{color:var(--ink);}
+.closing .flow{margin-top:12px;display:flex;flex-wrap:wrap;gap:8px;align-items:center;}
+.closing .fn{font-size:12px;font-weight:700;background:#fff;border:1px solid var(--robust-b);border-radius:8px;padding:7px 12px;color:var(--robust);}
+.closing .ar{color:var(--light);font-weight:800;}
+
+.src{margin-top:26px;font-size:11px;color:var(--muted);border-top:1px solid var(--line);padding-top:12px;}
+
+@media (max-width:980px){.cols{grid-template-columns:1fr 1fr;}.rgrid{grid-template-columns:1fr;}}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <div class="ptitle"><h1>EP 系统级别建设目标 · <span class="accent">系统如何更健壮</span></h1></div>
+
+  <div class="lead">
+    <p>下面这张 Wave 模块图是一张<b>按排期的功能地图</b>——它回答了"先做什么、后做什么"，但没回答"<b>它怎么站得稳</b>"。而我们自己反复警惕的是"<b>不是继续加功能</b>"。</p>
+    <div class="q">系统健壮性的真问题：当数据是脏的、上游断连了、来了异常件、规则变了、量暴涨了——这堆模块还能不能稳定产出正确决策，而不是崩、不是漏、不是要人救火。</div>
+  </div>
+
+  <!-- 架构地图 -->
+  <div class="sec"><span class="num">A</span><h2>架构地图 · Wave 功能模块</h2><span class="en">The skeleton</span></div>
+  <div class="map">
+    <!-- 顶部 band：供应商生命周期 -->
+    <div class="band">
+      <div class="bt">供应商生命周期管理 <span class="wv">26 H2 Wave 5</span></div>
+      <div class="chips">
+        <span class="chip plain">供应商信息</span><span class="chip plain">供应商准入</span>
+        <span class="chip comp">供应商绩效</span><span class="chip comp">供应商退出</span>
+        <span class="chip comp">供应商风险管理</span><span class="chip comp">供应商账期</span>
+        <span class="chip comp">供应商 360</span>
+      </div>
+    </div>
+    <!-- 中部 5 列 -->
+    <div class="cols">
+      <div class="col eff"><div class="ct">采购项目 / 任务管理</div>
+        <ul><li>采购项目维护</li><li>寻源任务 / 定价任务</li><li>采购计划 / 进度管理</li><li>量耗管理</li></ul>
+        <span class="wv">26 H2 Wave 4</span></div>
+      <div class="col eff"><div class="ct">询报价管理</div>
+        <ul><li>询报价</li><li>比价</li><li>定点上会</li><li>产能收集</li></ul>
+        <span class="wv">26 H1 Wave 2</span></div>
+      <div class="col cost"><div class="ct">价格中心</div>
+        <ul><li>价格白账</li><li>价格变更</li><li>总成价格联动</li><li>分摊 / 分阶管理</li></ul>
+        <span class="wv">26 H2 Wave 2&3</span></div>
+      <div class="col eff"><div class="ct">合同 / 订单管理</div>
+        <ul><li>合同模板管理</li><li>合同 / 订单创建</li><li>合同 / 订单签署</li><li>合同 / 订单归档</li></ul>
+        <span class="wv">26 H1 Wave 1</span></div>
+      <div class="col plain" style="border-style:dashed;"><div class="ct" style="color:var(--muted)">未来规划功能</div>
+        <ul><li>代工管理</li><li>Tier X 管理</li><li>海外供应链</li><li>贵金属 / 电子料管理</li></ul>
+        <span class="wv">规划中</span></div>
+    </div>
+    <!-- 底部 band -->
+    <div class="band" style="margin-top:11px;margin-bottom:0;">
+      <div class="bt">底部基础域</div>
+      <div class="chips">
+        <span class="chip eff">品类创建 <small>(W1)</small></span>
+        <span class="chip eff">品类策略</span>
+        <span class="chip eff">品类 &amp; 采购员分配</span>
+        <span class="chip cost">价格失效</span>
+        <span class="chip cost">目标价管理</span>
+        <span class="chip cost">成本核算</span>
+        <span class="chip cost">成本分析 <small>(W3)</small></span>
+      </div>
+    </div>
+    <div class="maphint">蓝＝效率域 · 橙＝成本域 · 绿＝合规/供应商域　|　颜色越满 = 该 Wave 越早交付</div>
+  </div>
+
+  <!-- 转折 -->
+  <div class="turn">
+    <div class="big">骨架 ≠ 健壮。健壮 = 让骨架长出「自愈能力」。</div>
+    <p>这张图是<b>骨架</b>；健壮性是脏数据能挡、断连能补、异常能升级、变化能配置、规模能扛。对应到 B 点框架，<b>健壮性恰恰是两大闭环能真正转起来的前提</b>——没有数据/集成/流程的健壮，①②③ 层的模型与 ④ 层的回写就是空转。</p>
+  </div>
+
+  <!-- 5 个不怕 -->
+  <div class="sec"><span class="num">B</span><h2>五个「不怕」· 健壮性设计原则</h2><span class="en">5 dimensions</span></div>
+  <div class="robust">
+
+    <!-- 1 数据 -->
+    <div class="rcard">
+      <div class="rh"><div class="rno">1</div><div class="rt">不怕脏数据</div><span class="rdim">数据健壮</span><span class="rwhy">最该先夯，也是 A 点最大的坑</span></div>
+      <div class="rgrid">
+        <div class="ritem"><div class="rk">主数据单一可信源（SSOT）</div><div class="rv"><span class="mod cost">价格白账</span><span class="mod eff">定点台账</span>必须是唯一主动源；询报价、订单都引用它，不允许各模块各存一份。</div></div>
+        <div class="ritem"><div class="rk">口径统一 + 入库校验</div><div class="rv"><span class="mod eff">品类管理</span><span class="mod comp">供应商 360</span>字段先过校验再入库，挡住"漏绿 / 口径冲突"。</div></div>
+        <div class="ritem"><div class="rk">缺数据降级而非崩溃</div><div class="rv"><span class="mod cost">成本核算</span>Should-cost 因子缺失时退回"行情价 + 标注待补"，而不是算不出来直接卡死。</div></div>
+        <div class="ritem"><div class="rk">数据血缘可追溯</div><div class="rv">每个价格 / 绩效数字都能回答"它从哪来、谁改的、何时改"。</div></div>
+      </div>
+    </div>
+
+    <!-- 2 集成 -->
+    <div class="rcard">
+      <div class="rh"><div class="rno">2</div><div class="rt">不怕断连</div><span class="rdim">集成健壮</span><span class="rwhy">多系统对接是最脆的点</span></div>
+      <div class="rgrid">
+        <div class="ritem"><div class="rk">幂等</div><div class="rv">同一需求重复导入、重复下单、重复回写台账，结果不变——防 Agent 自动化下的重复操作。</div></div>
+        <div class="ritem"><div class="rk">重试 + 超时告警 + 补偿</div><div class="rv">对接 MIPEC / SAP / 飞书 / SVC 失败自动重试，超阈值推飞书 Bot，绝不"静默丢失"。</div></div>
+        <div class="ritem"><div class="rk">明确状态机</div><div class="rv"><span class="mod eff">合同 / 订单</span>状态只能合法跃迁（"已签署"不能跳回"待起草"），非法跃迁拦截。</div></div>
+        <div class="ritem"><div class="rk">对接结果可回查</div><div class="rv">每次导入 / 下单留完整执行日志与成败状态，可审计、可重放。</div></div>
+      </div>
+    </div>
+
+    <!-- 3 流程 -->
+    <div class="rcard">
+      <div class="rh"><div class="rno">3</div><div class="rt">不怕异常</div><span class="rdim">流程健壮</span><span class="rwhy">闭环不能断头</span></div>
+      <div class="rgrid">
+        <div class="ritem"><div class="rk">异常件自动识别</div><div class="rv"><span class="mod eff">样件订单</span>"多供应商 / 无供应商"异常件不能混在常规件里被遗漏——独立标记、独立升级队列。</div></div>
+        <div class="ritem"><div class="rk">每个自动环都有人工兜底</div><div class="rv">Phase 1 半自动（Agent 建议→人确认）就是健壮设计，低风险才放 Phase 2 全自动。</div></div>
+        <div class="ritem"><div class="rk">异常必须能回写</div><div class="rv">偏差关闭 → 沉淀规则 → 下次自动处理，否则同样的异常永远在重复触发。</div></div>
+        <div class="ritem"><div class="rk">关键节点超时预警</div><div class="rv"><span class="mod eff">任务中台</span>定点 / 设变 / 变价超时自动升级，进度一览无余、零延误。</div></div>
+      </div>
+    </div>
+
+    <!-- 4 扩展 -->
+    <div class="rcard">
+      <div class="rh"><div class="rno">4</div><div class="rt">不怕变化</div><span class="rdim">扩展健壮</span><span class="rwhy">规则会一直变，法规更会</span></div>
+      <div class="rgrid">
+        <div class="ritem"><div class="rk">配置化 &gt; 硬编码</div><div class="rv">人员路由（分类-MVPS-人员）、价格规则、<span class="mod comp">合规问卷模板</span>都做成可配置表，业务自己改，不用发版。</div></div>
+        <div class="ritem"><div class="rk">CLI 原子化（关键）</div><div class="rv">Agent / Skill / CLI 分层中，CLI 接口稳定 → Skill 自由重组 → 新 Wave 不动老接口，"加功能不动地基"。</div></div>
+        <div class="ritem"><div class="rk">Wave 之间松耦合</div><div class="rv">合同(W1) 挂了不该拖垮询报价(W2)；模块间通过主数据交互，而非硬依赖。</div></div>
+        <div class="ritem"><div class="rk">向后兼容</div><div class="rv">老报价模板、历史合同结构在新版本下仍可读、可查、可追溯。</div></div>
+      </div>
+    </div>
+
+    <!-- 5 规模 -->
+    <div class="rcard">
+      <div class="rh"><div class="rno">5</div><div class="rt">不怕规模</div><span class="rdim">性能健壮</span><span class="rwhy">200 单/天会涨到几千单</span></div>
+      <div class="rgrid">
+        <div class="ritem"><div class="rk">批处理 + 限流</div><div class="rv">大批量导入 / 卷积计算走异步批处理，别让批量任务把实时下单挤死。</div></div>
+        <div class="ritem"><div class="rk">优先级队列</div><div class="rv">高价值需求优先处理；样件、紧急补料插队，常规件排队不阻塞。</div></div>
+        <div class="ritem"><div class="rk">A+B 卷积可增量</div><div class="rv"><span class="mod cost">总成价格联动</span>DB 件变更只重算受影响总成件，而非全量重跑。</div></div>
+        <div class="ritem"><div class="rk">关键查询可缓存</div><div class="rv">价格白账、品类主数据等高频读热点缓存，降低响应延迟。</div></div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- 收敛 -->
+  <div class="closing">
+    <div class="ct">一句话收敛</div>
+    <p>Wave 图给的是<b>骨架</b>，健壮性让骨架长出<b>自愈能力</b>：脏数据能挡、断连能补、异常能升级、变化能配置、规模能扛。这五条不是上线后再补的"非功能需求"，而是<b>两大闭环能转起来的地基</b>。</p>
+    <div class="flow">
+      <span class="fn">脏数据能挡</span><span class="ar">·</span>
+      <span class="fn">断连能补</span><span class="ar">·</span>
+      <span class="fn">异常能升级</span><span class="ar">·</span>
+      <span class="fn">变化能配置</span><span class="ar">·</span>
+      <span class="fn">规模能扛</span>
+    </div>
+  </div>
+
+  <div class="src">数据来源：EP 系统级别建设目标 Wave 模块图 ·《立项报告_体系运营部_生产采购系统_26YQ3》· B 点四层架构两大闭环</div>
+</div>
+</body>
+</html>

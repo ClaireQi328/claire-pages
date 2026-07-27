@@ -1,0 +1,863 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>产品原型 - CE核价管理系统</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <style>
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif; overflow: hidden; }
+    ::-webkit-scrollbar { width: 6px; height: 6px; }
+    ::-webkit-scrollbar-track { background: #F5F7FA; }
+    ::-webkit-scrollbar-thumb { background: #c1c1c1; border-radius: 3px; }
+    ::-webkit-scrollbar-thumb:hover { background: #a8a8a8; }
+
+    /* 连线元素高亮 */
+    .proto-element { position: relative; transition: all 0.2s ease; border-radius: 6px; }
+    .proto-element:hover { box-shadow: 0 0 0 2px #165DFF, 0 4px 12px rgba(22,93,255,0.15); background-color: rgba(22,93,255,0.03); }
+    .proto-element.active-highlight { box-shadow: 0 0 0 2px #165DFF, 0 4px 12px rgba(22,93,255,0.2); background-color: rgba(22,93,255,0.05); }
+
+    .proto-desc { transition: all 0.2s ease; border-radius: 6px; border: 1px solid #fde68a; background-color: #fffbeb; }
+    .proto-desc:hover { background-color: #fef3c7; border-color: #f59e0b; box-shadow: 0 2px 8px rgba(245,158,11,0.15); }
+    .proto-desc.active-highlight { background-color: #fde68a; border-color: #d97706; box-shadow: 0 2px 8px rgba(245,158,11,0.25); }
+
+    /* SVG 连线层 */
+    #connections { position: absolute; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; z-index: 50; }
+    .connection-line { fill: none; stroke: #165DFF; stroke-width: 2; opacity: 0.6; transition: all 0.2s ease; }
+    .connection-line.active { stroke-width: 3; opacity: 1; }
+    .connection-label { fill: #fff; font-size: 12px; font-weight: bold; text-anchor: middle; dominant-baseline: central; }
+    .connection-label-bg { fill: #165DFF; }
+
+    /* 菜单样式 */
+    .sidebar-menu-item { transition: all 0.2s; cursor: pointer; }
+    .sidebar-menu-item:hover { background-color: rgba(22,93,255,0.08); color: #165DFF; }
+    .sidebar-menu-item.active { background-color: rgba(22,93,255,0.12); color: #165DFF; border-right: 3px solid #165DFF; }
+
+    /* 表格 */
+    .data-table th { background-color: #F5F7FA; font-weight: 600; color: #333; position: sticky; top: 0; z-index: 5; }
+    .data-table tbody tr { transition: background-color 0.15s; cursor: pointer; }
+    .data-table tbody tr:hover { background-color: rgba(22,93,255,0.04); }
+    .data-table tbody tr.selected { background-color: rgba(22,93,255,0.08); }
+
+    .tag { display: inline-flex; align-items: center; padding: 2px 8px; border-radius: 4px; font-size: 12px; font-weight: 500; }
+    .tag-blue { background-color: rgba(22,93,255,0.1); color: #165DFF; }
+    .tag-green { background-color: rgba(0,180,42,0.1); color: #00B42A; }
+    .tag-orange { background-color: rgba(245,158,11,0.1); color: #D97706; }
+    .tag-red { background-color: rgba(245,63,63,0.1); color: #F53F3F; }
+    .tag-gray { background-color: #F5F7FA; color: #666; }
+
+    /* 模态框 */
+    .modal-overlay { transition: opacity 0.3s ease; }
+    .modal-content { transition: transform 0.3s ease, opacity 0.3s ease; }
+    .modal-hidden { opacity: 0; pointer-events: none; }
+    .modal-hidden .modal-content { transform: scale(0.95); opacity: 0; }
+
+    /* 核价输入框 */
+    .cost-input { border: 1px solid #d9d9d9; border-radius: 4px; padding: 4px 8px; font-size: 13px; width: 100%; text-align: right; transition: all 0.2s; }
+    .cost-input:focus { border-color: #165DFF; box-shadow: 0 0 0 2px rgba(22,93,255,0.1); outline: none; }
+    .cost-input.readonly { background-color: #f5f5f5; color: #666; cursor: not-allowed; }
+    .cost-input.error { border-color: #F53F3F; box-shadow: 0 0 0 2px rgba(245,63,63,0.1); }
+
+    /* 新增高亮行 */
+    .new-row { background-color: rgba(255,193,7,0.08) !important; }
+    .new-row td { position: relative; }
+    .new-row td::before { content: 'NEW'; position: absolute; top: 2px; right: 4px; font-size: 9px; background: #F59E0B; color: white; padding: 1px 4px; border-radius: 2px; font-weight: 600; }
+
+    /* 响应式 */
+    @media (max-width: 768px) {
+      #app { flex-direction: column; }
+      #left-panel { width: 100% !important; height: 60vh; }
+      #divider { display: none; }
+      #right-panel { width: 100% !important; height: 40vh; border-top: 1px solid #e5e7eb; }
+      #connections { display: none; }
+      .mobile-toggle-btn { display: flex !important; }
+    }
+    .mobile-toggle-btn { display: none; position: fixed; bottom: 20px; right: 20px; z-index: 100; width: 48px; height: 48px; border-radius: 50%; background: #165DFF; color: white; align-items: center; justify-content: center; box-shadow: 0 4px 12px rgba(22,93,255,0.3); cursor: pointer; border: none; }
+
+    .btn-click:active { transform: scale(0.96); }
+    .form-input:focus { border-color: #165DFF; box-shadow: 0 0 0 3px rgba(22,93,255,0.1); outline: none; }
+
+    /* 页面切换 */
+    .page-view { display: none; }
+    .page-view.active { display: block; }
+
+    /* 状态流转图 */
+    .flow-step { display: flex; align-items: center; gap: 8px; }
+    .flow-dot { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; }
+    .flow-line { width: 2px; height: 20px; background: #d9d9d9; margin-left: 4px; }
+  </style>
+</head>
+<body class="bg-gray-50">
+
+  <!-- 移动端切换按钮 -->
+  <button class="mobile-toggle-btn" id="mobileToggle" onclick="toggleMobileView()">
+    <i class="fas fa-info"></i>
+  </button>
+
+  <!-- 主容器 -->
+  <div id="app" class="flex h-screen relative">
+
+    <!-- 左侧：产品界面 -->
+    <div id="left-panel" class="w-[75%] lg:w-[78%] overflow-y-auto bg-gray-50 relative">
+
+      <!-- 顶部导航栏 -->
+      <header class="bg-white border-b border-gray-200 px-6 py-3 flex items-center justify-between sticky top-0 z-10">
+        <div class="flex items-center gap-3">
+          <div class="w-8 h-8 bg-[#165DFF] rounded-lg flex items-center justify-center text-white font-bold text-sm">
+            <i class="fas fa-calculator"></i>
+          </div>
+          <h1 class="text-lg font-semibold text-gray-800">EP 采购管理系统</h1>
+        </div>
+        <div class="flex items-center gap-4">
+          <span class="text-sm text-gray-600"><i class="fas fa-user-circle mr-1"></i> 贾雨萌（CE核价人员）</span>
+          <button class="text-gray-500 hover:text-gray-700 btn-click relative">
+            <i class="fas fa-bell"></i>
+            <span class="absolute -top-1 -right-1 w-4 h-4 bg-red-500 text-white text-[10px] rounded-full flex items-center justify-center">3</span>
+          </button>
+        </div>
+      </header>
+
+      <div class="flex">
+        <!-- 侧边菜单 -->
+        <aside class="w-56 bg-white border-r border-gray-200 min-h-[calc(100vh-56px)]">
+          <nav class="py-4">
+            <div class="px-4 mb-2 text-xs font-semibold text-gray-400 uppercase tracking-wider">功能菜单</div>
+            <!-- ★ 连线 1：成本管理菜单 -->
+            <div class="proto-element sidebar-menu-item active px-4 py-2.5 flex items-center gap-3 text-gray-700" data-proto-id="1">
+              <i class="fas fa-coins w-5 text-center"></i><span class="text-sm">成本管理</span>
+            </div>
+            <div class="sidebar-menu-item px-4 py-2.5 flex items-center gap-3 text-gray-700">
+              <i class="fas fa-file-invoice w-5 text-center"></i><span class="text-sm">报价管理</span>
+            </div>
+            <div class="sidebar-menu-item px-4 py-2.5 flex items-center gap-3 text-gray-700">
+              <i class="fas fa-boxes w-5 text-center"></i><span class="text-sm">报价包管理</span>
+            </div>
+            <div class="sidebar-menu-item px-4 py-2.5 flex items-center gap-3 text-gray-700">
+              <i class="fas fa-clipboard-list w-5 text-center"></i><span class="text-sm">RFQ管理</span>
+            </div>
+            <div class="mt-4 px-4 mb-2 text-xs font-semibold text-gray-400 uppercase tracking-wider">其他</div>
+            <div class="sidebar-menu-item px-4 py-2.5 flex items-center gap-3 text-gray-700">
+              <i class="fas fa-tasks w-5 text-center"></i><span class="text-sm">我的待办</span>
+            </div>
+            <div class="sidebar-menu-item px-4 py-2.5 flex items-center gap-3 text-gray-700">
+              <i class="fas fa-chart-line w-5 text-center"></i><span class="text-sm">数据报表</span>
+            </div>
+          </nav>
+        </aside>
+
+        <!-- 主内容区 -->
+        <main class="flex-1 p-6">
+
+          <!-- ===== 列表页 ===== -->
+          <div id="listPage" class="page-view active">
+            <!-- 页面标题栏 -->
+            <div class="flex items-center justify-between mb-6">
+              <div>
+                <h2 class="text-xl font-bold text-gray-800">CE 核价任务列表</h2>
+                <p class="text-sm text-gray-500 mt-1">RFQ 询报价管理 → 成本管理</p>
+              </div>
+              <!-- ★ 连线 2：状态筛选 -->
+              <div class="proto-element flex items-center gap-2" data-proto-id="2">
+                <span class="tag tag-blue"><i class="fas fa-filter mr-1"></i> 全部状态</span>
+                <span class="tag tag-green">待核价 12</span>
+                <span class="tag tag-orange">审批中 3</span>
+                <span class="tag tag-blue">已核价 8</span>
+                <span class="tag tag-gray">已完成 25</span>
+              </div>
+            </div>
+
+            <!-- 搜索筛选栏 -->
+            <div class="bg-white rounded-lg border border-gray-200 p-4 mb-4">
+              <div class="flex items-center gap-3 flex-wrap">
+                <input type="text" placeholder="请输入CE核价任务编号" class="form-input border border-gray-300 rounded-lg px-3 py-2 text-sm w-56">
+                <input type="text" placeholder="请输入RFQ编号" class="form-input border border-gray-300 rounded-lg px-3 py-2 text-sm w-48">
+                <select class="form-input border border-gray-300 rounded-lg px-3 py-2 text-sm">
+                  <option>全部状态</option>
+                  <option>待核价</option>
+                  <option>审批中</option>
+                  <option>已核价</option>
+                  <option>已完成</option>
+                </select>
+                <input type="text" placeholder="请选择采购工程师" class="form-input border border-gray-300 rounded-lg px-3 py-2 text-sm w-44">
+                <input type="text" placeholder="请选择CE核价人员" class="form-input border border-gray-300 rounded-lg px-3 py-2 text-sm w-44">
+                <button class="bg-[#165DFF] hover:bg-blue-600 text-white px-4 py-2 rounded-lg text-sm font-medium btn-click">
+                  <i class="fas fa-search mr-1"></i> 查询
+                </button>
+                <button class="text-gray-500 hover:text-gray-700 text-sm px-2 btn-click">
+                  <i class="fas fa-redo mr-1"></i> 重置
+                </button>
+              </div>
+            </div>
+
+            <!-- ★ 连线 3：核价任务列表 -->
+            <div class="proto-element bg-white rounded-lg border border-gray-200 overflow-hidden" data-proto-id="3">
+              <div class="overflow-x-auto">
+                <table class="data-table w-full text-sm">
+                  <thead>
+                    <tr>
+                      <th class="px-3 py-3 text-center w-10">序号</th>
+                      <th class="px-3 py-3 text-left">CE核价任务编号</th>
+                      <th class="px-3 py-3 text-left">RFQ编号</th>
+                      <th class="px-3 py-3 text-left">RFQ名称</th>
+                      <th class="px-3 py-3 text-center">是否多项目</th>
+                      <th class="px-3 py-3 text-left">采购项目编码</th>
+                      <th class="px-3 py-3 text-left">关联单号</th>
+                      <th class="px-3 py-3 text-center">核价状态</th>
+                      <th class="px-3 py-3 text-left">小米工厂</th>
+                      <th class="px-3 py-3 text-left">采购工程师</th>
+                      <th class="px-3 py-3 text-left">零部件号</th>
+                      <th class="px-3 py-3 text-center">操作</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr class="selected" onclick="selectRow(this)">
+                      <td class="px-3 py-3 text-center text-gray-500">1</td>
+                      <td class="px-3 py-3 font-mono text-[#165DFF] cursor-pointer" onclick="event.stopPropagation();showPage('detailPage')">CE-20260303-001</td>
+                      <td class="px-3 py-3">RFQ-2026-00158</td>
+                      <td class="px-3 py-3">小米SU7座椅总成</td>
+                      <td class="px-3 py-3 text-center">是</td>
+                      <td class="px-3 py-3">PRJ-2026-0892</td>
+                      <td class="px-3 py-3">SOR-2026-0042</td>
+                      <td class="px-3 py-3 text-center"><span class="tag tag-green">待核价</span></td>
+                      <td class="px-3 py-3">亦庄工厂</td>
+                      <td class="px-3 py-3">张明</td>
+                      <td class="px-3 py-3 font-mono text-xs">32090-M1A-A01</td>
+                      <td class="px-3 py-3 text-center whitespace-nowrap">
+                        <button onclick="event.stopPropagation();showPage('detailPage')" class="text-[#165DFF] hover:text-blue-700 text-sm font-medium btn-click mr-2"><i class="fas fa-edit mr-1"></i>核价</button>
+                        <button onclick="event.stopPropagation();openModal('transferModal')" class="text-gray-500 hover:text-gray-700 text-sm btn-click"><i class="fas fa-exchange-alt mr-1"></i>转派</button>
+                      </td>
+                    </tr>
+                    <tr onclick="selectRow(this)">
+                      <td class="px-3 py-3 text-center text-gray-500">2</td>
+                      <td class="px-3 py-3 font-mono text-[#165DFF]">CE-20260303-002</td>
+                      <td class="px-3 py-3">RFQ-2026-00159</td>
+                      <td class="px-3 py-3">小米SU7电池包壳体</td>
+                      <td class="px-3 py-3 text-center">否</td>
+                      <td class="px-3 py-3">PRJ-2026-0893</td>
+                      <td class="px-3 py-3">SOR-2026-0043</td>
+                      <td class="px-3 py-3 text-center"><span class="tag tag-orange">审批中</span></td>
+                      <td class="px-3 py-3">亦庄工厂</td>
+                      <td class="px-3 py-3">李伟</td>
+                      <td class="px-3 py-3 font-mono text-xs">15600-M1B-B02</td>
+                      <td class="px-3 py-3 text-center whitespace-nowrap">
+                        <button class="text-gray-400 text-sm cursor-not-allowed mr-2"><i class="fas fa-edit mr-1"></i>核价</button>
+                        <button onclick="event.stopPropagation();openModal('transferModal')" class="text-gray-500 hover:text-gray-700 text-sm btn-click"><i class="fas fa-exchange-alt mr-1"></i>转派</button>
+                      </td>
+                    </tr>
+                    <tr onclick="selectRow(this)">
+                      <td class="px-3 py-3 text-center text-gray-500">3</td>
+                      <td class="px-3 py-3 font-mono text-[#165DFF]">CE-20260303-003</td>
+                      <td class="px-3 py-3">RFQ-2026-00160</td>
+                      <td class="px-3 py-3">小米SU7前大灯总成</td>
+                      <td class="px-3 py-3 text-center">是</td>
+                      <td class="px-3 py-3">PRJ-2026-0894</td>
+                      <td class="px-3 py-3">SOR-2026-0044</td>
+                      <td class="px-3 py-3 text-center"><span class="tag tag-blue">已核价</span></td>
+                      <td class="px-3 py-3">武汉工厂</td>
+                      <td class="px-3 py-3">王芳</td>
+                      <td class="px-3 py-3 font-mono text-xs">35100-M1C-C03</td>
+                      <td class="px-3 py-3 text-center whitespace-nowrap">
+                        <button onclick="event.stopPropagation();showPage('detailPage')" class="text-[#165DFF] hover:text-blue-700 text-sm font-medium btn-click mr-2"><i class="fas fa-edit mr-1"></i>核价</button>
+                        <button onclick="event.stopPropagation();openModal('transferModal')" class="text-gray-500 hover:text-gray-700 text-sm btn-click"><i class="fas fa-exchange-alt mr-1"></i>转派</button>
+                      </td>
+                    </tr>
+                    <tr onclick="selectRow(this)">
+                      <td class="px-3 py-3 text-center text-gray-500">4</td>
+                      <td class="px-3 py-3 font-mono text-[#165DFF]">CE-20260301-004</td>
+                      <td class="px-3 py-3">RFQ-2026-00155</td>
+                      <td class="px-3 py-3">小米SU7制动卡钳</td>
+                      <td class="px-3 py-3 text-center">否</td>
+                      <td class="px-3 py-3">PRJ-2026-0890</td>
+                      <td class="px-3 py-3">SOR-2026-0040</td>
+                      <td class="px-3 py-3 text-center"><span class="tag tag-gray">已完成</span></td>
+                      <td class="px-3 py-3">亦庄工厂</td>
+                      <td class="px-3 py-3">赵强</td>
+                      <td class="px-3 py-3 font-mono text-xs">48100-M1D-D04</td>
+                      <td class="px-3 py-3 text-center whitespace-nowrap">
+                        <button class="text-gray-400 text-sm cursor-not-allowed mr-2"><i class="fas fa-edit mr-1"></i>核价</button>
+                        <button onclick="event.stopPropagation();openModal('transferModal')" class="text-gray-500 hover:text-gray-700 text-sm btn-click"><i class="fas fa-exchange-alt mr-1"></i>转派</button>
+                      </td>
+                    </tr>
+                    <tr onclick="selectRow(this)">
+                      <td class="px-3 py-3 text-center text-gray-500">5</td>
+                      <td class="px-3 py-3 font-mono text-[#165DFF]">CE-20260305-005</td>
+                      <td class="px-3 py-3">RFQ-2026-00162</td>
+                      <td class="px-3 py-3">小米SU7后视镜总成</td>
+                      <td class="px-3 py-3 text-center">否</td>
+                      <td class="px-3 py-3">PRJ-2026-0896</td>
+                      <td class="px-3 py-3">SOR-2026-0046</td>
+                      <td class="px-3 py-3 text-center"><span class="tag tag-green">待核价</span></td>
+                      <td class="px-3 py-3">武汉工厂</td>
+                      <td class="px-3 py-3">刘洋</td>
+                      <td class="px-3 py-3 font-mono text-xs">53100-M1E-E05</td>
+                      <td class="px-3 py-3 text-center whitespace-nowrap">
+                        <button onclick="event.stopPropagation();showPage('detailPage')" class="text-[#165DFF] hover:text-blue-700 text-sm font-medium btn-click mr-2"><i class="fas fa-edit mr-1"></i>核价</button>
+                        <button onclick="event.stopPropagation();openModal('transferModal')" class="text-gray-500 hover:text-gray-700 text-sm btn-click"><i class="fas fa-exchange-alt mr-1"></i>转派</button>
+                      </td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+              <div class="flex items-center justify-between px-4 py-3 border-t border-gray-200">
+                <span class="text-sm text-gray-500">共 48 条记录</span>
+                <div class="flex items-center gap-1">
+                  <button class="px-3 py-1 border border-gray-300 rounded text-sm text-gray-500 hover:bg-gray-50 btn-click">上一页</button>
+                  <button class="px-3 py-1 bg-[#165DFF] text-white rounded text-sm">1</button>
+                  <button class="px-3 py-1 border border-gray-300 rounded text-sm text-gray-500 hover:bg-gray-50 btn-click">2</button>
+                  <button class="px-3 py-1 border border-gray-300 rounded text-sm text-gray-500 hover:bg-gray-50 btn-click">3</button>
+                  <span class="text-gray-400 text-sm">...</span>
+                  <button class="px-3 py-1 border border-gray-300 rounded text-sm text-gray-500 hover:bg-gray-50 btn-click">5</button>
+                  <button class="px-3 py-1 border border-gray-300 rounded text-sm text-gray-500 hover:bg-gray-50 btn-click">下一页</button>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- ===== 详情页 ===== -->
+          <div id="detailPage" class="page-view">
+            <!-- 详情页标题栏 -->
+            <div class="flex items-center justify-between mb-6">
+              <div class="flex items-center gap-3">
+                <button onclick="showPage('listPage')" class="text-gray-500 hover:text-gray-700 btn-click">
+                  <i class="fas fa-arrow-left text-lg"></i>
+                </button>
+                <div>
+                  <div class="flex items-center gap-2">
+                    <h2 class="text-xl font-bold text-gray-800">核价详情</h2>
+                    <span class="tag tag-green">待核价</span>
+                  </div>
+                  <p class="text-sm text-gray-500 mt-1">CE-20260303-001</p>
+                </div>
+              </div>
+              <!-- ★ 连线 4：操作按钮区 -->
+              <div class="proto-element flex items-center gap-2" data-proto-id="4">
+                <button class="px-4 py-2 border border-gray-300 text-gray-700 rounded-lg text-sm font-medium hover:bg-gray-50 btn-click">
+                  <i class="fas fa-times mr-1"></i>取消
+                </button>
+                <button class="px-4 py-2 bg-white border border-[#165DFF] text-[#165DFF] rounded-lg text-sm font-medium hover:bg-blue-50 btn-click">
+                  <i class="fas fa-save mr-1"></i>保存
+                </button>
+                <button class="px-4 py-2 bg-white border border-[#165DFF] text-[#165DFF] rounded-lg text-sm font-medium hover:bg-blue-50 btn-click">
+                  <i class="fas fa-file-import mr-1"></i>导入
+                </button>
+                <button class="px-4 py-2 bg-white border border-gray-300 text-gray-700 rounded-lg text-sm font-medium hover:bg-gray-50 btn-click">
+                  <i class="fas fa-file-export mr-1"></i>导出
+                </button>
+                <button onclick="openModal('submitModal')" class="px-4 py-2 bg-[#165DFF] hover:bg-blue-600 text-white rounded-lg text-sm font-medium btn-click">
+                  <i class="fas fa-paper-plane mr-1"></i>提交核价
+                </button>
+              </div>
+            </div>
+
+            <!-- RFQ 基本信息 -->
+            <div class="bg-white rounded-lg border border-gray-200 p-5 mb-4">
+              <h3 class="text-sm font-semibold text-gray-700 mb-4 flex items-center gap-2">
+                <i class="fas fa-info-circle text-[#165DFF]"></i> RFQ 基本信息
+              </h3>
+              <div class="grid grid-cols-4 gap-4">
+                <div>
+                  <label class="block text-xs text-gray-500 mb-1">RFQ 编号</label>
+                  <div class="text-sm font-medium text-gray-800">RFQ-2026-00158</div>
+                </div>
+                <div>
+                  <label class="block text-xs text-gray-500 mb-1">RFQ 名称</label>
+                  <div class="text-sm font-medium text-gray-800">小米SU7座椅总成</div>
+                </div>
+                <div>
+                  <label class="block text-xs text-gray-500 mb-1">关联 SOR 单号</label>
+                  <div class="text-sm font-medium text-gray-800">SOR-2026-0042</div>
+                </div>
+                <div>
+                  <label class="block text-xs text-gray-500 mb-1">是否多项目</label>
+                  <div class="text-sm font-medium text-gray-800">是</div>
+                </div>
+                <div>
+                  <label class="block text-xs text-gray-500 mb-1">采购工程师</label>
+                  <div class="text-sm font-medium text-gray-800">张明</div>
+                </div>
+                <div>
+                  <label class="block text-xs text-gray-500 mb-1">当前轮次</label>
+                  <div class="text-sm font-medium text-gray-800">第 2 轮</div>
+                </div>
+                <!-- ★ 连线 5：CE核价审批人 -->
+                <div class="proto-element col-span-2" data-proto-id="5">
+                  <label class="block text-xs text-gray-500 mb-1">CE 核价审批人 <span class="text-red-500">*</span></label>
+                  <select class="form-input w-full border border-gray-300 rounded-lg px-3 py-2 text-sm">
+                    <option value="">请选择审批人</option>
+                    <option>陈静（Finance）</option>
+                    <option>周磊（Finance）</option>
+                    <option>吴芳（Finance）</option>
+                  </select>
+                </div>
+              </div>
+            </div>
+
+            <!-- ★ 连线 6：核价明细列表 -->
+            <div class="proto-element bg-white rounded-lg border border-gray-200 overflow-hidden mb-4" data-proto-id="6">
+              <div class="px-5 py-3 border-b border-gray-200 flex items-center justify-between">
+                <h3 class="text-sm font-semibold text-gray-700 flex items-center gap-2">
+                  <i class="fas fa-table text-[#165DFF]"></i> 核价明细列表
+                  <span class="tag tag-gray text-xs">零件号 + 工厂 唯一粒度</span>
+                </h3>
+                <div class="flex items-center gap-2 text-xs text-gray-500">
+                  <span class="flex items-center gap-1"><span class="w-3 h-3 rounded bg-yellow-100 border border-yellow-300 inline-block"></span> 新增行</span>
+                  <span class="flex items-center gap-1"><span class="w-3 h-3 rounded bg-gray-100 border border-gray-300 inline-block"></span> 继承行</span>
+                </div>
+              </div>
+              <div class="overflow-x-auto">
+                <table class="data-table w-full text-sm">
+                  <thead>
+                    <tr>
+                      <th class="px-3 py-3 text-center w-10">序号</th>
+                      <th class="px-3 py-3 text-left">零部件号</th>
+                      <th class="px-3 py-3 text-left">零部件名称</th>
+                      <th class="px-3 py-3 text-left">工厂</th>
+                      <th class="px-3 py-3 text-right">材料费</th>
+                      <th class="px-3 py-3 text-right">制造费</th>
+                      <th class="px-3 py-3 text-right">管理费</th>
+                      <th class="px-3 py-3 text-right">出厂价</th>
+                      <th class="px-3 py-3 text-right">模具总费用</th>
+                      <th class="px-3 py-3 text-right">开发总费用</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr>
+                      <td class="px-3 py-2 text-center text-gray-500">1</td>
+                      <td class="px-3 py-2 font-mono text-xs">32090-M1A-A01</td>
+                      <td class="px-3 py-2">前排座椅骨架（左）</td>
+                      <td class="px-3 py-2">亦庄工厂</td>
+                      <td class="px-3 py-2"><input type="text" class="cost-input" value="1,280.500" oninput="calcPrice(this)"></td>
+                      <td class="px-3 py-2"><input type="text" class="cost-input" value="456.300" oninput="calcPrice(this)"></td>
+                      <td class="px-3 py-2"><input type="text" class="cost-input" value="128.200" oninput="calcPrice(this)"></td>
+                      <td class="px-3 py-2"><input type="text" class="cost-input readonly" value="1,865.000" readonly></td>
+                      <td class="px-3 py-2"><input type="text" class="cost-input" value="35,000.000"></td>
+                      <td class="px-3 py-2"><input type="text" class="cost-input" value="0"></td>
+                    </tr>
+                    <tr>
+                      <td class="px-3 py-2 text-center text-gray-500">2</td>
+                      <td class="px-3 py-2 font-mono text-xs">32090-M1A-A02</td>
+                      <td class="px-3 py-2">前排座椅骨架（右）</td>
+                      <td class="px-3 py-2">亦庄工厂</td>
+                      <td class="px-3 py-2"><input type="text" class="cost-input" value="1,280.500" oninput="calcPrice(this)"></td>
+                      <td class="px-3 py-2"><input type="text" class="cost-input" value="456.300" oninput="calcPrice(this)"></td>
+                      <td class="px-3 py-2"><input type="text" class="cost-input" value="128.200" oninput="calcPrice(this)"></td>
+                      <td class="px-3 py-2"><input type="text" class="cost-input readonly" value="1,865.000" readonly></td>
+                      <td class="px-3 py-2"><input type="text" class="cost-input" value="35,000.000"></td>
+                      <td class="px-3 py-2"><input type="text" class="cost-input" value="0"></td>
+                    </tr>
+                    <tr>
+                      <td class="px-3 py-2 text-center text-gray-500">3</td>
+                      <td class="px-3 py-2 font-mono text-xs">32090-M1A-A03</td>
+                      <td class="px-3 py-2">后排座椅靠背</td>
+                      <td class="px-3 py-2">武汉工厂</td>
+                      <td class="px-3 py-2"><input type="text" class="cost-input" value="890.000" oninput="calcPrice(this)"></td>
+                      <td class="px-3 py-2"><input type="text" class="cost-input" value="320.500" oninput="calcPrice(this)"></td>
+                      <td class="px-3 py-2"><input type="text" class="cost-input" value="96.150" oninput="calcPrice(this)"></td>
+                      <td class="px-3 py-2"><input type="text" class="cost-input readonly" value="1,306.650" readonly></td>
+                      <td class="px-3 py-2"><input type="text" class="cost-input" value="28,000.000"></td>
+                      <td class="px-3 py-2"><input type="text" class="cost-input" value="15,000.000"></td>
+                    </tr>
+                    <tr class="new-row">
+                      <td class="px-3 py-2 text-center text-gray-500">4</td>
+                      <td class="px-3 py-2 font-mono text-xs">32090-M1A-A04</td>
+                      <td class="px-3 py-2">座椅滑轨总成</td>
+                      <td class="px-3 py-2">亦庄工厂</td>
+                      <td class="px-3 py-2"><input type="text" class="cost-input" placeholder="必填" oninput="calcPrice(this)"></td>
+                      <td class="px-3 py-2"><input type="text" class="cost-input" placeholder="必填" oninput="calcPrice(this)"></td>
+                      <td class="px-3 py-2"><input type="text" class="cost-input" placeholder="必填" oninput="calcPrice(this)"></td>
+                      <td class="px-3 py-2"><input type="text" class="cost-input readonly" value="" readonly></td>
+                      <td class="px-3 py-2"><input type="text" class="cost-input" placeholder="必填"></td>
+                      <td class="px-3 py-2"><input type="text" class="cost-input" value="0"></td>
+                    </tr>
+                    <tr class="new-row">
+                      <td class="px-3 py-2 text-center text-gray-500">5</td>
+                      <td class="px-3 py-2 font-mono text-xs">32090-M1A-A05</td>
+                      <td class="px-3 py-2">头枕调节机构</td>
+                      <td class="px-3 py-2">武汉工厂</td>
+                      <td class="px-3 py-2"><input type="text" class="cost-input" placeholder="必填" oninput="calcPrice(this)"></td>
+                      <td class="px-3 py-2"><input type="text" class="cost-input" placeholder="必填" oninput="calcPrice(this)"></td>
+                      <td class="px-3 py-2"><input type="text" class="cost-input" placeholder="必填" oninput="calcPrice(this)"></td>
+                      <td class="px-3 py-2"><input type="text" class="cost-input readonly" value="" readonly></td>
+                      <td class="px-3 py-2"><input type="text" class="cost-input" placeholder="必填"></td>
+                      <td class="px-3 py-2"><input type="text" class="cost-input" value="0"></td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+
+            <!-- 备注 -->
+            <div class="bg-white rounded-lg border border-gray-200 p-5 mb-4">
+              <h3 class="text-sm font-semibold text-gray-700 mb-3 flex items-center gap-2">
+                <i class="fas fa-sticky-note text-[#165DFF]"></i> 备注
+              </h3>
+              <textarea rows="3" maxlength="500" placeholder="请输入备注信息（最多500字）" class="form-input w-full border border-gray-300 rounded-lg px-3 py-2 text-sm resize-none">第2轮新增零件A04、A05，已确认供应商报价数据，材料费参考近期市场价格。</textarea>
+              <div class="text-right text-xs text-gray-400 mt-1">98 / 500</div>
+            </div>
+
+            <!-- CE 核价历史 -->
+            <div class="bg-white rounded-lg border border-gray-200 p-5 mb-4">
+              <h3 class="text-sm font-semibold text-gray-700 mb-3 flex items-center gap-2">
+                <i class="fas fa-history text-[#165DFF]"></i> CE 核价历史
+              </h3>
+              <div class="overflow-x-auto">
+                <table class="w-full text-sm">
+                  <thead>
+                    <tr class="text-left text-xs text-gray-500 border-b border-gray-200">
+                      <th class="pb-2 font-medium">提交时间</th>
+                      <th class="pb-2 font-medium">提交人</th>
+                      <th class="pb-2 font-medium">提交轮次</th>
+                      <th class="pb-2 font-medium">备注</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr class="border-b border-gray-100">
+                      <td class="py-2 text-gray-600">2026-03-03 14:32:18</td>
+                      <td class="py-2">贾雨萌</td>
+                      <td class="py-2"><span class="tag tag-blue text-xs">第 1 轮</span></td>
+                      <td class="py-2 text-gray-500">首轮核价，数据已确认</td>
+                    </tr>
+                    <tr>
+                      <td class="py-2 text-gray-600">2026-03-10 09:15:42</td>
+                      <td class="py-2">贾雨萌</td>
+                      <td class="py-2"><span class="tag tag-blue text-xs">第 2 轮</span></td>
+                      <td class="py-2 text-gray-500">第2轮新增零件A04、A05</td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+
+        </main>
+      </div>
+    </div>
+
+    <!-- 分隔线 -->
+    <div id="divider" class="w-px bg-gray-300"></div>
+
+    <!-- 右侧：功能说明 -->
+    <div id="right-panel" class="w-[25%] lg:w-[22%] overflow-y-auto bg-amber-50 border-l-2 border-dashed border-amber-300">
+      <div class="p-4">
+        <!-- 原型说明标识 -->
+        <div class="mb-4 p-3 bg-amber-100 border border-amber-300 rounded-lg">
+          <div class="flex items-center gap-2 mb-1">
+            <span class="px-2 py-0.5 bg-amber-500 text-white text-[10px] font-bold rounded uppercase tracking-wide">Prototype</span>
+            <span class="text-xs font-semibold text-amber-800">原型说明</span>
+          </div>
+          <p class="text-[11px] text-amber-700 leading-relaxed">
+            CE核价管理系统原型。基于PRD文档生成，展示核价任务列表和核价详情两大核心页面。悬停左侧对应区域可高亮连线。
+          </p>
+        </div>
+
+        <div class="flex items-center gap-2 mb-4 pb-3 border-b border-amber-200">
+          <i class="fas fa-map-signs text-amber-600"></i>
+          <h2 class="text-sm font-bold text-amber-900">功能说明</h2>
+        </div>
+
+        <div class="space-y-3">
+          <!-- 说明 1 -->
+          <div class="proto-desc p-3 active-highlight" data-proto-id="1">
+            <div class="flex items-start gap-2">
+              <span class="flex-shrink-0 w-6 h-6 bg-amber-500 text-white rounded-full text-xs font-bold flex items-center justify-center">1</span>
+              <div>
+                <h3 class="text-sm font-semibold text-gray-800">成本管理菜单</h3>
+                <p class="text-xs text-gray-500 mt-1">RFQ 询报价管理下的二级菜单「成本管理」，本次新增。CE核价人员、采购员、管理员、CE老板均可见。</p>
+              </div>
+            </div>
+          </div>
+
+          <!-- 说明 2 -->
+          <div class="proto-desc p-3" data-proto-id="2">
+            <div class="flex items-start gap-2">
+              <span class="flex-shrink-0 w-6 h-6 bg-amber-500 text-white rounded-full text-xs font-bold flex items-center justify-center">2</span>
+              <div>
+                <h3 class="text-sm font-semibold text-gray-800">状态筛选标签</h3>
+                <p class="text-xs text-gray-500 mt-1">四种核价状态：待核价（绿）、审批中（橙）、已核价（蓝）、已完成（灰）。点击可快速筛选对应状态的任务，同时支持按任务编号、RFQ编号、采购员、CE人员精确筛选。</p>
+              </div>
+            </div>
+          </div>
+
+          <!-- 说明 3 -->
+          <div class="proto-desc p-3" data-proto-id="3">
+            <div class="flex items-start gap-2">
+              <span class="flex-shrink-0 w-6 h-6 bg-amber-500 text-white rounded-full text-xs font-bold flex items-center justify-center">3</span>
+              <div>
+                <h3 class="text-sm font-semibold text-gray-800">核价任务列表</h3>
+                <p class="text-xs text-gray-500 mt-1">展示所有核价任务，包含任务编号（可点击跳转详情）、RFQ信息、状态、工厂、采购工程师、零部件号。操作列包含「核价」和「转派」按钮。</p>
+                <ul class="text-xs text-gray-500 mt-1 ml-3 list-disc space-y-0.5">
+                  <li><strong>核价按钮</strong>：待核价/已核价时可用，审批中/已完成时置灰</li>
+                  <li><strong>转派按钮</strong>：始终可用，仅CE/管理员可操作</li>
+                </ul>
+              </div>
+            </div>
+          </div>
+
+          <!-- 说明 4 -->
+          <div class="proto-desc p-3" data-proto-id="4">
+            <div class="flex items-start gap-2">
+              <span class="flex-shrink-0 w-6 h-6 bg-amber-500 text-white rounded-full text-xs font-bold flex items-center justify-center">4</span>
+              <div>
+                <h3 class="text-sm font-semibold text-gray-800">核价操作按钮</h3>
+                <p class="text-xs text-gray-500 mt-1">详情页底部操作区，包含5个按钮：</p>
+                <ul class="text-xs text-gray-500 mt-1 ml-3 list-disc space-y-0.5">
+                  <li><strong>取消</strong>：返回列表，丢弃修改</li>
+                  <li><strong>保存</strong>：持久化数据，不产生历史记录</li>
+                  <li><strong>导入</strong>：Excel批量导入核价数据</li>
+                  <li><strong>导出</strong>：导出Excel留档</li>
+                  <li><strong>提交核价</strong>：校验→选审批人→进入审批流</li>
+                </ul>
+              </div>
+            </div>
+          </div>
+
+          <!-- 说明 5 -->
+          <div class="proto-desc p-3" data-proto-id="5">
+            <div class="flex items-start gap-2">
+              <span class="flex-shrink-0 w-6 h-6 bg-amber-500 text-white rounded-full text-xs font-bold flex items-center justify-center">5</span>
+              <div>
+                <h3 class="text-sm font-semibold text-gray-800">CE核价审批人</h3>
+                <p class="text-xs text-gray-500 mt-1">人员下拉框，角色为Finance的全体成员。提交时过滤掉当前CE自己。可编辑条件：状态为「待核价」或「已核价」。提交后旧审批人权限移除，新审批人赋权。</p>
+              </div>
+            </div>
+          </div>
+
+          <!-- 说明 6 -->
+          <div class="proto-desc p-3" data-proto-id="6">
+            <div class="flex items-start gap-2">
+              <span class="flex-shrink-0 w-6 h-6 bg-amber-500 text-white rounded-full text-xs font-bold flex items-center justify-center">6</span>
+              <div>
+                <h3 class="text-sm font-semibold text-gray-800">核价明细列表</h3>
+                <p class="text-xs text-gray-500 mt-1">以「零件号+工厂」为唯一粒度。每行包含：材料费、制造费、管理费（手动输入）、出厂价（自动计算）、模具总费用、开发总费用。</p>
+                <ul class="text-xs text-gray-500 mt-1 ml-3 list-disc space-y-0.5">
+                  <li><strong>自动计算</strong>：出厂价 = 材料费 + 制造费 + 管理费</li>
+                  <li><strong>新增行</strong>：黄色背景高亮标示</li>
+                  <li><strong>继承行</strong>：上一轮数据自动带出</li>
+                  <li><strong>出厂价不可为0</strong>，提交时强制校验</li>
+                </ul>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- SVG 连线层 -->
+  <svg id="connections" class="absolute top-0 left-0 w-full h-full pointer-events-none"></svg>
+
+  <!-- ========== 模态框：提交核价 ========== -->
+  <div id="submitModal" class="modal-overlay modal-hidden fixed inset-0 z-[60] flex items-center justify-center bg-black/40">
+    <div class="modal-content bg-white rounded-xl shadow-2xl w-full max-w-md mx-4 overflow-hidden">
+      <div class="flex items-center justify-between px-6 py-4 border-b border-gray-200">
+        <h3 class="text-lg font-semibold text-gray-800">选择审批人</h3>
+        <button onclick="closeModal('submitModal')" class="text-gray-400 hover:text-gray-600 btn-click"><i class="fas fa-times"></i></button>
+      </div>
+      <div class="px-6 py-5">
+        <p class="text-sm text-gray-600 mb-4">请选择CE核价审批人，提交后进入审批流程。</p>
+        <div class="space-y-2">
+          <label class="flex items-center gap-3 p-3 border border-gray-200 rounded-lg hover:bg-gray-50 cursor-pointer">
+            <input type="radio" name="approver" class="text-[#165DFF]">
+            <div>
+              <div class="text-sm font-medium text-gray-800">陈静</div>
+              <div class="text-xs text-gray-500">Finance · ce_jingchen</div>
+            </div>
+          </label>
+          <label class="flex items-center gap-3 p-3 border border-gray-200 rounded-lg hover:bg-gray-50 cursor-pointer">
+            <input type="radio" name="approver" class="text-[#165DFF]">
+            <div>
+              <div class="text-sm font-medium text-gray-800">周磊</div>
+              <div class="text-xs text-gray-500">Finance · ce_leizhou</div>
+            </div>
+          </label>
+          <label class="flex items-center gap-3 p-3 border border-gray-200 rounded-lg hover:bg-gray-50 cursor-pointer">
+            <input type="radio" name="approver" class="text-[#165DFF]">
+            <div>
+              <div class="text-sm font-medium text-gray-800">吴芳</div>
+              <div class="text-xs text-gray-500">Finance · ce_fangwu</div>
+            </div>
+          </label>
+        </div>
+        <p class="text-xs text-gray-400 mt-3"><i class="fas fa-info-circle mr-1"></i> 已自动过滤当前CE核价人员（贾雨萌）</p>
+      </div>
+      <div class="flex items-center justify-end gap-3 px-6 py-4 border-t border-gray-200 bg-gray-50">
+        <button onclick="closeModal('submitModal')" class="px-4 py-2 text-sm text-gray-600 hover:text-gray-800 btn-click">取消</button>
+        <button onclick="closeModal('submitModal'); alert('核价已提交，等待审批人审批！')" class="px-4 py-2 bg-[#165DFF] hover:bg-blue-600 text-white text-sm rounded-lg font-medium btn-click">确认提交</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ========== 模态框：转派 ========== -->
+  <div id="transferModal" class="modal-overlay modal-hidden fixed inset-0 z-[60] flex items-center justify-center bg-black/40">
+    <div class="modal-content bg-white rounded-xl shadow-2xl w-full max-w-md mx-4 overflow-hidden">
+      <div class="flex items-center justify-between px-6 py-4 border-b border-gray-200">
+        <h3 class="text-lg font-semibold text-gray-800">转派 CE 核价人员</h3>
+        <button onclick="closeModal('transferModal')" class="text-gray-400 hover:text-gray-600 btn-click"><i class="fas fa-times"></i></button>
+      </div>
+      <div class="px-6 py-5">
+        <div class="mb-4 p-3 bg-blue-50 border border-blue-200 rounded-lg">
+          <p class="text-xs text-blue-700"><i class="fas fa-info-circle mr-1"></i> 转派后，新CE将获得查看/编辑权限，旧CE权限移除，同时发送飞书通知和待办。</p>
+        </div>
+        <label class="block text-sm font-medium text-gray-700 mb-2">选择目标 CE 核价人员</label>
+        <select class="form-input w-full border border-gray-300 rounded-lg px-3 py-2 text-sm">
+          <option value="">请选择</option>
+          <option>陈静（Finance）</option>
+          <option>周磊（Finance）</option>
+          <option>吴芳（Finance）</option>
+          <option>孙丽（Finance）</option>
+        </select>
+        <p class="text-xs text-gray-400 mt-2">当前核价人员：贾雨萌（已自动排除）</p>
+      </div>
+      <div class="flex items-center justify-end gap-3 px-6 py-4 border-t border-gray-200 bg-gray-50">
+        <button onclick="closeModal('transferModal')" class="px-4 py-2 text-sm text-gray-600 hover:text-gray-800 btn-click">取消</button>
+        <button onclick="closeModal('transferModal'); alert('转派成功！已通知新CE核价人员。')" class="px-4 py-2 bg-[#165DFF] hover:bg-blue-600 text-white text-sm rounded-lg font-medium btn-click">确认转派</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // ========== 连线绘制 ==========
+    const svg = document.getElementById('connections');
+    const connections = [];
+
+    function drawConnections() {
+      svg.innerHTML = '';
+      connections.length = 0;
+
+      const leftElements = document.querySelectorAll('.proto-element[data-proto-id]');
+      const rightElements = document.querySelectorAll('.proto-desc[data-proto-id]');
+
+      leftElements.forEach(leftEl => {
+        const protoId = leftEl.getAttribute('data-proto-id');
+        const rightEl = document.querySelector(`.proto-desc[data-proto-id="${protoId}"]`);
+        if (!rightEl) return;
+
+        const leftRect = leftEl.getBoundingClientRect();
+        const rightRect = rightEl.getBoundingClientRect();
+        const svgRect = svg.getBoundingClientRect();
+
+        const x1 = leftRect.right - svgRect.left;
+        const y1 = leftRect.top + leftRect.height / 2 - svgRect.top;
+        const x2 = rightRect.left - svgRect.left;
+        const y2 = rightRect.top + rightRect.height / 2 - svgRect.top;
+
+        const cp1x = x1 + (x2 - x1) * 0.5;
+        const cp1y = y1;
+        const cp2x = x1 + (x2 - x1) * 0.5;
+        const cp2y = y2;
+
+        // 路径
+        const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+        path.setAttribute('d', `M ${x1} ${y1} C ${cp1x} ${cp1y}, ${cp2x} ${cp2y}, ${x2} ${y2}`);
+        path.setAttribute('class', 'connection-line');
+        path.setAttribute('data-proto-id', protoId);
+        svg.appendChild(path);
+
+        // 编号标签
+        const midX = (x1 + x2) / 2;
+        const midY = (y1 + y2) / 2;
+        const bg = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+        bg.setAttribute('cx', midX);
+        bg.setAttribute('cy', midY);
+        bg.setAttribute('r', 11);
+        bg.setAttribute('class', 'connection-label-bg');
+        svg.appendChild(bg);
+
+        const text = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+        text.setAttribute('x', midX);
+        text.setAttribute('y', midY);
+        text.setAttribute('dy', '0.05em');
+        text.setAttribute('class', 'connection-label');
+        text.textContent = protoId;
+        svg.appendChild(text);
+
+        connections.push({ protoId, path, leftEl, rightEl });
+      });
+    }
+
+    function highlightConnection(protoId, active) {
+      const conn = connections.find(c => c.protoId === protoId);
+      if (!conn) return;
+      if (active) {
+        conn.path.classList.add('active');
+        conn.leftEl.classList.add('active-highlight');
+        conn.rightEl.classList.add('active-highlight');
+      } else {
+        conn.path.classList.remove('active');
+        conn.leftEl.classList.remove('active-highlight');
+        conn.rightEl.classList.remove('active-highlight');
+      }
+    }
+
+    function bindHoverEvents() {
+      document.querySelectorAll('.proto-element[data-proto-id]').forEach(el => {
+        el.addEventListener('mouseenter', () => highlightConnection(el.getAttribute('data-proto-id'), true));
+        el.addEventListener('mouseleave', () => highlightConnection(el.getAttribute('data-proto-id'), false));
+      });
+      document.querySelectorAll('.proto-desc[data-proto-id]').forEach(el => {
+        el.addEventListener('mouseenter', () => highlightConnection(el.getAttribute('data-proto-id'), true));
+        el.addEventListener('mouseleave', () => highlightConnection(el.getAttribute('data-proto-id'), false));
+      });
+    }
+
+    // ========== 页面切换 ==========
+    function showPage(pageId) {
+      document.querySelectorAll('.page-view').forEach(p => p.classList.remove('active'));
+      document.getElementById(pageId).classList.add('active');
+      // 切换后重绘连线
+      setTimeout(drawConnections, 50);
+    }
+
+    // ========== 模态框 ==========
+    function openModal(id) { document.getElementById(id).classList.remove('modal-hidden'); }
+    function closeModal(id) { document.getElementById(id).classList.add('modal-hidden'); }
+    document.querySelectorAll('.modal-overlay').forEach(overlay => {
+      overlay.addEventListener('click', (e) => { if (e.target === overlay) overlay.classList.add('modal-hidden'); });
+    });
+
+    // ========== 表格选择 ==========
+    function selectRow(row) {
+      document.querySelectorAll('.data-table tbody tr').forEach(tr => tr.classList.remove('selected'));
+      row.classList.add('selected');
+    }
+
+    // ========== 出厂价自动计算 ==========
+    function calcPrice(input) {
+      const row = input.closest('tr');
+      if (!row) return;
+      const inputs = row.querySelectorAll('.cost-input');
+      // 索引：0=材料费, 1=制造费, 2=管理费, 3=出厂价
+      const material = parseFloat(inputs[0].value.replace(/,/g, '')) || 0;
+      const manufacturing = parseFloat(inputs[1].value.replace(/,/g, '')) || 0;
+      const management = parseFloat(inputs[2].value.replace(/,/g, '')) || 0;
+      if (material > 0 || manufacturing > 0 || management > 0) {
+        const total = material + manufacturing + management;
+        inputs[3].value = total.toLocaleString('en-US', { minimumFractionDigits: 3, maximumFractionDigits: 3 });
+      }
+    }
+
+    // ========== 移动端切换 ==========
+    let mobileShowDesc = false;
+    function toggleMobileView() {
+      mobileShowDesc = !mobileShowDesc;
+      const leftPanel = document.getElementById('left-panel');
+      const rightPanel = document.getElementById('right-panel');
+      const btn = document.getElementById('mobileToggle');
+      if (mobileShowDesc) {
+        leftPanel.style.display = 'none'; rightPanel.style.height = '100vh'; btn.innerHTML = '<i class="fas fa-desktop"></i>';
+      } else {
+        leftPanel.style.display = ''; rightPanel.style.height = ''; btn.innerHTML = '<i class="fas fa-info"></i>';
+      }
+    }
+
+    // ========== 初始化 ==========
+    function init() { drawConnections(); bindHoverEvents(); }
+    document.addEventListener('DOMContentLoaded', () => { setTimeout(init, 100); });
+    let resizeTimer;
+    window.addEventListener('resize', () => { clearTimeout(resizeTimer); resizeTimer = setTimeout(init, 150); });
+    document.getElementById('left-panel').addEventListener('scroll', () => { requestAnimationFrame(drawConnections); });
+    document.getElementById('right-panel').addEventListener('scroll', () => { requestAnimationFrame(drawConnections); });
+  </script>
+</body>
+</html>

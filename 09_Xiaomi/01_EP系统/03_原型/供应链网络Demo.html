@@ -1,0 +1,495 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>EP 供应链网络</title>
+<style>
+:root{
+  --bg:#f0f2f5;--card:#fff;--bg2:#f7f8fa;--border:#e5e7eb;--text:#111827;--t2:#4b5563;--tm:#9ca3af;
+  --blue:#2563eb;--bl:#eff6ff;--green:#059669;--gl:#ecfdf5;--orange:#d97706;--ol:#fffbeb;
+  --red:#dc2626;--rl:#fef2f2;--purple:#7c3aed;--pl:#f5f3ff;--teal:#0891b2;--tl:#ecfeff;
+  --font:-apple-system,BlinkMacSystemFont,'Segoe UI','Noto Sans SC','Microsoft YaHei',sans-serif;
+  --r:10px;--sh:0 1px 2px rgba(0,0,0,.06);--shl:0 8px 24px rgba(0,0,0,.12);
+}
+*{margin:0;padding:0;box-sizing:border-box;}
+body{font-family:var(--font);background:var(--bg);color:var(--text);overflow:hidden;height:100vh;}
+
+.topbar{height:48px;background:#1e293b;display:flex;align-items:center;padding:0 20px;gap:16px;z-index:100;position:relative;}
+.topbar .logo{display:flex;align-items:center;gap:8px;color:#fff;font-weight:700;font-size:14px;}
+.topbar .logo span{background:var(--blue);color:#fff;width:26px;height:26px;border-radius:6px;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:800;}
+.topbar nav{display:flex;gap:2px;margin-left:24px;}
+.topbar nav a{padding:6px 16px;border-radius:6px;font-size:13px;font-weight:500;color:rgba(255,255,255,.6);cursor:pointer;transition:all .15s;text-decoration:none;}
+.topbar nav a:hover{color:rgba(255,255,255,.85);background:rgba(255,255,255,.08);}
+.topbar nav a.active{color:#fff;background:rgba(255,255,255,.12);font-weight:600;}
+.topbar .spacer{flex:1;}
+.topbar .user{display:flex;align-items:center;gap:8px;color:rgba(255,255,255,.7);font-size:12px;}
+.topbar .avatar{width:28px;height:28px;border-radius:50%;background:var(--blue);display:flex;align-items:center;justify-content:center;color:#fff;font-size:11px;font-weight:700;}
+
+.layout{display:flex;height:calc(100vh - 48px);}
+.sidebar{width:200px;background:#1e293b;border-right:1px solid rgba(255,255,255,.06);padding:12px 0;flex-shrink:0;overflow-y:auto;}
+.sb-group{margin-bottom:8px;}
+.sb-label{font-size:10px;font-weight:600;color:rgba(255,255,255,.35);text-transform:uppercase;letter-spacing:.8px;padding:8px 16px 4px;}
+.sb-item{display:flex;align-items:center;gap:8px;padding:7px 16px;font-size:12px;color:rgba(255,255,255,.6);cursor:pointer;transition:all .12s;border-left:3px solid transparent;}
+.sb-item:hover{color:rgba(255,255,255,.85);background:rgba(255,255,255,.05);}
+.sb-item.active{color:#fff;background:rgba(255,255,255,.08);border-left-color:var(--blue);}
+.sb-item .icon{width:18px;text-align:center;font-size:13px;}
+
+.content{flex:1;overflow:hidden;padding:16px 20px 16px;}
+.page{display:none;animation:fadeIn .3s ease;}
+.page.active{display:block;height:100%;}
+@keyframes fadeIn{from{opacity:0;transform:translateY(6px);}to{opacity:1;transform:translateY(0);}}
+
+.pg-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;}
+.pg-head h2{font-size:17px;font-weight:700;}
+.pg-head .meta{font-size:11px;color:var(--tm);display:flex;gap:14px;}
+.pg-head .meta span{display:flex;align-items:center;gap:4px;}
+
+.canvas-card{background:var(--card);border-radius:var(--r);box-shadow:var(--sh);border:1px solid var(--border);overflow:hidden;height:calc(100% - 60px);}
+.card-bar{height:34px;background:var(--bg2);border-bottom:1px solid var(--border);display:flex;align-items:center;padding:0 14px;gap:10px;}
+.card-bar .cb-title{font-size:12px;font-weight:600;}
+.card-bar .cb-tag{font-size:9px;padding:2px 6px;border-radius:4px;background:var(--bl);color:var(--blue);font-weight:600;}
+.card-bar .cb-right{margin-left:auto;display:flex;gap:8px;align-items:center;}
+.card-bar .filter-pill{font-size:10px;padding:3px 10px;border-radius:12px;border:1px solid var(--border);background:var(--card);color:var(--t2);cursor:pointer;font-weight:500;}
+.filter-pill:hover{border-color:var(--blue);color:var(--blue);}
+.filter-pill.active{background:var(--bl);color:var(--blue);border-color:var(--blue);}
+.canvas-body{position:relative;width:100%;height:calc(100% - 34px);}
+.canvas-body svg{width:100%;height:100%;}
+
+/* Sidebar capacity list */
+.cap-list{padding:8px 16px;}
+.cap-row{display:flex;align-items:center;gap:6px;padding:4px 0;border-bottom:1px solid rgba(255,255,255,.06);font-size:11px;color:rgba(255,255,255,.5);}
+.cap-row:last-child{border-bottom:none;}
+.cap-row .cd{width:7px;height:7px;border-radius:50%;flex-shrink:0;}
+.cap-row .cn{flex:1;font-weight:500;}
+.cap-row .cv{font-weight:700;min-width:30px;text-align:right;}
+.cap-bar-sb{width:40px;height:4px;border-radius:2px;background:rgba(255,255,255,.08);overflow:hidden;flex-shrink:0;}
+.cap-bar-fill-sb{height:100%;border-radius:2px;}
+
+.tip{position:fixed;background:var(--card);border-radius:8px;padding:12px 14px;box-shadow:var(--shl);border:1px solid var(--border);pointer-events:none;z-index:1000;min-width:200px;opacity:0;transition:opacity .12s;font-size:11px;}
+.tip.show{opacity:1;}
+.tip .tn{font-weight:700;font-size:13px;margin-bottom:3px;}
+.tip .tc{font-size:10px;color:var(--tm);margin-bottom:6px;}
+.tip .tr{display:flex;justify-content:space-between;padding:2px 0;}
+.tip .tl{color:var(--t2);}.tip .tv{font-weight:600;}
+.tip .tb{height:3px;border-radius:2px;background:var(--bg2);margin-top:6px;}
+.tip .tbf{height:100%;border-radius:2px;}
+
+/* Supplier Detail */
+.sp-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px;height:calc(100% - 70px);overflow-y:auto;}
+.sp-card{background:var(--card);border-radius:var(--r);box-shadow:var(--sh);border:1px solid var(--border);overflow:hidden;}
+.sp-head{padding:10px 14px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:8px;}
+.sp-head .ico{width:24px;height:24px;border-radius:6px;display:flex;align-items:center;justify-content:center;font-size:12px;color:#fff;flex-shrink:0;}
+.sp-head h3{font-size:12px;font-weight:700;}
+.sp-body{padding:12px 14px;}
+.sp-full{grid-column:1/-1;}
+.scn{position:relative;width:100%;height:260px;background:linear-gradient(135deg,#eef2ff 0%,#f0f9ff 100%);border-radius:8px;overflow:hidden;}
+.scn .grid{position:absolute;inset:0;background-image:linear-gradient(rgba(37,99,235,.04) 1px,transparent 1px),linear-gradient(90deg,rgba(37,99,235,.04) 1px,transparent 1px);background-size:20px 20px;}
+.scn-p{position:absolute;cursor:pointer;z-index:2;transition:transform .15s;}
+.scn-p:hover{transform:scale(1.15);z-index:3;}
+.scn-d{width:14px;height:14px;border-radius:50%;border:2px solid #fff;box-shadow:0 1px 6px rgba(0,0,0,.18);}
+.scn-d.wh{border-radius:3px;width:12px;height:12px;}
+.scn-pulse{position:absolute;top:-5px;left:-5px;width:24px;height:24px;border-radius:50%;border:2px solid;opacity:0;animation:pulse 2.5s infinite;}
+@keyframes pulse{0%{transform:scale(.8);opacity:.5;}100%{transform:scale(1.8);opacity:0;}}
+.scn-lb{position:absolute;top:17px;left:50%;transform:translateX(-50%);white-space:nowrap;font-size:8px;font-weight:700;background:var(--card);padding:1px 5px;border-radius:3px;box-shadow:0 1px 3px rgba(0,0,0,.08);}
+.scn-lb small{font-weight:400;color:var(--tm);display:block;font-size:7px;}
+.ci{margin-bottom:10px;}.ci:last-child{margin-bottom:0;}
+.ci-top{display:flex;justify-content:space-between;align-items:center;margin-bottom:3px;}
+.ci-name{font-size:11px;font-weight:600;}.ci-pct{font-size:11px;font-weight:700;}
+.ci-bar{height:6px;border-radius:3px;background:var(--bg2);overflow:hidden;}
+.ci-fill{height:100%;border-radius:3px;}
+.ci-det{font-size:9px;color:var(--tm);margin-top:2px;}
+.cr{display:flex;align-items:center;gap:6px;margin-bottom:5px;}
+.cr:last-child{margin-bottom:0;}
+.cr-dot{width:8px;height:8px;border-radius:2px;flex-shrink:0;}
+.cr-name{font-size:11px;font-weight:600;min-width:64px;}
+.cr-bw{flex:1;height:4px;border-radius:2px;background:var(--bg2);overflow:hidden;}
+.cr-bf{height:100%;border-radius:2px;}
+.cr-p{font-size:10px;font-weight:700;min-width:28px;text-align:right;}
+.rg{display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:8px;}
+.ri{text-align:center;padding:8px 4px;border-radius:8px;background:var(--bg2);}
+.rr{width:44px;height:44px;margin:0 auto 4px;position:relative;}
+.rr svg{width:100%;height:100%;transform:rotate(-90deg);}
+.rr circle{fill:none;stroke-width:4;}
+.rr .rbg{stroke:var(--border);}.rr .rfg{stroke-linecap:round;}
+.rv{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:800;}
+.rl{font-size:9px;font-weight:600;color:var(--t2);}
+.pg{display:flex;flex-wrap:wrap;gap:4px;}
+.pc{font-size:9px;font-weight:600;padding:3px 8px;border-radius:4px;background:var(--bl);color:var(--blue);border:1px solid rgba(37,99,235,.1);}
+.cg{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;}
+.cs{text-align:center;padding:10px 6px;border-radius:8px;background:var(--bg2);}
+.cs .csv{font-size:16px;font-weight:800;}
+.cs .csl{font-size:9px;color:var(--tm);margin-top:1px;}
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <div class="logo"><span>EP</span> 生产采购系统</div>
+  <nav>
+    <a class="active" onclick="navTo('network')">供应链网络</a>
+    <a onclick="navTo('supplier')">供应商管理</a>
+    <a>寻源定点</a><a>价格中心</a><a>履约管理</a>
+  </nav>
+  <div class="spacer"></div>
+  <div class="user"><span>李文俊</span><div class="avatar">李</div></div>
+</div>
+
+<div class="layout">
+  <div class="sidebar">
+    <div class="sb-group">
+      <div class="sb-label">品类</div>
+      <div class="sb-item active" data-cat="all" onclick="filterCat('all')"><span class="icon">🔗</span>全部品类</div>
+      <div class="sb-item" data-cat="powertrain" onclick="filterCat('powertrain')"><span class="icon">⚡</span>动力总成</div>
+      <div class="sb-item" data-cat="chassis" onclick="filterCat('chassis')"><span class="icon">🛞</span>底盘</div>
+      <div class="sb-item" data-cat="body" onclick="filterCat('body')"><span class="icon">🔩</span>车身</div>
+      <div class="sb-item" data-cat="interior" onclick="filterCat('interior')"><span class="icon">💺</span>内饰</div>
+      <div class="sb-item" data-cat="electronics" onclick="filterCat('electronics')"><span class="icon">📡</span>电子电气</div>
+    </div>
+    <div class="sb-group">
+      <div class="sb-label">视图</div>
+      <div class="sb-item active" id="sbNet" onclick="showPage('network')"><span class="icon">🗺️</span>地理分布</div>
+      <div class="sb-item" id="sbSup" onclick="showPage('supplier')"><span class="icon">🏢</span>供应商详情</div>
+    </div>
+    <div class="sb-group">
+      <div class="sb-label">产能概览</div>
+      <div class="cap-list" id="capSidebar"></div>
+    </div>
+  </div>
+  <div class="content">
+    <div class="page active" id="page-network">
+      <div class="pg-head">
+        <div>
+          <h2>供应链地理网络</h2>
+          <div class="meta"><span>🏭 以北京亦庄小米工厂为中心</span><span>📏 显示实际距离与产能</span></div>
+        </div>
+      </div>
+      <div class="canvas-card">
+        <div class="card-bar">
+          <span class="cb-title">供应网络地图</span>
+          <span class="cb-tag">GEO NETWORK</span>
+          <div class="cb-right">
+            <div class="filter-pill active" data-f="all" onclick="filterView('all')">全部</div>
+            <div class="filter-pill" data-f="near" onclick="filterView('near')">500km 内</div>
+            <div class="filter-pill" data-f="far" onclick="filterView('far')">500km 外</div>
+            <div class="filter-pill" data-f="risk" onclick="filterView('risk')">⚠️ 风险</div>
+          </div>
+        </div>
+        <div class="canvas-body"><svg id="mapSvg" viewBox="0 0 900 520"></svg></div>
+      </div>
+    </div>
+    <div class="page" id="page-supplier">
+      <div class="pg-head">
+        <div><h2 id="spTitle">供应商详情</h2><div class="meta" id="spMeta"></div></div>
+        <div style="display:flex;gap:8px;"><div style="padding:6px 14px;border-radius:6px;font-size:12px;font-weight:500;cursor:pointer;border:1px solid var(--border);background:var(--card);color:var(--t2);" onclick="showPage('network')">← 返回地图</div></div>
+      </div>
+      <div id="spContent"></div>
+    </div>
+  </div>
+</div>
+
+<div class="tip" id="tip"></div>
+
+<script>
+const C={powertrain:'#ef4444',chassis:'#7c3aed',body:'#d97706',interior:'#059669',electronics:'#0891b2'};
+const CN={powertrain:'动力总成',chassis:'底盘',body:'车身',interior:'内饰',electronics:'电子电气'};
+const RC={low:'#059669',mid:'#d97706',high:'#dc2626'};
+let curCat='all',curView='all';
+
+// Factory: Xiaomi Yizhuang Beijing [lng=116.5, lat=39.75]
+const OEM={name:'小米亦庄工厂',x:638,y:143};
+
+// City positions mapped to SVG coordinates (approximate China map)
+// viewBox: 0,0,900,520  |  China roughly: x 150-800, y 50-480
+const CITY={
+  beijing:{x:638,y:143},shanghai:{x:670,y:295},shenzhen:{x:615,y:410},
+  ningde:{x:655,y:380},chengdu:{x:430,y:310},wuhan:{x:555,y:285},
+  changchun:{x:665,y:85},shenyang:{x:672,y:115},changzhou:{x:655,y:280},
+  suzhou:{x:660,y:285},changsha:{x:540,y:330},nanjing:{x:640,y:270},
+  guangzhou:{x:590,y:395},chongqing:{x:455,y:310},xian:{x:480,y:225},
+  tianjin:{x:655,y:150},hefei:{x:620,y:275},jiaxing:{x:668,y:290},
+  basel:{x:95,y:180},hannover:{x:100,y:150},stuttgart:{x:100,y:175},
+  detroit:{x:30,y:140},wuerzburg:{x:98,y:165}
+};
+
+// Distance from Yizhuang (km) - real approximate
+function dist(city){
+  const dx=(city.x-OEM.x)*3.5,dy=(city.y-OEM.y)*3.5;
+  return Math.round(Math.sqrt(dx*dx+dy*dy));
+}
+
+const tier1=[
+  {id:'catl',name:'宁德时代',cat:'powertrain',city:'ningde',ctry:'中国',cap:92,risk:'low',vol:'35%',rev:'680亿',
+   fac:[{n:'宁德总部',c:95,o:'45GWh',loc:'ningde'},{n:'溧阳基地',c:88,o:'30GWh',loc:'changzhou'},{n:'德国工厂',c:72,o:'14GWh',loc:'basel'},{n:'匈牙利',c:45,o:'规划中',loc:'basel'}],
+   wh:[{n:'上海RDC',loc:'shanghai',cap:'5000㎡',inv:'7天'},{n:'北京VMI仓',loc:'beijing',cap:'3000㎡',inv:'VMI'}],
+   cust:[{n:'小米',p:35},{n:'特斯拉',p:22},{n:'宝马',p:15},{n:'奔驰',p:12},{n:'其他',p:16}],
+   prod:['三元锂电池包','磷酸铁锂电池包','CTP模组','BMS'],sc:{f:88,q:92,s:85,c:90},cp:'三元锂电池包（SU7/YU7）',cs:'2023',cr:'A+'},
+  {id:'byd',name:'比亚迪弗迪',cat:'powertrain',city:'shenzhen',ctry:'中国',cap:78,risk:'mid',vol:'18%',rev:'420亿',
+   fac:[{n:'深圳坪山',c:82,o:'20GWh',loc:'shenzhen'},{n:'重庆基地',c:75,o:'15GWh',loc:'chongqing'},{n:'西安工厂',c:70,o:'10GWh',loc:'xian'}],
+   wh:[{n:'武汉中转仓',loc:'wuhan',cap:'4000㎡',inv:'5天'}],
+   cust:[{n:'比亚迪',p:60},{n:'小米',p:18},{n:'长安',p:10},{n:'其他',p:12}],
+   prod:['刀片电池包','磷酸铁锂模组','电池壳体'],sc:{f:90,q:85,s:78,c:82},cp:'磷酸铁锂电池包',cs:'2024',cr:'B+'},
+  {id:'huichuan',name:'汇川技术',cat:'powertrain',city:'shenzhen',ctry:'中国',cap:65,risk:'low',vol:'12%',rev:'85亿',
+   fac:[{n:'深圳总部',c:70,o:'50万台/年',loc:'shenzhen'},{n:'苏州基地',c:60,o:'30万台/年',loc:'suzhou'}],
+   wh:[{n:'合肥VMI仓',loc:'hefei',cap:'2000㎡',inv:'VMI'}],
+   cust:[{n:'小米',p:25},{n:'理想',p:20},{n:'小鹏',p:18},{n:'蔚来',p:15},{n:'其他',p:22}],
+   prod:['电驱总成','电机控制器','高压配电箱'],sc:{f:82,q:88,s:80,c:85},cp:'电驱总成',cs:'2023',cr:'A'},
+  {id:'bosch',name:'博世',cat:'chassis',city:'stuttgart',ctry:'德国',cap:71,risk:'low',vol:'22%',rev:'910亿€',
+   fac:[{n:'斯图加特',c:75,o:'ESP/iBooster',loc:'stuttgart'},{n:'苏州工厂',c:68,o:'制动系统',loc:'suzhou'},{n:'长春工厂',c:62,o:'底盘件',loc:'changchun'}],
+   wh:[{n:'上海RDC',loc:'shanghai',cap:'8000㎡',inv:'10天'}],
+   cust:[{n:'大众',p:20},{n:'宝马',p:15},{n:'丰田',p:12},{n:'小米',p:10},{n:'其他',p:43}],
+   prod:['ESP车身稳定','iBooster线控制动','ADAS传感器','EPS'],sc:{f:95,q:93,s:88,c:92},cp:'ESP + iBooster',cs:'2022',cr:'A+'},
+  {id:'continental',name:'大陆集团',cat:'chassis',city:'hannover',ctry:'德国',cap:68,risk:'low',vol:'15%',rev:'440亿€',
+   fac:[{n:'汉诺威',c:72,o:'轮胎/制动',loc:'hannover'},{n:'上海工厂',c:65,o:'TPMS',loc:'shanghai'},{n:'重庆工厂',c:58,o:'底盘电子',loc:'chongqing'}],
+   wh:[{n:'广州中转仓',loc:'guangzhou',cap:'3500㎡',inv:'7天'}],
+   cust:[{n:'奔驰',p:18},{n:'宝马',p:14},{n:'小米',p:12},{n:'通用',p:10},{n:'其他',p:46}],
+   prod:['MK C1制动','TPMS胎压','HVAC热管理'],sc:{f:90,q:90,s:85,c:88},cp:'TPMS + 热管理系统',cs:'2023',cr:'A'},
+  {id:'zf',name:'采埃孚',cat:'chassis',city:'stuttgart',ctry:'德国',cap:74,risk:'mid',vol:'10%',rev:'460亿€',
+   fac:[{n:'腓特烈港',c:78,o:'变速箱/底盘',loc:'stuttgart'},{n:'上海工厂',c:70,o:'电驱动',loc:'shanghai'},{n:'沈阳工厂',c:65,o:'传动系统',loc:'shenyang'}],
+   wh:[{n:'芜湖中转仓',loc:'nanjing',cap:'2500㎡',inv:'JIT'}],
+   cust:[{n:'宝马',p:20},{n:'奥迪',p:15},{n:'Stellantis',p:14},{n:'小米',p:8},{n:'其他',p:43}],
+   prod:['8AT变速箱','电驱桥','CDC减震器'],sc:{f:88,q:91,s:74,c:86},cp:'CDC减震器',cs:'2024',cr:'B+'},
+  {id:'bastian',name:'本特勒',cat:'body',city:'stuttgart',ctry:'德国',cap:82,risk:'low',vol:'20%',rev:'95亿€',
+   fac:[{n:'帕德博恩',c:85,o:'车身件',loc:'stuttgart'},{n:'重庆工厂',c:80,o:'热成型件',loc:'chongqing'},{n:'上海工厂',c:78,o:'防撞梁',loc:'shanghai'}],
+   wh:[{n:'北京RDC',loc:'beijing',cap:'4000㎡',inv:'5天'}],
+   cust:[{n:'宝马',p:16},{n:'奔驰',p:14},{n:'小米',p:12},{n:'大众',p:11},{n:'其他',p:47}],
+   prod:['热成型B柱','防撞梁','结构件'],sc:{f:85,q:89,s:82,c:87},cp:'B柱 + 前防撞梁',cs:'2023',cr:'A'},
+  {id:'huayu',name:'华域汽车',cat:'body',city:'shanghai',ctry:'中国',cap:76,risk:'low',vol:'16%',rev:'1600亿',
+   fac:[{n:'上海总部',c:80,o:'车身/底盘',loc:'shanghai'},{n:'长春工厂',c:72,o:'车门/翼子板',loc:'changchun'},{n:'武汉工厂',c:70,o:'冲压',loc:'wuhan'}],
+   wh:[{n:'合肥中转仓',loc:'hefei',cap:'3000㎡',inv:'JIT'}],
+   cust:[{n:'上汽',p:40},{n:'小米',p:16},{n:'一汽',p:12},{n:'其他',p:32}],
+   prod:['车身冲压件','车门总成','翼子板'],sc:{f:82,q:86,s:80,c:84},cp:'车身冲压件 + 副车架',cs:'2023',cr:'A'},
+  {id:'lingyun',name:'凌云股份',cat:'body',city:'beijing',ctry:'中国',cap:70,risk:'low',vol:'8%',rev:'45亿',
+   fac:[{n:'涿州总部',c:75,o:'管件/防撞梁',loc:'beijing'},{n:'武汉工厂',c:68,o:'热成型件',loc:'wuhan'}],
+   wh:[{n:'北京VMI仓',loc:'beijing',cap:'2000㎡',inv:'VMI'}],
+   cust:[{n:'长城',p:20},{n:'小米',p:18},{n:'吉利',p:15},{n:'比亚迪',p:12},{n:'其他',p:35}],
+   prod:['热成型防撞梁','辊压门槛梁'],sc:{f:78,q:84,s:76,c:80},cp:'门槛梁 + 后防撞梁',cs:'2024',cr:'B+'},
+  {id:'yanfeng',name:'延锋',cat:'interior',city:'shanghai',ctry:'中国',cap:85,risk:'low',vol:'30%',rev:'1200亿',
+   fac:[{n:'上海总部',c:88,o:'内饰总成',loc:'shanghai'},{n:'长春工厂',c:82,o:'仪表板/门板',loc:'changchun'},{n:'武汉工厂',c:78,o:'座椅骨架',loc:'wuhan'},{n:'底特律',c:70,o:'研发',loc:'detroit'}],
+   wh:[{n:'上海中心仓',loc:'shanghai',cap:'10000㎡',inv:'3天'}],
+   cust:[{n:'上汽',p:30},{n:'小米',p:25},{n:'一汽',p:12},{n:'通用',p:8},{n:'其他',p:25}],
+   prod:['智能座舱','仪表板','门板','方向盘'],sc:{f:86,q:90,s:85,c:88},cp:'智能座舱内饰系统',cs:'2022',cr:'A+'},
+  {id:'adient',name:'安道拓',cat:'interior',city:'detroit',ctry:'美国',cap:73,risk:'mid',vol:'14%',rev:'150亿$',
+   fac:[{n:'底特律总部',c:76,o:'座椅系统',loc:'detroit'},{n:'上海工厂',c:72,o:'座椅装配',loc:'shanghai'},{n:'常熟工厂',c:70,o:'骨架/发泡',loc:'changzhou'}],
+   wh:[{n:'芜湖中转仓',loc:'nanjing',cap:'2500㎡',inv:'JIT'}],
+   cust:[{n:'福特',p:18},{n:'通用',p:15},{n:'小米',p:14},{n:'大众',p:12},{n:'其他',p:41}],
+   prod:['整椅系统','座椅骨架','电动滑轨'],sc:{f:80,q:87,s:73,c:82},cp:'前排电动座椅骨架',cs:'2023',cr:'B+'},
+  {id:'lear',name:'李尔',cat:'interior',city:'detroit',ctry:'美国',cap:68,risk:'low',vol:'8%',rev:'230亿$',
+   fac:[{n:'底特律',c:72,o:'座椅/电子',loc:'detroit'},{n:'上海工厂',c:65,o:'座椅装配',loc:'shanghai'}],
+   wh:[{n:'合肥VMI仓',loc:'hefei',cap:'2000㎡',inv:'VMI'}],
+   cust:[{n:'福特',p:22},{n:'通用',p:18},{n:'宝马',p:12},{n:'小米',p:8},{n:'其他',p:40}],
+   prod:['整椅系统','线束','座椅温控'],sc:{f:82,q:85,s:70,c:84},cp:'后排座椅 + 线束',cs:'2024',cr:'B'},
+  {id:'desay',name:'德赛西威',cat:'electronics',city:'shenzhen',ctry:'中国',cap:78,risk:'low',vol:'25%',rev:'280亿',
+   fac:[{n:'惠州总部',c:82,o:'智驾域控',loc:'guangzhou'},{n:'上海研发',c:75,o:'研发测试',loc:'shanghai'},{n:'成都工厂',c:68,o:'座舱域控',loc:'chengdu'}],
+   wh:[{n:'北京RDC',loc:'beijing',cap:'3000㎡',inv:'5天'}],
+   cust:[{n:'理想',p:22},{n:'小米',p:20},{n:'小鹏',p:16},{n:'奇瑞',p:12},{n:'其他',p:30}],
+   prod:['智驾域控','座舱域控','毫米波雷达'],sc:{f:84,q:88,s:82,c:86},cp:'智驾域控（Orin-X）',cs:'2023',cr:'A'},
+  {id:'jingwei',name:'经纬恒润',cat:'electronics',city:'beijing',ctry:'中国',cap:62,risk:'low',vol:'10%',rev:'55亿',
+   fac:[{n:'北京总部',c:68,o:'ADAS/ECU',loc:'beijing'},{n:'天津工厂',c:60,o:'电子控制',loc:'tianjin'}],
+   wh:[{n:'上海中转仓',loc:'shanghai',cap:'2000㎡',inv:'JIT'}],
+   cust:[{n:'一汽',p:18},{n:'小米',p:16},{n:'长城',p:14},{n:'比亚迪',p:12},{n:'其他',p:40}],
+   prod:['ADAS控制器','BCM','网关控制器'],sc:{f:76,q:84,s:72,c:80},cp:'BCM + 网关',cs:'2024',cr:'B+'},
+  {id:'kobo',name:'科博达',cat:'electronics',city:'shanghai',ctry:'中国',cap:72,risk:'low',vol:'8%',rev:'65亿',
+   fac:[{n:'上海总部',c:76,o:'电子控制器',loc:'shanghai'},{n:'嘉兴工厂',c:68,o:'传感器',loc:'jiaxing'}],
+   wh:[{n:'南京VMI仓',loc:'nanjing',cap:'1500㎡',inv:'VMI'}],
+   cust:[{n:'大众',p:25},{n:'宝马',p:18},{n:'小米',p:14},{n:'吉利',p:10},{n:'其他',p:33}],
+   prod:['LED驱动控制器','传感器控制器'],sc:{f:80,q:86,s:74,c:82},cp:'LED大灯控制模块',cs:'2024',cr:'B+'}
+];
+
+// ─── NAV ───
+function navTo(p){document.querySelectorAll('.topbar nav a').forEach(a=>a.classList.remove('active'));event.target.classList.add('active');showPage(p);}
+function showPage(p){document.querySelectorAll('.page').forEach(el=>el.classList.remove('active'));document.getElementById('page-'+p).classList.add('active');document.getElementById('sbNet').classList.toggle('active',p==='network');document.getElementById('sbSup').classList.toggle('active',p==='supplier');}
+function filterCat(c){curCat=c;document.querySelectorAll('.sb-item[data-cat]').forEach(b=>b.classList.toggle('active',b.dataset.cat===c));buildMap();}
+function filterView(v){curView=v;document.querySelectorAll('.filter-pill').forEach(b=>b.classList.toggle('active',b.dataset.f===v));buildMap();}
+
+// ─── MAP ───
+function buildMap(){
+  const svg=document.getElementById('mapSvg');
+  let h=`<defs>
+    <radialGradient id="og"><stop offset="0%" stop-color="#2563eb"/><stop offset="100%" stop-color="#1e40af"/></radialGradient>
+    <filter id="glow"><feGaussianBlur stdDeviation="3" result="g"/><feMerge><feMergeNode in="g"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
+    <marker id="arr" markerWidth="6" markerHeight="5" refX="5" refY="2.5" orient="auto"><path d="M0,0.5 L5,2.5 L0,4.5" fill="none" stroke-width=".8"/></marker>
+  </defs>`;
+
+  // China outline (simplified)
+  h+=`<path d="M380,60 Q420,50 460,55 L500,50 Q540,45 580,50 L620,48 Q660,45 690,55 L720,65 Q740,80 750,100 L755,130 Q750,160 740,180 L735,200 Q740,220 745,240 L740,260 Q730,280 715,295 L700,310 Q690,325 680,340 L670,360 Q665,375 660,390 L650,405 Q640,415 625,420 L605,425 Q590,430 575,425 L560,418 Q545,410 535,400 L520,390 Q505,385 490,380 L470,375 Q450,370 435,360 L420,345 Q405,335 395,320 L385,305 Q375,290 370,275 L365,255 Q360,240 355,225 L350,210 Q340,200 335,185 L330,165 Q325,145 330,130 L340,110 Q350,95 360,80 Z" fill="rgba(37,99,235,.03)" stroke="rgba(37,99,235,.12)" stroke-width="1"/>`;
+
+  // City markers (faint background dots)
+  Object.entries(CITY).forEach(([k,p])=>{
+    if(k==='beijing'||k==='shanghai'||k==='shenzhen'||k==='chengdu'||k==='wuhan'||k==='changchun'){
+      h+=`<circle cx="${p.x}" cy="${p.y}" r="3" fill="rgba(37,99,235,.15)"/>`;
+      h+=`<text x="${p.x+6}" y="${p.y+3}" font-size="7" fill="rgba(37,99,235,.25)" font-weight="500">${{beijing:'北京',shanghai:'上海',shenzhen:'深圳',chengdu:'成都',wuhan:'武汉',changchun:'长春'}[k]||k}</text>`;
+    }
+  });
+
+  // OEM factory (Xiaomi Yizhuang) - pulsing target
+  h+=`<circle cx="${OEM.x}" cy="${OEM.y}" r="28" fill="#2563eb" opacity=".04"><animate attributeName="r" values="28;38;28" dur="3s" repeatCount="indefinite"/><animate attributeName="opacity" values=".04;.01;.04" dur="3s" repeatCount="indefinite"/></circle>`;
+  h+=`<circle cx="${OEM.x}" cy="${OEM.y}" r="8" fill="url(#og)" filter="url(#glow)"/>`;
+  h+=`<text x="${OEM.x}" y="${OEM.y-14}" text-anchor="middle" font-size="9" font-weight="700" fill="#2563eb">🏭 小米亦庄工厂</text>`;
+
+  // Supplier nodes
+  tier1.forEach(s=>{
+    const vis=curCat==='all'||s.cat===curCat;
+    const cityPos=CITY[s.city];
+    if(!cityPos)return;
+
+    // Distance filter
+    const d=dist(cityPos);
+    if(curView==='near'&&d>500)return;
+    if(curView==='far'&&d<=500)return;
+    if(curView==='risk'&&s.risk==='low')return;
+
+    const op=vis?1:.15;
+    const clr=C[s.cat];
+    const cc=s.cap>=80?'var(--green)':s.cap>=60?'var(--orange)':'var(--red)';
+    const isNear=d<=500;
+
+    // Distance line (dashed)
+    h+=`<line x1="${OEM.x}" y1="${OEM.y}" x2="${cityPos.x}" y2="${cityPos.y}" stroke="${clr}" stroke-width="${isNear?1.2:.7}" stroke-dasharray="${isNear?'4 3':'6 4'}" opacity="${op*.2}"/>`;
+
+    // Distance label
+    const mx=(OEM.x+cityPos.x)/2,my=(OEM.y+cityPos.y)/2;
+    if(vis&&d>100){
+      h+=`<text x="${mx}" y="${my-4}" text-anchor="middle" font-size="7" fill="${clr}" opacity="${op*.5}" font-weight="600">${d}km</text>`;
+    }
+
+    // Node
+    const r=isNear?12:9;
+    h+=`<g class="net-node" opacity="${op}" style="cursor:pointer" onmouseenter="showTip(event,'${s.id}')" onmouseleave="hideTip()" onclick="openSupplier('${s.id}')">`;
+
+    // Capacity ring (outer ring shows capacity)
+    const capArc=s.cap/100*2*Math.PI*r;
+    h+=`<circle cx="${cityPos.x}" cy="${cityPos.y}" r="${r+3}" fill="none" stroke="${cc}" stroke-width="2" opacity="${op*.3}" stroke-dasharray="${capArc} ${2*Math.PI*(r+3)-capArc}" stroke-dashoffset="${2*Math.PI*(r+3)/4}" transform="rotate(-90 ${cityPos.x} ${cityPos.y})"/>`;
+
+    h+=`<circle cx="${cityPos.x}" cy="${cityPos.y}" r="${r}" fill="${clr}" opacity=".15" stroke="${clr}" stroke-width="1.5"/>`;
+    h+=`<circle cx="${cityPos.x}" cy="${cityPos.y}" r="${r-4}" fill="${clr}" opacity=".85"/>`;
+
+    // Risk dot
+    h+=`<circle cx="${cityPos.x+r}" cy="${cityPos.y-r}" r="3" fill="${RC[s.risk]}" stroke="#fff" stroke-width="1.5"/>`;
+
+    // Name + capacity
+    const nm=s.name.length>5?s.name.slice(0,5)+'…':s.name;
+    const labelY=cityPos.y+r+14;
+    h+=`<text x="${cityPos.x}" y="${labelY}" text-anchor="middle" font-size="9" font-weight="700" fill="var(--text)">${nm}</text>`;
+    h+=`<text x="${cityPos.x}" y="${labelY+11}" text-anchor="middle" font-size="7" fill="var(--tm)">${s.cap}% · ${d}km</text>`;
+    h+=`</g>`;
+  });
+
+  // Legend
+  h+=`<g transform="translate(20,${520-55})">`;
+  h+=`<rect x="-8" y="-12" width="200" height="55" rx="6" fill="var(--card)" opacity=".9" stroke="var(--border)" stroke-width=".5"/>`;
+  Object.entries(CN).forEach(([k,v],i)=>{h+=`<circle cx="4" cy="${i*10}" r="3.5" fill="${C[k]}" opacity=".8"/><text x="12" y="${i*10+3}" font-size="8" font-weight="600" fill="var(--t2)">${v}</text>`;});
+  h+=`<g transform="translate(70,0)"><circle cx="4" cy="0" r="3" fill="var(--green)"/><text x="10" y="3" font-size="7" fill="var(--tm)">&lt;500km</text></g>`;
+  h+=`<g transform="translate(70,10)"><circle cx="4" cy="0" r="2" fill="var(--tm)"/><text x="10" y="3" font-size="7" fill="var(--tm)">&gt;500km</text></g>`;
+  h+=`<g transform="translate(70,20)"><text font-size="7" fill="var(--tm)">○ 产能环</text></g>`;
+  h+=`<g transform="translate(130,0)"><circle cx="4" cy="0" r="3" fill="var(--green)"/><text x="10" y="3" font-size="7" fill="var(--tm)">低风险</text></g>`;
+  h+=`<g transform="translate(130,10)"><circle cx="4" cy="0" r="3" fill="var(--orange)"/><text x="10" y="3" font-size="7" fill="var(--tm)">中风险</text></g>`;
+  h+=`<g transform="translate(130,20)"><circle cx="4" cy="0" r="3" fill="var(--red)"/><text x="10" y="3" font-size="7" fill="var(--tm)">高风险</text></g>`;
+  h+=`</g>`;
+
+  svg.innerHTML=h;
+  buildCapSidebar();
+}
+
+function buildCapSidebar(){
+  const list=tier1.filter(s=>curCat==='all'||s.cat===curCat).sort((a,b)=>b.cap-a.cap);
+  const el=document.getElementById('capSidebar');
+  el.innerHTML=list.map(s=>{
+    const cc=s.cap>=80?'#4ade80':s.cap>=60?'#fbbf24':'#f87171';
+    const d=dist(CITY[s.city]);
+    return `<div class="cap-row" style="cursor:pointer" onclick="openSupplier('${s.id}')">
+      <span class="cd" style="background:${C[s.cat]}"></span>
+      <span class="cn">${s.name.length>4?s.name.slice(0,4)+'…':s.name}</span>
+      <div class="cap-bar-sb"><div class="cap-bar-fill-sb" style="width:${s.cap}%;background:${cc}"></div></div>
+      <span class="cv" style="color:${cc}">${s.cap}%</span>
+    </div>`;
+  }).join('');
+}
+
+// ─── TOOLTIP ───
+function showTip(e,id){
+  const s=tier1.find(x=>x.id===id);if(!s)return;
+  const rl={low:'低风险',mid:'中风险',high:'高风险'}[s.risk];
+  const cc=s.cap>=80?'var(--green)':s.cap>=60?'var(--orange)':'var(--red)';
+  const d=dist(CITY[s.city]);
+  const t=document.getElementById('tip');
+  t.innerHTML=`<div class="tn" style="color:${C[s.cat]}">${s.name}</div>
+    <div class="tc">${CN[s.cat]} · ${s.ctry} · 距亦庄 ${d}km</div>
+    <div class="tr"><span class="tl">产能利用率</span><span class="tv" style="color:${cc}">${s.cap}%</span></div>
+    <div class="tb"><div class="tbf" style="width:${s.cap}%;background:${cc}"></div></div>
+    <div class="tr"><span class="tl">供货占比</span><span class="tv">${s.vol}</span></div>
+    <div class="tr"><span class="tl">风险等级</span><span class="tv" style="color:${RC[s.risk]}">${rl}</span></div>
+    <div class="tr"><span class="tl">年营收</span><span class="tv">${s.rev}</span></div>
+    <div class="tr"><span class="tl">工厂数</span><span class="tv">${s.fac.length} 座</span></div>
+    <div style="margin-top:6px;font-size:9px;color:var(--tm);text-align:center">点击查看详情 →</div>`;
+  t.classList.add('show');moveTip(e);
+}
+function moveTip(e){const t=document.getElementById('tip');let x=e.clientX+14,y=e.clientY+14;if(x+220>innerWidth)x=e.clientX-230;if(y+200>innerHeight)y=e.clientY-210;t.style.left=x+'px';t.style.top=y+'px';}
+function hideTip(){document.getElementById('tip').classList.remove('show');}
+document.addEventListener('mousemove',e=>{if(document.getElementById('tip').classList.contains('show'))moveTip(e);});
+
+// ─── SUPPLIER DETAIL ───
+function openSupplier(id){
+  const s=tier1.find(x=>x.id===id);if(!s)return;hideTip();
+  showPage('supplier');
+  const color=C[s.cat];
+  const rl={low:'低风险 ✅',mid:'中风险 ⚠️',high:'高风险 🔴'}[s.risk];
+  const d=dist(CITY[s.city]);
+  document.getElementById('spTitle').innerHTML=`<span style="color:${color}">${s.name}</span>`;
+  document.getElementById('spMeta').innerHTML=`<span>📍 距亦庄 ${d}km</span><span>🏭 ${s.fac.length} 工厂</span><span>📦 ${s.wh.length} 仓库</span><span>💰 ${s.rev}</span>`;
+
+  const allN=[...s.fac,...s.wh];
+  const nodeHtml=allN.map(n=>{
+    const isW=!!n.inv;const cp=CITY[n.loc]||CITY[s.city];
+    return `<div class="scn-p" style="left:${cp.x/9}%;top:${cp.y/5.2}%"><div class="scn-pulse" style="border-color:${color}"></div><div class="scn-d ${isW?'wh':''}" style="background:${color}${isW?';opacity:.6':''}"></div><div class="scn-lb">${isW?'📦':'🏭'} ${n.n}<small>${isW?n.inv:n.o}</small></div></div>`;
+  }).join('');
+
+  let lines='';
+  s.wh.forEach(w=>{
+    const wp=CITY[w.loc]||CITY[s.city];
+    const cf=s.fac.reduce((b,f)=>{const fp=CITY[f.loc]||CITY[s.city];const dd=Math.hypot(fp.x-wp.x,fp.y-wp.y);return dd<b.d?{d:dd,f}:b},{d:Infinity,f:null});
+    if(cf.f){const fp=CITY[cf.f.loc]||CITY[s.city];
+      lines+=`<line x1="${fp.x/9}%" y1="${fp.y/5.2}%" x2="${wp.x/9}%" y2="${wp.y/5.2}%" stroke="${color}" stroke-width="1" stroke-dasharray="4 3" opacity=".3"/>`;
+    }
+  });
+  s.fac.forEach(f=>{const fp=CITY[f.loc]||CITY[s.city];
+    lines+=`<line x1="50%" y1="50%" x2="${fp.x/9}%" y2="${fp.y/5.2}%" stroke="${color}" stroke-width="1" opacity=".15" stroke-dasharray="6 4"/>`;
+  });
+
+  const capHtml=allN.map(n=>{
+    const c=n.c||70;const cc=c>=80?'var(--green)':c>=60?'var(--orange)':'var(--red)';
+    return `<div class="ci"><div class="ci-top"><span class="ci-name">${n.inv?'📦':'🏭'} ${n.n}</span><span class="ci-pct" style="color:${cc}">${c}%</span></div><div class="ci-bar"><div class="ci-fill" style="width:${c}%;background:${cc}"></div></div><div class="ci-det">${n.inv||n.o}</div></div>`;
+  }).join('');
+
+  const cc2=['#2563eb','#7c3aed','#059669','#d97706','#9ca3af'];
+  const custHtml=s.cust.map((c,i)=>`<div class="cr"><span class="cr-dot" style="background:${cc2[i]}"></span><span class="cr-name">${c.n}</span><div class="cr-bw"><div class="cr-bf" style="width:${c.p}%;background:${cc2[i]}"></div></div><span class="cr-p">${c.p}%</span></div>`).join('');
+
+  const riskHtml=[{l:'财务',v:s.sc.f},{l:'质量',v:s.sc.q},{l:'供应',v:s.sc.s},{l:'合规',v:s.sc.c}].map(r=>{
+    const c=r.v>=85?'var(--green)':r.v>=70?'var(--orange)':'var(--red)';
+    const circ=2*Math.PI*18;const off=circ*(1-r.v/100);
+    return `<div class="ri"><div class="rr"><svg viewBox="0 0 44 44"><circle class="rbg" cx="22" cy="22" r="18"/><circle class="rfg" cx="22" cy="22" r="18" stroke="${c}" stroke-dasharray="${circ}" stroke-dashoffset="${off}"/></svg><div class="rv" style="color:${c}">${r.v}</div></div><div class="rl">${r.l}</div></div>`;
+  }).join('');
+
+  document.getElementById('spContent').innerHTML=`
+    <div class="sp-grid">
+      <div class="sp-card sp-full">
+        <div class="sp-head"><div class="ico" style="background:${color}">🌐</div><h3>供应链网络</h3><span style="font-size:10px;color:var(--tm);margin-left:auto">🏭 工厂 · 📦 仓库 · --- 物流</span></div>
+        <div class="sp-body"><div class="scn"><div class="grid"></div><svg style="position:absolute;inset:0;width:100%;height:100%;z-index:1;pointer-events:none">${lines}</svg>${nodeHtml}</div></div>
+      </div>
+      <div class="sp-card"><div class="sp-head"><div class="ico" style="background:var(--orange)">📊</div><h3>产能利用率</h3></div><div class="sp-body">${capHtml}</div></div>
+      <div class="sp-card"><div class="sp-head"><div class="ico" style="background:var(--purple)">🏢</div><h3>客户组合</h3></div><div class="sp-body">${custHtml}</div></div>
+      <div class="sp-card"><div class="sp-head"><div class="ico" style="background:var(--red)">🛡️</div><h3>风险评估</h3></div><div class="sp-body"><div class="rg">${riskHtml}</div></div></div>
+      <div class="sp-card"><div class="sp-head"><div class="ico" style="background:var(--teal)">📦</div><h3>产品组合</h3></div><div class="sp-body"><div class="pg">${s.prod.map(p=>`<span class="pc">${p}</span>`).join('')}</div></div></div>
+      <div class="sp-card sp-full"><div class="sp-head"><div class="ico" style="background:var(--green)">🤝</div><h3>与小米的合作</h3></div><div class="sp-body"><div class="cg">
+        <div class="cs"><div class="csv" style="color:${color}">${s.cr}</div><div class="csl">绩效评级</div></div>
+        <div class="cs"><div class="csv" style="color:var(--blue)">${s.vol}</div><div class="csl">供货占比</div></div>
+        <div class="cs"><div class="csv" style="color:var(--green)">${s.cs}</div><div class="csl">合作起始</div></div>
+        <div class="cs"><div class="csv" style="color:var(--t2)">${d}km</div><div class="csl">距亦庄</div></div>
+      </div><div style="margin-top:10px;padding:8px 12px;background:var(--bg2);border-radius:6px;font-size:11px;"><strong>供货范围：</strong>${s.cp}</div></div></div>
+    </div>`;
+}
+
+buildMap();
+</script>
+</body>
+</html>

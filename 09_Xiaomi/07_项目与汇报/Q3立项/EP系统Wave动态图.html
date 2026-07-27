@@ -1,0 +1,281 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>EP 系统级别建设目标 · Wave 动态图</title>
+<style>
+:root{
+  --ink:#1f2430; --gray:#9aa1ac; --line:#d2d6de; --linel:#e3e6ea;
+  --blue:#2f6fd6; --blue-bg:#eaf1fb;
+  --green:#1f9d4d; --green-bg:#eaf6ee;
+  --red:#e3564a;
+  --subbg:#f7f8fa;
+}
+*{margin:0;padding:0;box-sizing:border-box;}
+body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif;
+  background:#fff;color:var(--ink);line-height:1.45;font-size:13px;-webkit-font-smoothing:antialiased;}
+.wrap{max-width:1480px;margin:0 auto;padding:22px 22px 50px;}
+
+/* 控制条 */
+.ctrl{margin-bottom:18px;display:flex;flex-wrap:wrap;gap:7px;align-items:center;}
+.ctrl .wbtn{font-size:12px;font-weight:700;border:1.5px solid var(--line);border-radius:18px;padding:5px 12px;
+  cursor:pointer;background:#fff;color:var(--ink);user-select:none;transition:.15s;}
+.ctrl .wbtn .dot{display:inline-block;width:9px;height:9px;border-radius:50%;margin-right:5px;vertical-align:middle;}
+.ctrl .wbtn:hover{transform:translateY(-1px);}
+.ctrl .wbtn.active{background:var(--ink);color:#fff;border-color:var(--ink);}
+.ctrl .act{margin-left:auto;display:flex;gap:7px;}
+.ctrl .act button{font-size:12px;font-weight:700;border:1.5px solid var(--line);background:#fff;color:var(--ink);
+  border-radius:8px;padding:5px 13px;cursor:pointer;}
+.ctrl .act button.play{background:var(--blue);color:#fff;border-color:var(--blue);}
+
+/* 布局 */
+.diagram{display:grid;grid-template-columns:182px 1fr;gap:14px;align-items:start;}
+.side{display:flex;flex-direction:column;gap:14px;}
+.main{display:grid;gap:13px;
+  grid-template-columns:1.05fr 1.05fr 0.9fr 0.96fr 0.96fr 0.74fr;
+  grid-template-areas:
+    "sup sup sup sup  sup  sup"
+    "w4  w4  inq price con  fut"
+    "cat cat cat price cost cost";}
+
+/* 波次容器 */
+.wave{border-radius:12px;padding:12px 12px 8px;transition:opacity .35s, filter .35s, box-shadow .2s;}
+.wave.blue{background:var(--blue-bg);}
+.wave.green{background:var(--green-bg);}
+.wave.dashed{border:1.5px dashed #a9d7b8;background:var(--green-bg);}
+.wlabel{text-align:center;font-weight:800;font-size:14px;margin-top:8px;letter-spacing:.3px;}
+.wave.blue .wlabel{color:var(--blue);} .wave.green .wlabel,.wave.dashed .wlabel{color:var(--green);}
+.wave .wlabel.top{margin:0 0 10px;}
+.gtitle{text-align:center;font-weight:800;font-size:14px;margin-bottom:9px;}
+
+/* 模块盒 */
+.mod{background:#fff;border:1.5px solid var(--line);border-radius:9px;overflow:hidden;}
+.mt{text-align:center;font-weight:700;font-size:13px;padding:7px 6px;}
+.mt.red{color:var(--red);}
+.sub{margin:0 7px 7px;padding:7px 6px;background:var(--subbg);border:1px solid var(--linel);border-radius:6px;
+  text-align:center;color:var(--gray);font-size:11.5px;line-height:1.7;}
+.modlist{display:flex;flex-direction:column;gap:8px;}
+.modrow{display:flex;gap:9px;}
+.modrow .mod{flex:1;}
+.cols2{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
+
+/* 协同（左侧，无波次色） */
+.coll{background:#fff;border:1.5px solid var(--line);border-radius:10px;padding:10px;transition:opacity .35s,filter .35s;}
+.coll .ch{text-align:center;font-weight:800;font-size:13.5px;margin-bottom:9px;color:#4a5160;}
+.coll .mod{margin-bottom:8px;} .coll .mod:last-child{margin-bottom:0;}
+
+/* grid 区域指派 */
+.sup{grid-area:sup;} .w4{grid-area:w4;} .inq{grid-area:inq;}
+.price{grid-area:price;} .con{grid-area:con;} .fut{grid-area:fut;}
+.cat{grid-area:cat;} .cost{grid-area:cost;}
+
+/* 高亮态 */
+.diagram.filtering .wave,.diagram.filtering .coll{opacity:.22;filter:grayscale(.85);}
+.diagram.filtering .wave.hit,.diagram.filtering .coll.hit{opacity:1;filter:none;box-shadow:0 6px 20px rgba(60,52,42,.16);}
+.wave.flash,.coll.flash{animation:fl .55s ease;}
+@keyframes fl{0%{transform:scale(1);}45%{transform:scale(1.015);}100%{transform:scale(1);}}
+
+@media (max-width:1080px){.diagram{grid-template-columns:1fr;}
+  .main{grid-template-columns:1fr 1fr;grid-template-areas:"sup sup""w4 w4""inq price""con fut""cat cat""cost cost";}}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <div class="ctrl" id="ctrl">
+    <span class="wbtn active" data-f="all">全部</span>
+    <span class="wbtn" data-f="h1w1"><span class="dot" style="background:var(--green)"></span>26 H1 W1</span>
+    <span class="wbtn" data-f="h1w2"><span class="dot" style="background:var(--green)"></span>26 H1 W2</span>
+    <span class="wbtn" data-f="h1w3"><span class="dot" style="background:var(--green)"></span>26 H1 W3</span>
+    <span class="wbtn" data-f="h1w4"><span class="dot" style="background:var(--green)"></span>26 H1 W4</span>
+    <span class="wbtn" data-f="h2w1"><span class="dot" style="background:var(--blue)"></span>26 H2 W1</span>
+    <span class="wbtn" data-f="h2w23"><span class="dot" style="background:var(--blue)"></span>26 H2 W2&3</span>
+    <span class="wbtn" data-f="h2w4"><span class="dot" style="background:var(--blue)"></span>26 H2 W4</span>
+    <span class="wbtn" data-f="h2w5"><span class="dot" style="background:var(--blue)"></span>26 H2 W5</span>
+    <span class="wbtn" data-f="co"><span class="dot" style="background:#9aa1ac"></span>协同</span>
+    <div class="act">
+      <button class="play" id="play">▶ 按时间播放</button>
+      <button id="reset">重置</button>
+    </div>
+  </div>
+
+  <div class="diagram" id="diagram">
+
+    <!-- 左侧 协同 -->
+    <div class="side">
+      <div class="coll" data-w="co">
+        <div class="ch">工程协同</div>
+        <div class="mod"><div class="mt">SOR管理</div><div class="sub">SOR0管理<br>SOR1管理<br>售后SOR管理</div></div>
+        <div class="mod"><div class="mt">ESI管理</div></div>
+        <div class="mod"><div class="mt">研发文档发布单</div></div>
+      </div>
+      <div class="coll" data-w="co">
+        <div class="ch">物流协同</div>
+        <div class="mod"><div class="mt">物流价变更申请</div><div class="sub">量产物流价变更<br>售后物流价变更</div></div>
+        <div class="mod"><div class="mt">物流价格确认</div></div>
+      </div>
+      <div class="coll" data-w="co">
+        <div class="ch">质量协同</div>
+        <div class="mod"><div class="mt">PPA评估</div></div>
+        <div class="mod"><div class="mt">PPAP</div></div>
+        <div class="mod"><div class="mt">APQP</div></div>
+      </div>
+    </div>
+
+    <!-- 右侧 主区 -->
+    <div class="main">
+
+      <!-- 供应商生命周期 · 26 H2 Wave 5 -->
+      <div class="wave blue sup" data-w="h2w5">
+        <div class="wlabel top">26 H2 Wave 5</div>
+        <div class="gtitle">供应商生命周期管理</div>
+        <div class="modrow">
+          <div class="mod"><div class="mt">供应商信息</div><div class="sub">供应商注册<br>供应商信息变更<br>制造地管理</div></div>
+          <div class="mod"><div class="mt">供应商准入</div><div class="sub">质量准入评估<br>工程准入评估<br>财务评估</div></div>
+          <div class="mod"><div class="mt red">供应商绩效</div><div class="sub">绩效评估模板<br>绩效评估任务<br>绩效评估结果</div></div>
+          <div class="mod"><div class="mt red">供应商退出</div><div class="sub">供应商退出<br>供应商黑名单</div></div>
+          <div class="mod"><div class="mt red">供应商风险管理</div><div class="sub">供应商风险地图<br>供应商风险事件<br>供应商风险预警</div></div>
+          <div class="mod"><div class="mt">供应商账期</div><div class="sub">标准账期维护<br>非标账期申请</div></div>
+          <div class="mod"><div class="mt red">供应商360</div><div class="sub">合作概况<br>分层分级、标签<br>历史评价</div></div>
+        </div>
+      </div>
+
+      <!-- 采购项目管理 + 采购任务管理 · 26 H2 Wave 4 -->
+      <div class="wave blue w4" data-w="h2w4">
+        <div class="cols2">
+          <div class="mod">
+            <div class="mt">采购项目管理</div>
+            <div class="modlist" style="padding:0 7px 7px;">
+              <div class="mod"><div class="mt">采购项目维护</div></div>
+              <div class="mod"><div class="mt">项目团队管理</div></div>
+              <div class="mod"><div class="mt">采购件清单管理</div></div>
+              <div class="mod"><div class="mt">采购计划管理</div></div>
+              <div class="mod"><div class="mt">采购进度管理</div></div>
+              <div class="mod"><div class="mt">量纲管理</div></div>
+            </div>
+          </div>
+          <div class="mod">
+            <div class="mt">采购任务管理</div>
+            <div class="modlist" style="padding:0 7px 7px;">
+              <div class="mod"><div class="mt">寻源任务</div><div class="sub">SOR0任务<br>SOR1任务<br>ESI任务<br>售后SOR任务<br>售后SWO任务</div></div>
+              <div class="mod"><div class="mt">定价任务</div><div class="sub">设计变更定价任务<br>颜色件定价任务<br>量产物流变更定价<br>售后物流变更定价</div></div>
+            </div>
+          </div>
+        </div>
+        <div class="wlabel">26 H2 Wave 4</div>
+      </div>
+
+      <!-- 询报价管理 · 26 H1 Wave 2 -->
+      <div class="wave green inq" data-w="h1w2">
+        <div class="mod">
+          <div class="mt">询报价管理</div>
+          <div class="modlist" style="padding:0 7px 7px;">
+            <div class="mod"><div class="mt">询报价</div><div class="sub">长清单评审<br>供应商预选<br>询报价</div></div>
+            <div class="mod"><div class="mt red">比价</div></div>
+            <div class="mod"><div class="mt red">定点上会</div></div>
+            <div class="mod"><div class="mt red">产能收集</div></div>
+          </div>
+        </div>
+        <div class="wlabel">26 H1 Wave 2</div>
+      </div>
+
+      <!-- 价格中心 · 26 H1 Wave 4 -->
+      <div class="wave green price" data-w="h1w4">
+        <div class="mod">
+          <div class="mt">价格中心</div>
+          <div class="modlist" style="padding:0 7px 7px;">
+            <div class="mod"><div class="mt">价格台账</div><div class="sub">量产价格<br>售后价格<br>样件价格<br>非量产样件</div></div>
+            <div class="mod"><div class="mt red">价格变更</div><div class="sub">商务价格变更<br>大宗原材料补差<br>汇率补差<br>供应商主体切换<br>Rebate返利</div></div>
+            <div class="mod"><div class="mt red">总成价格管理</div></div>
+            <div class="mod"><div class="mt red">分摊/分期管理</div></div>
+            <div class="mod"><div class="mt">价格失效</div></div>
+          </div>
+        </div>
+        <div class="wlabel">26 H1 Wave 4</div>
+      </div>
+
+      <!-- 合同/订单管理 · 26 H2 Wave 2&3 -->
+      <div class="wave blue con" data-w="h2w23">
+        <div class="mod">
+          <div class="mt">合同/订单管理</div>
+          <div class="modlist" style="padding:0 7px 7px;">
+            <div class="mod"><div class="mt">合同模板管理</div><div class="sub">量产/售后框架<br>DB协议/三方协议<br>样件订单<br>模具/变更订单<br>研发/变更订单</div></div>
+            <div class="mod"><div class="mt">合同/订单创建</div></div>
+            <div class="mod"><div class="mt">合同/订单签署</div></div>
+            <div class="mod"><div class="mt">合同/订单归档</div></div>
+          </div>
+        </div>
+        <div class="wlabel">26 H2 Wave 2&3</div>
+      </div>
+
+      <!-- 未来规划功能 · 26 H1 Wave 1 -->
+      <div class="wave dashed fut" data-w="h1w1">
+        <div class="gtitle">未来规划功能</div>
+        <div class="modlist">
+          <div class="mod"><div class="mt">代工管理</div></div>
+          <div class="mod"><div class="mt">Tier X 管理</div></div>
+          <div class="mod"><div class="mt">海外供应链</div></div>
+          <div class="mod"><div class="mt">贵金属管理</div></div>
+          <div class="mod"><div class="mt">电子料管理</div></div>
+          <div class="mod"><div class="mt">……</div></div>
+        </div>
+        <div class="wlabel">26 H1 Wave 1</div>
+      </div>
+
+      <!-- 品类管理 · 26 H2 Wave 1 -->
+      <div class="wave blue cat" data-w="h2w1">
+        <div class="gtitle">品类管理</div>
+        <div class="modrow">
+          <div class="mod"><div class="mt red">品类创建</div></div>
+          <div class="mod"><div class="mt red">品类策略</div></div>
+          <div class="mod"><div class="mt red">品类&采购员分配</div></div>
+        </div>
+        <div class="wlabel">26 H2 Wave 1</div>
+      </div>
+
+      <!-- 成本管理 · 26 H1 Wave 3 -->
+      <div class="wave green cost" data-w="h1w3">
+        <div class="gtitle">成本管理</div>
+        <div class="modrow">
+          <div class="mod"><div class="mt red">目标价管理</div></div>
+          <div class="mod"><div class="mt red">成本核价</div></div>
+          <div class="mod"><div class="mt red">成本分析</div></div>
+        </div>
+        <div class="wlabel">26 H1 Wave 3</div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<script>
+  const diagram=document.getElementById('diagram');
+  const btns=[...document.querySelectorAll('.wbtn')];
+  const panels=[...diagram.querySelectorAll('[data-w]')];
+  const order=['h1w1','h1w2','h1w3','h1w4','h2w1','h2w23','h2w4','h2w5','co'];
+
+  function setFilter(f){
+    btns.forEach(b=>b.classList.toggle('active', b.dataset.f===f));
+    if(f==='all'){ diagram.classList.remove('filtering'); panels.forEach(p=>p.classList.remove('hit')); return; }
+    diagram.classList.add('filtering');
+    panels.forEach(p=>{
+      const hit=p.dataset.w===f;
+      p.classList.toggle('hit',hit);
+      if(hit){ p.classList.remove('flash'); void p.offsetWidth; p.classList.add('flash'); }
+    });
+  }
+  btns.forEach(b=>b.addEventListener('click',()=>{ stopPlay(); setFilter(b.dataset.f); }));
+
+  let timer=null, idx=0;
+  function stopPlay(){ if(timer){ clearInterval(timer); timer=null; document.getElementById('play').textContent='▶ 按时间播放'; } }
+  document.getElementById('play').addEventListener('click',()=>{
+    if(timer){ stopPlay(); return; }
+    document.getElementById('play').textContent='⏸ 暂停';
+    idx=0; setFilter(order[idx]);
+    timer=setInterval(()=>{ idx++; if(idx>=order.length){ stopPlay(); setFilter('all'); return; } setFilter(order[idx]); },1300);
+  });
+  document.getElementById('reset').addEventListener('click',()=>{ stopPlay(); setFilter('all'); });
+</script>
+</body>
+</html>

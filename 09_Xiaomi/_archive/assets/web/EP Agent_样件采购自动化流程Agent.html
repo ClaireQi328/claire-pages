@@ -1,0 +1,1140 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>小米汽车 - 样件采购自动化流程 Agent</title>
+<style>
+:root{
+  --p:#1677ff;--ph:#4096ff;--pl:#e6f4ff;--pa:rgba(22,119,255,.06);
+  --s:#52c41a;--sl:#f6ffed;--sa:rgba(82,196,26,.08);
+  --w:#faad14;--wl:#fffbe6;--wa:rgba(250,173,20,.08);
+  --d:#ff4d4f;--dl:#fff2f0;--da:rgba(255,77,79,.06);
+  --g50:#fafafa;--g100:#f5f5f5;--g200:#e8e8e8;--g300:#d9d9d9;
+  --g400:#bfbfbf;--g500:#8c8c8c;--g600:#595959;--g700:#434343;
+  --g800:#262626;--g900:#1f1f1f;
+  --r:10px;--rs:6px;--rl:14px;
+  --sh:0 1px 3px rgba(0,0,0,.04),0 1px 2px rgba(0,0,0,.06);
+  --shm:0 4px 12px rgba(0,0,0,.07);
+  --shl:0 8px 24px rgba(0,0,0,.09);
+  --tr:all .2s ease;
+  --nav-bg:#001529;--nav-bg-light:#002140;
+  --purple:#722ed1;--purple-l:#f9f0ff;--purple-d:#531dab;
+  --cyan:#13c2c2;--cyan-l:#e6fffb;
+}
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif;background:#f0f2f5;color:var(--g800);line-height:1.6;font-size:13px;min-height:100vh;overflow:hidden}
+
+/* ========== Top Nav ========== */
+.topnav{background:var(--nav-bg);height:48px;display:flex;align-items:center;padding:0 16px;position:fixed;top:0;left:0;right:0;z-index:1000}
+.topnav-logo{display:flex;align-items:center;gap:8px;margin-right:24px;flex-shrink:0}
+.topnav-logo .mi{width:28px;height:28px;background:linear-gradient(135deg,#ff6700,#ff4d00);border-radius:6px;display:flex;align-items:center;justify-content:center;color:#fff;font-size:12px;font-weight:700}
+.topnav-logo span{color:#fff;font-size:14px;font-weight:600;letter-spacing:.5px;white-space:nowrap}
+.topnav-menu{display:flex;align-items:center;gap:0;flex:1;overflow-x:auto;scrollbar-width:none}
+.topnav-menu::-webkit-scrollbar{display:none}
+.topnav-item{padding:0 14px;height:48px;display:flex;align-items:center;color:rgba(255,255,255,.65);font-size:13px;cursor:pointer;white-space:nowrap;transition:all .2s;position:relative}
+.topnav-item:hover{color:#fff;background:rgba(255,255,255,.08)}
+.topnav-item.active{color:#fff;background:rgba(255,255,255,.12)}
+.topnav-item.active::after{content:'';position:absolute;bottom:0;left:8px;right:8px;height:2px;background:var(--p);border-radius:2px 2px 0 0}
+.topnav-right{display:flex;align-items:center;gap:12px;margin-left:auto;flex-shrink:0;padding-left:16px}
+.topnav-right .icon{width:32px;height:32px;border-radius:50%;display:flex;align-items:center;justify-content:center;color:rgba(255,255,255,.65);cursor:pointer;transition:all .2s;font-size:14px}
+.topnav-right .icon:hover{background:rgba(255,255,255,.1);color:#fff}
+.topnav-user{display:flex;align-items:center;gap:6px;color:rgba(255,255,255,.85);font-size:12px;cursor:pointer}
+.topnav-user:hover{color:#fff}
+.topnav-avatar{width:28px;height:28px;border-radius:50%;background:linear-gradient(135deg,var(--p),#4096ff);display:flex;align-items:center;justify-content:center;color:#fff;font-size:11px;font-weight:600}
+
+/* ========== Layout ========== */
+.srm-layout{display:flex;height:calc(100vh - 48px);margin-top:48px}
+.sidebar{width:240px;background:#fff;border-right:1px solid var(--g200);display:flex;flex-direction:column;flex-shrink:0;overflow:hidden}
+.sidebar-hdr{padding:16px;border-bottom:1px solid var(--g100)}
+.sidebar-hdr h3{font-size:14px;font-weight:700;color:var(--g900);margin-bottom:4px}
+.sidebar-hdr .count{font-size:12px;color:var(--g500)}
+.sidebar-hdr .count strong{color:var(--p);font-weight:600}
+.sp-menu{flex:1;overflow-y:auto;padding:8px 0}
+.sp-menu-item{display:flex;align-items:center;gap:10px;padding:11px 20px;font-size:13px;color:var(--g600);cursor:pointer;transition:all .15s;border-left:3px solid transparent;position:relative}
+.sp-menu-item:hover{color:var(--p);background:var(--pl)}
+.sp-menu-item.active{color:var(--p);background:var(--pl);font-weight:600;border-left-color:var(--p)}
+.sp-menu-item .mi-icon{width:20px;height:20px;border-radius:4px;display:flex;align-items:center;justify-content:center;font-size:12px;flex-shrink:0}
+.sp-menu-item .mi-icon.blue{background:var(--pl);color:var(--p)}
+.sp-menu-item .mi-icon.green{background:var(--sl);color:var(--s)}
+.sp-menu-item .mi-icon.orange{background:var(--wl);color:#d46b08}
+.sp-menu-item .mi-icon.purple{background:var(--purple-l);color:var(--purple)}
+.sp-menu-item .mi-icon.cyan{background:var(--cyan-l);color:var(--cyan)}
+.sp-menu-item .mi-badge{margin-left:auto;font-size:10px;padding:1px 6px;border-radius:8px;background:var(--g100);color:var(--g500);font-weight:500}
+.sp-menu-item.active .mi-badge{background:var(--pl);color:var(--p)}
+
+/* ========== Main Content ========== */
+.main-content{flex:1;overflow-y:auto;background:#f0f2f5;padding:0}
+.content-header{background:#fff;padding:16px 24px;border-bottom:1px solid var(--g200)}
+.content-title{font-size:16px;font-weight:700;color:var(--g900);margin-bottom:12px;display:flex;align-items:center;gap:8px}
+.content-tabs{display:flex;gap:0;margin-bottom:12px}
+.ctab{padding:8px 16px;font-size:13px;color:var(--g600);cursor:pointer;border-bottom:2px solid transparent;transition:var(--tr);display:flex;align-items:center;gap:6px}
+.ctab:hover{color:var(--p)}
+.ctab.active{color:var(--p);font-weight:600;border-bottom-color:var(--p)}
+.ctab .badge{font-size:10px;padding:1px 6px;border-radius:8px;background:var(--d);color:#fff;font-weight:600;min-width:18px;text-align:center}
+
+/* ========== Agent Cards ========== */
+.agent-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;padding:16px 24px}
+.agent-card{background:#fff;border:1px solid var(--g200);border-radius:var(--r);padding:0;transition:var(--tr);display:flex;flex-direction:column;cursor:pointer;overflow:hidden}
+.agent-card:hover{border-color:var(--p);box-shadow:var(--shm);transform:translateY(-2px)}
+.agent-card .ac-hdr{display:flex;align-items:center;justify-content:space-between;padding:16px 18px 12px}
+.agent-card .ac-icon{width:42px;height:42px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:20px;flex-shrink:0}
+.agent-card .ac-icon.blue{background:linear-gradient(135deg,var(--pl),#d6e8ff);color:var(--p)}
+.agent-card .ac-icon.green{background:linear-gradient(135deg,var(--sl),#d9f7be);color:var(--s)}
+.agent-card .ac-icon.orange{background:linear-gradient(135deg,var(--wl),#ffe58f);color:#d46b08}
+.agent-card .ac-icon.purple{background:linear-gradient(135deg,var(--purple-l),#efdbff);color:var(--purple)}
+.agent-card .ac-icon.cyan{background:linear-gradient(135deg,var(--cyan-l),#b5f5ec);color:var(--cyan)}
+.agent-card .ac-icon.red{background:linear-gradient(135deg,var(--dl),#ffccc7);color:var(--d)}
+.agent-card .ac-status{display:flex;align-items:center;gap:5px;font-size:11px;font-weight:500}
+.agent-card .ac-status .dot{width:7px;height:7px;border-radius:50%;flex-shrink:0}
+.agent-card .ac-status.running .dot{background:var(--p);animation:pulse 2s infinite}
+.agent-card .ac-status.running{color:var(--p)}
+.agent-card .ac-status.idle .dot{background:var(--g300)}
+.agent-card .ac-status.idle{color:var(--g500)}
+.agent-card .ac-status.done .dot{background:var(--s)}
+.agent-card .ac-status.done{color:var(--s)}
+.agent-card .ac-status.error .dot{background:var(--d)}
+.agent-card .ac-status.error{color:var(--d)}
+.agent-card .ac-body{padding:0 18px 14px;flex:1}
+.agent-card .ac-name{font-size:15px;font-weight:700;color:var(--g900);margin-bottom:4px}
+.agent-card .ac-desc{font-size:12px;color:var(--g500);line-height:1.5;margin-bottom:12px}
+.agent-card .ac-meta{display:flex;flex-wrap:wrap;gap:6px}
+.agent-card .ac-tag{font-size:10px;padding:2px 8px;border-radius:4px;font-weight:500;white-space:nowrap}
+.agent-card .ac-tag.blue{background:var(--pl);color:var(--p)}
+.agent-card .ac-tag.green{background:var(--sl);color:var(--s)}
+.agent-card .ac-tag.orange{background:var(--wl);color:#d46b08}
+.agent-card .ac-tag.purple{background:var(--purple-l);color:var(--purple)}
+.agent-card .ac-tag.cyan{background:var(--cyan-l);color:var(--cyan)}
+.agent-card .ac-tag.gray{background:var(--g100);color:var(--g600)}
+.agent-card .ac-footer{display:flex;align-items:center;justify-content:space-between;padding:10px 18px;border-top:1px solid var(--g100);background:var(--g50)}
+.agent-card .ac-footer .link{font-size:12px;color:var(--p);cursor:pointer;text-decoration:none}
+.agent-card .ac-footer .link:hover{text-decoration:underline}
+.agent-card .ac-footer .metric{font-size:11px;color:var(--g500);display:flex;align-items:center;gap:4px}
+.agent-card .ac-footer .metric strong{color:var(--g800);font-weight:600}
+
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.5}}
+
+/* ========== Workflow Panel ========== */
+.workflow-panel{background:#fff;border-radius:var(--r);border:1px solid var(--g200);margin:0 24px 16px;overflow:hidden}
+.wf-hdr{display:flex;align-items:center;justify-content:space-between;padding:14px 20px;border-bottom:1px solid var(--g100);background:linear-gradient(180deg,#fafafa,#f8f8f8)}
+.wf-title{font-size:14px;font-weight:700;color:var(--g900);display:flex;align-items:center;gap:8px}
+.wf-title::before{content:'';width:3px;height:16px;border-radius:2px;background:var(--p);flex-shrink:0}
+
+/* ========== Flow Timeline ========== */
+.flow-timeline{padding:24px 20px;display:flex;align-items:flex-start;gap:0;overflow-x:auto}
+.flow-step{display:flex;flex-direction:column;align-items:center;min-width:140px;position:relative;flex-shrink:0}
+.flow-step .fs-icon{width:48px;height:48px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:20px;border:2px solid var(--g300);background:#fff;transition:var(--tr);position:relative;z-index:2}
+.flow-step .fs-icon.active{border-color:var(--p);background:var(--pl);box-shadow:0 0 0 4px rgba(22,119,255,.1)}
+.flow-step .fs-icon.done{border-color:var(--s);background:var(--sl)}
+.flow-step .fs-icon.pending{border-color:var(--g300);background:var(--g50)}
+.flow-step .fs-icon.error{border-color:var(--d);background:var(--dl)}
+.flow-step .fs-label{font-size:12px;font-weight:600;color:var(--g800);margin-top:10px;text-align:center;white-space:nowrap}
+.flow-step .fs-sub{font-size:11px;color:var(--g500);margin-top:3px;text-align:center}
+.flow-step .fs-agent{font-size:10px;color:var(--p);margin-top:4px;background:var(--pl);padding:2px 8px;border-radius:10px;white-space:nowrap}
+.flow-connector{width:60px;height:2px;background:var(--g300);margin-top:24px;flex-shrink:0;position:relative}
+.flow-connector.done{background:var(--s)}
+.flow-connector.active{background:linear-gradient(90deg,var(--s),var(--p));animation:flowPulse 2s infinite}
+.flow-connector::after{content:'>';position:absolute;right:-6px;top:-7px;color:var(--g400);font-size:12px}
+.flow-connector.done::after{color:var(--s)}
+.flow-connector.active::after{color:var(--p)}
+@keyframes flowPulse{0%,100%{opacity:1}50%{opacity:.6}}
+
+/* ========== System Integration ========== */
+.sys-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;padding:16px 24px}
+.sys-card{background:#fff;border:1px solid var(--g200);border-radius:var(--r);overflow:hidden;transition:var(--tr)}
+.sys-card:hover{border-color:var(--p);box-shadow:var(--shm)}
+.sys-card .sc-hdr{padding:14px 18px;border-bottom:1px solid var(--g100);display:flex;align-items:center;gap:10px}
+.sys-card .sc-icon{width:36px;height:36px;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:16px;flex-shrink:0}
+.sys-card .sc-icon.blue{background:var(--pl);color:var(--p)}
+.sys-card .sc-icon.green{background:var(--sl);color:var(--s)}
+.sys-card .sc-icon.purple{background:var(--purple-l);color:var(--purple)}
+.sys-card .sc-name{font-size:14px;font-weight:700;color:var(--g900)}
+.sys-card .sc-ver{font-size:11px;color:var(--g500)}
+.sys-card .sc-body{padding:14px 18px}
+.sys-card .sc-desc{font-size:12px;color:var(--g600);line-height:1.6;margin-bottom:10px}
+.sys-card .sc-apis{display:flex;flex-wrap:wrap;gap:6px}
+.sys-card .sc-api{font-size:10px;padding:3px 8px;border-radius:4px;background:var(--g50);color:var(--g600);border:1px solid var(--g200);cursor:pointer;transition:var(--tr)}
+.sys-card .sc-api:hover{border-color:var(--p);color:var(--p);background:var(--pl)}
+
+/* ========== Role Matrix ========== */
+.role-table{width:100%;border-collapse:collapse;font-size:12px}
+.role-table th{background:linear-gradient(180deg,#fafafa,#f5f5f5);color:var(--g700);font-size:11px;font-weight:600;padding:10px 14px;text-align:left;border-bottom:1px solid var(--g200);white-space:nowrap;position:sticky;top:0;z-index:2}
+.role-table td{padding:10px 14px;border-bottom:1px solid var(--g100);vertical-align:middle}
+.role-table tbody tr{transition:var(--tr)}
+.role-table tbody tr:hover td{background:#f0f7ff}
+.role-tag{display:inline-flex;align-items:center;gap:4px;font-size:11px;padding:3px 10px;border-radius:12px;font-weight:500;white-space:nowrap}
+.role-tag.primary{background:var(--pl);color:var(--p)}
+.role-tag.support{background:var(--sl);color:var(--s)}
+.role-tag.approve{background:var(--wl);color:#d46b08}
+.role-tag.info{background:var(--g50);color:var(--g600);border:1px solid var(--g200)}
+
+/* ========== Activity Log ========== */
+.log-list{padding:12px 20px}
+.log-item{display:flex;gap:12px;padding:10px 0;border-bottom:1px solid var(--g100)}
+.log-item:last-child{border-bottom:none}
+.log-item .li-dot{width:8px;height:8px;border-radius:50%;margin-top:5px;flex-shrink:0}
+.log-item .li-dot.blue{background:var(--p)}
+.log-item .li-dot.green{background:var(--s)}
+.log-item .li-dot.orange{background:var(--w)}
+.log-item .li-dot.gray{background:var(--g300)}
+.log-item .li-content{flex:1}
+.log-item .li-title{font-size:12px;color:var(--g800);font-weight:500}
+.log-item .li-desc{font-size:11px;color:var(--g500);margin-top:2px}
+.log-item .li-time{font-size:11px;color:var(--g400);white-space:nowrap;flex-shrink:0}
+
+/* ========== Metrics Bar ========== */
+.metrics-bar{display:flex;gap:16px;padding:16px 24px;flex-shrink:0}
+.metric-card{flex:1;background:#fff;border:1px solid var(--g200);border-radius:var(--r);padding:16px 20px;display:flex;align-items:center;gap:14px;transition:var(--tr)}
+.metric-card:hover{border-color:var(--p);box-shadow:var(--shm)}
+.metric-card .mc-icon{width:44px;height:44px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:20px;flex-shrink:0}
+.metric-card .mc-icon.blue{background:linear-gradient(135deg,var(--pl),#d6e8ff)}
+.metric-card .mc-icon.green{background:linear-gradient(135deg,var(--sl),#d9f7be)}
+.metric-card .mc-icon.orange{background:linear-gradient(135deg,var(--wl),#ffe58f)}
+.metric-card .mc-icon.purple{background:linear-gradient(135deg,var(--purple-l),#efdbff)}
+.metric-card .mc-info{display:flex;flex-direction:column}
+.metric-card .mc-val{font-size:22px;font-weight:700;color:var(--g900);line-height:1.2}
+.metric-card .mc-label{font-size:11px;color:var(--g500);margin-top:2px}
+
+/* ========== Detail Modal ========== */
+.detail-modal{display:none;position:fixed;top:0;left:0;right:0;bottom:0;z-index:2000;background:rgba(0,0,0,.45);align-items:center;justify-content:center}
+.detail-modal.show{display:flex}
+.detail-dialog{background:#fff;border-radius:var(--rl);width:720px;max-height:80vh;display:flex;flex-direction:column;box-shadow:var(--shl);animation:modalIn .25s ease}
+@keyframes modalIn{from{opacity:0;transform:translateY(-20px)}to{opacity:1;transform:translateY(0)}}
+.detail-dialog .dd-hdr{display:flex;align-items:center;justify-content:space-between;padding:16px 24px;border-bottom:1px solid var(--g200)}
+.detail-dialog .dd-hdr h3{font-size:16px;font-weight:700;color:var(--g900);display:flex;align-items:center;gap:8px}
+.detail-dialog .dd-close{background:none;border:none;font-size:20px;cursor:pointer;color:var(--g400);padding:4px 8px;border-radius:4px;transition:var(--tr)}
+.detail-dialog .dd-close:hover{color:var(--g700);background:var(--g50)}
+.detail-dialog .dd-body{flex:1;overflow-y:auto;padding:20px 24px}
+.detail-dialog .dd-footer{display:flex;align-items:center;justify-content:flex-end;gap:10px;padding:14px 24px;border-top:1px solid var(--g200);background:var(--g50);border-radius:0 0 var(--rl) var(--rl)}
+
+/* ========== Buttons ========== */
+.btn{border:none;padding:7px 16px;border-radius:var(--rs);font-size:12px;font-weight:500;cursor:pointer;transition:var(--tr);display:inline-flex;align-items:center;gap:5px;white-space:nowrap}
+.btn:active{transform:scale(.97)}
+.btn-p{background:linear-gradient(135deg,var(--p) 0%,#4096ff 100%);color:#fff;box-shadow:0 2px 6px rgba(22,119,255,.25)}
+.btn-p:hover{box-shadow:0 4px 12px rgba(22,119,255,.35);transform:translateY(-1px)}
+.btn-o{background:#fff;color:var(--g700);border:1px solid var(--g300)}.btn-o:hover{color:var(--p);border-color:var(--p);background:var(--pa)}
+.btn-g{background:var(--g50);color:var(--g600);border:1px solid var(--g200)}.btn-g:hover{color:var(--p);border-color:var(--p);background:var(--pa)}
+.btn-s{padding:4px 10px;font-size:11px;border-radius:4px;white-space:nowrap}
+
+/* ========== Toast ========== */
+.toast{display:none;position:fixed;top:60px;right:24px;z-index:3000;background:#fff;border-radius:var(--r);box-shadow:var(--shl);padding:14px 20px;border-left:4px solid var(--p);max-width:360px;animation:toastIn .3s ease}
+.toast.show{display:block}
+@keyframes toastIn{from{opacity:0;transform:translateX(20px)}to{opacity:1;transform:translateX(0)}}
+.toast .t-title{font-size:13px;font-weight:700;color:var(--g900);margin-bottom:3px}
+.toast .t-msg{font-size:12px;color:var(--g600);line-height:1.5}
+
+/* ========== Section Panel ========== */
+.section{background:#fff;border-radius:var(--r);border:1px solid var(--g200);margin:0 24px 16px;overflow:hidden}
+.section-hdr{display:flex;align-items:center;justify-content:space-between;padding:14px 20px;border-bottom:1px solid var(--g100);background:linear-gradient(180deg,#fafafa,#f8f8f8);cursor:pointer;user-select:none}
+.section-title{font-size:14px;font-weight:700;color:var(--g900);display:flex;align-items:center;gap:8px}
+.section-title::before{content:'';width:3px;height:16px;border-radius:2px;background:var(--p);flex-shrink:0}
+.section-body{padding:16px 20px}
+
+/* ========== Responsive ========== */
+@media(max-width:1200px){
+  .agent-grid{grid-template-columns:repeat(2,1fr)}
+  .sys-grid{grid-template-columns:1fr}
+  .metrics-bar{flex-wrap:wrap}
+  .metric-card{min-width:calc(50% - 8px)}
+}
+@media(max-width:768px){
+  .agent-grid{grid-template-columns:1fr}
+  .sidebar{display:none}
+}
+</style>
+</head>
+<body>
+
+<!-- ==================== TOP NAV ==================== -->
+<div class="topnav">
+    <div class="topnav-logo"><div class="mi">MI</div><span>小米汽车</span></div>
+    <div class="topnav-menu">
+        <div class="topnav-item">首页</div>
+        <div class="topnav-item">供应商管理</div>
+        <div class="topnav-item">采购项目管理</div>
+        <div class="topnav-item">RFQ询报价管理</div>
+        <div class="topnav-item">采购定点与台账</div>
+        <div class="topnav-item active">样件采购Agent</div>
+        <div class="topnav-item">合同管理</div>
+        <div class="topnav-item">订单管理</div>
+    </div>
+    <div class="topnav-right">
+        <div class="topnav-user"><div class="topnav-avatar">齐</div><span>齐岳</span></div>
+        <div class="icon" title="通知">🔔</div>
+        <div class="icon" title="设置">⚙</div>
+    </div>
+</div>
+
+<!-- ==================== SRM LAYOUT ==================== -->
+<div class="srm-layout">
+
+<!-- Sidebar -->
+<div class="sidebar" id="sidebar">
+    <div class="sidebar-hdr">
+        <h3>Agent 工作台</h3>
+        <div class="count">运行中 <strong>4</strong> / 总计 <strong>6</strong></div>
+    </div>
+    <div class="sp-menu">
+        <div class="sp-menu-item active" onclick="switchAgentTab('overview',this)">
+            <span class="mi-icon blue">🏠</span> Agent 总览
+        </div>
+        <div class="sp-menu-item" onclick="switchAgentTab('workflow',this)">
+            <span class="mi-icon green">⚡</span> 流程编排
+        </div>
+        <div class="sp-menu-item" onclick="switchAgentTab('roles',this)">
+            <span class="mi-icon orange">👥</span> 角色矩阵
+        </div>
+        <div class="sp-menu-item" onclick="switchAgentTab('systems',this)">
+            <span class="mi-icon purple">🔗</span> 系统集成
+        </div>
+        <div class="sp-menu-item" onclick="switchAgentTab('logs',this)">
+            <span class="mi-icon cyan">📋</span> 执行日志
+        </div>
+        <div style="padding:16px 20px;border-top:1px solid var(--g100);margin-top:8px">
+            <div style="font-size:11px;color:var(--g500);margin-bottom:8px;font-weight:600">快速统计</div>
+            <div style="display:flex;flex-direction:column;gap:6px">
+                <div style="display:flex;justify-content:space-between;font-size:12px"><span style="color:var(--g600)">今日处理</span><strong style="color:var(--p)">23件</strong></div>
+                <div style="display:flex;justify-content:space-between;font-size:12px"><span style="color:var(--g600)">自动化率</span><strong style="color:var(--s)">87%</strong></div>
+                <div style="display:flex;justify-content:space-between;font-size:12px"><span style="color:var(--g600)">平均耗时</span><strong style="color:var(--g800)">2.4h</strong></div>
+                <div style="display:flex;justify-content:space-between;font-size:12px"><span style="color:var(--g600)">异常挂起</span><strong style="color:var(--d)">3件</strong></div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Main Content Area -->
+<div class="main-content" id="mainArea">
+
+<!-- ========== Overview Tab ========== -->
+<div id="tab-overview" class="tab-content" style="display:block">
+
+<!-- Metrics Bar -->
+<div class="metrics-bar">
+    <div class="metric-card">
+        <div class="mc-icon blue">📦</div>
+        <div class="mc-info">
+            <div class="mc-val">156</div>
+            <div class="mc-label">本月样件申请</div>
+        </div>
+    </div>
+    <div class="metric-card">
+        <div class="mc-icon green">✅</div>
+        <div class="mc-info">
+            <div class="mc-val">134</div>
+            <div class="mc-label">已完成验收</div>
+        </div>
+    </div>
+    <div class="metric-card">
+        <div class="mc-icon orange">⏳</div>
+        <div class="mc-info">
+            <div class="mc-val">19</div>
+            <div class="mc-label">处理中</div>
+        </div>
+    </div>
+    <div class="metric-card">
+        <div class="mc-icon purple">🤖</div>
+        <div class="mc-info">
+            <div class="mc-val">87%</div>
+            <div class="mc-label">Agent自动化率</div>
+        </div>
+    </div>
+</div>
+
+<!-- Agent Cards -->
+<div class="content-header">
+    <div class="content-title">🤖 样件采购自动化 Agent 矩阵</div>
+    <div class="content-tabs">
+        <div class="ctab active" onclick="filterAgentCards('all',this)">全部 <span class="badge" style="background:var(--p)">6</span></div>
+        <div class="ctab" onclick="filterAgentCards('running',this)">运行中 <span class="badge">4</span></div>
+        <div class="ctab" onclick="filterAgentCards('idle',this)">空闲 <span class="badge" style="background:var(--g400)">1</span></div>
+        <div class="ctab" onclick="filterAgentCards('error',this)">异常 <span class="badge" style="background:var(--d)">1</span></div>
+    </div>
+</div>
+
+<div class="agent-grid">
+    <!-- Agent 1: 预算申请Agent -->
+    <div class="agent-card" data-status="running" onclick="openAgentDetail('budget')">
+        <div class="ac-hdr">
+            <div class="ac-icon blue">💰</div>
+            <div class="ac-status running"><span class="dot"></span> 运行中</div>
+        </div>
+        <div class="ac-body">
+            <div class="ac-name">预算申请 Agent</div>
+            <div class="ac-desc">自动读取EP系统试制BOM，解析零件清单与数量，生成预算申请单并推送给财务审批。</div>
+            <div class="ac-meta">
+                <span class="ac-tag blue">EP系统对接</span>
+                <span class="ac-tag green">自动解析BOM</span>
+                <span class="ac-tag gray">财务审批</span>
+            </div>
+        </div>
+        <div class="ac-footer">
+            <span class="metric">今日处理 <strong>8</strong> 件</span>
+            <span class="link">查看详情 →</span>
+        </div>
+    </div>
+
+    <!-- Agent 2: 采购申请Agent -->
+    <div class="agent-card" data-status="running" onclick="openAgentDetail('purchase')">
+        <div class="ac-hdr">
+            <div class="ac-icon green">📝</div>
+            <div class="ac-status running"><span class="dot"></span> 运行中</div>
+        </div>
+        <div class="ac-body">
+            <div class="ac-name">采购申请 Agent</div>
+            <div class="ac-desc">根据预算审批结果，自动在SRM创建采购申请，匹配供应商库，生成SOR文件并触发询价流程。</div>
+            <div class="ac-meta">
+                <span class="ac-tag blue">SRM系统</span>
+                <span class="ac-tag green">供应商匹配</span>
+                <span class="ac-tag purple">SOR生成</span>
+            </div>
+        </div>
+        <div class="ac-footer">
+            <span class="metric">今日处理 <strong>6</strong> 件</span>
+            <span class="link">查看详情 →</span>
+        </div>
+    </div>
+
+    <!-- Agent 3: 采购订单Agent -->
+    <div class="agent-card" data-status="running" onclick="openAgentDetail('order')">
+        <div class="ac-hdr">
+            <div class="ac-icon orange">📋</div>
+            <div class="ac-status running"><span class="dot"></span> 运行中</div>
+        </div>
+        <div class="ac-body">
+            <div class="ac-name">采购订单 Agent</div>
+            <div class="ac-desc">自动汇总报价结果，生成采购订单草稿，推送给采购工程师审批确认，同步物流规划。</div>
+            <div class="ac-meta">
+                <span class="ac-tag blue">订单生成</span>
+                <span class="ac-tag orange">审批流转</span>
+                <span class="ac-tag green">物流同步</span>
+            </div>
+        </div>
+        <div class="ac-footer">
+            <span class="metric">今日处理 <strong>5</strong> 件</span>
+            <span class="link">查看详情 →</span>
+        </div>
+    </div>
+
+    <!-- Agent 4: 需求变更Agent -->
+    <div class="agent-card" data-status="idle" onclick="openAgentDetail('change')">
+        <div class="ac-hdr">
+            <div class="ac-icon purple">🔄</div>
+            <div class="ac-status idle"><span class="dot"></span> 空闲</div>
+        </div>
+        <div class="ac-body">
+            <div class="ac-name">需求变更 Agent</div>
+            <div class="ac-desc">监听设计变更信号，自动评估样件需求影响范围，生成变更通知并更新SRM中的采购申请。</div>
+            <div class="ac-meta">
+                <span class="ac-tag purple">变更监听</span>
+                <span class="ac-tag blue">影响评估</span>
+                <span class="ac-tag gray">自动更新</span>
+            </div>
+        </div>
+        <div class="ac-footer">
+            <span class="metric">今日处理 <strong>0</strong> 件</span>
+            <span class="link">查看详情 →</span>
+        </div>
+    </div>
+
+    <!-- Agent 5: 样件验收Agent -->
+    <div class="agent-card" data-status="running" onclick="openAgentDetail('accept')">
+        <div class="ac-hdr">
+            <div class="ac-icon cyan">🔍</div>
+            <div class="ac-status running"><span class="dot"></span> 运行中</div>
+        </div>
+        <div class="ac-body">
+            <div class="ac-name">样件验收 Agent</div>
+            <div class="ac-desc">自动跟踪样件到货状态，匹配MI-PEC质检结果，生成验收报告并触发付款流程。</div>
+            <div class="ac-meta">
+                <span class="ac-tag cyan">MI-PEC对接</span>
+                <span class="ac-tag green">质检匹配</span>
+                <span class="ac-tag blue">付款触发</span>
+            </div>
+        </div>
+        <div class="ac-footer">
+            <span class="metric">今日处理 <strong>4</strong> 件</span>
+            <span class="link">查看详情 →</span>
+        </div>
+    </div>
+
+    <!-- Agent 6: 异常处理Agent -->
+    <div class="agent-card" data-status="error" onclick="openAgentDetail('exception')">
+        <div class="ac-hdr">
+            <div class="ac-icon red">🚨</div>
+            <div class="ac-status error"><span class="dot"></span> 异常</div>
+        </div>
+        <div class="ac-body">
+            <div class="ac-name">异常处理 Agent</div>
+            <div class="ac-desc">监控全流程异常节点，自动识别超时、缺料、价格异常等问题，推送预警并生成处理建议。</div>
+            <div class="ac-meta">
+                <span class="ac-tag" style="background:var(--dl);color:var(--d)">异常监控</span>
+                <span class="ac-tag orange">超时预警</span>
+                <span class="ac-tag blue">智能建议</span>
+            </div>
+        </div>
+        <div class="ac-footer">
+            <span class="metric" style="color:var(--d)">异常 <strong>3</strong> 件</span>
+            <span class="link">查看详情 →</span>
+        </div>
+    </div>
+</div>
+
+<!-- Workflow Panel -->
+<div class="workflow-panel">
+    <div class="wf-hdr">
+        <div class="wf-title">样件采购自动化流程编排</div>
+        <div style="display:flex;gap:8px">
+            <button class="btn btn-o btn-s" onclick="showToast('流程配置','流程编排已刷新')">🔄 刷新</button>
+            <button class="btn btn-p btn-s" onclick="showToast('流程配置','进入编辑模式')">✏️ 编辑</button>
+        </div>
+    </div>
+    <div class="flow-timeline" id="flowTimeline">
+        <!-- Step 1 -->
+        <div class="flow-step">
+            <div class="fs-icon done">✅</div>
+            <div class="fs-label">6.1 预算申请</div>
+            <div class="fs-sub">EP系统BOM解析</div>
+            <div class="fs-agent">🤖 预算Agent</div>
+        </div>
+        <div class="flow-connector done"></div>
+        <!-- Step 2 -->
+        <div class="flow-step">
+            <div class="fs-icon done">✅</div>
+            <div class="fs-label">6.2 采购申请</div>
+            <div class="fs-sub">SRM创建 + SOR生成</div>
+            <div class="fs-agent">🤖 采购Agent</div>
+        </div>
+        <div class="flow-connector done"></div>
+        <!-- Step 3 -->
+        <div class="flow-step">
+            <div class="fs-icon active">⚡</div>
+            <div class="fs-label">6.3 采购订单</div>
+            <div class="fs-sub">报价汇总 + 订单生成</div>
+            <div class="fs-agent">🤖 订单Agent</div>
+        </div>
+        <div class="flow-connector active"></div>
+        <!-- Step 4 -->
+        <div class="flow-step">
+            <div class="fs-icon pending">⏸</div>
+            <div class="fs-label">6.4 需求变更</div>
+            <div class="fs-sub">变更监听 + 影响评估</div>
+            <div class="fs-agent">🤖 变更Agent</div>
+        </div>
+        <div class="flow-connector"></div>
+        <!-- Step 5 -->
+        <div class="flow-step">
+            <div class="fs-icon active">⚡</div>
+            <div class="fs-label">6.5 样件验收</div>
+            <div class="fs-sub">MI-PEC质检匹配</div>
+            <div class="fs-agent">🤖 验收Agent</div>
+        </div>
+        <div class="flow-connector"></div>
+        <!-- Step 6 -->
+        <div class="flow-step">
+            <div class="fs-icon pending">⏸</div>
+            <div class="fs-label">6.6 付款申请</div>
+            <div class="fs-sub">财务对账 + 付款</div>
+            <div class="fs-agent">🤖 验收Agent</div>
+        </div>
+    </div>
+</div>
+
+</div><!-- end overview tab -->
+
+<!-- ========== Roles Tab ========== -->
+<div id="tab-roles" class="tab-content" style="display:none">
+<div class="section" style="margin-top:16px">
+    <div class="section-hdr">
+        <div class="section-title">角色与职责矩阵</div>
+    </div>
+    <div style="overflow-x:auto">
+        <table class="role-table">
+            <thead>
+                <tr>
+                    <th>角色</th>
+                    <th>Agent映射</th>
+                    <th>职责范围</th>
+                    <th>系统操作</th>
+                    <th>自动化程度</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td><strong>零件试制申请人</strong></td>
+                    <td><span class="role-tag primary">预算申请Agent</span></td>
+                    <td>提出样件需求，提交试制BOM，发起预算申请</td>
+                    <td>EP系统 → 预算提交</td>
+                    <td><strong style="color:var(--s)">80%</strong> 自动</td>
+                </tr>
+                <tr>
+                    <td><strong>零件工程师</strong></td>
+                    <td><span class="role-tag primary">采购申请Agent</span></td>
+                    <td>确认零件技术要求，维护SOR技术参数，跟进供应商开发</td>
+                    <td>EP系统 → SOR维护</td>
+                    <td><strong style="color:var(--p)">60%</strong> 辅助</td>
+                </tr>
+                <tr>
+                    <td><strong>试制BOM工程师</strong></td>
+                    <td><span class="role-tag support">预算申请Agent</span></td>
+                    <td>创建试制BOM，维护零件数量与配置，同步设计变更</td>
+                    <td>EP系统 → BOM管理</td>
+                    <td><strong style="color:var(--s)">90%</strong> 自动</td>
+                </tr>
+                <tr>
+                    <td><strong>采购工程师</strong></td>
+                    <td><span class="role-tag primary">采购订单Agent</span></td>
+                    <td>确认样件价格，审批采购订单，管理供应商报价</td>
+                    <td>SRM系统 → 订单审批</td>
+                    <td><strong style="color:var(--p)">70%</strong> 辅助</td>
+                </tr>
+                <tr>
+                    <td><strong>物流规划</strong></td>
+                    <td><span class="role-tag support">采购订单Agent</span></td>
+                    <td>确认物流需求，维护交付计划，同步到货信息</td>
+                    <td>SRM系统 → 物流协同</td>
+                    <td><strong style="color:var(--s)">85%</strong> 自动</td>
+                </tr>
+                <tr>
+                    <td><strong>财务</strong></td>
+                    <td><span class="role-tag approve">样件验收Agent</span></td>
+                    <td>确认样件验收，审核付款申请，维护预算台账</td>
+                    <td>SRM系统 → 付款审核</td>
+                    <td><strong style="color:var(--w)">50%</strong> 审批</td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<!-- Agent Interaction Map -->
+<div class="section">
+    <div class="section-hdr">
+        <div class="section-title">Agent 交互拓扑</div>
+    </div>
+    <div class="section-body" style="padding:30px">
+        <div style="display:flex;flex-direction:column;gap:20px;align-items:center">
+            <!-- Row 1: Trigger -->
+            <div style="display:flex;gap:20px;align-items:center">
+                <div style="background:var(--pl);border:2px solid var(--p);border-radius:12px;padding:12px 24px;text-align:center">
+                    <div style="font-size:20px;margin-bottom:4px">👤</div>
+                    <div style="font-size:12px;font-weight:700;color:var(--p)">试制申请人</div>
+                    <div style="font-size:10px;color:var(--g500)">触发需求</div>
+                </div>
+            </div>
+            <div style="color:var(--g400);font-size:20px">⬇️</div>
+            <!-- Row 2: Budget Agent -->
+            <div style="display:flex;gap:20px;align-items:center">
+                <div style="background:var(--pl);border:2px solid var(--p);border-radius:12px;padding:12px 20px;text-align:center;min-width:140px">
+                    <div style="font-size:18px;margin-bottom:4px">💰</div>
+                    <div style="font-size:12px;font-weight:700;color:var(--p)">预算申请Agent</div>
+                    <div style="font-size:10px;color:var(--g500)">EP系统对接</div>
+                </div>
+                <div style="color:var(--g400);font-size:20px">➡️</div>
+                <div style="background:var(--sl);border:2px solid var(--s);border-radius:12px;padding:12px 20px;text-align:center;min-width:140px">
+                    <div style="font-size:18px;margin-bottom:4px">📝</div>
+                    <div style="font-size:12px;font-weight:700;color:var(--s)">采购申请Agent</div>
+                    <div style="font-size:10px;color:var(--g500)">SRM系统对接</div>
+                </div>
+                <div style="color:var(--g400);font-size:20px">➡️</div>
+                <div style="background:var(--wl);border:2px solid var(--w);border-radius:12px;padding:12px 20px;text-align:center;min-width:140px">
+                    <div style="font-size:18px;margin-bottom:4px">📋</div>
+                    <div style="font-size:12px;font-weight:700;color:#d46b08">采购订单Agent</div>
+                    <div style="font-size:10px;color:var(--g500)">订单 + 审批</div>
+                </div>
+            </div>
+            <div style="color:var(--g400);font-size:20px">⬇️</div>
+            <!-- Row 3: Change + Accept -->
+            <div style="display:flex;gap:20px;align-items:center">
+                <div style="background:var(--purple-l);border:2px solid var(--purple);border-radius:12px;padding:12px 20px;text-align:center;min-width:140px">
+                    <div style="font-size:18px;margin-bottom:4px">🔄</div>
+                    <div style="font-size:12px;font-weight:700;color:var(--purple)">需求变更Agent</div>
+                    <div style="font-size:10px;color:var(--g500)">变更监听</div>
+                </div>
+                <div style="color:var(--g400);font-size:20px">➡️</div>
+                <div style="background:var(--cyan-l);border:2px solid var(--cyan);border-radius:12px;padding:12px 20px;text-align:center;min-width:140px">
+                    <div style="font-size:18px;margin-bottom:4px">🔍</div>
+                    <div style="font-size:12px;font-weight:700;color:var(--cyan)">样件验收Agent</div>
+                    <div style="font-size:10px;color:var(--g500)">MI-PEC对接</div>
+                </div>
+                <div style="color:var(--g400);font-size:20px">➡️</div>
+                <div style="background:var(--dl);border:2px solid var(--d);border-radius:12px;padding:12px 20px;text-align:center;min-width:140px">
+                    <div style="font-size:18px;margin-bottom:4px">🚨</div>
+                    <div style="font-size:12px;font-weight:700;color:var(--d)">异常处理Agent</div>
+                    <div style="font-size:10px;color:var(--g500)">全流程监控</div>
+                </div>
+            </div>
+            <div style="color:var(--g400);font-size:20px">⬇️</div>
+            <!-- Row 4: Output -->
+            <div style="display:flex;gap:20px;align-items:center">
+                <div style="background:var(--sl);border:2px solid var(--s);border-radius:12px;padding:12px 24px;text-align:center">
+                    <div style="font-size:20px;margin-bottom:4px">✅</div>
+                    <div style="font-size:12px;font-weight:700;color:var(--s)">付款完成</div>
+                    <div style="font-size:10px;color:var(--g500)">流程闭环</div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+</div><!-- end roles tab -->
+
+<!-- ========== Systems Tab ========== -->
+<div id="tab-systems" class="tab-content" style="display:none">
+<div class="sys-grid" style="margin-top:16px">
+    <div class="sys-card">
+        <div class="sc-hdr">
+            <div class="sc-icon blue">🔧</div>
+            <div>
+                <div class="sc-name">EP系统</div>
+                <div class="sc-ver">Engineering Platform · 2020年启用</div>
+            </div>
+        </div>
+        <div class="sc-body">
+            <div class="sc-desc">核心造车系统，发布SOR包给到采购。采购作为造车源头向上游追溯，管控BOM与定点、交付、付款等环节。</div>
+            <div class="sc-apis">
+                <span class="sc-api" onclick="showToast('EP接口','GET /api/ep/bom/list')">BOM查询</span>
+                <span class="sc-api" onclick="showToast('EP接口','GET /api/ep/sor/detail')">SOR详情</span>
+                <span class="sc-api" onclick="showToast('EP接口','POST /api/ep/budget/submit')">预算提交</span>
+                <span class="sc-api" onclick="showToast('EP接口','GET /api/ep/design/change')">设计变更</span>
+            </div>
+        </div>
+    </div>
+    <div class="sys-card">
+        <div class="sc-hdr">
+            <div class="sc-icon green">🏗️</div>
+            <div>
+                <div class="sc-name">MI-PEC系统</div>
+                <div class="sc-ver">MI Product Engineering Center</div>
+            </div>
+        </div>
+        <div class="sc-body">
+            <div class="sc-desc">小米汽车产品工程中心样件生产过程管控系统，对样件生产过程全量管控（样车、试制BOX、订单、交付、物流）。</div>
+            <div class="sc-apis">
+                <span class="sc-api" onclick="showToast('MI-PEC接口','GET /api/pec/sample/status')">样件状态</span>
+                <span class="sc-api" onclick="showToast('MI-PEC接口','GET /api/pec/quality/report')">质检报告</span>
+                <span class="sc-api" onclick="showToast('MI-PEC接口','POST /api/pec/acceptance')">验收确认</span>
+                <span class="sc-api" onclick="showToast('MI-PEC接口','GET /api/pec/delivery/track')">到货跟踪</span>
+            </div>
+        </div>
+    </div>
+    <div class="sys-card">
+        <div class="sc-hdr">
+            <div class="sc-icon purple">📊</div>
+            <div>
+                <div class="sc-name">SRM系统</div>
+                <div class="sc-ver">Supplier Relationship Management</div>
+            </div>
+        </div>
+        <div class="sc-body">
+            <div class="sc-desc">供应商关系管理平台，提供供应商线上对账、报价管理、采购订单、合同管理等核心能力。</div>
+            <div class="sc-apis">
+                <span class="sc-api" onclick="showToast('SRM接口','POST /api/srm/purchase/apply')">采购申请</span>
+                <span class="sc-api" onclick="showToast('SRM接口','POST /api/srm/order/create')">订单生成</span>
+                <span class="sc-api" onclick="showToast('SRM接口','GET /api/srm/supplier/list')">供应商库</span>
+                <span class="sc-api" onclick="showToast('SRM接口','POST /api/srm/payment/submit')">付款提交</span>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Integration Flow -->
+<div class="section">
+    <div class="section-hdr">
+        <div class="section-title">系统间数据流转</div>
+    </div>
+    <div class="section-body" style="padding:24px">
+        <div style="display:flex;align-items:center;justify-content:center;gap:16px;flex-wrap:wrap">
+            <div style="background:var(--pl);border:1px solid #b7cfff;border-radius:10px;padding:14px 20px;text-align:center;min-width:120px">
+                <div style="font-size:16px;margin-bottom:4px">🔧</div>
+                <div style="font-size:13px;font-weight:700;color:var(--p)">EP系统</div>
+                <div style="font-size:10px;color:var(--g500);margin-top:2px">BOM · SOR · 预算</div>
+            </div>
+            <div style="display:flex;flex-direction:column;align-items:center;gap:2px">
+                <div style="font-size:10px;color:var(--p);font-weight:600">BOM数据</div>
+                <div style="color:var(--p);font-size:18px">→</div>
+                <div style="font-size:10px;color:var(--g500)">JSON API</div>
+            </div>
+            <div style="background:linear-gradient(135deg,var(--pl),var(--sl));border:1px solid var(--p);border-radius:10px;padding:14px 20px;text-align:center;min-width:140px;position:relative">
+                <div style="font-size:16px;margin-bottom:4px">🤖</div>
+                <div style="font-size:13px;font-weight:700;color:var(--g900)">Agent编排层</div>
+                <div style="font-size:10px;color:var(--g500);margin-top:2px">路由 · 校验 · 转换</div>
+            </div>
+            <div style="display:flex;flex-direction:column;align-items:center;gap:2px">
+                <div style="font-size:10px;color:var(--s);font-weight:600">采购指令</div>
+                <div style="color:var(--s);font-size:18px">→</div>
+                <div style="font-size:10px;color:var(--g500)">JSON API</div>
+            </div>
+            <div style="background:var(--purple-l);border:1px solid #d3adf7;border-radius:10px;padding:14px 20px;text-align:center;min-width:120px">
+                <div style="font-size:16px;margin-bottom:4px">📊</div>
+                <div style="font-size:13px;font-weight:700;color:var(--purple)">SRM系统</div>
+                <div style="font-size:10px;color:var(--g500);margin-top:2px">订单 · 合同 · 付款</div>
+            </div>
+            <div style="display:flex;flex-direction:column;align-items:center;gap:2px">
+                <div style="font-size:10px;color:var(--cyan);font-weight:600">到货通知</div>
+                <div style="color:var(--cyan);font-size:18px">→</div>
+                <div style="font-size:10px;color:var(--g500)">Webhook</div>
+            </div>
+            <div style="background:var(--cyan-l);border:1px solid #b5f5ec;border-radius:10px;padding:14px 20px;text-align:center;min-width:120px">
+                <div style="font-size:16px;margin-bottom:4px">🏗️</div>
+                <div style="font-size:13px;font-weight:700;color:var(--cyan)">MI-PEC</div>
+                <div style="font-size:10px;color:var(--g500);margin-top:2px">质检 · 验收 · 物流</div>
+            </div>
+        </div>
+    </div>
+</div>
+</div><!-- end systems tab -->
+
+<!-- ========== Logs Tab ========== -->
+<div id="tab-logs" class="tab-content" style="display:none">
+<div class="section" style="margin-top:16px">
+    <div class="section-hdr">
+        <div class="section-title">Agent 执行日志</div>
+        <div style="display:flex;gap:8px">
+            <button class="btn btn-o btn-s" onclick="showToast('日志','已导出日志文件')">📥 导出</button>
+            <button class="btn btn-o btn-s" onclick="showToast('日志','日志已刷新')">🔄 刷新</button>
+        </div>
+    </div>
+    <div class="log-list">
+        <div class="log-item">
+            <div class="li-dot green"></div>
+            <div class="li-content">
+                <div class="li-title">[预算Agent] 样件预算申请 SX-2026-0527-001 已提交财务审批</div>
+                <div class="li-desc">解析EP试制BOM 12项零件，预算金额 ¥342,800，推送给财务 李明</div>
+            </div>
+            <div class="li-time">2分钟前</div>
+        </div>
+        <div class="log-item">
+            <div class="li-dot blue"></div>
+            <div class="li-content">
+                <div class="li-title">[采购Agent] 采购申请 PA-2026-0312-008 在SRM创建成功</div>
+                <div class="li-desc">匹配供应商 3家（博世、大陆、采埃孚），生成SOR文件并触发RFQ</div>
+            </div>
+            <div class="li-time">15分钟前</div>
+        </div>
+        <div class="log-item">
+            <div class="li-dot orange"></div>
+            <div class="li-content">
+                <div class="li-title">[订单Agent] 采购订单 PO-2026-0526-015 等待采购工程师审批</div>
+                <div class="li-desc">报价汇总完成，总价 ¥128,500，已推送给采购工程师 王磊</div>
+            </div>
+            <div class="li-time">32分钟前</div>
+        </div>
+        <div class="log-item">
+            <div class="li-dot blue"></div>
+            <div class="li-content">
+                <div class="li-title">[验收Agent] 样件到货确认 SX-2026-0525-003 已入库</div>
+                <div class="li-desc">MI-PEC质检结果：合格，自动生成验收报告，触发付款流程</div>
+            </div>
+            <div class="li-time">1小时前</div>
+        </div>
+        <div class="log-item">
+            <div class="li-dot orange"></div>
+            <div class="li-content">
+                <div class="li-title">[异常Agent] 预警：PO-2026-0520-007 交付超期 3天</div>
+                <div class="li-desc">供应商博世交付延迟，建议启动备选供应商切换流程</div>
+            </div>
+            <div class="li-time">1.5小时前</div>
+        </div>
+        <div class="log-item">
+            <div class="li-dot green"></div>
+            <div class="li-content">
+                <div class="li-title">[预算Agent] 样件预算申请 SX-2026-0527-002 已自动审批通过</div>
+                <div class="li-desc">金额 ¥45,200 在自动审批阈值内（<¥50,000），跳过人工审批</div>
+            </div>
+            <div class="li-time">2小时前</div>
+        </div>
+        <div class="log-item">
+            <div class="li-dot gray"></div>
+            <div class="li-content">
+                <div class="li-title">[变更Agent] 监听设计变更通知 DC-2026-0527-001</div>
+                <div class="li-desc">零件号 34120-M1-000 设计变更，影响 2个在途样件申请，已生成影响评估报告</div>
+            </div>
+            <div class="li-time">3小时前</div>
+        </div>
+        <div class="log-item">
+            <div class="li-dot blue"></div>
+            <div class="li-content">
+                <div class="li-title">[采购Agent] SOR文件 SOR-2026-0527-004 已同步至SRM</div>
+                <div class="li-desc">技术参数 28项，质量要求 12项，交付周期 45天，已触发供应商报价</div>
+            </div>
+            <div class="li-time">3.5小时前</div>
+        </div>
+        <div class="log-item">
+            <div class="li-dot green"></div>
+            <div class="li-content">
+                <div class="li-title">[验收Agent] 付款申请 PAY-2026-0526-011 已提交财务</div>
+                <div class="li-desc">验收单号 SX-2026-0524-006，付款金额 ¥89,600，供应商 大陆集团</div>
+            </div>
+            <div class="li-time">4小时前</div>
+        </div>
+    </div>
+</div>
+</div><!-- end logs tab -->
+
+</div><!-- end main-content -->
+</div><!-- end srm-layout -->
+
+<!-- ========== Agent Detail Modal ========== -->
+<div class="detail-modal" id="agentDetailModal">
+    <div class="detail-dialog">
+        <div class="dd-hdr">
+            <h3 id="agentDetailTitle">🤖 Agent 详情</h3>
+            <button class="dd-close" onclick="hideAgentDetail()">✕</button>
+        </div>
+        <div class="dd-body" id="agentDetailBody">
+            <!-- Dynamic content -->
+        </div>
+        <div class="dd-footer">
+            <button class="btn btn-o" onclick="hideAgentDetail()">关闭</button>
+            <button class="btn btn-p" onclick="showToast('操作','Agent配置已更新');hideAgentDetail()">保存配置</button>
+        </div>
+    </div>
+</div>
+
+<!-- ========== Toast ========== -->
+<div class="toast" id="toast">
+    <div class="t-title" id="toastTitle">提示</div>
+    <div class="t-msg" id="toastMsg">操作成功</div>
+</div>
+
+<script>
+/* ========== Tab Switching ========== */
+function switchAgentTab(tab, el) {
+    document.querySelectorAll('.tab-content').forEach(t => t.style.display = 'none');
+    document.querySelectorAll('.sp-menu-item').forEach(i => i.classList.remove('active'));
+    document.getElementById('tab-' + tab).style.display = 'block';
+    if (el) el.classList.add('active');
+}
+
+/* ========== Agent Card Filter ========== */
+function filterAgentCards(status, el) {
+    document.querySelectorAll('.ctab').forEach(t => t.classList.remove('active'));
+    if (el) el.classList.add('active');
+    document.querySelectorAll('.agent-card').forEach(card => {
+        if (status === 'all') {
+            card.style.display = '';
+        } else {
+            card.style.display = card.dataset.status === status ? '' : 'none';
+        }
+    });
+}
+
+/* ========== Toast ========== */
+function showToast(title, msg) {
+    document.getElementById('toastTitle').textContent = title;
+    document.getElementById('toastMsg').textContent = msg;
+    const t = document.getElementById('toast');
+    t.classList.add('show');
+    setTimeout(() => t.classList.remove('show'), 3500);
+}
+
+/* ========== Agent Detail Modal ========== */
+const agentDetails = {
+    budget: {
+        title: '💰 预算申请 Agent',
+        html: `
+            <div style="margin-bottom:16px">
+                <div style="font-size:13px;font-weight:600;color:var(--g900);margin-bottom:8px">基本信息</div>
+                <div style="display:grid;grid-template-columns:repeat(2,1fr);gap:8px;font-size:12px">
+                    <div><span style="color:var(--g500)">Agent名称：</span><strong>预算申请Agent</strong></div>
+                    <div><span style="color:var(--g500)">状态：</span><span style="color:var(--s);font-weight:600">● 运行中</span></div>
+                    <div><span style="color:var(--g500)">触发方式：</span>EP系统BOM发布事件</div>
+                    <div><span style="color:var(--g500)">处理频率：</span>平均 8件/天</div>
+                    <div><span style="color:var(--g500)">平均耗时：</span>12分钟/件</div>
+                    <div><span style="color:var(--g500)">成功率：</span><span style="color:var(--s)">98.5%</span></div>
+                </div>
+            </div>
+            <div style="margin-bottom:16px">
+                <div style="font-size:13px;font-weight:600;color:var(--g900);margin-bottom:8px">自动化逻辑</div>
+                <div style="background:var(--g50);border:1px solid var(--g200);border-radius:6px;padding:12px;font-size:12px;line-height:1.8;color:var(--g700)">
+                    1. 监听EP系统试制BOM发布事件<br>
+                    2. 解析BOM零件清单（零件号、数量、单价）<br>
+                    3. 汇总预算金额，校验是否在自动审批阈值内<br>
+                    4. 阈值内（<¥50,000）→ 自动审批通过<br>
+                    5. 阈值外 → 生成预算申请单，推送给财务审批<br>
+                    6. 同步审批结果至SRM系统
+                </div>
+            </div>
+            <div>
+                <div style="font-size:13px;font-weight:600;color:var(--g900);margin-bottom:8px">最近执行记录</div>
+                <table style="width:100%;border-collapse:collapse;font-size:12px">
+                    <thead><tr style="background:var(--g50)"><th style="padding:8px;text-align:left;border-bottom:1px solid var(--g200)">申请单号</th><th style="padding:8px;text-align:left;border-bottom:1px solid var(--g200)">零件数</th><th style="padding:8px;text-align:left;border-bottom:1px solid var(--g200)">金额</th><th style="padding:8px;text-align:left;border-bottom:1px solid var(--g200)">状态</th></tr></thead>
+                    <tbody>
+                        <tr><td style="padding:8px;border-bottom:1px solid var(--g100)">SX-2026-0527-001</td><td style="padding:8px;border-bottom:1px solid var(--g100)">12</td><td style="padding:8px;border-bottom:1px solid var(--g100)">¥342,800</td><td style="padding:8px;border-bottom:1px solid var(--g100)"><span style="color:var(--w)">⏳ 审批中</span></td></tr>
+                        <tr><td style="padding:8px;border-bottom:1px solid var(--g100)">SX-2026-0527-002</td><td style="padding:8px;border-bottom:1px solid var(--g100)">5</td><td style="padding:8px;border-bottom:1px solid var(--g100)">¥45,200</td><td style="padding:8px;border-bottom:1px solid var(--g100)"><span style="color:var(--s)">✅ 已通过</span></td></tr>
+                        <tr><td style="padding:8px">SX-2026-0526-018</td><td style="padding:8px">8</td><td style="padding:8px">¥178,500</td><td style="padding:8px"><span style="color:var(--s)">✅ 已通过</span></td></tr>
+                    </tbody>
+                </table>
+            </div>
+        `
+    },
+    purchase: {
+        title: '📝 采购申请 Agent',
+        html: `
+            <div style="margin-bottom:16px">
+                <div style="font-size:13px;font-weight:600;color:var(--g900);margin-bottom:8px">基本信息</div>
+                <div style="display:grid;grid-template-columns:repeat(2,1fr);gap:8px;font-size:12px">
+                    <div><span style="color:var(--g500)">Agent名称：</span><strong>采购申请Agent</strong></div>
+                    <div><span style="color:var(--g500)">状态：</span><span style="color:var(--s);font-weight:600">● 运行中</span></div>
+                    <div><span style="color:var(--g500)">触发方式：</span>预算审批通过事件</div>
+                    <div><span style="color:var(--g500)">处理频率：</span>平均 6件/天</div>
+                    <div><span style="color:var(--g500)">平均耗时：</span>18分钟/件</div>
+                    <div><span style="color:var(--g500)">成功率：</span><span style="color:var(--s)">97.2%</span></div>
+                </div>
+            </div>
+            <div style="margin-bottom:16px">
+                <div style="font-size:13px;font-weight:600;color:var(--g900);margin-bottom:8px">自动化逻辑</div>
+                <div style="background:var(--g50);border:1px solid var(--g200);border-radius:6px;padding:12px;font-size:12px;line-height:1.8;color:var(--g700)">
+                    1. 接收预算审批通过信号，获取零件清单<br>
+                    2. 在SRM系统创建采购申请单<br>
+                    3. 根据零件类别匹配供应商库（历史合作+资质筛选）<br>
+                    4. 自动生成SOR技术文件（参数、质量要求、交付周期）<br>
+                    5. 触发RFQ询价流程，发送报价邀请<br>
+                    6. 同步采购申请状态至EP系统
+                </div>
+            </div>
+            <div>
+                <div style="font-size:13px;font-weight:600;color:var(--g900);margin-bottom:8px">最近执行记录</div>
+                <table style="width:100%;border-collapse:collapse;font-size:12px">
+                    <thead><tr style="background:var(--g50)"><th style="padding:8px;text-align:left;border-bottom:1px solid var(--g200)">申请单号</th><th style="padding:8px;text-align:left;border-bottom:1px solid var(--g200)">供应商</th><th style="padding:8px;text-align:left;border-bottom:1px solid var(--g200)">SOR状态</th><th style="padding:8px;text-align:left;border-bottom:1px solid var(--g200)">RFQ</th></tr></thead>
+                    <tbody>
+                        <tr><td style="padding:8px;border-bottom:1px solid var(--g100)">PA-2026-0312-008</td><td style="padding:8px;border-bottom:1px solid var(--g100)">博世/大陆/采埃孚</td><td style="padding:8px;border-bottom:1px solid var(--g100)"><span style="color:var(--s)">已生成</span></td><td style="padding:8px;border-bottom:1px solid var(--g100)"><span style="color:var(--p)">已触发</span></td></tr>
+                        <tr><td style="padding:8px">PA-2026-0312-007</td><td style="padding:8px">宁德时代</td><td style="padding:8px"><span style="color:var(--s)">已生成</span></td><td style="padding:8px"><span style="color:var(--s)">已完成</span></td></tr>
+                    </tbody>
+                </table>
+            </div>
+        `
+    },
+    order: {
+        title: '📋 采购订单 Agent',
+        html: `
+            <div style="margin-bottom:16px">
+                <div style="font-size:13px;font-weight:600;color:var(--g900);margin-bottom:8px">基本信息</div>
+                <div style="display:grid;grid-template-columns:repeat(2,1fr);gap:8px;font-size:12px">
+                    <div><span style="color:var(--g500)">Agent名称：</span><strong>采购订单Agent</strong></div>
+                    <div><span style="color:var(--g500)">状态：</span><span style="color:var(--s);font-weight:600">● 运行中</span></div>
+                    <div><span style="color:var(--g500)">触发方式：</span>RFQ报价截止 + 报价汇总</div>
+                    <div><span style="color:var(--g500)">处理频率：</span>平均 5件/天</div>
+                    <div><span style="color:var(--g500)">平均耗时：</span>25分钟/件</div>
+                    <div><span style="color:var(--g500)">成功率：</span><span style="color:var(--s)">96.8%</span></div>
+                </div>
+            </div>
+            <div style="margin-bottom:16px">
+                <div style="font-size:13px;font-weight:600;color:var(--g900);margin-bottom:8px">自动化逻辑</div>
+                <div style="background:var(--g50);border:1px solid var(--g200);border-radius:6px;padding:12px;font-size:12px;line-height:1.8;color:var(--g700)">
+                    1. 监听RFQ报价截止事件，汇总供应商报价<br>
+                    2. 自动比价分析（价格、交付、质量评分）<br>
+                    3. 生成采购订单草稿，推荐最优供应商<br>
+                    4. 推送给采购工程师审批确认<br>
+                    5. 审批通过后同步物流规划，确认交付计划<br>
+                    6. 订单确认后触发供应商通知
+                </div>
+            </div>
+        `
+    },
+    change: {
+        title: '🔄 需求变更 Agent',
+        html: `
+            <div style="margin-bottom:16px">
+                <div style="font-size:13px;font-weight:600;color:var(--g900);margin-bottom:8px">基本信息</div>
+                <div style="display:grid;grid-template-columns:repeat(2,1fr);gap:8px;font-size:12px">
+                    <div><span style="color:var(--g500)">Agent名称：</span><strong>需求变更Agent</strong></div>
+                    <div><span style="color:var(--g500)">状态：</span><span style="color:var(--g500);font-weight:600">● 空闲</span></div>
+                    <div><span style="color:var(--g500)">触发方式：</span>EP设计变更通知事件</div>
+                    <div><span style="color:var(--g500)">处理频率：</span>平均 2件/天</div>
+                    <div><span style="color:var(--g500)">平均耗时：</span>8分钟/件</div>
+                    <div><span style="color:var(--g500)">成功率：</span><span style="color:var(--s)">100%</span></div>
+                </div>
+            </div>
+            <div style="margin-bottom:16px">
+                <div style="font-size:13px;font-weight:600;color:var(--g900);margin-bottom:8px">自动化逻辑</div>
+                <div style="background:var(--g50);border:1px solid var(--g200);border-radius:6px;padding:12px;font-size:12px;line-height:1.8;color:var(--g700)">
+                    1. 持续监听EP系统设计变更信号<br>
+                    2. 分析变更影响的零件范围<br>
+                    3. 匹配在途样件申请，评估影响程度<br>
+                    4. 生成变更影响报告，推送给相关工程师<br>
+                    5. 根据变更类型自动更新SRM采购申请<br>
+                    6. 同步变更记录至EP系统
+                </div>
+            </div>
+        `
+    },
+    accept: {
+        title: '🔍 样件验收 Agent',
+        html: `
+            <div style="margin-bottom:16px">
+                <div style="font-size:13px;font-weight:600;color:var(--g900);margin-bottom:8px">基本信息</div>
+                <div style="display:grid;grid-template-columns:repeat(2,1fr);gap:8px;font-size:12px">
+                    <div><span style="color:var(--g500)">Agent名称：</span><strong>样件验收Agent</strong></div>
+                    <div><span style="color:var(--g500)">状态：</span><span style="color:var(--s);font-weight:600">● 运行中</span></div>
+                    <div><span style="color:var(--g500)">触发方式：</span>MI-PEC到货通知 + 质检完成</div>
+                    <div><span style="color:var(--g500)">处理频率：</span>平均 4件/天</div>
+                    <div><span style="color:var(--g500)">平均耗时：</span>15分钟/件</div>
+                    <div><span style="color:var(--g500)">成功率：</span><span style="color:var(--s)">99.1%</span></div>
+                </div>
+            </div>
+            <div style="margin-bottom:16px">
+                <div style="font-size:13px;font-weight:600;color:var(--g900);margin-bottom:8px">自动化逻辑</div>
+                <div style="background:var(--g50);border:1px solid var(--g200);border-radius:6px;padding:12px;font-size:12px;line-height:1.8;color:var(--g700)">
+                    1. 监听MI-PEC样件到货通知<br>
+                    2. 匹配采购订单与到货信息<br>
+                    3. 获取MI-PEC质检结果（外观/尺寸/性能）<br>
+                    4. 合格 → 自动生成验收报告，触发付款流程<br>
+                    5. 不合格 → 生成异常报告，通知采购工程师<br>
+                    6. 同步验收状态至SRM和EP系统
+                </div>
+            </div>
+        `
+    },
+    exception: {
+        title: '🚨 异常处理 Agent',
+        html: `
+            <div style="margin-bottom:16px">
+                <div style="font-size:13px;font-weight:600;color:var(--g900);margin-bottom:8px">基本信息</div>
+                <div style="display:grid;grid-template-columns:repeat(2,1fr);gap:8px;font-size:12px">
+                    <div><span style="color:var(--g500)">Agent名称：</span><strong>异常处理Agent</strong></div>
+                    <div><span style="color:var(--g500)">状态：</span><span style="color:var(--d);font-weight:600">● 异常（3件待处理）</span></div>
+                    <div><span style="color:var(--g500)">触发方式：</span>全流程异常事件监听</div>
+                    <div><span style="color:var(--g500)">监控节点：</span>6个流程节点全覆盖</div>
+                    <div><span style="color:var(--g500)">预警阈值：</span>超时 > 48h / 价格偏差 > 15%</div>
+                    <div><span style="color:var(--g500)">处理方式：</span>自动建议 + 人工确认</div>
+                </div>
+            </div>
+            <div style="margin-bottom:16px">
+                <div style="font-size:13px;font-weight:600;color:var(--g900);margin-bottom:8px">当前异常</div>
+                <div style="background:var(--dl);border:1px solid #ffa39e;border-radius:6px;padding:12px;font-size:12px;line-height:1.8">
+                    <div style="color:var(--d);font-weight:600;margin-bottom:4px">⚠️ 3个异常待处理</div>
+                    <div style="color:var(--g700)">
+                        1. PO-2026-0520-007 交付超期3天 → 建议：启动备选供应商<br>
+                        2. PO-2026-0525-003 价格异常（高出均价18%）→ 建议：重新议价<br>
+                        3. SX-2026-0526-009 质检不合格 → 建议：退回供应商返工
+                    </div>
+                </div>
+            </div>
+        `
+    }
+};
+
+function openAgentDetail(type) {
+    const detail = agentDetails[type];
+    if (!detail) return;
+    document.getElementById('agentDetailTitle').textContent = detail.title;
+    document.getElementById('agentDetailBody').innerHTML = detail.html;
+    document.getElementById('agentDetailModal').classList.add('show');
+}
+
+function hideAgentDetail() {
+    document.getElementById('agentDetailModal').classList.remove('show');
+}
+
+// Close modal on backdrop click
+document.getElementById('agentDetailModal').addEventListener('click', function(e) {
+    if (e.target === this) hideAgentDetail();
+});
+
+// Close modal on Escape
+document.addEventListener('keydown', function(e) {
+    if (e.key === 'Escape') hideAgentDetail();
+});
+</script>
+</body>
+</html>

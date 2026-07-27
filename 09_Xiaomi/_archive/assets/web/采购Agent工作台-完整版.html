@@ -1,0 +1,622 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>小米汽车SRM系统 - 采购Agent工作台</title>
+<style>
+:root{--p:#1677ff;--ph:#4096ff;--pl:#e6f4ff;--pa:rgba(22,119,255,.06);--s:#52c41a;--sl:#f6ffed;--sa:rgba(82,196,26,.08);--w:#faad14;--wl:#fffbe6;--wa:rgba(250,173,20,.08);--d:#ff4d4f;--dl:#fff2f0;--da:rgba(255,77,79,.06);--g50:#fafafa;--g100:#f5f5f5;--g200:#e8e8e8;--g300:#d9d9d9;--g400:#bfbfbf;--g500:#8c8c8c;--g600:#595959;--g700:#434343;--g800:#262626;--g900:#1f1f1f;--r:10px;--rs:6px;--rl:14px;--sh:0 1px 3px rgba(0,0,0,.04),0 1px 2px rgba(0,0,0,.06);--shm:0 4px 12px rgba(0,0,0,.07);--shl:0 8px 24px rgba(0,0,0,.09);--tr:all .2s ease;--nav-bg:#001529;--purple:#722ed1;--purple-l:#f9f0ff;--cyan:#13c2c2;--cyan-l:#e6fffb}
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif;background:#f0f2f5;color:var(--g800);line-height:1.6;font-size:13px;min-height:100vh;overflow:hidden}
+
+/* ===== Top Nav ===== */
+.topnav{background:var(--nav-bg);height:44px;display:flex;align-items:center;padding:0 16px;position:fixed;top:0;left:0;right:0;z-index:1000}
+.topnav-logo{display:flex;align-items:center;gap:8px;margin-right:20px;flex-shrink:0}
+.topnav-logo .mi{width:26px;height:26px;background:linear-gradient(135deg,#ff6700,#ff4d00);border-radius:6px;display:flex;align-items:center;justify-content:center;color:#fff;font-size:11px;font-weight:700}
+.topnav-logo span{color:#fff;font-size:13px;font-weight:600;letter-spacing:.5px;white-space:nowrap}
+.topnav-menu{display:flex;align-items:center;gap:0;flex:1;overflow-x:auto;scrollbar-width:none}
+.topnav-menu::-webkit-scrollbar{display:none}
+.topnav-item{padding:0 12px;height:44px;display:flex;align-items:center;color:rgba(255,255,255,.55);font-size:12px;cursor:pointer;white-space:nowrap;transition:all .2s;position:relative}
+.topnav-item:hover{color:#fff;background:rgba(255,255,255,.08)}
+.topnav-item.active{color:#fff;background:rgba(255,255,255,.12)}
+.topnav-item.active::after{content:'';position:absolute;bottom:0;left:8px;right:8px;height:2px;background:var(--p);border-radius:2px 2px 0 0}
+.topnav-right{display:flex;align-items:center;gap:12px;margin-left:auto;flex-shrink:0;padding-left:16px}
+.topnav-right .icon{width:30px;height:30px;border-radius:50%;display:flex;align-items:center;justify-content:center;color:rgba(255,255,255,.55);cursor:pointer;transition:all .2s;font-size:13px;position:relative}
+.topnav-right .icon:hover{background:rgba(255,255,255,.1);color:#fff}
+.topnav-right .icon .dot{position:absolute;top:5px;right:5px;width:6px;height:6px;background:var(--d);border-radius:50%;border:1.5px solid var(--nav-bg)}
+.topnav-user{display:flex;align-items:center;gap:6px;color:rgba(255,255,255,.85);font-size:11px;cursor:pointer}
+.topnav-avatar{width:26px;height:26px;border-radius:50%;background:linear-gradient(135deg,var(--p),#4096ff);display:flex;align-items:center;justify-content:center;color:#fff;font-size:10px;font-weight:600}
+
+/* ===== Main ===== */
+.main-content{margin-top:44px;height:calc(100vh - 44px);overflow-y:auto;padding:12px 16px 24px}
+
+/* ===== Stats ===== */
+.stats-row{display:grid;grid-template-columns:repeat(5,1fr);gap:10px;margin-bottom:12px}
+.stat-card{background:#fff;border-radius:8px;padding:12px 14px;box-shadow:var(--sh);border:1px solid rgba(0,0,0,.03);display:flex;align-items:center;gap:10px;transition:var(--tr);cursor:pointer}
+.stat-card:hover{box-shadow:var(--shm);transform:translateY(-1px)}
+.stat-icon{width:36px;height:36px;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:16px;flex-shrink:0}
+.stat-icon.blue{background:var(--pl);color:var(--p)}
+.stat-icon.green{background:var(--sl);color:var(--s)}
+.stat-icon.orange{background:var(--wl);color:#d46b08}
+.stat-icon.red{background:var(--dl);color:var(--d)}
+.stat-icon.purple{background:var(--purple-l);color:var(--purple)}
+.stat-num{font-size:20px;font-weight:700;color:var(--g900);line-height:1.1}
+.stat-label{font-size:11px;color:var(--g500);margin-top:1px}
+.stat-change{font-size:10px;display:inline-flex;align-items:center;gap:2px;margin-top:3px;padding:1px 6px;border-radius:8px}
+.stat-change.up{background:var(--sl);color:#0a6e3a}
+.stat-change.down{background:var(--dl);color:#b91c1c}
+
+/* ===== Panel ===== */
+.panel{background:#fff;border-radius:8px;box-shadow:var(--sh);border:1px solid rgba(0,0,0,.03);overflow:hidden;margin-bottom:12px}
+.panel-hdr{display:flex;align-items:center;justify-content:space-between;padding:10px 14px;border-bottom:1px solid var(--g100)}
+.panel-hdr h3{font-size:13px;font-weight:700;color:var(--g900);display:flex;align-items:center;gap:5px}
+.panel-body{padding:0;max-height:400px;overflow-y:auto}
+
+/* ===== Workflow ===== */
+.wf-body{padding:14px 16px}
+.wf-steps{display:flex;align-items:flex-start;gap:0}
+.wf-step{flex:1;text-align:center;position:relative;padding:0 2px;cursor:pointer;transition:var(--tr)}
+.wf-step:hover{transform:translateY(-2px)}
+.wf-step:not(:last-child)::after{content:'';position:absolute;top:20px;left:calc(50% + 16px);width:calc(100% - 32px);height:2px;background:var(--g200)}
+.wf-step.done:not(:last-child)::after{background:var(--p)}
+.wf-step .wf-num{width:40px;height:40px;border-radius:50%;background:var(--g100);display:flex;align-items:center;justify-content:center;font-size:16px;margin:0 auto 6px;border:2px solid var(--g200);transition:all .3s}
+.wf-step.done .wf-num{background:linear-gradient(135deg,#e6f4ff,#bae0ff);border-color:var(--p)}
+.wf-step.active .wf-num{background:linear-gradient(135deg,#e6f4ff,#bae0ff);border-color:var(--p);box-shadow:0 0 0 3px rgba(22,119,255,.12);animation:wfPulse 2s infinite}
+@keyframes wfPulse{0%,100%{box-shadow:0 0 0 3px rgba(22,119,255,.12)}50%{box-shadow:0 0 0 8px rgba(22,119,255,0)}}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.5}}
+.wf-step .wf-title{font-size:11px;font-weight:600;color:var(--g700)}
+.wf-step.done .wf-title,.wf-step.active .wf-title{color:var(--g900)}
+.wf-step .wf-desc{font-size:9px;color:var(--g400);line-height:1.3}
+
+/* ===== Todo ===== */
+.filter-bar{display:flex;gap:0;padding:6px 14px;border-bottom:1px solid var(--g100);background:var(--g50);flex-wrap:wrap}
+.filter-tab{padding:4px 12px;font-size:11px;color:var(--g500);cursor:pointer;border-radius:5px;transition:all .15s;border:1px solid transparent;font-weight:500}
+.filter-tab:hover{background:#fff;color:var(--g800);border-color:var(--g200)}
+.filter-tab.active{background:#fff;color:var(--p);border-color:var(--p);font-weight:600}
+.filter-tab .cnt{font-size:9px;padding:1px 5px;border-radius:6px;background:var(--g100);margin-left:3px}
+.filter-tab.active .cnt{background:var(--pl);color:var(--p)}
+.todo-item{display:flex;align-items:flex-start;gap:10px;padding:8px 14px;border-bottom:1px solid var(--g50);cursor:pointer;transition:var(--tr)}
+.todo-item:hover{background:var(--pl)}
+.todo-item:last-child{border-bottom:none}
+.todo-icon{width:30px;height:30px;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:14px;flex-shrink:0;margin-top:1px}
+.todo-icon.urgent{background:var(--dl)}
+.todo-icon.normal{background:var(--wl)}
+.todo-icon.info{background:var(--pl)}
+.todo-icon.done{background:var(--sl)}
+.todo-info{flex:1;min-width:0}
+.todo-title{font-size:12px;color:var(--g800);font-weight:600;line-height:1.3}
+.todo-desc{font-size:10px;color:var(--g500);margin-top:2px;line-height:1.4}
+.todo-right{text-align:right;flex-shrink:0}
+.todo-status{font-size:9px;padding:2px 8px;border-radius:8px;font-weight:500}
+.todo-status.pending{background:var(--wl);color:#d48806}
+.todo-status.progress{background:var(--pl);color:var(--p)}
+.todo-status.done{background:var(--sl);color:#0a6e3a}
+.todo-status.overdue{background:var(--dl);color:#b91c1c}
+.todo-time{font-size:9px;color:var(--g400);margin-top:3px}
+
+/* ===== Module Pages ===== */
+.mod-page{display:none;animation:fadeUp .3s ease}
+.mod-page.active{display:block}
+@keyframes fadeUp{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
+
+/* ===== Table ===== */
+.dt{width:100%;border-collapse:collapse;font-size:11px}
+.dt th{background:var(--g50);color:var(--g600);font-size:10px;font-weight:600;padding:8px 10px;text-align:left;border-bottom:1px solid var(--g200);white-space:nowrap;position:sticky;top:0;z-index:2}
+.dt td{padding:7px 10px;border-bottom:1px solid var(--g100);vertical-align:middle}
+.dt tbody tr{transition:var(--tr)}
+.dt tbody tr:hover td{background:#f0f7ff}
+.dt .cl{color:var(--p);font-weight:500;cursor:pointer}
+.dt .cl:hover{text-decoration:underline}
+.tag{display:inline-block;font-size:9px;padding:1px 6px;border-radius:4px;font-weight:500;white-space:nowrap}
+.tag-p{background:var(--pl);color:var(--p)}
+.tag-s{background:var(--sl);color:var(--s)}
+.tag-w{background:var(--wl);color:#d46b08}
+.tag-d{background:var(--dl);color:var(--d)}
+.tag-g{background:var(--g100);color:var(--g600)}
+.tag-purple{background:var(--purple-l);color:var(--purple)}
+.tag-cyan{background:var(--cyan-l);color:var(--cyan)}
+
+/* ===== Buttons ===== */
+.btn{border:none;padding:5px 12px;border-radius:var(--rs);font-size:11px;font-weight:500;cursor:pointer;transition:var(--tr);display:inline-flex;align-items:center;gap:4px;white-space:nowrap;font-family:inherit}
+.btn:active{transform:scale(.97)}
+.btn-p{background:var(--p);color:#fff;box-shadow:0 2px 6px rgba(22,119,255,.25)}.btn-p:hover{box-shadow:0 4px 12px rgba(22,119,255,.35)}
+.btn-o{background:#fff;color:var(--g700);border:1px solid var(--g300)}.btn-o:hover{color:var(--p);border-color:var(--p)}
+.btn-g{background:var(--g50);color:var(--g600);border:1px solid var(--g200)}.btn-g:hover{color:var(--p);border-color:var(--p)}
+
+/* ===== AI Map ===== */
+.ai-section{margin-bottom:12px}
+.ai-inner{background:#fff;border-radius:8px;box-shadow:var(--sh);border:1px solid rgba(0,0,0,.03);overflow:hidden}
+.ai-topbar{display:flex;align-items:center;justify-content:space-between;padding:12px 16px;border-bottom:1px solid var(--g100);background:linear-gradient(135deg,#fafbff,#f5f3ff)}
+.ai-topbar .ai-title{font-size:14px;font-weight:700;color:var(--g900);display:flex;align-items:center;gap:6px}
+.ai-topbar .ai-badge{font-size:9px;padding:2px 8px;border-radius:8px;background:linear-gradient(135deg,#667eea,#764ba2);color:#fff;font-weight:600}
+.ai-topbar .ai-desc{font-size:11px;color:var(--g400)}
+.ai-domains{display:grid;grid-template-columns:repeat(6,1fr);gap:0;border-bottom:1px solid var(--g100)}
+.ai-domain{padding:10px 12px;text-align:center;cursor:pointer;transition:all .2s;position:relative;border-right:1px solid var(--g50)}
+.ai-domain:last-child{border-right:none}
+.ai-domain:hover{background:var(--pl)}
+.ai-domain.active{background:var(--pl)}
+.ai-domain.active::after{content:'';position:absolute;bottom:0;left:20%;right:20%;height:3px;border-radius:3px 3px 0 0;background:var(--p)}
+.ai-domain .d-icon{font-size:18px;margin-bottom:2px}
+.ai-domain .d-num{font-size:18px;font-weight:700;color:var(--g900);line-height:1.1}
+.ai-domain .d-name{font-size:10px;color:var(--g500);margin-top:1px}
+.ai-cards{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:10px;padding:14px 16px}
+.ai-card{background:var(--g50);border-radius:8px;padding:12px 14px;cursor:pointer;transition:all .2s;border:1px solid transparent;display:flex;flex-direction:column;gap:8px}
+.ai-card:hover{background:#fff;border-color:var(--p);box-shadow:0 2px 10px rgba(22,119,255,.1);transform:translateY(-1px)}
+.ai-card-top{display:flex;align-items:center;gap:8px}
+.ai-card-icon{width:32px;height:32px;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:15px;flex-shrink:0;background:linear-gradient(135deg,#e6f4ff,#bae0ff);color:var(--p)}
+.ai-card-name{font-size:12px;font-weight:600;color:var(--g800)}
+.ai-card-tag{font-size:9px;padding:1px 6px;border-radius:5px;font-weight:500;display:inline-block;margin-top:3px}
+.ai-card-tag.hot{background:var(--dl);color:var(--d)}
+.ai-card-tag.new{background:var(--pl);color:var(--p)}
+.ai-card-tag.ai{background:linear-gradient(135deg,#f9f0ff,#efdbff);color:var(--purple)}
+.ai-card-desc{font-size:10px;color:var(--g500);line-height:1.5;flex:1}
+.ai-card-footer{display:flex;align-items:center;justify-content:space-between;font-size:9px;color:var(--g400)}
+.ai-card-feasibility{padding:1px 6px;border-radius:4px;font-weight:500}
+.ai-card-feasibility.high{background:#f6ffed;color:#0a6e3a;border:1px solid #b7eb8f}
+.ai-card-feasibility.mid{background:#fffbe6;color:#d48806;border:1px solid #ffe58f}
+.ai-footer{padding:8px 16px;border-top:1px solid var(--g100);display:flex;align-items:center;gap:14px;font-size:10px;color:var(--g500)}
+.ai-dot{width:6px;height:6px;border-radius:50%;display:inline-block}
+.ai-dot.green{background:var(--s)}
+.ai-dot.blue{background:var(--p)}
+.ai-dot.purple{background:var(--purple)}
+
+/* ===== AI Demo ===== */
+.ai-demo-panel{background:#fff;border-radius:8px;box-shadow:var(--sh);border:1px solid rgba(0,0,0,.03);overflow:hidden;margin-top:12px}
+.ai-demo-hdr{padding:12px 16px;border-bottom:1px solid var(--g100);display:flex;align-items:center;justify-content:space-between;background:linear-gradient(135deg,#fff 0%,#f0f7ff 100%)}
+.ai-demo-hdr .dd-left{display:flex;align-items:center;gap:8px}
+.ai-demo-hdr .dd-icon{width:32px;height:32px;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:16px;color:#fff}
+.ai-demo-hdr .dd-title{font-size:13px;font-weight:700;color:var(--g900)}
+.ai-demo-hdr .dd-desc{font-size:10px;color:var(--g500)}
+.ai-demo-body{padding:16px;min-height:160px}
+
+/* ===== AI Chat Inline ===== */
+.chat-inline{background:#fff;border-radius:8px;box-shadow:var(--sh);border:1px solid rgba(0,0,0,.03);overflow:hidden}
+.chat-inline-hdr{padding:10px 14px;border-bottom:1px solid var(--g100);display:flex;align-items:center;justify-content:space-between}
+.chat-inline-hdr h3{font-size:13px;font-weight:700;color:var(--g900);display:flex;align-items:center;gap:6px}
+.chat-inline-hdr .ai-dot-anim{width:7px;height:7px;border-radius:50%;background:var(--s);animation:pulse 2s infinite}
+.chat-body{height:260px;overflow-y:auto;padding:14px;background:linear-gradient(180deg,#f8fafc,#f0f2f5)}
+.chat-msg{display:flex;gap:8px;margin-bottom:12px;max-width:85%;animation:fadeUp .3s ease}
+.chat-msg.ai{flex-direction:row}
+.chat-msg.user{flex-direction:row-reverse;margin-left:auto}
+.chat-av{width:28px;height:28px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:11px;flex-shrink:0;font-weight:700}
+.chat-av.ai-av{background:linear-gradient(135deg,var(--p),#4096ff);color:#fff}
+.chat-av.user-av{background:linear-gradient(135deg,var(--s),#73d13d);color:#fff}
+.chat-bubble{padding:10px 14px;border-radius:var(--rl);font-size:12px;line-height:1.7}
+.chat-msg.ai .chat-bubble{background:#fff;border:1px solid var(--g200);border-radius:var(--rl) var(--rl) var(--rl) 4px;color:var(--g800);box-shadow:var(--sh)}
+.chat-msg.user .chat-bubble{background:linear-gradient(135deg,var(--p),#4096ff);color:#fff;border-radius:var(--rl) var(--rl) 4px var(--rl)}
+.chat-bubble .hl{color:var(--p);font-weight:600}
+.chat-bubble .rbox{background:var(--g50);border:1px solid var(--g200);border-radius:var(--rs);padding:8px 12px;margin-top:6px;font-size:11px}
+.chat-bubble .rbox .rr{display:flex;justify-content:space-between;padding:2px 0;border-bottom:1px solid var(--g100)}
+.chat-bubble .rbox .rr:last-child{border:none}
+.chat-bubble .rbox .rl{color:var(--g500)}
+.chat-bubble .rbox .rv{font-weight:600;color:var(--g800)}
+.typing{display:flex;gap:3px;padding:4px 0}
+.typing span{width:5px;height:5px;border-radius:50%;background:var(--g300);animation:typingBounce 1.4s infinite}
+.typing span:nth-child(2){animation-delay:.2s}
+.typing span:nth-child(3){animation-delay:.4s}
+@keyframes typingBounce{0%,60%,100%{transform:translateY(0);opacity:.4}30%{transform:translateY(-5px);opacity:1}}
+.chat-input-bar{background:#fff;border-top:1px solid var(--g100);padding:8px 14px;display:flex;align-items:center;gap:8px}
+.chat-input{flex:1;padding:7px 12px;border:1px solid var(--g300);border-radius:var(--rl);font-size:12px;transition:var(--tr);font-family:inherit;height:34px}
+.chat-input:focus{outline:none;border-color:var(--p);box-shadow:0 0 0 3px rgba(22,119,255,.1)}
+.chat-send{width:34px;height:34px;border-radius:50%;background:var(--p);border:none;color:#fff;font-size:14px;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:var(--tr)}
+.chat-send:hover{box-shadow:0 4px 12px rgba(22,119,255,.35)}
+
+/* ===== Alert ===== */
+.alert-banner{padding:8px 12px;border-radius:6px;display:flex;align-items:center;gap:8px;font-size:11px;margin-bottom:12px}
+.alert-banner.info{background:linear-gradient(135deg,#e6f4ff,#f0f5ff);border:1px solid #91caff;color:#0958d9}
+.alert-banner.warn{background:linear-gradient(135deg,#fff7e6,#fffbe6);border:1px solid #ffd591;color:#ad6800}
+
+/* ===== Detail Overlay ===== */
+.detail-overlay{display:none;position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,.4);z-index:2000;align-items:center;justify-content:center}
+.detail-overlay.show{display:flex}
+.detail-panel{background:#fff;border-radius:12px;width:560px;max-height:80vh;overflow:hidden;box-shadow:0 12px 40px rgba(0,0,0,.2);animation:detailIn .25s ease}
+@keyframes detailIn{from{opacity:0;transform:translateY(-16px)}to{opacity:1;transform:translateY(0)}}
+.detail-hdr{padding:16px 20px;border-bottom:1px solid var(--g100);display:flex;align-items:center;justify-content:space-between}
+.detail-hdr h3{font-size:15px;font-weight:700;color:var(--g900);display:flex;align-items:center;gap:8px}
+.detail-close{width:28px;height:28px;border-radius:6px;border:none;background:var(--g50);cursor:pointer;font-size:16px;color:var(--g500);display:flex;align-items:center;justify-content:center}
+.detail-close:hover{background:var(--g200)}
+.detail-body{padding:20px;overflow-y:auto;max-height:calc(80vh - 120px)}
+.detail-section{margin-bottom:16px}
+.detail-section-title{font-size:12px;font-weight:700;color:var(--g900);margin-bottom:8px;display:flex;align-items:center;gap:6px}
+.detail-section-title::before{content:'';width:3px;height:14px;border-radius:2px;background:var(--p);flex-shrink:0}
+.detail-row{display:flex;align-items:center;padding:6px 0;border-bottom:1px solid var(--g50);font-size:12px;color:var(--g700)}
+.detail-row:last-child{border-bottom:none}
+.detail-row .dr-label{width:100px;color:var(--g500);flex-shrink:0;font-weight:500}
+.detail-row .dr-value{flex:1;color:var(--g800);font-weight:500}
+.detail-tags{display:flex;flex-wrap:wrap;gap:5px;margin-top:6px}
+.detail-tag{font-size:10px;padding:3px 8px;border-radius:5px;background:var(--g50);color:var(--g600);border:1px solid var(--g200)}
+.detail-flow{display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin-top:6px}
+.detail-flow .df-step{font-size:10px;padding:4px 10px;border-radius:6px;background:var(--pl);color:var(--p);font-weight:500}
+.detail-flow .df-arrow{color:var(--g300);font-size:10px}
+</style>
+</head>
+<body>
+
+<!-- Top Nav -->
+<div class="topnav">
+  <div class="topnav-logo"><div class="mi">MI</div><span>小米汽车 SRM</span></div>
+  <div class="topnav-menu">
+    <div class="topnav-item active" onclick="switchMod('home')">工作台</div>
+    <div class="topnav-item" onclick="switchMod('sor')">SOR管理</div>
+    <div class="topnav-item" onclick="switchMod('bdl')">BDL管理</div>
+    <div class="topnav-item" onclick="switchMod('rfq')">RFQ管理</div>
+    <div class="topnav-item" onclick="switchMod('award')">定点管理</div>
+    <div class="topnav-item">合同管理</div>
+    <div class="topnav-item">订单管理</div>
+    <div class="topnav-item" onclick="switchMod('ai-map')">AI能力地图</div>
+  </div>
+  <div class="topnav-right">
+    <div class="icon">🔔<span class="dot"></span></div>
+    <div class="icon">✉️</div>
+    <div class="topnav-user"><div class="topnav-avatar">李</div><span>李明</span></div>
+  </div>
+</div>
+
+<!-- Main Content -->
+<div class="main-content">
+
+  <!-- ==================== HOME ==================== -->
+  <div class="mod-page active" id="mod-home">
+    <div class="stats-row">
+      <div class="stat-card"><div class="stat-icon blue">📋</div><div><div class="stat-num">8</div><div class="stat-label">进行中SOR</div><div class="stat-change up">↑2</div></div></div>
+      <div class="stat-card"><div class="stat-icon green">📊</div><div><div class="stat-num">12</div><div class="stat-label">进行中RFQ</div><div class="stat-change up">↑3</div></div></div>
+      <div class="stat-card"><div class="stat-icon orange">📝</div><div><div class="stat-num">5</div><div class="stat-label">待审批定点</div><div class="stat-change down">⚠需关注</div></div></div>
+      <div class="stat-card"><div class="stat-icon red">⏰</div><div><div class="stat-num">3</div><div class="stat-label">即将到期</div><div class="stat-change down">紧急</div></div></div>
+      <div class="stat-card"><div class="stat-icon purple">🤖</div><div><div class="stat-num">96%</div><div class="stat-label">AI辅助率</div><div class="stat-change up">↑5%</div></div></div>
+    </div>
+
+    <!-- Workflow -->
+    <div class="panel">
+      <div class="panel-hdr"><h3>🔄 采购全流程工作流</h3><span style="font-size:10px;color:var(--g400)">当前: RFQ询报价阶段</span></div>
+      <div class="wf-body">
+        <div class="wf-steps">
+          <div class="wf-step done" onclick="switchMod('sor')"><div class="wf-num">📋</div><div class="wf-title">SOR下发</div><div class="wf-desc">需求确认</div></div>
+          <div class="wf-step done" onclick="switchMod('bdl')"><div class="wf-num">📦</div><div class="wf-title">BDL维护</div><div class="wf-desc">BOM分解</div></div>
+          <div class="wf-step active" onclick="switchMod('rfq')"><div class="wf-num">💰</div><div class="wf-title">RFQ询报价</div><div class="wf-desc">报价收集中</div></div>
+          <div class="wf-step" onclick="switchMod('award')"><div class="wf-num">📝</div><div class="wf-title">定点申请</div><div class="wf-desc">待执行</div></div>
+          <div class="wf-step"><div class="wf-num">📄</div><div class="wf-title">合同签订</div><div class="wf-desc">待执行</div></div>
+          <div class="wf-step"><div class="wf-num">🚚</div><div class="wf-title">量产供货</div><div class="wf-desc">待执行</div></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Two col: Todo + AI Chat -->
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px">
+      <!-- Todo -->
+      <div class="panel">
+        <div class="panel-hdr"><h3>📌 我的待办</h3><span style="font-size:10px;color:var(--p);cursor:pointer">查看全部 →</span></div>
+        <div class="filter-bar" id="todoFilterBar"></div>
+        <div class="panel-body" id="todoList"></div>
+      </div>
+      <!-- AI Chat Inline -->
+      <div class="chat-inline">
+        <div class="chat-inline-hdr"><h3><span class="ai-dot-anim"></span> AI采购助手</h3><span style="font-size:10px;color:var(--g400)">试试问我：SOR-2026-003的进度</span></div>
+        <div class="chat-body" id="chatBody">
+          <div class="chat-msg ai"><div class="chat-av ai-av">AI</div><div class="chat-bubble">👋 你好李明！我可以帮你查询任务进度、对比报价、生成定点单、检测异常报价。<br/><br/>试试问我：<span class="hl">"SOR-2026-003的进度"</span></div></div>
+        </div>
+        <div class="chat-input-bar"><input class="chat-input" id="chatInput" placeholder="输入问题..." /><button class="chat-send" onclick="sendChat()">➤</button></div>
+      </div>
+    </div>
+
+    <!-- AI Quick Map -->
+    <div class="panel">
+      <div class="panel-hdr"><h3>🤖 AI能力快捷入口</h3><span style="font-size:10px;color:var(--p);cursor:pointer" onclick="switchMod('ai-map')">查看全部18项 →</span></div>
+      <div style="padding:12px 14px;display:grid;grid-template-columns:repeat(6,1fr);gap:8px">
+        <div style="padding:10px;background:var(--g50);border-radius:6px;text-align:center;cursor:pointer;transition:var(--tr);border:1px solid var(--g200)" onmouseover="this.style.borderColor='var(--p)';this.style.background='var(--pl)'" onmouseout="this.style.borderColor='var(--g200)';this.style.background='var(--g50)'" onclick="loadAIDemo('price-compare')"><div style="font-size:18px;margin-bottom:4px">📊</div><div style="font-size:10px;font-weight:600;color:var(--g800)">智能比价</div></div>
+        <div style="padding:10px;background:var(--g50);border-radius:6px;text-align:center;cursor:pointer;transition:var(--tr);border:1px solid var(--g200)" onmouseover="this.style.borderColor='var(--p)';this.style.background='var(--pl)'" onmouseout="this.style.borderColor='var(--g200)';this.style.background='var(--g50)'" onclick="loadAIDemo('supplier-match')"><div style="font-size:18px;margin-bottom:4px">💡</div><div style="font-size:10px;font-weight:600;color:var(--g800)">供应商匹配</div></div>
+        <div style="padding:10px;background:var(--g50);border-radius:6px;text-align:center;cursor:pointer;transition:var(--tr);border:1px solid var(--g200)" onmouseover="this.style.borderColor='var(--p)';this.style.background='var(--pl)'" onmouseout="this.style.borderColor='var(--g200)';this.style.background='var(--g50)'" onclick="loadAIDemo('supply-risk')"><div style="font-size:18px;margin-bottom:4px">⚠️</div><div style="font-size:10px;font-weight:600;color:var(--g800)">风险分析</div></div>
+        <div style="padding:10px;background:var(--g50);border-radius:6px;text-align:center;cursor:pointer;transition:var(--tr);border:1px solid var(--g200)" onmouseover="this.style.borderColor='var(--p)';this.style.background='var(--pl)'" onmouseout="this.style.borderColor='var(--g200)';this.style.background='var(--g50)'" onclick="loadAIDemo('sor-gen')"><div style="font-size:18px;margin-bottom:4px">📄</div><div style="font-size:10px;font-weight:600;color:var(--g800)">SOR生成</div></div>
+        <div style="padding:10px;background:var(--g50);border-radius:6px;text-align:center;cursor:pointer;transition:var(--tr);border:1px solid var(--g200)" onmouseover="this.style.borderColor='var(--p)';this.style.background='var(--pl)'" onmouseout="this.style.borderColor='var(--g200)';this.style.background='var(--g50)'" onclick="loadAIDemo('price-anomaly')"><div style="font-size:18px;margin-bottom:4px">🔍</div><div style="font-size:10px;font-weight:600;color:var(--g800)">异常检测</div></div>
+        <div style="padding:10px;background:var(--g50);border-radius:6px;text-align:center;cursor:pointer;transition:var(--tr);border:1px solid var(--g200)" onmouseover="this.style.borderColor='var(--p)';this.style.background='var(--pl)'" onmouseout="this.style.borderColor='var(--g200)';this.style.background='var(--g50)'" onclick="switchMod('ai-map')"><div style="font-size:18px;margin-bottom:4px">🗺️</div><div style="font-size:10px;font-weight:600;color:var(--g800)">全部能力</div></div>
+      </div>
+    </div>
+
+    <!-- AI Demo Panel (appears on home when clicking AI quick actions) -->
+    <div id="homeAIDemo"></div>
+  </div>
+
+  <!-- ==================== SOR管理 ==================== -->
+  <div class="mod-page" id="mod-sor">
+    <div class="alert-banner info"><span>🤖</span> <strong>AI能力：</strong>SOR智能解析 — 自动提取28个关键字段，18秒完成解析。</div>
+    <div class="panel">
+      <div class="panel-hdr"><h3>📋 SOR管理</h3><div style="display:flex;gap:6px"><button class="btn btn-o">📥 导入</button><button class="btn btn-p">🤖 AI解析SOR</button></div></div>
+      <div class="panel-body" style="max-height:none">
+        <table class="dt"><thead><tr><th>#</th><th>SOR编号</th><th>车型</th><th>零件名称</th><th>品类</th><th>目标成本</th><th>年需求量</th><th>状态</th><th>AI解析</th><th>操作</th></tr></thead><tbody>
+          <tr><td>1</td><td><span class="cl">SOR-2026-003</span></td><td>MX11</td><td>前排座椅总成</td><td><span class="tag tag-s">座椅系统</span></td><td>¥4,200/套</td><td>80,000套</td><td><span class="tag tag-s">已解析</span></td><td><span class="tag tag-s">✅ 28/28</span></td><td><button class="btn btn-p">查看</button></td></tr>
+          <tr><td>2</td><td><span class="cl">SOR-2026-001</span></td><td>MS11</td><td>动力电池包</td><td><span class="tag tag-p">三电系统</span></td><td>¥58,000/台</td><td>50,000台</td><td><span class="tag tag-s">已解析</span></td><td><span class="tag tag-s">✅ 32/32</span></td><td><button class="btn btn-p">查看</button></td></tr>
+          <tr><td>3</td><td><span class="cl">SOR-2026-005</span></td><td>MX11</td><td>前悬架总成</td><td><span class="tag tag-cyan">底盘系统</span></td><td>¥6,500/套</td><td>60,000套</td><td><span class="tag tag-s">已解析</span></td><td><span class="tag tag-s">✅ 18/18</span></td><td><button class="btn btn-p">查看</button></td></tr>
+          <tr><td>4</td><td><span class="cl">SOR-2026-008</span></td><td>N3</td><td>ESP车身稳定系统</td><td><span class="tag tag-cyan">底盘系统</span></td><td>¥1,280/台</td><td>100,000台</td><td><span class="tag tag-w">待解析</span></td><td><span class="tag tag-g">⏳ 排队中</span></td><td><button class="btn btn-o">🤖 解析</button></td></tr>
+          <tr><td>5</td><td><span class="cl">SOR-2026-010</span></td><td>MX11</td><td>智能座舱域控</td><td><span class="tag tag-purple">电子电器</span></td><td>¥4,560/台</td><td>80,000台</td><td><span class="tag tag-w">待解析</span></td><td><span class="tag tag-g">⏳ 排队中</span></td><td><button class="btn btn-o">🤖 解析</button></td></tr>
+        </tbody></table>
+      </div>
+    </div>
+  </div>
+
+  <!-- ==================== BDL管理 ==================== -->
+  <div class="mod-page" id="mod-bdl">
+    <div class="alert-banner info"><span>🤖</span> <strong>AI能力：</strong>BDL自动生成 — 基于SOR自动BOM分解，匹配历史数据，智能推荐供应商。</div>
+    <div class="panel">
+      <div class="panel-hdr"><h3>📦 BDL-2026-003 · MX11前排座椅 — BOM分解</h3><span class="tag tag-s">已完成</span></div>
+      <div class="panel-body" style="max-height:none">
+        <table class="dt"><thead><tr><th>#</th><th>零件号</th><th>零件名称</th><th>层级</th><th>目标单价</th><th>历史匹配</th><th>推荐供应商</th><th>AI状态</th></tr></thead><tbody>
+          <tr><td>1</td><td><span class="cl">SM-FRT-001</span></td><td>前排座椅骨架总成</td><td>L1</td><td>¥2,800/套</td><td><span class="tag tag-s">SU7 (98%)</span></td><td>延锋安道拓</td><td><span class="tag tag-s">✅ 已匹配</span></td></tr>
+          <tr><td>2</td><td><span class="cl">SM-SLD-002</span></td><td>座椅滑轨总成</td><td>L2</td><td>¥680/套</td><td><span class="tag tag-s">SU7 (95%)</span></td><td>延锋安道拓</td><td><span class="tag tag-s">✅ 已匹配</span></td></tr>
+          <tr><td>3</td><td><span class="cl">SM-FOM-003</span></td><td>座椅发泡垫</td><td>L2</td><td>¥420/套</td><td><span class="tag tag-s">SU7 (92%)</span></td><td>佛吉亚</td><td><span class="tag tag-s">✅ 已匹配</span></td></tr>
+          <tr><td>4</td><td><span class="cl">SM-ENV-004</span></td><td>座椅面套</td><td>L2</td><td>¥350/套</td><td><span class="tag tag-s">SU7 (90%)</span></td><td>佛吉亚</td><td><span class="tag tag-s">✅ 已匹配</span></td></tr>
+          <tr><td>5</td><td><span class="cl">SM-HTR-005</span></td><td>座椅加热垫</td><td>L3</td><td>¥180/套</td><td><span class="tag tag-w">新零件</span></td><td>待推荐</td><td><span class="tag tag-w">🔍 搜索中</span></td></tr>
+          <tr><td>6</td><td><span class="cl">SM-SEN-006</span></td><td>座椅传感器</td><td>L3</td><td>¥120/套</td><td><span class="tag tag-w">新零件</span></td><td>待推荐</td><td><span class="tag tag-w">🔍 搜索中</span></td></tr>
+        </tbody></table>
+      </div>
+    </div>
+    <div class="panel">
+      <div class="panel-hdr"><h3>💡 AI供应商推荐</h3></div>
+      <div style="padding:12px 14px;display:grid;grid-template-columns:repeat(3,1fr);gap:10px">
+        <div style="padding:12px;border:2px solid var(--s);border-radius:6px;background:var(--sl)"><div style="font-size:11px;font-weight:700;color:var(--s)">✅ 延锋安道拓</div><div style="font-size:10px;color:var(--g600);margin-top:4px">匹配度96% · 质量A+ · 交期98%</div></div>
+        <div style="padding:12px;border:1px solid var(--g200);border-radius:6px"><div style="font-size:11px;font-weight:600">备选：佛吉亚</div><div style="font-size:10px;color:var(--g600);margin-top:4px">匹配度88% · 质量A · 交期95%</div></div>
+        <div style="padding:12px;border:1px solid var(--g200);border-radius:6px"><div style="font-size:11px;font-weight:600">备选：李尔公司</div><div style="font-size:10px;color:var(--g600);margin-top:4px">匹配度78% · 质量B+ · 交期90%</div></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ==================== RFQ管理 ==================== -->
+  <div class="mod-page" id="mod-rfq">
+    <div class="alert-banner warn"><span>⏰</span> <strong>RFQ-2026-003</strong> (MX11座椅) 截止倒计时 <strong>2天</strong>，2/4家已报价。</div>
+    <div class="panel">
+      <div class="panel-hdr"><h3>📊 RFQ管理</h3><div style="display:flex;gap:6px"><button class="btn btn-o">📥 导出</button><button class="btn btn-p">🤖 AI智能比价</button></div></div>
+      <div class="panel-body" style="max-height:none">
+        <table class="dt"><thead><tr><th>#</th><th>RFQ编号</th><th>关联SOR</th><th>零件名称</th><th>供应商</th><th>已报价</th><th>截止日期</th><th>最优报价</th><th>vs目标</th><th>状态</th></tr></thead><tbody>
+          <tr style="background:var(--pl)"><td>1</td><td><span class="cl">RFQ-2026-003</span></td><td>SOR-2026-003</td><td>前排座椅总成</td><td>4家</td><td><span style="color:var(--d);font-weight:600">2/4</span></td><td><span style="color:var(--d);font-weight:600">06-28</span></td><td>¥3,980/套</td><td><span class="tag tag-s">-5.2%</span></td><td><span class="tag tag-p">进行中</span></td></tr>
+          <tr><td>2</td><td><span class="cl">RFQ-2026-001</span></td><td>SOR-2026-001</td><td>动力电池包</td><td>3家</td><td>3/3</td><td>06-15</td><td>¥56,200/台</td><td><span class="tag tag-s">-3.1%</span></td><td><span class="tag tag-s">已完成</span></td></tr>
+          <tr><td>3</td><td><span class="cl">RFQ-2026-005</span></td><td>SOR-2026-005</td><td>前悬架总成</td><td>3家</td><td>3/3</td><td>06-20</td><td>¥6,100/套</td><td><span class="tag tag-s">-6.2%</span></td><td><span class="tag tag-s">已完成</span></td></tr>
+          <tr><td>4</td><td><span class="cl">RFQ-2026-008</span></td><td>SOR-2026-008</td><td>ESP系统</td><td>2家</td><td>1/2</td><td>07-05</td><td>—</td><td>—</td><td><span class="tag tag-p">进行中</span></td></tr>
+        </tbody></table>
+      </div>
+    </div>
+    <div class="panel" style="border-color:var(--p)">
+      <div class="panel-hdr" style="background:linear-gradient(90deg,var(--pl),#f0f5ff)"><h3 style="color:var(--p)">💰 RFQ-2026-003 · 报价对比</h3><span class="tag tag-p">AI智能比价</span></div>
+      <div class="panel-body" style="max-height:none;padding:0">
+        <table class="dt"><thead><tr><th>供应商</th><th>报价金额</th><th>vs目标成本</th><th>vs历史最低</th><th>综合评分</th><th>交付能力</th><th>AI建议</th></tr></thead><tbody>
+          <tr style="background:#f6ffed"><td><span class="cl">延锋安道拓</span> <span style="font-size:9px;padding:1px 5px;border-radius:4px;background:var(--s);color:#fff;font-weight:600">推荐</span></td><td style="font-weight:700;color:var(--s)">¥3,980</td><td><span class="tag tag-s">-5.2%</span></td><td><span class="tag tag-s">-3.4%</span></td><td><strong>90</strong></td><td><span class="tag tag-s">强</span></td><td style="font-size:10px;color:var(--p)">价格最优，建议首选</td></tr>
+          <tr><td><span class="cl">佛吉亚</span></td><td>¥4,150</td><td><span class="tag tag-w">-1.2%</span></td><td><span class="tag tag-w">+0.8%</span></td><td>86</td><td><span class="tag tag-w">中</span></td><td style="font-size:10px">备选方案</td></tr>
+          <tr><td><span class="cl" style="color:var(--g400)">李尔公司</span></td><td style="color:var(--g400)">未报价</td><td>—</td><td>—</td><td>84</td><td>—</td><td style="font-size:10px;color:var(--d)">⚠ 需催办</td></tr>
+          <tr><td><span class="cl" style="color:var(--g400)">安道拓</span></td><td style="color:var(--g400)">未报价</td><td>—</td><td>—</td><td>81</td><td>—</td><td style="font-size:10px;color:var(--d)">⚠ 需催办</td></tr>
+        </tbody></table>
+      </div>
+    </div>
+  </div>
+
+  <!-- ==================== 定点管理 ==================== -->
+  <div class="mod-page" id="mod-award">
+    <div class="alert-banner info"><span>🤖</span> <strong>AI能力：</strong>自动定点申请 — 基于比价结果自动生成定点单，预填32字段，18秒出单。</div>
+    <div class="panel">
+      <div class="panel-hdr"><h3>✅ 定点管理</h3><div style="display:flex;gap:6px"><button class="btn btn-o">📥 导出</button><button class="btn btn-p">🤖 AI生成定点单</button></div></div>
+      <div class="panel-body" style="max-height:none">
+        <table class="dt"><thead><tr><th>#</th><th>定点单号</th><th>关联SOR</th><th>零件名称</th><th>定点供应商</th><th>年度金额</th><th>审批人</th><th>审批状态</th><th>AI填单</th></tr></thead><tbody>
+          <tr style="background:var(--pl)"><td>1</td><td><span class="cl">NA-2026-003</span></td><td>SOR-2026-003</td><td>前排座椅总成</td><td>延锋安道拓</td><td>¥3.18亿</td><td>王总监</td><td><span class="tag tag-w">待审批</span></td><td><span class="tag tag-s">✅ 100%</span></td></tr>
+          <tr><td>2</td><td><span class="cl">NA-2026-001</span></td><td>SOR-2026-001</td><td>动力电池包</td><td>宁德时代</td><td>¥28.1亿</td><td>张总监</td><td><span class="tag tag-s">已审批</span></td><td><span class="tag tag-s">✅ 100%</span></td></tr>
+          <tr><td>3</td><td><span class="cl">NA-2026-002</span></td><td>SOR-2026-002</td><td>电池模组</td><td>比亚迪弗迪</td><td>¥12.8亿</td><td>张总监</td><td><span class="tag tag-s">已审批</span></td><td><span class="tag tag-s">✅ 100%</span></td></tr>
+          <tr><td>4</td><td><span class="cl">NA-2026-005</span></td><td>SOR-2026-005</td><td>前悬架总成</td><td>采埃孚</td><td>¥3.66亿</td><td>王总监</td><td><span class="tag tag-w">待审批</span></td><td><span class="tag tag-s">✅ 100%</span></td></tr>
+        </tbody></table>
+      </div>
+    </div>
+    <div class="panel">
+      <div class="panel-hdr"><h3>📝 NA-2026-003 · 定点申请单预览</h3><span class="tag tag-p">AI自动生成</span></div>
+      <div style="padding:12px 14px;display:grid;grid-template-columns:repeat(4,1fr);gap:8px;font-size:11px">
+        <div style="padding:8px;background:var(--g50);border-radius:4px;border:1px solid var(--g200)"><div style="font-size:10px;color:var(--g500)">定点单号</div><div style="font-weight:600">NA-2026-003</div></div>
+        <div style="padding:8px;background:var(--g50);border-radius:4px;border:1px solid var(--g200)"><div style="font-size:10px;color:var(--g500)">定点供应商</div><div style="font-weight:600">延锋安道拓</div></div>
+        <div style="padding:8px;background:var(--g50);border-radius:4px;border:1px solid var(--g200)"><div style="font-size:10px;color:var(--g500)">年度金额</div><div style="font-weight:600;color:var(--p)">¥3.18亿</div></div>
+        <div style="padding:8px;background:var(--g50);border-radius:4px;border:1px solid var(--g200)"><div style="font-size:10px;color:var(--g500)">合规检查</div><div style="font-weight:600;color:var(--s)">通过 ✓</div></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ==================== AI能力地图 ==================== -->
+  <div class="mod-page" id="mod-ai-map">
+    <div class="ai-section">
+      <div class="ai-inner">
+        <div class="ai-topbar"><div><span class="ai-title">🤖 AI 智能采购助手 · 能力地图</span><span class="ai-badge">18项AI工具</span></div><span class="ai-desc">覆盖6大采购业务领域，点击任意工具开始智能工作流</span></div>
+        <div class="ai-domains" id="aiDomains"></div>
+        <div class="ai-cards" id="aiCards"></div>
+        <div class="ai-footer"><span><span class="ai-dot green"></span> 高可行性: 12项</span><span><span class="ai-dot blue"></span> 中等可行性: 6项</span><span><span class="ai-dot purple"></span> Agent驱动: 8项</span><span style="margin-left:auto;font-size:10px;color:var(--p);cursor:pointer">💡 点击卡片查看演示效果</span></div>
+      </div>
+    </div>
+    <div id="aiDemoPanel"></div>
+  </div>
+
+</div><!-- /main-content -->
+
+<!-- Detail Overlay -->
+<div class="detail-overlay" id="detailOverlay" onclick="if(event.target===this)closeDetail()">
+  <div class="detail-panel"><div class="detail-hdr"><h3 id="detailTitle">功能详情</h3><button class="detail-close" onclick="closeDetail()">✕</button></div><div class="detail-body" id="detailBody"></div></div>
+</div>
+
+<script>
+// ===== Module Switching =====
+function switchMod(mod){
+  document.querySelectorAll('.mod-page').forEach(p=>p.classList.remove('active'));
+  document.getElementById('mod-'+mod).classList.add('active');
+  document.querySelectorAll('.topnav-item').forEach(t=>t.classList.remove('active'));
+  const map={home:0,sor:1,bdl:2,rfq:3,award:4,'ai-map':7};
+  const items=document.querySelectorAll('.topnav-item');
+  if(map[mod]!==undefined&&items[map[mod]])items[map[mod]].classList.add('active');
+  document.querySelector('.main-content').scrollTop=0;
+}
+
+// ===== Todo =====
+const todos=[
+  {module:'寻源定点',title:'RFQ-2026-003 报价截止提醒',desc:'MX11座椅 · 还剩2天 · 2/4家报价',status:'pending',time:'今天 15:00'},
+  {module:'采购定点',title:'定点申请单待审批 - NA-2026-003',desc:'延锋安道拓 · 等待王总监审批',status:'progress',time:'今天 16:00'},
+  {module:'RFQ询报价',title:'供应商报价审核 - 宁德时代',desc:'电池模组报价 · 偏差+5.5%',status:'progress',time:'今天 17:00'},
+  {module:'SOR管理',title:'SOR-2026-008 待AI解析',desc:'N3 ESP系统 · 已排队',status:'pending',time:'明天 10:00'},
+  {module:'订单管理',title:'订单异常 - 物流延迟预警',desc:'ORD-2026-0521 物流延迟',status:'overdue',time:'昨天 14:00'},
+  {module:'合同管理',title:'合同到期提醒 - 4份合同',desc:'博世2份·采埃孚1份·法雷奥1份',status:'pending',time:'本周五'},
+  {module:'供应商管理',title:'供应商绩效评估 - Q2汇总',desc:'25家供应商综合评分已生成',status:'done',time:'今天 09:00'},
+  {module:'SOR管理',title:'BDL数据校验完成',desc:'SOR-2026-005 底盘件 · AI已校验',status:'done',time:'昨天'}
+];
+const modules=[...new Set(todos.map(t=>t.module))];
+let curModule='all';
+function renderFilterBar(){
+  const bar=document.getElementById('todoFilterBar');
+  const counts={all:todos.length};
+  modules.forEach(m=>counts[m]=todos.filter(t=>t.module===m).length);
+  bar.innerHTML=[{k:'all',l:'全部'},...modules.map(m=>({k:m,l:m}))].map((m,i)=>
+    `<div class="filter-tab${i===0?' active':''}" onclick="filterTodos('${m.k}',this)">${m.l}<span class="cnt">${counts[m.k]}</span></div>`
+  ).join('');
+}
+function filterTodos(f,el){curModule=f;document.querySelectorAll('.filter-tab').forEach(t=>t.classList.remove('active'));el.classList.add('active');renderTodos()}
+function renderTodos(){
+  const list=curModule==='all'?todos:todos.filter(t=>t.module===curModule);
+  document.getElementById('todoList').innerHTML=list.map(t=>`<div class="todo-item"><div class="todo-icon ${t.status==='overdue'?'urgent':t.status==='done'?'done':t.status==='progress'?'info':'normal'}">${t.status==='overdue'?'🚨':t.status==='done'?'✅':t.status==='progress'?'⚡':'📋'}</div><div class="todo-info"><div class="todo-title">${t.title}</div><div class="todo-desc">${t.desc}</div></div><div class="todo-right"><div class="todo-status ${t.status}">${t.status==='pending'?'待处理':t.status==='progress'?'进行中':t.status==='done'?'已完成':'已逾期'}</div><div class="todo-time">${t.time}</div></div></div>`).join('');
+}
+
+// ===== AI Map Data =====
+const aiData=[
+  {name:'供应商管理',icon:'🏢',funcs:[
+    {name:'供应商画像',tag:'hot',desc:'RAG+结构化摘要生成360°全景画像',feasibility:'high'},
+    {name:'供应商风险预警',tag:'new',desc:'舆情+工商变更+司法诉讼多维预警',feasibility:'mid'},
+    {name:'九宫格评价',tag:'ai',desc:'质量/交付/成本/服务/技术五维评分',feasibility:'high'},
+    {name:'供应商准入审查',tag:'',desc:'资质文件AI自动审核',feasibility:'high'}
+  ]},
+  {name:'寻源与询报价',icon:'🔍',funcs:[
+    {name:'BOM解析与物料匹配',tag:'hot',desc:'文档解析+相似度匹配',feasibility:'high'},
+    {name:'历史价格基线',tag:'',desc:'统计模型+异常检测',feasibility:'high'},
+    {name:'报价合理性初审',tag:'ai',desc:'规则+分位数+LLM自动审查',feasibility:'high'},
+    {name:'RFQ文档自动生成',tag:'new',desc:'模板+LLM自动生成询价文档',feasibility:'high'},
+    {name:'智能比价分析',tag:'ai',desc:'跨供应商多维度价格对标',feasibility:'high'}
+  ]},
+  {name:'合同管理',icon:'📝',funcs:[
+    {name:'合同要素抽取',tag:'hot',desc:'文档解析+NER自动抽取关键条款',feasibility:'high'},
+    {name:'合同风险识别',tag:'',desc:'分类模型+LLM标注不公允条款',feasibility:'mid'},
+    {name:'合同自动创建',tag:'ai',desc:'定点→合同草稿自动填充，18s/份',feasibility:'high'}
+  ]},
+  {name:'订单与协同',icon:'📦',funcs:[
+    {name:'交期预测与预警',tag:'hot',desc:'时序预测模型预判交期风险',feasibility:'high'},
+    {name:'异常订单自动路由',tag:'',desc:'分类规则+模型自动分派',feasibility:'high'},
+    {name:'物流路径优化',tag:'ai',desc:'AI推荐最优物流方案',feasibility:'mid'}
+  ]},
+  {name:'绩效与对账',icon:'📊',funcs:[
+    {name:'绩效报告自动生成',tag:'hot',desc:'数据聚合+LLM叙事生成报告',feasibility:'high'},
+    {name:'质量问题根因归因',tag:'',desc:'分类+相关性分析',feasibility:'high'},
+    {name:'Should-cost偏差分析',tag:'ai',desc:'目标vs实际vs应该成本三线分析',feasibility:'mid'}
+  ]},
+  {name:'合规管理',icon:'🛡️',funcs:[
+    {name:'碳核算引擎',tag:'new',desc:'排放因子×活动数据自动核算',feasibility:'mid'},
+    {name:'合规差距评估',tag:'',desc:'法规要求vs现状差距评估',feasibility:'high'},
+    {name:'风险监控闭环',tag:'ai',desc:'CAMDS+天眼查+舆情三源整合',feasibility:'high'}
+  ]}
+];
+let curDomain=0;
+function renderAIDomains(){
+  const el=document.getElementById('aiDomains');
+  el.innerHTML=aiData.map((d,i)=>`<div class="ai-domain${i===curDomain?' active':''}" onclick="switchAIDomain(${i})"><div class="d-icon">${d.icon}</div><div class="d-num">${d.funcs.length}</div><div class="d-name">${d.name}</div></div>`).join('');
+}
+function switchAIDomain(i){curDomain=i;renderAIDomains();renderAICards()}
+function renderAICards(){
+  const d=aiData[curDomain];
+  document.getElementById('aiCards').innerHTML=d.funcs.map(f=>`<div class="ai-card" onclick="showDetail('${f.name}','${f.desc}','${f.tag}','${f.feasibility}','${d.name}')"><div class="ai-card-top"><div class="ai-card-icon">${d.icon}</div><div><div class="ai-card-name">${f.name}</div>${f.tag?`<span class="ai-card-tag ${f.tag}">${f.tag==='hot'?'🔥 HOT':f.tag==='new'?'🆕 NEW':'🤖 AI'}</span>`:''}</div></div><div class="ai-card-desc">${f.desc}</div><div class="ai-card-footer"><span class="ai-card-feasibility ${f.feasibility}">${f.feasibility==='high'?'✅ 高可行性':'⚡ 中等可行性'}</span><span>点击详情 →</span></div></div>`).join('');
+}
+
+// ===== Detail Overlay =====
+function showDetail(name,desc,tag,feasibility,domain){
+  document.getElementById('detailTitle').innerHTML=`${domain} · ${name}`;
+  document.getElementById('detailBody').innerHTML=`
+    <div class="detail-section"><div class="detail-section-title">功能概述</div><div class="detail-row"><span class="dr-label">所属领域</span><span class="dr-value">${domain}</span></div><div class="detail-row"><span class="dr-label">功能描述</span><span class="dr-value">${desc}</span></div><div class="detail-row"><span class="dr-label">可行性</span><span class="dr-value">${feasibility==='high'?'<span style="color:var(--s)">✅ 高可行性</span>':'<span style="color:var(--w)">⚡ 中等可行性</span>'}</span></div>${tag?`<div class="detail-row"><span class="dr-label">标签</span><span class="dr-value"><span class="ai-card-tag ${tag}">${tag==='hot'?'🔥 HOT':tag==='new'?'🆕 NEW':'🤖 AI驱动'}</span></span></div>`:''}</div>
+    <div class="detail-section"><div class="detail-section-title">技术方案</div><div class="detail-tags"><span class="detail-tag">NLP文本解析</span><span class="detail-tag">结构化摘要</span><span class="detail-tag">分类模型</span><span class="detail-tag">时序预测</span></div></div>
+    <div class="detail-section"><div class="detail-section-title">关联流程</div><div class="detail-flow"><span class="df-step">SOR下发</span><span class="df-arrow">→</span><span class="df-step">BDL维护</span><span class="df-arrow">→</span><span class="df-step" style="background:var(--pl);color:var(--p);font-weight:600">${name}</span><span class="df-arrow">→</span><span class="df-step">定点申请</span></div></div>
+    <div style="margin-top:16px"><button class="btn btn-p" onclick="closeDetail()" style="width:100%">▶ 启动${name}工作流</button></div>
+  `;
+  document.getElementById('detailOverlay').classList.add('show');
+}
+function closeDetail(){document.getElementById('detailOverlay').classList.remove('show')}
+
+// ===== AI Demo (inline on home page) =====
+const aiDemos={
+  'price-compare':{icon:'📊',bg:'var(--p)',title:'报价智能比价',desc:'AI自动比对多家供应商报价',content:function(){
+    let h='<table style="width:100%;border-collapse:collapse;font-size:11px"><thead><tr style="background:var(--g50)"><th style="padding:6px 10px;text-align:left;border-bottom:2px solid var(--g200);font-size:10px;color:var(--g600)">零件</th><th style="padding:6px 10px;text-align:left;border-bottom:2px solid var(--g200);font-size:10px;color:var(--g600)">供应商</th><th style="padding:6px 10px;text-align:left;border-bottom:2px solid var(--g200);font-size:10px;color:var(--g600)">报价</th><th style="padding:6px 10px;text-align:left;border-bottom:2px solid var(--g200);font-size:10px;color:var(--g600)">vs基准</th><th style="padding:6px 10px;text-align:left;border-bottom:2px solid var(--g200);font-size:10px;color:var(--g600)">AI分析</th></tr></thead><tbody>';
+    [{p:'电芯 LF105',s:'宁德时代',pr:'¥485',v:-3.2,n:'成本合理，建议首选',b:1},{p:'电芯 LF105',s:'弗迪电池',pr:'¥496',v:-1.0,n:'价格适中'},{p:'电芯 LF105',s:'中创新航',pr:'¥526',v:+5.0,n:'偏高，建议议价',h:1},{p:'BMS主控板',s:'宁德时代',pr:'¥2,850',v:-1.8,n:'技术成熟，首选',b:1},{p:'BMS主控板',s:'国轩高科',pr:'¥3,120',v:+7.5,n:'严重偏高',h:1}].forEach(r=>{
+      const bg=r.b?'background:#f6ffed;font-weight:700;color:var(--s)':r.h?'color:var(--d)':'color:var(--g700)';
+      const vc=r.v<0?'background:var(--sl);color:var(--s)':'background:var(--dl);color:var(--d)';
+      h+='<tr><td style="padding:5px 10px;border-bottom:1px solid var(--g100)">'+r.p+'</td><td style="padding:5px 10px;border-bottom:1px solid var(--g100);'+bg+'">'+r.s+(r.b?' <span style="font-size:9px;padding:1px 4px;border-radius:3px;background:var(--s);color:#fff">最优</span>':'')+'</td><td style="padding:5px 10px;border-bottom:1px solid var(--g100);'+bg+'">'+r.pr+'</td><td style="padding:5px 10px;border-bottom:1px solid var(--g100)"><span style="font-size:9px;padding:1px 5px;border-radius:3px;'+vc+'">'+r.v+'%</span></td><td style="padding:5px 10px;border-bottom:1px solid var(--g100);font-size:10px">'+r.n+'</td></tr>';
+    });
+    h+='</tbody></table><div style="display:flex;align-items:center;gap:4px;padding:8px 12px;background:#f0f7ff;border-radius:4px;margin-top:10px;font-size:11px;color:var(--p)"><span>🤖</span><span><strong>AI结论：</strong>宁德时代电芯+BMS综合最优；建议与中创新航、国轩高科谈判，预期可再降3-5%。</span></div>';
+    return h;
+  }},
+  'supplier-match':{icon:'💡',bg:'var(--s)',title:'供应商智能匹配',desc:'根据SOR需求自动匹配最优供应商',content:function(){
+    let h='<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px">';
+    h+='<div style="border:2px solid var(--s);border-radius:6px;padding:10px;background:var(--sl)"><strong style="color:var(--s);font-size:11px">✅ 最佳：宁德时代</strong><div style="font-size:10px;color:var(--g600);margin-top:4px">匹配度96% · 质量A+ · 交期98%</div></div>';
+    h+='<div style="border:1px solid var(--g200);border-radius:6px;padding:10px"><strong style="font-size:11px">备选：弗迪电池</strong><div style="font-size:10px;color:var(--g600);margin-top:4px">匹配度88% · 质量A · 交期95%</div></div>';
+    h+='</div><div style="display:flex;align-items:center;gap:4px;padding:8px 12px;background:#f0f7ff;border-radius:4px;font-size:11px;color:var(--p)"><span>🤖</span><span><strong>AI逻辑：</strong>技术匹配度+质量体系+交付能力+成本竞争力+合作历史 5维综合评分。</span></div>';
+    return h;
+  }},
+  'supply-risk':{icon:'⚠️',bg:'var(--w)',title:'供应链风险分析',desc:'AI实时监控供应链风险指标',content:function(){
+    let h='<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">';
+    [{t:'🔴 独供风险',c:'var(--d)',bg:'var(--dl)',b:[{l:'英飞凌MCU',w:92},{l:'博世ADAS',w:75}]},{t:'🟡 价格波动',c:'var(--w)',bg:'var(--wl)',b:[{l:'电芯材料',w:65},{l:'铝材',w:48}]},{t:'🟡 交期风险',c:'var(--w)',bg:'var(--wl)',b:[{l:'芯片交期',w:55},{l:'模具产能',w:40}]},{t:'🟢 安全',c:'var(--s)',bg:'var(--sl)',b:[{l:'电池供应',w:18},{l:'座椅供应',w:12}]}].forEach(c=>{
+      h+='<div style="border:1px solid '+c.c+';border-radius:6px;padding:10px;background:'+c.bg+'"><div style="font-size:11px;font-weight:700;margin-bottom:6px">'+c.t+'</div>';
+      c.b.forEach(b=>{h+='<div style="display:flex;align-items:center;gap:6px;margin-bottom:5px"><span style="font-size:10px;color:var(--g600);width:50px;flex-shrink:0">'+b.l+'</span><div style="flex:1;height:5px;background:var(--g100);border-radius:3px;overflow:hidden"><div style="height:100%;width:'+b.w+'%;background:'+c.c+';border-radius:3px"></div></div><span style="font-size:9px;font-weight:600;width:28px;text-align:right;color:'+c.c+'">'+b.w+'%</span></div>';
+      });
+      h+='</div>';
+    });
+    h+='</div><div style="display:flex;align-items:center;gap:4px;padding:8px 12px;background:#f0f7ff;border-radius:4px;margin-top:10px;font-size:11px;color:var(--p)"><span>🤖</span><span><strong>AI小结：</strong>MCU独供风险最高(92%)，建议立即启动二供。</span></div>';
+    return h;
+  }},
+  'sor-gen':{icon:'📄',bg:'var(--purple)',title:'SOR智能生成',desc:'输入参数，AI自动生成标准化SOR',content:function(){
+    let h='<div style="display:flex;gap:12px">';
+    h+='<div style="flex:1;border:1px solid var(--g200);border-radius:6px;padding:10px"><div style="font-size:10px;color:var(--g500);margin-bottom:6px">📥 输入</div>';
+    h+='<div style="font-size:11px;line-height:2">品类：<span class="tag tag-p">动力电池</span><br>车型：<span class="tag tag-p">MS11</span><br>电压：800V<br>容量：≥100kWh</div></div>';
+    h+='<div style="flex:1.5;border:1px solid var(--g200);border-radius:6px;padding:10px;background:var(--g50)"><div style="font-size:10px;color:var(--g500);margin-bottom:6px">📄 AI生成</div>';
+    h+='<div style="font-size:10px;line-height:1.8;color:var(--g600)"><strong>MS11-动力电池-SOR-2024-001</strong><br>1. 适用范围：MS11高压动力电池<br>2. 额定电压：800V<br>3. 额定容量：≥100kWh<br>4. 循环寿命：≥2000次<br>5. 快充：10%-80% ≤ 18min</div></div></div>';
+    return h;
+  }},
+  'price-anomaly':{icon:'🔍',bg:'var(--w)',title:'价格异常检测',desc:'自动检测报价中的不合理偏差',content:function(){
+    let h='<table style="width:100%;border-collapse:collapse;font-size:11px"><thead><tr style="background:var(--g50)"><th style="padding:6px 10px;text-align:left;border-bottom:2px solid var(--g200);font-size:10px;color:var(--g600)">件号</th><th style="padding:6px 10px;text-align:left;border-bottom:2px solid var(--g200);font-size:10px;color:var(--g600)">供应商</th><th style="padding:6px 10px;text-align:left;border-bottom:2px solid var(--g200);font-size:10px;color:var(--g600)">报价</th><th style="padding:6px 10px;text-align:left;border-bottom:2px solid var(--g200);font-size:10px;color:var(--g600)">均价</th><th style="padding:6px 10px;text-align:left;border-bottom:2px solid var(--g200);font-size:10px;color:var(--g600)">偏差</th></tr></thead><tbody>';
+    h+='<tr><td style="padding:5px 10px;border-bottom:1px solid var(--g100)">BP-020-01</td><td style="padding:5px 10px;border-bottom:1px solid var(--g100)">中创新航</td><td style="padding:5px 10px;border-bottom:1px solid var(--g100);color:var(--d);font-weight:600">¥526</td><td style="padding:5px 10px;border-bottom:1px solid var(--g100)">¥492</td><td style="padding:5px 10px;border-bottom:1px solid var(--g100)"><span style="font-size:9px;padding:1px 5px;border-radius:3px;background:var(--dl);color:var(--d)">+6.9%</span></td></tr>';
+    h+='<tr><td style="padding:5px 10px;border-bottom:1px solid var(--g100)">BP-003-01</td><td style="padding:5px 10px;border-bottom:1px solid var(--g100)">国轩高科</td><td style="padding:5px 10px;border-bottom:1px solid var(--g100);color:var(--d);font-weight:600">¥3,120</td><td style="padding:5px 10px;border-bottom:1px solid var(--g100)">¥2,900</td><td style="padding:5px 10px;border-bottom:1px solid var(--g100)"><span style="font-size:9px;padding:1px 5px;border-radius:3px;background:var(--dl);color:var(--d)">+7.6%</span></td></tr>';
+    h+='</tbody></table><div style="display:flex;align-items:center;gap:4px;padding:8px 12px;background:#f0f7ff;border-radius:4px;margin-top:10px;font-size:11px;color:var(--p)"><span>🤖</span><span><strong>异常分析：</strong>国轩高科BMS偏高7.6%，建议参考宁德时代(¥2,850)为谈判锚点。</span></div>';
+    return h;
+  }}
+};
+function loadAIDemo(id){
+  const d=aiDemos[id];if(!d)return;
+  let html='<div class="ai-demo-panel"><div class="ai-demo-hdr"><div class="dd-left"><div class="dd-icon" style="background:'+d.bg+'">'+d.icon+'</div><div><div class="dd-title">'+d.title+'</div><div class="dd-desc">'+d.desc+'</div></div></div><button class="btn btn-p" onclick="document.getElementById(\'homeAIDemo\').innerHTML=\'\'">关闭</button></div><div class="ai-demo-body">'+d.content()+'</div></div>';
+  document.getElementById('homeAIDemo').innerHTML=html;
+  document.getElementById('homeAIDemo').scrollIntoView({behavior:'smooth'});
+}
+
+// ===== Chat =====
+const chatResponses={
+  'SOR-2026-003的进度':'📋 <strong>SOR-2026-003 · MX11前排座椅</strong><br/><div class="rbox"><div class="rr"><span class="rl">SOR下发</span><span class="rv" style="color:var(--s)">✅ 03-15</span></div><div class="rr"><span class="rl">BDL维护</span><span class="rv" style="color:var(--s)">✅ 03-22</span></div><div class="rr"><span class="rl">RFQ询报价</span><span class="rv" style="color:var(--p)">🔄 2/4家</span></div><div class="rr"><span class="rl">定点申请</span><span class="rv" style="color:var(--g400)">⏳ 待执行</span></div></div>⚠️ RFQ截止 <span class="hl">6月28日</span>，还有2家未报价。',
+  '对比一下电池包报价':'📊 <strong>电池包供应商报价：</strong><div class="rbox"><div class="rr"><span class="rl"></span><span class="rv" style="font-size:10px">宁德时代</span><span class="rv" style="font-size:10px">弗迪</span><span class="rv" style="font-size:10px">中创新航</span></div><div class="rr"><span class="rl">电芯单价</span><span class="rv">¥0.85</span><span class="rv" style="color:var(--s)">¥0.82</span><span class="rv">¥0.78</span></div><div class="rr"><span class="rl">综合评分</span><span class="rv" style="color:var(--s)">92</span><span class="rv">88</span><span class="rv">78</span></div></div>💡 中创新航价格最低但评分偏低，宁德时代综合最优。',
+  '有没有异常报价':'🔍 <strong>异常报价检测（近30天）：</strong><br/>检测到 <span class="hl">2条</span> 异常：<div class="rbox"><div class="rr"><span class="rl">🔴 BT-MOD-B02</span><span class="rv" style="color:var(--d)">中创新航 +6.7%</span></div><div class="rr"><span class="rl">🟡 EE-SCO-001</span><span class="rv" style="color:var(--w)">大陆集团 +8.6%</span></div></div>',
+  '推荐哪家供应商':'💡 <strong>MX11座椅供应商推荐：</strong><div class="rbox"><div class="rr"><span class="rl">🥇 推荐</span><span class="rv" style="color:var(--s)">延锋安道拓 90分</span></div><div class="rr"><span class="rl">🥈 备选</span><span class="rv">佛吉亚 86分</span></div><div class="rr"><span class="rl">🥉 潜力</span><span class="rv">李尔公司 84分</span></div></div>延锋价格最优(¥3,980)，合作3年无质量事故。'
+};
+function sendChat(){
+  const input=document.getElementById('chatInput');
+  const val=input.value.trim();if(!val)return;
+  addChatMsg(val,'user');input.value='';
+  const body=document.getElementById('chatBody');
+  const typing=document.createElement('div');
+  typing.className='chat-msg ai';typing.id='typingMsg';
+  typing.innerHTML='<div class="chat-av ai-av">AI</div><div class="chat-bubble"><div class="typing"><span></span><span></span><span></span></div></div>';
+  body.appendChild(typing);body.scrollTop=body.scrollHeight;
+  setTimeout(()=>{
+    typing.remove();
+    const resp=chatResponses[val]||'🤔 正在分析「'+val+'」...<br/><br/>实际使用时AI会基于SRM系统数据给出详细回答。';
+    addChatMsg(resp,'ai');
+  },1000);
+}
+function addChatMsg(text,type){
+  const body=document.getElementById('chatBody');
+  const msg=document.createElement('div');
+  msg.className='chat-msg '+type;
+  const av=type==='ai'?'ai-av':'user-av';
+  const tx=type==='ai'?'AI':'李';
+  msg.innerHTML='<div class="chat-av '+av+'">'+tx+'</div><div class="chat-bubble">'+text+'</div>';
+  body.appendChild(msg);body.scrollTop=body.scrollHeight;
+}
+document.getElementById('chatInput').addEventListener('keydown',e=>{if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();sendChat()}});
+
+// ===== Init =====
+renderFilterBar();renderTodos();renderAIDomains();renderAICards();
+</script>
+</body>
+</html>

@@ -1,0 +1,447 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>采购全链路 × AI 可能性分析</title>
+<style>
+:root{
+  --bg:#f8fafc;--card:#fff;--bdr:#e2e8f0;--txt:#0f172a;--sub:#334155;--mut:#94a3b8;
+  --t:#0d9488;--t-d:#0f766e;--t-l:#ccfbf1;--t-bg:#f0fdfa;
+  --b:#2563eb;--b-l:#dbeafe;--b-bg:#eff6ff;
+  --a:#d97706;--a-bg:#fffbeb;--a-l:#fef3c7;
+  --r:#dc2626;--r-bg:#fef2f2;
+  --g:#16a34a;--g-bg:#f0fdf4;
+  --p:#7c3aed;--p-bg:#f5f3ff;
+  --sh:0 1px 3px rgba(0,0,0,.04),0 6px 24px rgba(0,0,0,.04);
+  --sh-l:0 4px 12px rgba(0,0,0,.05),0 16px 48px rgba(0,0,0,.07);
+  --rad:14px;--rad-l:20px;
+}
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:'SF Pro Display',-apple-system,BlinkMacSystemFont,'PingFang SC','Noto Sans SC','Microsoft YaHei',sans-serif;background:var(--bg);color:var(--txt);line-height:1.75;-webkit-font-smoothing:antialiased;overflow-x:hidden}
+
+/* Hero */
+.hero{padding:72px 24px 52px;background:linear-gradient(135deg,#0f172a 0%,#134e4a 45%,#0d9488 100%);color:#fff;text-align:center;position:relative}
+.hero::before{content:'';position:absolute;inset:0;background:url("data:image/svg+xml,%3Csvg width='40' height='40' viewBox='0 0 40 40' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='%23fff' fill-opacity='.02'%3E%3Cpath d='M20 0L40 20L20 40L0 20z'/%3E%3C/g%3E%3C/svg%3E");pointer-events:none}
+.hero h1{font-size:clamp(1.6rem,4vw,2.6rem);font-weight:900;letter-spacing:-1.5px;line-height:1.2}
+.hero h1 em{font-style:normal;background:linear-gradient(135deg,#5eead4,#93c5fd);-webkit-background-clip:text;-webkit-text-fill-color:transparent}
+.hero .sub{font-size:1.05em;opacity:.7;margin:12px auto 0;max-width:680px}
+.hero .meta{margin-top:24px;display:flex;justify-content:center;gap:28px;flex-wrap:wrap;font-size:.85em;opacity:.55}
+.hero .meta span{display:flex;align-items:center;gap:5px}
+
+/* Layout */
+.wrap{max-width:1200px;margin:0 auto;padding:0 20px}
+.sec{padding:48px 0 20px}
+.sec-hd{text-align:center;margin-bottom:32px}
+.sec-hd h2{font-size:1.45em;font-weight:800;letter-spacing:-.5px}
+.sec-hd p{color:var(--sub);font-size:.92em;margin-top:5px}
+.bar{width:48px;height:3px;background:var(--t);border-radius:2px;margin:10px auto 0}
+
+/* Framework card */
+.fw{display:grid;grid-template-columns:repeat(6,1fr);gap:3px;margin-bottom:20px}
+.fw-item{background:var(--card);border-radius:var(--rad);padding:20px 14px;text-align:center;box-shadow:var(--sh);border-top:3px solid var(--bdr);transition:all .25s;cursor:default}
+.fw-item:hover{transform:translateY(-4px);box-shadow:var(--sh-l)}
+.fw-item .ico{font-size:1.8em;margin-bottom:6px}
+.fw-item h4{font-size:.82em;font-weight:800;color:var(--txt);margin-bottom:3px}
+.fw-item p{font-size:.7em;color:var(--mut);line-height:1.4}
+.fw-item:nth-child(1){border-top-color:var(--t)}
+.fw-item:nth-child(2){border-top-color:var(--b)}
+.fw-item:nth-child(3){border-top-color:var(--a)}
+.fw-item:nth-child(4){border-top-color:var(--p)}
+.fw-item:nth-child(5){border-top-color:var(--g)}
+.fw-item:nth-child(6){border-top-color:var(--r)}
+
+/* Timeline */
+.tl{display:flex;justify-content:space-between;align-items:flex-start;position:relative;gap:2px}
+.tl::before{content:'';position:absolute;top:30px;left:28px;right:28px;height:3px;background:linear-gradient(90deg,var(--bdr),var(--t) 30%,var(--t) 70%,var(--bdr));z-index:0}
+.step{display:flex;flex-direction:column;align-items:center;cursor:pointer;flex:1;position:relative;z-index:1;transition:transform .2s}
+.step:hover{transform:translateY(-5px)}
+.dot{width:60px;height:60px;border-radius:50%;background:var(--card);border:3px solid var(--bdr);display:flex;align-items:center;justify-content:center;font-size:1.5em;transition:all .35s cubic-bezier(.4,0,.2,1);box-shadow:var(--sh)}
+.step.on .dot{border-color:var(--t);background:var(--t);color:#fff;box-shadow:0 0 0 8px rgba(13,148,136,.12),var(--sh-l);transform:scale(1.1)}
+.step.done .dot{border-color:var(--t);color:var(--t)}
+.lbl{font-size:.73em;font-weight:700;color:var(--mut);margin-top:8px;text-align:center;line-height:1.3;max-width:84px;transition:color .3s}
+.step.on .lbl{color:var(--t-d)}
+.idx{position:absolute;top:-4px;right:4px;width:20px;height:20px;background:var(--t);color:#fff;font-size:.6em;font-weight:900;border-radius:50%;display:flex;align-items:center;justify-content:center;opacity:0;transform:scale(.4);transition:all .3s}
+.step.on .idx{opacity:1;transform:scale(1)}
+.prog{display:flex;justify-content:center;gap:5px;padding:12px 0 0}
+.pg{width:8px;height:8px;border-radius:50%;background:var(--bdr);transition:all .4s}
+.pg.on{background:var(--t);width:26px;border-radius:4px}
+.kh{text-align:center;font-size:.72em;color:var(--mut);margin-top:6px}
+.kh kbd{display:inline-flex;align-items:center;justify-content:center;min-width:22px;height:20px;background:var(--card);border:1px solid var(--bdr);border-radius:4px;font-family:inherit;font-size:.85em;padding:0 4px;box-shadow:0 1px 0 var(--bdr);margin:0 2px}
+
+/* Panel */
+.pnl{margin:20px auto;background:var(--card);border-radius:var(--rad-l);box-shadow:var(--sh-l);overflow:hidden;opacity:0;transform:translateY(20px);transition:all .4s cubic-bezier(.4,0,.2,1)}
+.pnl.show{opacity:1;transform:translateY(0)}
+.p-hd{padding:24px 28px 14px;border-bottom:1px solid var(--bdr);display:flex;align-items:center;gap:14px}
+.p-hd .ico{font-size:2.5em;line-height:1}
+.p-hd h3{font-size:1.35em;font-weight:800}
+.p-hd .sub{font-size:.86em;color:var(--sub);margin-top:2px}
+.p-bd{display:grid;grid-template-columns:1fr 1fr}
+.col{padding:18px 24px 22px}
+.col-r{background:var(--r-bg);border-right:1px solid #fecaca}
+.col-g{background:var(--g-bg)}
+.col h4{font-size:.78em;font-weight:800;text-transform:uppercase;letter-spacing:.6px;margin-bottom:9px;display:flex;align-items:center;gap:5px}
+.col-r h4{color:var(--r)}
+.col-g h4{color:var(--g)}
+.col ul{list-style:none}
+.col li{padding:4px 0;font-size:.86em;color:var(--sub);display:flex;align-items:flex-start;gap:8px;line-height:1.5}
+.col li::before{content:'';width:6px;height:6px;border-radius:50%;margin-top:7px;flex-shrink:0;opacity:.6}
+.col-r li::before{background:var(--r)}
+.col-g li::before{background:var(--g)}
+
+/* Case */
+.case{margin:0 24px 18px;padding:16px 20px;background:var(--b-bg);border-radius:var(--rad);border:1px solid var(--b-l);font-size:.86em;line-height:1.7}
+.case strong{color:var(--b)}
+.case .src{display:block;margin-top:6px;font-size:.8em;color:var(--mut)}
+
+/* Insight */
+.ins{margin:0 24px 18px;padding:16px 20px;background:var(--p-bg);border-radius:var(--rad);border:1px solid #e9d5ff;font-size:.86em;line-height:1.7}
+.ins strong{color:var(--p)}
+
+/* Metrics */
+.mbar{display:grid;grid-template-columns:repeat(4,1fr);border-top:1px solid var(--bdr)}
+.met{padding:16px 12px;text-align:center;border-right:1px solid var(--bdr);transition:background .3s}
+.met:last-child{border-right:none}
+.met:hover{background:var(--t-bg)}
+.met .v{font-size:1.6em;font-weight:900;background:linear-gradient(135deg,var(--t),var(--b));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;line-height:1.1}
+.met .l{font-size:.72em;color:var(--mut);margin-top:3px;font-weight:600}
+
+/* AI tags */
+.aibox{margin:0 24px 20px;padding:16px 20px;background:linear-gradient(135deg,var(--p-bg),var(--b-bg));border-radius:var(--rad);border:1px solid #e9d5ff}
+.aibox h4{font-size:.8em;font-weight:800;color:var(--p);margin-bottom:8px;display:flex;align-items:center;gap:5px}
+.tags{display:flex;flex-wrap:wrap;gap:6px}
+.tag{padding:5px 12px;background:var(--card);border-radius:100px;font-size:.76em;color:var(--txt);border:1px solid var(--bdr);font-weight:600;transition:all .2s;cursor:default}
+.tag:hover{border-color:var(--p);color:var(--p);transform:translateY(-1px)}
+
+/* Summary grid */
+.sum-g{display:grid;grid-template-columns:repeat(4,1fr);gap:14px}
+.sc{background:var(--card);border-radius:var(--rad-l);padding:28px 16px;text-align:center;box-shadow:var(--sh);transition:transform .25s,box-shadow .25s;position:relative;overflow:hidden}
+.sc:hover{transform:translateY(-5px);box-shadow:var(--sh-l)}
+.sc::before{content:'';position:absolute;top:0;left:0;right:0;height:4px}
+.sc:nth-child(1)::before{background:linear-gradient(90deg,var(--a),#f59e0b)}
+.sc:nth-child(2)::before{background:linear-gradient(90deg,var(--b),#3b82f6)}
+.sc:nth-child(3)::before{background:linear-gradient(90deg,var(--g),#22c55e)}
+.sc:nth-child(4)::before{background:linear-gradient(90deg,var(--p),#a78bfa)}
+.sc .em{font-size:2.2em;margin-bottom:6px}
+.sc .n{font-size:2.3em;font-weight:900;line-height:1.1}
+.sc:nth-child(1) .n{color:var(--a)}
+.sc:nth-child(2) .n{color:var(--b)}
+.sc:nth-child(3) .n{color:var(--g)}
+.sc:nth-child(4) .n{color:var(--p)}
+.sc .d{font-size:.8em;color:var(--mut);margin-top:4px;font-weight:600}
+
+/* Roadmap */
+.road{display:grid;grid-template-columns:repeat(3,1fr);gap:14px}
+.rc{background:var(--card);border-radius:var(--rad);padding:20px;box-shadow:var(--sh);border-left:4px solid var(--bdr);transition:all .25s}
+.rc:hover{transform:translateY(-3px);box-shadow:var(--sh-l)}
+.rc:nth-child(1){border-left-color:var(--t)}
+.rc:nth-child(2){border-left-color:var(--b)}
+.rc:nth-child(3){border-left-color:var(--p)}
+.rc h4{font-size:.92em;font-weight:800;margin-bottom:4px}
+.rc .tm{font-size:.74em;color:var(--mut);margin-bottom:8px;font-weight:600}
+.rc ul{list-style:none;font-size:.84em;color:var(--sub)}
+.rc li{padding:3px 0 3px 14px;position:relative}
+.rc li::before{content:'→';position:absolute;left:0;color:var(--t);font-weight:700}
+
+/* Maturity */
+.mat{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-top:20px}
+.mat-card{background:var(--card);border-radius:var(--rad);padding:18px 14px;text-align:center;box-shadow:var(--sh);border-bottom:3px solid var(--bdr);transition:all .25s}
+.mat-card:hover{transform:translateY(-3px);box-shadow:var(--sh-l)}
+.mat-card h5{font-size:.82em;font-weight:800;margin-bottom:6px}
+.mat-card p{font-size:.72em;color:var(--mut);line-height:1.5}
+.mat-card:nth-child(1){border-bottom-color:#ef4444}
+.mat-card:nth-child(2){border-bottom-color:#f59e0b}
+.mat-card:nth-child(3){border-bottom-color:#3b82f6}
+.mat-card:nth-child(4){border-bottom-color:#10b981}
+.mat-card .lv{display:inline-block;font-size:.65em;padding:2px 8px;border-radius:100px;font-weight:700;margin-bottom:6px}
+.mat-card:nth-child(1) .lv{background:#fef2f2;color:#ef4444}
+.mat-card:nth-child(2) .lv{background:#fffbeb;color:#d97706}
+.mat-card:nth-child(3) .lv{background:#eff6ff;color:#2563eb}
+.mat-card:nth-child(4) .lv{background:#f0fdf4;color:#16a34a}
+
+/* Footer */
+.ft{text-align:center;padding:24px 20px 48px;font-size:.76em;color:var(--mut);line-height:1.9}
+
+/* Responsive */
+@media(max-width:960px){
+  .tl{flex-wrap:wrap;justify-content:center;gap:8px}
+  .tl::before{display:none}
+  .step{flex:0 0 auto;width:70px}
+  .p-bd{grid-template-columns:1fr}
+  .col-r{border-right:none;border-bottom:1px solid #fecaca}
+  .sum-g,.mat{grid-template-columns:repeat(2,1fr)}
+  .road{grid-template-columns:1fr}
+  .fw{grid-template-columns:repeat(3,1fr)}
+  .mbar{grid-template-columns:repeat(2,1fr)}
+  .met{border-bottom:1px solid var(--bdr)}
+  .hero{padding:48px 20px 36px}
+}
+@media(max-width:520px){
+  .fw{grid-template-columns:repeat(2,1fr)}
+  .sum-g{grid-template-columns:1fr 1fr}
+}
+</style>
+</head>
+<body>
+
+<div class="hero">
+  <h1>采购全链路 × <em>AI 可能性分析</em></h1>
+  <p class="sub">从需求到付款，8 个环节逐一拆解：AI 能做什么、不能做什么、人该做什么</p>
+  <div class="meta">
+    <span>📐 基于 SCOR 模型框架</span>
+    <span>🔍 结合行业实践数据</span>
+    <span>🧠 聚焦决策而非执行</span>
+  </div>
+</div>
+
+<div class="wrap">
+
+<!-- ═══ CONTEXT ═══ -->
+<div class="sec">
+  <div class="sec-hd">
+    <h2>为什么采购需要 AI？</h2>
+    <p>中国供应链成本占 GDP 18%，欧美仅 7-8%——差距就是机会</p>
+    <div class="bar"></div>
+  </div>
+  <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:14px;margin-bottom:20px">
+    <div style="background:var(--card);border-radius:var(--rad);padding:20px;box-shadow:var(--sh);border-left:4px solid var(--r)">
+      <div style="font-size:.78em;font-weight:800;color:var(--r);margin-bottom:6px">🔴 现状</div>
+      <div style="font-size:.88em;color:var(--sub);line-height:1.6">中国供应链成本占 GDP <strong>18%</strong>，是欧美（7-8%）的 2 倍以上。采购环节的人效瓶颈是核心原因之一。</div>
+    </div>
+    <div style="background:var(--card);border-radius:var(--rad);padding:20px;box-shadow:var(--sh);border-left:4px solid var(--a)">
+      <div style="font-size:.78em;font-weight:800;color:var(--a);margin-bottom:6px">🟡 矛盾</div>
+      <div style="font-size:.88em;color:var(--sub);line-height:1.6">采购 7R 原则（Right time/supplier/price/quality/quantity/product/place）要求精准协同，但人工执行难以兼顾全部维度。</div>
+    </div>
+    <div style="background:var(--card);border-radius:var(--rad);padding:20px;box-shadow:var(--sh);border-left:4px solid var(--g)">
+      <div style="font-size:.78em;font-weight:800;color:var(--g);margin-bottom:6px">🟢 机会</div>
+      <div style="font-size:.88em;color:var(--sub);line-height:1.6">AI 擅长多维度信息并行处理。把"找信息、做匹配、出报告"交给 AI，人专注于"做判断、管关系、定策略"。</div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ FRAMEWORK ═══ -->
+<div class="sec">
+  <div class="sec-hd">
+    <h2>SCOR 模型 × 采购链路映射</h2>
+    <p>AI 不改变流程结构，改变每个环节的执行方式</p>
+    <div class="bar"></div>
+  </div>
+  <div class="fw">
+    <div class="fw-item"><div class="ico">📋</div><h4>Plan</h4><p>需求计划<br>S&OP 产销协同</p></div>
+    <div class="fw-item"><div class="ico">🔍</div><h4>Source</h4><p>寻源定点<br>供应商选择</p></div>
+    <div class="fw-item"><div class="ico">📊</div><h4>Make</h4><p>核价建模<br>成本工程</p></div>
+    <div class="fw-item"><div class="ico">🚚</div><h4>Deliver</h4><p>订单执行<br>履约交付</p></div>
+    <div class="fw-item"><div class="ico">📦</div><h4>Return</h4><p>退换货<br>逆向物流</p></div>
+    <div class="fw-item"><div class="ico">🔄</div><h4>Enable</h4><p>供应商绩效<br>合规与风控</p></div>
+  </div>
+</div>
+
+<!-- ═══ TIMELINE ═══ -->
+<div class="sec">
+  <div class="sec-hd">
+    <h2>8 个环节 × AI 落地路径</h2>
+    <p>点击每个环节，查看痛点、AI 能力与行业洞察</p>
+    <div class="bar"></div>
+  </div>
+  <div class="tl" id="tl"></div>
+  <div class="prog" id="prog"></div>
+  <div class="kh">点击环节查看详情 · <kbd>←</kbd> <kbd>→</kbd> 键盘导航</div>
+  <div class="pnl" id="pnl">
+    <div class="p-hd" id="ph"></div>
+    <div class="p-bd">
+      <div class="col col-r" id="cr"></div>
+      <div class="col col-g" id="cg"></div>
+    </div>
+    <div class="case" id="cs"></div>
+    <div class="ins" id="ins"></div>
+    <div class="mbar" id="mb"></div>
+    <div class="aibox" id="ab"></div>
+  </div>
+</div>
+
+<!-- ═══ SUMMARY ═══ -->
+<div class="sec">
+  <div class="sec-hd">
+    <h2>端到端提效总览</h2>
+    <p>AI 在采购链路中的综合价值</p>
+    <div class="bar"></div>
+  </div>
+  <div class="sum-g">
+    <div class="sc"><div class="em">⏱️</div><div class="n">50-80%</div><div class="d">流程时间压缩</div></div>
+    <div class="sc"><div class="em">💰</div><div class="n">10-25%</div><div class="d">成本优化空间</div></div>
+    <div class="sc"><div class="em">🎯</div><div class="n">95%+</div><div class="d">关键环节准确率</div></div>
+    <div class="sc"><div class="em">👁️</div><div class="n">100%</div><div class="d">流程全链路可视</div></div>
+  </div>
+</div>
+
+<!-- ═══ MATURITY ═══ -->
+<div class="sec">
+  <div class="sec-hd">
+    <h2>采购 AI 成熟度模型</h2>
+    <p>多数企业处于 L1-L2，领先企业正在进入 L3</p>
+    <div class="bar"></div>
+  </div>
+  <div class="mat">
+    <div class="mat-card"><span class="lv">L1 工具化</span><h5>单点提效</h5><p>AI 作为独立工具使用：自动填表、数据查询、格式转换。人驱动，AI 执行。</p></div>
+    <div class="mat-card"><span class="lv">L2 流程化</span><h5>链路串通</h5><p>多个 Skill 编排成流程：需求→寻源→报价→合同。人做决策，AI 做执行。</p></div>
+    <div class="mat-card"><span class="lv">L3 智能化</span><h5>主动感知</h5><p>AI 主动发现异常、推送预警、推荐方案。人做审核，AI 做判断。</p></div>
+    <div class="mat-card"><span class="lv">L4 自治化</span><h5>闭环运行</h5><p>AI 端到端独立完成标准化采购，人只处理例外。人做风控，AI 做运营。</p></div>
+  </div>
+</div>
+
+<!-- ═══ ROADMAP ═══ -->
+<div class="sec">
+  <div class="sec-hd">
+    <h2>AI 采购进阶路线</h2>
+    <p>从单点工具到供应链智能体的三阶段跃迁</p>
+    <div class="bar"></div>
+  </div>
+  <div class="road">
+    <div class="rc">
+      <h4>🟢 阶段一：效率提升</h4>
+      <div class="tm">已验证 · 当前主流</div>
+      <ul>
+        <li>单点 Skill 建设（需求分析、寻源、对账）</li>
+        <li>被动执行 → 人负责审核</li>
+        <li>订单自动化、价格比对、政策查询</li>
+        <li>数据治理基础夯实</li>
+      </ul>
+    </div>
+    <div class="rc">
+      <h4>🔵 阶段二：主动智能</h4>
+      <div class="tm">推进中 · 领先企业</div>
+      <ul>
+        <li>跨品类流程打通（策略→招采→结算）</li>
+        <li>供应商绩效管理 AI 化</li>
+        <li>成本价格基线 + 宏观价格预测</li>
+        <li>组织氛围 AI 化（全员深度使用）</li>
+      </ul>
+    </div>
+    <div class="rc">
+      <h4>🟣 阶段三：自主闭环</h4>
+      <div class="tm">愿景 · 2-3 年</div>
+      <ul>
+        <li>任务闭环：AI 端到端独立完成</li>
+        <li>主动智能：异常主动发现并处理</li>
+        <li>数据洞察：跨品类趋势预测</li>
+        <li>组织重构：采购角色从执行者变决策者</li>
+      </ul>
+    </div>
+  </div>
+</div>
+
+<div class="ft">
+  框架：SCOR 模型 · 数据来源：行业公开报告与企业实践 · 实际效果因企业规模、数据成熟度而异<br>
+  仅供内部学习参考 · 2025
+</div>
+
+</div>
+
+<script>
+const S=[
+{e:'📋',n:'需求确认',d:'从零散需求到结构化采购计划',
+ b:['各部门需求分散在 Excel、邮件、口头沟通中','需求变更靠人工通知，信息滞后导致重复采购或遗漏','历史需求数据缺乏结构化积累，每次从零开始','需求与预算脱节，采购执行后才发现超预算'],
+ a:['AI 集成 ERP/MRP + 销售预测，自动生成采购需求清单','基于历史采购数据，自动对齐预算和需求差异','需求变更实时同步，自动调整采购计划','异常需求（超预算/重复/遗漏）自动标注并推送审批'],
+ m:[{v:'85%',l:'预测准确率'},{v:'-70%',l:'人工汇总时间'},{v:'2-4周',l:'预警提前量'},{v:'3→2天',l:'需求受理周期'}],
+ ai:['需求预测模型（时序+因果）','ERP/MRP 数据集成','异常需求检测','采购计划自动生成'],
+ cs:'<strong>行业实践：</strong>某科技企业通过需求深度分析 Skill，基于历史采购信息自动对齐预算和需求差异，需求受理从 3 天缩短到 2 天。AI 自动识别需求差异，统计相似项目需求信息及预算金额，采购不再逐条对齐。<span class="src">来源：企业内部实践数据</span>',
+ ins:'<strong>关键洞察：</strong>需求确认环节的核心不是"预测准不准"，而是"信息对不对齐"。AI 最大的价值是把散落在各处的需求信息结构化，让采购看到全貌。预测模型是锦上添花，信息整合才是雪中送炭。'},
+
+{e:'🌐',n:'寻源',d:'从人脉依赖到数据驱动的供应商发现',
+ b:['依赖有限的供应商数据库和个人人脉','资质审核靠人工逐项比对，周期长且标准不一','供应商风险靠主观判断，缺乏量化预警','行业价格基线缺失，寻源无参考锚点'],
+ a:['AI 扫描全球供应池（库内+库外双通道），自动生成符合条件的供应商清单','资质自动审核 + 风险信号实时监测','供应链中断风险提前预警（地缘政治/自然灾害/财务异常）','行业价格基线自动构建，寻源有据可依'],
+ m:[{v:'3x',l:'供应池扩展'},{v:'-85%',l:'寻源周期'},{v:'60天',l:'风险预警提前量'},{v:'95%',l:'资质匹配准确率'}],
+ ai:['全球供应池扫描','资质智能匹配','风险信号监测','供应中断预警'],
+ cs:'<strong>行业实践：</strong>某企业采购虾系统上线行业供应商寻源 Skill（库外+库内双通道），供应商资质审查 Skill，评标专家库推荐。Sourcing 整体从 24 步压缩到 4 步，人只做决策。库外寻源打通后，不再依赖个人人脉。<span class="src">来源：企业内部实践数据</span>',
+ ins:'<strong>关键洞察：</strong>寻源的本质是"信息不对称"。AI 打破信息壁垒的方式不是替代人的判断力，而是把人从"找信息"中解放出来，让人专注于"做判断"。库外数据源的接入是关键突破点。'},
+
+{e:'📊',n:'核价',d:'从经验定价到 BOM/VSM 级成本穿透',
+ b:['报价不透明，出厂价是"黑盒"——成本结构不可见','成本分析靠经验估算，缺乏结构化数据支撑','比价数据散落在 Excel 和邮件中，历史价难以追溯','缺乏 Should-Cost 模型，定价无锚，谈判无据'],
+ a:['BOM 级成本分解：供应商自分解或 SVC 关联的 VSM 拉取','CE（Cost Engineering）核价在线化 + 多供应商横向对比','Should-Cost 建模：原材料+加工+管理费+利润四层拆解','历史报价+市场数据+原材料指数综合分析，自动识别异常报价'],
+ m:[{v:'-90%',l:'核价时间'},{v:'10-25%',l:'成本优化空间'},{v:'全穿透',l:'BOM/VSM 级'},{v:'实时',l:'市场价格更新'}],
+ ai:['Should-Cost 成本建模','BOM/VSM 成本穿透','CE 核价在线化','价格偏差自动归因（5大根因）'],
+ cs:'<strong>行业实践：</strong>从"出厂价黑盒"到"BOM/VSM 级全维度成本穿透"，支撑 TCO 分析和品类策略。BOM 分解率仅 31%（155 个 RFQ），CE 核价完成率 33.3%——说明成本穿透仍是行业难题，AI 有巨大空间。<span class="src">来源：EP 系统报价结构升级项目</span><br><strong>价格偏差阈值体系：</strong>≤10% 轻微偏差 → 10-25% 中度偏差 → 25-50% 严重偏差 → >50% 极端偏差。AI 自动归因：批量差异、供应商层级、区域定价、时间差异、规格/付款条件。<span class="src">来源：价格偏差分析器 Skill</span>',
+ ins:'<strong>关键洞察：</strong>核价环节的 AI 突破点不是"算得更快"，而是"看得更透"。BOM 分解率 31% 说明大多数报价仍是"黑盒"。价格偏差自动归因（5 大根因）比人工判断更系统化——AI 不替代谈判，但让谈判有据可依。'},
+
+{e:'📝',n:'询报价',d:'从手工发标到智能评标',
+ b:['手动编写 RFQ 文件，格式不统一，效率低','采购策略 TMT 报告需人工收集历史金额+供应商资质+能力意愿经验','比价表手工整理，多维度对比易出错','策略信息重复录入到招采系统，双重工作'],
+ a:['AI 自动生成标准化 RFQ，一键群发','采购策略 TMT 报告自动生成：历史采购信息+库内外寻源+价格基线','智能评标：自动解析报价+评分+排序+多维比价看板','招采单据自动生成，策略信息零重录'],
+ m:[{v:'5→2天',l:'策略制定周期'},{v:'3→1.5天',l:'招采询价周期'},{v:'-80%',l:'评标周期'},{v:'100%',l:'格式标准化'}],
+ ai:['RFQ 自动生成','采购策略 TMT 报告 Skill','智能评标引擎','多维比价看板'],
+ cs:'<strong>行业实践：</strong>采购策略 TMT 报告是 Sourcing 链路的核心 Skill——AI 自动完成历史采购信息收集、库内+库外双通道寻源、行业价格基线输出，采购只需查漏补缺。从"人组装报告"到"人审核报告"。<span class="src">来源：企业内部实践数据</span>',
+ ins:'<strong>关键洞察：</strong>询报价环节最大的时间浪费不是"评标慢"，而是"准备慢"——人工收集信息、组装报告占了 80% 的时间。AI 的核心价值是把"信息收集"自动化，让人只做"信息判断"。'},
+
+{e:'⚖️',n:'合同管理',d:'从条款审查到智能履约',
+ b:['合同条款逐条人工审查，耗时且易遗漏','关键条款（付款/交期/质保/违约）靠人记忆和台账','合同到期和续约靠 Excel 台账，遗漏风险高','定选结果信息重复录入合同系统，双重工作'],
+ a:['AI 自动扫描合同条款，标记风险点和异常条款','关键条款自动提取并生成履约看板（付款/交期/质保）','到期预警 + 自动续约流程触发','合同初稿自动生成：定选结果自动流入合同，零重录'],
+ m:[{v:'1→0.5天',l:'合同周期'},{v:'95%',l:'风险条款识别'},{v:'0',l:'遗漏续约'},{v:'自动',l:'初稿生成'}],
+ ai:['条款风险扫描','关键条款提取','到期续约预警','合同初稿自动生成'],
+ cs:'<strong>行业实践：</strong>合同环节的提效来自"信息不重录"——定选结果自动流入合同生成，消除人工录入。年度 66 个合同项目，每个节省 0.5 天，合计 33 人天/年。<span class="src">来源：企业内部实践数据</span>',
+ ins:'<strong>关键洞察：</strong>合同管理的 AI 机会不在"审查条款"（这是律师的活），而在"管理履约"——谁该付多少钱、什么时候付、付了没有。AI 的价值是把合同从"静态文件"变成"动态仪表盘"。'},
+
+{e:'🚚',n:'订单执行',d:'从逐条录入到批量自动化',
+ b:['手动创建采购订单，逐条录入（10-15 分钟/行）','交期跟踪靠打电话/发邮件，信息碎片化','异常（延迟/缺货）发现滞后，被动应对','订单报价与框架合同的价格差异难以及时发现'],
+ a:['AI 批量生成订单：申请数据一次性导入系统，采购仅做审核','交期实时看板，物流状态自动同步','延迟风险提前预警，自动推送备选方案','订单报价自动审核：对比框架合同，超价预警'],
+ m:[{v:'770+',l:'自动订单行（零驳回）'},{v:'99%+',l:'执行准确率'},{v:'10→3min',l:'单行录入时间'},{v:'-75%',l:'下单时间'}],
+ ai:['订单批量生成','交期实时追踪','延迟风险预警','报价框架对比'],
+ cs:'<strong>行业实践：</strong>订单自动化是 Buyer 方向的核心突破。将申请数据批量导入为采购申请单，一次性完成多门店多订单录入，采购仅做审核。770+ 行零驳回证明了 AI 的执行可靠性。单个订单录入从 10min 缩短到 3min。<span class="src">来源：企业内部实践数据</span>',
+ ins:'<strong>关键洞察：</strong>订单执行是 AI 价值最直接的环节——规则明确、数据结构化、容错空间大。"零驳回"不是 AI 太聪明，而是这个环节的规则足够清晰，AI 擅长执行清晰的规则。'},
+
+{e:'📦',n:'收货对账',d:'从人工比对到三单自动匹配',
+ b:['收货单、入库单、发票逐单人工比对','三单匹配异常靠人工排查，定位困难','对账周期长（2 周+），付款延迟影响供应商关系','数据录入错误频发，返工成本高'],
+ a:['AI 自动三单匹配（PO-收货-发票），一键完成','异常自动标注并推送处理建议','对账周期从 2 周缩短到 1 天','匹配准确率 99%+，数据零手动录入'],
+ m:[{v:'99%+',l:'对账准确率'},{v:'2周→1天',l:'对账周期'},{v:'0',l:'手动录入'},{v:'-85%',l:'付款延迟率'}],
+ ai:['三单自动匹配','异常智能标注','对账自动完成','付款智能排程'],
+ cs:'<strong>行业实践：</strong>自动对账 Skill 已完成 60 万+ 明细处理，对账准确率 100%，导入对公支付准确率 100%。下一步：实物验收 AI 化（拍照识别 + OCR + 系统对比验收）。<span class="src">来源：企业内部实践数据</span>',
+ ins:'<strong>关键洞察：</strong>收货对账是"数据匹配"问题，不是"业务判断"问题。AI 的优势在于：比人快、比人准、比人不会累。这个环节的 ROI 最容易计算——每减少一天对账周期，就释放一天的现金流。'},
+
+{e:'📈',n:'供应商绩效',d:'从主观印象到量化评估体系',
+ b:['供应商评价靠主观印象，缺乏量化体系','风险发现滞后——出了事才知道','知识散落在个人经验中，人员流动导致流失','绩效与采购决策脱钩，评了等于没评'],
+ a:['千分制量化评估体系：交付、质量、响应、合规多维度评分','风险预警：每天定时扫描，主动推送风险报告','寻源知识库：自动沉淀历史策略、定选结果、结构化供应商信息','劣化预测：基于历史数据预测供应商未来表现'],
+ m:[{v:'376家',l:'量化评估覆盖'},{v:'37.8%',l:'满分供应商'},{v:'46.7%',l:'交付-质量耦合率'},{v:'72%',l:'劣化预测准确率'}],
+ ai:['千分制评分体系','风险预警（日更）','寻源知识库（自动沉淀）','劣化预测模型'],
+ cs:'<strong>汽车行业实践：</strong>某车企 NQPP 评估覆盖 376 家供应商，千分制评分。发现：交付延迟和 PPM 超标高度耦合——46.7% 的交付延迟供应商同时存在 PPM 问题。QRCR 不达标的供应商有 72% 概率后续恶化。<span class="src">来源：NQPP 供应商质量评估报告</span><br><strong>生鲜行业实践：</strong>某生鲜平台 ABCD 分级体系，A 级供应商占比从 20% 提升到 26%，缺货 GMV 损失减少 817 万元，供应商罚款 82 万/月。<span class="src">来源：叮咚买菜供应商管理实践</span>',
+ ins:'<strong>关键洞察：</strong>供应商绩效管理的 AI 突破点不是"评分更准"，而是"发现更早"。46.7% 的交付-质量耦合率说明：问题从来不是孤立出现的，AI 的价值是发现这些隐藏的关联。ABCD 分级 + GMV 损失量化，让绩效管理从"打分"变成"算账"——管理层才能真正重视。'}
+];
+const SUM=[
+  {em:'⏱️',n:'50-80%',d:'流程时间压缩'},
+  {em:'💰',n:'10-25%',d:'成本优化空间'},
+  {em:'🎯',n:'95%+',d:'关键环节准确率'},
+  {em:'👁️',n:'100%',d:'流程全链路可视'}
+];
+
+let cur=-1;const vis=new Set();
+
+function init(){
+  document.getElementById('tl').innerHTML=S.map((s,i)=>`<div class="step" onclick="go(${i})"><div class="dot">${s.e}</div><div class="lbl">${s.n}</div><div class="idx">${i+1}</div></div>`).join('');
+  document.getElementById('prog').innerHTML=S.map((_,i)=>`<div class="pg" data-i="${i}"></div>`).join('');
+  go(0);
+}
+
+function go(i){
+  if(i===cur)return;cur=i;vis.add(i);
+  document.querySelectorAll('.step').forEach((el,j)=>{el.classList.toggle('on',j===i);if(vis.has(j)&&j!==i)el.classList.add('done')});
+  document.querySelectorAll('.pg').forEach((el,j)=>el.classList.toggle('on',j===i));
+  const p=document.getElementById('pnl');
+  p.classList.remove('show');
+  setTimeout(()=>{
+    const s=S[i];
+    document.getElementById('ph').innerHTML=`<div class="ico">${s.e}</div><div><h3>${s.n}</h3><div class="sub">${s.d}</div></div>`;
+    document.getElementById('cr').innerHTML=`<h4>🔴 现状痛点</h4><ul>${s.b.map(t=>`<li>${t}</li>`).join('')}</ul>`;
+    document.getElementById('cg').innerHTML=`<h4>🟢 AI 赋能后</h4><ul>${s.a.map(t=>`<li>${t}</li>`).join('')}</ul>`;
+    document.getElementById('cs').innerHTML=s.cs;
+    document.getElementById('ins').innerHTML=s.ins;
+    document.getElementById('mb').innerHTML=s.m.map(m=>`<div class="met"><div class="v">${m.v}</div><div class="l">${m.l}</div></div>`).join('');
+    document.getElementById('ab').innerHTML=`<h4>🤖 AI 能力</h4><div class="tags">${s.ai.map(t=>`<span class="tag">${t}</span>`).join('')}</div>`;
+    requestAnimationFrame(()=>p.classList.add('show'));
+  },200);
+}
+
+init();
+document.addEventListener('keydown',e=>{
+  if(e.key==='ArrowRight'&&cur<S.length-1)go(cur+1);
+  if(e.key==='ArrowLeft'&&cur>0)go(cur-1);
+});
+</script>
+</body>
+</html>

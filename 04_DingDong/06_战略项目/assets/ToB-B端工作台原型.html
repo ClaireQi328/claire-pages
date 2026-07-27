@@ -1,0 +1,765 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>叮咚买菜 B2B 商户工作台</title>
+<style>
+  :root {
+    --p: #1677ff;
+    --p-light: #e6f4ff;
+    --g50: #fafafa;
+    --g100: #f5f5f5;
+    --g200: #e8e8e8;
+    --g800: #262626;
+    --success: #52c41a;
+    --warning: #faad14;
+    --danger: #f5222d;
+    --font: -apple-system, "PingFang SC", "Microsoft YaHei", sans-serif;
+    --radius: 10px;
+    --shadow: 0 1px 3px rgba(0,0,0,0.08), 0 1px 2px rgba(0,0,0,0.06);
+    --shadow-lg: 0 4px 12px rgba(0,0,0,0.1);
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { font-family: var(--font); background: var(--g50); color: var(--g800); min-height: 100vh; }
+
+  /* ========== Top Bar ========== */
+  .topbar {
+    background: #fff; border-bottom: 1px solid var(--g200); padding: 0 24px;
+    display: flex; align-items: center; justify-content: space-between; height: 56px;
+    position: sticky; top: 0; z-index: 100;
+  }
+  .topbar-logo { display: flex; align-items: center; gap: 8px; font-weight: 700; font-size: 18px; color: var(--p); }
+  .topbar-logo .icon { font-size: 24px; }
+  .topbar-right { display: flex; align-items: center; gap: 16px; }
+  .topbar-user { display: flex; align-items: center; gap: 8px; font-size: 13px; color: #666; }
+  .topbar-avatar { width: 32px; height: 32px; border-radius: 50%; background: var(--p); color: #fff; display: flex; align-items: center; justify-content: center; font-size: 14px; font-weight: 600; }
+
+  /* ========== Tab Navigation ========== */
+  .tab-nav {
+    background: #fff; border-bottom: 1px solid var(--g200); padding: 0 24px;
+    display: flex; gap: 0; overflow-x: auto;
+  }
+  .tab-btn {
+    padding: 12px 24px; border: none; background: none; cursor: pointer;
+    font-size: 14px; font-family: var(--font); color: #666;
+    border-bottom: 2px solid transparent; transition: all 0.2s; white-space: nowrap; position: relative;
+  }
+  .tab-btn:hover { color: var(--p); background: var(--p-light); }
+  .tab-btn.active { color: var(--p); border-bottom-color: var(--p); font-weight: 600; }
+  .tab-badge {
+    position: absolute; top: 6px; right: 4px; min-width: 16px; height: 16px; border-radius: 8px;
+    background: var(--danger); color: #fff; font-size: 10px; display: none; align-items: center;
+    justify-content: center; padding: 0 4px; font-weight: 600;
+  }
+
+  /* ========== Main Content ========== */
+  .main { max-width: 1200px; margin: 0 auto; padding: 24px; }
+  .page { display: none; }
+  .page.active { display: block; }
+  .page-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 20px; flex-wrap: wrap; gap: 8px; }
+  .page-title { font-size: 20px; font-weight: 700; }
+
+  /* ========== Card ========== */
+  .card { background: #fff; border-radius: var(--radius); box-shadow: var(--shadow); padding: 20px; }
+
+  /* ========== Stat Cards ========== */
+  .stat-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; margin-bottom: 24px; }
+  .stat-card { background: #fff; border-radius: var(--radius); box-shadow: var(--shadow); padding: 20px; display: flex; justify-content: space-between; align-items: flex-start; }
+  .stat-info { flex: 1; }
+  .stat-label { font-size: 13px; color: #888; margin-bottom: 6px; }
+  .stat-value { font-size: 28px; font-weight: 700; line-height: 1.2; }
+  .stat-change { font-size: 12px; margin-top: 6px; }
+  .stat-change.up { color: var(--success); }
+  .stat-change.down { color: var(--danger); }
+  .stat-icon { width: 48px; height: 48px; border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 22px; flex-shrink: 0; }
+
+  /* ========== Bar Chart ========== */
+  .chart-wrap { margin-bottom: 24px; }
+  .chart-title { font-size: 15px; font-weight: 600; margin-bottom: 16px; }
+  .bar-chart { display: flex; align-items: flex-end; gap: 16px; height: 200px; padding: 0 8px; }
+  .bar-group { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 6px; }
+  .bar-val { font-size: 12px; font-weight: 600; color: #555; }
+  .bar {
+    width: 100%; max-width: 48px; border-radius: 6px 6px 0 0;
+    transition: height 0.6s cubic-bezier(0.4, 0, 0.2, 1); min-height: 4px; cursor: pointer;
+  }
+  .bar:hover { opacity: 0.8; filter: brightness(1.1); }
+  .bar-label { font-size: 12px; color: #888; margin-top: 2px; }
+
+  /* ========== Table ========== */
+  .table-wrap { overflow-x: auto; }
+  table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  th { background: var(--g100); padding: 10px 14px; text-align: left; font-weight: 600; color: #555; white-space: nowrap; border-bottom: 1px solid var(--g200); }
+  td { padding: 10px 14px; border-bottom: 1px solid var(--g100); }
+  tr:hover td { background: var(--g50); }
+
+  /* ========== Badge ========== */
+  .badge { display: inline-block; padding: 2px 10px; border-radius: 4px; font-size: 12px; font-weight: 500; }
+  .badge-pending { background: #fff7e6; color: #d48806; }
+  .badge-processing { background: #e6f4ff; color: #1677ff; }
+  .badge-delivering { background: #f0f5ff; color: #2f54eb; }
+  .badge-completed { background: #f6ffed; color: #389e0d; }
+  .badge-cancelled { background: #fff1f0; color: #cf1322; }
+
+  /* ========== Product Grid ========== */
+  .zone-tabs { display: flex; gap: 8px; margin-bottom: 20px; flex-wrap: wrap; }
+  .zone-tab {
+    padding: 6px 18px; border-radius: 20px; border: 1px solid var(--g200);
+    background: #fff; cursor: pointer; font-size: 13px; font-family: var(--font); transition: all 0.2s;
+  }
+  .zone-tab:hover { border-color: var(--p); color: var(--p); }
+  .zone-tab.active { background: var(--p); color: #fff; border-color: var(--p); }
+
+  .product-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(230px, 1fr)); gap: 16px; }
+  .product-card {
+    background: #fff; border-radius: var(--radius); box-shadow: var(--shadow); overflow: hidden;
+    transition: transform 0.2s, box-shadow 0.2s;
+  }
+  .product-card:hover { transform: translateY(-3px); box-shadow: var(--shadow-lg); }
+  .product-img {
+    height: 130px; background: var(--g100); display: flex; align-items: center;
+    justify-content: center; font-size: 52px; position: relative;
+  }
+  .zone-tag {
+    position: absolute; top: 8px; left: 8px; padding: 2px 10px; border-radius: 4px;
+    font-size: 11px; color: #fff; font-weight: 500;
+  }
+  .zone-frozen { background: #1890ff; }
+  .zone-cold { background: #13c2c2; }
+  .zone-normal { background: #fa8c16; }
+  .product-info { padding: 14px; }
+  .product-name { font-size: 14px; font-weight: 600; margin-bottom: 4px; }
+  .product-spec { font-size: 12px; color: #999; margin-bottom: 8px; }
+  .product-prices { display: flex; align-items: baseline; gap: 8px; margin-bottom: 10px; }
+  .price-tob { font-size: 20px; font-weight: 700; color: var(--danger); }
+  .price-retail { font-size: 12px; color: #bbb; text-decoration: line-through; }
+  .price-unit { font-size: 12px; color: #999; }
+  .add-cart-btn {
+    width: 100%; padding: 7px 0; border: 1px solid var(--p); border-radius: 6px;
+    background: var(--p-light); color: var(--p); cursor: pointer; font-size: 13px;
+    font-family: var(--font); font-weight: 500; transition: all 0.2s;
+  }
+  .add-cart-btn:hover { background: var(--p); color: #fff; }
+  .add-cart-btn.added { background: var(--p); color: #fff; }
+
+  /* ========== Cart ========== */
+  .cart-group { margin-bottom: 20px; border-radius: var(--radius); overflow: hidden; box-shadow: var(--shadow); }
+  .cart-group-header {
+    display: flex; align-items: center; gap: 8px; padding: 12px 16px;
+    color: #fff; font-weight: 600; font-size: 14px;
+  }
+  .cart-group-header.frozen { background: #1890ff; }
+  .cart-group-header.cold { background: #13c2c2; }
+  .cart-group-header.normal { background: #fa8c16; }
+  .cart-item {
+    display: flex; align-items: center; gap: 12px; padding: 14px 16px;
+    background: #fff; border-bottom: 1px solid var(--g100);
+  }
+  .cart-item:last-child { border-bottom: none; }
+  .cart-item-icon {
+    width: 48px; height: 48px; background: var(--g100); border-radius: 8px;
+    display: flex; align-items: center; justify-content: center; font-size: 24px; flex-shrink: 0;
+  }
+  .cart-item-info { flex: 1; min-width: 0; }
+  .cart-item-name { font-size: 14px; font-weight: 500; }
+  .cart-item-spec { font-size: 12px; color: #999; }
+  .cart-item-price { font-size: 14px; font-weight: 600; color: var(--danger); min-width: 80px; text-align: right; }
+  .qty-control { display: flex; align-items: center; }
+  .qty-btn {
+    width: 28px; height: 28px; border: 1px solid var(--g200); background: #fff;
+    cursor: pointer; font-size: 16px; display: flex; align-items: center; justify-content: center;
+    font-family: var(--font); transition: background 0.2s;
+  }
+  .qty-btn:hover { background: var(--p-light); border-color: var(--p); color: var(--p); }
+  .qty-btn:first-child { border-radius: 4px 0 0 4px; }
+  .qty-btn:last-child { border-radius: 0 4px 4px 0; }
+  .qty-val {
+    width: 44px; height: 28px; border: 1px solid var(--g200); border-left: none; border-right: none;
+    text-align: center; font-size: 14px; font-family: var(--font); outline: none;
+  }
+  .cart-footer {
+    background: #fff; border-radius: var(--radius); box-shadow: var(--shadow);
+    padding: 16px 20px; margin-top: 16px; display: flex; align-items: center;
+    justify-content: space-between; flex-wrap: wrap; gap: 12px;
+  }
+  .cart-total { font-size: 14px; }
+  .cart-total-amount { font-size: 24px; font-weight: 700; color: var(--danger); margin-left: 4px; }
+  .delivery-select { display: flex; align-items: center; gap: 8px; font-size: 13px; }
+  .delivery-select select {
+    padding: 6px 12px; border: 1px solid var(--g200); border-radius: 6px;
+    font-family: var(--font); font-size: 13px; outline: none;
+  }
+  .submit-order-btn {
+    padding: 10px 36px; background: var(--p); color: #fff; border: none; border-radius: 8px;
+    font-size: 15px; font-weight: 600; cursor: pointer; font-family: var(--font); transition: opacity 0.2s;
+  }
+  .submit-order-btn:hover { opacity: 0.9; }
+  .empty-cart { text-align: center; padding: 60px 20px; color: #bbb; }
+  .empty-cart .icon { font-size: 56px; margin-bottom: 12px; }
+
+  /* ========== Order Tracking ========== */
+  .track-card { background: #fff; border-radius: var(--radius); box-shadow: var(--shadow); padding: 20px; margin-bottom: 16px; }
+  .track-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; flex-wrap: wrap; gap: 8px; }
+  .track-order-id { font-weight: 600; font-size: 14px; }
+  .track-zone { padding: 2px 10px; border-radius: 4px; font-size: 12px; color: #fff; }
+  .track-progress { display: flex; align-items: flex-start; margin-bottom: 20px; padding: 0 4px; overflow-x: auto; }
+  .track-step { display: flex; flex-direction: column; align-items: center; min-width: 72px; position: relative; }
+  .track-dot {
+    width: 28px; height: 28px; border-radius: 50%; background: var(--g200);
+    display: flex; align-items: center; justify-content: center; font-size: 12px; color: #fff;
+    z-index: 2; transition: all 0.3s; font-weight: 600;
+  }
+  .track-dot.done { background: var(--success); }
+  .track-dot.active { background: var(--p); animation: pulse 1.5s infinite; }
+  @keyframes pulse {
+    0%, 100% { box-shadow: 0 0 0 0 rgba(22,119,255,0.4); }
+    50% { box-shadow: 0 0 0 8px rgba(22,119,255,0); }
+  }
+  .track-line { height: 3px; flex: 1; background: var(--g200); min-width: 20px; margin-top: 12px; border-radius: 2px; }
+  .track-line.done { background: var(--success); }
+  .track-step-label { font-size: 11px; color: #999; margin-top: 8px; white-space: nowrap; text-align: center; }
+  .track-step-label.active { color: var(--p); font-weight: 600; }
+  .track-driver {
+    display: flex; align-items: center; gap: 12px; padding: 14px;
+    background: var(--g50); border-radius: 8px;
+  }
+  .driver-avatar {
+    width: 44px; height: 44px; border-radius: 50%; background: var(--p);
+    color: #fff; display: flex; align-items: center; justify-content: center; font-size: 20px;
+  }
+  .driver-info { flex: 1; }
+  .driver-name { font-weight: 600; font-size: 14px; }
+  .driver-phone { font-size: 12px; color: #888; margin-top: 2px; }
+  .driver-eta { text-align: right; }
+  .driver-eta-label { font-size: 12px; color: #888; }
+  .driver-eta-time { font-size: 20px; font-weight: 700; color: var(--p); }
+
+  /* ========== Billing ========== */
+  .billing-summary { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; margin-bottom: 24px; }
+  .billing-card { background: #fff; border-radius: var(--radius); box-shadow: var(--shadow); padding: 20px; text-align: center; }
+  .billing-card-label { font-size: 13px; color: #888; margin-bottom: 6px; }
+  .billing-card-value { font-size: 24px; font-weight: 700; }
+  .month-selector { display: flex; align-items: center; gap: 8px; margin-bottom: 16px; }
+  .month-btn {
+    padding: 6px 16px; border: 1px solid var(--g200); border-radius: 6px;
+    background: #fff; cursor: pointer; font-family: var(--font); font-size: 13px; transition: all 0.2s;
+  }
+  .month-btn:hover { border-color: var(--p); color: var(--p); }
+  .month-btn.active { background: var(--p); color: #fff; border-color: var(--p); }
+
+  /* ========== Toast ========== */
+  .toast {
+    position: fixed; top: 80px; right: 24px; padding: 12px 20px;
+    background: var(--g800); color: #fff; border-radius: 8px; font-size: 14px;
+    z-index: 999; transform: translateX(140%); transition: transform 0.3s ease;
+    box-shadow: var(--shadow-lg); pointer-events: none;
+  }
+  .toast.show { transform: translateX(0); }
+
+  /* ========== Responsive ========== */
+  @media (max-width: 768px) {
+    .stat-grid { grid-template-columns: repeat(2, 1fr); }
+    .billing-summary { grid-template-columns: 1fr; }
+    .product-grid { grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); }
+    .tab-btn { padding: 12px 16px; }
+  }
+</style>
+</head>
+<body>
+
+<!-- ========== Top Bar ========== -->
+<div class="topbar">
+  <div class="topbar-logo">
+    <span class="icon">🥬</span>
+    叮咚买菜 B2B 商户平台
+  </div>
+  <div class="topbar-right">
+    <div class="topbar-user">
+      <span>华东区域 · 鑫品湾餐厅</span>
+      <div class="topbar-avatar">李</div>
+    </div>
+  </div>
+</div>
+
+<!-- ========== Tab Navigation ========== -->
+<div class="tab-nav" id="tabNav">
+  <button class="tab-btn active" data-tab="home">📋 首页概览</button>
+  <button class="tab-btn" data-tab="products">🛒 商品选购</button>
+  <button class="tab-btn" data-tab="cart">📦 购物车<span class="tab-badge" id="cartBadge">0</span></button>
+  <button class="tab-btn" data-tab="tracking">🚚 订单追踪</button>
+  <button class="tab-btn" data-tab="billing">💰 账单中心</button>
+</div>
+
+<div class="main">
+
+  <!-- ==================== PAGE 1: 首页概览 ==================== -->
+  <div class="page active" id="page-home">
+    <div class="page-header">
+      <div class="page-title">欢迎回来，李老板 👋</div>
+    </div>
+
+    <div class="stat-grid">
+      <div class="stat-card">
+        <div class="stat-info">
+          <div class="stat-label">累计订单</div>
+          <div class="stat-value" id="totalOrders">1,286</div>
+          <div class="stat-change up">↑ 12% 较上月</div>
+        </div>
+        <div class="stat-icon" style="background:#e6f4ff;color:#1677ff;">📊</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-info">
+          <div class="stat-label">待处理</div>
+          <div class="stat-value" style="color:var(--warning);">5</div>
+          <div class="stat-change down">需尽快确认</div>
+        </div>
+        <div class="stat-icon" style="background:#fff7e6;color:#fa8c16;">⏳</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-info">
+          <div class="stat-label">配送中</div>
+          <div class="stat-value" style="color:#2f54eb;">3</div>
+          <div class="stat-change">预计 45 分钟内到达</div>
+        </div>
+        <div class="stat-icon" style="background:#f0f5ff;color:#2f54eb;">🚚</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-info">
+          <div class="stat-label">本月完成</div>
+          <div class="stat-value" style="color:var(--success);">89</div>
+          <div class="stat-change up">↑ 8% 较上月</div>
+        </div>
+        <div class="stat-icon" style="background:#f6ffed;color:#52c41a;">✅</div>
+      </div>
+    </div>
+
+    <div class="chart-wrap card">
+      <div class="chart-title">近 7 日订单趋势</div>
+      <div class="bar-chart" id="barChart"></div>
+    </div>
+
+    <div class="card">
+      <div class="chart-title">最近订单</div>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>订单号</th><th>下单时间</th><th>商品数</th><th>金额</th><th>温区</th><th>状态</th></tr></thead>
+          <tbody id="recentOrdersBody"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- ==================== PAGE 2: 商品选购 ==================== -->
+  <div class="page" id="page-products">
+    <div class="page-header">
+      <div class="page-title">商品选购</div>
+      <div class="zone-tabs" id="zoneTabs">
+        <button class="zone-tab active" data-zone="all">全部</button>
+        <button class="zone-tab" data-zone="frozen">🧊 冷冻</button>
+        <button class="zone-tab" data-zone="cold">❄️ 冷藏</button>
+        <button class="zone-tab" data-zone="normal">🌡️ 常温</button>
+      </div>
+    </div>
+    <div class="product-grid" id="productGrid"></div>
+  </div>
+
+  <!-- ==================== PAGE 3: 购物车 ==================== -->
+  <div class="page" id="page-cart">
+    <div class="page-header"><div class="page-title">购物车</div></div>
+    <div id="cartContent"></div>
+  </div>
+
+  <!-- ==================== PAGE 4: 订单追踪 ==================== -->
+  <div class="page" id="page-tracking">
+    <div class="page-header"><div class="page-title">订单追踪</div></div>
+    <div id="trackingContent"></div>
+  </div>
+
+  <!-- ==================== PAGE 5: 账单中心 ==================== -->
+  <div class="page" id="page-billing">
+    <div class="page-header"><div class="page-title">账单中心</div></div>
+    <div class="billing-summary">
+      <div class="billing-card">
+        <div class="billing-card-label">本月累计</div>
+        <div class="billing-card-value" style="color:var(--p);">¥48,620</div>
+      </div>
+      <div class="billing-card">
+        <div class="billing-card-label">待结算</div>
+        <div class="billing-card-value" style="color:var(--warning);">¥8,350</div>
+      </div>
+      <div class="billing-card">
+        <div class="billing-card-label">已结算</div>
+        <div class="billing-card-value" style="color:var(--success);">¥40,270</div>
+      </div>
+    </div>
+    <div class="month-selector">
+      <button class="month-btn" data-month="5">5月</button>
+      <button class="month-btn" data-month="6">6月</button>
+      <button class="month-btn active" data-month="7">7月</button>
+    </div>
+    <div class="card">
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>账单编号</th><th>日期</th><th>订单数</th><th>金额</th><th>支付方式</th><th>状态</th></tr></thead>
+          <tbody id="billingBody"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<!-- Toast -->
+<div class="toast" id="toast"></div>
+
+<script>
+/* ========================================================================
+   DATA
+   ======================================================================== */
+const PRODUCTS = [
+  { id:1,  name:"澳洲谷饲肥牛卷", spec:"1kg/袋",     zone:"frozen", icon:"🥩", tob:68.0,  retail:89.0  },
+  { id:2,  name:"黑猪五花肉",     spec:"500g/份",     zone:"frozen", icon:"🥓", tob:32.5,  retail:45.0  },
+  { id:3,  name:"厄瓜多尔白虾",   spec:"30-40只/kg",  zone:"frozen", icon:"🦐", tob:55.0,  retail:72.0  },
+  { id:4,  name:"手工虾仁馄饨",   spec:"500g/袋",     zone:"frozen", icon:"🥟", tob:18.0,  retail:25.0  },
+  { id:5,  name:"有机西蓝花",     spec:"300g/份",     zone:"cold",   icon:"🥦", tob:8.5,   retail:12.0  },
+  { id:6,  name:"光明鲜奶",       spec:"950ml/瓶",    zone:"cold",   icon:"🥛", tob:12.0,  retail:16.8  },
+  { id:7,  name:"日日鲜豆腐",     spec:"400g/盒",     zone:"cold",   icon:"🧊", tob:3.8,   retail:5.5   },
+  { id:8,  name:"鲜活鲈鱼",       spec:"约500g/条",   zone:"cold",   icon:"🐟", tob:22.0,  retail:32.0  },
+  { id:9,  name:"东北五常大米",   spec:"5kg/袋",      zone:"normal", icon:"🌾", tob:38.0,  retail:52.0  },
+  { id:10, name:"金龙鱼菜籽油",   spec:"5L/桶",       zone:"normal", icon:"🫒", tob:42.0,  retail:58.0  },
+  { id:11, name:"海天特级生抽",   spec:"500ml/瓶",    zone:"normal", icon:"🍶", tob:8.5,   retail:12.5  },
+  { id:12, name:"农夫山泉矿泉水", spec:"550ml×24",    zone:"normal", icon:"💧", tob:22.0,  retail:28.0  },
+];
+
+const RECENT_ORDERS = [
+  { id:"DD-B2B-20260723-001", time:"07-23 08:30", count:12, amount:3580, zone:"🧊冷冻", status:"delivering" },
+  { id:"DD-B2B-20260723-002", time:"07-23 09:15", count:8,  amount:1260, zone:"❄️冷藏", status:"processing" },
+  { id:"DD-B2B-20260722-008", time:"07-22 14:20", count:15, amount:4820, zone:"混合",   status:"completed"  },
+  { id:"DD-B2B-20260722-005", time:"07-22 10:00", count:6,  amount:890,  zone:"🌡️常温", status:"completed"  },
+  { id:"DD-B2B-20260721-012", time:"07-21 16:45", count:20, amount:6350, zone:"🧊冷冻", status:"completed"  },
+];
+
+const BILLING_DATA = [
+  { id:"BILL-20260723", date:"2026-07-23", orders:3, amount:5730,  pay:"月结", status:"pending"   },
+  { id:"BILL-20260722", date:"2026-07-22", orders:5, amount:8920,  pay:"月结", status:"pending"   },
+  { id:"BILL-20260721", date:"2026-07-21", orders:4, amount:6350,  pay:"月结", status:"completed" },
+  { id:"BILL-20260720", date:"2026-07-20", orders:6, amount:9180,  pay:"月结", status:"completed" },
+  { id:"BILL-20260719", date:"2026-07-19", orders:3, amount:4560,  pay:"月结", status:"completed" },
+  { id:"BILL-20260718", date:"2026-07-18", orders:7, amount:11230, pay:"月结", status:"completed" },
+  { id:"BILL-20260717", date:"2026-07-17", orders:2, amount:2650,  pay:"月结", status:"completed" },
+];
+
+const TRACKING_ORDERS = [
+  { id:"DD-B2B-20260723-001", zone:"frozen", zoneLabel:"🧊冷冻", zoneColor:"#1890ff", step:3,
+    steps:["待分拣","分拣中","待出库","配送中","即将到达"],
+    driver:{ name:"张师傅", phone:"138****6789", plate:"沪A·12345" }, eta:1800 },
+  { id:"DD-B2B-20260723-002", zone:"cold", zoneLabel:"❄️冷藏", zoneColor:"#13c2c2", step:1,
+    steps:["待分拣","分拣中","待出库","配送中","即将到达"],
+    driver:{ name:"王师傅", phone:"139****2345", plate:"沪B·67890" }, eta:5400 },
+  { id:"DD-B2B-20260723-003", zone:"normal", zoneLabel:"🌡️常温", zoneColor:"#fa8c16", step:4,
+    steps:["待分拣","分拣中","待出库","配送中","即将到达"],
+    driver:{ name:"陈师傅", phone:"136****8901", plate:"沪C·11111" }, eta:600 },
+];
+
+const STATUS_MAP = {
+  pending:    { label:"待结算", cls:"badge-pending"    },
+  processing: { label:"处理中", cls:"badge-processing" },
+  delivering: { label:"配送中", cls:"badge-delivering" },
+  completed:  { label:"已完成", cls:"badge-completed"  },
+  cancelled:  { label:"已取消", cls:"badge-cancelled"  },
+};
+
+let cart = {};   // { productId: qty }
+
+/* ========================================================================
+   TAB SWITCHING
+   ======================================================================== */
+document.querySelectorAll('.tab-btn').forEach(btn => {
+  btn.addEventListener('click', () => switchTab(btn.dataset.tab));
+});
+
+function switchTab(tabName) {
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+  document.querySelector(`.tab-btn[data-tab="${tabName}"]`).classList.add('active');
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.getElementById('page-' + tabName).classList.add('active');
+  if (tabName === 'cart') renderCart();
+}
+
+/* ========================================================================
+   PAGE 1: BAR CHART
+   ======================================================================== */
+function renderBarChart() {
+  const data = [
+    { label:"07-17", value:18 }, { label:"07-18", value:24 },
+    { label:"07-19", value:15 }, { label:"07-20", value:28 },
+    { label:"07-21", value:22 }, { label:"07-22", value:32 },
+    { label:"07-23", value:12 },
+  ];
+  const max = Math.max(...data.map(d => d.value));
+  document.getElementById('barChart').innerHTML = data.map((d, i) => `
+    <div class="bar-group">
+      <div class="bar-val">${d.value}</div>
+      <div class="bar" style="height:${(d.value / max) * 160}px;background:${i === data.length - 1 ? 'var(--p)' : '#91caff'};"></div>
+      <div class="bar-label">${d.label}</div>
+    </div>
+  `).join('');
+}
+
+/* ========================================================================
+   PAGE 1: RECENT ORDERS TABLE
+   ======================================================================== */
+function renderRecentOrders() {
+  document.getElementById('recentOrdersBody').innerHTML = RECENT_ORDERS.map(o => {
+    const s = STATUS_MAP[o.status];
+    return `<tr>
+      <td>${o.id}</td><td>${o.time}</td><td>${o.count}</td>
+      <td>¥${o.amount.toLocaleString()}.00</td><td>${o.zone}</td>
+      <td><span class="badge ${s.cls}">${s.label}</span></td>
+    </tr>`;
+  }).join('');
+}
+
+/* ========================================================================
+   PAGE 2: PRODUCTS
+   ======================================================================== */
+function renderProducts(zone) {
+  const list = zone === 'all' ? PRODUCTS : PRODUCTS.filter(p => p.zone === zone);
+  const grid = document.getElementById('productGrid');
+  grid.innerHTML = list.map(p => {
+    const zCls = { frozen:"zone-frozen", cold:"zone-cold", normal:"zone-normal" }[p.zone];
+    const zLabel = { frozen:"🧊冷冻", cold:"❄️冷藏", normal:"🌡️常温" }[p.zone];
+    const qty = cart[p.id] || 0;
+    const unit = p.spec.includes('/') ? p.spec.split('/')[1] : '份';
+    return `
+      <div class="product-card">
+        <div class="product-img">
+          ${p.icon}
+          <span class="zone-tag ${zCls}">${zLabel}</span>
+        </div>
+        <div class="product-info">
+          <div class="product-name">${p.name}</div>
+          <div class="product-spec">${p.spec}</div>
+          <div class="product-prices">
+            <span class="price-tob">¥${p.tob.toFixed(1)}</span>
+            <span class="price-retail">¥${p.retail.toFixed(1)}</span>
+            <span class="price-unit">/ ${unit}</span>
+          </div>
+          <button class="add-cart-btn${qty > 0 ? ' added' : ''}" onclick="addToCart(${p.id})">${qty > 0 ? '已选 ' + qty + ' 件' : '加入购物车'}</button>
+        </div>
+      </div>`;
+  }).join('');
+}
+
+document.querySelectorAll('.zone-tab').forEach(tab => {
+  tab.addEventListener('click', () => {
+    document.querySelectorAll('.zone-tab').forEach(t => t.classList.remove('active'));
+    tab.classList.add('active');
+    renderProducts(tab.dataset.zone);
+  });
+});
+
+function addToCart(id) {
+  cart[id] = (cart[id] || 0) + 1;
+  updateCartBadge();
+  const zone = document.querySelector('.zone-tab.active').dataset.zone;
+  renderProducts(zone);
+  showToast('✅ 已加入购物车');
+}
+
+function updateCartBadge() {
+  const count = Object.values(cart).reduce((a, b) => a + b, 0);
+  const badge = document.getElementById('cartBadge');
+  badge.textContent = count;
+  badge.style.display = count > 0 ? 'flex' : 'none';
+}
+
+/* ========================================================================
+   PAGE 3: CART
+   ======================================================================== */
+function renderCart() {
+  const container = document.getElementById('cartContent');
+  const items = Object.keys(cart).map(id => {
+    const p = PRODUCTS.find(pr => pr.id === parseInt(id));
+    return p ? { ...p, qty: cart[id] } : null;
+  }).filter(Boolean).filter(i => i.qty > 0);
+
+  if (items.length === 0) {
+    container.innerHTML = '<div class="empty-cart"><div class="icon">🛒</div><div>购物车是空的，去选购商品吧</div></div>';
+    return;
+  }
+
+  const groups = { frozen:[], cold:[], normal:[] };
+  items.forEach(item => groups[item.zone].push(item));
+  const zoneNames = { frozen:"🧊 冷冻品", cold:"❄️ 冷藏品", normal:"🌡️ 常温品" };
+  let total = 0;
+
+  let html = '';
+  for (const [zone, zoneItems] of Object.entries(groups)) {
+    if (zoneItems.length === 0) continue;
+    html += `<div class="cart-group"><div class="cart-group-header ${zone}">${zoneNames[zone]}（${zoneItems.length} 种）</div>`;
+    zoneItems.forEach(item => {
+      const subtotal = item.tob * item.qty;
+      total += subtotal;
+      html += `
+        <div class="cart-item">
+          <div class="cart-item-icon">${item.icon}</div>
+          <div class="cart-item-info">
+            <div class="cart-item-name">${item.name}</div>
+            <div class="cart-item-spec">${item.spec} · ¥${item.tob.toFixed(1)}/件</div>
+          </div>
+          <div class="qty-control">
+            <button class="qty-btn" onclick="changeQty(${item.id},-1)">−</button>
+            <input class="qty-val" type="text" value="${item.qty}" readonly>
+            <button class="qty-btn" onclick="changeQty(${item.id},1)">+</button>
+          </div>
+          <div class="cart-item-price">¥${subtotal.toFixed(1)}</div>
+        </div>`;
+    });
+    html += '</div>';
+  }
+
+  html += `
+    <div class="cart-footer">
+      <div class="cart-total">合计：<span class="cart-total-amount">¥${total.toFixed(2)}</span></div>
+      <div class="delivery-select">
+        <span>配送时段：</span>
+        <select id="deliveryTime">
+          <option>今天 14:00 - 16:00</option>
+          <option>今天 16:00 - 18:00</option>
+          <option>明天 08:00 - 10:00</option>
+          <option>明天 10:00 - 12:00</option>
+        </select>
+      </div>
+      <button class="submit-order-btn" onclick="submitOrder()">提交订单</button>
+    </div>`;
+  container.innerHTML = html;
+}
+
+function changeQty(id, delta) {
+  cart[id] = Math.max(0, (cart[id] || 0) + delta);
+  if (cart[id] === 0) delete cart[id];
+  updateCartBadge();
+  renderCart();
+}
+
+function submitOrder() {
+  showToast('✅ 订单提交成功！');
+  cart = {};
+  updateCartBadge();
+  setTimeout(() => switchTab('tracking'), 1200);
+}
+
+/* ========================================================================
+   PAGE 4: ORDER TRACKING
+   ======================================================================== */
+function renderTracking() {
+  document.getElementById('trackingContent').innerHTML = TRACKING_ORDERS.map(order => {
+    const stepsHtml = order.steps.map((step, i) => {
+      let dotCls = '', lineCls = '', labelCls = '';
+      if (i < order.step)       { dotCls = 'done'; lineCls = 'done'; }
+      else if (i === order.step) { dotCls = 'active'; labelCls = 'active'; }
+      const inner = i < order.step ? '✓' : (i === order.step ? String(i + 1) : '');
+      const line = i < order.steps.length - 1
+        ? `<div class="track-line ${i < order.step ? 'done' : ''}"></div>` : '';
+      return `<div class="track-step">
+        <div class="track-dot ${dotCls}">${inner}</div>
+        <div class="track-step-label ${labelCls}">${step}</div>
+      </div>${line}`;
+    }).join('');
+
+    const etaMin = Math.floor(order.eta / 60);
+    const etaSec = order.eta % 60;
+
+    return `
+      <div class="track-card">
+        <div class="track-header">
+          <span class="track-order-id">${order.id}</span>
+          <span class="track-zone" style="background:${order.zoneColor}">${order.zoneLabel}</span>
+        </div>
+        <div class="track-progress">${stepsHtml}</div>
+        <div class="track-driver">
+          <div class="driver-avatar">🚐</div>
+          <div class="driver-info">
+            <div class="driver-name">${order.driver.name} · ${order.driver.plate}</div>
+            <div class="driver-phone">${order.driver.phone}</div>
+          </div>
+          <div class="driver-eta">
+            <div class="driver-eta-label">预计送达</div>
+            <div class="driver-eta-time">${etaMin}:${String(etaSec).padStart(2, '0')}</div>
+          </div>
+        </div>
+      </div>`;
+  }).join('');
+}
+
+/* Auto-cycle: advance progress every 5s, countdown every 1s */
+let trackTimer, countdownTimer;
+
+function startTrackingCycle() {
+  // Countdown every second
+  countdownTimer = setInterval(() => {
+    TRACKING_ORDERS.forEach(o => { if (o.eta > 0) o.eta--; });
+    // Update ETA display without full re-render
+    document.querySelectorAll('.driver-eta-time').forEach((el, i) => {
+      if (TRACKING_ORDERS[i]) {
+        const m = Math.floor(TRACKING_ORDERS[i].eta / 60);
+        const s = TRACKING_ORDERS[i].eta % 60;
+        el.textContent = m + ':' + String(s).padStart(2, '0');
+      }
+    });
+  }, 1000);
+
+  // Advance step every 8s
+  trackTimer = setInterval(() => {
+    TRACKING_ORDERS.forEach(o => {
+      if (o.step < 4) { o.step++; o.eta = [600, 480, 360, 240, 120][o.step]; }
+    });
+    renderTracking();
+  }, 8000);
+}
+
+/* ========================================================================
+   PAGE 5: BILLING
+   ======================================================================== */
+function renderBilling() {
+  document.getElementById('billingBody').innerHTML = BILLING_DATA.map(b => {
+    const s = STATUS_MAP[b.status];
+    return `<tr>
+      <td>${b.id}</td><td>${b.date}</td><td>${b.orders}</td>
+      <td>¥${b.amount.toLocaleString()}.00</td><td>${b.pay}</td>
+      <td><span class="badge ${s.cls}">${s.label}</span></td>
+    </tr>`;
+  }).join('');
+}
+
+document.querySelectorAll('.month-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('.month-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+  });
+});
+
+/* ========================================================================
+   UTILS
+   ======================================================================== */
+function showToast(msg) {
+  const toast = document.getElementById('toast');
+  toast.textContent = msg;
+  toast.classList.add('show');
+  setTimeout(() => toast.classList.remove('show'), 2000);
+}
+
+/* ========================================================================
+   INIT
+   ======================================================================== */
+renderBarChart();
+renderRecentOrders();
+renderProducts('all');
+renderTracking();
+startTrackingCycle();
+renderBilling();
+</script>
+</body>
+</html>

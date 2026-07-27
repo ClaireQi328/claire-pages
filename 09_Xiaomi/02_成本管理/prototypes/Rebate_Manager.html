@@ -1,0 +1,182 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>返利管理模拟器</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        body { background-color: #f8fafc; }
+        .timeline { position: relative; padding-left: 2rem; }
+        .timeline::before { content: ''; position: absolute; left: 0.5rem; top: 0; bottom: 0; width: 2px; background: #e2e8f0; }
+        .timeline-item { position: relative; margin-bottom: 1.5rem; }
+        .timeline-item::before { content: ''; position: absolute; left: -1.65rem; top: 0.35rem; width: 12px; height: 12px; border-radius: 50%; background: white; border: 2px solid #0070f2; }
+        .timeline-item.retro::before { border-color: #f59e0b; background: #fef3c7; }
+    </style>
+</head>
+<body class="min-h-screen p-8">
+    <div class="max-w-4xl mx-auto">
+        <h1 class="text-3xl font-bold text-slate-800 mb-2">返利管理模拟器</h1>
+        <p class="text-slate-500 mb-8">模拟阶梯返利的累计过程与“追溯调整”逻辑。</p>
+
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
+            <!-- Control Panel -->
+            <div class="md:col-span-1 space-y-6">
+                <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-100">
+                    <h2 class="text-lg font-bold mb-6 flex items-center gap-2">
+                        <span class="w-8 h-8 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center text-sm">1</span>
+                        模拟输入
+                    </h2>
+
+                    <div class="mb-4">
+                        <label class="block text-sm font-medium text-slate-700 mb-1">本次采购额 (万)</label>
+                        <input type="number" id="amount-input" value="100" class="w-full p-3 border border-slate-200 rounded-lg text-lg font-medium focus:outline-none focus:ring-2 focus:ring-blue-500">
+                    </div>
+
+                    <button onclick="addTransaction()" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-medium py-3 rounded-lg transition-colors mb-6">
+                        记账入账
+                    </button>
+
+                    <div class="space-y-4">
+                        <h3 class="text-sm font-bold text-slate-700 border-b pb-2">返利规则配置</h3>
+                        <div class="text-xs space-y-1">
+                            <div class="flex justify-between"><span class="text-slate-500">阶梯 1:</span> <span>> 500万 -> 1.0%</span></div>
+                            <div class="flex justify-between"><span class="text-slate-500">阶梯 2:</span> <span>> 1000万 -> 2.0%</span></div>
+                            <div class="flex justify-between"><span class="text-slate-500">阶梯 3:</span> <span>> 2000万 -> 3.5%</span></div>
+                        </div>
+                    </div>
+
+                    <button onclick="resetSimulation()" class="mt-6 w-full text-sm text-slate-500 hover:text-slate-800 underline">重置模拟</button>
+                </div>
+
+                <div class="bg-gradient-to-br from-indigo-500 to-purple-600 p-6 rounded-2xl shadow-lg text-white">
+                    <div class="text-sm font-medium opacity-80 mb-1">累计采购总额</div>
+                    <div id="total-accum" class="text-3xl font-bold mb-4">¥ 0</div>
+                    <div class="text-sm font-medium opacity-80 mb-1">已结算返利</div>
+                    <div id="total-rebate" class="text-2xl font-bold text-indigo-100">¥ 0</div>
+                </div>
+            </div>
+
+            <!-- Timeline -->
+            <div class="md:col-span-2 bg-white p-6 rounded-2xl shadow-sm border border-slate-100 h-fit">
+                <h2 class="text-lg font-bold mb-6 flex items-center gap-2">
+                    <span class="w-8 h-8 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center text-sm">2</span>
+                    交易时间线
+                </h2>
+
+                <div id="timeline" class="timeline space-y-6">
+                    <div class="text-slate-400 text-sm italic ml-6">暂无记录，请先记账...</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let totalAmount = 0;
+        let totalRebate = 0;
+        let transactions = [];
+
+        function getRate(amount) {
+            if (amount > 2000) return 0.035;
+            if (amount > 1000) return 0.02;
+            if (amount > 500) return 0.01;
+            return 0;
+        }
+
+        function formatMoney(num) {
+            return num.toLocaleString('zh-CN', { style: 'currency', currency: 'CNY' });
+        }
+
+        function addTransaction() {
+            const input = document.getElementById('amount-input');
+            const amount = parseFloat(input.value) * 10000; // Convert to yuan
+            if (isNaN(amount) || amount <= 0) return;
+
+            const prevAccum = totalAmount;
+            const prevRate = getRate(prevAccum);
+
+            totalAmount += amount;
+            const currentRate = getRate(totalAmount);
+
+            let currentRebate = amount * currentRate;
+            let retroRebate = 0;
+
+            // Retroactive logic
+            if (currentRate > prevRate) {
+                retroRebate = prevAccum * (currentRate - prevRate);
+                totalRebate += (currentRebate + retroRebate);
+            } else {
+                totalRebate += currentRebate;
+            }
+
+            transactions.push({
+                amount,
+                prevAccum,
+                newAccum: totalAmount,
+                currentRebate,
+                retroRebate,
+                currentRate
+            });
+
+            renderTimeline();
+            updateSummary();
+            input.value = 100; // reset
+        }
+
+        function renderTimeline() {
+            const container = document.getElementById('timeline');
+            container.innerHTML = '';
+
+            transactions.slice().reverse().forEach((tx, idx) => {
+                const isRetro = tx.retroRebate > 0;
+                const itemClass = isRetro ? 'retro' : '';
+
+                const html = `
+                    <div class="timeline-item ${itemClass} ml-6 relative">
+                        <div class="absolute -left-10 top-0 text-xs text-slate-400 w-16 text-right">${transactions.length - idx}月</div>
+                        <div class="bg-slate-50 p-4 rounded-lg border border-slate-100 relative">
+                            <div class="flex justify-between items-start mb-2">
+                                <div>
+                                    <span class="font-bold text-slate-800">采购入库</span>
+                                    <span class="text-sm text-slate-500 ml-2">累计 ${formatMoney(tx.newAccum)}</span>
+                                </div>
+                                <span class="px-2 py-0.5 rounded text-xs font-bold bg-white border shadow-sm">${(tx.currentRate * 100).toFixed(1)}%</span>
+                            </div>
+
+                            <div class="text-sm space-y-1 mt-3 bg-white p-3 rounded border border-slate-100">
+                                <div class="flex justify-between">
+                                    <span class="text-slate-500">本次基础返利</span>
+                                    <span class="font-medium text-slate-800">${formatMoney(tx.currentRebate)}</span>
+                                </div>
+                                ${isRetro ? `
+                                <div class="flex justify-between text-amber-600 font-medium">
+                                    <span>⚡ 触发跳档追溯</span>
+                                    <span>+ ${formatMoney(tx.retroRebate)}</span>
+                                </div>
+                                <div class="text-xs text-slate-400 mt-1 italic">
+                                    对前期 ${formatMoney(tx.prevAccum)} 进行费率补差 (${((tx.currentRate - (tx.currentRate - tx.retroRebate/tx.prevAccum))*100).toFixed(1)}%)
+                                </div>
+                                ` : ''}
+                            </div>
+                        </div>
+                    </div>
+                `;
+                container.innerHTML += html;
+            });
+        }
+
+        function updateSummary() {
+            document.getElementById('total-accum').innerText = formatMoney(totalAmount);
+            document.getElementById('total-rebate').innerText = formatMoney(totalRebate);
+        }
+
+        function resetSimulation() {
+            totalAmount = 0;
+            totalRebate = 0;
+            transactions = [];
+            document.getElementById('timeline').innerHTML = '<div class="text-slate-400 text-sm italic ml-6">暂无记录...</div>';
+            updateSummary();
+        }
+    </script>
+</body>
+</html>

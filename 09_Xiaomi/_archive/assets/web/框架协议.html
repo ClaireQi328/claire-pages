@@ -1,0 +1,1107 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>框架协议管理 · EP 生产采购系统</title>
+<style>
+:root{
+  --p:#1677ff;--ph:#4096ff;--pl:#e6f4ff;--pa:rgba(22,119,255,.06);
+  --s:#52c41a;--sl:#f6ffed;
+  --w:#faad14;--wl:#fffbe6;
+  --d:#ff4d4f;--dl:#fff2f0;
+  --purple:#722ed1;--purple-l:#f9f0ff;
+  --cyan:#13c2c2;--cyan-l:#e6fffb;
+  --orange:#fa8c16;--orange-l:#fff7e6;
+  --teal:#08979c;--g50:#fafafa;--g100:#f5f5f5;--g200:#e8e8e8;--g300:#d9d9d9;
+  --g400:#bfbfbf;--g500:#8c8c8c;--g600:#595959;--g700:#434343;
+  --g800:#262626;--g900:#1f1f1f;
+  --r:10px;--rs:6px;--rl:14px;
+  --sh:0 1px 3px rgba(0,0,0,.04);
+  --shm:0 4px 12px rgba(0,0,0,.07);
+  --shl:0 8px 24px rgba(0,0,0,.09);
+  --tr:all .25s cubic-bezier(.4,0,.2,1);
+  --nav-bg:#001529;
+}
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif;background:#f0f2f5;color:var(--g800);font-size:13px;min-height:100vh}
+.topnav{background:var(--nav-bg);height:52px;display:flex;align-items:center;padding:0 20px;position:fixed;top:0;left:0;right:0;z-index:1000}
+.topnav-logo{display:flex;align-items:center;gap:10px;margin-right:28px;flex-shrink:0}
+.topnav-logo .mi{width:30px;height:30px;background:linear-gradient(135deg,#ff6700,#ff4d00);border-radius:7px;display:flex;align-items:center;justify-content:center;color:#fff;font-size:13px;font-weight:700}
+.topnav-logo span{color:#fff;font-size:15px;font-weight:600;letter-spacing:.5px}
+.topnav-menu{display:flex;align-items:center;gap:0;flex:1}
+.topnav-item{padding:0 16px;height:52px;display:flex;align-items:center;color:rgba(255,255,255,.65);font-size:13px;cursor:pointer;white-space:nowrap;transition:all .2s;position:relative}
+.topnav-item:hover{color:#fff;background:rgba(255,255,255,.08)}
+.topnav-item.active{color:#fff;background:rgba(255,255,255,.12)}
+.topnav-item.active::after{content:'';position:absolute;bottom:0;left:8px;right:8px;height:2px;background:var(--p);border-radius:2px 2px 0 0}
+.topnav-right{display:flex;align-items:center;gap:14px;margin-left:auto;flex-shrink:0}
+.topnav-user{display:flex;align-items:center;gap:8px;color:rgba(255,255,255,.85);font-size:12px;padding:4px 8px;border-radius:6px}
+.topnav-avatar{width:30px;height:30px;border-radius:50%;background:linear-gradient(135deg,var(--p),#4096ff);display:flex;align-items:center;justify-content:center;color:#fff;font-size:12px;font-weight:600}
+
+.page-wrap{margin-top:52px;padding:18px;max-width:1400px;margin-left:auto;margin-right:auto}
+
+/* Breadcrumb */
+.breadcrumb{display:flex;align-items:center;gap:6px;font-size:11px;color:var(--g500);margin-bottom:16px}
+.breadcrumb a{color:var(--p);text-decoration:none}.breadcrumb a:hover{text-decoration:underline}
+
+/* Page header */
+.pg-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:16px}
+.pg-title{display:flex;align-items:center;gap:12px}
+.pg-title h1{font-size:20px;font-weight:700;color:var(--g900)}
+.pg-title .pg-icon{width:36px;height:36px;border-radius:8px;background:linear-gradient(135deg,var(--teal),#13c2c2);display:flex;align-items:center;justify-content:center;color:#fff;font-size:18px}
+.pg-actions{display:flex;gap:8px}
+
+/* Card */
+.card{background:#fff;border-radius:var(--r);border:1px solid var(--g200);margin-bottom:14px;overflow:hidden;box-shadow:var(--sh)}
+.card-hdr{padding:14px 18px;border-bottom:1px solid var(--g100);display:flex;align-items:center;justify-content:space-between;background:var(--g50)}
+.card-hdr h2{font-size:13px;font-weight:700;display:flex;align-items:center;gap:8px}
+.card-hdr h2::before{content:'';width:3px;height:12px;border-radius:2px;background:var(--teal)}
+.card-body{padding:16px 18px}
+
+/* Stats row */
+.stats-row{display:grid;grid-template-columns:repeat(5,1fr);gap:12px;margin-bottom:14px}
+.stat-card{background:#fff;border-radius:var(--r);border:1px solid var(--g200);padding:14px 16px;text-align:center}
+.stat-card .stat-num{font-size:24px;font-weight:800;margin-bottom:2px}
+.stat-card .stat-label{font-size:10px;color:var(--g500)}
+.stat-card .stat-sub{font-size:9px;margin-top:3px}
+.stat-card.ok .stat-num{color:var(--s)}.stat-card.warn .stat-num{color:var(--orange)}.stat-card.info .stat-num{color:var(--p)}.stat-card.total .stat-num{color:var(--g900)}.stat-card.active .stat-num{color:var(--teal)}
+
+/* Tags */
+.tag{display:inline-block;font-size:9px;padding:2px 7px;border-radius:4px;font-weight:600;white-space:nowrap}
+.tag-blue{background:var(--pl);color:var(--p)}
+.tag-green{background:var(--sl);color:var(--s)}
+.tag-orange{background:var(--wl);color:#d46b08}
+.tag-red{background:var(--dl);color:var(--d)}
+.tag-purple{background:var(--purple-l);color:var(--purple)}
+.tag-teal{background:#e6fffb;color:var(--teal)}
+.tag-cyan{background:var(--cyan-l);color:var(--cyan)}
+
+/* Buttons */
+.btn{border:none;padding:6px 14px;border-radius:var(--rs);font-size:11px;font-weight:500;cursor:pointer;transition:var(--tr);display:inline-flex;align-items:center;gap:5px;white-space:nowrap;font-family:inherit}
+.btn:active{transform:scale(.97)}
+.btn-p{background:var(--p);color:#fff;box-shadow:0 2px 6px rgba(22,119,255,.25)}
+.btn-p:hover{box-shadow:0 4px 12px rgba(22,119,255,.35)}
+.btn-o{background:#fff;color:var(--g700);border:1px solid var(--g300)}.btn-o:hover{color:var(--p);border-color:var(--p)}
+.btn-s{background:var(--s);color:#fff}
+.btn-red{background:var(--d);color:#fff}
+.btn-sm{padding:3px 10px;font-size:10px}
+.btn-teal{background:var(--teal);color:#fff}
+
+/* Table */
+.data-table{width:100%;border-collapse:collapse;font-size:11px}
+.data-table th{background:var(--g50);color:var(--g600);font-size:10px;font-weight:600;padding:9px 12px;text-align:left;border-bottom:2px solid var(--g200);white-space:nowrap}
+.data-table td{padding:8px 12px;border-bottom:1px solid var(--g100)}
+.data-table tbody tr{cursor:pointer;transition:var(--tr)}
+.data-table tbody tr:hover td{background:#f0f7ff}
+.data-table .selected td{background:var(--pl) !important}
+.cell-id{color:var(--p);font-family:monospace;font-size:10px;font-weight:600}
+
+/* Status */
+.status-ok{background:#d1fadf;color:#0a6e3a;padding:2px 8px;border-radius:4px;font-weight:600;font-size:10px;display:inline-block}
+.status-warn{background:#fee2e2;color:#b91c1c;padding:2px 8px;border-radius:4px;font-weight:600;font-size:10px;display:inline-block}
+.status-pending{background:#fef3c7;color:#92400e;padding:2px 8px;border-radius:4px;font-weight:600;font-size:10px;display:inline-block}
+
+/* Tabs */
+.tabs{display:flex;gap:0;border-bottom:2px solid var(--g200);margin-bottom:14px}
+.tab-item{padding:10px 20px;font-size:11px;font-weight:600;color:var(--g500);cursor:pointer;border-bottom:2px solid transparent;margin-bottom:-2px;transition:var(--tr);font-family:inherit;background:none;border-top:none;border-left:none;border-right:none}
+.tab-item:hover{color:var(--p)}
+.tab-item.active{color:var(--teal);border-bottom-color:var(--teal)}
+
+/* AI capability badge */
+.ai-badge{display:inline-flex;align-items:center;gap:4px;padding:3px 10px;border-radius:12px;background:var(--pl);color:var(--p);font-size:10px;font-weight:600}
+.ai-badge .ai-dot{width:6px;height:6px;border-radius:50%;background:var(--p);animation:pulse 2s infinite}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.3}}
+
+/* Threshold */
+.threshold-bar{display:flex;align-items:center;gap:12px;padding:12px 16px;background:var(--g50);border-radius:var(--rs);margin-bottom:12px;flex-wrap:wrap}
+.threshold-bar label{font-size:11px;color:var(--g600);white-space:nowrap}
+.threshold-bar input[type=number]{width:65px;border:1px solid var(--g300);border-radius:4px;padding:5px 8px;font-size:12px;text-align:center;font-family:inherit}
+.threshold-bar input[type=number]:focus{outline:none;border-color:var(--p);box-shadow:0 0 0 2px var(--pl)}
+
+/* Compare section */
+.compare-area{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:14px}
+.compare-col{border:1px solid var(--g200);border-radius:var(--r);background:#fff;overflow:hidden}
+.compare-col-hdr{padding:12px 16px;border-bottom:1px solid var(--g100);display:flex;align-items:center;justify-content:space-between;background:var(--g50)}
+.compare-col-hdr h3{font-size:12px;font-weight:700;display:flex;align-items:center;gap:8px}
+.compare-col-body{padding:12px 16px}
+
+/* AI thinking bar */
+.ai-result-bar{display:flex;align-items:center;gap:10px;padding:12px 16px;background:#f0f7ff;border-radius:var(--rs);margin-top:12px;font-size:11px;color:var(--p);border:1px solid #d6e4ff}
+.ai-result-bar strong{color:var(--g900)}
+
+/* Result highlight */
+.result-highlight-row td{font-weight:600}
+.result-highlight-warn td{background:#fff5f5 !important}
+
+/* Flow indicator */
+.flow-indicator{display:flex;align-items:center;gap:6px;margin-bottom:16px;font-size:10px;color:var(--g500)}
+.flow-step-ind{display:flex;align-items:center;gap:4px;padding:4px 10px;border-radius:12px;background:var(--g50);font-weight:600}
+.flow-step-ind.done{background:var(--sl);color:var(--s)}
+.flow-step-ind.active{background:var(--pl);color:var(--p)}
+.flow-arrow{color:var(--g300)}
+
+/* Scene nav */
+.scene-nav{position:fixed;bottom:20px;right:20px;display:flex;gap:8px;z-index:900}
+.sn-dot{width:34px;height:34px;border-radius:50%;border:2px solid var(--g300);background:#fff;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;color:var(--g600);cursor:pointer;transition:var(--tr);text-decoration:none}
+.sn-dot:hover{border-color:var(--p);color:var(--p);box-shadow:var(--shm)}
+.sn-dot.active{border-color:var(--p);background:var(--p);color:#fff}
+
+/* Info section */
+.info-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+.info-card{border:1px solid var(--g200);border-radius:var(--rs);padding:14px}
+.info-card h4{font-size:12px;font-weight:700;margin-bottom:8px;display:flex;align-items:center;gap:6px}
+.info-row{display:flex;justify-content:space-between;padding:5px 0;font-size:11px;color:var(--g600);border-bottom:1px solid var(--g50)}
+.info-row:last-child{border-bottom:none}
+.info-row strong{color:var(--g800)}
+
+/* ======== Cost Ledger Styles ======== */
+.cost-sub-tabs{display:flex;gap:0}
+.cost-sub-tab{padding:8px 16px;font-size:11px;font-weight:500;color:var(--g500);cursor:pointer;background:none;border:none;border-bottom:2px solid transparent;transition:var(--tr);font-family:inherit;white-space:nowrap}
+.cost-sub-tab:hover{color:var(--teal)}
+.cost-sub-tab.active{color:var(--teal);font-weight:700;border-bottom-color:var(--teal)}
+
+.cost-detail-overlay{position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,.35);z-index:2000;display:none;align-items:center;justify-content:center}
+.cost-detail-overlay.show{display:flex}
+.cost-detail-panel{width:780px;max-height:85vh;background:#fff;border-radius:var(--rl);box-shadow:var(--shl);overflow:hidden;display:flex;flex-direction:column}
+.cost-detail-hdr{padding:16px 20px;border-bottom:1px solid var(--g200);display:flex;align-items:center;justify-content:space-between;background:var(--g50)}
+.cost-detail-body{padding:16px 20px;overflow-y:auto;flex:1}
+.cost-detail-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px 20px}
+.cost-detail-item{display:flex;justify-content:space-between;font-size:12px;padding:6px 0;border-bottom:1px solid var(--g50)}
+.cost-detail-item .label{color:var(--g500)}
+.cost-detail-item .value{font-weight:600;color:var(--g800);text-align:right}
+.cost-detail-section{margin-top:14px}
+.cost-detail-section h4{font-size:12px;font-weight:700;margin-bottom:8px;display:flex;align-items:center;gap:6px;color:var(--g900)}
+.cost-detail-section h4::before{content:'';width:3px;height:10px;border-radius:1px;background:var(--teal)}
+.cost-timeline{padding-left:16px;border-left:2px solid var(--g200)}
+.cost-tl-item{padding:4px 0 10px 12px;position:relative;font-size:11px}
+.cost-tl-item::before{content:'';position:absolute;left:-7px;top:6px;width:10px;height:10px;border-radius:50%;background:var(--teal);border:2px solid #fff;box-shadow:0 0 0 2px var(--teal)}
+.cost-tl-item .tl-date{font-size:10px;color:var(--g400)}
+.cost-tl-item .tl-content{color:var(--g700);margin-top:2px}
+
+.cost-amount-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-top:8px}
+.cost-amount-card{border:1px solid var(--g200);border-radius:var(--rs);padding:10px 12px;text-align:center}
+.cost-amount-card .cam-label{font-size:10px;color:var(--g500);margin-bottom:2px}
+.cost-amount-card .cam-value{font-size:16px;font-weight:800}
+.cost-amount-card .cam-sub{font-size:9px;color:var(--g400);margin-top:2px}
+</style>
+</head>
+<body>
+
+<!-- === Top Nav === -->
+<div class="topnav">
+    <div class="topnav-logo"><div class="mi">MI</div><span>小米汽车 EP 生产采购系统</span></div>
+    <div class="topnav-menu">
+        <div class="topnav-item" onclick="location.href='分镜1_首页.html'">🏠 首页</div>
+        <div class="topnav-item" onclick="location.href='分镜2_任务流.html'">📋 任务流</div>
+        <div class="topnav-item" onclick="location.href='分镜3_AI地图.html'">🗺 AI地图</div>
+        <div class="topnav-item" onclick="location.href='分镜4_智能助手.html'">🤖 助手</div>
+        <div class="topnav-item" onclick="location.href='供应商资源池.html'">供应商资源池</div>
+        <div class="topnav-item active">📜 框架协议</div>
+    </div>
+    <div class="topnav-right">
+        <div class="topnav-user"><div class="topnav-avatar">齐</div><span>齐岳 · 采购工程师</span></div>
+    </div>
+</div>
+
+<div class="page-wrap">
+
+<!-- Breadcrumb -->
+<div class="breadcrumb">
+    <a href="分镜1_首页.html">首页</a> <span>›</span> <a href="#">合同管理</a> <span>›</span> <strong style="color:var(--g800)">框架协议管理</strong>
+</div>
+
+<!-- Page Header -->
+<div class="pg-header">
+    <div class="pg-title">
+        <div class="pg-icon">📜</div>
+        <div>
+            <h1>框架协议管理</h1>
+            <div style="font-size:11px;color:var(--g500)">正式价框架协议基准库 · 新框架导入比对 · AI 智能价格偏离分析</div>
+        </div>
+    </div>
+    <div class="pg-actions">
+        <button class="btn btn-teal" onclick="runCompare()">🔍 执行智能比对</button>
+        <button class="btn btn-o" onclick="location.href='分镜1_首页.html#aiSection'">🤖 返回AI能力地图</button>
+    </div>
+</div>
+
+<!-- 流程指示器 -->
+<div class="flow-indicator">
+    <div class="flow-step-ind done">✓ 正式价框架已建立</div>
+    <span class="flow-arrow">→</span>
+    <div class="flow-step-ind active">● 新框架数据待导入</div>
+    <span class="flow-arrow">→</span>
+    <div class="flow-step-ind">○ 价格偏离比对</div>
+    <span class="flow-arrow">→</span>
+    <div class="flow-step-ind">○ 异常处理与归档</div>
+</div>
+
+<!-- Stats -->
+<div class="stats-row">
+    <div class="stat-card total"><div class="stat-num">43</div><div class="stat-label">正式价框架协议</div><div class="stat-sub" style="color:var(--g400)">涉及 8 大品类</div></div>
+    <div class="stat-card active"><div class="stat-num">5</div><div class="stat-label">活跃框架协议</div><div class="stat-sub" style="color:var(--g400)">本季度更新</div></div>
+    <div class="stat-card info"><div class="stat-num">¥50亿+</div><div class="stat-label">框架协议总金额</div><div class="stat-sub" style="color:var(--g400)">3年期有效</div></div>
+    <div class="stat-card warn"><div class="stat-num">3</div><div class="stat-label">价格偏差异常</div><div class="stat-sub" style="color:var(--d)">待处理</div></div>
+    <div class="stat-card ok"><div class="stat-num">38</div><div class="stat-label">比价结果正常</div><div class="stat-sub" style="color:var(--s)">偏差<5%</div></div>
+</div>
+
+<!-- Main Tabs -->
+<div class="tabs" id="mainTabs">
+    <button class="tab-item active" onclick="switchMainTab('list')">📋 正式价框架协议（基准库）</button>
+    <button class="tab-item" onclick="switchMainTab('compare')">🔍 新框架导入 & 价格偏离比对</button>
+    <button class="tab-item" onclick="switchMainTab('history')">📊 比价历史记录</button>
+    <button class="tab-item" onclick="switchMainTab('cost')">📒 成本台账</button>
+</div>
+
+<!-- ===== TAB 1: 正式价框架协议列表 ===== -->
+<div id="tab-list" class="tab-content">
+    <div class="card">
+        <div class="card-hdr">
+            <h2>📋 正式价框架协议 · 价格基准库</h2>
+            <div style="display:flex;gap:6px">
+                <button class="btn btn-o btn-sm" onclick="exportLedger()">📤 导出 CSV</button>
+                <button class="btn btn-p btn-sm" onclick="addLedgerRow()">➕ 新增零件</button>
+            </div>
+        </div>
+        <div class="card-body" style="padding:0">
+            <div style="max-height:420px;overflow-y:auto">
+            <table class="data-table" id="ledgerTable">
+                <thead>
+                    <tr><th style="width:40px">#</th><th>零件号</th><th>零件名称</th><th>品类</th><th>供应商</th><th>基准价(元)</th><th>生效日期</th><th>有效期</th><th>年降约定</th><th>状态</th></tr>
+                </thead>
+                <tbody id="ledgerBody"></tbody>
+            </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- ===== TAB 2: 价格偏离比对 ===== -->
+<div id="tab-compare" class="tab-content" style="display:none">
+
+    <!-- AI 能力介绍横幅 -->
+    <div class="card" style="border-left:3px solid var(--p);background:linear-gradient(135deg,#fff 0%,#f0f7ff 100%)">
+        <div class="card-body" style="display:flex;align-items:center;gap:16px">
+            <div style="width:40px;height:40px;border-radius:10px;background:linear-gradient(135deg,var(--p),#4096ff);display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0;color:#fff">📐</div>
+            <div style="flex:1">
+                <div style="font-size:13px;font-weight:700;color:var(--g900);margin-bottom:2px">
+                    🤖 AI 能力应用：智能对比价格偏离情况
+                    <span class="ai-badge" style="margin-left:8px"><span class="ai-dot"></span> 智能分析</span>
+                </div>
+                <div style="font-size:11px;color:var(--g600);line-height:1.6">
+                    基于正式价框架协议基准库，自动比对新框架报价偏差。支持<strong>精确→包含→去噪→颜色前缀→相似度</strong>五级模糊匹配，实时计算偏差率与金额，自动标记高风险条目。
+                </div>
+            </div>
+            <button class="btn btn-p" onclick="runCompare()" style="flex-shrink:0">▶ 立即比对</button>
+        </div>
+    </div>
+
+    <!-- 偏差阈值设置 -->
+    <div class="card">
+        <div class="card-hdr"><h2>⚙️ 偏差阈值设置</h2></div>
+        <div class="card-body">
+            <div class="threshold-bar">
+                <label>偏差率阈值：</label>
+                <input type="number" id="thRate" value="20" min="0" max="100" step="1">
+                <span>%（百分比超出触发告警）</span>
+                <span style="color:var(--g300);margin:0 8px">|</span>
+                <label>绝对金额阈值：</label>
+                <input type="number" id="thAbs" value="100" min="0" step="10">
+                <span>元（绝对值超出触发告警）</span>
+                <span style="font-size:10px;color:var(--g400);margin-left:12px">满足任一条件即触发告警</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- 双栏对比区 -->
+    <div class="compare-area">
+        <!-- 左：正式价基准 -->
+        <div class="compare-col">
+            <div class="compare-col-hdr">
+                <h3>📋 正式价框架协议（基准）</h3>
+                <span style="font-size:10px;color:var(--g500)" id="ledgerCount">43 条记录</span>
+            </div>
+            <div class="compare-col-body">
+                <table class="data-table" style="font-size:10px">
+                    <thead><tr><th>零件号</th><th>零件名称</th><th style="text-align:right">基准价</th></tr></thead>
+                    <tbody id="benchBody"></tbody>
+                </table>
+            </div>
+        </div>
+        <!-- 右：新框架 -->
+        <div class="compare-col">
+            <div class="compare-col-hdr">
+                <h3>📥 新框架协议（待比对）</h3>
+                <div style="display:flex;gap:6px">
+                    <button class="btn btn-o btn-sm" onclick="loadDemoNew()">📥 加载演示数据</button>
+                    <button class="btn btn-p btn-sm" onclick="simulateImport()">📁 导入 Excel</button>
+                </div>
+            </div>
+            <div class="compare-col-body">
+                <table class="data-table" style="font-size:10px">
+                    <thead><tr><th>件号</th><th>零部件名称</th><th style="text-align:right">报价(元)</th></tr></thead>
+                    <tbody id="newBody"></tbody>
+                </table>
+                <div id="newEmpty" style="text-align:center;padding:20px;color:var(--g400);font-size:11px">
+                    📂 尚未导入新框架数据<br><span style="font-size:10px">点击「加载演示数据」或「导入 Excel」开始</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 比对结果区 -->
+    <div id="resultSection" style="display:none">
+        <!-- 结果统计 -->
+        <div class="stats-row" id="resultStats"></div>
+
+        <!-- 比对结果表 -->
+        <div class="card">
+            <div class="card-hdr">
+                <h2>📊 价格偏离比对结果</h2>
+                <div style="display:flex;gap:6px">
+                    <button class="btn btn-o btn-sm" onclick="exportResult()">📤 导出结果CSV</button>
+                    <button class="btn btn-p btn-sm" onclick="alert('已标记偏差异常零件，通知供应商议价')">📧 通知供应商议价</button>
+                </div>
+            </div>
+            <div class="card-body" style="padding:0">
+                <div style="max-height:400px;overflow-y:auto">
+                <table class="data-table" id="resultTable">
+                    <thead>
+                        <tr>
+                            <th>#</th><th>件号</th><th>名称</th><th>暂作价</th>
+                            <th>匹配基准名</th><th>匹配方式</th><th>基准价</th><th>偏差率</th><th>偏差金额</th><th>状态</th>
+                        </tr>
+                    </thead>
+                    <tbody id="resultBody"></tbody>
+                </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- AI 分析结论 -->
+        <div class="ai-result-bar">
+            <span style="font-size:16px">🤖</span>
+            <div style="flex:1">
+                <strong>AI 偏离分析结论：</strong>
+                <span id="aiConclusion">正在分析中...</span>
+            </div>
+            <button class="btn btn-o btn-sm" onclick="location.href='分镜1_首页.html#aiSection'">🗺 查看AI能力详情</button>
+        </div>
+    </div>
+</div>
+
+<!-- ===== TAB 3: 比价历史 ===== -->
+<div id="tab-history" class="tab-content" style="display:none">
+    <div class="card">
+        <div class="card-hdr"><h2>📊 比价历史记录</h2></div>
+        <div class="card-body" style="padding:0">
+            <div style="max-height:420px;overflow-y:auto">
+            <table class="data-table">
+                <thead><tr><th>比价批次</th><th>新框架名称</th><th>比对时间</th><th>总数</th><th>正常</th><th>异常</th><th>执行人</th><th>操作</th></tr></thead>
+                <tbody>
+                    <tr><td>#CP-2024-0005</td><td>SU7电驱系统框架协议V3</td><td>2024-06-22 14:30</td><td>28</td><td><span class="tag tag-green">25</span></td><td><span class="tag tag-red">3</span></td><td>齐岳</td><td><span class="tag tag-blue" style="cursor:pointer" onclick="switchTab('compare')">查看详情</span></td></tr>
+                    <tr><td>#CP-2024-0004</td><td>MS11座椅系统框架协议</td><td>2024-06-20 10:15</td><td>35</td><td><span class="tag tag-green">32</span></td><td><span class="tag tag-red">3</span></td><td>孙经理</td><td><span class="tag tag-blue" style="cursor:pointer" onclick="switchTab('compare')">查看详情</span></td></tr>
+                    <tr><td>#CP-2024-0003</td><td>MS11动力电池框架协议</td><td>2024-06-18 16:00</td><td>42</td><td><span class="tag tag-green">39</span></td><td><span class="tag tag-orange">3</span></td><td>周经理</td><td><span class="tag tag-blue" style="cursor:pointer" onclick="switchTab('compare')">查看详情</span></td></tr>
+                    <tr><td>#CP-2024-0002</td><td>SU7白车身框架协议V2</td><td>2024-06-12 09:30</td><td>19</td><td><span class="tag tag-green">18</span></td><td><span class="tag tag-orange">1</span></td><td>齐岳</td><td><span class="tag tag-blue" style="cursor:pointer" onclick="switchTab('compare')">查看详情</span></td></tr>
+                    <tr><td>#CP-2024-0001</td><td>SU7动力电池框架协议V2</td><td>2024-06-05 11:00</td><td>31</td><td><span class="tag tag-green">29</span></td><td><span class="tag tag-red">2</span></td><td>吴经理</td><td><span class="tag tag-blue" style="cursor:pointer" onclick="switchTab('compare')">查看详情</span></td></tr>
+                </tbody>
+            </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- ===== TAB 4: 成本台账 ===== -->
+<div id="tab-cost" class="tab-content" style="display:none">
+
+    <!-- 成本台账介绍横幅 -->
+    <div class="card" style="border-left:3px solid var(--teal);background:linear-gradient(135deg,#fff 0%,#f0fdf9 100%);margin-bottom:12px">
+        <div class="card-body" style="display:flex;align-items:center;gap:16px;padding:12px 18px">
+            <div style="width:36px;height:36px;border-radius:10px;background:linear-gradient(135deg,var(--teal),#13c2c2);display:flex;align-items:center;justify-content:center;font-size:16px;flex-shrink:0;color:#fff">📒</div>
+            <div style="flex:1">
+                <div style="font-size:13px;font-weight:700;color:var(--g900)">成本台账管理 · 全生命周期成本追溯</div>
+                <div style="font-size:10px;color:var(--g500);margin-top:2px">覆盖零件成本、一次性费用、样件、非量产件及 ESI 五大台账维度，支持台账生效/失效管控与周期管理</div>
+            </div>
+            <div style="display:flex;gap:6px;flex-shrink:0">
+                <button class="btn btn-o btn-sm" onclick="exportCostLedger()">📤 导出台账</button>
+                <button class="btn btn-teal btn-sm" onclick="addCostRow()">➕ 新增台账</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 统计卡片 -->
+    <div class="stats-row" id="costStats"></div>
+
+    <!-- 成本台账子标签页 -->
+    <div class="card">
+        <div class="card-hdr">
+            <div class="cost-sub-tabs" id="costSubTabs">
+                <button class="cost-sub-tab active" onclick="switchCostTab('part')">📦 零件成本台账</button>
+                <button class="cost-sub-tab" onclick="switchCostTab('onetime')">💸 一次性费用成本台账</button>
+                <button class="cost-sub-tab" onclick="switchCostTab('sample')">🔬 样件成本台账</button>
+                <button class="cost-sub-tab" onclick="switchCostTab('nonprod')">⚙️ 非量产件成本台账</button>
+                <button class="cost-sub-tab" onclick="switchCostTab('esi')">🏗️ ESI成本台账</button>
+            </div>
+        </div>
+
+        <!-- 筛选栏 -->
+        <div style="padding:10px 18px;border-bottom:1px solid var(--g100);display:flex;align-items:center;gap:10px;flex-wrap:wrap;background:var(--g50)">
+            <input type="text" placeholder="🔍 搜索零部件/件号..." style="width:200px;border:1px solid var(--g300);border-radius:4px;padding:5px 10px;font-size:11px;font-family:inherit" id="costSearch" oninput="filterCostTable()">
+            <select style="border:1px solid var(--g300);border-radius:4px;padding:5px 10px;font-size:11px;font-family:inherit" id="costFactoryFilter" onchange="filterCostTable()">
+                <option value="">🏭 全部工厂</option>
+                <option value="北京工厂">北京工厂</option>
+                <option value="亦庄工厂">亦庄工厂</option>
+                <option value="上海工厂">上海工厂</option>
+                <option value="武汉工厂">武汉工厂</option>
+            </select>
+            <select style="border:1px solid var(--g300);border-radius:4px;padding:5px 10px;font-size:11px;font-family:inherit" id="costStatusFilter" onchange="filterCostTable()">
+                <option value="">📋 全部状态</option>
+                <option value="生效中">生效中</option>
+                <option value="已失效">已失效</option>
+            </select>
+            <select style="border:1px solid var(--g300);border-radius:4px;padding:5px 10px;font-size:11px;font-family:inherit" id="costProjectFilter" onchange="filterCostTable()">
+                <option value="">📌 全部项目</option>
+                <option value="SU7">SU7</option>
+                <option value="MS11">MS11</option>
+                <option value="MX11">MX11</option>
+            </select>
+            <span style="font-size:10px;color:var(--g400);margin-left:auto" id="costResultCount">共 0 条</span>
+        </div>
+
+        <!-- 台账表格 -->
+        <div class="card-body" style="padding:0">
+            <div style="max-height:460px;overflow-y:auto">
+            <table class="data-table" id="costTable">
+                <thead>
+                    <tr>
+                        <th style="width:40px">序号</th>
+                        <th style="width:200px">零部件</th>
+                        <th style="width:130px">使用工厂</th>
+                        <th style="width:140px">供应商</th>
+                        <th style="width:130px">定点项目</th>
+                        <th style="width:100px">采购工程师</th>
+                        <th style="width:80px">台账失效</th>
+                        <th style="width:100px">操作</th>
+                    </tr>
+                </thead>
+                <tbody id="costTableBody"></tbody>
+            </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- 台账详情弹窗 -->
+    <div class="cost-detail-overlay" id="costDetailOverlay" onclick="closeCostDetail()">
+        <div class="cost-detail-panel" onclick="event.stopPropagation()">
+            <div class="cost-detail-hdr">
+                <div style="font-size:14px;font-weight:700;display:flex;align-items:center;gap:10px">
+                    <span style="width:32px;height:32px;border-radius:8px;background:var(--teal);display:flex;align-items:center;justify-content:center;color:#fff;font-size:14px">📒</span>
+                    <span id="costDetailTitle">台账详情</span>
+                </div>
+                <button style="background:none;border:none;font-size:18px;cursor:pointer;color:var(--g500);padding:4px 8px;border-radius:4px" onclick="closeCostDetail()">✕</button>
+            </div>
+            <div class="cost-detail-body" id="costDetailBody"></div>
+        </div>
+    </div>
+</div>
+
+</div><!-- end page-wrap -->
+
+<!-- Scene Nav -->
+<div class="scene-nav">
+    <a href="分镜1_首页.html" class="sn-dot">1</a>
+    <a href="分镜2_任务流.html" class="sn-dot">2</a>
+    <a href="分镜3_AI地图.html" class="sn-dot">3</a>
+    <a href="分镜4_智能助手.html" class="sn-dot">4</a>
+</div>
+
+<script>
+// ===== 正式价框架协议基准数据 =====
+const baseLedger = [
+    {id:'L001',partNo:'BP-020-01',name:'电芯 NCM811',cat:'动力电池',supplier:'宁德时代',price:485.00,date:'2024-03-01',term:'3年',ydj:'3%/年',status:'active'},
+    {id:'L002',partNo:'BP-021-01',name:'电芯 LF105',cat:'动力电池',supplier:'宁德时代',price:502.00,date:'2024-03-01',term:'3年',ydj:'3%/年',status:'active'},
+    {id:'L003',partNo:'BP-022-01',name:'刀片电芯',cat:'动力电池',supplier:'弗迪电池',price:420.00,date:'2024-04-15',term:'3年',ydj:'2.5%/年',status:'active'},
+    {id:'L004',partNo:'BP-032-01',name:'电池包 Pack',cat:'动力电池',supplier:'宁德时代',price:34200,date:'2024-03-01',term:'3年',ydj:'3%/年',status:'active'},
+    {id:'L005',partNo:'BP-033-01',name:'刀片电池包',cat:'动力电池',supplier:'弗迪电池',price:32800,date:'2024-04-15',term:'3年',ydj:'2.5%/年',status:'active'},
+    {id:'L006',partNo:'BP-003-01',name:'BMS主控板',cat:'动力电池',supplier:'宁德时代',price:2850,date:'2024-03-01',term:'3年',ydj:'2%/年',status:'active'},
+    {id:'L007',partNo:'BP-004-01',name:'BMS采集模块',cat:'动力电池',supplier:'宁德时代',price:680,date:'2024-03-01',term:'3年',ydj:'2%/年',status:'active'},
+    {id:'L008',partNo:'BP-005-01',name:'高压继电器',cat:'动力电池',supplier:'松下',price:1250,date:'2024-05-01',term:'3年',ydj:'2%/年',status:'active'},
+    {id:'L009',partNo:'ST-001-01',name:'前排座椅总成',cat:'座椅系统',supplier:'延锋国际',price:7800,date:'2024-02-15',term:'3年',ydj:'2.5%/年',status:'active'},
+    {id:'L010',partNo:'ST-002-01',name:'后排座椅总成',cat:'座椅系统',supplier:'延锋国际',price:6200,date:'2024-02-15',term:'3年',ydj:'2.5%/年',status:'active'},
+    {id:'L011',partNo:'ST-003-01',name:'座椅滑轨总成',cat:'座椅系统',supplier:'李尔',price:1800,date:'2024-04-01',term:'3年',ydj:'2%/年',status:'active'},
+    {id:'L012',partNo:'ST-004-01',name:'座椅电调电机',cat:'座椅系统',supplier:'博世',price:450,date:'2024-04-01',term:'3年',ydj:'2%/年',status:'active'},
+    {id:'L013',partNo:'ST-005-01',name:'座椅加热模块',cat:'座椅系统',supplier:'继峰股份',price:320,date:'2024-05-01',term:'3年',ydj:'3%/年',status:'active'},
+    {id:'L014',partNo:'ED-010-01',name:'驱动电机',cat:'电驱系统',supplier:'汇川技术',price:12500,date:'2024-01-10',term:'3年',ydj:'3%/年',status:'active'},
+    {id:'L015',partNo:'ED-011-01',name:'电机控制器',cat:'电驱系统',supplier:'汇川技术',price:8900,date:'2024-01-10',term:'3年',ydj:'2.5%/年',status:'active'},
+    {id:'L016',partNo:'ED-012-01',name:'减速器总成',cat:'电驱系统',supplier:'双环传动',price:5600,date:'2024-03-15',term:'3年',ydj:'2%/年',status:'active'},
+    {id:'L017',partNo:'AD-020-01',name:'DASy域控制器',cat:'智能驾驶',supplier:'博世',price:45000,date:'2024-02-01',term:'3年',ydj:'3%/年',status:'active'},
+    {id:'L018',partNo:'AD-021-01',name:'前视摄像头模组',cat:'智能驾驶',supplier:'舜宇光学',price:1800,date:'2024-03-01',term:'3年',ydj:'3%/年',status:'active'},
+    {id:'L019',partNo:'AD-022-01',name:'毫米波雷达',cat:'智能驾驶',supplier:'博世',price:3200,date:'2024-02-01',term:'3年',ydj:'2.5%/年',status:'active'},
+    {id:'L020',partNo:'CH-030-01',name:'MCU TC397',cat:'电子电器',supplier:'英飞凌',price:210,date:'2024-01-15',term:'2年',ydj:'1%/年',status:'active'},
+    {id:'L021',partNo:'CH-031-01',name:'IGBT功率模块',cat:'电子电器',supplier:'英飞凌',price:850,date:'2024-01-15',term:'2年',ydj:'2%/年',status:'active'}
+];
+
+// ===== 新框架演示数据 =====
+const demoNewParts = [
+    {partNo:'BP-020-01',name:'NCM811电芯',price:480.00},
+    {partNo:'BP-021-01',name:'LF105电芯',price:508.00},
+    {partNo:'BP-022-01',name:'刀片电芯',price:435.00},
+    {partNo:'BP-032-01',name:'电池包Pack',price:36500},
+    {partNo:'BP-033-01',name:'刀片电池包',price:33000},
+    {partNo:'BP-003-01',name:'BMS主控板',price:2920.00},
+    {partNo:'BP-004-01',name:'BMS采集模块',price:695.00},
+    {partNo:'BP-005-01',name:'高压继电器总成',price:1280.00},
+    {partNo:'ST-001-01',name:'前排座椅总成',price:8600.00},
+    {partNo:'ST-002-01',name:'后排座椅总成',price:6350.00},
+    {partNo:'ST-003-01',name:'座椅滑轨总成',price:1825.00},
+    {partNo:'ST-004-01',name:'座椅电调电机',price:460.00},
+    {partNo:'ST-005-01',name:'座椅加热模块',price:330.00},
+    {partNo:'ED-010-01',name:'驱动电机总成',price:11800},
+    {partNo:'ED-011-01',name:'电机控制器',price:9050.00},
+    {partNo:'ED-012-01',name:'减速器总成',price:5500.00},
+    {partNo:'AD-020-01',name:'DASy域控制器',price:46000},
+    {partNo:'AD-021-01',name:'前视摄像头模组',price:1780.00},
+    {partNo:'AD-022-01',name:'毫米波雷达',price:3350.00},
+    {partNo:'CH-030-01',name:'MCU TC397',price:215.00},
+    {partNo:'CH-031-01',name:'IGBT功率模块',price:880.00}
+];
+
+let newParts = [];
+
+// ===== Color suffix dictionary =====
+const COLOR_SUFFIXES = [
+    '红丹橘','银耀石','黑曜','铂金灰','珍珠白','曜石黑','星辉银','冰川白','琥珀棕','极光蓝',
+    '星河紫','曜岩黑','极地白','深空灰','天际蓝','暮光紫','流光金','玫瑰金','午夜绿','松林绿',
+    '烈焰红','幻影黑','陶瓷白','钛金灰','翡翠绿','宝石蓝','樱花粉','香槟金','磨砂黑','亮银',
+    '哑光黑','炫彩蓝','中国红','墨玉黑','皓月白','星空灰','烈日橙','深海蓝','薄荷绿','薰衣草紫'
+];
+
+// ===== Rendering =====
+function renderLedger(data){
+    const body = document.getElementById('ledgerBody');
+    const items = data || baseLedger;
+    body.innerHTML = items.map((r,i)=>`<tr onclick="selectLedgerRow(this,'${r.id}')">
+        <td>${i+1}</td>
+        <td class="cell-id">${r.partNo}</td>
+        <td style="font-weight:500">${r.name}</td>
+        <td><span class="tag tag-teal">${r.cat}</span></td>
+        <td>${r.supplier}</td>
+        <td style="font-weight:600">¥${r.price.toLocaleString()}</td>
+        <td>${r.date}</td>
+        <td>${r.term}</td>
+        <td>${r.ydj}</td>
+        <td>${r.status==='active'?'<span class="status-ok">生效中</span>':'<span class="status-pending">待更新</span>'}</td>
+    </tr>`).join('');
+}
+
+function renderBenchForCompare(){
+    const body = document.getElementById('benchBody');
+    const show = baseLedger.slice(0,20);
+    body.innerHTML = show.map(r=>`<tr><td class="cell-id">${r.partNo}</td><td>${r.name}</td><td style="text-align:right;font-weight:600">¥${r.price.toLocaleString()}</td></tr>`).join('');
+    if(baseLedger.length>20){
+        body.innerHTML += `<tr><td colspan="3" style="text-align:center;color:var(--g400);padding:8px">... 共 ${baseLedger.length} 条记录，仅展示前20条</td></tr>`;
+    }
+    document.getElementById('ledgerCount').textContent = baseLedger.length + ' 条记录';
+}
+
+function renderNewForCompare(){
+    const body = document.getElementById('newBody');
+    const empty = document.getElementById('newEmpty');
+    if(newParts.length === 0){
+        body.innerHTML = '';
+        empty.style.display = 'block';
+        return;
+    }
+    empty.style.display = 'none';
+    body.innerHTML = newParts.map(r=>`<tr><td class="cell-id">${esc(r.partNo)}</td><td>${esc(r.name)}</td><td style="text-align:right;font-weight:600">¥${r.price.toLocaleString()}</td></tr>`).join('');
+}
+
+function esc(s){ return String(s||'').replace(/"/g,'&quot;').replace(/</g,'&lt;'); }
+
+function selectLedgerRow(tr,id){
+    document.querySelectorAll('#ledgerTable tbody tr').forEach(r=>r.classList.remove('selected'));
+    tr.classList.add('selected');
+}
+
+// ===== Tab switching =====
+function switchMainTab(tab){
+    document.querySelectorAll('#mainTabs .tab-item').forEach(t=>t.classList.remove('active'));
+    document.querySelectorAll('.tab-content').forEach(t=>t.style.display='none');
+    const tabEl = document.getElementById('tab-'+tab);
+    if(tabEl) tabEl.style.display='block';
+    const trigger = document.querySelector('#mainTabs .tab-item:nth-child('+(['list','compare','history','cost'].indexOf(tab)+1)+')');
+    if(trigger) trigger.classList.add('active');
+    if(tab==='compare'){
+        renderBenchForCompare();
+        renderNewForCompare();
+    }
+    if(tab==='cost'){
+        refreshCostStats();
+        renderCostTable();
+    }
+}
+
+function switchTab(tab){ switchMainTab(tab); } // backward compat
+
+// ===== 五级模糊匹配 =====
+function noise(s){ return (s||'').toLowerCase().replace(/[\s\-\_\.，。、；：！？\(\)\[\]【】<>《》\/\\|·~`'"　]+/g,''); }
+
+function extractPrefix(name){
+    const trimmed = (name||'').trim();
+    for(const suffix of COLOR_SUFFIXES){
+        if(trimmed.endsWith(suffix) && trimmed.length > suffix.length){
+            return trimmed.substring(0, trimmed.length - suffix.length).trim();
+        }
+    }
+    return null;
+}
+
+function calcSimilarity(a,b){
+    a=(a||'').toLowerCase().replace(/\s+/g,'');b=(b||'').toLowerCase().replace(/\s+/g,'');
+    if(!a||!b)return 0;if(a===b)return 1;
+    const sA=new Set(a),sB=new Set(b);let c=0;
+    sA.forEach(ch=>{if(sB.has(ch))c++});
+    return c/Math.max(sA.size,sB.size);
+}
+
+function findMatch(name){
+    if(!name) return null;
+    let best=null, bestScore=0, matchType='';
+    for(const r of baseLedger){
+        // 1. Exact
+        if(name===r.name) return {record:r,score:1,type:'精确匹配'};
+        // 2. Contains
+        if(name.includes(r.name)||r.name.includes(name)){
+            if(0.9>bestScore){bestScore=0.9;best=r;matchType='包含匹配';}
+            continue;
+        }
+        // 3. Noise-removed
+        if(noise(name)===noise(r.name)){
+            if(0.8>bestScore){bestScore=0.8;best=r;matchType='去噪匹配';}
+        }
+    }
+    if(best) return {record:best,score:bestScore,type:matchType};
+    // 4. Prefix (color)
+    const targetPrefix=extractPrefix(name);
+    if(targetPrefix){
+        let prefixMatches=[];
+        for(const r of baseLedger){
+            const lPrefix=extractPrefix(r.name);
+            if(lPrefix&&targetPrefix===lPrefix) prefixMatches.push(r);
+        }
+        if(prefixMatches.length===1) return {record:prefixMatches[0],score:0.7,type:'前缀匹配（颜色件）'};
+        else if(prefixMatches.length>1) return {record:prefixMatches[0],score:0.65,type:'前缀匹配（颜色件：'+prefixMatches.length+'候选）'};
+    }
+    // 5. Similarity
+    for(const r of baseLedger){
+        const s=calcSimilarity(name,r.name);
+        if(s>=0.5&&s>bestScore){bestScore=s;best=r;matchType='相似度匹配';}
+    }
+    return bestScore>=0.5?{record:best,score:bestScore,type:matchType}:null;
+}
+
+// ===== Compare =====
+function runCompare(){
+    if(!baseLedger.length){alert('正式价框架协议为空');return;}
+    if(!newParts.length){loadDemoNew();}
+
+    const thRate=parseFloat(document.getElementById('thRate').value)||20;
+    const thAbs=parseFloat(document.getElementById('thAbs').value)||100;
+
+    let ok=0,warn=0,miss=0;
+    const results = newParts.map((np,i)=>{
+        const match=findMatch(np.name);
+        if(!match){miss++;return {idx:i+1,...np,matchedName:'—',matchType:'',matchScore:0,basePrice:0,rate:0,diff:0,status:'miss',hasMatch:false};}
+        const base=match.record.price;
+        const diff=np.price-base;
+        const rate=base!==0?((diff/base)*100):0;
+        const isWarn=Math.abs(rate)>thRate||Math.abs(diff)>thAbs;
+        if(isWarn)warn++;else ok++;
+        return {idx:i+1,...np,matchedName:match.record.name,matchType:match.type,matchScore:match.score,basePrice:base,rate,diff,status:isWarn?'warn':'ok',hasMatch:true,cat:match.record.cat};
+    });
+
+    // Stats
+    document.getElementById('resultStats').innerHTML = `
+        <div class="stat-card total"><div class="stat-num">${newParts.length}</div><div class="stat-label">新零件总数</div></div>
+        <div class="stat-card ok"><div class="stat-num">${ok}</div><div class="stat-label">价格正常</div><div class="stat-sub">偏差在阈值内</div></div>
+        <div class="stat-card warn"><div class="stat-num" style="color:var(--d)">${warn}</div><div class="stat-label">偏差异常</div><div class="stat-sub" style="color:var(--d)">需重点关注</div></div>
+        <div class="stat-card"><div class="stat-num" style="color:var(--w)">${miss}</div><div class="stat-label">未匹配</div><div class="stat-sub">非正式价零件</div></div>
+        <div class="stat-card info"><div class="stat-num">${(ok/(newParts.length||1)*100).toFixed(0)}%</div><div class="stat-label">匹配率</div><div class="stat-sub">五级模糊匹配</div></div>
+    `;
+
+    // Result table
+    document.getElementById('resultBody').innerHTML = results.map(r=>{
+        let st,s='';
+        if(r.status==='ok'){st='<span class="status-ok">✓ 通过</span>';}
+        else if(r.status==='warn'){st='<span class="status-warn">⚠️ 偏差异常</span>';s='result-highlight-warn';}
+        else{st='<span class="status-pending">❓ 未匹配</span>';s='';}
+        let md=r.matchedName;
+        if(r.hasMatch&&r.matchType){
+            md+=' <span class="tag tag-blue">'+(r.matchScore>=0.9?Math.round(r.matchScore*100)+'% ':'')+r.matchType+'</span>';
+        }
+        const devColor=r.status==='warn'?'color:var(--d);font-weight:700':'';
+        return '<tr class="'+s+'"><td>'+r.idx+'</td><td class="cell-id">'+esc(r.partNo)+'</td><td>'+esc(r.name)+'</td>'
+            +'<td style="font-weight:600">¥'+r.price.toLocaleString()+'</td>'
+            +'<td>'+md+'</td>'
+            +'<td>'+(r.hasMatch?Math.round(r.matchScore*100)+'%':'—')+'</td>'
+            +'<td style="font-weight:600">'+(r.hasMatch?'¥'+r.basePrice.toLocaleString():'—')+'</td>'
+            +'<td style="'+devColor+'">'+(r.hasMatch?(r.rate>0?'+':'')+r.rate.toFixed(1)+'%':'—')+'</td>'
+            +'<td style="'+devColor+'">'+(r.hasMatch?(r.diff>0?'+¥':'')+Math.abs(r.diff).toLocaleString():(r.diff>0?'+':'')+r.diff.toFixed(2):'—')+'</td>'
+            +'<td>'+st+'</td></tr>';
+    }).join('');
+
+    // AI conclusion
+    const warnItems=results.filter(r=>r.status==='warn');
+    let conclusion='';
+    if(warnItems.length===0){
+        conclusion='未发现异常偏离，所有报价偏差均在阈值范围内。建议按正常流程签署框架协议。';
+    } else {
+        const topWarns=warnItems.slice(0,3).map(r=>r.name+'('+(r.rate>0?'+':'')+r.rate.toFixed(1)+'%，+¥'+Math.abs(r.diff).toLocaleString()+')').join('、');
+        conclusion='检测到 <strong style="color:var(--d)">'+warnItems.length+' 项</strong>报价偏差异常：'+topWarns+'。建议启动供应商议价流程，并参考正式价基准作为谈判锚点。';
+    }
+    document.getElementById('aiConclusion').innerHTML = conclusion;
+
+    document.getElementById('resultSection').style.display='block';
+    document.getElementById('resultSection').scrollIntoView({behavior:'smooth',block:'start'});
+}
+
+// ===== Actions =====
+function loadDemoNew(){
+    newParts = [...demoNewParts];
+    renderNewForCompare();
+}
+
+function simulateImport(){
+    newParts = [...demoNewParts];
+    renderNewForCompare();
+    alert('模拟导入完成：已加载 '+newParts.length+' 条新框架报价数据');
+}
+
+function addLedgerRow(){
+    const partNo=prompt('零件号：','BP-');
+    if(!partNo)return;
+    const name=prompt('零件名称：','');
+    if(!name)return;
+    const price=parseFloat(prompt('基准价(元)：','0'));
+    if(isNaN(price))return;
+    baseLedger.push({id:'L'+Date.now(),partNo,name,cat:'待分类',supplier:'待指定',price,date:new Date().toISOString().slice(0,10),term:'3年',ydj:'—',status:'active'});
+    renderLedger();
+}
+
+function exportLedger(){
+    let csv='零件号,零件名称,品类,供应商,基准价,生效日期,有效期,年降约定,状态\n';
+    baseLedger.forEach(r=>{csv+=r.partNo+','+r.name+','+r.cat+','+r.supplier+','+r.price+','+r.date+','+r.term+','+r.ydj+','+r.status+'\n';});
+    download(csv,'正式价框架协议_基准库.csv');
+}
+
+function exportResult(){
+    const rows=document.querySelectorAll('#resultBody tr');
+    if(!rows.length){alert('请先执行比对');return;}
+    let csv='序号,件号,名称,报价,匹配基准名,匹配方式,基准价,偏差率,偏差金额,状态\n';
+    rows.forEach(tr=>{
+        const cells=tr.querySelectorAll('td');
+        csv+=Array.from(cells).map(td=>'"'+td.textContent.trim().replace(/"/g,'""')+'"').join(',')+'\n';
+    });
+    download(csv,'价格偏离比对结果.csv');
+}
+
+function download(content,name){
+    const b=new Blob(['\uFEFF'+content],{type:'text/csv;charset=utf-8'});
+    const u=URL.createObjectURL(b);const a=document.createElement('a');
+    a.href=u;a.download=name;document.body.appendChild(a);a.click();document.body.removeChild(a);
+    URL.revokeObjectURL(u);
+}
+
+// ===== Cost Ledger Data =====
+let currentCostTab = 'part';
+
+const costLedgerData = {
+    part: [
+        {id:'CP001',partNo:'BP-020-01',partName:'电芯 NCM811 / 72Ah',factory:'BJ1101 · 北京工厂',supplier:'CATL-001 · 宁德时代',project:'SU7 动力电池',engineer:'齐岳',status:'生效中',validDate:'2024-03-01 ~ 2027-02-28',totalCost:48500000,unitPrice:485,volume:100000,lastUpdate:'2024-06-20'},
+        {id:'CP002',partNo:'BP-022-01',partName:'刀片电芯 / 150Ah',factory:'BJ1101 · 北京工厂',supplier:'BYD-001 · 弗迪电池',project:'MS11 动力电池',engineer:'周经理',status:'生效中',validDate:'2024-04-15 ~ 2027-04-14',totalCost:42000000,unitPrice:420,volume:100000,lastUpdate:'2024-06-15'},
+        {id:'CP003',partNo:'ST-001-01',partName:'前排座椅总成 / 电动8向',factory:'YZ1102 · 亦庄工厂',supplier:'YF-001 · 延锋国际',project:'SU7 整车座椅',engineer:'孙经理',status:'生效中',validDate:'2024-02-15 ~ 2027-02-14',totalCost:15600000,unitPrice:7800,volume:2000,lastUpdate:'2024-06-18'},
+        {id:'CP004',partNo:'ED-010-01',partName:'驱动电机 / 永磁同步',factory:'BJ1101 · 北京工厂',supplier:'HC-001 · 汇川技术',project:'SU7 电驱系统',engineer:'吴经理',status:'生效中',validDate:'2024-01-10 ~ 2027-01-09',totalCost:12500000,unitPrice:12500,volume:1000,lastUpdate:'2024-06-10'},
+        {id:'CP005',partNo:'AD-020-01',partName:'DASy域控制器',factory:'BJ1101 · 北京工厂',supplier:'BOSCH-001 · 博世',project:'SU7 智能驾驶',engineer:'齐岳',status:'生效中',validDate:'2024-02-01 ~ 2027-01-31',totalCost:45000000,unitPrice:45000,volume:1000,lastUpdate:'2024-06-22'},
+        {id:'CP006',partNo:'CH-030-01',partName:'MCU TC397',factory:'SH1201 · 上海工厂',supplier:'INF-001 · 英飞凌',project:'SU7 电子电器',engineer:'齐岳',status:'生效中',validDate:'2024-01-15 ~ 2026-01-14',totalCost:2100000,unitPrice:210,volume:10000,lastUpdate:'2024-06-05'},
+        {id:'CP007',partNo:'ST-003-01',partName:'座椅滑轨总成',factory:'YZ1102 · 亦庄工厂',supplier:'LI-001 · 李尔',project:'MS11 整车座椅',engineer:'孙经理',status:'生效中',validDate:'2024-04-01 ~ 2027-03-31',totalCost:3600000,unitPrice:1800,volume:2000,lastUpdate:'2024-06-12'},
+        {id:'CP008',partNo:'BP-032-01',partName:'电池包 Pack / 100kWh',factory:'BJ1101 · 北京工厂',supplier:'CATL-001 · 宁德时代',project:'SU7 动力电池',engineer:'周经理',status:'已失效',validDate:'2024-01-01 ~ 2024-12-31',totalCost:17100000,unitPrice:34200,volume:500,lastUpdate:'2024-12-31'},
+        {id:'CP009',partNo:'ST-004-01',partName:'座椅电调电机',factory:'YZ1102 · 亦庄工厂',supplier:'BOSCH-001 · 博世',project:'MS11 整车座椅',engineer:'孙经理',status:'生效中',validDate:'2024-04-01 ~ 2027-03-31',totalCost:900000,unitPrice:450,volume:2000,lastUpdate:'2024-05-20'},
+        {id:'CP010',partNo:'AD-021-01',partName:'前视摄像头模组',factory:'WH1301 · 武汉工厂',supplier:'SY-001 · 舜宇光学',project:'MX11 智能驾驶',engineer:'齐岳',status:'生效中',validDate:'2024-03-01 ~ 2027-02-28',totalCost:5400000,unitPrice:1800,volume:3000,lastUpdate:'2024-06-08'},
+        {id:'CP011',partNo:'BP-003-01',partName:'BMS主控板',factory:'BJ1101 · 北京工厂',supplier:'CATL-001 · 宁德时代',project:'SU7 动力电池',engineer:'周经理',status:'生效中',validDate:'2024-03-01 ~ 2027-02-28',totalCost:2850000,unitPrice:2850,volume:1000,lastUpdate:'2024-06-14'},
+        {id:'CP012',partNo:'CH-031-01',partName:'IGBT功率模块',factory:'SH1201 · 上海工厂',supplier:'INF-001 · 英飞凌',project:'SU7 电子电器',engineer:'齐岳',status:'生效中',validDate:'2024-01-15 ~ 2026-01-14',totalCost:8500000,unitPrice:850,volume:10000,lastUpdate:'2024-05-30'},
+        {id:'CP013',partNo:'ED-011-01',partName:'电机控制器',factory:'BJ1101 · 北京工厂',supplier:'HC-001 · 汇川技术',project:'MS11 电驱系统',engineer:'吴经理',status:'生效中',validDate:'2024-01-10 ~ 2027-01-09',totalCost:8900000,unitPrice:8900,volume:1000,lastUpdate:'2024-06-01'},
+        {id:'CP014',partNo:'ST-005-01',partName:'座椅加热模块',factory:'YZ1102 · 亦庄工厂',supplier:'JF-001 · 继峰股份',project:'SU7 整车座椅',engineer:'孙经理',status:'已失效',validDate:'2024-01-01 ~ 2024-05-01',totalCost:640000,unitPrice:320,volume:2000,lastUpdate:'2024-05-01'},
+        {id:'CP015',partNo:'ST-002-01',partName:'后排座椅总成',factory:'YZ1102 · 亦庄工厂',supplier:'YF-001 · 延锋国际',project:'SU7 整车座椅',engineer:'孙经理',status:'生效中',validDate:'2024-02-15 ~ 2027-02-14',totalCost:12400000,unitPrice:6200,volume:2000,lastUpdate:'2024-06-18'}
+    ],
+    onetime: [
+        {id:'CO001',partNo:'TOOL-BP-001',partName:'电池包壳体冲压模具',factory:'BJ1101 · 北京工厂',supplier:'NC-001 · 宁波华翔',project:'SU7 动力电池',engineer:'周经理',status:'生效中',validDate:'2024-02-01 ~ 2027-01-31',totalCost:3500000,unitPrice:3500000,volume:1,lastUpdate:'2024-06-10'},
+        {id:'CO002',partNo:'TOOL-ST-001',partName:'座椅骨架焊接夹具',factory:'YZ1102 · 亦庄工厂',supplier:'YF-001 · 延锋国际',project:'SU7 整车座椅',engineer:'孙经理',status:'生效中',validDate:'2024-03-01 ~ 2027-02-28',totalCost:850000,unitPrice:850000,volume:1,lastUpdate:'2024-05-15'},
+        {id:'CO003',partNo:'TOOL-ED-001',partName:'电机转子动平衡设备',factory:'BJ1101 · 北京工厂',supplier:'HC-001 · 汇川技术',project:'SU7 电驱系统',engineer:'吴经理',status:'生效中',validDate:'2024-01-20 ~ 2027-01-19',totalCost:1200000,unitPrice:1200000,volume:1,lastUpdate:'2024-04-20'},
+        {id:'CO004',partNo:'ENG-BP-001',partName:'电池包热管理仿真验证费',factory:'BJ1101 · 北京工厂',supplier:'CATL-001 · 宁德时代',project:'SU7 动力电池',engineer:'齐岳',status:'已失效',validDate:'2024-01-01 ~ 2024-06-30',totalCost:500000,unitPrice:500000,volume:1,lastUpdate:'2024-06-30'},
+        {id:'CO005',partNo:'CERT-AD-001',partName:'ADAS功能安全认证费',factory:'BJ1101 · 北京工厂',supplier:'TUV-001 · 莱茵检测',project:'SU7 智能驾驶',engineer:'齐岳',status:'生效中',validDate:'2024-03-15 ~ 2025-03-14',totalCost:680000,unitPrice:680000,volume:1,lastUpdate:'2024-06-01'},
+        {id:'CO006',partNo:'TOOL-BP-002',partName:'电芯极片涂布模具',factory:'BJ1101 · 北京工厂',supplier:'NC-002 · 精进电动',project:'MS11 动力电池',engineer:'周经理',status:'生效中',validDate:'2024-05-01 ~ 2027-04-30',totalCost:2100000,unitPrice:2100000,volume:1,lastUpdate:'2024-06-12'},
+        {id:'CO007',partNo:'TEST-CH-001',partName:'MCU芯片AEC-Q100认证试验费',factory:'SH1201 · 上海工厂',supplier:'INF-001 · 英飞凌',project:'SU7 电子电器',engineer:'齐岳',status:'生效中',validDate:'2024-02-01 ~ 2025-01-31',totalCost:420000,unitPrice:420000,volume:1,lastUpdate:'2024-05-20'}
+    ],
+    sample: [
+        {id:'CS001',partNo:'BP-020-S01',partName:'电芯 NCM811 / 72Ah（DV样件）',factory:'BJ1101 · 北京工厂',supplier:'CATL-001 · 宁德时代',project:'SU7 动力电池',engineer:'齐岳',status:'生效中',validDate:'2024-06-01 ~ 2024-09-30',totalCost:145500,unitPrice:485,volume:300,lastUpdate:'2024-06-20'},
+        {id:'CS002',partNo:'BP-022-S01',partName:'刀片电芯 / 150Ah（PV样件）',factory:'BJ1101 · 北京工厂',supplier:'BYD-001 · 弗迪电池',project:'MS11 动力电池',engineer:'周经理',status:'已失效',validDate:'2024-04-01 ~ 2024-07-01',totalCost:126000,unitPrice:420,volume:300,lastUpdate:'2024-07-01'},
+        {id:'CS003',partNo:'ST-001-S01',partName:'前排座椅总成（EP样件）',factory:'YZ1102 · 亦庄工厂',supplier:'YF-001 · 延锋国际',project:'SU7 整车座椅',engineer:'孙经理',status:'生效中',validDate:'2024-06-15 ~ 2024-10-15',totalCost:78000,unitPrice:7800,volume:10,lastUpdate:'2024-06-15'},
+        {id:'CS004',partNo:'AD-020-S01',partName:'DASy域控制器（DV样件）',factory:'BJ1101 · 北京工厂',supplier:'BOSCH-001 · 博世',project:'SU7 智能驾驶',engineer:'齐岳',status:'生效中',validDate:'2024-06-10 ~ 2024-10-10',totalCost:900000,unitPrice:45000,volume:20,lastUpdate:'2024-06-10'},
+        {id:'CS005',partNo:'ED-010-S01',partName:'驱动电机（EP样件）',factory:'BJ1101 · 北京工厂',supplier:'HC-001 · 汇川技术',project:'MS11 电驱系统',engineer:'吴经理',status:'生效中',validDate:'2024-06-01 ~ 2024-09-01',totalCost:37500,unitPrice:12500,volume:3,lastUpdate:'2024-06-05'}
+    ],
+    nonprod: [
+        {id:'CN001',partNo:'BP-020-NP01',partName:'电芯 NCM811（OTS工装样件）',factory:'BJ1101 · 北京工厂',supplier:'CATL-001 · 宁德时代',project:'SU7 动力电池',engineer:'齐岳',status:'生效中',validDate:'2024-05-01 ~ 2024-08-30',totalCost:97000,unitPrice:485,volume:200,lastUpdate:'2024-06-15'},
+        {id:'CN002',partNo:'ST-001-NP01',partName:'前排座椅骨架（PPAP样件）',factory:'YZ1102 · 亦庄工厂',supplier:'LI-001 · 李尔',project:'MS11 整车座椅',engineer:'孙经理',status:'已失效',validDate:'2024-03-01 ~ 2024-06-01',totalCost:12000,unitPrice:1200,volume:10,lastUpdate:'2024-06-01'},
+        {id:'CN003',partNo:'BP-030-NP01',partName:'液冷板总成（OTS样件）',factory:'BJ1101 · 北京工厂',supplier:'NC-003 · 三花智控',project:'SU7 动力电池',engineer:'周经理',status:'生效中',validDate:'2024-06-01 ~ 2024-09-30',totalCost:32000,unitPrice:1600,volume:20,lastUpdate:'2024-06-12'},
+        {id:'CN004',partNo:'CH-030-NP01',partName:'MCU TC397（PPAP样件）',factory:'SH1201 · 上海工厂',supplier:'INF-001 · 英飞凌',project:'SU7 电子电器',engineer:'齐岳',status:'生效中',validDate:'2024-05-15 ~ 2024-08-15',totalCost:10500,unitPrice:210,volume:50,lastUpdate:'2024-06-08'},
+        {id:'CN005',partNo:'AD-022-NP01',partName:'毫米波雷达（OTS样件）',factory:'WH1301 · 武汉工厂',supplier:'BOSCH-001 · 博世',project:'MX11 智能驾驶',engineer:'吴经理',status:'生效中',validDate:'2024-06-01 ~ 2024-09-01',totalCost:16000,unitPrice:3200,volume:5,lastUpdate:'2024-06-20'}
+    ],
+    esi: [
+        {id:'CE001',partNo:'ESI-BP-001',partName:'固态电池技术方案评估',factory:'BJ1101 · 北京工厂',supplier:'CATL-001 · 宁德时代',project:'MX11 动力电池（预研）',engineer:'齐岳',status:'生效中',validDate:'2024-04-01 ~ 2025-03-31',totalCost:1500000,unitPrice:1500000,volume:1,lastUpdate:'2024-06-18'},
+        {id:'CE002',partNo:'ESI-ST-001',partName:'零重力座椅技术方案评估',factory:'YZ1102 · 亦庄工厂',supplier:'YF-001 · 延锋国际',project:'MX11 整车座椅（预研）',engineer:'孙经理',status:'生效中',validDate:'2024-05-01 ~ 2025-04-30',totalCost:800000,unitPrice:800000,volume:1,lastUpdate:'2024-06-14'},
+        {id:'CE003',partNo:'ESI-ED-001',partName:'800V碳化硅电驱方案评估',factory:'BJ1101 · 北京工厂',supplier:'HC-001 · 汇川技术',project:'MX11 电驱系统（预研）',engineer:'吴经理',status:'生效中',validDate:'2024-03-01 ~ 2025-02-28',totalCost:1200000,unitPrice:1200000,volume:1,lastUpdate:'2024-06-10'},
+        {id:'CE004',partNo:'ESI-AD-001',partName:'L3级城市NOA方案评估',factory:'BJ1101 · 北京工厂',supplier:'BOSCH-001 · 博世',project:'MX11 智能驾驶（预研）',engineer:'齐岳',status:'已失效',validDate:'2024-02-01 ~ 2024-05-01',totalCost:2000000,unitPrice:2000000,volume:1,lastUpdate:'2024-05-01'},
+        {id:'CE005',partNo:'ESI-BP-002',partName:'钠离子电池替代方案评估',factory:'BJ1101 · 北京工厂',supplier:'BYD-001 · 弗迪电池',project:'MX11 动力电池（预研）',engineer:'周经理',status:'生效中',validDate:'2024-06-01 ~ 2025-05-31',totalCost:1200000,unitPrice:1200000,volume:1,lastUpdate:'2024-06-20'}
+    ]
+};
+
+// ===== Cost Ledger Functions =====
+function getActiveCostData(){
+    return costLedgerData[currentCostTab] || [];
+}
+
+function switchCostTab(tab){
+    currentCostTab = tab;
+    document.querySelectorAll('.cost-sub-tab').forEach(t=>t.classList.remove('active'));
+    const idx = ['part','onetime','sample','nonprod','esi'].indexOf(tab);
+    if(idx>=0){
+        const tabs = document.querySelectorAll('.cost-sub-tab');
+        if(tabs[idx]) tabs[idx].classList.add('active');
+    }
+    refreshCostStats();
+    renderCostTable();
+}
+
+function refreshCostStats(){
+    const data = getActiveCostData();
+    const active = data.filter(r=>r.status==='生效中').length;
+    const expired = data.filter(r=>r.status==='已失效').length;
+    const totalAmt = data.reduce((s,r)=>s+r.totalCost,0);
+    const tabNames = {part:'零件成本',onetime:'一次性费用',sample:'样件成本',nonprod:'非量产件',esi:'ESI成本'};
+    document.getElementById('costStats').innerHTML = `
+        <div class="stat-card total"><div class="stat-num">${data.length}</div><div class="stat-label">${tabNames[currentCostTab]||''}台账总数</div></div>
+        <div class="stat-card ok"><div class="stat-num">${active}</div><div class="stat-label">生效中</div><div class="stat-sub" style="color:var(--s)">当前有效</div></div>
+        <div class="stat-card warn"><div class="stat-num">${expired}</div><div class="stat-label">已失效</div><div class="stat-sub" style="color:var(--g400)">已过期台账</div></div>
+        <div class="stat-card info"><div class="stat-num">¥${(totalAmt/10000).toFixed(0)}万</div><div class="stat-label">台账总金额</div><div class="stat-sub" style="color:var(--g400)">${tabNames[currentCostTab]||''}合计</div></div>
+        <div class="stat-card active"><div class="stat-num">${(active/(data.length||1)*100).toFixed(0)}%</div><div class="stat-label">台账有效率</div><div class="stat-sub" style="color:var(--g400)">生效中占比</div></div>
+    `;
+}
+
+function filterCostTable(){
+    renderCostTable();
+}
+
+function renderCostTable(){
+    const data = getActiveCostData();
+    const search = (document.getElementById('costSearch')?.value||'').toLowerCase();
+    const factoryF = document.getElementById('costFactoryFilter')?.value||'';
+    const statusF = document.getElementById('costStatusFilter')?.value||'';
+    const projectF = document.getElementById('costProjectFilter')?.value||'';
+
+    let filtered = data;
+    if(search){
+        filtered = filtered.filter(r=>r.partNo.toLowerCase().includes(search)||r.partName.toLowerCase().includes(search)||r.supplier.toLowerCase().includes(search));
+    }
+    if(factoryF){
+        filtered = filtered.filter(r=>r.factory.includes(factoryF));
+    }
+    if(statusF){
+        filtered = filtered.filter(r=>r.status===statusF);
+    }
+    if(projectF){
+        filtered = filtered.filter(r=>r.project.includes(projectF));
+    }
+
+    document.getElementById('costResultCount').textContent = '共 '+filtered.length+' 条';
+
+    const body = document.getElementById('costTableBody');
+    body.innerHTML = filtered.map((r,i)=>{
+        const statusTag = r.status==='生效中'
+            ? '<span class="status-ok">生效中</span>'
+            : '<span class="status-warn">已失效</span>';
+        return `<tr>
+            <td>${i+1}</td>
+            <td style="font-size:10px"><div style="color:var(--p);font-weight:600">${r.partNo}</div><div style="color:var(--g700);margin-top:1px">${r.partName}</div></td>
+            <td style="font-size:10px;color:var(--g600)">${r.factory}</td>
+            <td style="font-size:10px;color:var(--g600)">${r.supplier}</td>
+            <td style="font-size:11px"><span class="tag tag-teal">${r.project}</span></td>
+            <td style="font-size:12px;color:var(--p);font-weight:500;cursor:pointer" onclick="showEngineerInfo('${r.engineer}')">${r.engineer}</td>
+            <td>${statusTag}</td>
+            <td><span class="tag tag-blue" style="cursor:pointer" onclick="showCostDetail('${r.id}')">详情</span></td>
+        </tr>`;
+    }).join('');
+
+    if(filtered.length===0){
+        body.innerHTML = '<tr><td colspan="8" style="text-align:center;padding:30px;color:var(--g400)">📂 无匹配台账记录</td></tr>';
+    }
+}
+
+function showEngineerInfo(name){
+    alert('采购工程师：'+name+' · 内部联系方式已发送至消息中心');
+}
+
+function findCostById(id){
+    for(const tab of Object.keys(costLedgerData)){
+        const found = costLedgerData[tab].find(r=>r.id===id);
+        if(found) return found;
+    }
+    return null;
+}
+
+function showCostDetail(id){
+    const r = findCostById(id);
+    if(!r) return;
+    document.getElementById('costDetailTitle').textContent = r.partNo+' · '+r.partName;
+    const statusTag = r.status==='生效中' ? '<span class="status-ok" style="font-size:11px">生效中</span>' : '<span class="status-warn" style="font-size:11px">已失效</span>';
+    const tabNames = {
+        part:'零件成本台账',onetime:'一次性费用成本台账',sample:'样件成本台账',nonprod:'非量产件成本台账',esi:'ESI成本台账'
+    };
+    let tabName = '';
+    for(const [k,v] of Object.entries(tabNames)){
+        if(costLedgerData[k].find(x=>x.id===id)){tabName=v;break;}
+    }
+    document.getElementById('costDetailBody').innerHTML = `
+        <div class="cost-detail-grid">
+            <div class="cost-detail-item"><span class="label">台账编号</span><span class="value">${r.id}</span></div>
+            <div class="cost-detail-item"><span class="label">台账类型</span><span class="value"><span class="tag tag-teal">${tabName}</span></span></div>
+            <div class="cost-detail-item"><span class="label">件号</span><span class="value" style="color:var(--p)">${r.partNo}</span></div>
+            <div class="cost-detail-item"><span class="label">零部件名称</span><span class="value">${r.partName}</span></div>
+            <div class="cost-detail-item"><span class="label">使用工厂</span><span class="value">${r.factory}</span></div>
+            <div class="cost-detail-item"><span class="label">供应商</span><span class="value">${r.supplier}</span></div>
+            <div class="cost-detail-item"><span class="label">定点项目</span><span class="value">${r.project}</span></div>
+            <div class="cost-detail-item"><span class="label">采购工程师</span><span class="value" style="color:var(--p)">${r.engineer}</span></div>
+            <div class="cost-detail-item"><span class="label">台账状态</span><span class="value">${statusTag}</span></div>
+            <div class="cost-detail-item"><span class="label">有效期</span><span class="value">${r.validDate}</span></div>
+            <div class="cost-detail-item"><span class="label">最近更新</span><span class="value">${r.lastUpdate}</span></div>
+            <div class="cost-detail-item"><span class="label">数量</span><span class="value">${r.volume.toLocaleString()}</span></div>
+        </div>
+        <div class="cost-detail-section">
+            <h4>💰 金额信息</h4>
+            <div class="cost-amount-grid">
+                <div class="cost-amount-card" style="background:var(--g50)">
+                    <div class="cam-label">单价</div>
+                    <div class="cam-value" style="color:var(--p)">¥${r.unitPrice.toLocaleString()}</div>
+                    <div class="cam-sub">含税单价</div>
+                </div>
+                <div class="cost-amount-card" style="background:var(--pl)">
+                    <div class="cam-label">总金额</div>
+                    <div class="cam-value" style="color:var(--p)">¥${(r.totalCost/10000).toFixed(1)}万</div>
+                    <div class="cam-sub">数量 × 单价</div>
+                </div>
+                <div class="cost-amount-card" style="background:var(--g50)">
+                    <div class="cam-label">台账占比</div>
+                    <div class="cam-value" style="color:var(--teal)">${(r.totalCost/(r.volume*r.unitPrice||1)*100).toFixed(0)}%</div>
+                    <div class="cam-sub">占总量比</div>
+                </div>
+            </div>
+        </div>
+        <div class="cost-detail-section">
+            <h4>📅 变更记录</h4>
+            <div class="cost-timeline">
+                <div class="cost-tl-item">
+                    <div class="tl-date">${r.lastUpdate}</div>
+                    <div class="tl-content">台账最后更新 — 由 <strong>${r.engineer}</strong> 提交</div>
+                </div>
+                <div class="cost-tl-item">
+                    <div class="tl-date">${r.validDate.split('~')[0].trim()}</div>
+                    <div class="tl-content">台账生效 — 定点审批通过，框架协议签署</div>
+                </div>
+                <div class="cost-tl-item">
+                    <div class="tl-date">${r.validDate.split('~')[0].trim().replace(/\d{4}$/,parseInt(r.validDate.split('~')[0].split('-')[0])-1+'')}</div>
+                    <div class="tl-content">RFQ 完成 — 供方报价确认，进入定点流程</div>
+                </div>
+            </div>
+        </div>
+        <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:14px;padding-top:12px;border-top:1px solid var(--g100)">
+            <button class="btn btn-o btn-sm" onclick="toggleCostStatus('${r.id}')">${r.status==='生效中'?'⏸ 标记失效':'▶ 重新生效'}</button>
+            <button class="btn btn-p btn-sm" onclick="closeCostDetail()">关闭</button>
+        </div>
+    `;
+    document.getElementById('costDetailOverlay').classList.add('show');
+}
+
+function closeCostDetail(){
+    document.getElementById('costDetailOverlay').classList.remove('show');
+}
+
+function toggleCostStatus(id){
+    for(const tab of Object.keys(costLedgerData)){
+        const r = costLedgerData[tab].find(x=>x.id===id);
+        if(r){
+            r.status = r.status==='生效中'?'已失效':'生效中';
+            r.lastUpdate = new Date().toISOString().slice(0,10);
+            closeCostDetail();
+            refreshCostStats();
+            renderCostTable();
+            return;
+        }
+    }
+}
+
+function addCostRow(){
+    const tabs = ['part','onetime','sample','nonprod','esi'];
+    const tabNames = ['零件','一次性费用','样件','非量产件','ESI'];
+    const menu = tabs.map((t,i)=>`${i+1}. ${tabNames[i]}成本台账`).join('\n');
+    const choice = prompt('请选择台账类型（输入数字）：\n'+menu,'1');
+    const idx = parseInt(choice)-1;
+    if(isNaN(idx)||idx<0||idx>4){alert('无效选择');return;}
+    const partNo = prompt('件号：','');
+    if(!partNo) return;
+    const partName = prompt('零部件名称：','');
+    if(!partName) return;
+    const factory = prompt('使用工厂（如：BJ1101 · 北京工厂）：','BJ1101 · 北京工厂');
+    if(!factory) return;
+    const supplier = prompt('供应商（如：CATL-001 · 宁德时代）：','');
+    if(!supplier) return;
+    const project = prompt('定点项目（如：SU7 动力电池）：','');
+    if(!project) return;
+    const engineer = prompt('采购工程师：','齐岳');
+    if(!engineer) return;
+    const price = parseFloat(prompt('单价/金额(元)：','0'));
+    if(isNaN(price)) return;
+    const volume = parseInt(prompt('数量：','1'));
+    if(isNaN(volume)) return;
+    costLedgerData[tabs[idx]].push({
+        id:tabs[idx].toUpperCase()+Date.now().toString(36),
+        partNo,partName,factory,supplier,project,engineer,
+        status:'生效中',
+        validDate:new Date().toISOString().slice(0,10)+' ~ 2027-'+new Date().toISOString().slice(5,7),
+        totalCost:price*volume,unitPrice:price,volume,
+        lastUpdate:new Date().toISOString().slice(0,10)
+    });
+    refreshCostStats();
+    renderCostTable();
+    alert('台账已添加！');
+}
+
+function exportCostLedger(){
+    const data = getActiveCostData();
+    const tabNames = {part:'零件',onetime:'一次性费用',sample:'样件',nonprod:'非量产件',esi:'ESI'};
+    let csv = '台账编号,件号,零部件名称,使用工厂,供应商,定点项目,采购工程师,单价,数量,总金额,台账失效,有效期\n';
+    data.forEach(r=>{
+        csv += `${r.id},${r.partNo},"${r.partName}","${r.factory}","${r.supplier}","${r.project}",${r.engineer},${r.unitPrice},${r.volume},${r.totalCost},${r.status},${r.validDate}\n`;
+    });
+    download(csv, `${tabNames[currentCostTab]||'成本'}台账_${new Date().toISOString().slice(0,10)}.csv`);
+}
+
+// ===== Init =====
+renderLedger();
+
+// ESC close cost detail
+document.addEventListener('keydown',function(e){
+    if(e.key==='Escape') closeCostDetail();
+});
+</script>
+
+</body>
+</html>

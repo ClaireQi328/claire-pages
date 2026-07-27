@@ -1,0 +1,976 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>叮咚买菜 B2B 仓端管理系统</title>
+<style>
+  :root {
+    --p: #1677ff;
+    --p-light: #e6f4ff;
+    --g50: #fafafa;
+    --g100: #f5f5f5;
+    --g200: #e8e8e8;
+    --g800: #262626;
+    --success: #52c41a;
+    --warning: #faad14;
+    --danger: #f5222d;
+    --font: -apple-system, "PingFang SC", "Microsoft YaHei", sans-serif;
+    --radius: 10px;
+    --shadow: 0 1px 3px rgba(0,0,0,0.08), 0 1px 2px rgba(0,0,0,0.06);
+    --shadow-lg: 0 4px 12px rgba(0,0,0,0.1);
+    --sidebar-w: 220px;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { font-family: var(--font); background: var(--g50); color: var(--g800); min-height: 100vh; display: flex; }
+
+  /* ========== Sidebar ========== */
+  .sidebar {
+    width: var(--sidebar-w); background: #fff; border-right: 1px solid var(--g200);
+    height: 100vh; position: fixed; top: 0; left: 0; z-index: 100;
+    display: flex; flex-direction: column; overflow-y: auto;
+  }
+  .sidebar-logo {
+    padding: 20px; border-bottom: 1px solid var(--g200); display: flex; align-items: center; gap: 10px;
+    font-weight: 700; font-size: 16px; color: var(--p); white-space: nowrap;
+  }
+  .sidebar-logo .icon { font-size: 22px; }
+  .sidebar-nav { padding: 12px 0; flex: 1; }
+  .nav-item {
+    display: flex; align-items: center; gap: 10px; padding: 10px 20px; cursor: pointer;
+    font-size: 14px; color: #666; transition: all 0.2s; border-left: 3px solid transparent;
+  }
+  .nav-item:hover { background: var(--p-light); color: var(--p); }
+  .nav-item.active { background: var(--p-light); color: var(--p); border-left-color: var(--p); font-weight: 600; }
+  .nav-icon { font-size: 18px; width: 24px; text-align: center; }
+  .sidebar-footer {
+    padding: 16px 20px; border-top: 1px solid var(--g200); font-size: 12px; color: #bbb;
+  }
+  .sidebar-footer .clock { font-size: 13px; color: #888; font-weight: 500; }
+
+  /* ========== Main Area ========== */
+  .main-area { margin-left: var(--sidebar-w); flex: 1; min-height: 100vh; }
+  .topbar {
+    background: #fff; border-bottom: 1px solid var(--g200); padding: 0 28px;
+    display: flex; align-items: center; justify-content: space-between; height: 56px;
+    position: sticky; top: 0; z-index: 50;
+  }
+  .topbar-title { font-size: 16px; font-weight: 600; }
+  .topbar-right { display: flex; align-items: center; gap: 16px; font-size: 13px; color: #666; }
+  .topbar-avatar {
+    width: 32px; height: 32px; border-radius: 50%; background: var(--success);
+    color: #fff; display: flex; align-items: center; justify-content: center; font-size: 14px; font-weight: 600;
+  }
+  .content { padding: 24px 28px; max-width: 1200px; }
+  .page { display: none; }
+  .page.active { display: block; }
+  .page-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 20px; flex-wrap: wrap; gap: 8px; }
+  .page-title { font-size: 20px; font-weight: 700; }
+
+  /* ========== Card ========== */
+  .card { background: #fff; border-radius: var(--radius); box-shadow: var(--shadow); padding: 20px; }
+
+  /* ========== Stat Cards ========== */
+  .stat-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; margin-bottom: 24px; }
+  .stat-card {
+    background: #fff; border-radius: var(--radius); box-shadow: var(--shadow);
+    padding: 20px; display: flex; justify-content: space-between; align-items: flex-start;
+  }
+  .stat-info { flex: 1; }
+  .stat-label { font-size: 13px; color: #888; margin-bottom: 6px; }
+  .stat-value { font-size: 28px; font-weight: 700; line-height: 1.2; }
+  .stat-sub { font-size: 12px; color: #999; margin-top: 4px; }
+  .stat-icon { width: 48px; height: 48px; border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 22px; flex-shrink: 0; }
+
+  /* ========== Workload Columns ========== */
+  .workload-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; margin-bottom: 24px; }
+  .workload-col { background: #fff; border-radius: var(--radius); box-shadow: var(--shadow); overflow: hidden; }
+  .workload-header {
+    padding: 12px 16px; color: #fff; font-weight: 600; font-size: 14px;
+    display: flex; align-items: center; justify-content: space-between;
+  }
+  .workload-header.frozen { background: #1890ff; }
+  .workload-header.cold { background: #13c2c2; }
+  .workload-header.normal { background: #fa8c16; }
+  .workload-body { padding: 14px 16px; }
+  .workload-row { display: flex; justify-content: space-between; padding: 6px 0; font-size: 13px; }
+  .workload-row + .workload-row { border-top: 1px solid var(--g100); }
+  .workload-val { font-weight: 600; }
+
+  /* ========== Alert Panel ========== */
+  .alert-panel { margin-bottom: 24px; }
+  .alert-title { font-size: 15px; font-weight: 600; margin-bottom: 12px; display: flex; align-items: center; gap: 6px; }
+  .alert-list { display: flex; flex-direction: column; gap: 8px; }
+  .alert-item {
+    display: flex; align-items: center; gap: 10px; padding: 10px 14px;
+    border-radius: 8px; font-size: 13px;
+  }
+  .alert-item.high { background: #fff1f0; border-left: 3px solid var(--danger); }
+  .alert-item.mid  { background: #fff7e6; border-left: 3px solid var(--warning); }
+  .alert-item.low  { background: #e6f4ff; border-left: 3px solid var(--p); }
+  .alert-icon { font-size: 18px; }
+  .alert-text { flex: 1; }
+  .alert-time { font-size: 12px; color: #aaa; white-space: nowrap; }
+
+  /* ========== Kanban ========== */
+  .kanban-board { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; }
+  .kanban-col { background: var(--g100); border-radius: var(--radius); padding: 12px; min-height: 400px; }
+  .kanban-col-header {
+    font-weight: 600; font-size: 14px; margin-bottom: 12px; padding: 8px;
+    display: flex; align-items: center; justify-content: space-between;
+  }
+  .kanban-count {
+    display: inline-flex; align-items: center; justify-content: center;
+    min-width: 22px; height: 22px; border-radius: 11px; background: var(--g200);
+    font-size: 12px; font-weight: 600; padding: 0 6px;
+  }
+  .kanban-cards { display: flex; flex-direction: column; gap: 10px; }
+  .kanban-card {
+    background: #fff; border-radius: 8px; box-shadow: var(--shadow); padding: 14px;
+    cursor: pointer; transition: transform 0.15s, box-shadow 0.15s;
+  }
+  .kanban-card:hover { transform: translateY(-2px); box-shadow: var(--shadow-lg); }
+  .kanban-card-id { font-weight: 600; font-size: 13px; margin-bottom: 6px; }
+  .kanban-card-row { font-size: 12px; color: #666; margin-bottom: 3px; display: flex; align-items: center; gap: 4px; }
+  .kanban-card-row .label { color: #aaa; min-width: 48px; }
+  .kanban-card-sku { display: inline-block; padding: 1px 6px; background: var(--p-light); color: var(--p); border-radius: 3px; font-size: 11px; margin-top: 4px; }
+  .kanban-card-priority { display: inline-block; padding: 1px 6px; border-radius: 3px; font-size: 11px; font-weight: 500; }
+  .priority-high { background: #fff1f0; color: var(--danger); }
+  .priority-mid  { background: #fff7e6; color: #d48806; }
+  .priority-low  { background: #f6ffed; color: var(--success); }
+
+  /* ========== Modal ========== */
+  .modal-overlay {
+    position: fixed; inset: 0; background: rgba(0,0,0,0.45); z-index: 200;
+    display: none; align-items: center; justify-content: center;
+  }
+  .modal-overlay.show { display: flex; }
+  .modal {
+    background: #fff; border-radius: var(--radius); box-shadow: var(--shadow-lg);
+    width: 560px; max-width: 95vw; max-height: 85vh; overflow-y: auto;
+  }
+  .modal-header {
+    padding: 16px 20px; border-bottom: 1px solid var(--g200);
+    display: flex; align-items: center; justify-content: space-between;
+  }
+  .modal-title { font-size: 16px; font-weight: 600; }
+  .modal-close {
+    width: 28px; height: 28px; border: none; background: var(--g100); border-radius: 6px;
+    cursor: pointer; font-size: 16px; display: flex; align-items: center; justify-content: center;
+    transition: background 0.2s;
+  }
+  .modal-close:hover { background: var(--g200); }
+  .modal-body { padding: 20px; }
+  .modal-footer { padding: 12px 20px; border-top: 1px solid var(--g200); display: flex; justify-content: flex-end; gap: 8px; }
+
+  /* ========== SKU Checklist ========== */
+  .sku-checklist { list-style: none; }
+  .sku-item {
+    display: flex; align-items: center; gap: 10px; padding: 10px 0;
+    border-bottom: 1px solid var(--g100); font-size: 13px;
+  }
+  .sku-item:last-child { border-bottom: none; }
+  .sku-check {
+    width: 20px; height: 20px; border: 2px solid var(--g200); border-radius: 4px;
+    cursor: pointer; display: flex; align-items: center; justify-content: center;
+    transition: all 0.2s; flex-shrink: 0; font-size: 12px; color: transparent;
+  }
+  .sku-check.checked { background: var(--success); border-color: var(--success); color: #fff; }
+  .sku-name { flex: 1; }
+  .sku-shelf { font-size: 12px; color: #888; background: var(--g100); padding: 2px 8px; border-radius: 4px; font-family: monospace; }
+  .sku-qty { font-weight: 600; min-width: 40px; text-align: right; }
+  .scan-btn {
+    padding: 8px 20px; background: var(--p); color: #fff; border: none; border-radius: 6px;
+    cursor: pointer; font-size: 13px; font-family: var(--font); font-weight: 500;
+    display: flex; align-items: center; gap: 6px; transition: opacity 0.2s;
+  }
+  .scan-btn:hover { opacity: 0.9; }
+
+  /* ========== Outbound Review ========== */
+  .review-section { margin-bottom: 20px; }
+  .review-section-title { font-size: 14px; font-weight: 600; margin-bottom: 12px; padding-bottom: 8px; border-bottom: 1px solid var(--g200); }
+  .review-info-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; margin-bottom: 16px; }
+  .review-info-item { font-size: 13px; }
+  .review-info-label { color: #888; margin-bottom: 2px; }
+  .review-info-value { font-weight: 500; }
+  table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  th { background: var(--g100); padding: 10px 12px; text-align: left; font-weight: 600; color: #555; }
+  td { padding: 10px 12px; border-bottom: 1px solid var(--g100); }
+  tr:hover td { background: var(--g50); }
+  .verify-badge { padding: 2px 8px; border-radius: 4px; font-size: 11px; font-weight: 500; }
+  .verify-ok { background: #f6ffed; color: var(--success); }
+  .verify-pending { background: #fff7e6; color: var(--warning); }
+
+  /* ========== Packaging Selector ========== */
+  .pkg-options { display: flex; gap: 12px; margin-bottom: 16px; flex-wrap: wrap; }
+  .pkg-option {
+    flex: 1; min-width: 140px; padding: 14px; border: 2px solid var(--g200); border-radius: 8px;
+    cursor: pointer; transition: all 0.2s; text-align: center;
+  }
+  .pkg-option:hover { border-color: var(--p); }
+  .pkg-option.selected { border-color: var(--p); background: var(--p-light); }
+  .pkg-icon { font-size: 28px; margin-bottom: 6px; }
+  .pkg-name { font-size: 13px; font-weight: 600; }
+  .pkg-desc { font-size: 11px; color: #888; margin-top: 2px; }
+
+  /* ========== Temp Sticker Preview ========== */
+  .temp-sticker {
+    display: inline-flex; align-items: center; gap: 8px; padding: 10px 16px;
+    border-radius: 8px; border: 2px dashed var(--g200); font-size: 13px; margin-bottom: 16px;
+  }
+  .temp-sticker .temp-val { font-size: 20px; font-weight: 700; }
+  .temp-sticker .temp-range { font-size: 12px; color: #888; }
+
+  /* ========== Cross-warehouse Progress ========== */
+  .agg-cards { display: flex; flex-direction: column; gap: 16px; }
+  .agg-card { background: #fff; border-radius: var(--radius); box-shadow: var(--shadow); padding: 20px; }
+  .agg-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px; flex-wrap: wrap; gap: 8px; }
+  .agg-title { font-weight: 600; font-size: 14px; }
+  .agg-meta { font-size: 12px; color: #888; }
+  .agg-progress { display: flex; align-items: center; gap: 0; margin-bottom: 12px; }
+  .agg-step { display: flex; flex-direction: column; align-items: center; min-width: 80px; }
+  .agg-dot {
+    width: 24px; height: 24px; border-radius: 50%; background: var(--g200);
+    display: flex; align-items: center; justify-content: center; font-size: 11px; color: #fff;
+    z-index: 2; font-weight: 600;
+  }
+  .agg-dot.done { background: var(--success); }
+  .agg-dot.active { background: var(--p); animation: pulse 1.5s infinite; }
+  @keyframes pulse {
+    0%, 100% { box-shadow: 0 0 0 0 rgba(22,119,255,0.4); }
+    50% { box-shadow: 0 0 0 8px rgba(22,119,255,0); }
+  }
+  .agg-line { height: 3px; flex: 1; background: var(--g200); min-width: 16px; border-radius: 2px; }
+  .agg-line.done { background: var(--success); }
+  .agg-step-label { font-size: 11px; color: #999; margin-top: 6px; white-space: nowrap; }
+  .agg-step-label.active { color: var(--p); font-weight: 600; }
+  .agg-detail { font-size: 13px; color: #666; display: flex; gap: 20px; flex-wrap: wrap; }
+
+  /* ========== Exception Cards ========== */
+  .exception-cards { display: flex; flex-direction: column; gap: 12px; }
+  .exception-card {
+    background: #fff; border-radius: var(--radius); box-shadow: var(--shadow);
+    padding: 16px 20px; border-left: 4px solid; display: flex; align-items: flex-start; gap: 14px;
+  }
+  .exception-card.stockout { border-left-color: var(--danger); }
+  .exception-card.temp    { border-left-color: var(--warning); }
+  .exception-card.damage  { border-left-color: var(--p); }
+  .exception-icon { font-size: 28px; flex-shrink: 0; margin-top: 2px; }
+  .exception-info { flex: 1; }
+  .exception-title { font-weight: 600; font-size: 14px; margin-bottom: 4px; }
+  .exception-desc { font-size: 13px; color: #666; margin-bottom: 8px; line-height: 1.5; }
+  .exception-meta { font-size: 12px; color: #999; margin-bottom: 10px; }
+  .exception-actions { display: flex; gap: 8px; flex-wrap: wrap; }
+  .btn {
+    padding: 6px 16px; border: 1px solid var(--g200); border-radius: 6px; background: #fff;
+    cursor: pointer; font-size: 13px; font-family: var(--font); transition: all 0.2s;
+  }
+  .btn:hover { border-color: var(--p); color: var(--p); }
+  .btn-primary { background: var(--p); color: #fff; border-color: var(--p); }
+  .btn-primary:hover { opacity: 0.9; color: #fff; }
+  .btn-danger { background: var(--danger); color: #fff; border-color: var(--danger); }
+  .btn-danger:hover { opacity: 0.9; color: #fff; }
+  .btn-warning { background: var(--warning); color: #fff; border-color: var(--warning); }
+  .btn-warning:hover { opacity: 0.9; color: #fff; }
+
+  /* ========== Confirm Dialog ========== */
+  .confirm-overlay {
+    position: fixed; inset: 0; background: rgba(0,0,0,0.45); z-index: 300;
+    display: none; align-items: center; justify-content: center;
+  }
+  .confirm-overlay.show { display: flex; }
+  .confirm-box {
+    background: #fff; border-radius: var(--radius); box-shadow: var(--shadow-lg);
+    width: 400px; max-width: 90vw; padding: 24px; text-align: center;
+  }
+  .confirm-icon { font-size: 40px; margin-bottom: 12px; }
+  .confirm-title { font-size: 16px; font-weight: 600; margin-bottom: 8px; }
+  .confirm-desc { font-size: 13px; color: #666; margin-bottom: 20px; }
+  .confirm-actions { display: flex; justify-content: center; gap: 12px; }
+
+  /* ========== Toast ========== */
+  .toast {
+    position: fixed; top: 80px; right: 28px; padding: 12px 20px;
+    background: var(--g800); color: #fff; border-radius: 8px; font-size: 14px;
+    z-index: 999; transform: translateX(140%); transition: transform 0.3s ease;
+    box-shadow: var(--shadow-lg); pointer-events: none;
+  }
+  .toast.show { transform: translateX(0); }
+
+  /* ========== Responsive ========== */
+  @media (max-width: 900px) {
+    .sidebar { width: 60px; }
+    .sidebar-logo span, .nav-text, .sidebar-footer { display: none; }
+    .main-area { margin-left: 60px; }
+    .stat-grid { grid-template-columns: repeat(2, 1fr); }
+    .kanban-board { grid-template-columns: 1fr; }
+    .workload-grid { grid-template-columns: 1fr; }
+  }
+</style>
+</head>
+<body>
+
+<!-- ========== Sidebar ========== -->
+<div class="sidebar">
+  <div class="sidebar-logo">
+    <span class="icon">🏭</span>
+    <span>B2B 仓端管理</span>
+  </div>
+  <nav class="sidebar-nav" id="sidebarNav">
+    <div class="nav-item active" data-page="dashboard">
+      <span class="nav-icon">📊</span><span class="nav-text">Dashboard</span>
+    </div>
+    <div class="nav-item" data-page="kanban">
+      <span class="nav-icon">📋</span><span class="nav-text">分拣看板</span>
+    </div>
+    <div class="nav-item" data-page="outbound">
+      <span class="nav-icon">📦</span><span class="nav-text">出库复核</span>
+    </div>
+    <div class="nav-item" data-page="aggregation">
+      <span class="nav-icon">🔄</span><span class="nav-text">跨仓聚合</span>
+    </div>
+    <div class="nav-item" data-page="exceptions">
+      <span class="nav-icon">⚠️</span><span class="nav-text">异常处理</span>
+    </div>
+  </nav>
+  <div class="sidebar-footer">
+    <div class="clock" id="clock">--:--:--</div>
+    <div style="margin-top:4px;">华东中心仓 WMS</div>
+  </div>
+</div>
+
+<!-- ========== Main Area ========== -->
+<div class="main-area">
+  <div class="topbar">
+    <div class="topbar-title" id="topbarTitle">Dashboard</div>
+    <div class="topbar-right">
+      <span id="topDate">2026-07-23</span>
+      <span>华东中心仓</span>
+      <div class="topbar-avatar">仓</div>
+    </div>
+  </div>
+
+  <div class="content">
+
+    <!-- ==================== PAGE 1: Dashboard ==================== -->
+    <div class="page active" id="page-dashboard">
+      <div class="stat-grid">
+        <div class="stat-card">
+          <div class="stat-info">
+            <div class="stat-label">待处理</div>
+            <div class="stat-value" style="color:var(--warning);">24</div>
+            <div class="stat-sub">较昨日 +3</div>
+          </div>
+          <div class="stat-icon" style="background:#fff7e6;color:#fa8c16;">📋</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-info">
+            <div class="stat-label">拣货中</div>
+            <div class="stat-value" style="color:var(--p);">18</div>
+            <div class="stat-sub">6 人作业中</div>
+          </div>
+          <div class="stat-icon" style="background:#e6f4ff;color:#1677ff;">🔍</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-info">
+            <div class="stat-label">待出库</div>
+            <div class="stat-value" style="color:#2f54eb;">9</div>
+            <div class="stat-sub">等待复核</div>
+          </div>
+          <div class="stat-icon" style="background:#f0f5ff;color:#2f54eb;">📦</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-info">
+            <div class="stat-label">异常</div>
+            <div class="stat-value" style="color:var(--danger);">3</div>
+            <div class="stat-sub">需立即处理</div>
+          </div>
+          <div class="stat-icon" style="background:#fff1f0;color:#f5222d;">⚠️</div>
+        </div>
+      </div>
+
+      <div class="workload-grid">
+        <div class="workload-col">
+          <div class="workload-header frozen">🧊 冷冻区</div>
+          <div class="workload-body">
+            <div class="workload-row"><span>待拣货</span><span class="workload-val">8</span></div>
+            <div class="workload-row"><span>拣货中</span><span class="workload-val">5</span></div>
+            <div class="workload-row"><span>已完成</span><span class="workload-val">12</span></div>
+            <div class="workload-row"><span>库位利用率</span><span class="workload-val" style="color:var(--warning);">78%</span></div>
+            <div class="workload-row"><span>温度</span><span class="workload-val" style="color:#1890ff;">-18°C</span></div>
+          </div>
+        </div>
+        <div class="workload-col">
+          <div class="workload-header cold">❄️ 冷藏区</div>
+          <div class="workload-body">
+            <div class="workload-row"><span>待拣货</span><span class="workload-val">10</span></div>
+            <div class="workload-row"><span>拣货中</span><span class="workload-val">7</span></div>
+            <div class="workload-row"><span>已完成</span><span class="workload-val">15</span></div>
+            <div class="workload-row"><span>库位利用率</span><span class="workload-val" style="color:var(--success);">62%</span></div>
+            <div class="workload-row"><span>温度</span><span class="workload-val" style="color:#13c2c2;">4°C</span></div>
+          </div>
+        </div>
+        <div class="workload-col">
+          <div class="workload-header normal">🌡️ 常温区</div>
+          <div class="workload-body">
+            <div class="workload-row"><span>待拣货</span><span class="workload-val">6</span></div>
+            <div class="workload-row"><span>拣货中</span><span class="workload-val">6</span></div>
+            <div class="workload-row"><span>已完成</span><span class="workload-val">9</span></div>
+            <div class="workload-row"><span>库位利用率</span><span class="workload-val" style="color:var(--danger);">91%</span></div>
+            <div class="workload-row"><span>温度</span><span class="workload-val" style="color:#fa8c16;">22°C</span></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="alert-panel card">
+        <div class="alert-title">🔔 实时告警</div>
+        <div class="alert-list">
+          <div class="alert-item high">
+            <span class="alert-icon">🔴</span>
+            <span class="alert-text">冷冻区 A-03 库位温度异常升高至 -12°C，超出阈值</span>
+            <span class="alert-time">3 分钟前</span>
+          </div>
+          <div class="alert-item mid">
+            <span class="alert-icon">🟠</span>
+            <span class="alert-text">订单 DD-B2B-20260723-005 库存不足，缺少「澳洲谷饲肥牛卷」5 件</span>
+            <span class="alert-time">12 分钟前</span>
+          </div>
+          <div class="alert-item low">
+            <span class="alert-icon">🔵</span>
+            <span class="alert-text">跨仓调拨单 TW-20260723-002 已到达，等待入库确认</span>
+            <span class="alert-time">28 分钟前</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ==================== PAGE 2: 分拣看板 ==================== -->
+    <div class="page" id="page-kanban">
+      <div class="page-header">
+        <div class="page-title">分拣看板</div>
+      </div>
+      <div class="kanban-board" id="kanbanBoard"></div>
+    </div>
+
+    <!-- ==================== PAGE 3: 出库复核 ==================== -->
+    <div class="page" id="page-outbound">
+      <div class="page-header">
+        <div class="page-title">出库复核</div>
+      </div>
+      <div class="card" id="outboundContent"></div>
+    </div>
+
+    <!-- ==================== PAGE 4: 跨仓聚合 ==================== -->
+    <div class="page" id="page-aggregation">
+      <div class="page-header">
+        <div class="page-title">跨仓聚合</div>
+      </div>
+      <div class="agg-cards" id="aggContent"></div>
+    </div>
+
+    <!-- ==================== PAGE 5: 异常处理 ==================== -->
+    <div class="page" id="page-exceptions">
+      <div class="page-header">
+        <div class="page-title">异常处理</div>
+      </div>
+      <div class="exception-cards" id="exceptionContent"></div>
+    </div>
+
+  </div>
+</div>
+
+<!-- ========== Kanban Detail Modal ========== -->
+<div class="modal-overlay" id="kanbanModal">
+  <div class="modal">
+    <div class="modal-header">
+      <div class="modal-title" id="modalTitle">分拣详情</div>
+      <button class="modal-close" onclick="closeKanbanModal()">✕</button>
+    </div>
+    <div class="modal-body" id="modalBody"></div>
+    <div class="modal-footer" id="modalFooter"></div>
+  </div>
+</div>
+
+<!-- ========== Confirm Dialog ========== -->
+<div class="confirm-overlay" id="confirmDialog">
+  <div class="confirm-box">
+    <div class="confirm-icon" id="confirmIcon">❓</div>
+    <div class="confirm-title" id="confirmTitle">确认操作</div>
+    <div class="confirm-desc" id="confirmDesc">确定要执行此操作吗？</div>
+    <div class="confirm-actions">
+      <button class="btn" onclick="closeConfirm()">取消</button>
+      <button class="btn btn-primary" id="confirmOkBtn" onclick="confirmAction()">确认</button>
+    </div>
+  </div>
+</div>
+
+<!-- Toast -->
+<div class="toast" id="toast"></div>
+
+<script>
+/* ========================================================================
+   DATA
+   ======================================================================== */
+const KANBAN_DATA = {
+  pending: [
+    { id:"DD-B2B-20260723-010", customer:"鑫品湾餐厅", skuCount:8, priority:"high", time:"08:45",
+      skus: [
+        { name:"澳洲谷饲肥牛卷", shelf:"A-01-03", qty:5 },
+        { name:"厄瓜多尔白虾", shelf:"A-02-07", qty:3 },
+        { name:"光明鲜奶", shelf:"B-03-01", qty:10 },
+        { name:"有机西蓝花", shelf:"B-01-05", qty:8 },
+        { name:"东北五常大米", shelf:"C-02-02", qty:4 },
+        { name:"海天特级生抽", shelf:"C-03-04", qty:6 },
+        { name:"黑猪五花肉", shelf:"A-01-06", qty:4 },
+        { name:"手工虾仁馄饨", shelf:"A-03-02", qty:6 },
+      ] },
+    { id:"DD-B2B-20260723-011", customer:"海之味日料", skuCount:5, priority:"mid", time:"09:00",
+      skus: [
+        { name:"鲜活鲈鱼", shelf:"B-02-03", qty:10 },
+        { name:"厄瓜多尔白虾", shelf:"A-02-07", qty:5 },
+        { name:"光明鲜奶", shelf:"B-03-01", qty:6 },
+        { name:"日日鲜豆腐", shelf:"B-02-01", qty:8 },
+        { name:"有机西蓝花", shelf:"B-01-05", qty:4 },
+      ] },
+    { id:"DD-B2B-20260723-012", customer:"枫林晚咖啡", skuCount:3, priority:"low", time:"09:15",
+      skus: [
+        { name:"光明鲜奶", shelf:"B-03-01", qty:20 },
+        { name:"农夫山泉矿泉水", shelf:"C-01-01", qty:10 },
+        { name:"金龙鱼菜籽油", shelf:"C-02-05", qty:2 },
+      ] },
+  ],
+  picking: [
+    { id:"DD-B2B-20260723-005", customer:"望湘园", skuCount:6, priority:"high", time:"08:10",
+      skus: [
+        { name:"澳洲谷饲肥牛卷", shelf:"A-01-03", qty:10 },
+        { name:"黑猪五花肉", shelf:"A-01-06", qty:8 },
+        { name:"厄瓜多尔白虾", shelf:"A-02-07", qty:6 },
+        { name:"金龙鱼菜籽油", shelf:"C-02-05", qty:3 },
+        { name:"海天特级生抽", shelf:"C-03-04", qty:5 },
+        { name:"东北五常大米", shelf:"C-02-02", qty:4 },
+      ] },
+    { id:"DD-B2B-20260723-006", customer:"外婆家", skuCount:4, priority:"mid", time:"08:20",
+      skus: [
+        { name:"有机西蓝花", shelf:"B-01-05", qty:12 },
+        { name:"日日鲜豆腐", shelf:"B-02-01", qty:10 },
+        { name:"光明鲜奶", shelf:"B-03-01", qty:8 },
+        { name:"农夫山泉矿泉水", shelf:"C-01-01", qty:15 },
+      ] },
+  ],
+  completed: [
+    { id:"DD-B2B-20260723-001", customer:"鑫品湾餐厅", skuCount:12, priority:"low", time:"07:30",
+      skus: [
+        { name:"澳洲谷饲肥牛卷", shelf:"A-01-03", qty:8 },
+        { name:"黑猪五花肉", shelf:"A-01-06", qty:6 },
+        { name:"光明鲜奶", shelf:"B-03-01", qty:15 },
+        { name:"东北五常大米", shelf:"C-02-02", qty:5 },
+      ] },
+    { id:"DD-B2B-20260723-002", customer:"海底捞", skuCount:9, priority:"low", time:"07:45",
+      skus: [
+        { name:"澳洲谷饲肥牛卷", shelf:"A-01-03", qty:15 },
+        { name:"手工虾仁馄饨", shelf:"A-03-02", qty:10 },
+        { name:"鲜活鲈鱼", shelf:"B-02-03", qty:8 },
+        { name:"金龙鱼菜籽油", shelf:"C-02-05", qty:4 },
+      ] },
+    { id:"DD-B2B-20260723-003", customer:"一兰拉面", skuCount:5, priority:"low", time:"07:50",
+      skus: [
+        { name:"厄瓜多尔白虾", shelf:"A-02-07", qty:10 },
+        { name:"日日鲜豆腐", shelf:"B-02-01", qty:6 },
+        { name:"光明鲜奶", shelf:"B-03-01", qty:4 },
+      ] },
+  ],
+};
+
+const AGG_TASKS = [
+  { id:"TW-20260723-001", from:"浦东仓", to:"华东中心仓", skus:12, weight:"86kg", step:3,
+    steps:["待调出","已出库","运输中","已到达","已入库"], eta:"14:30" },
+  { id:"TW-20260723-002", from:"嘉定仓", to:"华东中心仓", skus:8, weight:"45kg", step:2,
+    steps:["待调出","已出库","运输中","已到达","已入库"], eta:"15:00" },
+  { id:"TW-20260723-003", from:"松江仓", to:"华东中心仓", skus:5, weight:"32kg", step:0,
+    steps:["待调出","已出库","运输中","已到达","已入库"], eta:"16:00" },
+];
+
+const EXCEPTIONS = [
+  { type:"stockout", icon:"🔴", title:"库存短缺", order:"DD-B2B-20260723-005",
+    desc:"「澳洲谷饲肥牛卷」库存不足，当前库存 2 件，订单需求 10 件，缺口 8 件。",
+    time:"10 分钟前", actions:["transpile","substitute","cancel"] },
+  { type:"temp", icon:"🟠", title:"温控异常", order:"冷冻区 A-03",
+    desc:"库位 A-03 温度传感器显示 -12°C，超出冷冻区标准阈值 -18°C ±2°C。已持续 8 分钟。",
+    time:"3 分钟前", actions:["dispatch","transfer","ignore"] },
+  { type:"damage", icon:"🔵", title:"商品破损", order:"DD-B2B-20260723-008",
+    desc:"「光明鲜奶」3 箱在出库复核时发现外包装破损，液态奶泄漏。需更换并清理。",
+    time:"25 分钟前", actions:["replace","discard","report"] },
+];
+
+const ACTION_LABELS = {
+  transpile: "紧急调拨", substitute: "商品替换", cancel: "取消订单",
+  dispatch: "派维修员", transfer: "转移库存", ignore: "标记已知",
+  replace: "更换商品", discard: "报废处理", report: "上报主管",
+};
+
+let pendingConfirm = null;
+
+/* ========================================================================
+   SIDEBAR NAV
+   ======================================================================== */
+const PAGE_TITLES = {
+  dashboard: "Dashboard", kanban: "分拣看板", outbound: "出库复核",
+  aggregation: "跨仓聚合", exceptions: "异常处理",
+};
+
+document.querySelectorAll('.nav-item').forEach(item => {
+  item.addEventListener('click', () => {
+    const page = item.dataset.page;
+    document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+    item.classList.add('active');
+    document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+    document.getElementById('page-' + page).classList.add('active');
+    document.getElementById('topbarTitle').textContent = PAGE_TITLES[page] || '';
+  });
+});
+
+/* ========================================================================
+   CLOCK
+   ======================================================================== */
+function updateClock() {
+  const now = new Date();
+  const h = String(now.getHours()).padStart(2, '0');
+  const m = String(now.getMinutes()).padStart(2, '0');
+  const s = String(now.getSeconds()).padStart(2, '0');
+  document.getElementById('clock').textContent = h + ':' + m + ':' + s;
+}
+
+/* ========================================================================
+   PAGE 2: KANBAN
+   ======================================================================== */
+function renderKanban() {
+  const colDefs = [
+    { key:"pending",   title:"待拣货", color:"#fa8c16" },
+    { key:"picking",   title:"拣货中", color:"#1677ff" },
+    { key:"completed", title:"已完成", color:"#52c41a" },
+  ];
+  const board = document.getElementById('kanbanBoard');
+  board.innerHTML = colDefs.map(col => {
+    const cards = KANBAN_DATA[col.key];
+    const cardsHtml = cards.map(c => {
+      const pCls = { high:"priority-high", mid:"priority-mid", low:"priority-low" }[c.priority];
+      const pLabel = { high:"紧急", mid:"普通", low:"低" }[c.priority];
+      return `
+        <div class="kanban-card" onclick="openKanbanModal('${col.key}','${c.id}')">
+          <div class="kanban-card-id">${c.id}</div>
+          <div class="kanban-card-row"><span class="label">客户</span>${c.customer}</div>
+          <div class="kanban-card-row"><span class="label">时间</span>${c.time}</div>
+          <div class="kanban-card-row">
+            <span class="kanban-card-sku">${c.skuCount} 个 SKU</span>
+            <span class="kanban-card-priority ${pCls}">${pLabel}</span>
+          </div>
+        </div>`;
+    }).join('');
+    return `
+      <div class="kanban-col">
+        <div class="kanban-col-header">
+          <span>${col.title}</span>
+          <span class="kanban-count" style="background:${col.color}22;color:${col.color};">${cards.length}</span>
+        </div>
+        <div class="kanban-cards">${cardsHtml}</div>
+      </div>`;
+  }).join('');
+}
+
+function openKanbanModal(colKey, orderId) {
+  const order = KANBAN_DATA[colKey].find(o => o.id === orderId);
+  if (!order) return;
+  const modal = document.getElementById('kanbanModal');
+  document.getElementById('modalTitle').textContent = '分拣详情 - ' + order.id;
+
+  const skusHtml = order.skus.map((sku, i) => `
+    <li class="sku-item" data-index="${i}">
+      <div class="sku-check${colKey === 'completed' ? ' checked' : ''}" onclick="toggleSkuCheck(this)">${colKey === 'completed' ? '✓' : ''}</div>
+      <span class="sku-name">${sku.name}</span>
+      <span class="sku-shelf">${sku.shelf}</span>
+      <span class="sku-qty">${sku.qty} 件</span>
+    </li>
+  `).join('');
+
+  document.getElementById('modalBody').innerHTML = `
+    <div style="display:flex;gap:20px;flex-wrap:wrap;margin-bottom:16px;font-size:13px;">
+      <div><span style="color:#888;">客户：</span><strong>${order.customer}</strong></div>
+      <div><span style="color:#888;">下单时间：</span>${order.time}</div>
+      <div><span style="color:#888;">SKU 数：</span>${order.skuCount}</div>
+    </div>
+    <div style="margin-bottom:12px;display:flex;align-items:center;justify-content:space-between;">
+      <strong style="font-size:14px;">拣货清单</strong>
+      <button class="scan-btn" onclick="simulateScan()">📱 模拟扫码</button>
+    </div>
+    <ul class="sku-checklist">${skusHtml}</ul>`;
+
+  const footerHtml = colKey === 'pending'
+    ? `<button class="btn" onclick="closeKanbanModal()">关闭</button>
+       <button class="btn btn-primary" onclick="completePicking('${orderId}')">开始拣货</button>`
+    : colKey === 'picking'
+    ? `<button class="btn" onclick="closeKanbanModal()">关闭</button>
+       <button class="btn btn-primary" onclick="completePicking('${orderId}')">完成拣货</button>`
+    : `<button class="btn" onclick="closeKanbanModal()">关闭</button>`;
+  document.getElementById('modalFooter').innerHTML = footerHtml;
+  modal.classList.add('show');
+}
+
+function closeKanbanModal() {
+  document.getElementById('kanbanModal').classList.remove('show');
+}
+
+function toggleSkuCheck(el) {
+  el.classList.toggle('checked');
+  el.textContent = el.classList.contains('checked') ? '✓' : '';
+}
+
+function simulateScan() {
+  const items = document.querySelectorAll('#kanbanModal .sku-check:not(.checked)');
+  if (items.length > 0) {
+    items[0].classList.add('checked');
+    items[0].textContent = '✓';
+    showToast('📱 扫码成功：已勾选 1 项');
+  } else {
+    showToast('✅ 所有 SKU 已扫码完成');
+  }
+}
+
+function completePicking(orderId) {
+  // Move from pending -> picking or picking -> completed
+  for (const key of ['pending', 'picking']) {
+    const idx = KANBAN_DATA[key].findIndex(o => o.id === orderId);
+    if (idx !== -1) {
+      const order = KANBAN_DATA[key].splice(idx, 1)[0];
+      const target = key === 'pending' ? 'picking' : 'completed';
+      KANBAN_DATA[target].push(order);
+      closeKanbanModal();
+      renderKanban();
+      showToast(key === 'pending' ? '✅ 已开始拣货' : '✅ 拣货完成！');
+      return;
+    }
+  }
+  closeKanbanModal();
+}
+
+/* ========================================================================
+   PAGE 3: OUTBOUND REVIEW
+   ======================================================================== */
+function renderOutbound() {
+  const order = KANBAN_DATA.completed[0];
+  const container = document.getElementById('outboundContent');
+
+  const skuRows = order.skus.map(sku => `
+    <tr>
+      <td>${sku.name}</td>
+      <td>${sku.shelf}</td>
+      <td>${sku.qty}</td>
+      <td>${sku.qty}</td>
+      <td><span class="verify-badge verify-ok">✓ 已核对</span></td>
+    </tr>
+  `).join('');
+
+  container.innerHTML = `
+    <div class="review-section">
+      <div class="review-section-title">订单信息</div>
+      <div class="review-info-grid">
+        <div class="review-info-item"><div class="review-info-label">订单号</div><div class="review-info-value">${order.id}</div></div>
+        <div class="review-info-item"><div class="review-info-label">客户</div><div class="review-info-value">${order.customer}</div></div>
+        <div class="review-info-item"><div class="review-info-label">SKU 数</div><div class="review-info-value">${order.skuCount}</div></div>
+        <div class="review-info-item"><div class="review-info-label">拣货完成时间</div><div class="review-info-value">08:05</div></div>
+      </div>
+    </div>
+
+    <div class="review-section">
+      <div class="review-section-title">SKU 核对</div>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>商品名称</th><th>库位</th><th>应出</th><th>实出</th><th>状态</th></tr></thead>
+          <tbody>${skuRows}</tbody>
+        </table>
+      </div>
+    </div>
+
+    <div class="review-section">
+      <div class="review-section-title">包装方案</div>
+      <div class="pkg-options" id="pkgOptions">
+        <div class="pkg-option selected" data-pkg="standard" onclick="selectPkg(this)">
+          <div class="pkg-icon">📦</div>
+          <div class="pkg-name">标准包装</div>
+          <div class="pkg-desc">普通纸箱 + 冰袋</div>
+        </div>
+        <div class="pkg-option" data-pkg="coldchain" onclick="selectPkg(this)">
+          <div class="pkg-icon">🧊</div>
+          <div class="pkg-name">加强冷链</div>
+          <div class="pkg-desc">保温箱 + 干冰</div>
+        </div>
+        <div class="pkg-option" data-pkg="bulk" onclick="selectPkg(this)">
+          <div class="pkg-icon">🏗️</div>
+          <div class="pkg-name">大单专供</div>
+          <div class="pkg-desc">托盘 + 缠绕膜</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="review-section">
+      <div class="review-section-title">温度标签预览</div>
+      <div class="temp-sticker" id="tempSticker">
+        <span style="font-size:24px;">🧊</span>
+        <div>
+          <div class="temp-val" style="color:#1890ff;">-18°C</div>
+          <div class="temp-range">冷冻 · 运输温度 -25°C ~ -15°C</div>
+        </div>
+      </div>
+      <div class="temp-sticker" style="margin-left:12px;">
+        <span style="font-size:24px;">❄️</span>
+        <div>
+          <div class="temp-val" style="color:#13c2c2;">4°C</div>
+          <div class="temp-range">冷藏 · 运输温度 0°C ~ 8°C</div>
+        </div>
+      </div>
+    </div>
+
+    <div style="display:flex;gap:12px;justify-content:flex-end;margin-top:20px;">
+      <button class="btn" onclick="showToast('📄 已打印面单')">打印面单</button>
+      <button class="btn btn-primary" onclick="confirmOutbound()">确认出库</button>
+    </div>`;
+}
+
+function selectPkg(el) {
+  document.querySelectorAll('.pkg-option').forEach(o => o.classList.remove('selected'));
+  el.classList.add('selected');
+  const pkg = el.dataset.pkg;
+  const sticker = document.getElementById('tempSticker');
+  if (pkg === 'coldchain') {
+    sticker.querySelector('.temp-range').textContent = '冷冻 · 加强冷链 -25°C ~ -15°C';
+  } else if (pkg === 'bulk') {
+    sticker.querySelector('.temp-range').textContent = '冷冻 · 大单专供托盘';
+  } else {
+    sticker.querySelector('.temp-range').textContent = '冷冻 · 运输温度 -25°C ~ -15°C';
+  }
+}
+
+function confirmOutbound() {
+  showConfirm('📦', '确认出库', '确认订单已完成复核并出库？出库后将通知配送团队。', () => {
+    showToast('✅ 已确认出库，配送团队已通知');
+  });
+}
+
+/* ========================================================================
+   PAGE 4: AGGREGATION
+   ======================================================================== */
+function renderAggregation() {
+  document.getElementById('aggContent').innerHTML = AGG_TASKS.map(task => {
+    const stepsHtml = task.steps.map((step, i) => {
+      let dotCls = '', lineCls = '', labelCls = '';
+      if (i < task.step)        { dotCls = 'done'; lineCls = 'done'; }
+      else if (i === task.step) { dotCls = 'active'; labelCls = 'active'; }
+      const inner = i < task.step ? '✓' : (i === task.step ? String(i + 1) : '');
+      const line = i < task.steps.length - 1
+        ? `<div class="agg-line ${i < task.step ? 'done' : ''}"></div>` : '';
+      return `<div class="agg-step">
+        <div class="agg-dot ${dotCls}">${inner}</div>
+        <div class="agg-step-label ${labelCls}">${step}</div>
+      </div>${line}`;
+    }).join('');
+
+    return `
+      <div class="agg-card">
+        <div class="agg-header">
+          <span class="agg-title">${task.id}</span>
+          <span class="agg-meta">${task.from} → ${task.to} · 预计 ${task.eta} 到达</span>
+        </div>
+        <div class="agg-progress">${stepsHtml}</div>
+        <div class="agg-detail">
+          <span>SKU: ${task.skus} 种</span>
+          <span>重量: ${task.weight}</span>
+          <span>状态: ${task.steps[task.step]}</span>
+        </div>
+      </div>`;
+  }).join('');
+}
+
+/* ========================================================================
+   PAGE 5: EXCEPTIONS
+   ======================================================================== */
+function renderExceptions() {
+  document.getElementById('exceptionContent').innerHTML = EXCEPTIONS.map((ex, i) => {
+    const cls = { stockout:"stockout", temp:"temp", damage:"damage" }[ex.type];
+    const btns = ex.actions.map(a => {
+      const label = ACTION_LABELS[a] || a;
+      const btnCls = a === 'cancel' || a === 'discard' ? 'btn-danger'
+        : a === 'ignore' ? '' : 'btn-warning';
+      return `<button class="btn ${btnCls}" onclick="handleException(${i},'${a}')">${label}</button>`;
+    }).join('');
+
+    return `
+      <div class="exception-card ${cls}">
+        <div class="exception-icon">${ex.icon}</div>
+        <div class="exception-info">
+          <div class="exception-title">${ex.title}</div>
+          <div class="exception-desc">${ex.desc}</div>
+          <div class="exception-meta">关联：${ex.order} · ${ex.time}</div>
+          <div class="exception-actions">${btns}</div>
+        </div>
+      </div>`;
+  }).join('');
+}
+
+function handleException(idx, action) {
+  const ex = EXCEPTIONS[idx];
+  const label = ACTION_LABELS[action] || action;
+  showConfirm(
+    ex.icon,
+    `${label}确认`,
+    `确定对「${ex.title}」执行「${label}」操作？此操作不可撤销。`,
+    () => {
+      showToast(`✅ 已执行「${label}」，${ex.order}`);
+      // Visual feedback: dim the card
+      const cards = document.querySelectorAll('.exception-card');
+      if (cards[idx]) cards[idx].style.opacity = '0.5';
+    }
+  );
+}
+
+/* ========================================================================
+   CONFIRM DIALOG
+   ======================================================================== */
+function showConfirm(icon, title, desc, onConfirm) {
+  document.getElementById('confirmIcon').textContent = icon;
+  document.getElementById('confirmTitle').textContent = title;
+  document.getElementById('confirmDesc').textContent = desc;
+  pendingConfirm = onConfirm;
+  document.getElementById('confirmDialog').classList.add('show');
+}
+
+function closeConfirm() {
+  document.getElementById('confirmDialog').classList.remove('show');
+  pendingConfirm = null;
+}
+
+function confirmAction() {
+  if (pendingConfirm) pendingConfirm();
+  closeConfirm();
+}
+
+/* ========================================================================
+   TOAST
+   ======================================================================== */
+function showToast(msg) {
+  const toast = document.getElementById('toast');
+  toast.textContent = msg;
+  toast.classList.add('show');
+  setTimeout(() => toast.classList.remove('show'), 2000);
+}
+
+/* ========================================================================
+   INIT
+   ======================================================================== */
+renderKanban();
+renderOutbound();
+renderAggregation();
+renderExceptions();
+updateClock();
+setInterval(updateClock, 1000);
+</script>
+</body>
+</html>

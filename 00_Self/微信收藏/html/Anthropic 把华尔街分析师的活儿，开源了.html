@@ -1,0 +1,652 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Anthropic 把华尔街分析师的活儿，开源了</title>
+<style>
+:root {
+  --bg: #ffffff;
+  --bg-secondary: #f8f9fa;
+  --text: #1a1a1a;
+  --text-secondary: #666666;
+  --border: #e5e7eb;
+  --accent: #2563eb;
+  --accent-light: #eff6ff;
+  --callout-bg: #f0f7ff;
+  --callout-border: #3b82f6;
+  --code-bg: #f3f4f6;
+}
+
+* { margin: 0; padding: 0; box-sizing: border-box; }
+
+body {
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC",
+    "Hiragino Sans GB", "Microsoft YaHei", "Helvetica Neue", Helvetica, Arial,
+    sans-serif;
+  background: var(--bg-secondary);
+  color: var(--text);
+  line-height: 1.8;
+  font-size: 16px;
+}
+
+.container {
+  max-width: 800px;
+  margin: 0 auto;
+  padding: 20px;
+}
+
+/* 头部 */
+.header {
+  background: var(--bg);
+  border-radius: 12px;
+  padding: 32px;
+  margin-bottom: 24px;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+}
+
+.header h1 {
+  font-size: 24px;
+  font-weight: 700;
+  line-height: 1.4;
+  margin-bottom: 16px;
+  color: var(--text);
+}
+
+.meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  font-size: 14px;
+  color: var(--text-secondary);
+  margin-bottom: 16px;
+}
+
+.meta-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.meta-item a {
+  color: var(--accent);
+  text-decoration: none;
+}
+
+.meta-item a:hover {
+  text-decoration: underline;
+}
+
+.tags {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.tag {
+  background: var(--accent-light);
+  color: var(--accent);
+  padding: 2px 10px;
+  border-radius: 12px;
+  font-size: 13px;
+  font-weight: 500;
+}
+
+/* Callout 摘要 */
+.callout {
+  background: var(--callout-bg);
+  border-left: 4px solid var(--callout-border);
+  border-radius: 0 8px 8px 0;
+  padding: 16px 20px;
+  margin: 20px 0;
+  font-size: 15px;
+  color: #1e40af;
+  line-height: 1.7;
+}
+
+.callout-label {
+  font-weight: 600;
+  margin-bottom: 4px;
+}
+
+/* 正文 */
+.content {
+  background: var(--bg);
+  border-radius: 12px;
+  padding: 32px;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+}
+
+.content h1 {
+  display: none;
+}
+
+.content h2 {
+  font-size: 20px;
+  font-weight: 600;
+  margin: 32px 0 16px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid var(--border);
+}
+
+.content h3 {
+  font-size: 18px;
+  font-weight: 600;
+  margin: 24px 0 12px;
+}
+
+.content h4 {
+  font-size: 16px;
+  font-weight: 600;
+  margin: 20px 0 8px;
+}
+
+.content p {
+  margin: 12px 0;
+}
+
+.content strong {
+  font-weight: 600;
+}
+
+.content img {
+  max-width: 100%;
+  height: auto;
+  border-radius: 8px;
+  margin: 16px 0;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+}
+
+.content ul, .content ol {
+  margin: 12px 0;
+  padding-left: 24px;
+}
+
+.content li {
+  margin: 6px 0;
+}
+
+.content blockquote {
+  border-left: 3px solid var(--border);
+  padding: 8px 16px;
+  margin: 16px 0;
+  color: var(--text-secondary);
+  background: var(--bg-secondary);
+  border-radius: 0 8px 8px 0;
+}
+
+.content code {
+  background: var(--code-bg);
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-family: "SF Mono", "Fira Code", Consolas, monospace;
+  font-size: 14px;
+}
+
+.content pre {
+  background: #1e293b;
+  color: #e2e8f0;
+  padding: 16px 20px;
+  border-radius: 8px;
+  overflow-x: auto;
+  margin: 16px 0;
+}
+
+.content pre code {
+  background: none;
+  padding: 0;
+  color: inherit;
+}
+
+.content a {
+  color: var(--accent);
+  text-decoration: none;
+}
+
+.content a:hover {
+  text-decoration: underline;
+}
+
+.content hr {
+  border: none;
+  border-top: 1px solid var(--border);
+  margin: 24px 0;
+}
+
+/* 底部链接 */
+.footer {
+  text-align: center;
+  padding: 24px;
+  font-size: 14px;
+  color: var(--text-secondary);
+}
+
+.footer a {
+  color: var(--accent);
+  text-decoration: none;
+}
+
+/* 响应式 */
+@media (max-width: 640px) {
+  .container { padding: 12px; }
+  .header, .content { padding: 20px; }
+  .header h1 { font-size: 20px; }
+}
+</style>
+</head>
+<body>
+<div class="container">
+  <div class="header">
+    <h1>Anthropic 把华尔街分析师的活儿，开源了</h1>
+    <div class="meta">
+      <span class="meta-item">📅 2026-07-27</span>
+      <span class="meta-item">🔗 <a href="https://mp.weixin.qq.com/s?__biz=Mzg2NTA4MTAwMQ==&mid=2247484059&idx=1&sn=c4135eefb2d0317861b2888933ad3af0&chksm=cff4a40253848e76eb93f8e6b980a5d867476afd6a9b86bfaabd31944d1ccc24695c78782d15&mpshare=1&scene=24&srcid=0527LBWhQJrtoItRjPj4FEpE&sharer_shareinfo=9bf5a6431b1463a8eb7bd0d4d878834c&sharer_shareinfo_first=2b4e27140a28bb8e5893aefea081a33e#rd" target="_blank">阅读原文</a></span>
+    </div>
+    <div class="tags"><span class="tag">#Clippings</span><span class="tag">#微信收藏</span></div>
+  </div>
+
+  <div class="callout">
+    <div class="callout-label">💡 内容摘要</div>
+    <div>> 🌐 [在线阅读 HTML 版本](html/Anthropic 把华尔街分析师的活儿，开源了.html) 从 Pitch Agent 到 GL Reconciler，10 个开箱即用的 Agent 模板，一份藏在 GitHub 上的"华尔街分析师 OS" 周二凌晨两点，VP 微信弹出来。 **"明早 9 点要个 pitch deck，目标 A、B、C 三家，comps、precedents 全套，再带个简化 LBO，老板要看。"** Associate 把第三杯美式一推，开始重复过去七年里所有挨过的夜——拉 Capital IQ，扒 10-K，搭三张表，复制粘贴到 PPT，调字号，对...</div>
+  </div>
+
+  <div class="content">
+    <blockquote>🌐 <a href="html/Anthropic 把华尔街分析师的活儿，开源了.html" target="_blank">在线阅读 HTML 版本</a></blockquote>
+<h1>Anthropic 把华尔街分析师的活儿，开源了</h1>
+<img src="../assets/942d6ddc7caa05215fb9b6819f4aa6f1_MD5.jpg" alt="cover_image" loading="lazy">
+<p>从 Pitch Agent 到 GL Reconciler，10 个开箱即用的 Agent 模板，一份藏在 GitHub 上的"华尔街分析师 OS"</p>
+<p>周二凌晨两点，VP 微信弹出来。</p>
+<p><strong>"明早 9 点要个 pitch deck，目标 A、B、C 三家，comps、precedents 全套，再带个简化 LBO，老板要看。"</strong></p>
+<p>Associate 把第三杯美式一推，开始重复过去七年里所有挨过的夜——拉 Capital IQ，扒 10-K，搭三张表，复制粘贴到 PPT，调字号，对齐 box，改 footnote 编号⋯⋯</p>
+<p>这套流程里，"分析"含量大概只占 15%。剩下 85% 是机械的数据搬运和格式工艺。</p>
+<p>投行、卖方研究、PE、资管的从业者都太熟悉这种夜了。AI 能不能把这 85% 吃掉？过去两年市面上的回答大多是"还不行"——demo 都很美，落到一份真实的 pitch book、一次真实的月末对账，处处卡壳。</p>
+<p>直到 5 月初，<strong>Anthropic 在 GitHub 上开源了一个名为<code>anthropics/financial-services</code>的项目</strong>，把 Claude 在金融场景里的 agent、skill、数据连接器全部以可复制的 reference 形式掏了出来。</p>
+<p>仓库目前<strong>16.9k stars、2.1k forks</strong>，金融科技类项目里现象级的体量。</p>
+<p>今天把它从头拆一遍，看看它到底在解决什么问题、对你的工作流意味着什么、怎么上手。</p>
+<p>📎 仓库地址：github.com/anthropics/financial-services</p>
+<p>✦ ✦ ✦</p>
+<p>PART 01</p>
+<h2>它到底是什么</h2>
+<p>官方定位非常克制：</p>
+<p>"Reference agents, skills, and data connectors for the financial-services workflows we see most."</p>
+<p>翻译过来——投行、股票研究、PE、财富管理这四个最常见的工作流，给你一份可以直接装的参考实现。</p>
+<p>说人话：Anthropic 把它在金融客户那里见到的高频任务（写 pitch、做 earnings note、对账、KYC⋯⋯）抽象成了——</p>
+<ul>
+<li><strong>10 个端到端的 Agent 模板</strong></li>
+<li><strong>7 个垂直领域 Skill 包</strong></li>
+<li><strong>11 个 MCP 数据连接器</strong></li>
+</ul>
+<p>全部用 Markdown 和 YAML 写成。<strong>没有编译步骤，fork 下来改一改就是你自家的工具。</strong></p>
+<p>真正聪明的是它的部署逻辑——<strong>"two ways from one source"</strong>。同一份 system prompt 和 skill，两种完全不同的运行方式：</p>
+<p>部署方式</p>
+<p>运行形态</p>
+<p>适合场景</p>
+<p><strong>Cowork 插件</strong></p>
+<p>桌面端"陪跑"，调本地 Excel/PPT</p>
+<p>单 deal、单份模型、人机协同</p>
+<p><strong>Managed Agents API</strong></p>
+<p>Claude Platform 后台跑批</p>
+<p>整本 deal book、夜间任务</p>
+<p>白天分析师在桌面上和 Claude 对着模型 craft，晚上同样的 agent 切换成 headless 模式，自动跑完整本组合的对账或全行业 earnings refresh。</p>
+<p>同一个 prompt、同一套 skill、同一份输出标准，<strong>不用维护两套逻辑</strong>。这一点对工程团队是巨大的诱惑。</p>
+<p>合规底线（写进项目设计的）</p>
+<p>AI drafts, humans sign off.</p>
+<p>这些 agent 不会真的去执行交易、过账、绑定风险或批准 onboarding——所有输出都是 staged for human sign-off，给到合格专业人员审核。这条原则贯穿整个工程。</p>
+<p>✦ ✦ ✦</p>
+<p>PART 02</p>
+<h2>十个 Agent 全家福</h2>
+<p>仓库的<code>plugins/agent-plugins/</code>目录下，10 个 agent 各自是一个"自包含"的 plugin。</p>
+<p>system prompt 加它要用的 skill 都打包在自己文件夹里，<strong>装一个就够，不用东拼西凑</strong>。</p>
+<img src="../assets/85a2024c8ea87c74673a246ce62e49a8_MD5.jpg" alt="image" loading="lazy">
+<p>按业务条线分四组：</p>
+<p>业务条线</p>
+<p>Agent</p>
+<p>核心交付物</p>
+<p>覆盖与咨询</p>
+<p>Pitch Agent</p>
+<p>Comps + Precedents + LBO → 带品牌的 pitch deck</p>
+<p>Meeting Prep Agent</p>
+<p>每次客户会议前的 briefing pack</p>
+<p>研究与建模</p>
+<p>Market Researcher</p>
+<p>行业/主题 → overview、landscape、peer comps、shortlist</p>
+<p>Earnings Reviewer</p>
+<p>业绩电话 + 财报 → 模型更新 → 研报草稿</p>
+<p>Model Builder</p>
+<p>DCF、LBO、3-statement、comps，<strong>直接活在 Excel 里</strong></p>
+<p>基金运营与财务</p>
+<p>Valuation Reviewer</p>
+<p>吃进 GP package，跑估值模板，stage 给 LP reporting</p>
+<p>GL Reconciler</p>
+<p>找断点 → 追根因 → 走签批流</p>
+<p>Month-End Closer</p>
+<p>应计、roll-forward、差异说明</p>
+<p>Statement Auditor</p>
+<p>LP statement 分发前的审计</p>
+<p>运营与开户</p>
+<p>KYC Screener</p>
+<p>解析 onboarding 文件，跑 rules engine，标记缺口</p>
+<p>这十个 agent 覆盖了卖方、买方、运营三条线最吃工时的环节。</p>
+<p>更妙的是<strong>它们之间可以互相调用</strong>——Managed Agents 模式下，一个 agent 需要另一个 agent 的输出时，会发出<code>handoff_request</code>事件，由你自己的 orchestration 层路由出去。</p>
+<p>项目里给了<code>orchestrate.py</code>的 reference event loop，可以接 Temporal、Airflow 或公司内部的事件总线。</p>
+<p>✦ ✦ ✦</p>
+<p>PART 03</p>
+<h2>Vertical Plugins：每一个都是"工种工具箱"</h2>
+<p>如果你不需要完整的 agent，只想要<code>/comps</code><code>/dcf</code><code>/earnings</code>这些斜杠命令和数据连接器，可以单独装 vertical plugin。</p>
+<p>仓库给了七个：</p>
+<ul>
+<li><strong>financial-analysis（核心，必装）</strong></li>
+</ul>
+<p>——comps、DCF、LBO、三表、deck QC、Excel 审计。<strong>11 个数据连接器全部集中在这里</strong>，其他 plugin 共享。</p>
+<ul>
+<li><strong>investment-banking</strong></li>
+</ul>
+<p>——CIM、teaser、process letter、buyer list、merger model、deal tracker。</p>
+<ul>
+<li><strong>equity-research</strong></li>
+</ul>
+<p>——earnings note、initiation report、model update、thesis & catalyst tracking。</p>
+<ul>
+<li><strong>private-equity</strong></li>
+</ul>
+<p>——sourcing、screening、DD checklist、IC memo、portfolio monitoring。</p>
+<ul>
+<li><strong>wealth-management</strong></li>
+</ul>
+<p>——client review、financial plan、再平衡、TLH（税损收割）。</p>
+<ul>
+<li><strong>fund-admin</strong></li>
+</ul>
+<p>——GL recon、break tracing、应计、roll-forward、NAV tie-out。</p>
+<ul>
+<li><strong>operations</strong></li>
+</ul>
+<p>——KYC 文件解析与 rules-grid 评估。</p>
+<p>另外还有两个<strong>合作伙伴贡献的 plugin</strong>：</p>
+<ul>
+<li><strong>LSEG</strong></li>
+</ul>
+<p>——债券 RV、swap 曲线、FX carry、期权波动率、宏观利率监控</p>
+<ul>
+<li><strong>S&P Global</strong></li>
+</ul>
+<p>——tear sheet、earnings preview、funding digest（基于 Capital IQ 数据）</p>
+<p>这一块是金融数据厂商主动适配 Claude 的信号——<strong>data vendor 开始把自家终端能力以 MCP 形式接到 Claude 上</strong>。</p>
+<h3>关键斜杠命令一览</h3>
+<p>挑几个高频的让你感受一下风格——</p>
+<p>命令</p>
+<p>所属</p>
+<p>作用</p>
+<p><code>/comps</code></p>
+<p>financial-analysis</p>
+<p>可比公司分析（含交易倍数）</p>
+<p><code>/dcf</code></p>
+<p>financial-analysis</p>
+<p>DCF 估值 + WACC + 敏感性</p>
+<p><code>/lbo</code></p>
+<p>financial-analysis</p>
+<p>杠杆收购模型</p>
+<p><code>/debug-model</code></p>
+<p>financial-analysis</p>
+<p>Excel 公式追溯、硬编码识别、平衡校验</p>
+<p><code>/cim</code></p>
+<p>investment-banking</p>
+<p>起草 CIM（保密信息备忘录）</p>
+<p><code>/buyer-list</code></p>
+<p>investment-banking</p>
+<p>战略 + 财务买家清单</p>
+<p><code>/earnings</code></p>
+<p>equity-research</p>
+<p>业绩后季度更新报告</p>
+<p><code>/initiate</code></p>
+<p>equity-research</p>
+<p>机构级首次覆盖报告</p>
+<p><code>/ic-memo</code></p>
+<p>private-equity</p>
+<p>投委会备忘录起草</p>
+<p><code>/unit-economics</code></p>
+<p>private-equity</p>
+<p>ARR cohort、LTV/CAC、净留存、收入质量</p>
+<p><code>/tlh</code></p>
+<p>wealth-management</p>
+<p>税损收割识别 + wash sale 管理</p>
+<p><code>/rebalance</code></p>
+<p>wealth-management</p>
+<p>配置漂移分析与税务友好再平衡</p>
+<p>每条命令背后挂着一个 markdown 写的 skill 文件，里面写明了"建模步骤、行业惯例、输出格式、QC 清单"。</p>
+<p>这意味着：你公司的内部模板和风格规范，<strong>可以直接通过编辑这些 markdown 文件被 Claude 继承下来</strong>。</p>
+<p>● ● ●</p>
+<p>PART 04</p>
+<h2>11 个 MCP 连接器：把 Claude 插进金融基础设施</h2>
+<p>AI 在金融场景里的瓶颈从来不是"语言模型本身不够聪明"，而是<strong>能不能连上权威数据源</strong>。</p>
+<p>这个项目把 11 个连接器集中在<code>financial-analysis/.mcp.json</code>里——</p>
+<p>几乎覆盖了主流买卖方在用的 data vendor：</p>
+<p>提供方</p>
+<p>主要场景</p>
+<p>FactSet</p>
+<p>综合金融数据、估值与基本面</p>
+<p>S&P Global / Capital IQ</p>
+<p>公司基本面、信用、并购数据</p>
+<p>LSEG</p>
+<p>固定收益、利率、外汇、期权波动率</p>
+<p>Moody's</p>
+<p>评级、信用研究、GenAI-ready 数据</p>
+<p>Morningstar</p>
+<p>基金、ETF、独立研究</p>
+<p>PitchBook</p>
+<p>PE/VC 交易与一级市场数据</p>
+<p>Daloopa</p>
+<p>分析师标注的高质量历史财务数据</p>
+<p>Aiera</p>
+<p>业绩电话会议转录与事件智能</p>
+<p>MT Newswires</p>
+<p>实时新闻与市场资讯</p>
+<p>Chronograph</p>
+<p>PE 组合监控与 LP 报告</p>
+<p>Egnyte</p>
+<p>企业内部文件库</p>
+<p>⚠️ 注意：MCP 连接通常需要你公司在对应平台上有<strong>有效订阅或 API Key</strong>。Claude 本身只负责"插上去"，数据合规与授权依然走原平台体系。</p>
+<p>✦ ✦ ✦</p>
+<p>PART 05</p>
+<h2>三个实战场景：它能不能立刻帮上忙</h2>
+<h3>场景一 · Pitch Agent</h3>
+<p>一句话，生成完整 pitch 包</p>
+<p><strong>典型输入：</strong></p>
+<p>"Build pitch book: TargetCo / AcquirerCo, thesis: 北美中型软件资产横向整合，关注 ARR 质量与 SBC 调整后 EBITDA"</p>
+<p><strong>幕后协作：</strong></p>
+<p>Pitch Agent 在 Managed Agent 模式下会依次唤起三个 leaf-worker：</p>
+<ul>
+<li><strong>researcher</strong></li>
+</ul>
+<p>——行业与目标研究</p>
+<ul>
+<li><strong>modeler</strong></li>
+</ul>
+<p>——comps、precedents、简版 LBO</p>
+<ul>
+<li><strong>deck-writer</strong></li>
+</ul>
+<p>——套用品牌模板生成 PPT</p>
+<p><strong>典型输出：</strong></p>
+<p>Excel：comps 表（带交易倍数）、precedents 表、LBO with sensitivity</p>
+<p>PowerPoint：套你 firm 品牌模板的 pitch deck，封面、目录、估值 summary、卖点页</p>
+<p>Outlook：cover note 草稿，调一下 tone 就能发</p>
+<p>这不是 PPT 生成器。是<strong>把 IBD analyst 一个通宵的活儿端到端串起来</strong>。</p>
+<p>Anthropic 自己在产品介绍里给的描述很直白——把目标清单丢给它，"comps model in Excel, a pitchbook drafted in PowerPoint, and a cover note ready in Outlook"。</p>
+<p>— · —</p>
+<h3>场景二 · Market Researcher</h3>
+<p>从主题到 shortlist 的研究流水线</p>
+<p><strong>典型输入：</strong></p>
+<p>"Primer: 全球数据中心液冷产业链, angle: GPU 功耗跃升驱动的长期资本开支主题"</p>
+<p><strong>幕后协作：</strong></p>
+<p>sector-reader 拉行业资料、comps-spreader 拉 peer 组、note-writer 输出研报骨架。背后调用 FactSet、S&P Capital IQ、PitchBook 等连接器。</p>
+<p><strong>典型输出：</strong></p>
+<p>行业 overview + 竞争格局图谱 + peer comps + idea shortlist。</p>
+<p>买方研究员可以拿这个做盲池筛选起点；卖方分析师可以当作 initiation 的 base draft。</p>
+<p>— · —</p>
+<h3>场景三 · GL Reconciler</h3>
+<p>基金运营的"找断点 + 追根因"</p>
+<p>部署一行命令搞定——</p>
+<h1>设置 API Key</h1>
+<p>export ANTHROPIC_API_KEY=sk-ant-...</p>
+<h1>一键部署</h1>
+<p>scripts/deploy-managed-agent.sh gl-reconciler</p>
+<p><strong>典型工作流：</strong></p>
+<p>读取 GL 与 books of record 两边数据</p>
+<p>逐账户跑 NAV tie-out，标出所有 breaks</p>
+<p>追溯每一个 break 的 root cause——漏入账？时点差异？汇率？</p>
+<p>生成调整建议，<strong>路由给人类签字</strong>——绝不自己过账</p>
+<p>对一个跑 10 只基金的 fund admin 团队——</p>
+<p>把每月夜间批量任务交给 agent，第二天早上人类只看 exception list 和签字界面。</p>
+<p>体感上就是<strong>从"逐行扫账"变成"按例外审"</strong>。</p>
+<img src="../assets/dde530c7aa0fff041d8ded4749f4de5a_MD5.jpg" alt="image" loading="lazy">
+<p>✦ ✦ ✦</p>
+<p>PART 06</p>
+<h2>上手与定制：三步把它跑起来</h2>
+<h3>第一步 · 选择运行环境</h3>
+<p><strong>在 Cowork 里：</strong></p>
+<p>打开 Settings → Plugins → Add plugin，把仓库 URL 粘进去，从 marketplace 里勾选你要的 agent 和 vertical。</p>
+<p><strong>在 Claude Code 里：</strong></p>
+<h1>添加 marketplace</h1>
+<p>claude plugin marketplace add anthropics/claude-for-financial-services</p>
+<h1>必装核心：skill + 全部连接器</h1>
+<p>claude plugin install financial-analysis@claude-for-financial-services</p>
+<h1>按需挑 agent</h1>
+<p>claude plugin install pitch-agent@claude-for-financial-services</p>
+<p>claude plugin install gl-reconciler@claude-for-financial-services</p>
+<p>claude plugin install market-researcher@claude-for-financial-services</p>
+<h1>加垂直 skill 包</h1>
+<p>claude plugin install investment-banking@claude-for-financial-services</p>
+<p>claude plugin install equity-research@claude-for-financial-services</p>
+<h3>第二步 · 接入 Microsoft 365（可选但强推）</h3>
+<p>仓库里<code>claude-for-msft-365-install/</code>是给 IT 管理员用的 add-in 配置工具。</p>
+<p>装完之后，Claude 会以原生侧边栏形态出现在 Excel、PowerPoint、Word、Outlook 里：</p>
+<ul>
+<li><strong>Excel</strong></li>
+</ul>
+<p>——从 filings 和 data feed 建模，跨工作簿审计公式，跑敏感性分析</p>
+<ul>
+<li><strong>PowerPoint</strong></li>
+</ul>
+<p>——根据底层数据变化自动刷新 deck</p>
+<ul>
+<li><strong>Word</strong></li>
+</ul>
+<p>——按 firm 模板编辑 credit memo</p>
+<ul>
+<li><strong>Outlook</strong></li>
+</ul>
+<p>——当 chief of staff，三连邮箱、安排会议、按你语气起草回信</p>
+<p>关键的是<strong>上下文跨应用迁移</strong>——你在 Excel 里改的模型，到 PPT 写 deck 时不用重新解释，Claude 知道你在做什么。</p>
+<p>Cowork 独立窗口给不了这种体验。</p>
+<p>另外这个 add-in 支持<strong>路由到企业自有云</strong>——Vertex AI、AWS Bedrock，或公司内部 LLM gateway，而不是必须走 Anthropic 的 API。<strong>这对监管严格的银行和资管是能不能合规上生产的关键决定项。</strong></p>
+<h3>第三步 · 让它"像你公司"</h3>
+<p>README 特意有一节叫 "Making It Yours"。</p>
+<p>意思就是这些是 reference template，调出 firm 特色才是关键。可以从四个维度切：</p>
+<p>维度</p>
+<p>怎么改</p>
+<p>换数据源</p>
+<p>改<code>.mcp.json</code>，指向自家 data warehouse 或内部 CRM</p>
+<p>注入 firm context</p>
+<p>把术语、流程、格式规范写进对应的 skill markdown</p>
+<p>带自家模板</p>
+<p>用<code>/ppt-template</code>教 Claude 你的品牌 PPT layout</p>
+<p>调 agent 作用域</p>
+<p>编辑<code>agents/<slug>.md</code>，符合你 team 实际跑流程的方式</p>
+<p>● ● ●</p>
+<p>PART 07</p>
+<h2>价值分析：对不同角色到底意味着什么</h2>
+<p>角色</p>
+<p>最值得用的部分</p>
+<p>价值点</p>
+<p>投行 Analyst/Associate</p>
+<p>Pitch Agent + investment-banking</p>
+<p>把 PPT 工艺、CIM/teaser 草稿、buyer list 这些机械活外包，回到判断与定价</p>
+<p>卖方研究</p>
+<p>Earnings Reviewer + equity-research</p>
+<p>财报季把"读 call → 改模型 → 写 note"流水线化，腾出时间做差异化观点</p>
+<p>PE 投资团队</p>
+<p>private-equity（含<code>/ic-memo</code>）</p>
+<p>从 sourcing 到 IC 的全流程模板，特别是 unit-economics 和 100 天计划</p>
+<p>资管/财富顾问</p>
+<p>Meeting Prep + wealth-management</p>
+<p>每个客户会议自动 briefing pack，再平衡和 TLH 按规则跑</p>
+<p>Fund Admin / 财务</p>
+<p>GL Reconciler + Month-End Closer</p>
+<p>月末月初的高强度对账与 roll-forward，从全行扫变例外审</p>
+<p>Compliance / Ops</p>
+<p>KYC Screener</p>
+<p>客户尽调材料的解析与 rules-grid 执行，缺口标记后人工复核</p>
+<h3>合规与安全：开源带来的"可审视性"</h3>
+<p>金融行业用 AI 最怕的是<strong>黑盒</strong>。</p>
+<p>这个项目的几个工程选择，对合规团队是友好的：</p>
+<ul>
+<li><strong>所有逻辑 file-based</strong></li>
+</ul>
+<p>——markdown + YAML，没有编译产物。每一步 skill 做了什么，合规可以直接看代码</p>
+<ul>
+<li><strong>每个 agent 的 README 都标了 security tier 和 handoff guidance</strong></li>
+</ul>
+<p>——谁能写、谁只能读，写在<code>agent.yaml</code>里</p>
+<ul>
+<li><strong>"AI drafts, humans sign off" 被写进设计</strong></li>
+</ul>
+<p>——agent 不会自动过账、自动下单、自动批 onboarding</p>
+<ul>
+<li><strong>支持企业自有云路由</strong></li>
+</ul>
+<p>——Vertex / Bedrock / 内部 LLM gateway，数据不必出 firm 边界</p>
+<ul>
+<li><strong>Apache 2.0 license</strong></li>
+</ul>
+<p>——可商用、可改造、没有专利陷阱</p>
+<p>对企业来说，这意味着<strong>不必从零搭建一个 AI agent 框架</strong>——可以拿一份"行业最佳实践"做起点，再叠加自己的 flavor。<strong>这是开源在金融科技领域罕见的"参考实现 + 安全边界"双重价值。</strong></p>
+<p>FINAL</p>
+<h2>从 Demo 走进 Production</h2>
+<p>过去两年，我们看了太多"用 AI 颠覆华尔街"的 demo。</p>
+<p>演示场景里都很美。落到一个真实的 pitch book、一份真实的 earnings note、一次真实的月末对账——处处卡壳。</p>
+<p>这次 Anthropic 开源的这套东西不一样。</p>
+<p>它不是炫技项目，是<strong>把它和大型买卖方客户合作时积累的真实工作流，转译成可装、可改、可部署的 reference</strong>。</p>
+<p>10 个 agent、7 个 vertical、11 个数据连接器。</p>
+<p>背后是一套清晰的设计哲学——</p>
+<p>让 AI 承担"分析师工作的搬运层"，把判断、定价、风险、关系这些<strong>真正属于人的环节</strong>留给人。</p>
+<p>未来 12-24 个月，FSI 从业者面对的现实可能很残酷——</p>
+<p><strong>会用 agent 把流程拼起来的人，和不会用的人，产出能力会拉开数量级的差距。</strong></p>
+<p>这不是要不要学的问题，是早学晚学的问题。</p>
+<h3>建议三件事</h3>
+<ul>
+<li><strong>去仓库点个 star</strong></li>
+</ul>
+<p>，方便后续追更新（Anthropic 在持续迭代，11.2k stars 还会涨）</p>
+<ul>
+<li><strong>挑一个跟你日常最贴的 agent</strong></li>
+</ul>
+<p>——投行选 Pitch Agent，研究选 Earnings Reviewer，Fund Admin 选 GL Reconciler，在 Claude Code 或 Cowork 里装起来跑一遍</p>
+<ul>
+<li><strong>把你 firm 的一个真实模板（PPT、IC memo、credit memo）扔进去</strong></li>
+</ul>
+<p>——看输出离"能用"还差多远，差的部分就是你需要二次定制的方向</p>
+<p>🔗 仓库地址</p>
+<p>github.com/anthropics/financial-services</p>
+<p>🔗 Managed Agent 部署文档</p>
+<p>managed-agent-cookbooks</p>
+<p>金融行业向来是把工艺层做到极致的行业。</p>
+<p>pitch deck 的字号对齐、IC memo 的论证结构、月末调整的科目分类——这些工艺背后全是经验。</p>
+<p>AI 最适合的，恰恰是把这些工艺标准化、规模化。</p>
+<p>从今天起，这件事不再是某个金融科技初创的赌注，而是一份<strong>摆在 GitHub 上、人人可读的开源参考</strong>。</p>
+<p>值得每一个金融从业者，认真看一眼。</p>
+<p>你们 firm 现在是哪个环节最想交给 AI——</p>
+<p><strong>建模？写 deck？对账？还是 KYC？</strong></p>
+<p>评论区聊聊。</p>
+<p>👍点赞↗ 关注转发</p>
+<p>— END —</p>
+<img src="../assets/f2cc93ca1d989db77eccc9a80ed57f35_MD5.jpg" alt="作者头像" loading="lazy">
+<p>使用完整服务</p>
+  </div>
+
+  <div class="footer">
+    <a href="https://mp.weixin.qq.com/s?__biz=Mzg2NTA4MTAwMQ==&mid=2247484059&idx=1&sn=c4135eefb2d0317861b2888933ad3af0&chksm=cff4a40253848e76eb93f8e6b980a5d867476afd6a9b86bfaabd31944d1ccc24695c78782d15&mpshare=1&scene=24&srcid=0527LBWhQJrtoItRjPj4FEpE&sharer_shareinfo=9bf5a6431b1463a8eb7bd0d4d878834c&sharer_shareinfo_first=2b4e27140a28bb8e5893aefea081a33e#rd" target="_blank">📎 查看原文</a>
+  </div>
+</div>
+</body>
+</html>

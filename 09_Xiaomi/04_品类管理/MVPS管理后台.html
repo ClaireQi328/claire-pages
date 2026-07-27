@@ -1,0 +1,827 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>小米汽车SRM系统 - MVPS整车分级管理</title>
+<style>
+:root{
+  --p:#1677ff;--ph:#4096ff;--pl:#e6f4ff;--pa:rgba(22,119,255,.06);
+  --s:#52c41a;--sl:#f6ffed;--sa:rgba(82,196,26,.08);
+  --w:#faad14;--wl:#fffbe6;--wa:rgba(250,173,20,.08);
+  --d:#ff4d4f;--dl:#fff2f0;--da:rgba(255,77,79,.06);
+  --g50:#fafafa;--g100:#f5f5f5;--g200:#e8e8e8;--g300:#d9d9d9;
+  --g400:#bfbfbf;--g500:#8c8c8c;--g600:#595959;--g700:#434343;
+  --g800:#262626;--g900:#1f1f1f;
+  --r:10px;--rs:6px;--rl:14px;
+  --sh:0 1px 3px rgba(0,0,0,.04),0 1px 2px rgba(0,0,0,.06);
+  --shm:0 4px 12px rgba(0,0,0,.07);
+  --tr:all .2s ease;
+  --nav-bg:#001529;--nav-bg-light:#002140;
+}
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif;background:#f0f2f5;color:var(--g800);line-height:1.6;font-size:13px;min-height:100vh;overflow:hidden}
+
+/* ========== Top Nav ========== */
+.topnav{background:var(--nav-bg);height:48px;display:flex;align-items:center;padding:0 16px;position:fixed;top:0;left:0;right:0;z-index:1000}
+.topnav-logo{display:flex;align-items:center;gap:8px;margin-right:24px;flex-shrink:0}
+.topnav-logo .mi{width:28px;height:28px;background:linear-gradient(135deg,#ff6700,#ff4d00);border-radius:6px;display:flex;align-items:center;justify-content:center;color:#fff;font-size:12px;font-weight:700}
+.topnav-logo span{color:#fff;font-size:14px;font-weight:600;letter-spacing:.5px;white-space:nowrap}
+.topnav-menu{display:flex;align-items:center;gap:0;flex:1;overflow-x:auto;scrollbar-width:none}
+.topnav-menu::-webkit-scrollbar{display:none}
+.topnav-item{padding:0 14px;height:48px;display:flex;align-items:center;color:rgba(255,255,255,.65);font-size:13px;cursor:pointer;white-space:nowrap;transition:all .2s;position:relative}
+.topnav-item:hover{color:#fff;background:rgba(255,255,255,.08)}
+.topnav-item.active{color:#fff;background:rgba(255,255,255,.12)}
+.topnav-item.active::after{content:'';position:absolute;bottom:0;left:8px;right:8px;height:2px;background:var(--p);border-radius:2px 2px 0 0}
+.topnav-right{display:flex;align-items:center;gap:12px;margin-left:auto;flex-shrink:0;padding-left:16px}
+.topnav-right .icon{width:32px;height:32px;border-radius:50%;display:flex;align-items:center;justify-content:center;color:rgba(255,255,255,.65);cursor:pointer;transition:all .2s;font-size:14px}
+.topnav-right .icon:hover{background:rgba(255,255,255,.1);color:#fff}
+.topnav-user{display:flex;align-items:center;gap:6px;color:rgba(255,255,255,.85);font-size:12px;cursor:pointer}
+.topnav-avatar{width:28px;height:28px;border-radius:50%;background:linear-gradient(135deg,var(--p),#4096ff);display:flex;align-items:center;justify-content:center;color:#fff;font-size:11px;font-weight:600}
+
+/* ========== Layout ========== */
+.srm-layout{display:flex;height:calc(100vh - 48px);margin-top:48px}
+.sidebar{width:220px;background:#fff;border-right:1px solid var(--g200);display:flex;flex-direction:column;flex-shrink:0;overflow:hidden}
+.sidebar-hdr{padding:16px;border-bottom:1px solid var(--g100)}
+.sidebar-hdr h3{font-size:14px;font-weight:700;color:var(--g900);margin-bottom:4px}
+.sidebar-hdr .count{font-size:12px;color:var(--g500)}
+.sidebar-hdr .count strong{color:var(--p);font-weight:600}
+.sp-menu{flex:1;overflow-y:auto;padding:8px 0}
+.sp-menu-item{display:flex;align-items:center;gap:10px;padding:11px 20px;font-size:13px;color:var(--g600);cursor:pointer;transition:all .15s;border-left:3px solid transparent;position:relative}
+.sp-menu-item:hover{color:var(--p);background:var(--pl)}
+.sp-menu-item.active{color:var(--p);background:var(--pl);font-weight:600;border-left-color:var(--p)}
+.sp-menu-item .mi-icon{width:20px;height:20px;border-radius:4px;display:flex;align-items:center;justify-content:center;font-size:12px;flex-shrink:0}
+.sp-menu-item .mi-icon.blue{background:var(--pl);color:var(--p)}
+.sp-menu-item .mi-icon.green{background:var(--sl);color:var(--s)}
+.sp-menu-item .mi-icon.orange{background:var(--wl);color:#d46b08}
+.sp-menu-item .mi-icon.purple{background:#f9f0ff;color:#722ed1}
+.sp-menu-item .mi-badge{margin-left:auto;font-size:10px;padding:1px 6px;border-radius:8px;background:var(--g100);color:var(--g500);font-weight:500}
+.sp-menu-item.active .mi-badge{background:var(--pl);color:var(--p)}
+
+/* ========== Main Content ========== */
+.main-content{flex:1;overflow:hidden;display:flex;flex-direction:column;background:#f0f2f5}
+.content-header{background:#fff;padding:16px 24px;border-bottom:1px solid var(--g200);flex-shrink:0}
+.content-title{font-size:16px;font-weight:700;color:var(--g900);margin-bottom:12px}
+.content-tabs{display:flex;gap:0;margin-bottom:0}
+.ctab{padding:8px 16px;font-size:13px;color:var(--g600);cursor:pointer;border-bottom:2px solid transparent;transition:var(--tr);display:flex;align-items:center;gap:6px;margin-bottom:-1px}
+.ctab:hover{color:var(--p)}
+.ctab.active{color:var(--p);font-weight:600;border-bottom-color:var(--p)}
+.ctab .badge{font-size:10px;padding:1px 6px;border-radius:8px;background:var(--d);color:#fff;font-weight:600;min-width:18px;text-align:center}
+.content-toolbar{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:12px 24px;background:#fff;border-bottom:1px solid var(--g100);flex-shrink:0}
+.toolbar-left{display:flex;align-items:center;gap:10px}
+.toolbar-right{display:flex;align-items:center;gap:8px}
+.search-input{padding:6px 12px;border:1px solid var(--g300);border-radius:var(--rs);font-size:12px;transition:var(--tr)}
+.search-input:focus{outline:none;border-color:var(--p);box-shadow:0 0 0 3px rgba(22,119,255,.1)}
+.search-input.w200{width:200px}
+.search-input.w260{width:260px}
+select.filter-sel{padding:6px 10px;border:1px solid var(--g300);border-radius:var(--rs);font-size:12px;background:#fff;cursor:pointer}
+select.filter-sel:focus{outline:none;border-color:var(--p)}
+
+/* ========== Buttons ========== */
+.btn{border:none;padding:7px 16px;border-radius:var(--rs);font-size:12px;font-weight:500;cursor:pointer;transition:var(--tr);display:inline-flex;align-items:center;gap:5px;white-space:nowrap}
+.btn:active{transform:scale(.97)}
+.btn-p{background:linear-gradient(135deg,var(--p) 0%,#4096ff 100%);color:#fff;box-shadow:0 2px 6px rgba(22,119,255,.25)}
+.btn-p:hover{box-shadow:0 4px 12px rgba(22,119,255,.35);transform:translateY(-1px)}
+.btn-o{background:#fff;color:var(--g700);border:1px solid var(--g300)}.btn-o:hover{color:var(--p);border-color:var(--p);background:var(--pa)}
+.btn-g{background:var(--g50);color:var(--g600);border:1px solid var(--g200)}.btn-g:hover{color:var(--p);border-color:var(--p);background:var(--pa)}
+.btn-s{padding:4px 10px;font-size:11px;border-radius:4px;white-space:nowrap}
+.btn-link{color:var(--p);font-size:11px;cursor:pointer;background:none;border:none;padding:2px 4px}
+.btn-link:hover{text-decoration:underline}
+
+/* ========== Tree View ========== */
+.tree-panel{background:#fff;border-right:1px solid var(--g200);width:320px;display:flex;flex-direction:column;flex-shrink:0;overflow:hidden}
+.tree-hdr{padding:12px 16px;border-bottom:1px solid var(--g100);display:flex;align-items:center;justify-content:space-between}
+.tree-hdr h4{font-size:13px;font-weight:700;color:var(--g900)}
+.tree-search{padding:8px 12px;border-bottom:1px solid var(--g100)}
+.tree-search input{width:100%;padding:6px 10px;border:1px solid var(--g300);border-radius:var(--rs);font-size:12px}
+.tree-search input:focus{outline:none;border-color:var(--p);box-shadow:0 0 0 3px rgba(22,119,255,.1)}
+.tree-body{flex:1;overflow-y:auto;padding:8px 0}
+.tree-node{padding:0;margin:0}
+.tree-row{display:flex;align-items:center;gap:4px;padding:5px 12px 5px 0;cursor:pointer;font-size:12px;color:var(--g700);transition:all .15s;white-space:nowrap}
+.tree-row:hover{background:var(--pl);color:var(--p)}
+.tree-row.selected{background:var(--pl);color:var(--p);font-weight:600}
+.tree-indent{display:inline-block;width:20px;flex-shrink:0;text-align:center;color:var(--g400);font-size:10px}
+.tree-toggle{width:16px;height:16px;display:inline-flex;align-items:center;justify-content:center;font-size:10px;color:var(--g500);cursor:pointer;flex-shrink:0;border-radius:3px;transition:var(--tr)}
+.tree-toggle:hover{background:var(--g100);color:var(--p)}
+.tree-toggle.open{transform:rotate(90deg)}
+.tree-icon{font-size:12px;flex-shrink:0}
+.tree-label{flex:1;overflow:hidden;text-overflow:ellipsis}
+.tree-code{font-size:10px;color:var(--g400);margin-left:4px;font-family:'Consolas',monospace}
+.tree-count{font-size:10px;padding:0 5px;border-radius:8px;background:var(--g100);color:var(--g500);margin-left:auto;flex-shrink:0}
+.tree-row.selected .tree-count{background:rgba(22,119,255,.15);color:var(--p)}
+
+/* ========== Split Layout ========== */
+.split-view{display:flex;flex:1;overflow:hidden}
+.detail-panel{flex:1;display:flex;flex-direction:column;overflow:hidden}
+
+/* ========== Detail Header ========== */
+.d-hdr{background:linear-gradient(180deg,#fff 0%,#fafcff 100%);border-bottom:1px solid var(--g200);padding:12px 24px;display:flex;align-items:center;justify-content:space-between;flex-shrink:0}
+.d-hdr-l{display:flex;align-items:center;gap:12px}
+.d-hdr .part-name{font-size:15px;font-weight:700;color:var(--g900)}
+.d-hdr .part-code{background:var(--pl);color:var(--p);padding:2px 8px;border-radius:4px;font-size:12px;font-weight:600;font-family:'Consolas',monospace}
+.d-hdr .st-badge{font-size:11px;padding:3px 10px;border-radius:12px;font-weight:500}
+.st-badge.active{background:var(--pl);color:var(--p)}
+.st-badge.done{background:var(--sl);color:var(--s)}
+.d-hdr-r{display:flex;gap:8px;align-items:center}
+
+/* ========== Info Section ========== */
+.info-section{background:#fff;border-radius:var(--r);border:1px solid var(--g200);margin:16px 24px;overflow:hidden}
+.info-sec-hdr{display:flex;align-items:center;justify-content:space-between;padding:12px 18px;border-bottom:1px solid var(--g100);background:linear-gradient(180deg,#fafafa,#f8f8f8)}
+.info-sec-title{font-size:13px;font-weight:700;color:var(--g900);display:flex;align-items:center;gap:8px}
+.info-sec-title::before{content:'';width:3px;height:14px;border-radius:2px;background:var(--p);flex-shrink:0}
+.info-sec-body{padding:16px 20px}
+.info-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:12px 24px}
+.info-item{display:flex;flex-direction:column;gap:3px}
+.info-label{font-size:11px;color:var(--g500);font-weight:500}
+.info-val{font-size:13px;color:var(--g800);font-weight:500}
+.info-val.link{color:var(--p);cursor:pointer}
+.info-val.link:hover{text-decoration:underline}
+.info-val code{background:var(--g50);padding:1px 6px;border-radius:3px;font-family:'Consolas',monospace;font-size:12px;border:1px solid var(--g200)}
+
+/* ========== Metric Row ========== */
+.metric-row{display:flex;gap:14px;margin:0 24px 16px}
+.metric-card{flex:1;text-align:center;padding:14px 12px;background:#fff;border-radius:var(--rs);border:1px solid var(--g200)}
+.metric-card .mc-val{font-size:22px;font-weight:700;color:var(--g900);line-height:1.2}
+.metric-card .mc-label{font-size:11px;color:var(--g500);margin-top:4px}
+.metric-card .mc-val.blue{color:var(--p)}
+.metric-card .mc-val.green{color:var(--s)}
+.metric-card .mc-val.orange{color:var(--w)}
+.metric-card .mc-val.red{color:var(--d)}
+
+/* ========== Data Table ========== */
+.table-wrap{background:#fff;margin:0 24px 16px;border-radius:var(--r);border:1px solid var(--g200);overflow:hidden}
+.table-wrap-flush{background:#fff;margin:0;border-radius:0;overflow:auto;flex:1}
+.dtable{width:100%;border-collapse:collapse;font-size:12px}
+.dtable th{background:linear-gradient(180deg,#fafafa,#f5f5f5);color:var(--g700);font-size:11px;font-weight:600;padding:10px 12px;text-align:left;border-bottom:1px solid var(--g200);border-right:1px solid var(--g100);white-space:nowrap;position:sticky;top:0;z-index:10}
+.dtable th .sort-icon{font-size:10px;color:var(--g400);cursor:pointer}
+.dtable td{padding:9px 12px;border-bottom:1px solid var(--g100);border-right:1px solid var(--g100);font-size:12px;vertical-align:middle}
+.dtable tbody tr{transition:var(--tr)}
+.dtable tbody tr:hover td{background:#f0f7ff}
+.dtable .cell-link{color:var(--p);font-weight:500;cursor:pointer}
+.dtable .cell-link:hover{text-decoration:underline}
+.dtable .cell-code{font-family:'Consolas',monospace;font-size:11px}
+
+/* ========== Tags ========== */
+.tag{display:inline-block;font-size:10px;padding:2px 8px;border-radius:4px;font-weight:500;white-space:nowrap}
+.tag-up{background:var(--pl);color:var(--p)}
+.tag-lo{background:#fff7e6;color:#d46b08}
+.tag-ch{background:var(--sl);color:var(--s)}
+.tag-po{background:#f9f0ff;color:#722ed1}
+.tag-sys{background:#e6fffb;color:#13c2c2}
+.tag-new{background:var(--sl);color:var(--s)}
+.tag-replace{background:var(--pl);color:var(--p)}
+.tag-modify{background:var(--wl);color:#d46b08}
+.tag-del{background:var(--dl);color:var(--d)}
+
+/* ========== Pagination ========== */
+.pagination{display:flex;align-items:center;justify-content:flex-end;gap:6px;padding:12px 16px;background:#fff;border-top:1px solid var(--g200);font-size:12px;color:var(--g600)}
+.pagination .pg-info{margin-right:8px}
+.pagination .pg-btn{width:28px;height:28px;border:1px solid var(--g300);border-radius:4px;display:flex;align-items:center;justify-content:center;cursor:pointer;background:#fff;transition:var(--tr);font-size:12px}
+.pagination .pg-btn:hover{color:var(--p);border-color:var(--p)}
+.pagination .pg-btn.active{background:var(--p);color:#fff;border-color:var(--p)}
+.pagination select{padding:4px 8px;border:1px solid var(--g300);border-radius:4px;font-size:12px}
+
+/* ========== Code Segment Visual ========== */
+.code-seg-wrap{display:flex;gap:0;margin:8px 0;border-radius:6px;overflow:hidden;border:1px solid var(--g200)}
+.code-seg{flex:1;padding:10px 8px;text-align:center;color:#fff;font-size:12px;position:relative}
+.code-seg.s1{background:#1677ff}
+.code-seg.s2{background:#4096ff}
+.code-seg.s3{background:#69b1ff}
+.code-seg.s4{background:#91caff}
+.code-seg .seg-num{font-size:16px;font-weight:700;font-family:'Consolas',monospace}
+.code-seg .seg-lbl{font-size:10px;opacity:.85;margin-top:2px}
+.code-seg::after{content:'.';position:absolute;right:-4px;top:50%;transform:translateY(-50%);font-size:16px;font-weight:700;color:var(--g400);z-index:1}
+.code-seg:last-child::after{display:none}
+
+/* ========== Splitter ========== */
+.content-body{display:flex;flex:1;overflow:hidden}
+
+/* ========== Scrollbar ========== */
+::-webkit-scrollbar{width:6px;height:6px}
+::-webkit-scrollbar-track{background:transparent}
+::-webkit-scrollbar-thumb{background:var(--g300);border-radius:3px}
+::-webkit-scrollbar-thumb:hover{background:var(--g400)}
+</style>
+</head>
+<body>
+
+<!-- ===== Top Nav ===== -->
+<div class="topnav">
+  <div class="topnav-logo">
+    <div class="mi">mi</div>
+    <span>小米汽车</span>
+  </div>
+  <div class="topnav-menu">
+    <div class="topnav-item">首页</div>
+    <div class="topnav-item">个人中心</div>
+    <div class="topnav-item">供应商管理</div>
+    <div class="topnav-item">采购项目管理</div>
+    <div class="topnav-item">SOR管理</div>
+    <div class="topnav-item">售后需求管理</div>
+    <div class="topnav-item">采购任务管理</div>
+    <div class="topnav-item">RFQ询报价管理</div>
+    <div class="topnav-item">采购定点与台账</div>
+    <div class="topnav-item">合同管理</div>
+    <div class="topnav-item">物流相关</div>
+    <div class="topnav-item">订单管理</div>
+    <div class="topnav-item">预算管理</div>
+    <div class="topnav-item">文档管理</div>
+    <div class="topnav-item">供应商评审</div>
+    <div class="topnav-item">采购品类</div>
+    <div class="topnav-item active">基础数据管理</div>
+  </div>
+  <div class="topnav-right">
+    <div class="icon">🔔</div>
+    <div class="topnav-user">
+      <div class="topnav-avatar">路</div>
+      <span>路梦瑶</span>
+    </div>
+  </div>
+</div>
+
+<!-- ===== Layout ===== -->
+<div class="srm-layout">
+
+  <!-- Sidebar -->
+  <div class="sidebar">
+    <div class="sidebar-hdr">
+      <h3>基础数据管理</h3>
+      <div class="count">MVPS 分级体系</div>
+    </div>
+    <div class="sp-menu">
+      <div class="sp-menu-item active">
+        <div class="mi-icon blue">🏗️</div>
+        <span>MVPS 分级管理</span>
+        <div class="mi-badge">32</div>
+      </div>
+      <div class="sp-menu-item">
+        <div class="mi-icon orange">📋</div>
+        <span>EBO 配置管理</span>
+      </div>
+      <div class="sp-menu-item">
+        <div class="mi-icon green">🔧</div>
+        <span>工程 BOM</span>
+        <div class="mi-badge">MS11</div>
+      </div>
+      <div class="sp-menu-item">
+        <div class="mi-icon purple">📊</div>
+        <span>结构编码维护</span>
+      </div>
+      <div class="sp-menu-item">
+        <div class="mi-icon blue">📍</div>
+        <span>位置码管理</span>
+      </div>
+      <div class="sp-menu-item">
+        <div class="mi-icon orange">🏷️</div>
+        <span>分类标准</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Main Content -->
+  <div class="main-content">
+
+    <!-- Header Tabs -->
+    <div class="content-header">
+      <div class="content-title">MVPS 整车分级管理</div>
+      <div class="content-tabs">
+        <div class="ctab active" onclick="switchTab(this)">分级树管理</div>
+        <div class="ctab" onclick="switchTab(this)">结构编码 <span class="badge">128</span></div>
+        <div class="ctab" onclick="switchTab(this)">位置码映射</div>
+        <div class="ctab" onclick="switchTab(this)">分类标准</div>
+        <div class="ctab" onclick="switchTab(this)">变更日志</div>
+      </div>
+    </div>
+
+    <!-- Toolbar -->
+    <div class="content-toolbar">
+      <div class="toolbar-left">
+        <select class="filter-sel">
+          <option>全部车型</option>
+          <option>MS11-M1</option>
+          <option>Modena 28A</option>
+          <option>Le Mans-27B</option>
+          <option>MX11</option>
+          <option>Mann</option>
+        </select>
+        <select class="filter-sel">
+          <option>全部分类</option>
+          <option>UP - 上车体</option>
+          <option>LO - 下车体</option>
+          <option>CH - 底盘</option>
+          <option>PO - 动力</option>
+        </select>
+        <select class="filter-sel">
+          <option>全部状态</option>
+          <option>生效中</option>
+          <option>已废弃</option>
+          <option>待审核</option>
+        </select>
+      </div>
+      <div class="toolbar-right">
+        <input type="text" class="search-input w260" placeholder="搜索零件号 / 结构编码 / 中文描述...">
+        <button class="btn btn-p">➕ 新增编码</button>
+        <button class="btn btn-o">📥 导入</button>
+        <button class="btn btn-o">📤 导出</button>
+      </div>
+    </div>
+
+    <!-- Content Body: Tree + Detail -->
+    <div class="content-body">
+
+      <!-- Tree Panel -->
+      <div class="tree-panel">
+        <div class="tree-hdr">
+          <h4>MVPS 分级树</h4>
+          <span style="font-size:11px;color:var(--g500);">共 32 个系统</span>
+        </div>
+        <div class="tree-search">
+          <input type="text" placeholder="搜索节点...">
+        </div>
+        <div class="tree-body" id="treeBody">
+          <!-- Level 0: System -->
+          <div class="tree-node">
+            <div class="tree-row selected" onclick="selectNode(this)" style="padding-left:12px">
+              <span class="tree-toggle open" onclick="toggleNode(event,this)">▶</span>
+              <span class="tree-icon">📁</span>
+              <span class="tree-label">60 车身系统</span>
+              <span class="tree-count">248</span>
+            </div>
+            <!-- Level 1: Subsystem -->
+            <div class="tree-node" style="display:block">
+              <div class="tree-row" onclick="selectNode(this)" style="padding-left:32px">
+                <span class="tree-toggle open" onclick="toggleNode(event,this)">▶</span>
+                <span class="tree-icon">📂</span>
+                <span class="tree-label">01 车门系统</span>
+                <span class="tree-count">86</span>
+              </div>
+              <div class="tree-node" style="display:block">
+                <div class="tree-row" onclick="selectNode(this)" style="padding-left:52px">
+                  <span class="tree-toggle open" onclick="toggleNode(event,this)">▶</span>
+                  <span class="tree-icon">📂</span>
+                  <span class="tree-label">07 前门模块</span>
+                  <span class="tree-count">42</span>
+                </div>
+                <div class="tree-node" style="display:block">
+                  <div class="tree-row" onclick="selectNode(this)" style="padding-left:72px">
+                    <span class="tree-toggle" onclick="toggleNode(event,this)">▶</span>
+                    <span class="tree-icon">📄</span>
+                    <span class="tree-label">01 门饰板</span>
+                    <span class="tree-code">6017</span>
+                    <span class="tree-count">18</span>
+                  </div>
+                  <div class="tree-row" onclick="selectNode(this)" style="padding-left:72px">
+                    <span class="tree-toggle" onclick="toggleNode(event,this)">▶</span>
+                    <span class="tree-icon">📄</span>
+                    <span class="tree-label">02 玻璃升降器</span>
+                    <span class="tree-code">6018</span>
+                    <span class="tree-count">12</span>
+                  </div>
+                  <div class="tree-row" onclick="selectNode(this)" style="padding-left:72px">
+                    <span class="tree-toggle" onclick="toggleNode(event,this)">▶</span>
+                    <span class="tree-icon">📄</span>
+                    <span class="tree-label">03 门锁总成</span>
+                    <span class="tree-code">6019</span>
+                    <span class="tree-count">12</span>
+                  </div>
+                </div>
+                <div class="tree-row" onclick="selectNode(this)" style="padding-left:52px">
+                  <span class="tree-toggle" onclick="toggleNode(event,this)">▶</span>
+                  <span class="tree-icon">📂</span>
+                  <span class="tree-label">08 后门模块</span>
+                  <span class="tree-count">38</span>
+                </div>
+                <div class="tree-row" onclick="selectNode(this)" style="padding-left:52px">
+                  <span class="tree-toggle" onclick="toggleNode(event,this)">▶</span>
+                  <span class="tree-icon">📂</span>
+                  <span class="tree-label">09 尾门模块</span>
+                  <span class="tree-count">6</span>
+                </div>
+              </div>
+              <div class="tree-row" onclick="selectNode(this)" style="padding-left:32px">
+                <span class="tree-toggle" onclick="toggleNode(event,this)">▶</span>
+                <span class="tree-icon">📂</span>
+                <span class="tree-label">02 车顶系统</span>
+                <span class="tree-count">52</span>
+              </div>
+              <div class="tree-row" onclick="selectNode(this)" style="padding-left:32px">
+                <span class="tree-toggle" onclick="toggleNode(event,this)">▶</span>
+                <span class="tree-icon">📂</span>
+                <span class="tree-label">03 前围系统</span>
+                <span class="tree-count">38</span>
+              </div>
+              <div class="tree-row" onclick="selectNode(this)" style="padding-left:32px">
+                <span class="tree-toggle" onclick="toggleNode(event,this)">▶</span>
+                <span class="tree-icon">📂</span>
+                <span class="tree-label">04 后围系统</span>
+                <span class="tree-count">28</span>
+              </div>
+              <div class="tree-row" onclick="selectNode(this)" style="padding-left:32px">
+                <span class="tree-toggle" onclick="toggleNode(event,this)">▶</span>
+                <span class="tree-icon">📂</span>
+                <span class="tree-label">05 侧围系统</span>
+                <span class="tree-count">44</span>
+              </div>
+            </div>
+          </div>
+          <div class="tree-node">
+            <div class="tree-row" onclick="selectNode(this)" style="padding-left:12px">
+              <span class="tree-toggle" onclick="toggleNode(event,this)">▶</span>
+              <span class="tree-icon">📁</span>
+              <span class="tree-label">10 底盘系统</span>
+              <span class="tree-count">312</span>
+            </div>
+          </div>
+          <div class="tree-node">
+            <div class="tree-row" onclick="selectNode(this)" style="padding-left:12px">
+              <span class="tree-toggle" onclick="toggleNode(event,this)">▶</span>
+              <span class="tree-icon">📁</span>
+              <span class="tree-label">20 动力系统</span>
+              <span class="tree-count">186</span>
+            </div>
+          </div>
+          <div class="tree-node">
+            <div class="tree-row" onclick="selectNode(this)" style="padding-left:12px">
+              <span class="tree-toggle" onclick="toggleNode(event,this)">▶</span>
+              <span class="tree-icon">📁</span>
+              <span class="tree-label">30 内饰系统</span>
+              <span class="tree-count">428</span>
+            </div>
+          </div>
+          <div class="tree-node">
+            <div class="tree-row" onclick="selectNode(this)" style="padding-left:12px">
+              <span class="tree-toggle" onclick="toggleNode(event,this)">▶</span>
+              <span class="tree-icon">📁</span>
+              <span class="tree-label">40 外饰系统</span>
+              <span class="tree-count">276</span>
+            </div>
+          </div>
+          <div class="tree-node">
+            <div class="tree-row" onclick="selectNode(this)" style="padding-left:12px">
+              <span class="tree-toggle" onclick="toggleNode(event,this)">▶</span>
+              <span class="tree-icon">📁</span>
+              <span class="tree-label">50 电气系统</span>
+              <span class="tree-count">534</span>
+            </div>
+          </div>
+          <div class="tree-node">
+            <div class="tree-row" onclick="selectNode(this)" style="padding-left:12px">
+              <span class="tree-toggle" onclick="toggleNode(event,this)">▶</span>
+              <span class="tree-icon">📁</span>
+              <span class="tree-label">60 车身系统</span>
+              <span class="tree-count">248</span>
+            </div>
+          </div>
+          <div class="tree-node">
+            <div class="tree-row" onclick="selectNode(this)" style="padding-left:12px">
+              <span class="tree-toggle" onclick="toggleNode(event,this)">▶</span>
+              <span class="tree-icon">📁</span>
+              <span class="tree-label">70 安全系统</span>
+              <span class="tree-count">156</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Detail Panel -->
+      <div class="detail-panel">
+
+        <!-- Detail Header -->
+        <div class="d-hdr">
+          <div class="d-hdr-l">
+            <span class="part-name">60.01.07.01 前门门饰板</span>
+            <span class="part-code">6017</span>
+            <span class="st-badge active">● 生效中</span>
+          </div>
+          <div class="d-hdr-r">
+            <button class="btn btn-g">✏️ 编辑</button>
+            <button class="btn btn-o">📋 复制</button>
+            <button class="btn btn-p">➕ 新增子节点</button>
+          </div>
+        </div>
+
+        <!-- Scrollable Content -->
+        <div style="flex:1;overflow-y:auto;padding-bottom:16px">
+
+          <!-- Code Breakdown -->
+          <div class="info-section" style="margin-top:16px">
+            <div class="info-sec-hdr">
+              <div class="info-sec-title">结构编码解析</div>
+              <span style="font-size:11px;color:var(--g500)">四段式分层编码</span>
+            </div>
+            <div class="info-sec-body">
+              <div class="code-seg-wrap">
+                <div class="code-seg s1"><div class="seg-num">60</div><div class="seg-lbl">系统码</div></div>
+                <div class="code-seg s2"><div class="seg-num">01</div><div class="seg-lbl">子系统码</div></div>
+                <div class="code-seg s3"><div class="seg-num">07</div><div class="seg-lbl">组件码</div></div>
+                <div class="code-seg s4"><div class="seg-num">01</div><div class="seg-lbl">零件码</div></div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Basic Info -->
+          <div class="info-section">
+            <div class="info-sec-hdr">
+              <div class="info-sec-title">基本信息</div>
+            </div>
+            <div class="info-sec-body">
+              <div class="info-grid">
+                <div class="info-item"><div class="info-label">结构编码</div><div class="info-val"><code>60.01.07.01</code></div></div>
+                <div class="info-item"><div class="info-label">结构简码</div><div class="info-val"><code>6017</code></div></div>
+                <div class="info-item"><div class="info-label">中文描述</div><div class="info-val">前门门饰板装配总成</div></div>
+                <div class="info-item"><div class="info-label">英文描述</div><div class="info-val">Front Door Trim Panel Assy</div></div>
+                <div class="info-item"><div class="info-label">分类</div><div class="info-val"><span class="tag tag-up">UP 上车体</span></div></div>
+                <div class="info-item"><div class="info-label">适用车型</div><div class="info-val link">MS11-M1, Modena</div></div>
+                <div class="info-item"><div class="info-label">创建人</div><div class="info-val">路梦瑶</div></div>
+                <div class="info-item"><div class="info-label">创建时间</div><div class="info-val">2025-08-15</div></div>
+                <div class="info-item"><div class="info-label">最后修改</div><div class="info-val">2026-06-20</div></div>
+                <div class="info-item"><div class="info-label">修改人</div><div class="info-val">张家宇</div></div>
+                <div class="info-item"><div class="info-label">状态</div><div class="info-val"><span class="tag tag-new">生效中</span></div></div>
+                <div class="info-item"><div class="info-label">版本</div><div class="info-val">V3.2</div></div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Metrics -->
+          <div class="metric-row">
+            <div class="metric-card"><div class="mc-val blue">42</div><div class="mc-label">下属零件数</div></div>
+            <div class="metric-card"><div class="mc-val green">18</div><div class="mc-label">装配总成</div></div>
+            <div class="metric-card"><div class="mc-val orange">12</div><div class="mc-label">子总成</div></div>
+            <div class="metric-card"><div class="mc-val">12</div><div class="mc-label">配置变体</div></div>
+          </div>
+
+          <!-- Position Code Table -->
+          <div class="info-section">
+            <div class="info-sec-hdr">
+              <div class="info-sec-title">位置码映射</div>
+              <button class="btn btn-s btn-o">➕ 新增映射</button>
+            </div>
+            <div class="info-sec-body" style="padding:0">
+              <div style="overflow-x:auto">
+                <table class="dtable" style="min-width:800px">
+                  <thead>
+                    <tr>
+                      <th style="width:40px"><input type="checkbox"></th>
+                      <th>位置码</th>
+                      <th>位置描述</th>
+                      <th>侧向</th>
+                      <th>层级</th>
+                      <th>关联零件数</th>
+                      <th>状态</th>
+                      <th>操作</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr>
+                      <td><input type="checkbox"></td>
+                      <td class="cell-code cell-link">A008</td>
+                      <td>左前门门饰板装配总成</td>
+                      <td><span class="tag tag-up">左侧</span></td>
+                      <td>装配总成</td>
+                      <td>6</td>
+                      <td><span class="tag tag-new">生效</span></td>
+                      <td><button class="btn-link">编辑</button> <button class="btn-link">查看</button></td>
+                    </tr>
+                    <tr>
+                      <td><input type="checkbox"></td>
+                      <td class="cell-code cell-link">A002</td>
+                      <td>左前门门饰板总成</td>
+                      <td><span class="tag tag-up">左侧</span></td>
+                      <td>子总成</td>
+                      <td>4</td>
+                      <td><span class="tag tag-new">生效</span></td>
+                      <td><button class="btn-link">编辑</button> <button class="btn-link">查看</button></td>
+                    </tr>
+                    <tr>
+                      <td><input type="checkbox"></td>
+                      <td class="cell-code cell-link">A009</td>
+                      <td>右前门门饰板装配总成</td>
+                      <td><span class="tag tag-lo">右侧</span></td>
+                      <td>装配总成</td>
+                      <td>6</td>
+                      <td><span class="tag tag-new">生效</span></td>
+                      <td><button class="btn-link">编辑</button> <button class="btn-link">查看</button></td>
+                    </tr>
+                    <tr>
+                      <td><input type="checkbox"></td>
+                      <td class="cell-code cell-link">A003</td>
+                      <td>右前门门饰板总成</td>
+                      <td><span class="tag tag-lo">右侧</span></td>
+                      <td>子总成</td>
+                      <td>4</td>
+                      <td><span class="tag tag-new">生效</span></td>
+                      <td><button class="btn-link">编辑</button> <button class="btn-link">查看</button></td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+
+          <!-- Parts Table -->
+          <div class="info-section">
+            <div class="info-sec-hdr">
+              <div class="info-sec-title">下属零件清单</div>
+              <div style="display:flex;gap:8px">
+                <input type="text" class="search-input" style="width:180px" placeholder="搜索零件号...">
+                <button class="btn btn-s btn-o">导出</button>
+              </div>
+            </div>
+            <div class="info-sec-body" style="padding:0">
+              <div style="overflow-x:auto">
+                <table class="dtable" style="min-width:1000px">
+                  <thead>
+                    <tr>
+                      <th style="width:40px"><input type="checkbox"></th>
+                      <th>序号</th>
+                      <th>零件号</th>
+                      <th>位置码</th>
+                      <th>中文描述</th>
+                      <th>操作</th>
+                      <th>是否可配置</th>
+                      <th>使用规则</th>
+                      <th>规则描述</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr>
+                      <td><input type="checkbox"></td>
+                      <td>1</td>
+                      <td class="cell-code cell-link">P000050327003 E</td>
+                      <td class="cell-code">A008</td>
+                      <td>左前门门饰板装配总成</td>
+                      <td><span class="tag tag-new">新增</span></td>
+                      <td>—</td>
+                      <td>—</td>
+                      <td>—</td>
+                    </tr>
+                    <tr>
+                      <td><input type="checkbox"></td>
+                      <td></td>
+                      <td class="cell-code" style="padding-left:20px">P000050415001 P</td>
+                      <td class="cell-code">A002</td>
+                      <td>左前门门饰板总成</td>
+                      <td><span class="tag tag-replace">替换</span></td>
+                      <td>☑</td>
+                      <td style="font-family:'Consolas',monospace;font-size:11px;color:var(--p)">AHBD01</td>
+                      <td>前门饰板-镀铝</td>
+                    </tr>
+                    <tr>
+                      <td><input type="checkbox"></td>
+                      <td></td>
+                      <td class="cell-code" style="padding-left:20px">P000050415002 P</td>
+                      <td class="cell-code">A002</td>
+                      <td>左前门门饰板总成</td>
+                      <td><span class="tag tag-modify">修改</span></td>
+                      <td>☑</td>
+                      <td style="font-family:'Consolas',monospace;font-size:11px;color:var(--p)">AHBD01&AAAH01</td>
+                      <td>前门饰板-镀铝&中国</td>
+                    </tr>
+                    <tr>
+                      <td><input type="checkbox"></td>
+                      <td>2</td>
+                      <td class="cell-code cell-link">P000050326003 E</td>
+                      <td class="cell-code">A008</td>
+                      <td>左前门门饰板装配总成</td>
+                      <td><span class="tag tag-new">新增</span></td>
+                      <td>—</td>
+                      <td>—</td>
+                      <td>—</td>
+                    </tr>
+                    <tr>
+                      <td><input type="checkbox"></td>
+                      <td></td>
+                      <td class="cell-code" style="padding-left:20px">P000050414001 P</td>
+                      <td class="cell-code">A002</td>
+                      <td>左前门门饰板总成</td>
+                      <td><span class="tag tag-replace">替换</span></td>
+                      <td>☑</td>
+                      <td style="font-family:'Consolas',monospace;font-size:11px;color:var(--p)">AHBD01</td>
+                      <td>前门饰板-镀铝</td>
+                    </tr>
+                    <tr>
+                      <td><input type="checkbox"></td>
+                      <td>3</td>
+                      <td class="cell-code cell-link">P000050325003 E</td>
+                      <td class="cell-code">A008</td>
+                      <td>左前门门饰板装配总成</td>
+                      <td><span class="tag tag-new">新增</span></td>
+                      <td>—</td>
+                      <td>—</td>
+                      <td>—</td>
+                    </tr>
+                    <tr>
+                      <td><input type="checkbox"></td>
+                      <td></td>
+                      <td class="cell-code" style="padding-left:20px">P000050413001 P</td>
+                      <td class="cell-code">A002</td>
+                      <td>左前门门饰板总成</td>
+                      <td><span class="tag tag-modify">修改</span></td>
+                      <td>☑</td>
+                      <td style="font-family:'Consolas',monospace;font-size:11px;color:var(--p)">AHBD01&AAAH01</td>
+                      <td>前门饰板-镀铝&中国</td>
+                    </tr>
+                    <tr>
+                      <td><input type="checkbox"></td>
+                      <td>4</td>
+                      <td class="cell-code cell-link">P000050324003 E</td>
+                      <td class="cell-code">A009</td>
+                      <td>右前门门饰板装配总成</td>
+                      <td><span class="tag tag-new">新增</span></td>
+                      <td>—</td>
+                      <td>—</td>
+                      <td>—</td>
+                    </tr>
+                    <tr>
+                      <td><input type="checkbox"></td>
+                      <td></td>
+                      <td class="cell-code" style="padding-left:20px">P000050412001 P</td>
+                      <td class="cell-code">A003</td>
+                      <td>右前门门饰板总成</td>
+                      <td><span class="tag tag-replace">替换</span></td>
+                      <td>☑</td>
+                      <td style="font-family:'Consolas',monospace;font-size:11px;color:var(--p)">AHBD01</td>
+                      <td>前门饰板-镀铝</td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+              <div class="pagination">
+                <span class="pg-info">共 42 条</span>
+                <select><option>10 条/页</option><option>20 条/页</option><option>50 条/页</option></select>
+                <div class="pg-btn" style="font-size:10px">◀</div>
+                <div class="pg-btn active">1</div>
+                <div class="pg-btn">2</div>
+                <div class="pg-btn">3</div>
+                <div class="pg-btn">4</div>
+                <div class="pg-btn">5</div>
+                <div class="pg-btn" style="font-size:10px">▶</div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Change Log -->
+          <div class="info-section">
+            <div class="info-sec-hdr">
+              <div class="info-sec-title">变更日志</div>
+            </div>
+            <div class="info-sec-body">
+              <div style="display:flex;gap:12px;padding-bottom:12px;border-bottom:1px solid var(--g100);margin-bottom:12px">
+                <div style="width:28px;height:28px;border-radius:50%;background:var(--sl);color:var(--s);display:flex;align-items:center;justify-content:center;font-size:11px;flex-shrink:0">✓</div>
+                <div style="flex:1">
+                  <div style="font-size:13px;color:var(--g800);font-weight:500">新增位置码 A009/A003（右侧对称）</div>
+                  <div style="font-size:12px;color:var(--g500);margin-top:2px">路梦瑶 · 2026-06-20 14:32</div>
+                </div>
+              </div>
+              <div style="display:flex;gap:12px;padding-bottom:12px;border-bottom:1px solid var(--g100);margin-bottom:12px">
+                <div style="width:28px;height:28px;border-radius:50%;background:var(--pl);color:var(--p);display:flex;align-items:center;justify-content:center;font-size:11px;flex-shrink:0">✎</div>
+                <div style="flex:1">
+                  <div style="font-size:13px;color:var(--g800);font-weight:500">修改结构简码映射 6017 → 60.01.07.01</div>
+                  <div style="font-size:12px;color:var(--g500);margin-top:2px">张家宇 · 2026-06-18 10:15</div>
+                </div>
+              </div>
+              <div style="display:flex;gap:12px;padding-bottom:12px;border-bottom:1px solid var(--g100);margin-bottom:12px">
+                <div style="width:28px;height:28px;border-radius:50%;background:var(--wl);color:#d46b08;display:flex;align-items:center;justify-content:center;font-size:11px;flex-shrink:0">⚠</div>
+                <div style="flex:1">
+                  <div style="font-size:13px;color:var(--g800);font-weight:500">配置规则变更：AHBD01 新增子规则 AAAH01</div>
+                  <div style="font-size:12px;color:var(--g500);margin-top:2px">白永昌 · 2026-06-15 09:48</div>
+                </div>
+              </div>
+              <div style="display:flex;gap:12px">
+                <div style="width:28px;height:28px;border-radius:50%;background:var(--g100);color:var(--g500);display:flex;align-items:center;justify-content:center;font-size:11px;flex-shrink:0">📋</div>
+                <div style="flex:1">
+                  <div style="font-size:13px;color:var(--g800);font-weight:500">初始创建 MVPS 编码 60.01.07.01</div>
+                  <div style="font-size:12px;color:var(--g500);margin-top:2px">路梦瑶 · 2025-08-15 16:20</div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+function switchTab(el) {
+  document.querySelectorAll('.ctab').forEach(t => t.classList.remove('active'));
+  el.classList.add('active');
+}
+function selectNode(el) {
+  document.querySelectorAll('.tree-row').forEach(r => r.classList.remove('selected'));
+  el.classList.add('selected');
+}
+function toggleNode(e, el) {
+  e.stopPropagation();
+  el.classList.toggle('open');
+  const node = el.closest('.tree-node');
+  const children = node.querySelector('.tree-node');
+  if (children) {
+    children.style.display = children.style.display === 'none' ? 'block' : (children.style.display === 'block' ? 'none' : 'block');
+  }
+}
+</script>
+
+</body>
+</html>

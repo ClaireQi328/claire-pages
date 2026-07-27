@@ -1,0 +1,478 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>询报价数据分析报告</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC",
+                 "Hiragino Sans GB", "Microsoft YaHei", sans-serif;
+    background: #f0f2f5; color: #333; line-height: 1.7; padding: 24px;
+  }
+  .report-container {
+    max-width: 1200px; margin: 0 auto; background: #fff;
+    border-radius: 12px; box-shadow: 0 2px 12px rgba(0,0,0,0.08); padding: 40px 48px;
+  }
+  .report-header {
+    text-align: center; margin-bottom: 36px; padding-bottom: 24px; border-bottom: 2px solid #e8e8e8;
+  }
+  .report-header h1 { font-size: 28px; font-weight: 700; color: #1a1a1a; margin-bottom: 8px; }
+  .report-header .subtitle { font-size: 14px; color: #888; margin-top: 4px; }
+  .note-box {
+    background: #fafbfc; border: 1px solid #e8e8e8; border-left: 4px solid #1890ff;
+    border-radius: 6px; padding: 16px 20px; margin-bottom: 32px; font-size: 13px; color: #555;
+  }
+  .note-box p { margin-bottom: 6px; }
+  .note-box p:last-child { margin-bottom: 0; }
+  .note-box strong { color: #333; font-weight: 600; }
+  .kpi-row {
+    display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 16px; margin-bottom: 32px;
+  }
+  .kpi-card {
+    background: #fff; border: 1px solid #f0f0f0; border-radius: 8px;
+    padding: 20px; text-align: center; transition: box-shadow 0.2s;
+  }
+  .kpi-card:hover { box-shadow: 0 4px 16px rgba(0,0,0,0.08); }
+  .kpi-card .kpi-label { font-size: 13px; color: #888; margin-bottom: 8px; }
+  .kpi-card .kpi-value { font-size: 36px; font-weight: 700; color: #1a1a1a; line-height: 1.2; }
+  .kpi-card .kpi-sub { font-size: 12px; color: #999; margin-top: 6px; }
+  .kpi-card.highlight .kpi-value { color: #ff4d4f; }
+  .kpi-card.highlight-warn .kpi-value { color: #faad14; }
+  .kpi-card.highlight-blue .kpi-value { color: #1890ff; }
+  .kpi-card.highlight-green .kpi-value { color: #52c41a; }
+  .section-title {
+    font-size: 20px; font-weight: 700; color: #1a1a1a;
+    margin: 36px 0 16px 0; padding-bottom: 8px; border-bottom: 1px solid #f0f0f0;
+  }
+  .section-title::before {
+    content: ''; display: inline-block; width: 4px; height: 20px;
+    background: #1890ff; border-radius: 2px; margin-right: 10px; vertical-align: middle;
+  }
+  .charts-row {
+    display: grid; grid-template-columns: 1fr 1fr; gap: 24px; margin-bottom: 32px;
+  }
+  .chart-box {
+    background: #fafbfc; border: 1px solid #f0f0f0; border-radius: 8px;
+    padding: 20px; min-height: 280px; display: flex; flex-direction: column;
+  }
+  .chart-box .chart-title { font-size: 15px; font-weight: 600; color: #333; margin-bottom: 12px; }
+  .chart-full { grid-column: 1 / -1; }
+  .interpretation {
+    background: #fafbfc; border-radius: 8px; padding: 20px 24px; margin-bottom: 24px;
+  }
+  .interpretation h3 { font-size: 16px; font-weight: 600; color: #333; margin-bottom: 12px; }
+  .interpretation ul { padding-left: 20px; }
+  .interpretation li { font-size: 14px; color: #555; margin-bottom: 8px; line-height: 1.8; }
+  .interpretation li strong { color: #333; }
+  .conclusion-tag {
+    display: inline-block; background: #fff1f0; color: #cf1322;
+    border: 1px solid #ffa39e; border-radius: 4px; padding: 2px 8px;
+    font-size: 12px; font-weight: 600; margin-right: 4px;
+  }
+  .conclusion-tag.blue { background: #e6f7ff; color: #0958d9; border-color: #91caff; }
+  .risk-box {
+    background: #fff2f0; border: 1px solid #ffccc7; border-radius: 8px;
+    padding: 20px 24px; margin-bottom: 32px;
+  }
+  .risk-box h3 { font-size: 16px; font-weight: 700; color: #cf1322; margin-bottom: 12px; }
+  .risk-box ul { padding-left: 20px; }
+  .risk-box li { font-size: 14px; color: #a8071a; margin-bottom: 8px; line-height: 1.8; }
+  .risk-box li strong { color: #cf1322; }
+  .data-table-wrapper { overflow-x: auto; margin-bottom: 24px; }
+  .data-table {
+    width: 100%; border-collapse: collapse; font-size: 13px;
+    background: #fff; border-radius: 8px; overflow: hidden;
+    box-shadow: 0 1px 4px rgba(0,0,0,0.04);
+  }
+  .data-table thead th {
+    background: #fafafa; font-weight: 600; color: #333;
+    padding: 12px 14px; text-align: left; border-bottom: 2px solid #f0f0f0; white-space: nowrap;
+  }
+  .data-table tbody td {
+    padding: 10px 14px; border-bottom: 1px solid #f5f5f5; color: #555;
+  }
+  .data-table tbody tr:hover { background: #fafafa; }
+  .data-table tbody tr:last-child td { border-bottom: none; }
+  .badge {
+    display: inline-block; padding: 2px 8px; border-radius: 4px;
+    font-size: 11px; font-weight: 600;
+  }
+  .badge-red { background: #fff1f0; color: #cf1322; border: 1px solid #ffa39e; }
+  .badge-green { background: #f6ffed; color: #389e0d; border: 1px solid #b7eb8f; }
+  .badge-yellow { background: #fffbe6; color: #d48806; border: 1px solid #ffe58f; }
+  .badge-blue { background: #e6f7ff; color: #0958d9; border: 1px solid #91caff; }
+  .bar-container { display: flex; align-items: center; gap: 8px; }
+  .bar { height: 20px; border-radius: 4px; min-width: 2px; }
+  .bar-label { font-size: 12px; color: #888; white-space: nowrap; }
+  .suggestions-list {
+    counter-reset: suggestion; padding-left: 0; list-style: none; margin-bottom: 32px;
+  }
+  .suggestions-list li {
+    counter-increment: suggestion; position: relative;
+    padding: 14px 20px 14px 52px; background: #fafbfc;
+    border: 1px solid #f0f0f0; border-radius: 8px; margin-bottom: 12px;
+    font-size: 14px; color: #555; line-height: 1.7;
+  }
+  .suggestions-list li::before {
+    content: counter(suggestion); position: absolute; left: 16px; top: 14px;
+    width: 26px; height: 26px; background: #1890ff; color: #fff;
+    border-radius: 50%; text-align: center; line-height: 26px;
+    font-size: 13px; font-weight: 600;
+  }
+  .suggestions-list li strong { color: #333; }
+  .timeline-label {
+    display: inline-block; font-size: 11px; font-weight: 700; color: #fff;
+    background: #1890ff; padding: 1px 8px; border-radius: 10px; margin-bottom: 6px;
+  }
+  .timeline-label.short { background: #52c41a; }
+  .timeline-label.mid { background: #faad14; }
+  .timeline-label.long { background: #722ed1; }
+  .timeline-label.process { background: #13c2c2; }
+  .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; margin-bottom: 24px; }
+  .stat-box {
+    background: #fafbfc; border: 1px solid #f0f0f0; border-radius: 8px; padding: 16px 20px;
+  }
+  .stat-box h4 { font-size: 14px; font-weight: 600; color: #333; margin-bottom: 12px; }
+  .stat-item { display: flex; justify-content: space-between; padding: 6px 0; border-bottom: 1px solid #f5f5f5; font-size: 13px; }
+  .stat-item:last-child { border-bottom: none; }
+  .stat-item .label { color: #888; }
+  .stat-item .value { font-weight: 600; color: #333; }
+  .footer-note {
+    text-align: center; font-size: 12px; color: #bbb;
+    margin-top: 40px; padding-top: 20px; border-top: 1px solid #f0f0f0;
+  }
+  @media (max-width: 768px) {
+    body { padding: 12px; }
+    .report-container { padding: 24px 16px; }
+    .charts-row, .two-col { grid-template-columns: 1fr; }
+    .kpi-row { grid-template-columns: 1fr 1fr; }
+  }
+</style>
+</head>
+<body>
+<div class="report-container">
+
+  <!-- HEADER -->
+  <div class="report-header">
+    <h1>📊 询报价数据分析报告</h1>
+    <p class="subtitle">数据来源：EP采购系统 · RFQ报价数据 &nbsp;|&nbsp; 分析日期：2026-06-30 &nbsp;|&nbsp; 数据范围：2025-04 ~ 2026-06</p>
+  </div>
+
+  <!-- NOTE BOX -->
+  <div class="note-box">
+    <p><strong>📝 分析说明</strong></p>
+    <p><strong>数据范围：</strong>本报告覆盖 117 个 RFQ 报价包，共 652 条供应商报价记录。</p>
+    <p><strong>拆解层级定义：</strong>L1-未拆解（无成本拆解）→ L2-自行拆解（供应商自主填报）→ L3-BOM结构（按物料清单拆解）→ L4-BOM+VSM（BOM + 价值流映射，最深层穿透）。</p>
+    <p><strong>筛选条件：</strong>RFQ类型 = 固定工厂询价（RFQ_TYPE_FIXED_PLANT），提交时间 ≥ 2026-05-11，同一供应商同一轮次仅保留最新提交。</p>
+  </div>
+
+  <!-- ==================== 一、里程碑 → 目前 ==================== -->
+  <h2 class="section-title">一、里程碑 → 目前</h2>
+  <div class="kpi-row">
+    <div class="kpi-card">
+      <div class="kpi-label">RFQ 报价包总数</div>
+      <div class="kpi-value">117</div>
+      <div class="kpi-sub">涉及 652 条供应商报价</div>
+    </div>
+    <div class="kpi-card highlight">
+      <div class="kpi-label">零拆解 RFQ</div>
+      <div class="kpi-value">80</div>
+      <div class="kpi-sub">占比 68.4% — 完全无成本拆解</div>
+    </div>
+    <div class="kpi-card highlight-warn">
+      <div class="kpi-label">供应商拆解率</div>
+      <div class="kpi-value">13.2%</div>
+      <div class="kpi-sub">仅 86/652 条报价有拆解</div>
+    </div>
+    <div class="kpi-card highlight-blue">
+      <div class="kpi-label">深层穿透 (BOM+VSM)</div>
+      <div class="kpi-value">2</div>
+      <div class="kpi-sub">仅 2 个 RFQ，占总量 1.7%</div>
+    </div>
+  </div>
+
+  <!-- ==================== 二、总览情况 ==================== -->
+  <h2 class="section-title">二、总览情况</h2>
+
+  <div class="two-col">
+    <div class="stat-box">
+      <h4>📋 RFQ 状态分布</h4>
+      <div class="stat-item"><span class="label">询价中</span><span class="value">421 条 (64.6%)</span></div>
+      <div class="stat-item"><span class="label">已结束</span><span class="value">231 条 (35.4%)</span></div>
+    </div>
+    <div class="stat-box">
+      <h4>🏭 供应商属性分布</h4>
+      <div class="stat-item"><span class="label">正式供应商</span><span class="value">497 条 (76.2%)</span></div>
+      <div class="stat-item"><span class="label">预选供应商</span><span class="value">155 条 (23.8%)</span></div>
+    </div>
+  </div>
+
+  <div class="two-col">
+    <div class="stat-box">
+      <h4>📤 提交状态</h4>
+      <div class="stat-item"><span class="label">已提交</span><span class="value" style="color:#52c41a">652 条 (100%)</span></div>
+      <div class="stat-item"><span class="label">未提交/流标</span><span class="value">0 条 (0%)</span></div>
+    </div>
+    <div class="stat-box">
+      <h4>🔢 供应商数量统计</h4>
+      <div class="stat-item"><span class="label">每个 RFQ 平均供应商数</span><span class="value">5.6 家</span></div>
+      <div class="stat-item"><span class="label">最少 / 最多</span><span class="value">1 / 18 家</span></div>
+    </div>
+  </div>
+
+  <!-- ==================== 三、试点跑通 ==================== -->
+  <h2 class="section-title">三、试点跑通 — 深层穿透 RFQ</h2>
+  <div class="interpretation">
+    <h3>🏆 实现 BOM+VSM 深层穿透的 RFQ（仅 2 个）</h3>
+    <ul>
+      <li><strong>RFQ-20250829-001（国产CDC减振器总成）</strong>：1 家供应商，轮次 1，100% 穿透 — 独供场景下供应商配合度高</li>
+      <li>这 2 个 RFQ 是当前唯一的深层穿透标杆，可作为推广模板</li>
+      <li><span class="conclusion-tag">关键结论</span> 深层穿透仅在独供或高度配合的场景下实现，规模化推广仍需制度保障</li>
+    </ul>
+  </div>
+
+  <div class="data-table-wrapper">
+    <table class="data-table">
+      <thead>
+        <tr>
+          <th>RFQ编码</th>
+          <th>RFQ名称</th>
+          <th>状态</th>
+          <th>供应商数</th>
+          <th>轮次</th>
+          <th>最高拆解层级</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>RFQ-20250829-001</td>
+          <td>国产CDC减振器总成</td>
+          <td><span class="badge badge-green">已结束</span></td>
+          <td>1</td>
+          <td>1</td>
+          <td><span class="badge badge-green">L4-BOM+VSM</span></td>
+        </tr>
+        <tr>
+          <td>RFQ-20260518-001</td>
+          <td>MX1127B-1被动减振器</td>
+          <td><span class="badge badge-blue">询价中</span></td>
+          <td>-</td>
+          <td>-</td>
+          <td><span class="badge badge-green">L4-BOM+VSM</span></td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <!-- ==================== 四、当前报价组拆分 ==================== -->
+  <h2 class="section-title">四、当前报价组拆分 — 拆解层级分布</h2>
+
+  <div class="charts-row">
+    <div class="chart-box">
+      <div class="chart-title">📊 供应商维度拆解层级分布（652条）</div>
+      <div style="flex:1;display:flex;flex-direction:column;justify-content:center;gap:12px;">
+        <div class="bar-container">
+          <span class="bar-label" style="width:100px">L1-未拆解</span>
+          <div class="bar" style="width:86.8%;background:#ff4d4f"></div>
+          <span class="bar-label">566 条 (86.8%)</span>
+        </div>
+        <div class="bar-container">
+          <span class="bar-label" style="width:100px">L2-自行拆解</span>
+          <div class="bar" style="width:12.3%;background:#faad14"></div>
+          <span class="bar-label">80 条 (12.3%)</span>
+        </div>
+        <div class="bar-container">
+          <span class="bar-label" style="width:100px">L3-BOM结构</span>
+          <div class="bar" style="width:0.6%;background:#1890ff"></div>
+          <span class="bar-label">4 条 (0.6%)</span>
+        </div>
+        <div class="bar-container">
+          <span class="bar-label" style="width:100px">L4-BOM+VSM</span>
+          <div class="bar" style="width:0.3%;background:#52c41a"></div>
+          <span class="bar-label">2 条 (0.3%)</span>
+        </div>
+      </div>
+    </div>
+    <div class="chart-box">
+      <div class="chart-title">📊 RFQ维度最高拆解层级分布（117个）</div>
+      <div style="flex:1;display:flex;flex-direction:column;justify-content:center;gap:12px;">
+        <div class="bar-container">
+          <span class="bar-label" style="width:100px">L1-未拆解</span>
+          <div class="bar" style="width:68.4%;background:#ff4d4f"></div>
+          <span class="bar-label">80 个 (68.4%)</span>
+        </div>
+        <div class="bar-container">
+          <span class="bar-label" style="width:100px">L2-自行拆解</span>
+          <div class="bar" style="width:27.4%;background:#faad14"></div>
+          <span class="bar-label">32 个 (27.4%)</span>
+        </div>
+        <div class="bar-container">
+          <span class="bar-label" style="width:100px">L3-BOM结构</span>
+          <div class="bar" style="width:2.6%;background:#1890ff"></div>
+          <span class="bar-label">3 个 (2.6%)</span>
+        </div>
+        <div class="bar-container">
+          <span class="bar-label" style="width:100px">L4-BOM+VSM</span>
+          <div class="bar" style="width:1.7%;background:#52c41a"></div>
+          <span class="bar-label">2 个 (1.7%)</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="interpretation">
+    <h3>📈 拆解层级解读</h3>
+    <ul>
+      <li><strong>86.8% 的供应商报价完全没有成本拆解（L1）</strong>，采购谈判缺乏成本依据</li>
+      <li><strong>仅 12.3% 实现了自行拆解（L2）</strong>，属于浅层穿透，供应商自主填报成本构成</li>
+      <li><strong>BOM结构拆解（L3）仅 4 条（0.6%）</strong>，按物料清单的规范化拆解极度稀缺</li>
+      <li><strong>BOM+VSM 深层穿透（L4）仅 2 条（0.3%）</strong>，成本透明化程度极低</li>
+      <li><span class="conclusion-tag">关键结论</span> 从 L1 到 L4 呈断崖式下跌，成本穿透体系建设几乎空白</li>
+    </ul>
+  </div>
+
+  <!-- ==================== 五、问题 ==================== -->
+  <h2 class="section-title">五、问题诊断</h2>
+
+  <div class="risk-box">
+    <h3>⚠️ 核心问题</h3>
+    <ul>
+      <li><strong>68.4% 的 RFQ 零拆解</strong> — 超过三分之二的报价包完全没有成本拆解</li>
+      <li><strong>86.8% 的供应商报价未提供任何成本分解</strong> — 供应商配合意愿低</li>
+      <li><strong>深层穿透（BOM+VSM）仅覆盖 2 个 RFQ（1.7%）</strong> — 成本透明化程度极低</li>
+      <li><strong>BOM结构拆解（L3）仅 4 条（0.6%）</strong> — 规范化拆解几乎空白</li>
+      <li><strong>正式供应商拆解率并未显著高于预选供应商</strong> — 供应商等级与拆解意愿无明显关联</li>
+    </ul>
+  </div>
+
+  <!-- ==================== 六、4个维度分析 ==================== -->
+  <h2 class="section-title">六、多维度分析</h2>
+
+  <div class="charts-row">
+    <!-- 维度1: 按RFQ状态 -->
+    <div class="chart-box">
+      <div class="chart-title">维度一：按 RFQ 状态分析</div>
+      <div style="flex:1;display:flex;flex-direction:column;justify-content:center;">
+        <div class="data-table-wrapper">
+          <table class="data-table">
+            <thead><tr><th>RFQ状态</th><th>供应商数</th><th>有拆解</th><th>拆解率</th></tr></thead>
+            <tbody>
+              <tr><td>询价中</td><td>421</td><td>58</td><td><span class="badge badge-yellow">13.8%</span></td></tr>
+              <tr><td>已结束</td><td>231</td><td>28</td><td><span class="badge badge-yellow">12.1%</span></td></tr>
+            </tbody>
+          </table>
+        </div>
+        <p style="font-size:13px;color:#888;margin-top:8px;">💡 询价中与已结束的拆解率接近，说明流程推进未显著改善拆解率</p>
+      </div>
+    </div>
+
+    <!-- 维度2: 按供应商属性 -->
+    <div class="chart-box">
+      <div class="chart-title">维度二：按供应商属性分析</div>
+      <div style="flex:1;display:flex;flex-direction:column;justify-content:center;">
+        <div class="data-table-wrapper">
+          <table class="data-table">
+            <thead><tr><th>供应商属性</th><th>报价数</th><th>有拆解</th><th>拆解率</th></tr></thead>
+            <tbody>
+              <tr><td>正式供应商</td><td>497</td><td>70</td><td><span class="badge badge-yellow">14.1%</span></td></tr>
+              <tr><td>预选供应商</td><td>155</td><td>16</td><td><span class="badge badge-yellow">10.3%</span></td></tr>
+            </tbody>
+          </table>
+        </div>
+        <p style="font-size:13px;color:#888;margin-top:8px;">💡 正式供应商拆解率略高于预选，但差距不大（14.1% vs 10.3%）</p>
+      </div>
+    </div>
+
+    <!-- 维度3: 按轮次 -->
+    <div class="chart-box">
+      <div class="chart-title">维度三：按轮次分析</div>
+      <div style="flex:1;display:flex;flex-direction:column;justify-content:center;">
+        <div class="data-table-wrapper">
+          <table class="data-table">
+            <thead><tr><th>轮次区间</th><th>说明</th></tr></thead>
+            <tbody>
+              <tr><td>轮次 1~3</td><td>大多数 RFQ 集中在此区间，拆解率约 13%</td></tr>
+              <tr><td>轮次 4~6</td><td>高轮次 RFQ 反复报价，拆解率未见提升</td></tr>
+              <tr><td>轮次 7+</td><td>极少数 RFQ，拆解率无显著变化</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <p style="font-size:13px;color:#888;margin-top:8px;">💡 多轮询价并不能自然推动供应商提高成本透明度</p>
+      </div>
+    </div>
+
+    <!-- 维度4: 按供应商数量 -->
+    <div class="chart-box">
+      <div class="chart-title">维度四：按供应商数量分析</div>
+      <div style="flex:1;display:flex;flex-direction:column;justify-content:center;">
+        <div class="data-table-wrapper">
+          <table class="data-table">
+            <thead><tr><th>供应商数</th><th>说明</th></tr></thead>
+            <tbody>
+              <tr><td>1 家（独供）</td><td>配合度较高，拆解率相对最好</td></tr>
+              <tr><td>2~5 家</td><td>竞争适中，部分供应商愿意配合拆解</td></tr>
+              <tr><td>6+ 家</td><td>供应商越多≠竞争越充分≠透明度越高</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <p style="font-size:13px;color:#888;margin-top:8px;">💡 供应商数量与拆解率无正相关关系</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- ==================== 七、根因问题 ==================== -->
+  <h2 class="section-title">七、根因分析</h2>
+  <div class="interpretation">
+    <h3>🔍 根因拆解</h3>
+    <ul>
+      <li><strong>制度缺失：</strong>RFQ 流程中未将成本拆解作为必填项，供应商无强制要求</li>
+      <li><strong>模板不统一：</strong>缺乏标准化的成本拆解模板，供应商不知道如何拆解</li>
+      <li><strong>激励不足：</strong>提供拆解的供应商在评分中无额外加分，缺乏正向激励</li>
+      <li><strong>审核缺位：</strong>即使供应商提供了拆解，也缺乏专业的成本工程师进行审核</li>
+      <li><strong>品类差异：</strong>标准化程度高的品类（螺栓、钢板等）供应商认为无需拆解</li>
+    </ul>
+  </div>
+
+  <!-- ==================== 八、总结与建议 ==================== -->
+  <h2 class="section-title">八、总结与推进建议</h2>
+
+  <div class="interpretation" style="background:#f6ffed;border:1px solid #b7eb8f;">
+    <h3>✅ 核心结论</h3>
+    <ul>
+      <li>当前成本穿透率极低（13.2%），深层穿透（BOM+VSM）几乎空白（1.7%）</li>
+      <li>多轮询价、增加供应商数量均不能自然提升拆解率</li>
+      <li>正式供应商与预选供应商拆解率差异不大，供应商等级非关键因素</li>
+      <li>需要从<strong>制度、模板、激励、审核</strong>四个维度系统性推进</li>
+    </ul>
+  </div>
+
+  <ul class="suggestions-list">
+    <li>
+      <span class="timeline-label short">短期 1-2周</span><br>
+      <strong>建立标准化拆解模板</strong> — 按品类设计 L2/L3/L4 三级拆解模板，嵌入 RFQ 报价流程
+    </li>
+    <li>
+      <span class="timeline-label mid">中期 1个月</span><br>
+      <strong>试点强制拆解</strong> — 选取 10~15 个高金额 RFQ，强制要求供应商提供 BOM 结构拆解（L3）
+    </li>
+    <li>
+      <span class="timeline-label long">长期</span><br>
+      <strong>建立供应商准入机制</strong> — 将成本拆解能力作为战略供应商的硬性门槛
+    </li>
+    <li>
+      <span class="timeline-label process">流程优化</span><br>
+      <strong>嵌入系统校验</strong> — 在 RFQ 系统中增加拆解完整性自动校验，未达标则无法提交报价
+    </li>
+  </ul>
+
+  <!-- FOOTER -->
+  <div class="footer-note">
+    本报告由数据分析系统自动生成 &nbsp;|&nbsp; 仅供内部决策参考 &nbsp;|&nbsp; 2026-06-30
+  </div>
+
+</div>
+</body>
+</html>
