@@ -1,0 +1,596 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>合同 AI 审查 Skill 设计方案 · contract-clause-review v0.9</title>
+<style>
+  :root{
+    --bg:#faf8f5; --card:#ffffff; --ink:#33322f; --ink2:#5c5a55; --muted:#8b8780;
+    --line:#e7e2d8; --line2:#f0ece4;
+    --sage:#9caf88; --blue:#8fa6b2; --rose:#c3968f; --oat:#d9c8b4; --plum:#a99fb0;
+    --red:#b9776f; --amber:#c9a227; --green:#7f9c6d; --grey:#a8a49c;
+    --radius:14px;
+    --mono: ui-monospace, "SF Mono", Menlo, monospace;
+  }
+  *{box-sizing:border-box}
+  body{
+    margin:0; background:var(--bg); color:var(--ink);
+    font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Hiragino Sans GB","Microsoft YaHei",sans-serif;
+    font-size:15px; line-height:1.75; -webkit-font-smoothing:antialiased;
+  }
+  .wrap{max-width:1040px;margin:0 auto;padding:48px 28px 96px}
+  header.hero{border-bottom:2px solid var(--ink);padding-bottom:22px;margin-bottom:34px}
+  .eyebrow{font-size:12px;letter-spacing:.18em;color:var(--muted);text-transform:uppercase;margin-bottom:10px}
+  h1{font-size:31px;line-height:1.3;margin:0 0 10px;letter-spacing:-.01em}
+  .sub{color:var(--ink2);font-size:15px;margin:0}
+  .meta{display:flex;flex-wrap:wrap;gap:8px;margin-top:16px;font-size:12.5px;color:var(--muted)}
+  .meta span{background:#fff;border:1px solid var(--line);border-radius:999px;padding:3px 11px}
+  h2{font-size:21px;margin:52px 0 6px;letter-spacing:-.01em;display:flex;align-items:baseline;gap:10px}
+  h2 .num{font-family:var(--mono);font-size:13px;color:var(--plum);font-weight:600;letter-spacing:0}
+  h2 + .lead{color:var(--ink2);margin:0 0 18px;font-size:14.5px;border-left:3px solid var(--line);padding-left:12px}
+  h3{font-size:16px;margin:30px 0 8px}
+  p{margin:10px 0}
+  .hl{background:#fff;border:1px solid var(--line);border-left:5px solid var(--sage);border-radius:var(--radius);
+      padding:22px 24px;margin:26px 0 8px;box-shadow:0 1px 2px rgba(60,50,40,.04)}
+  .hl .k{font-size:13px;color:var(--muted);letter-spacing:.06em;margin-bottom:8px}
+  .hl p{margin:6px 0;font-size:15.5px}
+  .hl strong{background:linear-gradient(transparent 62%, #e8edd9 62%);padding:0 2px}
+  .grid{display:grid;gap:14px}
+  .g2{grid-template-columns:repeat(2,1fr)}
+  .g3{grid-template-columns:repeat(3,1fr)}
+  @media(max-width:760px){.g2,.g3{grid-template-columns:1fr}}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);padding:16px 18px}
+  .card .t{font-weight:600;font-size:14.5px;margin-bottom:4px}
+  .card .d{font-size:13.5px;color:var(--ink2);line-height:1.65}
+  .card.a{border-top:3px solid var(--sage)}
+  .card.b{border-top:3px solid var(--blue)}
+  .card.c{border-top:3px solid var(--rose)}
+  .card.d{border-top:3px solid var(--oat)}
+  table{width:100%;border-collapse:collapse;margin:14px 0 8px;background:#fff;border:1px solid var(--line);
+        border-radius:10px;overflow:hidden;font-size:13.4px}
+  th,td{padding:9px 12px;text-align:left;border-bottom:1px solid var(--line2);vertical-align:top;line-height:1.6}
+  th{background:#f6f3ee;font-weight:600;color:var(--ink);white-space:nowrap;font-size:12.8px}
+  tr:last-child td{border-bottom:none}
+  td.c,th.c{text-align:center}
+  .tag{display:inline-block;font-size:11.5px;padding:1px 8px;border-radius:999px;border:1px solid;line-height:1.7;white-space:nowrap}
+  .t-block{color:#8d5a53;border-color:#e2ccc7;background:#fbf1ef}
+  .t-warn{color:#8a6d1f;border-color:#e8dcb4;background:#fbf7e8}
+  .t-info{color:#557384;border-color:#cddae1;background:#f0f5f7}
+  .t-ok{color:#5b7349;border-color:#d3ddc6;background:#f3f7ee}
+  .t-must{color:#7a5a8a;border-color:#ddd2e4;background:#f7f2fa}
+  code{font-family:var(--mono);font-size:12.4px;background:#f3f0ea;padding:1.5px 5px;border-radius:4px;color:#5a4a3f}
+  pre{background:#f7f5f0;border:1px solid var(--line);border-radius:10px;padding:15px 17px;overflow:auto;
+      font-family:var(--mono);font-size:12.3px;line-height:1.65;color:#4a4038;margin:12px 0}
+  pre .cm{color:#9a948a}
+  ul,ol{margin:8px 0 8px 4px;padding-left:20px}
+  li{margin:5px 0}
+  li::marker{color:var(--muted)}
+  .note{font-size:13px;color:var(--muted);margin-top:6px}
+  .fig{background:#fff;border:1px solid var(--line);border-radius:var(--radius);padding:18px;margin:18px 0}
+  .fig .cap{font-size:12.5px;color:var(--muted);text-align:center;margin-top:8px}
+  svg{display:block;max-width:100%;height:auto;margin:0 auto}
+  .divider{height:1px;background:var(--line);margin:40px 0 0}
+  footer{margin-top:44px;padding-top:18px;border-top:1px solid var(--line);font-size:12.3px;color:var(--muted);line-height:1.8}
+  .kv{display:grid;grid-template-columns:88px 1fr;gap:6px 12px;font-size:13.4px;margin-top:10px}
+  .kv .kk{color:var(--muted)}
+  .pill-row{display:flex;flex-wrap:wrap;gap:7px;margin:10px 0}
+  .pill{font-size:12.3px;background:#fff;border:1px solid var(--line);border-radius:999px;padding:3px 11px;color:var(--ink2)}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<header class="hero">
+  <div class="eyebrow">EP 合同线上化 · AI 能力增量方案</div>
+  <h1>合同 AI 审查 Skill 设计方案<br><span style="font-size:19px;color:var(--ink2);font-weight:400">contract-clause-review v0.9 · 审什么 + 怎么做</span></h1>
+  <p class="sub">在既有的「字段核对（field-check）」之外，新增一个面向<strong>文件本体与条款实质</strong>的审查能力。本文回答两个问题：能审什么、怎么落地。</p>
+  <div class="meta">
+    <span>参考：EP-20260903-合同管理-PRD</span>
+    <span>参考：合同线上化 · AI 机会点与 CLI 开发清单</span>
+    <span>参考：UAT 第一轮 2026-10-14</span>
+    <span>参考：合同模版&签署&归档优化-首次共创结论</span>
+  </div>
+</header>
+
+<div class="hl">
+  <div class="k">结论先行</div>
+  <p><strong>已有的 field-check 管「数字对不对」，新 skill 管「文件本身对不对、条款亏不亏」。</strong>两者不是替代关系，是同一条智能检查链路上的两段。</p>
+  <p>① 审查范围分四层：<strong>L0 文件与签章 → L1 要素一致性 → L2 条款完备与偏离 → L3 跨单据业务一致性</strong>。L2 是新增增量，L0/L1 是既有能力的补强。</p>
+  <p>② 落地靠三条硬约束：<strong>规则先行、LLM 只做语义、结论必须带原文锚点</strong>——否则误报会把采购员逼回人工。</p>
+  <p>③ 最大阻塞不在 skill 本身，而在数据：<code>contract info detail</code> <strong>缺金额、含税/未税、生效日、关联原合同</strong>五个字段，缺了就会让金额类审查项全部标 <code>unparseable</code>。</p>
+</div>
+
+<h2><span class="num">00</span>定位：与现有能力的分工</h2>
+<p class="lead">先说清楚不重叠。现有链路是 12 条「智能检查」阻断项 + 7 项「字段核对」非阻断项，新 skill 补的是两者之间的空档。</p>
+
+<table>
+  <tr><th style="width:16%">能力</th><th style="width:22%">审查对象</th><th style="width:26%">判定方式</th><th style="width:10%" class="c">阻断性</th><th>回答的问题</th></tr>
+  <tr>
+    <td><strong>智能检查（现有）</strong><br><span class="note">12 条</span></td>
+    <td>表单字段本身</td>
+    <td>确定性必填 / 联动校验（币种、金额、平台、供应商行、模板同步）</td>
+    <td class="c"><span class="tag t-ok">阻断</span></td>
+    <td>「该填的填了吗」</td>
+  </tr>
+  <tr>
+    <td><strong>field-check（现有）</strong><br><span class="note">contract-semantic-check，7 项</span></td>
+    <td>系统字段 ⇄ 文件文本</td>
+    <td>抽取 + 数值比对（主体/金额/期限/税率/公司名去重数）</td>
+    <td class="c"><span class="tag t-info">不阻断</span></td>
+    <td>「文件里写的，和系统登记的是同一个东西吗」</td>
+  </tr>
+  <tr style="background:#fbfaf7">
+    <td><strong>clause-review（新增）</strong></td>
+    <td><strong>文件本体 + 条款 + 跨单据</strong></td>
+    <td>规则包（必备条款/红线）+ 模板基线 diff + LLM 条款语义判定</td>
+    <td class="c"><span class="tag t-info">不阻断</span><br><span class="note">红线可配二次确认</span></td>
+    <td>「这份文件自身完整吗、条款对我方亏不亏、和定点/报价对得上吗」</td>
+  </tr>
+</table>
+
+<div class="fig">
+<svg viewBox="0 0 680 250" width="680" height="250" role="img" aria-label="能力分工">
+  <defs>
+    <marker id="ar" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+      <path d="M0,0 L10,5 L0,10 z" fill="#b7b1a5"/>
+    </marker>
+  </defs>
+  <rect x="14" y="24" width="150" height="56" rx="10" fill="#f3f7ee" stroke="#d3ddc6"/>
+  <text x="89" y="48" text-anchor="middle" font-size="13" fill="#4a5a3c" font-weight="600">表单字段</text>
+  <text x="89" y="66" text-anchor="middle" font-size="11" fill="#7b8a6c">草稿页 / 供应商行 / 明细</text>
+
+  <rect x="14" y="112" width="150" height="56" rx="10" fill="#f0f5f7" stroke="#cddae1"/>
+  <text x="89" y="136" text-anchor="middle" font-size="13" fill="#43606f" font-weight="600">签署版文件</text>
+  <text x="89" y="154" text-anchor="middle" font-size="11" fill="#6c8899">PDF / Word / 扫描件</text>
+
+  <rect x="14" y="200" width="150" height="40" rx="10" fill="#faf7f2" stroke="#e5ddcd"/>
+  <text x="89" y="225" text-anchor="middle" font-size="12.5" fill="#6e5f4c" font-weight="600">定点 / 报价 / 预算</text>
+
+  <path d="M168 52 H236" stroke="#b7b1a5" stroke-width="1.4" marker-end="url(#ar)"/>
+  <path d="M168 140 H236" stroke="#b7b1a5" stroke-width="1.4" marker-end="url(#ar)"/>
+  <path d="M168 220 H236" stroke="#b7b1a5" stroke-width="1.4" marker-end="url(#ar)" stroke-dasharray="4 3"/>
+
+  <rect x="242" y="26" width="164" height="52" rx="10" fill="#fff" stroke="#e0dacd"/>
+  <text x="324" y="47" text-anchor="middle" font-size="12.5" fill="#3f3b35" font-weight="600">智能检查 · 12 条</text>
+  <text x="324" y="65" text-anchor="middle" font-size="10.5" fill="#8b8780">阻断提交</text>
+
+  <rect x="242" y="108" width="164" height="64" rx="10" fill="#fff" stroke="#e0dacd"/>
+  <text x="324" y="130" text-anchor="middle" font-size="12.5" fill="#3f3b35" font-weight="600">field-check · 7 项</text>
+  <text x="324" y="147" text-anchor="middle" font-size="10.5" fill="#8b8780">字段 ⇄ 文本比对</text>
+  <text x="324" y="163" text-anchor="middle" font-size="10.5" fill="#9caf88" font-weight="600">已有 FDS v8</text>
+
+  <rect x="242" y="192" width="164" height="56" rx="10" fill="#f7f2fa" stroke="#ddd2e4"/>
+  <text x="324" y="213" text-anchor="middle" font-size="12.5" fill="#5d4a6a" font-weight="600">clause-review</text>
+  <text x="324" y="231" text-anchor="middle" font-size="10.5" fill="#8b7a99">本次新增 · 四层审查</text>
+
+  <path d="M410 52 H462" stroke="#b7b1a5" stroke-width="1.4"/>
+  <path d="M410 140 H462" stroke="#b7b1a5" stroke-width="1.4"/>
+  <path d="M410 220 H462" stroke="#b7b1a5" stroke-width="1.4"/>
+
+  <rect x="462" y="60" width="204" height="180" rx="12" fill="#fff" stroke="#c9c2b3" stroke-width="1.4"/>
+  <text x="564" y="86" text-anchor="middle" font-size="13" fill="#33322f" font-weight="700">统一检查弹窗</text>
+  <text x="564" y="104" text-anchor="middle" font-size="10.5" fill="#8b8780">一个容器 · 三个分区</text>
+  <line x1="486" y1="116" x2="642" y2="116" stroke="#eee9df"/>
+  <rect x="484" y="126" width="160" height="30" rx="6" fill="#f3f7ee" stroke="#d3ddc6"/>
+  <text x="564" y="146" text-anchor="middle" font-size="11.5" fill="#4a5a3c">① 必填与联动（阻断）</text>
+  <rect x="484" y="163" width="160" height="30" rx="6" fill="#f0f5f7" stroke="#cddae1"/>
+  <text x="564" y="183" text-anchor="middle" font-size="11.5" fill="#43606f">② 字段核对（提示）</text>
+  <rect x="484" y="200" width="160" height="30" rx="6" fill="#f7f2fa" stroke="#ddd2e4"/>
+  <text x="564" y="220" text-anchor="middle" font-size="11.5" fill="#5d4a6a">③ 条款审查（提示）</text>
+
+  <text x="324" y="16" text-anchor="middle" font-size="10.5" fill="#a8a49c">数据入口</text>
+  <text x="564" y="252" text-anchor="middle" font-size="10.5" fill="#a8a49c">出口：勾选确认，不阻断（红线可配）</text>
+</svg>
+<div class="cap">图 1 · 三者关系：智能检查管「填没填」，field-check 管「数字对不对」，clause-review 管「文件与条款对不对」</div>
+</div>
+
+<h2><span class="num">01</span>能审什么：四层审查地图</h2>
+<p class="lead">按「离文件的远近」分四层。层级越高，确定性越低、越需要 LLM，也越需要法务基线支撑——这正是排期先后的依据。</p>
+
+<div class="fig">
+<svg viewBox="0 0 680 300" width="680" height="300" role="img" aria-label="四层审查地图">
+  <g>
+    <rect x="52" y="16" width="576" height="58" rx="10" fill="#f7f8f3" stroke="#c9d4c0"/>
+    <circle cx="82" cy="45" r="15" fill="#9caf88"/><text x="82" y="50" text-anchor="middle" font-size="11.5" fill="#fff" font-weight="700">L0</text>
+    <text x="110" y="40" font-size="13" fill="#3c4a33" font-weight="600">文件与签章层 · 这份文件是「它该是的样子」吗</text>
+    <text x="110" y="60" font-size="11.5" fill="#71815f">可解析 / 页数完整 / 印章齐全 / 骑缝章 / 附件齐全 / 扫描件质量</text>
+    <text x="614" y="40" text-anchor="end" font-size="11" fill="#7d9170" font-weight="600">纯规则</text>
+    <text x="614" y="58" text-anchor="end" font-size="10.5" fill="#a0ab94">0 token</text>
+  </g>
+  <g>
+    <rect x="52" y="84" width="576" height="58" rx="10" fill="#f2f6f8" stroke="#c6d5dd"/>
+    <circle cx="82" cy="113" r="15" fill="#8fa6b2"/><text x="82" y="118" text-anchor="middle" font-size="11.5" fill="#fff" font-weight="700">L1</text>
+    <text x="110" y="108" font-size="13" fill="#354b56" font-weight="600">要素一致性层 · 文件的「数字」和系统登记的一样吗</text>
+    <text x="110" y="128" font-size="11.5" fill="#6b8896">主体全称 / 信用代码 / 金额币种 / 税率验算 / 起止日期 / 原合同引用</text>
+    <text x="614" y="108" text-anchor="end" font-size="11" fill="#6f8b99" font-weight="600">规则为主</text>
+    <text x="614" y="126" text-anchor="end" font-size="10.5" fill="#9fb3be">低 token</text>
+  </g>
+  <g>
+    <rect x="52" y="152" width="576" height="64" rx="10" fill="#faf6f5" stroke="#dfcbc7"/>
+    <circle cx="82" cy="184" r="15" fill="#c3968f"/><text x="82" y="189" text-anchor="middle" font-size="11.5" fill="#fff" font-weight="700">L2</text>
+    <text x="110" y="178" font-size="13" fill="#59433f" font-weight="600">条款层 · 该有的条款有没有、被改的条款亏不亏</text>
+    <text x="110" y="198" font-size="11.5" fill="#8d7370">必备条款缺失 / 模板偏离（删改增） / 关键条款风险 / 法务红线</text>
+    <text x="614" y="178" text-anchor="end" font-size="11" fill="#a07a74" font-weight="600">规则 + LLM</text>
+    <text x="614" y="196" text-anchor="end" font-size="10.5" fill="#c0a29d">主战场</text>
+  </g>
+  <g>
+    <rect x="52" y="226" width="576" height="58" rx="10" fill="#f9f7fb" stroke="#d9cfe1"/>
+    <circle cx="82" cy="255" r="15" fill="#a99fb0"/><text x="82" y="260" text-anchor="middle" font-size="11.5" fill="#fff" font-weight="700">L3</text>
+    <text x="110" y="250" font-size="13" fill="#4b4156" font-weight="600">跨单据层 · 合同和定点 / 报价 / 预算对得上吗</text>
+    <text x="110" y="270" font-size="11.5" fill="#7d7189">供应商同一法人 / 零件与金额量级 / 单价税率 / 预算余额 / 通则与 NDA 是否已签</text>
+    <text x="614" y="250" text-anchor="end" font-size="11" fill="#8b7f96" font-weight="600">规则 + CLI</text>
+    <text x="614" y="268" text-anchor="end" font-size="10.5" fill="#b3a9bc">采购独有价值</text>
+  </g>
+</svg>
+<div class="cap">图 2 · 四层审查地图：L0/L1 确定性高可先落，L2 是法务价值主战场，L3 是采购场景独有增量</div>
+</div>
+
+<h3>1.1 审查项清单（按层展开）</h3>
+<table>
+  <tr><th style="width:5%" class="c">#</th><th style="width:20%">审查项</th><th style="width:32%">判定基准</th><th style="width:15%">判定方式</th><th style="width:10%" class="c">默认等级</th><th>数据来源</th></tr>
+  <tr><td class="c">1</td><td>文件可解析与完整性</td><td>页数 ≥1、无空白页、页码连续、正文提到的「附件一/二」实际存在；扫描件 OCR 置信度</td><td>规则</td><td class="c"><span class="tag t-warn">warn</span></td><td>上传文件</td></tr>
+  <tr><td class="c">2</td><td>签章完整性</td><td>我方/对方印章是否齐全、签字页、骑缝章、末页是否含签署栏；漏章章节定位</td><td>规则 + 视觉</td><td class="c"><span class="tag t-block">block</span></td><td>扫描件 / 电子签回传</td></tr>
+  <tr><td class="c">3</td><td>版本一致性（非标偏离度）</td><td>上传件 ⇄「填充合同信息」生成的标准版 PDF 段落级 diff，输出偏离率与偏离块</td><td>规则（diff）</td><td class="c"><span class="tag t-warn">warn</span></td><td>基线 PDF + 上传件</td></tr>
+  <tr><td class="c">4</td><td>主体信息一致性</td><td>甲乙方全称、统一社会信用代码/证照号、注册地址、法定代表人；<span class="note">现有「组织名去重 ≤4」是弱启发式，建议改为白名单比对</span></td><td>规则为主</td><td class="c"><span class="tag t-block">block</span></td><td>detail + 供应商主数据 + 文件</td></tr>
+  <tr><td class="c">5</td><td>金额 / 币种 / 税率一致性</td><td>含税、未税、币种、综合税率验算（含税−未税）÷未税；元/万元归一；偏差 &lt;1%</td><td>规则</td><td class="c"><span class="tag t-block">block</span></td><td><strong>需补 detail 金额字段</strong></td></tr>
+  <tr><td class="c">6</td><td>期限与生效</td><td>起止日期、生效条件（签字盖章生效 / 附条件生效）、续约触发</td><td>规则</td><td class="c"><span class="tag t-warn">warn</span></td><td>detail + 文件</td></tr>
+  <tr><td class="c">7</td><td>合同形式与关联原合同</td><td>补充/续约/终止须引用原合同编号，且变更范围与形式匹配（补充须写明补充内容）</td><td>规则</td><td class="c"><span class="tag t-block">block</span></td><td>需补 relatedContractCode</td></tr>
+  <tr style="background:#fbfaf7"><td class="c">8</td><td><strong>必备条款缺失</strong></td><td>按协议类型配置必含条款清单（见 2.1），逐条检测是否存在且非空壳</td><td>规则 + LLM</td><td class="c"><span class="tag t-block">block</span></td><td>规则包 + 条款切分</td></tr>
+  <tr style="background:#fbfaf7"><td class="c">9</td><td><strong>模板条款偏离</strong></td><td>与法务模板库逐条比对，识别<strong>删除 / 降级 / 加重 / 新增</strong>四类偏离，标注偏离方向对我方是否不利</td><td>diff + LLM</td><td class="c"><span class="tag t-warn">warn</span></td><td>baseline 版本库</td></tr>
+  <tr style="background:#fbfaf7"><td class="c">10</td><td><strong>关键条款风险</strong></td><td>付款账期与比例、质保期、违约金上限、责任上限、单方解除权、验收视为通过、调价机制、排他/独家、审计权</td><td>LLM（带阈值规则）</td><td class="c"><span class="tag t-warn">warn</span></td><td>规则包 + LLM</td></tr>
+  <tr style="background:#fbfaf7"><td class="c">11</td><td><strong>法务红线</strong></td><td>无限责任、放弃抗辩、单方定价权、自动续期无退出、管辖地既非小米所在地又非约定仲裁、背靠背付款无兜底</td><td>规则 + LLM</td><td class="c"><span class="tag t-block">block</span></td><td>法务签认的红线清单</td></tr>
+  <tr><td class="c">12</td><td>双语版一致性</td><td>中英文金额、主体、期限、管辖条款互校；冲突时约定语言优先顺序</td><td>规则 + LLM</td><td class="c"><span class="tag t-warn">warn</span></td><td>双语件（是否签双语已在线索里）</td></tr>
+  <tr><td class="c">13</td><td>合同 ⇄ 定点申请单</td><td>供应商、SOR/零件包、签署维度（按供应商/按零件/按需）、金额量级是否匹配</td><td>规则 + CLI</td><td class="c"><span class="tag t-warn">warn</span></td><td><code>dx-ep nomi af list</code></td></tr>
+  <tr><td class="c">14</td><td>合同 ⇄ 报价 / 价格基线</td><td>单价、税率、币种、含税未税口径与中选报价一致</td><td>规则 + CLI</td><td class="c"><span class="tag t-warn">warn</span></td><td><code>dx-ep rfq quote list</code></td></tr>
+  <tr><td class="c">15</td><td>供应商资质与前置协议</td><td>签约主体与定点供应商同一法人、证照号格式、是否黑名单、采购通则/NDA 是否已签（已签可免审该维度）</td><td>CLI</td><td class="c"><span class="tag t-warn">warn</span></td><td><code>dx-ep supplier info</code></td></tr>
+  <tr><td class="c">16</td><td>重复与到期</td><td>同供应商+同项目+同协议类型重复签约、有效期已过仍发起</td><td>规则 + CLI</td><td class="c"><span class="tag t-info">info</span></td><td>contract info list</td></tr>
+</table>
+<p class="note">等级含义：<span class="tag t-block">block</span> 需处理（可配为提交前二次确认）· <span class="tag t-warn">warn</span> 建议核实 · <span class="tag t-info">info</span> 仅提示 · 另有 <code>unparseable</code> 表示输入缺失、不猜。</p>
+
+<h3>1.2 场景矩阵：什么场景跑哪几层</h3>
+<table>
+  <tr><th style="width:26%">场景（对应现有 PRD 分支）</th><th class="c" style="width:9%">L0</th><th class="c" style="width:9%">L1</th><th class="c" style="width:9%">L2</th><th class="c" style="width:9%">L3</th><th>说明</th></tr>
+  <tr><td>标准模板 → 系统自动生成 PDF</td><td class="c">快检</td><td class="c">✓</td><td class="c">—</td><td class="c">✓</td><td>文件由系统生成，条款不可能偏离，纯规则跑，0 token</td></tr>
+  <tr style="background:#fbfaf7"><td><strong>非标模板 → 下载 Word 线下编辑上传</strong></td><td class="c">✓</td><td class="c">✓</td><td class="c">✓</td><td class="c">✓</td><td><strong>主场景</strong>：共创结论里「非标需人肉审核附件」的核心痛点</td></tr>
+  <tr style="background:#fbfaf7"><td><strong>对方先签 / 双方签（对方已电子签）</strong></td><td class="c">重点</td><td class="c">✓</td><td class="c">✓</td><td class="c">✓</td><td>对方已盖章，追溯成本最高；L0 签章完整性权重上调</td></tr>
+  <tr><td>线下签扫描件回传</td><td class="c">重点</td><td class="c">✓</td><td class="c">—</td><td class="c">—</td><td>「扫描件与纸质不一致」「供应商漏盖章节」的直接对症项</td></tr>
+  <tr><td>中英文双语版</td><td class="c">✓</td><td class="c">✓</td><td class="c">✓</td><td class="c">—</td><td>追加中英互校项（#12）</td></tr>
+  <tr><td>海外及港澳台（Adobe / DocuSign）</td><td class="c">✓</td><td class="c">✓</td><td class="c">重点</td><td class="c">—</td><td>管辖地、适用法律、语言版本优先顺序为必审</td></tr>
+</table>
+
+<h2><span class="num">02</span>怎么做：架构与关键决策</h2>
+<p class="lead">不新建通道，复刻样件订单五步工作流已验证的链路：数据基座 → 原子 CLI → Skill 推理 → 页面触达。</p>
+
+<div class="fig">
+<svg viewBox="0 0 680 210" width="680" height="210" role="img" aria-label="技术链路">
+  <rect x="8" y="60" width="112" height="86" rx="10" fill="#faf7f2" stroke="#e5ddcd"/>
+  <text x="64" y="86" text-anchor="middle" font-size="12" fill="#6e5f4c" font-weight="700">数据基座</text>
+  <text x="64" y="104" text-anchor="middle" font-size="10" fill="#8d7d68">合同详情 / 附件</text>
+  <text x="64" y="118" text-anchor="middle" font-size="10" fill="#8d7d68">定点 / 报价 / 供应商</text>
+  <text x="64" y="133" text-anchor="middle" font-size="10" fill="#a89680">3 CLI + 3 已有域</text>
+
+  <rect x="140" y="60" width="104" height="86" rx="10" fill="#f2f6f8" stroke="#c6d5dd"/>
+  <text x="192" y="84" text-anchor="middle" font-size="12" fill="#354b56" font-weight="700">解析层</text>
+  <text x="192" y="102" text-anchor="middle" font-size="10" fill="#6b8896">版面 + OCR</text>
+  <text x="192" y="116" text-anchor="middle" font-size="10" fill="#6b8896">条款切分</text>
+  <text x="192" y="131" text-anchor="middle" font-size="10" fill="#8ea6b3">带页码锚点</text>
+
+  <rect x="264" y="34" width="140" height="60" rx="10" fill="#f7f8f3" stroke="#c9d4c0"/>
+  <text x="334" y="58" text-anchor="middle" font-size="12" fill="#3c4a33" font-weight="700">规则引擎</text>
+  <text x="334" y="76" text-anchor="middle" font-size="10" fill="#71815f">金额/日期/主体/税率/签章</text>
+
+  <rect x="264" y="106" width="140" height="60" rx="10" fill="#faf6f5" stroke="#dfcbc7"/>
+  <text x="334" y="130" text-anchor="middle" font-size="12" fill="#59433f" font-weight="700">LLM 判官</text>
+  <text x="334" y="148" text-anchor="middle" font-size="10" fill="#8d7370">仅变更块 / 缺失推断 / 定级</text>
+
+  <rect x="424" y="60" width="112" height="86" rx="10" fill="#fff" stroke="#dbd4c6"/>
+  <text x="480" y="86" text-anchor="middle" font-size="12" fill="#3f3b35" font-weight="700">契约聚合</text>
+  <text x="480" y="104" text-anchor="middle" font-size="10" fill="#8b8780">统一 JSON</text>
+  <text x="480" y="118" text-anchor="middle" font-size="10" fill="#8b8780">中文报告 / 批注版</text>
+  <text x="480" y="133" text-anchor="middle" font-size="10" fill="#a8a49c">门禁：无锚点不出结论</text>
+
+  <rect x="556" y="60" width="116" height="86" rx="10" fill="#f9f7fb" stroke="#d9cfe1"/>
+  <text x="614" y="86" text-anchor="middle" font-size="12" fill="#4b4156" font-weight="700">触达</text>
+  <text x="614" y="104" text-anchor="middle" font-size="10" fill="#7d7189">检查弹窗</text>
+  <text x="614" y="118" text-anchor="middle" font-size="10" fill="#7d7189">审批前置 / 批量巡检</text>
+  <text x="614" y="133" text-anchor="middle" font-size="10" fill="#a297ad">AI 助手问答</text>
+
+  <path d="M120 103 H136" stroke="#b7b1a5" stroke-width="1.4" marker-end="url(#ar)"/>
+  <path d="M244 95 L260 78" stroke="#b7b1a5" stroke-width="1.4" marker-end="url(#ar)"/>
+  <path d="M244 118 L260 132" stroke="#b7b1a5" stroke-width="1.4" marker-end="url(#ar)"/>
+  <path d="M404 64 L420 84" stroke="#b7b1a5" stroke-width="1.4" marker-end="url(#ar)"/>
+  <path d="M404 136 L420 120" stroke="#b7b1a5" stroke-width="1.4" marker-end="url(#ar)"/>
+  <path d="M536 103 H552" stroke="#b7b1a5" stroke-width="1.4" marker-end="url(#ar)"/>
+  <text x="340" y="24" text-anchor="middle" font-size="10.5" fill="#a8a49c">规则先行，LLM 只补语义——不是把全文丢给模型</text>
+</svg>
+<div class="cap">图 3 · 链路：CLI 取数 → 解析切分 → 规则引擎 + LLM 判官 → 契约聚合 → 页面触达</div>
+</div>
+
+<h3>2.1 六个工程决策（决定成败的不是模型，是这六条）</h3>
+<table>
+  <tr><th style="width:18%">决策</th><th style="width:38%">做法</th><th>为什么</th></tr>
+  <tr>
+    <td><strong>① 规则优先</strong></td>
+    <td>金额、日期、主体名、编号、税率验算、签章有无——全部走确定性规则，不进模型</td>
+    <td>可解释、零幻觉、可单测；模型只花在「语义判断」上，token 与误报同时降一个量级</td>
+  </tr>
+  <tr>
+    <td><strong>② 先结构化再语义</strong></td>
+    <td>PDF/Word → 版面解析 → 按标题编号切条款块 → 每块带 <code>page / para / 原文</code> → 逐块判定</td>
+    <td>整篇长文塞上下文会让模型「挑着看」；切块后每条结论都能落到页，用户才敢信</td>
+  </tr>
+  <tr>
+    <td><strong>③ diff 优先于生成</strong></td>
+    <td>非标件 = 上传件 vs 模板基线段落级 diff，只把「变更块」送模型判偏离方向，未变更块默认合规</td>
+    <td>把「从零判断这份合同有没有问题」降级为「这几个改动有没有问题」，准确率和成本同时改善</td>
+  </tr>
+  <tr>
+    <td><strong>④ 规则包配置化</strong></td>
+    <td>Rule Pack 按「协议类型 × 审查维度」写 YAML，法务维护内容不改代码（见 2.2）</td>
+    <td>协议类型会持续新增（现枚举仅「售后配件供货保障协议」），硬编码必然腐化</td>
+  </tr>
+  <tr>
+    <td><strong>⑤ 无锚点不出结论</strong></td>
+    <td>每条 item 必须带 <code>locator</code>（页码+段落）与 <code>evidence</code>（原文片段）；缺失则降级为 <code>unparseable</code></td>
+    <td>这是防幻觉的唯一硬门禁，也直接决定采购员是否愿意勾选确认</td>
+  </tr>
+  <tr>
+    <td><strong>⑥ 不阻断、可勾销</strong></td>
+    <td>沿用现有交互：<code>items[].checked</code> 记录确认，不拦提交；仅红线条款可配置为「需勾选后才能发起」</td>
+    <td>与 PRD「检查类能力仅提示、不阻断」一致；一旦阻断，误报就从「噪音」变成「阻塞业务」</td>
+  </tr>
+</table>
+
+<h3>2.2 规则包 Rule Pack（法务可维护的部分）</h3>
+<pre><span class="cm"># rulepacks/售后配件供货保障协议.yaml</span>
+contract_type: 售后配件供货保障协议
+baseline:
+  template_id: AFS-PARTS-V3.2          <span class="cm"># 对应法务模板库版本</span>
+  effective_from: 2026-07-01
+required_clauses:                       <span class="cm"># 缺失即 block</span>
+  - key: subject_scope
+    name: 标的与供货范围
+    must_contain: [零件号, 供货范围]
+  - key: price_adjust
+    name: 价格与调价机制
+    must_contain: [调价, 提前通知]
+    min_notice_days: 30                 <span class="cm"># 规则阈值</span>
+  - key: quality_claim
+    name: 质量标准与索赔
+  - key: payment
+    name: 付款与结算
+  - key: confidentiality
+    name: 保密
+  - key: liability
+    name: 违约与赔偿
+  - key: dispute
+    name: 争议解决
+  - key: anti_bribery
+    name: 廉洁与反商业贿赂
+risk_rules:
+  - key: payment_term
+    judge: rule                        <span class="cm"># rule | llm | hybrid</span>
+    extract: 账期天数
+    warn_above: 90
+    block_above: 180
+  - key: penalty_cap
+    judge: hybrid
+    extract: 违约金比例
+    warn_above_pct: 20
+    block_above_pct: 30
+  - key: liability_cap
+    judge: llm
+    prompt_ref: liability_unlimited  <span class="cm"># 指向 prompts/ 下的判定模板</span>
+  - key: jurisdiction
+    judge: rule
+    allow: [北京市, 上海市, 中国国际经济贸易仲裁委员会, 北京仲裁委员会]
+    else_level: block
+  - key: acceptance_deemed
+    judge: llm
+    prompt_ref: deemed_acceptance
+cross_doc:                              <span class="cm"># L3 跨单据</span>
+  - key: supplier_legal_entity
+    compare: [contract.partyB, nomi.supplierName]
+    mode: exact_or_alias
+  - key: amount_magnitude
+    compare: [contract.amount, nomi.amount]
+    tolerance_pct: 10
+</pre>
+
+<h3>2.3 输出契约：复用现有容器，只扩字段</h3>
+<p>与 <code>field-check</code> 共用 <code>{state, message, data, ui}</code> 外壳，前端一个弹窗装两个分区，无需新开页面。<code>checkType</code> 区分来源。</p>
+<pre>{
+  "state": "success",
+  "message": "共发现 9 项，其中必改 2 项、建议核实 4 项、提示 3 项。",
+  "data": {
+    "checkType": "clause-review",          <span class="cm">// field-check | clause-review | all</span>
+    "contractId": 1001,
+    "mode": "nonstandard",                 <span class="cm">// standard | nonstandard | scan</span>
+    "rulepackVersion": "AFS-PARTS-V3.2+2026-07-01",
+    "summary": { "total": 9, "block": 2, "warn": 4, "info": 3, "unparseable": 0 },
+    "items": [
+      {
+        "id": 1,
+        "category": "clause",              <span class="cm">// file | party | amount | clause | crossdoc | seal</span>
+        "name": "调价提前通知期不足",
+        "level": "block",
+        "severity": "high",
+        "detail": "模板要求调价提前 30 天书面通知，本件为 7 天，且未约定调价上限。",
+        "locator": { "page": 3, "para": "第六条 6.2" },
+        "evidence": ["价格调整应提前 7 日书面通知乙方"],
+        "basis": { "type": "template", "ref": "AFS-PARTS-V3.2 第六条" },
+        "deviation": "downgrade",          <span class="cm">// delete | downgrade | aggravate | add</span>
+        "suggestion": "恢复为 30 天，并补充单次调价上限不超过 5%。",
+        "confidence": 0.86,
+        "checked": false
+      }
+    ]
+  },
+  "ui": {
+    "style": "modal",
+    "sections": ["required-check", "field-check", "clause-review"],
+    "levelStyle": { "block": "red", "warn": "amber", "info": "grey", "unparseable": "grey" },
+    "actions": [{ "type": "confirm", "text": "知道了，继续" }]
+  }
+}</pre>
+
+<h3>2.4 Skill 包结构</h3>
+<pre>contract-clause-review/
+├── SKILL.md                  <span class="cm"># 触发条件、调用方式、边界声明</span>
+├── scripts/
+│   ├── review.py             <span class="cm"># 主入口：stdout 即契约 JSON</span>
+│   ├── extract.py            <span class="cm"># PDF/Word → 文本+版面+表格（pypdf/pdfplumber + OCR）</span>
+│   ├── segment.py            <span class="cm"># 条款切分，产出带页码的 clause block</span>
+│   ├── baseline_diff.py      <span class="cm"># 上传件 ⇄ 模板基线 diff，输出变更块</span>
+│   ├── seal_check.py         <span class="cm"># 印章/签字页/骑缝（视觉，可降级为仅规则）</span>
+│   ├── llm_judge.py          <span class="cm"># 变更块 → 结构化判定（JSON schema 约束）</span>
+│   └── report.py             <span class="cm"># 中文审查报告 md + 批注版 docx</span>
+├── rulepacks/                <span class="cm"># 每协议类型一份，法务维护</span>
+├── baselines/                <span class="cm"># 法务模板基线，按版本归档</span>
+└── prompts/                  <span class="cm"># 判定模板（可解释、可版本化）</span>
+</pre>
+<p>调用示例：</p>
+<pre>python3 scripts/review.py 签署版.pdf \
+  --detail-json detail.json \
+  --context-json context.json    <span class="cm"># 定点/报价/供应商基线，由 CLI 组装</span> \
+  --rulepack rulepacks/售后配件供货保障协议.yaml \
+  --mode nonstandard --out review.json</pre>
+
+<h3>2.5 四条判定样例（看的不是模型多强，是能否落地）</h3>
+<table>
+  <tr><th style="width:22%">场景</th><th style="width:26%">原文</th><th style="width:22%">判定路径</th><th>结论</th></tr>
+  <tr>
+    <td>账期超阈值</td>
+    <td>「甲方应在收到发票后 <strong>120 日</strong>内付款」</td>
+    <td>规则：正则抽天数 → 比对 <code>warn_above: 90</code></td>
+    <td><span class="tag t-warn">warn</span> 账期 120 天，超模板上限 90 天</td>
+  </tr>
+  <tr>
+    <td>缺失必备条款</td>
+    <td>全文无「廉洁」「反商业贿赂」字样</td>
+    <td>规则：关键词 → 无命中 → LLM 二次确认是否以其他表述存在</td>
+    <td><span class="tag t-block">block</span> 缺廉洁条款，模板为必备</td>
+  </tr>
+  <tr>
+    <td>模板条款被降级</td>
+    <td>模板「乙方承担全部质量损失」→ 本件「乙方承担直接损失」</td>
+    <td>diff 命中变更块 → LLM 判偏离方向</td>
+    <td><span class="tag t-warn">warn</span> 赔偿范围由全部降为直接损失（<code>downgrade</code>）</td>
+  </tr>
+  <tr>
+    <td>跨单据金额不符</td>
+    <td>合同 1,286 万；定点单 1,298 万</td>
+    <td>规则：双源取数 → 偏差 0.9% &lt; 容差 → 通过；若 &gt;10% 则 warn</td>
+    <td><span class="tag t-ok">ok</span> 在容差内（示例展示「不误报」同样重要）</td>
+  </tr>
+</table>
+
+<h2><span class="num">03</span>触发与交互</h2>
+<p class="lead">沿用已就绪的原型交互（☑️/☐ 勾选、仅提示不阻断），只是把分区从两段扩到三段。</p>
+<div class="grid g3">
+  <div class="card a">
+    <div class="t">① 上传签署版后自动触发</div>
+    <div class="d">异步跑，前端轮询/回调；结果挂在明细行「审查结果」角标。非标件主入口。</div>
+  </div>
+  <div class="card b">
+    <div class="t">② 智能检查按钮</div>
+    <div class="d">与 12 条必填校验合并展示：①必填（阻断）②字段核对 ③条款审查（后两段不阻断）。</div>
+  </div>
+  <div class="card c">
+    <div class="t">③ 详情页浮动「AI 审查」</div>
+    <div class="d">已流转中的合同补审；支持对单个明细单独发起，避免整单重跑。</div>
+  </div>
+</div>
+<div class="grid g3" style="margin-top:14px">
+  <div class="card d">
+    <div class="t">④ 发起审批前必跑</div>
+    <div class="d">红线条款可配置为「需勾选确认后方可发起」，其余仅提示，与现有 PRD 一致。</div>
+  </div>
+  <div class="card">
+    <div class="t">⑤ 批量巡检（P2）</div>
+    <div class="d">定时扫存量合同，产出风险台账：漏章、金额不符、过期未续、非标未审。</div>
+  </div>
+  <div class="card">
+    <div class="t">⑥ AI 助手问答（P2）</div>
+    <div class="d">3 个查询 CLI 包成 MCP Server，「我哪些合同还没归档」直接问。</div>
+  </div>
+</div>
+
+<h2><span class="num">04</span>分期与验收</h2>
+<table>
+  <tr><th style="width:9%" class="c">阶段</th><th style="width:34%">范围</th><th style="width:24%">前置依赖</th><th>验收口径</th></tr>
+  <tr>
+    <td class="c"><span class="tag t-ok">P0</span></td>
+    <td>L0 完整性/签章 + L1 要素一致性（把现有 7 项重构为规则化并补金额、期限、原合同）+ 报告与批注版 + 弹窗三分区跑通</td>
+    <td><code>contract info detail</code> 补 5 个缺失字段；附件下载链路</td>
+    <td>30 份真实合同跑通，字段类误报 ≤10%，单份耗时 ≤60s</td>
+  </tr>
+  <tr>
+    <td class="c"><span class="tag t-warn">P1</span></td>
+    <td>L2 必备条款缺失 + 模板基线 diff + 关键条款风险；先做 1–2 个协议类型的 rule pack</td>
+    <td>法务提供模板基线 + 必备条款清单并签认；50 份标注集</td>
+    <td>条款缺失召回 ≥85%，风险项误报 ≤25%，采购员勾销率可解释</td>
+  </tr>
+  <tr>
+    <td class="c"><span class="tag t-info">P2</span></td>
+    <td>红线条款 + L3 跨单据（定点/报价/预算）+ 批量巡检风险台账 + MCP 对话入口</td>
+    <td><code>dx-ep contract</code> 三命令上线；nomi/rfq/supplier 字段口径对齐</td>
+    <td>台账覆盖在途合同 100%；跨单据差异发现 ≥5 起/月</td>
+  </tr>
+</table>
+<p class="note">评估集做法：从 UAT 与历史归档里各取 20–30 份，覆盖标准件 / 非标件 / 扫描件 / 漏章 / 金额不符五类，逐条标注「应报/不应报」，每次改 prompt 或规则都跑回归。没有这套集子，模型调优就是盲调。</p>
+
+<h2><span class="num">05</span>依赖、风险与待确认</h2>
+<h3>5.1 硬依赖（卡住就做不成）</h3>
+<table>
+  <tr><th style="width:30%">依赖项</th><th style="width:30%">现状</th><th>影响</th></tr>
+  <tr>
+    <td><code>dx-ep contract</code> 三个查询 CLI</td>
+    <td>本机核对：<strong>尚无 contract 域</strong>，仅在清单里定义</td>
+    <td>没有 detail 取数，skill 只能吃手工传的 JSON，无法页面化</td>
+  </tr>
+  <tr>
+    <td>detail 缺 5 个字段</td>
+    <td><code>amount / untaxedAmount / taxAmount / effectiveDate / relatedContractCode</code> 均无</td>
+    <td>#5 #7 两条核心审查项恒为 <code>unparseable</code>；建议本次一并补</td>
+  </tr>
+  <tr>
+    <td>法务模板基线 + 必备条款清单</td>
+    <td>共创已提「EP 后台建模板库由法务维护」，尚未落地</td>
+    <td>L2 全部依赖它；无基线只能做通用条款检查，做不了「偏离」</td>
+  </tr>
+  <tr>
+    <td>L3 基线数据口径</td>
+    <td><code>nomi af list</code> / <code>rfq quote list</code> / <code>supplier info</code> 已可用</td>
+    <td>可用，但需确认「定点金额」「报价口径（含税/未税）」与合同字段可比</td>
+  </tr>
+</table>
+
+<h3>5.2 风险与对策</h3>
+<table>
+  <tr><th style="width:22%">风险</th><th style="width:34%">表现</th><th>对策</th></tr>
+  <tr><td>误报压垮信任</td><td>一次弹 20 条，采购员全勾销后再也不看</td><td>分级展示，默认只展开 block/warn；单份上限 15 条，超出按严重度截断并提示「仅显示前 15 条」</td></tr>
+  <tr><td>幻觉结论</td><td>模型说「缺少保密条款」，实际在第 9 页</td><td>无 <code>locator</code> 不出结论；关键词未命中时强制 LLM 全局复查再判定</td></tr>
+  <tr><td>法务责任边界</td><td>审查通过但事后出纠纷</td><td>结论措辞统一为「提示 + 建议」；红线清单由法务签认版本；报告页脚免责声明</td></tr>
+  <tr><td>数据出内网</td><td>合同正文调用外部模型</td><td>优先内网模型；确需外部时主体名/金额脱敏，仅传条款块</td></tr>
+  <tr><td>模板更新失效</td><td>法务换模板，基线未跟，全部误报偏离</td><td>baseline 版本号写入契约；模板变更走发布流程 + 回归集重跑</td></tr>
+</table>
+
+<h3>5.3 需要你拍的四件事</h3>
+<ol>
+  <li><strong>边界</strong>：新 skill 是「只做 L0–L2 的自研规则+LLM」，还是「L2 直接接第三方审查引擎（如腾讯电子签/幂律）」？后者上线快、法务背书强，但条款口径与小米模板库对不齐。</li>
+  <li><strong>与 field-check 的关系</strong>：合并成一个 skill 两个 checkType（维护成本低），还是保持独立两个 skill（迭代快、互不影响）？我倾向先独立，契约共用。</li>
+  <li><strong>红线是否阻断</strong>：现在是「全部不阻断」。红线条款要不要升级为「必须勾选确认才能发起审批」？</li>
+  <li><strong>本期协议类型范围</strong>：先只做「售后配件供货保障协议」一个 pack 打通闭环，还是同时铺价格协议/技术协议？</li>
+</ol>
+
+<div class="divider"></div>
+<footer>
+  <strong>来源</strong>：《EP-20260903-合同管理-PRD》《合同线上化 · AI 机会点与 CLI 开发清单》《合同线上化 · Skill 与产品连接方案》《合同管理 UAT 第一轮 2026-10-14》《合同模版&签署&归档优化-首次共创结论》。<br>
+  本方案为产品设计建议，审查结论本身不构成具有法律约束力的专业意见；涉及重大权利义务的事项应咨询具备资质的律师。
+</footer>
+
+</div>
+</body>
+</html>
