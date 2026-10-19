@@ -1,0 +1,1169 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AI Agent Skill 制作分享</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  html { scroll-behavior: smooth; }
+
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "PingFang SC", "Microsoft YaHei", "Segoe UI", sans-serif;
+    background: #f0f2f5;
+    color: #1a1a2e;
+    line-height: 1.6;
+  }
+
+  /* ===== Sticky Nav ===== */
+  .top-nav {
+    position: sticky;
+    top: 0;
+    z-index: 100;
+    background: rgba(26,26,46,0.95);
+    backdrop-filter: blur(12px);
+    border-bottom: 1px solid rgba(255,255,255,0.08);
+    padding: 0 48px;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    height: 52px;
+    overflow-x: auto;
+  }
+  .top-nav a {
+    color: rgba(255,255,255,0.55);
+    text-decoration: none;
+    font-size: 13px;
+    font-weight: 500;
+    padding: 6px 14px;
+    border-radius: 6px;
+    white-space: nowrap;
+    transition: all 0.2s;
+    flex-shrink: 0;
+  }
+  .top-nav a:hover, .top-nav a.active {
+    color: #fff;
+    background: rgba(255,255,255,0.1);
+  }
+  .top-nav .nav-brand {
+    font-weight: 700;
+    color: #fff;
+    font-size: 14px;
+    margin-right: 12px;
+    padding-right: 16px;
+    border-right: 1px solid rgba(255,255,255,0.15);
+    flex-shrink: 0;
+  }
+
+  /* ===== Progress Bar ===== */
+  .progress-bar {
+    position: fixed;
+    top: 52px;
+    left: 0;
+    height: 3px;
+    background: linear-gradient(90deg, #e94560, #ff6b6b);
+    z-index: 101;
+    transition: width 0.1s;
+    width: 0%;
+  }
+
+  /* ===== Main Container ===== */
+  .container {
+    max-width: 1320px;
+    margin: 0 auto;
+    padding: 0 32px;
+  }
+
+  /* ===== Hero Header ===== */
+  .hero {
+    background: linear-gradient(135deg, #0f0c29 0%, #302b63 50%, #24243e 100%);
+    color: #fff;
+    padding: 72px 0 64px;
+    position: relative;
+    overflow: hidden;
+  }
+  .hero::before {
+    content: '';
+    position: absolute;
+    top: -200px; right: -200px;
+    width: 500px; height: 500px;
+    background: radial-gradient(circle, rgba(233,69,96,0.15) 0%, transparent 70%);
+    border-radius: 50%;
+  }
+  .hero::after {
+    content: '';
+    position: absolute;
+    bottom: -150px; left: -100px;
+    width: 400px; height: 400px;
+    background: radial-gradient(circle, rgba(49,130,206,0.1) 0%, transparent 70%);
+    border-radius: 50%;
+  }
+  .hero .container { position: relative; z-index: 1; }
+  .hero h1 {
+    font-size: 52px;
+    font-weight: 800;
+    letter-spacing: -1.5px;
+    line-height: 1.15;
+    margin-bottom: 16px;
+  }
+  .hero .subtitle {
+    font-size: 20px;
+    color: rgba(255,255,255,0.6);
+    margin-bottom: 20px;
+  }
+  .hero .tags {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+  }
+  .hero .tag {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    background: rgba(255,255,255,0.08);
+    border: 1px solid rgba(255,255,255,0.12);
+    border-radius: 24px;
+    padding: 6px 16px;
+    font-size: 13px;
+    color: rgba(255,255,255,0.75);
+  }
+  .hero .tag .dot {
+    width: 6px; height: 6px;
+    border-radius: 50%;
+    background: #e94560;
+  }
+
+  /* ===== Content Area ===== */
+  .content { padding: 48px 0 64px; }
+
+  /* ===== Section ===== */
+  .section {
+    margin-bottom: 56px;
+    scroll-margin-top: 68px;
+  }
+  .section-title {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    font-size: 26px;
+    font-weight: 700;
+    color: #1a1a2e;
+    margin-bottom: 20px;
+    padding-bottom: 14px;
+    border-bottom: 3px solid #e94560;
+  }
+  .section-title .num {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 38px; height: 38px;
+    background: linear-gradient(135deg, #e94560, #ff6b6b);
+    color: #fff;
+    border-radius: 10px;
+    font-size: 17px;
+    font-weight: 700;
+    flex-shrink: 0;
+  }
+
+  /* ===== Definition Box ===== */
+  .def-box {
+    background: linear-gradient(135deg, #f8f9ff 0%, #f0f4ff 100%);
+    border-left: 4px solid #e94560;
+    border-radius: 0 16px 16px 0;
+    padding: 28px 32px;
+    margin-bottom: 20px;
+  }
+  .def-box p {
+    font-size: 17px;
+    line-height: 1.9;
+    color: #333;
+  }
+  .def-box strong { color: #e94560; }
+
+  /* ===== Comparison Table ===== */
+  .compare-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+    margin-bottom: 20px;
+  }
+  .compare-card {
+    border-radius: 16px;
+    padding: 24px 28px;
+    font-size: 15px;
+    line-height: 1.8;
+    transition: transform 0.2s, box-shadow 0.2s;
+  }
+  .compare-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 24px rgba(0,0,0,0.08);
+  }
+  .compare-card.no {
+    background: #fff0f0;
+    border: 1px solid #ffd6d6;
+  }
+  .compare-card.yes {
+    background: #f0fff4;
+    border: 1px solid #c6f6d5;
+  }
+  .compare-card .label {
+    font-weight: 700;
+    font-size: 15px;
+    margin-bottom: 8px;
+  }
+  .compare-card.no .label { color: #e53e3e; }
+  .compare-card.yes .label { color: #38a169; }
+
+  /* ===== Diff Table ===== */
+  .diff-table {
+    width: 100%;
+    border-collapse: separate;
+    border-spacing: 0;
+    border-radius: 16px;
+    overflow: hidden;
+    font-size: 15px;
+    margin-bottom: 20px;
+    border: 1px solid #e2e8f0;
+  }
+  .diff-table th {
+    background: #1a1a2e;
+    color: #fff;
+    padding: 14px 20px;
+    text-align: left;
+    font-weight: 600;
+  }
+  .diff-table td {
+    padding: 14px 20px;
+    border-bottom: 1px solid #edf2f7;
+    vertical-align: top;
+    line-height: 1.7;
+  }
+  .diff-table tr:last-child td { border-bottom: none; }
+  .diff-table tr:nth-child(even) td { background: #f7fafc; }
+  .diff-table tr:hover td { background: #f0f4ff; }
+  .diff-table .concept { font-weight: 700; color: #2d3748; white-space: nowrap; }
+
+  /* ===== Structure Diagram ===== */
+  .struct-box {
+    background: #1a1a2e;
+    border-radius: 16px;
+    padding: 28px 32px;
+    margin-bottom: 20px;
+  }
+  .struct-tree {
+    font-family: "Cascadia Code", "Fira Code", "JetBrains Mono", monospace;
+    font-size: 15px;
+    line-height: 2;
+    color: #e2e8f0;
+  }
+  .struct-tree .folder { color: #63b3ed; font-weight: 600; }
+  .struct-tree .file { color: #fc8181; font-weight: 600; }
+  .struct-tree .comment { color: #718096; }
+
+  /* ===== Reason Cards ===== */
+  .reason-grid {
+    display: grid;
+    grid-template-columns: repeat(5, 1fr);
+    gap: 16px;
+    margin-bottom: 20px;
+  }
+  .reason-card {
+    background: #fff;
+    border: 1px solid #e2e8f0;
+    border-radius: 16px;
+    padding: 24px 16px;
+    text-align: center;
+    transition: all 0.25s;
+  }
+  .reason-card:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 12px 32px rgba(0,0,0,0.08);
+    border-color: #e94560;
+  }
+  .reason-card .icon {
+    font-size: 32px;
+    margin-bottom: 10px;
+  }
+  .reason-card .title {
+    font-weight: 700;
+    font-size: 15px;
+    color: #1a1a2e;
+    margin-bottom: 6px;
+  }
+  .reason-card .desc {
+    font-size: 13px;
+    color: #718096;
+    line-height: 1.5;
+  }
+
+  /* ===== Steps ===== */
+  .steps {
+    display: flex;
+    gap: 0;
+    align-items: stretch;
+    margin-bottom: 20px;
+  }
+  .step-item {
+    flex: 1;
+    background: #fff;
+    border: 1px solid #e2e8f0;
+    padding: 20px 16px;
+    text-align: center;
+    position: relative;
+    transition: all 0.2s;
+  }
+  .step-item:hover { background: #f8f9ff; }
+  .step-item:first-child { border-radius: 14px 0 0 14px; }
+  .step-item:last-child { border-radius: 0 14px 14px 0; }
+  .step-item .step-num {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 32px; height: 32px;
+    background: linear-gradient(135deg, #e94560, #ff6b6b);
+    color: #fff;
+    border-radius: 50%;
+    font-size: 14px;
+    font-weight: 700;
+    margin-bottom: 10px;
+  }
+  .step-item .step-title {
+    font-weight: 700;
+    font-size: 14px;
+    color: #1a1a2e;
+    margin-bottom: 4px;
+  }
+  .step-item .step-desc {
+    font-size: 12.5px;
+    color: #718096;
+    line-height: 1.4;
+  }
+  .step-item::after {
+    content: '→';
+    position: absolute;
+    right: -9px;
+    top: 50%;
+    transform: translateY(-50%);
+    font-size: 18px;
+    color: #cbd5e0;
+    z-index: 1;
+  }
+  .step-item:last-child::after { display: none; }
+
+  /* ===== Methods ===== */
+  .methods-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 18px;
+    margin-bottom: 20px;
+  }
+  .method-card {
+    border-radius: 16px;
+    padding: 24px 22px;
+    position: relative;
+    transition: all 0.25s;
+  }
+  .method-card:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 8px 24px rgba(0,0,0,0.08);
+  }
+  .method-card.m1 { background: #ebf8ff; border: 1px solid #bee3f8; }
+  .method-card.m2 { background: #f0fff4; border: 1px solid #c6f6d5; }
+  .method-card.m3 { background: #faf5ff; border: 1px solid #e9d8fd; }
+  .method-card .m-badge {
+    display: inline-block;
+    font-size: 12px;
+    font-weight: 700;
+    padding: 3px 12px;
+    border-radius: 12px;
+    margin-bottom: 12px;
+    color: #fff;
+  }
+  .method-card.m1 .m-badge { background: #3182ce; }
+  .method-card.m2 .m-badge { background: #38a169; }
+  .method-card.m3 .m-badge { background: #805ad5; }
+  .method-card .m-title {
+    font-weight: 700;
+    font-size: 17px;
+    margin-bottom: 10px;
+    color: #1a1a2e;
+  }
+  .method-card .m-desc {
+    font-size: 14px;
+    color: #4a5568;
+    line-height: 1.7;
+  }
+  .method-card .m-tag {
+    display: inline-block;
+    margin-top: 12px;
+    font-size: 12px;
+    padding: 3px 10px;
+    border-radius: 8px;
+    font-weight: 600;
+  }
+  .method-card.m1 .m-tag { background: #bee3f8; color: #2b6cb0; }
+  .method-card.m2 .m-tag { background: #c6f6d5; color: #276749; }
+  .method-card.m3 .m-tag { background: #e9d8fd; color: #6b46c1; }
+
+  /* ===== Tip Box ===== */
+  .tip-box {
+    background: linear-gradient(135deg, #fffaf0 0%, #fefcf3 100%);
+    border: 1px solid #fbd38d;
+    border-radius: 14px;
+    padding: 18px 24px;
+    font-size: 15px;
+    line-height: 1.8;
+    color: #744210;
+    margin-bottom: 20px;
+  }
+  .tip-box .tip-icon { font-size: 18px; margin-right: 6px; }
+
+  /* ===== EP Landscape ===== */
+  .landscape-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 16px;
+    margin-bottom: 20px;
+  }
+  .domain-card {
+    border-radius: 16px;
+    padding: 24px 20px;
+    position: relative;
+    transition: all 0.25s;
+  }
+  .domain-card:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 8px 24px rgba(0,0,0,0.08);
+  }
+  .domain-card.d1 { background: linear-gradient(135deg, #ebf8ff 0%, #e6fffa 100%); border: 1px solid #bee3f8; }
+  .domain-card.d2 { background: linear-gradient(135deg, #f0fff4 0%, #e6fffa 100%); border: 1px solid #c6f6d5; }
+  .domain-card.d3 { background: linear-gradient(135deg, #faf5ff 0%, #f5f0ff 100%); border: 1px solid #e9d8fd; }
+  .domain-card.d4 { background: linear-gradient(135deg, #fffaf0 0%, #fff5f5 100%); border: 1px solid #fbd38d; }
+  .domain-card .d-icon { font-size: 32px; margin-bottom: 10px; }
+  .domain-card .d-title { font-weight: 700; font-size: 17px; color: #1a1a2e; margin-bottom: 8px; }
+  .domain-card .d-count {
+    display: inline-block;
+    font-size: 12px;
+    font-weight: 700;
+    padding: 3px 10px;
+    border-radius: 8px;
+    margin-bottom: 10px;
+  }
+  .domain-card.d1 .d-count { background: #bee3f8; color: #2b6cb0; }
+  .domain-card.d2 .d-count { background: #c6f6d5; color: #276749; }
+  .domain-card.d3 .d-count { background: #e9d8fd; color: #6b46c1; }
+  .domain-card.d4 .d-count { background: #fbd38d; color: #744210; }
+  .domain-card .d-items { font-size: 13px; color: #4a5568; line-height: 1.8; }
+
+  /* ===== Case Cards ===== */
+  .case-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+    margin-bottom: 20px;
+  }
+  .case-card {
+    border-radius: 16px;
+    padding: 24px;
+    border: 1px solid #e2e8f0;
+    background: #fff;
+    transition: all 0.25s;
+  }
+  .case-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 24px rgba(0,0,0,0.06);
+  }
+  .case-card .case-badge {
+    display: inline-block;
+    font-size: 12px;
+    font-weight: 700;
+    padding: 3px 12px;
+    border-radius: 10px;
+    margin-bottom: 12px;
+    color: #fff;
+  }
+  .case-card .case-badge.b1 { background: #3182ce; }
+  .case-card .case-badge.b2 { background: #38a169; }
+  .case-card .case-badge.b3 { background: #805ad5; }
+  .case-card .case-badge.b4 { background: #e94560; }
+  .case-card .case-title { font-weight: 700; font-size: 17px; color: #1a1a2e; margin-bottom: 10px; }
+  .case-card .case-desc { font-size: 14px; color: #4a5568; line-height: 1.7; margin-bottom: 12px; }
+  .case-card .case-flow { display: flex; gap: 6px; flex-wrap: wrap; align-items: center; }
+  .case-card .case-flow .flow-step {
+    display: inline-block;
+    font-size: 12px;
+    padding: 4px 10px;
+    border-radius: 8px;
+    background: #f7fafc;
+    border: 1px solid #e2e8f0;
+    color: #4a5568;
+    font-weight: 500;
+  }
+  .case-card .case-flow .flow-arrow { display: inline-flex; align-items: center; color: #cbd5e0; font-size: 13px; }
+
+  /* ===== Process Flow ===== */
+  .process-flow {
+    display: flex;
+    gap: 0;
+    align-items: stretch;
+    margin-bottom: 20px;
+  }
+  .process-item {
+    flex: 1;
+    background: #fff;
+    border: 1px solid #e2e8f0;
+    padding: 18px 14px;
+    text-align: center;
+    position: relative;
+    transition: all 0.2s;
+  }
+  .process-item:hover { background: #f8f9ff; }
+  .process-item:first-child { border-radius: 12px 0 0 12px; }
+  .process-item:last-child { border-radius: 0 12px 12px 0; }
+  .process-item .p-num {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 28px; height: 28px;
+    background: linear-gradient(135deg, #e94560, #ff6b6b);
+    color: #fff;
+    border-radius: 50%;
+    font-size: 13px;
+    font-weight: 700;
+    margin-bottom: 8px;
+  }
+  .process-item .p-title { font-weight: 700; font-size: 14px; color: #1a1a2e; margin-bottom: 4px; }
+  .process-item .p-desc { font-size: 12px; color: #718096; line-height: 1.4; }
+  .process-item::after {
+    content: '→';
+    position: absolute;
+    right: -9px;
+    top: 50%;
+    transform: translateY(-50%);
+    font-size: 16px;
+    color: #cbd5e0;
+    z-index: 1;
+  }
+  .process-item:last-child::after { display: none; }
+
+  /* ===== Sub Section ===== */
+  .sub-title {
+    font-size: 18px;
+    font-weight: 700;
+    color: #2d3748;
+    margin-bottom: 14px;
+    padding-left: 14px;
+    border-left: 3px solid #e94560;
+  }
+
+  /* ===== Highlight Box ===== */
+  .highlight-box {
+    background: linear-gradient(135deg, #f0f4ff 0%, #e8f0fe 100%);
+    border: 1px solid #c3dafe;
+    border-radius: 14px;
+    padding: 20px 24px;
+    font-size: 16px;
+    line-height: 1.8;
+    color: #2d3748;
+    margin-bottom: 20px;
+  }
+  .highlight-box strong { color: #e94560; }
+
+  /* ===== Stat Row ===== */
+  .stat-row {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 16px;
+    margin-bottom: 20px;
+  }
+  .stat-card {
+    background: #fff;
+    border: 1px solid #e2e8f0;
+    border-radius: 14px;
+    padding: 20px;
+    text-align: center;
+    transition: all 0.2s;
+  }
+  .stat-card:hover {
+    border-color: #e94560;
+    box-shadow: 0 4px 16px rgba(233,69,96,0.1);
+  }
+  .stat-card .stat-num {
+    font-size: 32px;
+    font-weight: 800;
+    background: linear-gradient(135deg, #e94560, #ff6b6b);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    line-height: 1.1;
+    margin-bottom: 6px;
+  }
+  .stat-card .stat-label { font-size: 13px; color: #718096; }
+
+  /* ===== Divider ===== */
+  .section-divider {
+    height: 1px;
+    background: linear-gradient(90deg, transparent 0%, #e2e8f0 30%, #e2e8f0 70%, transparent 100%);
+    margin: 48px 0;
+  }
+
+  /* ===== Footer ===== */
+  .footer {
+    background: #1a1a2e;
+    border-top: 1px solid rgba(255,255,255,0.08);
+    padding: 24px 0;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 13px;
+    color: rgba(255,255,255,0.4);
+  }
+  .footer a { color: #e94560; text-decoration: none; }
+
+  /* ===== Back to Top ===== */
+  .back-to-top {
+    position: fixed;
+    bottom: 32px;
+    right: 32px;
+    width: 44px; height: 44px;
+    background: #e94560;
+    color: #fff;
+    border: none;
+    border-radius: 50%;
+    font-size: 20px;
+    cursor: pointer;
+    opacity: 0;
+    transform: translateY(20px);
+    transition: all 0.3s;
+    z-index: 99;
+    box-shadow: 0 4px 16px rgba(233,69,96,0.3);
+  }
+  .back-to-top.visible { opacity: 1; transform: translateY(0); }
+  .back-to-top:hover { background: #d63851; transform: translateY(-2px); }
+
+  /* ===== Code ===== */
+  code {
+    background: #f1f5f9;
+    padding: 2px 8px;
+    border-radius: 4px;
+    font-family: "Cascadia Code", "Fira Code", monospace;
+    font-size: 0.9em;
+    color: #e94560;
+  }
+
+  /* ===== Wide Cards (full width) ===== */
+  .wide-card {
+    background: #fff;
+    border: 1px solid #e2e8f0;
+    border-radius: 16px;
+    padding: 28px 32px;
+    margin-bottom: 20px;
+    transition: all 0.25s;
+  }
+  .wide-card:hover {
+    box-shadow: 0 8px 24px rgba(0,0,0,0.06);
+  }
+</style>
+</head>
+<body>
+
+<!-- Sticky Navigation -->
+<nav class="top-nav" id="topNav">
+  <span class="nav-brand">🎯 Skill 分享</span>
+  <a href="#s1">Skill 是什么</a>
+  <a href="#s2">概念区别</a>
+  <a href="#s3">构成</a>
+  <a href="#s4">为什么需要</a>
+  <a href="#s5">EP 全景</a>
+  <a href="#s6">使用方式</a>
+  <a href="#s7">EP 案例</a>
+  <a href="#s8">制作要点</a>
+</nav>
+
+<!-- Progress Bar -->
+<div class="progress-bar" id="progressBar"></div>
+
+<!-- Hero Header -->
+<div class="hero">
+  <div class="container">
+    <h1>AI Agent Skill 制作分享</h1>
+    <div class="subtitle">从概念到实战——用 Skill 打造采购智能助手</div>
+    <div class="tags">
+      <span class="tag"><span class="dot"></span>基于 Suri《10张图从0到1掌握Skill》</span>
+      <span class="tag"><span class="dot"></span>EP Skill 合集实战</span>
+      <span class="tag"><span class="dot"></span>2026-07-30</span>
+    </div>
+  </div>
+</div>
+
+<!-- Content -->
+<div class="content">
+  <div class="container">
+
+    <!-- 1. Skill 是什么 -->
+    <div class="section" id="s1">
+      <div class="section-title"><span class="num">1</span> Skill 是什么？</div>
+      <div class="def-box">
+        <p>Skill 是一套<strong>可以重复使用的任务执行方法</strong>，不是一段简单的提示词，而是一套可以被反复调用的<strong>标准作业流程</strong>。</p>
+        <p style="margin-top:10px;">OpenAI 定义：一种<strong>模块化、自包含的文件夹</strong>，用专业知识、工作流程和工具扩展 Agent 的能力。</p>
+      </div>
+      <div class="compare-grid">
+        <div class="compare-card no">
+          <div class="label">❌ 没有 Skill</div>
+          • 每次重新描述需求<br>• AI 每次用不同方法<br>• 结果忽好忽坏
+        </div>
+        <div class="compare-card yes">
+          <div class="label">✅ 有 Skill</div>
+          • 一键调用，无需重复<br>• 按固定流程执行<br>• 输出结果稳定一致
+        </div>
+      </div>
+    </div>
+
+    <!-- 2. 与相关概念区别 -->
+    <div class="section" id="s2">
+      <div class="section-title"><span class="num">2</span> Skill 与相关概念的区别</div>
+      <table class="diff-table">
+        <tr>
+          <th style="width:120px">概念</th>
+          <th style="width:300px">定义</th>
+          <th>与 Skill 的关系</th>
+        </tr>
+        <tr>
+          <td class="concept">💬 Prompt</td>
+          <td>一次性的任务指令</td>
+          <td>Skill 是可反复调用的完整工作流程</td>
+        </tr>
+        <tr>
+          <td class="concept">🧩 Plugin</td>
+          <td>连接外部工具或服务</td>
+          <td>Skill 告诉 AI 按什么方法做事</td>
+        </tr>
+        <tr>
+          <td class="concept">🔗 MCP</td>
+          <td>AI 连接外部数据和工具的通信协议</td>
+          <td>Skill 是对工具、知识和流程的组合编排</td>
+        </tr>
+        <tr>
+          <td class="concept">🤖 Agent</td>
+          <td>执行任务的 AI 主体</td>
+          <td>Skill 是 Agent 可以调用的一项能力</td>
+        </tr>
+        <tr>
+          <td class="concept">⚡ Workflow</td>
+          <td>任务流程</td>
+          <td>Skill 不仅包含流程，还包含说明、脚本、参考资料和模板</td>
+        </tr>
+      </table>
+      <div class="tip-box">
+        <span class="tip-icon">💡</span>
+        <strong>一句话总结：</strong>Skill 是把方法、流程、知识和工具组织成可复用的能力，让 Agent 更聪明、更高效地完成任务。
+      </div>
+    </div>
+
+    <!-- 3. 由什么构成 -->
+    <div class="section" id="s3">
+      <div class="section-title"><span class="num">3</span> Skill 由什么构成？</div>
+      <div class="struct-box">
+        <div class="struct-tree">
+          <span class="folder">skill-name/</span><br>
+          ├── <span class="file">SKILL.md</span> <span class="comment">→ 核心说明文件（必需）</span><br>
+          ├── <span class="folder">scripts/</span> <span class="comment">→ 执行脚本（Python、Shell 等）</span><br>
+          ├── <span class="folder">references/</span> <span class="comment">→ 参考资料（方法论、数据源等）</span><br>
+          └── <span class="folder">assets/</span> <span class="comment">→ 模板和素材（报告模板、图标等）</span>
+        </div>
+      </div>
+      <div class="tip-box" style="background:linear-gradient(135deg,#fff5f5 0%,#fff0f0 100%);border-color:#fed7d7;color:#742a2a;">
+        <span class="tip-icon">⚠️</span>
+        除 SKILL.md 外，其他文件都可根据实际需要选择添加。SKILL.md 是唯一必需文件。
+      </div>
+    </div>
+
+    <!-- 4. 为什么需要 -->
+    <div class="section" id="s4">
+      <div class="section-title"><span class="num">4</span> 为什么需要 Skill？</div>
+      <div class="reason-grid">
+        <div class="reason-card">
+          <div class="icon">📝</div>
+          <div class="title">不用重复写提示词</div>
+          <div class="desc">一次写好，直接调用</div>
+        </div>
+        <div class="reason-card">
+          <div class="icon">📊</div>
+          <div class="title">结果更加稳定</div>
+          <div class="desc">固定流程、框架和输出标准</div>
+        </div>
+        <div class="reason-card">
+          <div class="icon">🧠</div>
+          <div class="title">沉淀个人经验</div>
+          <div class="desc">隐性知识 → 结构化、可执行</div>
+        </div>
+        <div class="reason-card">
+          <div class="icon">⚙️</div>
+          <div class="title">AI 完成任务</div>
+          <div class="desc">包含流程、资料、脚本、模板</div>
+        </div>
+        <div class="reason-card">
+          <div class="icon">👥</div>
+          <div class="title">团队复制共享</div>
+          <div class="desc">统一方法、口径、标准、效率</div>
+        </div>
+      </div>
+      <div class="tip-box">
+        <span class="tip-icon">🎯</span>
+        <strong>Skill 的本质：</strong>把方法<strong>固定下来</strong>，把经验<strong>沉淀下来</strong>，把任务交给 AI <strong>稳定完成</strong>。
+      </div>
+    </div>
+
+    <div class="section-divider"></div>
+
+    <!-- 5. EP Skill 全景地图 -->
+    <div class="section" id="s5">
+      <div class="section-title"><span class="num">5</span> EP Skill 全景地图：采购全链路智能</div>
+      <div class="highlight-box">
+        <strong>EP 系统</strong>（Enterprise Procurement）已构建覆盖采购全生命周期的 Skill 体系，覆盖 <strong>4 大业务域、30+ 个能力节点</strong>，从供应商准入到合同履约，每个环节都有对应的智能 Skill。
+      </div>
+
+      <div class="stat-row">
+        <div class="stat-card">
+          <div class="stat-num">30+</div>
+          <div class="stat-label">已规划 Skill</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-num">4</div>
+          <div class="stat-label">业务域覆盖</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-num">全链路</div>
+          <div class="stat-label">采购生命周期</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-num">实时</div>
+          <div class="stat-label">EP 系统数据接入</div>
+        </div>
+      </div>
+
+      <div class="landscape-grid">
+        <div class="domain-card d1">
+          <div class="d-icon">🏢</div>
+          <div class="d-title">供应商管理</div>
+          <div class="d-count">5 个 Skill</div>
+          <div class="d-items">供应商查询<br>财务风险评估<br>司法信用风险<br>绩效评估<br>Onepage 全景</div>
+        </div>
+        <div class="domain-card d2">
+          <div class="d-icon">📦</div>
+          <div class="d-title">品类资源池</div>
+          <div class="d-count">2 个 Skill</div>
+          <div class="d-items">品类策略（五看三定）<br>智能知识库</div>
+        </div>
+        <div class="domain-card d3">
+          <div class="d-icon">🔍</div>
+          <div class="d-title">寻源定点</div>
+          <div class="d-count">10 个 Skill</div>
+          <div class="d-items">SOR 生成/审查/分析<br>RFQ 进度/智能比价<br>BDL 评审会材料<br>定点上会/材料预审<br>会议安排</div>
+        </div>
+        <div class="domain-card d4">
+          <div class="d-icon">📋</div>
+          <div class="d-title">履约执行</div>
+          <div class="d-count">12 个 Skill</div>
+          <div class="d-items">合同生成/审核/追踪<br>框架协议管理<br>样件订单全流程<br>模具费/开发费订单<br>返利/大宗补差</div>
+        </div>
+      </div>
+
+      <div class="sub-title">采购全链路流程</div>
+      <div class="process-flow">
+        <div class="process-item">
+          <div class="p-num">1</div>
+          <div class="p-title">供应商注册</div>
+          <div class="p-desc">邀请→注册→NDA→预选</div>
+        </div>
+        <div class="process-item">
+          <div class="p-num">2</div>
+          <div class="p-title">风险评估</div>
+          <div class="p-desc">财务·司法·质量·工程</div>
+        </div>
+        <div class="process-item">
+          <div class="p-num">3</div>
+          <div class="p-title">品类策略</div>
+          <div class="p-desc">五看三定·采购规划</div>
+        </div>
+        <div class="process-item">
+          <div class="p-num">4</div>
+          <div class="p-title">SOR/RFQ</div>
+          <div class="p-desc">需求发布·报价追踪</div>
+        </div>
+        <div class="process-item">
+          <div class="p-num">5</div>
+          <div class="p-title">定点决策</div>
+          <div class="p-desc">比价·评审·上会</div>
+        </div>
+        <div class="process-item">
+          <div class="p-num">6</div>
+          <div class="p-title">合同履约</div>
+          <div class="p-desc">签约·订单·交付</div>
+        </div>
+      </div>
+
+      <div class="tip-box">
+        <span class="tip-icon">💡</span>
+        <strong>关键洞察：</strong>EP Skill 不是孤立的工具，而是一个<strong>有机联动的智能体系</strong>——供应商查询的结果流入风险评估，风险评估的结论影响定点决策，定点结果驱动合同生成。
+      </div>
+    </div>
+
+    <div class="section-divider"></div>
+
+    <!-- 6. 使用方式 -->
+    <div class="section" id="s6">
+      <div class="section-title"><span class="num">6</span> Skill 的使用方式</div>
+
+      <div class="sub-title">方式一：使用别人写好的 Skill</div>
+      <div class="steps">
+        <div class="step-item">
+          <div class="step-num">1</div>
+          <div class="step-title">找到 Skill</div>
+          <div class="step-desc">EP 系统 / SkillsMP / SkillHub</div>
+        </div>
+        <div class="step-item">
+          <div class="step-num">2</div>
+          <div class="step-title">阅读说明</div>
+          <div class="step-desc">README.md + Skill.md</div>
+        </div>
+        <div class="step-item">
+          <div class="step-num">3</div>
+          <div class="step-title">检查安全性</div>
+          <div class="step-desc">来源 · 脚本 · 权限</div>
+        </div>
+        <div class="step-item">
+          <div class="step-num">4</div>
+          <div class="step-title">安装</div>
+          <div class="step-desc">复制地址 → 执行安装</div>
+        </div>
+        <div class="step-item">
+          <div class="step-num">5</div>
+          <div class="step-title">调用</div>
+          <div class="step-desc">Skill + 任务 + 输出要求</div>
+        </div>
+      </div>
+
+      <div class="sub-title" style="margin-top:28px;">方式二：自己写 Skill（三种方法）</div>
+      <div class="methods-grid">
+        <div class="method-card m1">
+          <div class="m-badge">方法 ①</div>
+          <div class="m-title">直接告诉 AI</div>
+          <div class="m-desc">描述用途、场景、步骤、输出，AI 直接生成 SKILL.md</div>
+          <div class="m-tag">简单任务适用</div>
+        </div>
+        <div class="method-card m2">
+          <div class="m-badge">方法 ② 推荐</div>
+          <div class="m-title">先跑通再固化</div>
+          <div class="m-desc">先和 AI 完成真实任务 → 调整优化 → 固化成可复用 Skill</div>
+          <div class="m-tag">复杂任务 · 效果最好</div>
+        </div>
+        <div class="method-card m3">
+          <div class="m-badge">方法 ③</div>
+          <div class="m-title">Skill Creator</div>
+          <div class="m-desc">用专用工具引导创建，按提示逐步补充信息</div>
+          <div class="m-tag">规范化 · 结构完整</div>
+        </div>
+      </div>
+
+      <div class="tip-box">
+        <span class="tip-icon">💡</span>
+        <strong>最佳实践：</strong>先和 AI 跑通一次真实流程，过程中不断调整，最后说"请把刚才的工作流程整理并固化成一个可重复使用的 Skill"——这样生成的 Skill 最贴合你的实际工作。
+      </div>
+    </div>
+
+    <div class="section-divider"></div>
+
+    <!-- 7. EP 实战案例 -->
+    <div class="section" id="s7">
+      <div class="section-title"><span class="num">7</span> EP 实战案例：从需求到落地</div>
+
+      <div class="sub-title">案例一：供应商信息查询</div>
+      <div class="case-grid">
+        <div class="case-card">
+          <div class="case-badge b1">场景</div>
+          <div class="case-title">快速获取供应商全貌</div>
+          <div class="case-desc">采购员需要快速了解某供应商的基本信息、资质认证、联系人等，用于日常沟通或评审准备。</div>
+          <div class="case-flow">
+            <span class="flow-step">输入供应商名称/编码</span>
+            <span class="flow-arrow">→</span>
+            <span class="flow-step">模糊匹配 + 用户确认</span>
+            <span class="flow-arrow">→</span>
+            <span class="flow-step">结构化输出</span>
+          </div>
+        </div>
+        <div class="case-card">
+          <div class="case-badge b1">输出</div>
+          <div class="case-title">结构化供应商信息卡</div>
+          <div class="case-desc">包含供应商名称、编码、类型、资质（ISO9001/14001/45001）、采购员、联系人列表，支持一键下载表格。</div>
+          <div class="case-flow">
+            <span class="flow-step">基础信息</span>
+            <span class="flow-arrow">→</span>
+            <span class="flow-step">资质认证</span>
+            <span class="flow-arrow">→</span>
+            <span class="flow-step">联系人</span>
+            <span class="flow-arrow">→</span>
+            <span class="flow-step">下载表格</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="sub-title">案例二：财务风险评估</div>
+      <div class="case-grid">
+        <div class="case-card">
+          <div class="case-badge b2">场景</div>
+          <div class="case-title">供应商财务健康体检</div>
+          <div class="case-desc">在定点决策前，需对供应商进行财务风险评估，识别潜在的经营风险。</div>
+          <div class="case-flow">
+            <span class="flow-step">EP 系统年营收</span>
+            <span class="flow-arrow">↔</span>
+            <span class="flow-step">财报营收交叉验证</span>
+          </div>
+        </div>
+        <div class="case-card">
+          <div class="case-badge b2">设计亮点</div>
+          <div class="case-title">四条核验纪律 + 量化评分</div>
+          <div class="case-desc">双源数据交叉比对 → 异常预警 → 风险量化评分 → 采购决策闭环。数据异常立即触发预警。</div>
+          <div class="case-flow">
+            <span class="flow-step">数据交叉验证</span>
+            <span class="flow-arrow">→</span>
+            <span class="flow-step">风险评分</span>
+            <span class="flow-arrow">→</span>
+            <span class="flow-step">决策建议</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="sub-title">案例三：品类策略（五看三定）</div>
+      <div class="case-grid">
+        <div class="case-card">
+          <div class="case-badge b3">方法论</div>
+          <div class="case-title">五看 → 三定 结构化输出</div>
+          <div class="case-desc">
+            <strong>五看：</strong>看行业 → 看市场 → 看客户 → 看竞争 → 看自己<br>
+            <strong>三定：</strong>定目标 → 定策略 → 定路径<br>
+            基于 EP 系统数据 + WebSearch 外部信息，为指定品类生成结构化报告。
+          </div>
+        </div>
+        <div class="case-card">
+          <div class="case-badge b3">数据源</div>
+          <div class="case-title">EP CLI + 外部信息融合</div>
+          <div class="case-desc">
+            <code>dx-ep sor info list</code> — SOR 信息<br>
+            <code>dx-ep rfq info list</code> — RFQ 列表<br>
+            <code>dx-ep nomi af list</code> — 定点申请<br>
+            <code>dx-ep supplier info query</code> — 供应商详情
+          </div>
+          <div class="case-flow">
+            <span class="flow-step">EP 数据</span>
+            <span class="flow-arrow">+</span>
+            <span class="flow-step">WebSearch</span>
+            <span class="flow-arrow">→</span>
+            <span class="flow-step">策略报告</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="sub-title">案例四：RFQ 进度追踪</div>
+      <div class="case-grid">
+        <div class="case-card">
+          <div class="case-badge b4">双视角</div>
+          <div class="case-title">RFQ 维度 + 车型维度</div>
+          <div class="case-desc">
+            <strong>RFQ 维度：</strong>按每个 RFQ 追踪报价、评审、定点全流程进度<br>
+            <strong>车型维度：</strong>按车型聚合所有相关 RFQ 的完成情况
+          </div>
+          <div class="case-flow">
+            <span class="flow-step">RFQ 状态</span>
+            <span class="flow-arrow">→</span>
+            <span class="flow-step">报价轮次</span>
+            <span class="flow-arrow">→</span>
+            <span class="flow-step">定点状态</span>
+          </div>
+        </div>
+        <div class="case-card">
+          <div class="case-badge b4">数据链路</div>
+          <div class="case-title">SOR → RFQ → 报价 → 定点</div>
+          <div class="case-desc">完整追踪链条：车型关联 SOR → SOR 关联 RFQ → RFQ 的供应商报价 → RFQ 的定点结果。关键推荐自动标注。</div>
+          <div class="case-flow">
+            <span class="flow-step">车型 SOR</span>
+            <span class="flow-arrow">→</span>
+            <span class="flow-step">关联 RFQ</span>
+            <span class="flow-arrow">→</span>
+            <span class="flow-step">供应商报价</span>
+            <span class="flow-arrow">→</span>
+            <span class="flow-step">定点决策</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="tip-box">
+        <span class="tip-icon">🎯</span>
+        <strong>EP Skill 的共同模式：</strong>接收用户输入 → 调用 EP CLI 获取系统数据 → 结合外部信息 → 按固定框架分析 → 输出结构化结果。每个 Skill 都是一个<strong>端到端的业务闭环</strong>。
+      </div>
+    </div>
+
+    <div class="section-divider"></div>
+
+    <!-- 8. 制作要点 -->
+    <div class="section" id="s8">
+      <div class="section-title"><span class="num">8</span> Skill 制作要点速查</div>
+      <table class="diff-table">
+        <tr><th style="width:140px">要点</th><th>说明</th></tr>
+        <tr><td class="concept">核心文件</td><td>SKILL.md 是唯一必需文件，定义任务怎么做、调用条件、步骤、输出</td></tr>
+        <tr><td class="concept">安装位置</td><td>Codex: <code>~/.codex/skills/</code>　Claude Code: <code>~/.claude/skills/</code></td></tr>
+        <tr><td class="concept">调用方式</td><td>直接输入（提示词）或通过名称（斜杠命令）</td></tr>
+        <tr><td class="concept">数据接入</td><td>通过 CLI / MCP / API 接入业务系统数据，让 Skill 有"眼睛"和"手"</td></tr>
+        <tr><td class="concept">输出标准</td><td>固定输出格式（表格/HTML卡片/报告），确保每次结果一致可比较</td></tr>
+        <tr><td class="concept">安全原则</td><td>来源不明、权限过多、看不懂脚本 → 不安装</td></tr>
+        <tr><td class="concept">最佳实践</td><td>先跑通真实任务，再固化成 Skill；从简单场景开始，逐步迭代</td></tr>
+        <tr><td class="concept">命名规范</td><td>动宾结构、语义清晰，如"供应商查询""RFQ进度追踪""财务风险评估"</td></tr>
+      </table>
+
+      <div class="tip-box" style="margin-top:20px;">
+        <span class="tip-icon">🚀</span>
+        <strong>下一步行动：</strong>找到你工作中<strong>重复频率最高</strong>的任务 → 先手动跑通一次 → 用 AI 固化成 Skill → 团队共享。从一个 Skill 开始，逐步构建你的采购智能助手。
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- Footer -->
+<div class="footer">
+  <div class="container" style="display:flex;justify-content:space-between;align-items:center;">
+    <span>作者：Claire · 整理自 Suri《10张图从0到1掌握Skill》+ EP Skill 合集</span>
+    <span>2026-07-30</span>
+  </div>
+</div>
+
+<!-- Back to Top -->
+<button class="back-to-top" id="backToTop" onclick="window.scrollTo({top:0,behavior:'smooth'})">↑</button>
+
+<script>
+// Progress bar
+window.addEventListener('scroll', () => {
+  const h = document.documentElement;
+  const pct = (h.scrollTop / (h.scrollHeight - h.clientHeight)) * 100;
+  document.getElementById('progressBar').style.width = pct + '%';
+  document.getElementById('backToTop').classList.toggle('visible', h.scrollTop > 400);
+});
+
+// Active nav link
+const sections = document.querySelectorAll('.section');
+const navLinks = document.querySelectorAll('.top-nav a');
+const observer = new IntersectionObserver(entries => {
+  entries.forEach(e => {
+    if (e.isIntersecting) {
+      navLinks.forEach(l => l.classList.remove('active'));
+      const link = document.querySelector(`.top-nav a[href="#${e.target.id}"]`);
+      if (link) link.classList.add('active');
+    }
+  });
+}, { rootMargin: '-80px 0px -60% 0px' });
+sections.forEach(s => observer.observe(s));
+</script>
+
+</body>
+</html>
