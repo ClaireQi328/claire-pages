@@ -1,0 +1,369 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>EP CLI 接口权限校验优化 · 立项申请</title>
+<style>
+  :root{
+    --primary:#1677FF;
+    --primary-hover:#4096FF;
+    --primary-active:#0958D9;
+    --primary-bg:#E6F4FF;
+    --success:#52C41A;
+    --warning:#FAAD14;
+    --error:#FF4D4F;
+    --text:#1f1f1f;
+    --text-65:rgba(0,0,0,.65);
+    --text-45:rgba(0,0,0,.45);
+    --border:#d9d9d9;
+    --border-2:#f0f0f0;
+    --bg:#ffffff;
+    --surface:#fafafa;
+    --surface-2:#f5f5f5;
+    --shadow:0 1px 2px rgba(0,0,0,.04),0 4px 16px rgba(0,0,0,.06);
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;}
+  body{
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif;
+    color:var(--text);
+    background:#f0f2f5;
+    line-height:1.7;
+    font-size:14px;
+    -webkit-font-smoothing:antialiased;
+  }
+  .page{max-width:980px;margin:0 auto;padding:32px 24px 64px;}
+  .doc{
+    background:var(--bg);
+    border:1px solid var(--border-2);
+    border-radius:12px;
+    box-shadow:var(--shadow);
+    overflow:hidden;
+  }
+  /* header */
+  .hd{
+    background:linear-gradient(135deg,#1677FF 0%,#0958D9 100%);
+    color:#fff;
+    padding:36px 40px 30px;
+    position:relative;
+  }
+  .hd .kicker{font-size:12px;letter-spacing:2px;opacity:.85;margin:0 0 8px;}
+  .hd h1{margin:0;font-size:26px;font-weight:700;letter-spacing:.5px;}
+  .hd .sub{margin:10px 0 0;font-size:13px;opacity:.9;}
+  .meta{
+    display:flex;flex-wrap:wrap;gap:8px 28px;
+    padding:16px 40px;background:var(--primary-bg);
+    border-bottom:1px solid var(--border-2);
+    font-size:13px;color:var(--text-65);
+  }
+  .meta b{color:var(--primary-active);font-weight:600;}
+  .body{padding:8px 40px 40px;}
+  /* sections */
+  h2{
+    font-size:19px;font-weight:700;margin:34px 0 16px;
+    padding-left:12px;border-left:4px solid var(--primary);
+    line-height:1.3;
+  }
+  h3{font-size:15px;font-weight:600;margin:22px 0 10px;color:var(--text);}
+  p{margin:10px 0;color:var(--text-65);}
+  .lead{font-size:14.5px;color:var(--text);}
+  /* cards */
+  .card{
+    border:1px solid var(--border-2);border-radius:10px;
+    background:var(--surface);padding:18px 20px;margin:14px 0;
+  }
+  .card.risk{background:#fff5f5;border-color:#ffccc7;}
+  .card.warn{background:#fffbe6;border-color:#ffe58f;}
+  .card.ok{background:var(--primary-bg);border-color:#91caff;}
+  /* table */
+  table{width:100%;border-collapse:collapse;margin:14px 0;font-size:13px;}
+  th,td{border:1px solid var(--border-2);padding:9px 12px;text-align:left;vertical-align:top;}
+  thead th{background:var(--surface-2);color:var(--text);font-weight:600;}
+  tbody tr:nth-child(even){background:var(--surface);}
+  /* tags */
+  .tag{display:inline-block;padding:1px 9px;border-radius:10px;font-size:12px;font-weight:600;line-height:1.6;white-space:nowrap;}
+  .tag.p0{background:#fff1f0;color:#cf1322;border:1px solid #ffa39e;}
+  .tag.p1{background:#fff7e6;color:#d46b08;border:1px solid #ffd591;}
+  .tag.p2{background:var(--primary-bg);color:var(--primary-active);border:1px solid #91caff;}
+  .tag.ok{background:#f6ffed;color:#389e0d;border:1px solid #b7eb8f;}
+  .tag.fix{background:#f9f0ff;color:#722ed1;border:1px solid #d3adf7;}
+  .tag.arch{background:#fff2e8;color:#d4380d;border:1px solid #ffbb96;}
+  /* callout */
+  .co{display:flex;gap:12px;padding:14px 16px;border-radius:10px;margin:16px 0;font-size:13.5px;}
+  .co .ic{flex:0 0 22px;font-size:18px;line-height:1.5;}
+  .co.info{background:var(--primary-bg);border:1px solid #91caff;color:#0958d9;}
+  .co.warn{background:#fffbe6;border:1px solid #ffe58f;color:#ad6800;}
+  .co.danger{background:#fff5f5;border:1px solid #ffccc7;color:#a8071a;}
+  .co b{color:inherit;}
+  /* timeline / phases */
+  .phases{position:relative;margin:18px 0 8px;padding-left:8px;}
+  .phase{
+    position:relative;padding:0 0 26px 30px;border-left:2px solid var(--border-2);
+  }
+  .phase:last-child{border-left-color:transparent;}
+  .phase::before{
+    content:"";position:absolute;left:-7px;top:2px;width:12px;height:12px;
+    border-radius:50%;background:var(--primary);border:2px solid #fff;box-shadow:0 0 0 2px var(--primary-bg);
+  }
+  .phase .ph-h{font-weight:700;font-size:14.5px;color:var(--text);}
+  .phase .ph-meta{font-size:12px;color:var(--text-45);margin:2px 0 8px;}
+  .phase .ph-d{font-size:13px;color:var(--text-65);margin:0;}
+  /* grid */
+  .grid2{display:grid;grid-template-columns:1fr 1fr;gap:14px;}
+  .grid3{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;}
+  @media(max-width:720px){.grid2,.grid3{grid-template-columns:1fr;}.body{padding:8px 18px 30px;}.hd,.meta{padding-left:20px;padding-right:20px;}}
+  .reason{border:1px solid var(--border-2);border-left:4px solid var(--error);border-radius:8px;padding:14px 16px;background:#fff;}
+  .reason h4{margin:0 0 6px;font-size:14px;color:var(--text);}
+  .reason .why{font-size:12.5px;color:var(--text-45);margin:6px 0 0;padding-top:6px;border-top:1px dashed var(--border-2);}
+  .reason .why b{color:var(--error);}
+  .kv{font-size:13px;color:var(--text-65);}
+  .kv div{margin:4px 0;}
+  .kv b{color:var(--text);}
+  ul.tight{margin:8px 0;padding-left:20px;}
+  ul.tight li{margin:5px 0;color:var(--text-65);}
+  .foot{margin-top:40px;padding-top:18px;border-top:1px solid var(--border-2);font-size:12px;color:var(--text-45);text-align:center;}
+  .pill{display:inline-block;background:#fff1f0;color:#cf1322;border:1px solid #ffa39e;padding:2px 10px;border-radius:12px;font-size:12px;font-weight:600;margin-left:6px;}
+</style>
+</head>
+<body>
+<div class="page">
+  <div class="doc">
+    <div class="hd">
+      <p class="kicker">EP 数字化 · 立项申请</p>
+      <h1>EP CLI 接口权限校验优化</h1>
+      <p class="sub">统一 CLI 与页面权限基线 · 补齐数据隔离缺口 · 配置化替代硬编码</p>
+    </div>
+    <div class="meta">
+      <span>申请人：<b>齐岳（品类管理 / 数字化转型）</b></span>
+      <span>日期：<b>2026-08-13</b></span>
+      <span>关联会议：<b>CLI 权限问题讨论（08-13 10:02）</b></span>
+      <span>状态：<b>待评审立项</b></span>
+    </div>
+    <div class="body">
+
+      <!-- 一、背景 -->
+      <h2>一、项目背景</h2>
+      <p class="lead">EP 系统推出 <b>CLI 工具</b>，允许采购、品类、工程等角色绕过前端页面、直接调用后端接口，以提升寻源定点、品类管理、报价分析等场景的操作效率。但 CLI 的权限校验沿用的是"页面时代"的设计——而页面时代的权限本就是为"人点页面"设计的，CLI 直调把原本被前端按钮/菜单遮住的后端缺口<b>全部暴露</b>了出来。</p>
+      <p>2026-08-13 的权限问题讨论会上，研发侧逐接口对齐了现状，确认了核心矛盾：<b>数据权限全部硬编码在后端每个接口里，没有一套配置化的数据权限体系</b>。本次立项即针对这一矛盾，目标是建立 CLI 与页面<b>同源</b>的统一权限校验，并以最小变动补齐最紧迫的数据隔离缺口。</p>
+
+      <!-- 二、问题总结 -->
+      <h2>二、当前遇到的问题（现状梳理）</h2>
+      <p>会议逐接口核对后，问题可归为两类：<b>数据裸奔类</b>（安全风险，最紧迫）与<b>架构债类</b>（可维护性 / 扩展性风险，根因）。</p>
+
+      <h3>2.1 数据裸奔类 · 敏感数据可被任意调取</h3>
+      <table>
+        <thead><tr><th style="width:42%">问题点</th><th style="width:14%">严重度</th><th>现状（会议确认）</th></tr></thead>
+        <tbody>
+          <tr>
+            <td><b>SOR 三个详情接口</b><br/>车型信息 / 零件装配比例 / 审批历史</td>
+            <td><span class="tag p0">P0 高危</span></td>
+            <td>张宁确认（10:34）："<b>现状是没有控制的</b>，只要能看到页面就能点进来查全量，没有'仅查自己'的控制"。三个详情接口同理。</td>
+          </tr>
+          <tr>
+            <td><b>RFQ 询报价相关接口</b><br/>报价条目 / 参与供应商 / 预选供应商 / 当前轮次</td>
+            <td><span class="tag p0">P0 高危</span></td>
+            <td>齐岳（12:30）确认：报价条目"<b>无权限控制</b>，只要能看到 RFQ 列表或详情页就能点击查看"。郑佳佳确认这些接口前端靠角色/按钮隐控，<b>后端无校验</b>，CLI 直调可绕过。</td>
+          </tr>
+          <tr>
+            <td><b>品类 · 采购员敏感信息未隔离</b><br/>人员关系 + VPPS 关系</td>
+            <td><span class="tag p1">P1 合规</span></td>
+            <td>陈千钧（19:18）提出疑问，齐岳（20:48）确认：采购员在列表已看到所需信息，<b>唯一差别是"谁负责什么品类"</b>，该信息严格不应让采购员知道 → 应隔离 VPPS 相关接口（详情 / 绑定）。</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <h3>2.2 架构债类 · 根因（为什么问题反复出现）</h3>
+      <table>
+        <thead><tr><th style="width:42%">问题点</th><th style="width:14%">严重度</th><th>现状（会议确认）</th></tr></thead>
+        <tbody>
+          <tr>
+            <td><b>权限硬编码，无配置化数据权限体系</b></td>
+            <td><span class="tag arch">根因</span></td>
+            <td>张宁（03:34 / 22:24）：控制都在接口上，"<b>每次改动没有办法通过配置改，只能去改代码</b>"。加一个角色配了页面，还得同步去改 CLI 代码，端到端。</td>
+          </tr>
+          <tr>
+            <td><b>角色写死会卡死后续新角色</b></td>
+            <td><span class="tag arch">扩展风险</span></td>
+            <td>张宁（22:58）明确约束：CLI 侧"仅查自己"可以实现，但<b>"不能把角色限定死，否则后面加一个角色能看页面，可能被代码直接卡死"</b>。</td>
+          </tr>
+          <tr>
+            <td><b>权限模式碎片化，无统一标准</b></td>
+            <td><span class="tag p2">维护</span></td>
+            <td>约 25 个接口并存 4 种控制模式：无控制 / 菜单控制 / 代码内数据过滤 / 角色校验（Annotation）。标准不一、不可审计。</td>
+          </tr>
+          <tr>
+            <td><b>审批流角色盲区</b></td>
+            <td><span class="tag p2">维护</span></td>
+            <td>张宁（02:41）：审批人员（物流工程师、研发经理、SQE 等）无菜单权限，但可经审批待办点进页面看全量——当前页面允许，CLI 若只认"写死的几个角色"会漏掉他们。</td>
+          </tr>
+          <tr>
+            <td><b>文档与现状不符</b></td>
+            <td><span class="tag fix">文档</span></td>
+            <td>陈千钧（17:57）：品类 8 接口在环境上仅"列表 + 变更记录"有控制且变更记录校验与 wiki 不一致；详情 / VPPS 列表<b>当前环境根本无控制</b>。wiki"是否一致"列对品类模块标注不准。</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <div class="co danger">
+        <span class="ic">⚠️</span>
+        <div><b>一句话总结问题：</b>CLI 把后端权限缺口暴露无遗——SOR/RFQ 的敏感详情接口"裸奔"，品类未隔离采购员敏感信息；而根因是权限被硬编码在接口里、没有配置化体系，导致每次改角色都要动代码、且写死角色会卡死未来的业务扩展。</div>
+      </div>
+
+      <!-- 三、不得不做的理由 -->
+      <h2>三、为什么不得不做（立项理由）</h2>
+      <p class="lead">以下六条均源自 08-13 会议确认的事实，不是推测。前两条是<b>已经发生的安全/合规风险</b>，后四条是<b>不解决就会持续放大的技术与组织成本</b>。</p>
+
+      <div class="grid2">
+        <div class="reason">
+          <h4>① 敏感数据裸奔，安全合规风险已发生</h4>
+          <p>SOR 车型/装配比例/审批历史、RFQ 报价条目与供应商信息，目前任何能进页面的人（含经审批待办进入的审批角色）<b>均可经 CLI 调取全量</b>。含供应商报价、车型规划等敏感数据，一旦外泄难以追溯。</p>
+          <p class="why"><b>不得不做：</b>这是既成风险，不是未来风险。CLI 已在推广，缺口随使用人数放大。</p>
+        </div>
+        <div class="reason">
+          <h4>② 信息隔离缺失，违反最小权限原则</h4>
+          <p>品类模块中采购员本不应知道"谁负责什么品类"（人员 + VPPS 关系），但当前设计与文档均存在偏差，隔离未落地。暴露内部职责关系，既不符合数据最小化，也易引发内部协作摩擦。</p>
+          <p class="why"><b>不得不做：</b>会议已对齐"必须隔离"，属明确的合规/管理诉求，不补即持续违规。</p>
+        </div>
+        <div class="reason">
+          <h4>③ 维护成本不可持续（端到端改代码）</h4>
+          <p>权限硬编码在接口，无配置化。每新增/调整一个角色，需同步改页面 + CLI 代码，张宁称为"端到端"改动。人力随角色数线性增长。</p>
+          <p class="why"><b>不得不做：</b>CLI 受众一旦扩大（会议已提及 CE、财务等），改动频率与回归风险将失控。</p>
+        </div>
+        <div class="reason">
+          <h4>④ 角色写死会卡死业务扩展</h4>
+          <p>若 CLI 把"能看的人"写死成固定几个角色，业务后续新增一个可看页面的角色，会被代码直接卡死、看不到数据——反而阻碍业务灵活性。</p>
+          <p class="why"><b>不得不做：</b>张宁明确点名的风险。不做配置化，越用越僵。</p>
+        </div>
+        <div class="reason">
+          <h4>⑤ CLI 规模化推广的前置条件</h4>
+          <p>CLI 要作为正式工具推广给更多角色（品类、工程、CE、财务），<b>必须先有权限基线</b>。没有基线，推广即等于把全量数据接口公开出去。</p>
+          <p class="why"><b>不得不做：</b>推广路线图已启动，权限基线是 release gate，绕不过去。</p>
+        </div>
+        <div class="reason">
+          <h4>⑥ 技术债累积，现状已不可审计</h4>
+          <p>4 种权限模式并存、文档与现状脱节，无人能在一张图上说清"谁现在能看什么"。出问题时无法快速定位，审计无从谈起。</p>
+          <p class="why"><b>不得不做：</b>债只会随接口增长越积越深，早还比晚还便宜。</p>
+        </div>
+      </div>
+
+      <div class="co warn">
+        <span class="ic">📌</span>
+        <div><b>会议已留的口子：</b>齐岳在会末明确"今天可能没有结论性的东西，先找业务明确场景，再把改动范围缩紧"。本立项<b>不主张大改底层权限中台</b>，而是以"最小变动补缺口 + 配置化替代硬编码"为边界——与会议"不投大力气做底层改造"的基调一致。</div>
+      </div>
+
+      <!-- 四、目标与范围 -->
+      <h2>四、目标与范围</h2>
+      <div class="grid2">
+        <div class="card ok">
+          <h3 style="margin-top:0">✅ 目标</h3>
+          <ul class="tight">
+            <li>建立 <b>CLI 与页面同源</b> 的统一权限校验（不复刻独立体系）</li>
+            <li>补齐 SOR / RFQ 数据隔离缺口，收敛裸奔风险</li>
+            <li>品类模块按会议结论落地采购员 VPPS 隔离</li>
+            <li>权限从<b>硬编码 → 配置化/白名单</b>，解除扩展卡死</li>
+          </ul>
+        </div>
+        <div class="card">
+          <h3 style="margin-top:0">📦 范围</h3>
+          <ul class="tight">
+            <li>只改<b>后端 API 层</b>，不动前端、不动菜单结构</li>
+            <li>完全复用已有 ACL 资源树 + 角色绑定，<b>不新建权限表</b></li>
+            <li>复用 SOR/RFQ "基本信息"接口已有的过滤逻辑</li>
+          </ul>
+        </div>
+      </div>
+      <div class="co info">
+        <span class="ic">🚫</span>
+        <div><b>非目标（明确不做）：</b>本次<b>不</b>重构底层权限中台、<b>不</b>新建统一的配置化权限平台、<b>不</b>改动前端页面与菜单。若业务场景确认需更彻底的方案，单独立项，不在本次范围内。</div>
+      </div>
+
+      <!-- 五、做法 -->
+      <h2>五、实施方案（最小变动路径）</h2>
+      <p>总策略：<b>只改后端 API 层，复用已有体系与逻辑，以配置化替代硬编码</b>。按 4 个阶段推进，阶段 0 为前置决策点。</p>
+
+      <div class="phases">
+        <div class="phase">
+          <div class="ph-h">阶段 0 · 业务场景对齐 <span class="tag p2">前置 · 约 1 周</span></div>
+          <div class="ph-meta">负责人：齐岳 ｜ 依赖：无 ｜ 产出：场景清单 + 受众确认</div>
+          <p class="ph-d">按会议结论，先反馈业务并明确：<b>CLI 的受众是谁？</b>哪些场景<b>确实</b>需要严格数据隔离？输出"必须做 / 可暂缓"的接口清单，把改动范围缩到最紧。此为后续所有阶段的决策基线。</p>
+        </div>
+        <div class="phase">
+          <div class="ph-h">阶段 1 · 基础设施：CLI 身份透传 <span class="tag p1">前置依赖</span></div>
+          <div class="ph-meta">负责人：后端 ｜ 依赖：阶段 0 ｜ 改动：中</div>
+          <p class="ph-d">CLI 请求在 Header 携带用户 Token / UserId；后端统一 Interceptor 解析并注入 <code>SecurityContext</code>，<b>与页面请求走同一套认证</b>。定时任务使用独立服务账号 + 白名单角色。这是所有 CLI 接口权限能生效的前置条件。</p>
+        </div>
+        <div class="phase">
+          <div class="ph-h">阶段 2 · 配置化数据权限（替代硬编码） <span class="tag p1">解除根因</span></div>
+          <div class="ph-meta">负责人：张宁 / 郑佳佳 ｜ 依赖：阶段 1 ｜ 改动：中</div>
+          <p class="ph-d">将"谁能看全量 / 谁仅看自己"从<b>写死角色</b>改为<b>角色白名单 / 配置中心</b>。满足张宁约束：不写死角色，保留其他角色看全量的通道，新增角色不再需要改代码。<b>这是解决"维护成本 + 扩展卡死"两个根因的关键。</b></p>
+        </div>
+        <div class="phase">
+          <div class="ph-h">阶段 3 · 缺口补齐（最小代码改动） <span class="tag p0">收敛风险</span></div>
+          <div class="ph-meta">负责人：张宁(SOR) / 郑佳佳(RFQ) / 陈千钧(品类) ｜ 依赖：阶段 1+2 ｜ 改动：小</div>
+          <p class="ph-d">
+            <b>SOR：</b>3 个详情接口补"仅查自己"过滤，<b>直接复用</b> <code>designReq/find</code> 已有逻辑（每行约 3–5 行 if 判断），角色走白名单不写死。<br/>
+            <b>RFQ：</b>4 个接口补后端校验，复用 <code>rfq/find</code> 已有过滤逻辑。<br/>
+            <b>品类：</b>采购员隔离 VPPS——列表 + 变更记录可见，详情 / 绑定不可见；同步定点供应商接口角色收敛（移除"品类专家"，保留品类管理员 + ADMIN + 定时任务服务账号）。
+          </p>
+        </div>
+        <div class="phase">
+          <div class="ph-h">阶段 4 · 文档与现状对齐 <span class="tag fix">收尾 · 0.5 周</span></div>
+          <div class="ph-meta">负责人：齐岳 ｜ 依赖：阶段 3 ｜ 改动：极小</div>
+          <p class="ph-d">修正 wiki §9 权限矩阵（采购员详情 / VPPS 列表改为不可见）、修正"是否一致"列使其与环境对齐；沉淀一份"CLI 接口权限现状总表"供后续审计。</p>
+        </div>
+      </div>
+
+      <h3>5.1 各接口改动映射（阶段 3 明细）</h3>
+      <table>
+        <thead><tr><th style="width:24%">模块</th><th style="width:30%">接口</th><th style="width:14%">类型</th><th>改法</th></tr></thead>
+        <tbody>
+          <tr><td>SOR</td><td>车型信息 / 装配比例 / 审批历史</td><td><span class="tag p0">补过滤</span></td><td>复用 designReq/find 的"仅查自己"逻辑，角色走白名单</td></tr>
+          <tr><td>RFQ</td><td>报价条目 / 参与供应商 / 预选供应商 / 当前轮次</td><td><span class="tag p0">补校验</span></td><td>复用 rfq/find 过滤逻辑，后端加角色校验</td></tr>
+          <tr><td>品类</td><td>品类详情 / VPPS 列表 / 绑定</td><td><span class="tag p1">隔离</span></td><td>采购员不可见（保留列表 + 变更记录）</td></tr>
+          <tr><td>品类</td><td>同步定点供应商</td><td><span class="tag fix">收敛</span></td><td>角色列表移除"品类专家"，服务账号不受影响</td></tr>
+          <tr><td>全局</td><td>全部 CLI 接口</td><td><span class="tag arch">基础设施</span></td><td>Header 身份透传 + Interceptor 统一注入</td></tr>
+        </tbody>
+      </table>
+
+      <!-- 六、预期收益 -->
+      <h2>六、预期收益</h2>
+      <div class="grid3">
+        <div class="card"><h3 style="margin-top:0">🔒 风险收敛</h3><p style="margin:0">SOR/RFQ 敏感数据不再裸奔，合规与数据安全缺口闭环。</p></div>
+        <div class="card"><h3 style="margin-top:0">🔧 维护降本</h3><p style="margin:0">权限配置化，新增/调整角色不再端到端改代码。</p></div>
+        <div class="card"><h3 style="margin-top:0">🚀 扩展解卡</h3><p style="margin:0">角色走白名单，业务加角色不再被 CLI 代码卡死。</p></div>
+      </div>
+
+      <!-- 七、风险与依赖 -->
+      <h2>七、风险与依赖</h2>
+      <table>
+        <thead><tr><th style="width:30%">项</th><th style="width:14%">级别</th><th>说明 / 缓解</th></tr></thead>
+        <tbody>
+          <tr><td>业务场景未确认即动手</td><td><span class="tag p1">中</span></td><td>阶段 0 为硬前置；若业务迟迟不确认，先交付 P0 的 SOR/RFQ 裸奔修复（纯补过滤，风险低）。</td></tr>
+          <tr><td>回归风险</td><td><span class="tag p2">低</span></td><td>只改后端 API 层、不动前端与菜单，页面行为不变；复用已有过滤逻辑降低新代码量。</td></tr>
+          <tr><td>审批流角色覆盖不全</td><td><span class="tag p2">低</span></td><td>白名单机制 + 保留"其他角色看全量"通道，避免漏判；审批流角色后续按需纳入白名单。</td></tr>
+          <tr><td>定时任务服务账号</td><td><span class="tag p2">低</span></td><td>同步接口收敛时确认服务账号白名单，不受角色收敛影响。</td></tr>
+        </tbody>
+      </table>
+
+      <!-- 八、资源与排期 -->
+      <h2>八、资源与排期（粗估）</h2>
+      <div class="kv">
+        <div><b>角色：</b>齐岳（PM / 业务对齐）· 张宁（SOR + 配置化）· 郑佳佳（RFQ）· 陈千钧（品类）· 后端 1（基础设施）</div>
+        <div><b>排期：</b>阶段 0 ≈ 1 周 ｜ 阶段 1–3 ≈ 2–3 周 ｜ 阶段 4 ≈ 0.5 周 ｜ <b>合计约 4–5 周</b>（视业务确认速度）</div>
+        <div><b>投入量级：</b>以"补过滤 + 配置化"为主，单接口改动 3–5 行级，<b>不做底层重构</b>。</div>
+      </div>
+
+      <div class="co info">
+        <span class="ic">✅</span>
+        <div><b>立项目标一句话：</b>在不重构底层权限体系的前提下，用"身份透传 + 配置化白名单 + 复用已有过滤逻辑"的最小变动，补齐 CLI 暴露出的 SOR/RFQ 数据裸奔与品类隔离缺口，并建立 CLI 与页面同源的权限基线，让 CLI 能安全、可维护地推广。</div>
+      </div>
+
+      <div class="foot">
+        本文档基于 2026-08-13《CLI 权限问题讨论》会议记录与《迭代-Cli接口 后端权限校验 变更》wiki 差距表整理 · 供立项评审使用
+      </div>
+    </div>
+  </div>
+</div>
+</body>
+</html>
