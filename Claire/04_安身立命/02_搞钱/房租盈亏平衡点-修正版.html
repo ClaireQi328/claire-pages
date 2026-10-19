@@ -1,0 +1,415 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>住远+持有车 vs 住近+卖车 · 修正版（实际房租4500）</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>¥</text></svg>">
+<script src="https://cdn.jsdelivr.net/npm/echarts@5.5.0/dist/echarts.min.js"></script>
+<style>
+  :root {
+    --bg: #f8f9fb; --card: #fff; --ink: #1a1f36; --ink-2: #4a5068; --ink-3: #8a90a6;
+    --line: #e8eaf0; --green: #16a34a; --red: #dc2626; --amber: #d97706; --blue: #2563eb;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "PingFang SC", "Noto Sans SC", sans-serif;
+    background: var(--bg); color: var(--ink); line-height: 1.6; padding: 24px; max-width: 1100px; margin: 0 auto;
+  }
+  .header { margin-bottom: 24px; }
+  .header h1 { font-size: 24px; font-weight: 700; }
+  .header .sub { color: var(--ink-3); font-size: 14px; margin-top: 4px; }
+
+  .alert {
+    background: #dbeafe; border-left: 4px solid #2563eb; border-radius: 8px;
+    padding: 14px 18px; margin-bottom: 20px; font-size: 14px;
+  }
+  .alert strong { color: #2563eb; }
+
+  .section-title {
+    font-size: 18px; font-weight: 700; margin: 28px 0 14px; padding-bottom: 8px; border-bottom: 2px solid var(--line);
+  }
+
+  .chart-card {
+    background: var(--card); border-radius: 12px; padding: 20px; border: 1px solid var(--line); margin-bottom: 20px;
+  }
+  .chart-card h3 { font-size: 15px; font-weight: 600; margin-bottom: 4px; }
+  .chart-card .desc { font-size: 13px; color: var(--ink-3); margin-bottom: 12px; }
+  .chart-box { width: 100%; height: 320px; }
+
+  table {
+    width: 100%; border-collapse: collapse; background: var(--card); border-radius: 12px;
+    overflow: hidden; border: 1px solid var(--line); margin-bottom: 20px; font-size: 13px;
+  }
+  th { background: #f1f3f8; text-align: right; padding: 10px 12px; font-weight: 600; color: var(--ink-2); }
+  th:first-child, td:first-child { text-align: left; }
+  td { padding: 8px 12px; text-align: right; border-top: 1px solid var(--line); font-variant-numeric: tabular-nums; }
+  td:first-child { text-align: left; }
+  tr.total-row { background: #f8f9fb; font-weight: 700; }
+  .good { color: var(--green); font-weight: 600; }
+  .bad { color: var(--red); font-weight: 600; }
+  .highlight { color: var(--blue); font-weight: 700; }
+
+  .conclusion-box {
+    background: linear-gradient(135deg, #1e3a5f 0%, #2d5a87 100%);
+    color: #fff; border-radius: 12px; padding: 24px; margin-bottom: 20px; text-align: center;
+  }
+  .conclusion-box .label { font-size: 13px; opacity: 0.8; }
+  .conclusion-box .big { font-size: 32px; font-weight: 700; margin: 8px 0; }
+  .conclusion-box .note { font-size: 14px; opacity: 0.9; }
+
+  .grid-2 {
+    display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 20px;
+  }
+  .scenario-card {
+    background: var(--card); border-radius: 12px; padding: 20px; border: 1px solid var(--line);
+  }
+  .scenario-card h4 {
+    font-size: 15px; font-weight: 700; margin-bottom: 12px; padding-bottom: 8px; border-bottom: 2px solid var(--line);
+  }
+  .scenario-card .row {
+    display: flex; justify-content: space-between; padding: 6px 0; font-size: 13px;
+  }
+  .scenario-card .row .label { color: var(--ink-2); }
+  .scenario-card .total {
+    margin-top: 12px; padding-top: 12px; border-top: 1px solid var(--line);
+    display: flex; justify-content: space-between; font-weight: 700; font-size: 15px;
+  }
+
+  .footer { text-align: center; font-size: 12px; color: var(--ink-3); padding: 20px 0; }
+
+  @media (max-width: 800px) {
+    .grid-2 { grid-template-columns: 1fr; }
+    table { font-size: 12px; }
+  }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <h1>住远+持有车 vs 住近+卖车</h1>
+  <div class="sub">修正版：实际房租4,500/月 · 付三押一 · 中介费2,250元 · 2026年9月</div>
+</div>
+
+<div class="alert">
+  <strong>修正说明：</strong>之前假设房租6,000元偏高，实际你房租是<strong>4,500元/月</strong>（付三押一，中介费为房租一半=2,250元）。用实际数字重新计算平衡点。
+</div>
+
+<!-- ===== 核心结论 ===== -->
+<div class="conclusion-box">
+  <div class="label">房租盈亏平衡点（49个月平均）</div>
+  <div class="big">房租省 ¥1,280/月 打平</div>
+  <div class="note">住远后房租降到 ~¥3,220/月（从4,500降1,280），"住远+持有车"就和"住近+卖车"总成本一样</div>
+</div>
+
+<!-- ===== 当前租房成本 ===== -->
+<div class="section-title">一、当前租房成本（你的实际情况）</div>
+
+<table>
+  <thead>
+    <tr>
+      <th>项目</th>
+      <th>金额</th>
+      <th>说明</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td>月房租</td>
+      <td>¥4,500</td>
+      <td>当前实际</td>
+    </tr>
+    <tr>
+      <td>付款方式</td>
+      <td>付三押一</td>
+      <td>每三个月付一次：3×4,500=13,500 + 押金4,500</td>
+    </tr>
+    <tr>
+      <td>中介费（一次性）</td>
+      <td>¥2,250</td>
+      <td>房租的一半</td>
+    </tr>
+    <tr>
+      <td>搬家成本（估算）</td>
+      <td>¥1,500</td>
+      <td>如果搬家的话</td>
+    </tr>
+  </tbody>
+</table>
+
+<!-- ===== 两种生活方式对比 ===== -->
+<div class="section-title">二、两种生活方式月度总成本对比</div>
+
+<div class="grid-2">
+  <div class="scenario-card">
+    <h4>方式A：住近（当前位置）+ 卖车</h4>
+    <div class="row"><span class="label">房租</span><span>¥4,500/月</span></div>
+    <div class="row"><span class="label">地铁通勤（22天×6元）</span><span>¥132</span></div>
+    <div class="row"><span class="label">恶劣天气打车</span><span>¥200</span></div>
+    <div class="row"><span class="label">周末/近郊租车（2次）</span><span>¥580</span></div>
+    <div class="row"><span class="label">地铁通勤时间成本</span><span>¥780</span></div>
+    <div class="row"><span class="label">租车取还车时间</span><span>¥468</span></div>
+    <div class="row"><span class="label">便利性损失（体验折现）</span><span>¥220</span></div>
+    <div class="row"><span class="label">交通全成本小计</span><span>¥2,380</span></div>
+    <div class="total"><span>月度总成本</span><span style="color:var(--blue)">¥6,880/月</span></div>
+  </div>
+
+  <div class="scenario-card">
+    <h4>方式B：住远 + 持有车</h4>
+    <div class="row"><span class="label">房租（住远后）</span><span>¥3,220/月</span></div>
+    <div class="row"><span class="label">车贷月供（前31个月）</span><span>¥3,544</span></div>
+    <div class="row"><span class="label">BaaS租电</span><span>¥583</span></div>
+    <div class="row"><span class="label">保险月均</span><span>¥417</span></div>
+    <div class="row"><span class="label">停车费</span><span>¥200</span></div>
+    <div class="row"><span class="label">充电保养维修</span><span>¥105</span></div>
+    <div class="row"><span class="label">其他（洗车等）</span><span>¥100</span></div>
+    <div class="row"><span class="label">车持有成本小计</span><span>¥4,949/月</span></div>
+    <div class="total"><span>月度总成本</span><span style="color:var(--green)">¥8,169/月</span></div>
+  </div>
+</div>
+
+<div class="alert">
+  <strong>注意：</strong>上面的对比是"前31个月"（有车贷期间），这时候方式B明显更贵。但车贷还清后（第32个月起），车的持有成本降到~¥1,405/月，那时候方式B就非常划算了。
+</div>
+
+<!-- ===== 分阶段对比 ===== -->
+<div class="section-title">三、分阶段对比：前31个月 vs 后18个月</div>
+
+<table>
+  <thead>
+    <tr>
+      <th>阶段</th>
+      <th>方式A：住近+卖车</th>
+      <th>方式B：住远+持有车（房租3,220）</th>
+      <th>差额（B - A）</th>
+      <th>谁更划算</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td>前31个月（有车贷）</td>
+      <td>¥6,880/月</td>
+      <td>¥8,169/月</td>
+      <td class="bad">+¥1,289/月</td>
+      <td class="good">A更划算</td>
+    </tr>
+    <tr>
+      <td>后18个月（贷款还清）</td>
+      <td>¥6,880/月</td>
+      <td>¥4,625/月</td>
+      <td class="good">-¥2,255/月</td>
+      <td class="good">B更划算</td>
+    </tr>
+    <tr class="total-row">
+      <td>49个月平均</td>
+      <td>¥6,880/月</td>
+      <td>¥6,880/月</td>
+      <td>打平</td>
+      <td>平衡点</td>
+    </tr>
+  </tbody>
+</table>
+
+<!-- ===== Chart: Breakpoint ===== -->
+<div class="section-title">四、房租盈亏平衡点（49个月平均）</div>
+
+<div class="chart-card">
+  <h3>住远后房租降多少，"住远+持有车"才打平？</h3>
+  <div class="desc">横轴：住远后月房租 · 纵轴：49个月平均月度总成本差额</div>
+  <div id="chart-breakpoint" class="chart-box"></div>
+</div>
+
+<table>
+  <thead>
+    <tr>
+      <th>住远后房租</th>
+      <th>房租节省</th>
+      <th>方式B月均总成本</th>
+      <th>vs 方式A ¥6,880</th>
+      <th>谁更划算</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td>¥4,500（不搬）</td>
+      <td>¥0</td>
+      <td>¥8,160/月</td>
+      <td class="bad">贵¥1,280</td>
+      <td class="good">A更划算</td>
+    </tr>
+    <tr>
+      <td>¥4,000</td>
+      <td>省¥500</td>
+      <td>¥7,660/月</td>
+      <td class="bad">贵¥780</td>
+      <td class="good">A略划算</td>
+    </tr>
+    <tr style="background:#fef3c7;">
+      <td>¥3,220</td>
+      <td>省¥1,280</td>
+      <td>¥6,880/月</td>
+      <td>打平</td>
+      <td>平衡点</td>
+    </tr>
+    <tr>
+      <td>¥3,000</td>
+      <td>省¥1,500</td>
+      <td>¥6,660/月</td>
+      <td class="good">便宜¥220</td>
+      <td class="good">B略划算</td>
+    </tr>
+    <tr>
+      <td>¥2,500</td>
+      <td>省¥2,000</td>
+      <td>¥6,160/月</td>
+      <td class="good">便宜¥720</td>
+      <td class="good">B更划算</td>
+    </tr>
+    <tr>
+      <td>¥2,000</td>
+      <td>省¥2,500</td>
+      <td>¥5,660/月</td>
+      <td class="good">便宜¥1,220</td>
+      <td class="good">B非常划算</td>
+    </tr>
+  </tbody>
+</table>
+
+<!-- ===== 敏感性分析 ===== -->
+<div class="section-title">五、敏感性：如果通勤时间价值更高呢？</div>
+
+<div class="chart-card">
+  <h3>你的时薪越高，"住远+持有车"越划算</h3>
+  <div class="desc">如果你觉得通勤时间很宝贵（时薪更高），有车的价值就更大，平衡点就更低</div>
+  <div id="chart-sensitivity" class="chart-box"></div>
+</div>
+
+<table>
+  <thead>
+    <tr>
+      <th>你的时薪</th>
+      <th>地铁通勤时间成本</th>
+      <th>方式A总成本</th>
+      <th>平衡点房租</th>
+      <th>需要省多少房租</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td>¥100/h（保守）</td>
+      <td>¥500/月</td>
+      <td>¥6,600/月</td>
+      <td>¥3,400/月</td>
+      <td>省¥1,100/月</td>
+    </tr>
+    <tr>
+      <td>¥156/h（基准）</td>
+      <td>¥780/月</td>
+      <td>¥6,880/月</td>
+      <td>¥3,220/月</td>
+      <td>省¥1,280/月</td>
+    </tr>
+    <tr>
+      <td>¥200/h（时薪较高）</td>
+      <td>¥1,000/月</td>
+      <td>¥7,100/月</td>
+      <td>¥3,000/月</td>
+      <td>省¥1,500/月</td>
+    </tr>
+    <tr>
+      <td>¥300/h（高管级）</td>
+      <td>¥1,500/月</td>
+      <td>¥7,600/月</td>
+      <td>¥2,500/月</td>
+      <td>省¥2,000/月</td>
+    </tr>
+  </tbody>
+</table>
+
+<!-- ===== 行动建议 ===== -->
+<div class="section-title">六、行动建议</div>
+
+<div class="alert" style="background:#f0fdf4; border-left-color:#16a34a;">
+  <strong>结论：</strong><br><br>
+  <strong>1. 短期（前31个月，有车贷期间）：</strong>除非房租能省¥1,280/月以上（从4,500降到3,220以下），否则住近+卖车更划算。<br><br>
+  <strong>2. 长期（后18个月，贷款还清后）：</strong>只要房租能省¥200/月以上，住远+持有车就更划算。<br><br>
+  <strong>3. 关键问题：</strong>你在上海9号线往曹路方向（更郊区），能不能找到3,000元/月左右的房子？如果能找到，住远+持有车就划算。<br><br>
+  <strong>4. 折中方案：</strong>可以先卖车住近，等以后有需要再买；或者先住远+持有车，熬3年车贷还完就轻松了。
+</div>
+
+<div class="footer">
+  住远+持有车 vs 住近+卖车 · 修正版（实际房租4,500）· 2026年9月
+</div>
+
+<script>
+// ===== Chart 1: Breakpoint =====
+(function() {
+  var chart = echarts.init(document.getElementById('chart-breakpoint'));
+  var rents = [4500, 4000, 3220, 3000, 2500, 2000];
+  var savings = [0, 500, 1280, 1500, 2000, 2500];
+  var totalB = [8160, 7660, 6880, 6660, 6160, 5660];
+  var diff = totalB.map(function(v) { return v - 6880; });
+
+  chart.setOption({
+    tooltip: { trigger: 'axis' },
+    legend: { bottom: 0, textStyle: { fontSize: 12 } },
+    grid: { left: 70, right: 30, top: 20, bottom: 60 },
+    xAxis: { type: 'category', data: rents.map(function(v) { return '¥' + v; }), name: '住远后月房租' },
+    yAxis: [
+      { type: 'value', name: '月均总成本', position: 'left', axisLabel: { formatter: '¥{value}' } },
+      { type: 'value', name: '差额(B-A)', position: 'right', axisLabel: { formatter: '¥{value}' } }
+    ],
+    series: [
+      {
+        name: '方式B月均总成本',
+        type: 'bar',
+        data: totalB,
+        itemStyle: { color: '#2563eb' }
+      },
+      {
+        name: '方式A基准',
+        type: 'line',
+        markLine: {
+          silent: true, symbol: 'none',
+          lineStyle: { color: '#d97706', type: 'dashed', width: 2 },
+          data: [{ yAxis: 6880, label: { formatter: '方式A ¥6,880/月', position: 'end' } }]
+        }
+      },
+      {
+        name: '差额(B-A)',
+        type: 'line',
+        yAxisIndex: 1,
+        data: diff,
+        lineStyle: { color: '#dc2626', width: 2 },
+        itemStyle: { color: '#dc2626' }
+      }
+    ]
+  });
+  window.addEventListener('resize', function() { chart.resize(); });
+})();
+
+// ===== Chart 2: Sensitivity =====
+(function() {
+  var chart = echarts.init(document.getElementById('chart-sensitivity'));
+  var wages = ['¥100/h', '¥156/h(基准)', '¥200/h', '¥300/h'];
+  var breakEven = [1100, 1280, 1500, 2000];
+
+  chart.setOption({
+    tooltip: { trigger: 'axis' },
+    grid: { left: 70, right: 30, top: 20, bottom: 50 },
+    xAxis: { type: 'category', data: wages, name: '你的时薪' },
+    yAxis: { type: 'value', name: '需要省的房租', axisLabel: { formatter: '¥{value}/月' } },
+    series: [{
+      name: '平衡点需要省的房租',
+      type: 'bar',
+      data: breakEven,
+      itemStyle: { color: '#7c3aed' },
+      label: { show: true, position: 'top', formatter: '省¥{c}/月', fontSize: 12 }
+    }]
+  });
+  window.addEventListener('resize', function() { chart.resize(); });
+})();
+</script>
+
+</body>
+</html>
