@@ -1,0 +1,836 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>样件订单工作台 · Agent 驾驶舱 v3</title>
+<style>
+:root{
+  --bg:#f5f7fa; --card:#fff; --line:#e5e8ef; --txt:#1f2329; --sub:#646a73;
+  --blue:#2f6bff; --blue-bg:#eef3ff; --green:#00a870; --green-bg:#e8f8f1;
+  --orange:#ff8f1f; --orange-bg:#fff4e8; --red:#f54a45; --red-bg:#fdeeee;
+  --purple:#7b61ff; --purple-bg:#f0edff; --grey-bg:#f0f1f3;
+  --radius:10px; --shadow:0 2px 10px rgba(31,35,41,.06);
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Microsoft YaHei",sans-serif;background:var(--bg);color:var(--txt);font-size:13px}
+a{color:var(--blue);text-decoration:none}
+.wrap{display:flex;min-height:100vh}
+/* ===== 侧边导航 ===== */
+.side{width:200px;background:#fff;border-right:1px solid var(--line);display:flex;flex-direction:column;position:sticky;top:0;height:100vh}
+.logo{padding:16px 16px 12px;font-size:15px;font-weight:700;display:flex;align-items:center;gap:8px}
+.logo .dot{width:8px;height:8px;border-radius:50%;background:var(--blue);display:inline-block}
+.nav{flex:1;padding:4px 8px}
+.nav .item{display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:8px;cursor:pointer;color:var(--sub);margin-bottom:2px;font-weight:500}
+.nav .item:hover{background:var(--grey-bg);color:var(--txt)}
+.nav .item.on{background:var(--blue-bg);color:var(--blue);font-weight:600}
+.nav .item .ic{width:18px;text-align:center;font-size:15px}
+.side .foot{padding:12px 16px;border-top:1px solid var(--line);color:var(--sub);font-size:11px;line-height:1.6}
+/* ===== 主区 ===== */
+.main{flex:1;padding:20px 24px;max-width:1500px}
+.topbar{display:flex;align-items:center;justify-content:space-between;margin-bottom:18px;gap:12px;flex-wrap:wrap}
+.topbar h1{font-size:18px;font-weight:700}
+.topbar .sub{color:var(--sub);font-size:12px;margin-top:2px}
+.topbar .tools{display:flex;gap:8px;align-items:center}
+.batch{padding:6px 10px;border:1px solid var(--line);border-radius:8px;background:#fff;font-size:12px;color:var(--txt);outline:none}
+.card{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow);margin-bottom:16px}
+.card .hd{padding:12px 16px;border-bottom:1px solid var(--line);display:flex;align-items:center;justify-content:space-between;gap:8px}
+.card .hd .t{font-weight:600;font-size:14px}
+.card .hd .tip{color:var(--sub);font-size:11px;font-weight:400}
+.card .bd{padding:14px 16px}
+.card .bd.p0{padding:0}
+/* ===== 按钮 ===== */
+.btn{display:inline-flex;align-items:center;gap:4px;padding:6px 12px;border-radius:7px;border:1px solid var(--line);background:#fff;color:var(--txt);cursor:pointer;font-size:12px;font-weight:500;transition:.15s}
+.btn:hover{border-color:var(--blue);color:var(--blue)}
+.btn.pri{background:var(--blue);border-color:var(--blue);color:#fff}
+.btn.pri:hover{opacity:.88;color:#fff}
+.btn.green{background:var(--green);border-color:var(--green);color:#fff}
+.btn.green:hover{opacity:.88;color:#fff}
+.btn.danger{color:var(--red);border-color:#f5c6c5}
+.btn.danger:hover{background:var(--red-bg);border-color:var(--red)}
+.btn.mini{padding:3px 8px;font-size:11px}
+.btn:disabled{opacity:.5;cursor:not-allowed}
+/* ===== KPI ===== */
+.kpi-row{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;margin-bottom:16px}
+.kpi{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow);padding:14px 16px}
+.kpi .v{font-size:22px;font-weight:700;margin:4px 0 2px}
+.kpi .l{color:var(--sub);font-size:11px}
+.kpi .d{font-size:11px;color:var(--sub)}
+.kpi .up{color:var(--green)} .kpi .down{color:var(--red)}
+/* ===== 表格 ===== */
+.tbl{width:100%;border-collapse:collapse;font-size:12px}
+.tbl th{background:#fafbfc;color:var(--sub);font-weight:600;text-align:left;padding:8px 10px;border-bottom:1px solid var(--line);white-space:nowrap}
+.tbl td{padding:8px 10px;border-bottom:1px solid #f0f1f3;vertical-align:middle}
+.tbl tr:hover td{background:#fafbfe}
+.tbl .num{font-variant-numeric:tabular-nums}
+.tag{display:inline-block;padding:2px 8px;border-radius:20px;font-size:11px;font-weight:500;line-height:1.6}
+.t-blue{background:var(--blue-bg);color:var(--blue)} .t-green{background:var(--green-bg);color:var(--green)}
+.t-orange{background:var(--orange-bg);color:var(--orange)} .t-red{background:var(--red-bg);color:var(--red)}
+.t-purple{background:var(--purple-bg);color:var(--purple)} .t-grey{background:var(--grey-bg);color:var(--sub)}
+/* ===== Tabs ===== */
+.tabs{display:flex;gap:2px;border-bottom:1px solid var(--line);padding:0 8px;background:#fff}
+.tab{padding:9px 14px;cursor:pointer;font-size:12px;color:var(--sub);border-bottom:2px solid transparent;font-weight:500}
+.tab:hover{color:var(--txt)}
+.tab.on{color:var(--blue);border-bottom-color:var(--blue);font-weight:600}
+/* ===== 批次流 ===== */
+.flow{display:flex;align-items:center;gap:0;overflow-x:auto;padding:4px 0}
+.flow .node{display:flex;align-items:center;gap:8px;flex-shrink:0}
+.flow .n{width:34px;height:34px;border-radius:50%;background:var(--grey-bg);display:flex;align-items:center;justify-content:center;font-size:15px;flex-shrink:0;border:2px solid var(--line)}
+.flow .node.done .n{background:var(--green-bg);border-color:var(--green)}
+.flow .node.run .n{background:var(--blue-bg);border-color:var(--blue);animation:pulse 1.2s infinite}
+.flow .node.fail .n{background:var(--red-bg);border-color:var(--red)}
+@keyframes pulse{0%,100%{box-shadow:0 0 0 0 rgba(47,107,255,.3)}50%{box-shadow:0 0 0 6px rgba(47,107,255,.08)}}
+.flow .nl{font-size:12px;white-space:nowrap}
+.flow .nl small{display:block;color:var(--sub);font-size:10px}
+.flow .arrow{color:#c3c8d1;margin:0 6px;font-size:14px;flex-shrink:0}
+/* ===== 待办 ===== */
+.todo-item{display:flex;align-items:center;gap:10px;padding:10px 12px;border:1px solid var(--line);border-radius:8px;margin-bottom:8px;background:#fff}
+.todo-item .ic{font-size:16px}
+.todo-item .body{flex:1;min-width:0}
+.todo-item .title{font-weight:600;font-size:12px}
+.todo-item .desc{color:var(--sub);font-size:11px;margin-top:2px}
+/* ===== 抽屉 ===== */
+.mask{position:fixed;inset:0;background:rgba(31,35,41,.4);z-index:90;display:none}
+.mask.open{display:block}
+.drawer{position:fixed;top:0;right:-480px;width:460px;max-width:92vw;height:100vh;background:#fff;z-index:100;transition:right .25s;box-shadow:-4px 0 20px rgba(0,0,0,.08);display:flex;flex-direction:column}
+.drawer.open{right:0}
+.drawer .dhd{padding:14px 16px;border-bottom:1px solid var(--line);display:flex;align-items:center;justify-content:space-between;font-weight:600}
+.drawer .dhd .x{cursor:pointer;color:var(--sub);font-size:18px}
+.drawer .dbd{flex:1;overflow:auto;padding:16px}
+/* ===== AI ===== */
+.ai-fab{position:fixed;right:24px;bottom:24px;width:56px;height:56px;border-radius:50%;background:linear-gradient(135deg,#2f6bff,#7b61ff);color:#fff;font-size:24px;display:flex;align-items:center;justify-content:center;cursor:pointer;box-shadow:0 6px 20px rgba(47,107,255,.4);z-index:200;border:none}
+.ai-fab:hover{transform:scale(1.05)}
+.ai-panel{position:fixed;right:24px;bottom:92px;width:380px;max-width:92vw;height:520px;max-height:70vh;background:#fff;border-radius:14px;box-shadow:0 12px 40px rgba(31,35,41,.18);z-index:210;display:none;flex-direction:column;overflow:hidden;border:1px solid var(--line)}
+.ai-panel.open{display:flex}
+.ai-msgs{flex:1;overflow:auto;padding:14px;background:#fafbfc}
+.ai-msg{display:flex;margin-bottom:12px;gap:8px}
+.ai-msg .av{width:26px;height:26px;border-radius:50%;background:linear-gradient(135deg,#2f6bff,#7b61ff);color:#fff;font-size:12px;display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-top:2px}
+.ai-msg.user{flex-direction:row-reverse}
+.ai-msg.user .av{background:#cfd3da;color:#fff}
+.ai-msg .bubble{max-width:82%;padding:9px 12px;border-radius:10px;font-size:12px;line-height:1.65;white-space:pre-wrap}
+.ai-msg.ai .bubble{background:#fff;border:1px solid var(--line);border-top-left-radius:3px}
+.ai-msg.user .bubble{background:var(--blue);color:#fff;border-top-right-radius:3px}
+.ai-msg .bubble .tbl{margin:6px 0;background:#fff}
+.ai-chips{display:flex;gap:6px;padding:8px 12px;border-top:1px solid var(--line);flex-wrap:wrap;background:#fff}
+.ai-chip{padding:4px 10px;border-radius:20px;background:var(--blue-bg);color:var(--blue);font-size:11px;cursor:pointer;border:none}
+.ai-chip:hover{background:var(--blue);color:#fff}
+.ai-input{display:flex;gap:8px;padding:10px 12px;border-top:1px solid var(--line);background:#fff}
+.ai-input input{flex:1;padding:8px 12px;border:1px solid var(--line);border-radius:8px;font-size:12px;outline:none}
+.ai-input input:focus{border-color:var(--blue)}
+.ai-input button{background:var(--blue);color:#fff;border:none;border-radius:8px;padding:0 14px;cursor:pointer;font-size:13px}
+/* ===== 供应商选择流程 ===== */
+.sel-flow{border:1px solid var(--blue-bg);background:var(--blue-bg);border-radius:10px;padding:14px}
+.sel-flow .gtitle{font-weight:600;margin-bottom:4px}
+.sel-opt{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:10px 12px;border:1px solid var(--line);border-radius:8px;margin-top:8px;background:#fff}
+.sel-opt .info{flex:1}
+.sel-opt .share{font-weight:700;font-size:14px;color:var(--blue)}
+.sel-opt .meta{color:var(--sub);font-size:11px;margin-top:2px}
+/* ===== 供应商选择列表 ===== */
+.sel-row{display:flex;align-items:flex-start;gap:14px;padding:12px;border:1px solid var(--line);border-radius:10px;margin-bottom:10px;background:#fff;flex-wrap:wrap}
+.sel-row .g-info{width:170px;flex-shrink:0}
+.sel-row .g-info .meta{color:var(--sub);font-size:11px;margin-top:3px;word-break:break-all}
+.sel-row .g-sups{flex:1;min-width:280px;display:flex;gap:8px;flex-wrap:wrap}
+.sup-card{border:1px solid var(--line);border-radius:8px;padding:8px 12px;cursor:pointer;background:#fafbfc;min-width:150px;transition:.15s}
+.sup-card:hover{border-color:var(--blue)}
+.sup-card.on{border-color:var(--blue);background:var(--blue-bg)}
+.sup-card.lock{cursor:default;opacity:.75}
+.sup-card .n{font-weight:600;font-size:12px}
+.sup-card .meta{color:var(--sub);font-size:11px;margin-top:3px}
+.sel-row .g-act{width:230px;flex-shrink:0}
+.sel-row .g-act .meta{color:var(--sub);font-size:11px}
+/* ===== EP 外链 ===== */
+.ep-links{display:flex;gap:8px;flex-wrap:wrap}
+.ep-links a{display:inline-flex;align-items:center;gap:6px;padding:8px 14px;border-radius:8px;border:1px solid var(--line);background:#fff;color:var(--txt);font-size:12px;font-weight:500}
+.ep-links a:hover{border-color:var(--blue);color:var(--blue)}
+.ep-links a .i{font-size:14px}
+/* ===== 折叠 ===== */
+.collapse .chead{display:flex;align-items:center;justify-content:space-between;cursor:pointer;padding:10px 16px;font-weight:600;font-size:13px}
+.collapse .cbody{display:none;padding:0 16px 14px}
+.collapse.open .cbody{display:block}
+.collapse .chev{transition:transform .2s;color:var(--sub)}
+.collapse.open .chev{transform:rotate(90deg)}
+.search{display:flex;gap:8px}
+.search input{padding:6px 10px;border:1px solid var(--line);border-radius:8px;font-size:12px;width:200px;outline:none}
+.search input:focus{border-color:var(--blue)}
+.grid-2{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+@media(max-width:1100px){.grid-2{grid-template-columns:1fr}}
+.hide{display:none!important}
+.warn-band{background:var(--orange-bg);color:#b25e00;border:1px solid #ffe3bd;border-radius:8px;padding:8px 12px;font-size:12px;margin-bottom:12px}
+.ok-band{background:var(--green-bg);color:#00694c;border:1px solid #b7ecd9;border-radius:8px;padding:8px 12px;font-size:12px;margin-bottom:12px}
+.bar{height:8px;border-radius:4px;background:var(--grey-bg);overflow:hidden;margin-top:6px}
+.bar>i{display:block;height:100%;border-radius:4px;background:var(--blue)}
+.dl{display:flex;flex-wrap:wrap;gap:6px}
+.dl .kv{background:#fafbfc;border:1px solid var(--line);border-radius:6px;padding:4px 10px;font-size:11px}
+.dl .kv b{color:var(--txt)}
+/* ===== 精致化 v3.2 ===== */
+.wrap{background:linear-gradient(180deg,#f7f9fd 0%,#f2f5fa 100%)}
+.side{background:rgba(255,255,255,.92);backdrop-filter:blur(8px)}
+.logo{padding:18px 18px 14px;font-size:16px}
+.logo .dot{box-shadow:0 0 0 3px rgba(47,107,255,.18)}
+.nav{padding:6px 10px}
+.nav .item{position:relative;border-radius:10px;padding:11px 12px;transition:all .18s}
+.nav .item::before{content:"";position:absolute;left:-10px;top:50%;transform:translateY(-50%) scaleY(0);width:3px;height:60%;border-radius:2px;background:var(--blue);transition:transform .18s}
+.nav .item.on::before{transform:translateY(-50%) scaleY(1)}
+.nav .item.on{background:linear-gradient(90deg,var(--blue-bg),rgba(47,107,255,.05));box-shadow:inset 0 0 0 1px rgba(47,107,255,.12)}
+.foot{color:#9aa1ab}
+.topbar h1{font-size:20px;letter-spacing:.3px}
+.topbar .sub{font-size:12px}
+.batch{border-radius:10px;padding:7px 12px;background:#fff;box-shadow:0 1px 3px rgba(31,35,41,.04)}
+.card{border-radius:12px;overflow:hidden;transition:box-shadow .2s}
+.card:hover{box-shadow:0 6px 20px rgba(31,35,41,.09)}
+.card .hd{padding:14px 18px}
+.card .hd .t{font-size:14.5px}
+.card .bd{padding:16px 18px}
+.card .bd.p0{padding:0}
+.kpi-row{gap:14px}
+.kpi{position:relative;border-radius:12px;padding:16px 18px;overflow:hidden;transition:transform .15s,box-shadow .2s}
+.kpi:hover{transform:translateY(-2px);box-shadow:0 8px 22px rgba(31,35,41,.1)}
+.kpi::after{content:"";position:absolute;left:0;right:0;bottom:0;height:3px;background:linear-gradient(90deg,var(--blue),#7b61ff);opacity:0;transition:opacity .2s}
+.kpi:hover::after{opacity:1}
+.kpi .v{font-size:24px;background:linear-gradient(120deg,#1f5bff,#7b61ff);-webkit-background-clip:text;-webkit-text-fill-color:transparent}
+.kpi .v.down{background:linear-gradient(120deg,#f54a45,#ff8f1f);-webkit-background-clip:text;-webkit-text-fill-color:transparent}
+.kpi .v.up{background:linear-gradient(120deg,#00a870,#2f6bff);-webkit-background-clip:text;-webkit-text-fill-color:transparent}
+.tbl th{background:#f7f9fc;padding:10px 12px;font-size:11.5px;letter-spacing:.2px}
+.tbl td{padding:10px 12px}
+.tbl tr{transition:background .12s}
+.tab{padding:10px 16px;font-size:12.5px}
+.btn{border-radius:8px;transition:all .15s}
+.btn.pri{box-shadow:0 2px 8px rgba(47,107,255,.28)}
+.btn.green{box-shadow:0 2px 8px rgba(0,168,112,.24)}
+.tag{box-shadow:inset 0 0 0 1px rgba(31,35,41,.03)}
+.flow .n{box-shadow:0 2px 6px rgba(31,35,41,.08)}
+.todo-item{border-radius:10px;transition:box-shadow .15s}
+.todo-item:hover{box-shadow:0 3px 10px rgba(31,35,41,.08)}
+.sel-row{border-radius:12px;transition:box-shadow .15s;border-color:#e8ecf3}
+.sel-row:hover{box-shadow:0 4px 14px rgba(31,35,41,.07)}
+.sup-card{border-radius:10px;transition:all .15s}
+.sup-card:hover{border-color:var(--blue);box-shadow:0 2px 8px rgba(47,107,255,.12)}
+.sec-title{color:#1f2329}
+.sec-title .tag{margin-right:4px}
+.ep-links a{border-radius:10px;transition:all .15s}
+.ep-links a:hover{transform:translateY(-1px);box-shadow:0 3px 10px rgba(47,107,255,.14)}
+.warn-band,.ok-band{border-radius:10px;padding:10px 14px}
+.ai-msg .bubble{box-shadow:0 1px 4px rgba(31,35,41,.05)}
+.ai-chip{transition:all .15s}
+.drawer{border-radius:14px 0 0 14px}
+.sel-flow{background:linear-gradient(180deg,var(--blue-bg),#f4f8ff);border:1px solid #d9e5ff;border-radius:12px}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <!-- ===== 侧边导航 ===== -->
+  <aside class="side">
+    <div class="logo"><span class="dot"></span>样件订单工作台</div>
+    <nav class="nav">
+      <div class="item on" data-view="dashboard"><span class="ic">📊</span>驾驶舱</div>
+      <div class="item" data-view="orders"><span class="ic">📦</span>订单工作台</div>
+      <div class="item" data-view="supplier"><span class="ic">🤝</span>供应商选择</div>
+    </nav>
+    <div class="foot">批次 ORD-20260824-001<br>Agent 原生应用 v3 · Tab 页 · 演示数据</div>
+  </aside>
+
+  <!-- ===== 主区 ===== -->
+  <main class="main">
+    <div class="topbar">
+      <div>
+        <h1 id="pageTitle">样件订单工作台</h1>
+        <div class="sub" id="pageSub">Tab 页 · 驾驶舱 / 订单工作台 / 多供应商决策 · AI 助手</div>
+      </div>
+      <div class="tools">
+        <select class="batch" id="batchSel">
+          <option>ORD-20260824-001</option>
+          <option>ORD-20260823-001</option>
+          <option>ORD-20260822-001</option>
+        </select>
+        <button class="btn pri" onclick="runBatch()">▶ 执行今日批次</button>
+      </div>
+    </div>
+
+    <!-- ============ 区块1：驾驶舱 ============ -->
+    <div class="view" id="sec-dashboard">
+      <div class="warn-band" id="runHint">ℹ️ 点节点查看明细；失败/草稿自动进入右侧待办队列</div>
+      <!-- 批次流 -->
+      <div class="card">
+        <div class="hd"><span class="t">今日批次执行</span><span class="tip" id="flowTip">待执行</span></div>
+        <div class="bd"><div class="flow" id="flow"></div></div>
+      </div>
+      <!-- KPI -->
+      <div class="kpi-row" id="kpiRow"></div>
+      <!-- 需求确认 + 待办 -->
+      <div class="grid-2">
+        <div class="card">
+          <div class="hd"><span class="t">📦 散件需求确认（8 行）</span><span class="tip">需求人核对零件/数量/项目/采购员后确认导入；责任保留在需求方</span></div>
+          <div class="bd p0">
+            <table class="tbl" id="confirmTbl">
+              <thead><tr><th>零件号</th><th>数量</th><th>项目/BR</th><th>采购员</th><th>导入结果</th><th>操作</th></tr></thead>
+              <tbody></tbody>
+            </table>
+          </div>
+        </div>
+        <div class="card">
+          <div class="hd"><span class="t">⏳ 待办队列</span><span class="tip" id="todoCnt">0 项</span></div>
+          <div class="bd" id="todoList"></div>
+        </div>
+      </div>
+      <!-- 需求检查 -->
+      <div class="card">
+        <div class="hd"><span class="t">🔍 需求检查</span>
+          <span class="tip"><span id="chkPass" class="tag t-green">PASS 0</span>&nbsp;<span id="chkWarn" class="tag t-orange">WARN 0</span>&nbsp;<span id="chkRej" class="tag t-red">REJECT 0</span>&nbsp;<span id="chkSkip" class="tag t-grey">SKIP 0</span></span>
+        </div>
+        <div class="bd p0">
+          <table class="tbl" id="checkTbl">
+            <thead><tr><th>零件号/名称</th><th>数量</th><th>项目/BR</th><th>采购员</th><th>价格状态</th><th>结论</th><th>明细</th></tr></thead>
+            <tbody></tbody>
+          </table>
+        </div>
+      </div>
+      <!-- 可下单 -->
+      <div class="card">
+        <div class="hd"><span class="t">✅ 可下单列表</span><span class="tip">数据来源：dx-ep sapo order query-ready</span></div>
+        <div class="bd p0">
+          <table class="tbl" id="readyTbl">
+            <thead><tr><th>零件号/名称</th><th>数量</th><th>项目/BR</th><th>采购员</th><th>供应商</th><th>路由</th></tr></thead>
+            <tbody></tbody>
+          </table>
+        </div>
+      </div>
+      <!-- 询价跟踪 + 覆盖率 -->
+      <div class="grid-2">
+        <div class="card">
+          <div class="hd"><span class="t">💴 询价跟踪</span><span class="tip">推送规则：台账未匹配自动推送询价</span></div>
+          <div class="bd p0">
+            <table class="tbl" id="inquiryTbl">
+              <thead><tr><th>零件号</th><th>状态</th><th>超期</th></tr></thead>
+              <tbody></tbody>
+            </table>
+          </div>
+        </div>
+        <div class="card">
+          <div class="hd"><span class="t">🎯 自动下单覆盖率</span></div>
+          <div class="bd">
+            <div style="font-size:13px" id="covText"></div>
+            <div class="bar"><i id="covBar" style="width:70%"></i></div>
+            <div class="tip" style="margin-top:8px">来源：创建订单批次 ORD-20260824-001 · 唯一供应商+唯一价格路径全自动</div>
+          </div>
+        </div>
+      </div>
+      <!-- CLI 面板（折叠） -->
+      <div class="card collapse" id="cliCard">
+        <div class="chead" onclick="this.parentNode.classList.toggle('open')"><span>⌨️ CLI 命令中心 <span class="tip">dx-ep sapo · 16 条</span></span><span class="chev">▶</span></div>
+        <div class="cbody"><div id="cliPanel"></div></div>
+      </div>
+    </div>
+
+    <!-- ============ 区块2：订单工作台 ============ -->
+    <div class="view hide" id="sec-orders">
+      <div class="sec-title" style="font-size:16px;font-weight:700;margin:26px 0 14px;display:flex;align-items:center;gap:8px"><span class="tag t-blue">区块</span>📦 订单工作台</div>
+      <div class="card">
+        <div class="hd"><span class="t">🔗 EP 系统入口</span><span class="tip">业务页面直达</span></div>
+        <div class="bd"><div class="ep-links">
+          <a href="https://ep.ev.mioffice.cn/root/purchasereqirements/list" target="_blank"><span class="i">📋</span>需求列表</a>
+          <a href="https://ep.ev.mioffice.cn/root/purchasereqirements/list" target="_blank"><span class="i">🔀</span>需求转 RFQ</a>
+          <a href="https://ep.ev.mioffice.cn/root/purchaseorder/list" target="_blank"><span class="i">📦</span>订单列表</a>
+        </div></div>
+      </div>
+      <div class="card">
+        <div class="hd"><span class="t">📦 订单工作台</span>
+          <div class="search"><input id="orderKw" placeholder="搜索订单号 / 供应商…" oninput="renderOrderList()">
+          <button class="btn mini" onclick="openEP('https://ep.ev.mioffice.cn/root/purchaseorder/list')">EP 打开</button></div>
+        </div>
+        <div class="tabs" id="orderTabs"></div>
+        <div class="bd p0">
+          <table class="tbl" id="orderTbl">
+            <thead><tr><th>订单号</th><th>项目/版本</th><th>供应商</th><th>采购员/申请人</th><th>预算/需求</th><th>金额</th><th>SAP/试制</th><th>来源</th><th>状态</th><th>操作</th></tr></thead>
+            <tbody></tbody>
+          </table>
+        </div>
+      </div>
+      <!-- 更新订单（原型 order-update） -->
+      <div class="card">
+        <div class="hd"><span class="t">🛠 订单维护 · 更新记录（3 行）</span></div>
+        <div class="bd p0">
+          <table class="tbl" id="updateTbl">
+            <thead><tr><th>订单号</th><th>动作</th><th>原状态</th><th>新状态</th><th>操作人</th><th>时间</th></tr></thead>
+            <tbody></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- ============ 区块3：供应商选择 ============ -->
+    <div class="view hide" id="sec-supplier">
+      <div class="sec-title" style="font-size:16px;font-weight:700;margin:26px 0 14px;display:flex;align-items:center;gap:8px"><span class="tag t-blue">区块</span>🤝 供应商选择（一日多单）</div>
+      <div class="card">
+        <div class="hd"><span class="t">多供应商选择</span><span class="tip">一品多点约 10% 场景 · 超时 120min 自动转待办</span></div>
+        <div class="bd">
+          <div class="sel-flow" id="selFlow"></div>
+        </div>
+      </div>
+      <div class="card">
+        <div class="hd"><span class="t">🧭 推荐逻辑</span></div>
+        <div class="bd">
+          <div class="dl">
+            <span class="kv">唯一供应商 + 唯一价格 → <b>AUTO 自动下单</b></span>
+            <span class="kv">多供应商 → <b>SELECT 人工选择</b></span>
+            <span class="kv">无供应商/无价格 → <b>转询价跟踪</b></span>
+            <span class="kv">价格非最低 → <b>草稿待核实</b></span>
+            <span class="kv">一品多点场景约 <b>10%</b></span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </main>
+</div>
+
+<!-- ===== 抽屉（订单详情） ===== -->
+<div class="mask" id="mask" onclick="closeDrawer()"></div>
+<div class="drawer" id="drawer">
+  <div class="dhd"><span id="drawerTitle">订单详情</span><span class="x" onclick="closeDrawer()">✕</span></div>
+  <div class="dbd" id="drawerBody"></div>
+  <div class="dbd" id="drawerActs" style="padding-top:0"></div>
+</div>
+
+<!-- ===== AI 助手 ===== -->
+<button class="ai-fab" onclick="toggleAI()" title="AI 助手">🤖</button>
+<div class="ai-panel" id="aiPanel">
+  <div class="dhd" style="background:linear-gradient(135deg,#2f6bff,#7b61ff);color:#fff;border:none"><span>🤖 AI 工作台助手</span><span class="x" style="color:#fff" onclick="toggleAI()">✕</span></div>
+  <div class="ai-msgs" id="aiMsgs"></div>
+  <div class="ai-chips" id="aiChips"></div>
+  <div class="ai-input">
+    <input id="aiIn" placeholder="问：今日有什么待处理？" onkeydown="if(event.key==='Enter')sendAI()">
+    <button onclick="sendAI()">发送</button>
+  </div>
+</div>
+
+<script>
+/* ================= 数据（演示） ================= */
+var STATE = {
+  batch: "ORD-20260824-001",
+  flowDone: false,
+  confirmRows: [1,2,3,4,5,6,7,8].map(function(i){return {row:i, part:"P2026080102"+i, qty:50, br:"BR2026080"+i, buyer:"liwenjun8", done:false, fail:false}}),
+  orderTab: "ALL",
+  orderKw: "",
+  suppliers: [
+    {id:"SUP-A", name:"博世", cat:"电子", lv:"S", price:12000, lead:14, score:96, state:"已选", group:"G009"},
+    {id:"SUP-B", name:"大陆集团", cat:"电子", lv:"S", price:12400, lead:16, score:94, state:"已选", group:"G009"},
+    {id:"SUP-C", name:"敏实集团", cat:"结构件", lv:"A", price:8600, lead:20, score:88, state:"待选", group:"G010"},
+    {id:"SUP-D", name:"拓普集团", cat:"结构件", lv:"A", price:8900, lead:22, score:85, state:"待选", group:"G010"},
+    {id:"SUP-E", name:"均胜电子", cat:"电子", lv:"B", price:15000, lead:25, score:80, state:"放弃", group:""},
+    {id:"SUP-F", name:"福耀玻璃", cat:"玻璃", lv:"S", price:5200, lead:12, score:95, state:"待选", group:"G011"},
+    {id:"SUP-G", name:"信义玻璃", cat:"玻璃", lv:"S", price:5400, lead:18, score:90, state:"待选", group:"G011"},
+    {id:"SUP-H", name:"采埃孚", cat:"底盘", lv:"S", price:10200, lead:20, score:89, state:"待选", group:"G013"},
+    {id:"SUP-I", name:"德赛西威", cat:"电子", lv:"A", price:14800, lead:19, score:83, state:"待选", group:"G012"}
+  ],
+  selGroups: [
+    {g:"G009", part:"P2026080123", name:"EPS 控制器(二供)", sups:[{id:"SUP-A",n:"博世",price:12000,lead:14,score:96,lv:"S"},{id:"SUP-B",n:"大陆集团",price:12400,lead:16,score:94,lv:"S"}], sel:[], mode:"60:40", done:"已选择", share:"博世 60% / 大陆 40%"},
+    {g:"G010", part:"P2026080114", name:"减震支架", sups:[{id:"SUP-C",n:"敏实集团",price:8600,lead:20,score:88,lv:"A"},{id:"SUP-D",n:"拓普集团",price:8900,lead:22,score:85,lv:"A"}], sel:[], mode:"60:40", done:""},
+    {g:"G011", part:"P2026080115", name:"前挡玻璃", sups:[{id:"SUP-F",n:"福耀玻璃",price:5200,lead:12,score:95,lv:"S"},{id:"SUP-G",n:"信义玻璃",price:5400,lead:18,score:90,lv:"S"}], sel:[], mode:"60:40", done:""},
+    {g:"G012", part:"P2026080116", name:"热管理阀", sups:[{id:"SUP-I",n:"德赛西威",price:14800,lead:19,score:83,lv:"A"},{id:"SUP-E",n:"均胜电子",price:15000,lead:25,score:80,lv:"B"}], sel:[], mode:"50:50", done:""},
+    {g:"G013", part:"P2026080117", name:"线控转向", sups:[{id:"SUP-A",n:"博世",price:9900,lead:14,score:96,lv:"S"},{id:"SUP-H",n:"采埃孚",price:10200,lead:20,score:89,lv:"S"}], sel:[], mode:"60:40", done:"超时转待办"}
+  ]
+};
+var ORDER_STATUS = [
+  {id:"ALL", name:"全部", n:8},
+  {id:"SUBMITTED", name:"已提交审批", n:2},
+  {id:"DRAFT", name:"草稿待核实", n:2},
+  {id:"FAIL", name:"失败", n:1},
+  {id:"PENDING", name:"待选择", n:1},
+  {id:"APPROVING", name:"审批中", n:2},
+  {id:"CONFIRMING", name:"待供应商确认", n:1},
+  {id:"CONFIRMED", name:"供应商已确认", n:1}
+];
+var ORDERS = [
+  {id:"4900037888", proj:"SU7-Max / V3.1", sup:"博世", buyer:"liwenjun8", req:"REQ-20260824-031", br:"BR2026080001", amt:12000, sap:"试制", src:"create-order", st:"SUBMITTED", items:[["P2026080123","EPS 控制器",50],["P2026080124","传感器",100]]},
+  {id:"4900037889", proj:"SU7-Max / V3.1", sup:"大陆集团", buyer:"wangwei7", req:"REQ-20260824-032", br:"BR2026080002", amt:24800, sap:"试制", src:"create-order", st:"SUBMITTED", items:[["P2026080125","域控制器",20]]},
+  {id:"4900037890", proj:"YU7-Pro / V2.0", sup:"敏实集团", buyer:"zhangli3", req:"REQ-20260824-033", br:"BR2026080003", amt:8600, sap:"试制", src:"create-order", st:"DRAFT", items:[["P2026080126","侧围饰条",80]]},
+  {id:"4900037891", proj:"YU7-Pro / V2.0", sup:"拓普集团", buyer:"zhangli3", req:"REQ-20260824-034", br:"BR2026080004", amt:17800, sap:"试制", src:"create-order", st:"DRAFT", items:[["P2026080127","减震支架",60]]},
+  {id:"4900037892", proj:"SU7-Max / V3.1", sup:"—", buyer:"liwenjun8", req:"REQ-20260824-035", br:"BR2026080005", amt:0, sap:"试制", src:"create-order", st:"FAIL", items:[["P2026080128","无价格件",10]]},
+  {id:"4900037893", proj:"F3 / V1.0", sup:"博世", buyer:"chenhao2", req:"REQ-20260824-036", br:"BR2026080006", amt:9900, sap:"试制", src:"create-order", st:"APPROVING", items:[["P2026080129","线控转向",15]]},
+  {id:"4900037894", proj:"F3 / V1.0", sup:"福耀玻璃", buyer:"chenhao2", req:"REQ-20260824-037", br:"BR2026080007", amt:5200, sap:"试制", src:"create-order", st:"APPROVING", items:[["P2026080130","前挡玻璃",40]]},
+  {id:"4900037895", proj:"SU7-Max / V3.1", sup:"博世", buyer:"liwenjun8", req:"REQ-20260824-038", br:"BR2026080008", amt:6000, sap:"试制", src:"create-order", st:"CONFIRMING", items:[["P2026080131","制动模块",25]]},
+  {id:"4900037896", proj:"SU7-Max / V3.1", sup:"大陆集团", buyer:"liwenjun8", req:"REQ-20260824-039", br:"BR2026080009", amt:12400, sap:"试制", src:"create-order", st:"CONFIRMED", items:[["P2026080132","热管理阀",18]]}
+];
+var UPDATES = [
+  {id:"4900037890", act:"发起审批", from:"草稿", to:"审批中", who:"liwenjun8", t:"08-24 14:32"},
+  {id:"4900037893", act:"发起审批", from:"草稿", to:"审批中", who:"chenhao2", t:"08-24 14:35"},
+  {id:"4900037895", act:"更新订单", from:"草稿", to:"待供应商确认", who:"liwenjun8", t:"08-24 14:41"}
+];
+var CHECKS = [
+  {part:"P2026080101", name:"前大灯总成", qty:50, br:"BR2026080001", buyer:"liwenjun8", price:"有", r:"PASS", note:""},
+  {part:"P2026080102", name:"后尾灯总成", qty:50, br:"BR2026080001", buyer:"liwenjun8", price:"有", r:"PASS", note:""},
+  {part:"P2026080103", name:"门内饰板左", qty:80, br:"BR2026080002", buyer:"wangwei7", price:"有", r:"PASS", note:""},
+  {part:"P2026080104", name:"门内饰板右", qty:80, br:"BR2026080002", buyer:"wangwei7", price:"有", r:"PASS", note:""},
+  {part:"P2026080105", name:"仪表板骨架", qty:30, br:"BR2026080003", buyer:"zhangli3", price:"有", r:"PASS", note:""},
+  {part:"P2026080106", name:"保险杠本体", qty:60, br:"BR2026080004", buyer:"zhangli3", price:"有", r:"WARN", note:"数量超常规 50%"},
+  {part:"P2026080107", name:"天窗总成", qty:10, br:"BR2026080005", buyer:"chenhao2", price:"无", r:"REJECT", note:"无价格台账"},
+  {part:"P2026080108", name:"标准件包", qty:200, br:"—", buyer:"chenhao2", price:"—", r:"SKIP", note:"标准件免传递"}
+];
+var READIES = [
+  {part:"P2026080101", name:"前大灯总成", qty:50, br:"BR2026080001", buyer:"liwenjun8", sup:"博世", route:"AUTO"},
+  {part:"P2026080102", name:"后尾灯总成", qty:50, br:"BR2026080001", buyer:"liwenjun8", sup:"博世", route:"AUTO"},
+  {part:"P2026080103", name:"门内饰板左", qty:80, br:"BR2026080002", buyer:"wangwei7", sup:"敏实集团", route:"AUTO"},
+  {part:"P2026080104", name:"门内饰板右", qty:80, br:"BR2026080002", buyer:"wangwei7", sup:"敏实集团", route:"AUTO"},
+  {part:"P2026080105", name:"仪表板骨架", qty:30, br:"BR2026080003", buyer:"zhangli3", sup:"拓普集团", route:"AUTO"},
+  {part:"P2026080106", name:"保险杠本体", qty:60, br:"BR2026080004", buyer:"zhangli3", sup:"拓普集团", route:"AUTO"},
+  {part:"P2026080109", name:"EPS 控制器", qty:50, br:"BR2026080006", buyer:"liwenjun8", sup:"博世", route:"AUTO"},
+  {part:"P2026080110", name:"域控制器", qty:20, br:"BR2026080006", buyer:"liwenjun8", sup:"大陆集团", route:"AUTO"},
+  {part:"P2026080111", name:"侧围饰条", qty:80, br:"BR2026080007", buyer:"zhangli3", sup:"敏实集团", route:"AUTO"},
+  {part:"P2026080112", name:"制动模块", qty:25, br:"BR2026080008", buyer:"liwenjun8", sup:"博世", route:"AUTO"},
+  {part:"P2026080123", name:"EPS 控制器(二供)", qty:50, br:"BR2026080009", buyer:"liwenjun8", sup:"博世/大陆", route:"SELECT"},
+  {part:"P2026080128", name:"无价格件", qty:10, br:"BR2026080010", buyer:"liwenjun8", sup:"—", route:"无供应商"}
+];
+var INQUIRIES = [
+  {part:"P2026080107", st:"无价格", over:""},
+  {part:"P2026080128", st:"无价格", over:""},
+  {part:"P2026080133", st:"台账已匹配", over:""},
+  {part:"P2026080134", st:"超7天升级", over:"9 天"}
+];
+var CLI_CMDS = [
+  "dx-ep sapo order import-item","dx-ep sapo order import-json","dx-ep sapo order query-ready",
+  "dx-ep sapo order create-order","dx-ep sapo order submit-list","dx-ep demand query-downloadable",
+  "dx-ep demand check","dx-ep supplier query","dx-ep supplier rank","dx-ep rfq create",
+  "dx-ep rfq query","dx-ep price query","dx-ep price sync","dx-ep log submit",
+  "dx-ep batch run","dx-ep batch status"
+];
+
+/* ================= 工具 ================= */
+function $(id){return document.getElementById(id)}
+function esc(s){return String(s==null?"":s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;")}
+function tag(html){var d=document.createElement("div");d.innerHTML=html;return d.firstElementChild}
+function stTag(st){var m={"SUBMITTED":["已提交审批","t-blue"],"DRAFT":["草稿待核实","t-orange"],"FAIL":["失败","t-red"],"PENDING":["待选择","t-purple"],"APPROVING":["审批中","t-green"],"CONFIRMING":["待供应商确认","t-grey"],"CONFIRMED":["供应商已确认","t-green"]};var x=m[st]||[st,"t-grey"];return '<span class="tag '+x[1]+'">'+x[0]+'</span>'}
+function routeTag(r){return r==="AUTO"?'<span class="tag t-green">自动下单 AUTO</span>':r==="SELECT"?'<span class="tag t-purple">多供应商 SELECT</span>':'<span class="tag t-red">无供应商</span>'}
+function toast(msg){var t=tag('<div style="position:fixed;top:16px;left:50%;transform:translateX(-50%);background:#1f2329;color:#fff;padding:8px 18px;border-radius:8px;font-size:12px;z-index:999;box-shadow:0 4px 16px rgba(0,0,0,.2)">'+esc(msg)+'</div>');document.body.appendChild(t);setTimeout(function(){t.remove()},2200)}
+
+/* ================= 视图切换（Tab 页） ================= */
+function setView(v){
+  document.querySelectorAll(".nav .item").forEach(function(i){i.classList.toggle("on", i.dataset.view===v)});
+  ["dashboard","orders","supplier"].forEach(function(x){
+    var el=$("sec-"+x); if(el) el.classList.toggle("hide", x!==v);
+  });
+  window.scrollTo({top:0});
+}
+document.querySelectorAll(".nav .item").forEach(function(i){i.addEventListener("click",function(){setView(i.dataset.view)})});
+
+/* ================= 批次流 ================= */
+var FLOW = [
+  {ic:"📥", t:"需求导入", s:"dx-ep sapo order import-json", done:true},
+  {ic:"🔍", t:"需求检查", s:"demand-check", done:true},
+  {ic:"✅", t:"查询可下单", s:"query-ready · 12 条", done:true},
+  {ic:"🔀", t:"供应商选择", s:"G009 双供", done:true},
+  {ic:"📦", t:"创建订单", s:"create-order · 9 单", done:true},
+  {ic:"📤", t:"提交审批", s:"submit-list", done:true}
+];
+function renderFlow(){
+  var h="";
+  FLOW.forEach(function(n,i){
+    h+='<div class="node '+(STATE.flowDone?"done":(i===FLOW.length-1&&!STATE.flowDone?"run":n.done?"done":""))+'"><div class="n">'+n.ic+'</div><div class="nl">'+n.t+"<small>"+esc(n.s)+"</small></div></div>";
+    if(i<FLOW.length-1) h+='<div class="arrow">→</div>';
+  });
+  $("flow").innerHTML=h;
+  $("flowTip").textContent = STATE.flowDone ? "已完成 · 9 单提交审批" : "待执行 · 点「执行今日批次」";
+}
+function runBatch(){
+  var btn=event.target; btn.disabled=true; btn.textContent="⏳ 执行中…";
+  $("runHint").className="warn-band"; $("runHint").textContent="⏳ 执行中：导入 → 检查 → 可下单 → 下单 → 提交…";
+  var steps=["import-json 导入 12 条…","demand-check 检查 12 条 → PASS 8 / WARN 1 / REJECT 1 / SKIP 2","query-ready 返回 12 条可下单","create-order 创建 9 单（8 提交 + 1 草稿）","submit-list 已提交 8 单，草稿 1 待核实"];
+  var i=0;
+  var timer=setInterval(function(){
+    if(i<steps.length){ $("runHint").textContent="⏳ "+steps[i]; i++; }
+    else{
+      clearInterval(timer);
+      STATE.flowDone=true; renderFlow();
+      $("runHint").className="ok-band"; $("runHint").textContent="✅ 批次完成：8 单提交审批，1 单草稿待核实，1 单失败已转询价。";
+      $("todoCnt").textContent="2 项"; renderTodos();
+      btn.disabled=false; btn.textContent="▶ 执行今日批次"; toast("批次执行完成");
+    }
+  },900);
+}
+
+/* ================= KPI ================= */
+function renderKpi(){
+  var k=[
+    {l:"下单周期", v:"T+1", d:"目标闭环", c:""},
+    {l:"人工介入率", v:"30%", d:"→ 目标 ≤15%", c:"down"},
+    {l:"自动下单覆盖率", v:"7/10 组", d:"唯一供+唯一价", c:"up"},
+    {l:"需求 T+1 闭环", v:"92%", d:"当日需求当日可下单", c:"up"},
+    {l:"价格来源", v:"台账 87%", d:"剩余 13% 询价中", c:""}
+  ];
+  $("kpiRow").innerHTML=k.map(function(x){return '<div class="kpi"><div class="l">'+x.l+'</div><div class="v '+(x.c==="down"?"down":x.c==="up"?"up":"")+'">'+x.v+'</div><div class="d">'+x.d+'</div></div>'}).join("");
+  $("covText").textContent="唯一供应商+唯一价格路径全自动（7/10 组）";
+}
+
+/* ================= 需求确认 ================= */
+function renderConfirm(){
+  var h="";
+  STATE.confirmRows.forEach(function(r){
+    h+='<tr><td>'+r.part+'</td><td class="num">'+r.qty+'</td><td>BR2026080'+r.row+'</td><td>'+r.buyer+'</td><td>'+
+      (r.done?'<span class="tag t-green">已确认导入</span>':r.fail?'<span class="tag t-red">校验失败</span>':'<span class="tag t-grey">待确认</span>')+'</td><td>'+
+      (r.done||r.fail?'':'<button class="btn green mini" onclick="confirmRow('+r.row+')">确认导入</button> <button class="btn danger mini" onclick="rejectRow('+r.row+')">退回</button>')+'</td></tr>';
+  });
+  $("confirmTbl").querySelector("tbody").innerHTML=h;
+}
+function confirmRow(i){STATE.confirmRows[i-1].done=true; renderConfirm(); toast("已确认导入 行"+i); checkBatchDone()}
+function rejectRow(i){STATE.confirmRows[i-1].fail=true; renderConfirm(); toast("已退回 行"+i); checkBatchDone()}
+function checkBatchDone(){
+  var d=STATE.confirmRows.filter(function(r){return r.done||r.fail}).length;
+  if(d===STATE.confirmRows.length && !STATE.flowDone){ $("runHint").textContent="✅ 需求确认完成 8/8，可执行批次。"; $("runHint").className="ok-band"; }
+}
+
+/* ================= 待办 ================= */
+var TODOS=[
+  {ic:"⚠️", t:"PO-4900037890 非最低价", d:"草稿待核实 · 已通知采购员", act:"核实"},
+  {ic:"🔀", t:"G010 多供应商待选择", d:"敏实 vs 拓普 · 超时 120min 转待办", act:"去选择"}
+];
+function renderTodos(){
+  $("todoList").innerHTML=TODOS.map(function(t,i){
+    return '<div class="todo-item"><div class="ic">'+t.ic+'</div><div class="body"><div class="title">'+t.t+'</div><div class="desc">'+t.d+'</div></div>'+
+      '<button class="btn mini pri" onclick="'+(t.act==="去选择"?"setView('supplier')":"openOrderDetail('4900037890')")+'">'+t.act+'</button></div>';
+  }).join("");
+}
+
+/* ================= 需求检查 ================= */
+function renderChecks(){
+  var c={PASS:0,WARN:0,REJECT:0,SKIP:0};
+  var h="";
+  CHECKS.forEach(function(r){c[r.r]++; h+='<tr><td>'+r.part+' · '+esc(r.name)+'</td><td class="num">'+r.qty+'</td><td>'+r.br+'</td><td>'+r.buyer+'</td><td>'+(r.price==="有"?'<span class="tag t-green">有价格</span>':'<span class="tag t-red">无价格</span>')+'</td><td><span class="tag '+(r.r==="PASS"?"t-green":r.r==="WARN"?"t-orange":r.r==="REJECT"?"t-red":"t-grey")+'">'+r.r+'</span></td><td>'+esc(r.note)+'</td></tr>'});
+  $("checkTbl").querySelector("tbody").innerHTML=h;
+  $("chkPass").textContent="PASS "+c.PASS; $("chkWarn").textContent="WARN "+c.WARN; $("chkRej").textContent="REJECT "+c.REJECT; $("chkSkip").textContent="SKIP "+c.SKIP;
+}
+
+/* ================= 可下单 ================= */
+function renderReady(){
+  $("readyTbl").querySelector("tbody").innerHTML=READIES.map(function(r){
+    return '<tr><td>'+r.part+' · '+esc(r.name)+'</td><td class="num">'+r.qty+'</td><td>'+r.br+'</td><td>'+r.buyer+'</td><td>'+esc(r.sup)+'</td><td>'+routeTag(r.route)+'</td></tr>'}).join("");
+}
+
+/* ================= 询价 ================= */
+function renderInquiry(){
+  $("inquiryTbl").querySelector("tbody").innerHTML=INQUIRIES.map(function(r){
+    return '<tr><td>'+r.part+'</td><td><span class="tag '+(r.st==="无价格"?"t-red":r.st==="台账已匹配"?"t-green":"t-orange")+'">'+r.st+'</span></td><td>'+r.over+'</td></tr>'}).join("");
+}
+
+/* ================= 订单工作台 ================= */
+function renderOrderTabs(){
+  var c={};
+  ORDERS.forEach(function(o){c[o.st]=(c[o.st]||0)+1});
+  $("orderTabs").innerHTML=ORDER_STATUS.map(function(t){
+    return '<div class="tab'+(STATE.orderTab===t.id?" on":"")+'" onclick="stateOrderTab(\''+t.id+'\')">'+t.name+' ('+(t.id==="ALL"?ORDERS.length:(c[t.id]||0))+')</div>'}).join("");
+}
+function stateOrderTab(id){STATE.orderTab=id; renderOrderTabs(); renderOrderList()}
+function renderOrderList(){
+  var kw=STATE.orderKw.toLowerCase();
+  var rows=ORDERS.filter(function(o){
+    var okT=STATE.orderTab==="ALL"||o.st===STATE.orderTab;
+    var okK=!kw||o.id.toLowerCase().indexOf(kw)>=0||o.sup.toLowerCase().indexOf(kw)>=0;
+    return okT&&okK;
+  });
+  $("orderTbl").querySelector("tbody").innerHTML=rows.map(function(o){
+    return '<tr><td class="num" style="color:var(--blue);cursor:pointer" onclick="openOrderDetail(\''+o.id+'\')">'+o.id+'</td><td>'+esc(o.proj)+'</td><td>'+esc(o.sup)+'</td><td>'+o.buyer+'</td><td>'+o.req+' / '+o.br+'</td><td class="num">'+(o.amt?o.amt.toLocaleString():"—")+'</td><td>'+o.sap+'</td><td>'+o.src+'</td><td>'+stTag(o.st)+'</td><td>'+
+      '<button class="btn mini" onclick="orderAct(\''+o.id+'\',\'发起审批\')">发起审批</button> '+
+      '<button class="btn mini" onclick="orderAct(\''+o.id+'\',\'删除草稿\')">删除草稿</button> '+
+      '<button class="btn mini" onclick="orderAct(\''+o.id+'\',\'关闭订单\')">关闭订单</button> '+
+      '<button class="btn mini" onclick="orderAct(\''+o.id+'\',\'删除行\')">删除行</button></td></tr>'}).join("")||'<tr><td colspan="10" style="text-align:center;color:var(--sub);padding:24px">无匹配订单</td></tr>';
+}
+function orderAct(id,act){
+  var o=ORDERS.find(function(x){return x.id===id});
+  if(!o)return;
+  if(act==="发起审批"&&o.st==="DRAFT"){o.st="APPROVING"; toast("已发起审批 "+id)}
+  else if(act==="删除草稿"&&o.st==="DRAFT"){ORDERS=ORDERS.filter(function(x){return x.id!==id}); toast("已删除草稿 "+id)}
+  else if(act==="关闭订单"){o.st="CONFIRMED"; toast("已关闭订单 "+id)}
+  else if(act==="删除行"){toast("已删除行（演示） "+id)}
+  else{toast("当前状态不允许操作："+act)}
+  renderOrderTabs(); renderOrderList(); renderUpdates();
+}
+function openOrderDetail(id){
+  var o=ORDERS.find(function(x){return x.id===id}); if(!o)return;
+  $("drawerTitle").textContent="订单 "+o.id;
+  $("drawerBody").innerHTML=
+    '<div class="dl" style="margin-bottom:12px">'+
+    '<span class="kv">项目 <b>'+esc(o.proj)+'</b></span><span class="kv">供应商 <b>'+esc(o.sup)+'</b></span>'+
+    '<span class="kv">金额 <b>'+o.amt.toLocaleString()+'</b></span><span class="kv">状态 '+stTag(o.st)+'</span></div>'+
+    '<table class="tbl"><thead><tr><th>零件号</th><th>名称</th><th>数量</th></tr></thead><tbody>'+
+    o.items.map(function(it){return '<tr><td>'+it[0]+'</td><td>'+it[1]+'</td><td class="num">'+it[2]+'</td></tr>'}).join("")+'</tbody></table>';
+  $("drawerActs").innerHTML='<button class="btn danger" onclick="closeDrawer();orderAct(\''+o.id+'\',\'关闭订单\')">关闭订单</button> <button class="btn" onclick="closeDrawer()">取消</button>';
+  $("mask").classList.add("open"); $("drawer").classList.add("open");
+}
+function closeDrawer(){$("mask").classList.remove("open"); $("drawer").classList.remove("open")}
+
+/* ================= 更新记录 ================= */
+function renderUpdates(){
+  $("updateTbl").querySelector("tbody").innerHTML=UPDATES.map(function(u){
+    return '<tr><td class="num">'+u.id+'</td><td>'+u.act+'</td><td>'+u.from+'</td><td><span class="tag t-blue">'+u.to+'</span></td><td>'+u.who+'</td><td>'+u.t+'</td></tr>'}).join("");
+}
+
+/* ================= 供应商选择 ================= */
+function renderSelFlow(){
+  var groups=STATE.selGroups;
+  var pending=groups.filter(function(g){return !g.done}).length;
+  var done=groups.length-pending;
+  var h='<div style="display:flex;gap:8px;margin-bottom:12px;flex-wrap:wrap">'+
+    '<span class="tag t-orange">待选择 '+pending+' 组</span>'+
+    '<span class="tag t-green">已处理 '+done+' 组</span>'+
+    '<span class="tag t-grey">共 '+groups.length+' 组 · 一日多单</span></div>';
+  groups.forEach(function(g){
+    h+='<div class="sel-row" style="'+(g.done?"opacity:.85":"")+'">';
+    h+='<div class="g-info"><b>组 '+g.g+'</b><div class="meta">'+g.part+' · '+esc(g.name)+'</div></div>';
+    h+='<div class="g-sups">';
+    g.sups.forEach(function(s){
+      var on=g.sel.indexOf(s.id)>=0;
+      h+='<div class="sup-card'+(on?" on":"")+(g.done?" lock":"")+'" onclick="'+(g.done?"":"toggleSelSup('"+g.g+"','"+s.id+"')")+'">'+
+        '<div class="n">'+esc(s.n)+(on?" <b style='color:var(--blue)'>✓</b>":"")+'</div>'+
+        '<div class="meta">报价 '+s.price.toLocaleString()+' · '+s.lead+' 天 · '+s.score+' 分 · '+s.lv+' 级</div></div>';
+    });
+    h+='</div>';
+    if(g.done==="已选择"){
+      h+='<div class="g-act"><span class="tag t-green">已选择</span><div class="meta" style="margin-top:4px">'+esc(g.share)+'</div></div>';
+    }else if(g.done==="超时转待办"){
+      h+='<div class="g-act"><span class="tag t-red">超时转待办</span><div class="meta" style="margin-top:4px">120min 未决策</div></div>';
+    }else{
+      h+='<div class="g-act">'+
+        '<select class="batch" style="margin-bottom:6px" onchange="setMode(\''+g.g+'\',this.value)">'+
+        '<option value="60:40" '+(g.mode==="60:40"?"selected":"")+'>先选 60% / 次选 40%</option>'+
+        '<option value="50:50" '+(g.mode==="50:50"?"selected":"")+'>均分 50% / 50%</option>'+
+        '<option value="single" '+(g.mode==="single"?"selected":"")+'>单供 100%</option></select>'+
+        '<div><button class="btn green mini" onclick="confirmGroup(\''+g.g+'\')">确认分配</button> '+
+        '<button class="btn mini" onclick="skipGroup(\''+g.g+'\')">暂不下单</button></div>'+
+        '<div class="meta" style="margin-top:6px" id="hint-'+g.g+'"></div></div>';
+    }
+    h+='</div>';
+  });
+  $("selFlow").innerHTML=h;
+}
+function toggleSelSup(gId,sid){
+  var g=STATE.selGroups.find(function(x){return x.g===gId});
+  var i=g.sel.indexOf(sid);
+  if(i>=0)g.sel.splice(i,1);else g.sel.push(sid);
+  renderSelFlow();
+}
+function setMode(gId,m){var g=STATE.selGroups.find(function(x){return x.g===gId});g.mode=m;renderSelFlow()}
+function confirmGroup(gId){
+  var g=STATE.selGroups.find(function(x){return x.g===gId});
+  var hint=$("hint-"+gId);
+  if(!g.sel.length){ if(hint)hint.innerHTML='<span style="color:var(--red)">请至少选择 1 家供应商</span>'; return; }
+  var share;
+  if(g.mode==="single") share=g.sel[0]===g.sups[0].id?g.sups[0].n+" 100%":g.sups[1].n+" 100%";
+  else if(g.sel.length===1) share=g.sups.find(function(s){return s.id===g.sel[0]}).n+" 100%";
+  else{
+    var a=g.sups[0].n,b=g.sups[1].n;
+    if(g.mode==="50:50") share=a+" 50% / "+b+" 50%";
+    else{ var hi=g.sel.indexOf(g.sups[0].id)>=0?a:b; var lo=hi===a?b:a; share=hi+" 60% / "+lo+" 40%"; }
+  }
+  g.done="已选择"; g.share=share;
+  g.sel.forEach(function(sid){var s=STATE.suppliers.find(function(x){return x.id===sid}); if(s)s.state="已选"});
+  renderSelFlow(); toast("组 "+gId+" 已确认分配："+share);
+}
+function skipGroup(gId){var g=STATE.selGroups.find(function(x){return x.g===gId});g.done="已选择";g.share="暂不下单 · 转询价";renderSelFlow();toast("组 "+gId+" 暂不下单，转询价跟踪")}
+
+/* ================= CLI 面板 ================= */
+function renderCli(){
+  $("cliPanel").innerHTML=
+    '<div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:12px">'+
+    CLI_CMDS.map(function(c){return '<button class="btn mini" onclick="runCli(\''+c+'\')">'+c+'</button>'}).join("")+'</div>'+
+    '<div id="cliOut"></div>';
+}
+function runCli(cmd){
+  var out={ok:true,cmd:cmd,ts:new Date().toISOString(),data:[]};
+  if(cmd.indexOf("query-ready")>=0) out.data=READIES.slice(0,3);
+  else if(cmd.indexOf("create-order")>=0) out.data=ORDERS.slice(0,3).map(function(o){return {orderId:o.id,status:o.st}});
+  else if(cmd.indexOf("submit-list")>=0) out.data=ORDERS.filter(function(o){return o.st==="SUBMITTED"}).map(function(o){return {orderId:o.id,submitter:o.buyer,ts:"2026-08-24 14:4x"}});
+  else out.data=[{note:"演示输出：命令已受理（未连接真实 EP）"}];
+  $("cliOut").innerHTML='<pre style="background:#0f1218;color:#d5e0ff;border-radius:8px;padding:12px;font-size:11px;overflow:auto;margin:0">$ '+esc(cmd)+'\n'+esc(JSON.stringify(out,null,2))+'</pre>';
+}
+
+/* ================= AI 助手 ================= */
+var AI_CHIPS=[{t:"📊 生成今日日报",q:"生成今日日报"},{t:"🏭 推荐供应商",q:"帮我推荐供应商"},{t:"📦 查询草稿订单",q:"有哪些草稿订单"},{t:"⚠️ 风险分析",q:"分析当前风险"}];
+function toggleAI(){
+  var p=$("aiPanel"); p.classList.toggle("open");
+  if(p.classList.contains("open")&&!$("aiMsgs").children.length){
+    aiSay("ai","你好，我是样件订单工作台助手。我可以：生成日报、推荐供应商、查询订单、分析风险、执行批次。直接问我，或点下方快捷指令。");
+  }
+}
+function aiSay(who,html){
+  var d=tag('<div class="ai-msg '+who+'"><div class="av">'+(who==="ai"?"🤖":"我")+'</div><div class="bubble">'+html+'</div></div>');
+  $("aiMsgs").appendChild(d); $("aiMsgs").scrollTop=99999;
+}
+function sendAI(txt){
+  var q=(txt||$("aiIn").value).trim(); if(!q)return;
+  $("aiIn").value=""; aiSay("user",esc(q));
+  setTimeout(function(){aiAnswer(q)},400);
+}
+function aiAnswer(q){
+  var out, jump;
+  if(/日报|总结/.test(q)){ out=aiDaily(); jump="dashboard"; }
+  else if(/推荐供应商|选供应商|供应商建议/.test(q)){ out=aiSup(); jump="supplier"; }
+  else if(/草稿|待核实/.test(q)){ out=aiDraft(); jump="orders"; }
+  else if(/风险|异常|告警/.test(q)){ out=aiRisk(); }
+  else if(/执行批次|跑批次|开始/.test(q)){ aiSay("ai","已准备执行批次 "+STATE.batch+"。请到驾驶舱点击「执行今日批次」，或确认后我在此模拟执行。<br><button class='btn pri mini' onclick='aiRun()'>▶ 模拟执行</button>"); return; }
+  else if(/待办|今天.*做|有什么.*处理/.test(q)){ out=aiTodo(); }
+  else if(/订单/.test(q)){ out=aiOrders(); jump="orders"; }
+  else{ out='<div>我可以帮你：<br>• <b>生成今日日报</b>（指标/批次/订单汇总）<br>• <b>推荐供应商</b>（评分/价格/交期综合）<br>• <b>查询订单</b>（按状态/搜索）<br>• <b>风险分析</b>（草稿/失败/超期）<br>• <b>执行批次</b><br><br>试试输入上面的指令，或点下方快捷指令。</div>'; }
+  aiSay("ai",out);
+  if(jump){ var b=tag('<div style="margin-top:8px"><button class="btn mini pri" onclick="goView(\''+jump+'\')">跳转到对应区块 →</button></div>'); $("aiMsgs").lastChild.querySelector(".bubble").appendChild(b); }
+}
+function goView(v){toggleAI();setView(v)}
+function aiRun(){STATE.flowDone=true;renderFlow();$("runHint").className="ok-band";$("runHint").textContent="✅（AI 执行）批次完成：8 单提交审批，1 单草稿待核实，1 单失败已转询价。";$("todoCnt").textContent="2 项";renderTodos();toast("AI 模拟执行完成");aiSay("ai","✅ 批次执行完成（模拟）：8 单提交审批、1 单草稿待核实、1 单失败转询价。")}
+function aiDaily(){
+  return '<b>📊 今日日报 · '+STATE.batch+'</b><br><table class="tbl"><tr><td>需求导入</td><td class="num">12 条</td></tr><tr><td>检查结论</td><td>PASS 8 / WARN 1 / REJECT 1 / SKIP 2</td></tr><tr><td>可下单</td><td class="num">12 条</td></tr><tr><td>创建订单</td><td class="num">9 单</td></tr><tr><td>提交审批</td><td class="num">8 单</td></tr><tr><td>草稿待核实</td><td class="num">1 单</td></tr><tr><td>失败转询价</td><td class="num">1 单</td></tr></table>人工介入率 30%（目标 ≤15%），自动下单覆盖率 70%。';
+}
+function aiSup(){
+  var s=STATE.selGroups.map(function(g){return g.sups}).flat().filter(function(x,idx,arr){return arr.indexOf(x)===idx}).filter(function(x){return STATE.suppliers.find(function(y){return y.id===x.id}).state!=="放弃"}).sort(function(a,b){return b.score-a.score}).slice(0,3);
+  return '<b>🏭 供应商推荐（评分优先）</b><br><table class="tbl"><tr><th>供应商</th><th>等级</th><th>报价</th><th>交期</th><th>评分</th></tr>'+
+    s.map(function(x){return '<tr><td>'+esc(x.n)+'</td><td>'+x.lv+' 级</td><td class="num">'+x.price.toLocaleString()+'</td><td class="num">'+x.lead+' 天</td><td class="num"><b>'+x.score+'</b></td></tr>'}).join("")+'</table>'+
+    '建议：<b>'+s[0].n+'</b> 综合最优（S 级、评分 '+s[0].score+'）；待处理组：'+STATE.selGroups.filter(function(g){return !g.done}).map(function(g){return g.g}).join("、")+' 等你决策。';
+}
+function aiDraft(){
+  var d=ORDERS.filter(function(o){return o.st==="DRAFT"||o.st==="FAIL"});
+  return '<b>📦 待核实订单</b><br>'+d.map(function(o){return '• <b>'+o.id+'</b> '+esc(o.sup)+' '+o.amt.toLocaleString()+' 元 · '+stTag(o.st)}).join("<br>")+'<br><br>原因：非最低价 / 无价格。建议核实价格后重新发起审批。';
+}
+function aiRisk(){
+  return '<b>⚠️ 当前风险点</b><br>• <span class="tag t-orange">草稿待核实 2 单</span> 非最低价，存在交付延迟风险<br>• <span class="tag t-red">失败 1 单</span> 无价格，已转询价跟踪<br>• <span class="tag t-orange">超7天升级 1 项</span> 询价超期（P2026080134）<br>• 人工介入率 30% 高于目标 15%，建议优化价格台账覆盖<br><br>建议动作：优先处理 G010 供应商选择（超时 120min 自动转待办）。';
+}
+function aiTodo(){
+  return '<b>⏳ 今日待处理 2 项</b><br>• PO-4900037890 非最低价 → 核实价格<br>• G010 多供应商待选择 → 敏实 vs 拓普<br><br>其余批次自动执行中。';
+}
+function aiOrders(){
+  return '<b>📦 订单概览</b><br>共 '+ORDERS.length+' 单：已提交审批 2 · 审批中 2 · 草稿待核实 2 · 失败 1 · 待选择 1 · 待供应商确认 1 · 已确认 1。可在订单工作台按状态筛选。';
+}
+$("aiChips").innerHTML=AI_CHIPS.map(function(c){return '<button class="ai-chip" onclick="sendAI(\''+c.q+'\')">'+c.t+'</button>'}).join("");
+
+/* ================= 自测 ================= */
+function assert(name,cond,out){out.push({name:name,ok:!!cond})}
+function runSelftest(){
+  var out=[];
+  assert("Tab 页 3 个视图",document.querySelectorAll(".view").length===3,out);
+  assert("导航 3 项锚点",document.querySelectorAll(".nav .item").length===3,out);
+  assert("订单状态 Tab 8 个(含全部)",document.querySelectorAll("#orderTabs .tab").length===8,out);
+  STATE.orderTab="DRAFT";renderOrderTabs();renderOrderList();
+  assert("状态筛选 DRAFT 2 行",document.querySelectorAll("#orderTbl tbody tr").length===2,out);
+  STATE.orderTab="ALL";STATE.orderKw="博世";renderOrderList();
+  assert("搜索『博世』命中",document.querySelectorAll("#orderTbl tbody tr").length>=1,out);
+  STATE.orderTab="ALL";STATE.orderKw="";renderOrderList();
+  openOrderDetail("4900037888");
+  assert("订单详情抽屉打开",document.getElementById("drawer").classList.contains("open"),out);
+  assert("抽屉含条目明细",document.querySelectorAll("#drawerBody .tbl tr").length>=2,out);
+  closeDrawer();
+  assert("需求检查 8 行",document.querySelectorAll("#checkTbl tbody tr").length===8,out);
+  assert("可下单 12 行",document.querySelectorAll("#readyTbl tbody tr").length===12,out);
+  assert("更新订单 3 行",document.querySelectorAll("#updateTbl tbody tr").length===3,out);
+  assert("多供应商列表 5 组",document.querySelectorAll("#selFlow .sel-row").length===5,out);
+  assert("无供应商库表",!document.getElementById("supplierTbl"),out);
+  assert("CLI 16 命令",document.querySelectorAll("#cliPanel .btn").length===16,out);
+  assert("AI 面板初始问候",aiSay&&typeof aiAnswer==="function",out);
+  setView("dashboard");
+  var fails=out.filter(function(r){return !r.ok});
+  var b=tag('<div style="position:fixed;top:0;left:0;right:0;z-index:999;padding:10px 16px;font-size:13px;text-align:center;color:#fff;background:'+(fails.length?"#FF4D4F":"#52C41A")+'">自测 '+(out.length-fails.length)+'/'+out.length+' 通过 · '+out.map(function(r){return (r.ok?"✅":"❌")+r.name}).join(" · ")+'</div>');
+  document.body.appendChild(b);
+  console.log("SELFTEST:",JSON.stringify(out));
+}
+function openEP(url){window.open(url,"_blank")}
+
+/* ================= 初始化 ================= */
+renderFlow(); renderKpi(); renderConfirm(); renderTodos(); renderChecks(); renderReady();
+renderInquiry(); renderOrderTabs(); renderOrderList(); renderUpdates(); renderSelFlow(); renderCli();
+document.addEventListener("DOMContentLoaded",function(){ if(location.search.includes("selftest=1")) setTimeout(runSelftest,200); });
+</script>
+</body>
+</html>
