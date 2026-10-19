@@ -1,0 +1,557 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>个人财务状况分析 · 2026年9月</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>¥</text></svg>">
+<script src="https://cdn.jsdelivr.net/npm/echarts@5.5.0/dist/echarts.min.js"></script>
+<style>
+  :root {
+    --bg: #f8f9fb;
+    --card: #ffffff;
+    --ink: #1a1f36;
+    --ink-2: #4a5068;
+    --ink-3: #8a90a6;
+    --line: #e8eaf0;
+    --green: #16a34a;
+    --green-bg: #dcfce7;
+    --red: #dc2626;
+    --red-bg: #fee2e2;
+    --amber: #d97706;
+    --amber-bg: #fef3c7;
+    --blue: #2563eb;
+    --blue-bg: #dbeafe;
+    --purple: #7c3aed;
+    --purple-bg: #ede9fe;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "PingFang SC", "Noto Sans SC", "Microsoft YaHei", sans-serif;
+    background: var(--bg);
+    color: var(--ink);
+    line-height: 1.6;
+    padding: 24px;
+    max-width: 1200px;
+    margin: 0 auto;
+  }
+  /* ===== Header ===== */
+  .header { margin-bottom: 28px; }
+  .header h1 { font-size: 28px; font-weight: 700; letter-spacing: -0.5px; }
+  .header .sub { color: var(--ink-3); font-size: 14px; margin-top: 4px; }
+  .score-banner {
+    margin-top: 16px;
+    background: linear-gradient(135deg, #1e3a5f 0%, #2d5a87 100%);
+    color: #fff;
+    border-radius: 16px;
+    padding: 24px 28px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+  .score-banner .left .label { font-size: 13px; opacity: 0.8; }
+  .score-banner .left .score { font-size: 42px; font-weight: 700; line-height: 1.1; }
+  .score-banner .left .verdict { font-size: 15px; margin-top: 4px; opacity: 0.9; }
+  .score-banner .right { text-align: right; font-size: 13px; opacity: 0.85; max-width: 320px; }
+
+  /* ===== KPI Cards ===== */
+  .kpi-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 16px;
+    margin-bottom: 24px;
+  }
+  .kpi-card {
+    background: var(--card);
+    border-radius: 12px;
+    padding: 20px;
+    border: 1px solid var(--line);
+  }
+  .kpi-card .label { font-size: 13px; color: var(--ink-3); }
+  .kpi-card .value { font-size: 28px; font-weight: 700; margin-top: 4px; letter-spacing: -0.5px; }
+  .kpi-card .tag {
+    display: inline-block;
+    font-size: 12px;
+    padding: 2px 8px;
+    border-radius: 4px;
+    margin-top: 8px;
+    font-weight: 500;
+  }
+  .tag-green { background: var(--green-bg); color: var(--green); }
+  .tag-red { background: var(--red-bg); color: var(--red); }
+  .tag-amber { background: var(--amber-bg); color: var(--amber); }
+  .tag-blue { background: var(--blue-bg); color: var(--blue); }
+
+  /* ===== Chart Grid ===== */
+  .chart-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+    margin-bottom: 24px;
+  }
+  .chart-card {
+    background: var(--card);
+    border-radius: 12px;
+    padding: 20px;
+    border: 1px solid var(--line);
+  }
+  .chart-card h3 { font-size: 16px; font-weight: 600; margin-bottom: 4px; }
+  .chart-card .desc { font-size: 13px; color: var(--ink-3); margin-bottom: 12px; }
+  .chart-box { width: 100%; height: 280px; }
+
+  /* ===== Full Width ===== */
+  .full-width {
+    grid-column: 1 / -1;
+  }
+
+  /* ===== Health Radar Row ===== */
+  .radar-row {
+    display: grid;
+    grid-template-columns: 1fr 1.2fr;
+    gap: 16px;
+    margin-bottom: 24px;
+  }
+
+  /* ===== Issue Cards ===== */
+  .issue-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 16px;
+    margin-bottom: 24px;
+  }
+  .issue-card {
+    border-radius: 12px;
+    padding: 20px;
+    border-left: 4px solid;
+  }
+  .issue-card.red { background: var(--red-bg); border-color: var(--red); }
+  .issue-card.amber { background: var(--amber-bg); border-color: var(--amber); }
+  .issue-card.green { background: var(--green-bg); border-color: var(--green); }
+  .issue-card .title { font-weight: 700; font-size: 15px; margin-bottom: 8px; }
+  .issue-card .body { font-size: 13px; color: var(--ink-2); line-height: 1.6; }
+  .issue-card .cost { margin-top: 10px; font-size: 13px; font-weight: 600; }
+
+  /* ===== FIRE Timeline ===== */
+  .fire-section {
+    background: var(--card);
+    border-radius: 12px;
+    padding: 24px;
+    border: 1px solid var(--line);
+    margin-bottom: 24px;
+  }
+  .fire-section h3 { font-size: 16px; font-weight: 600; margin-bottom: 4px; }
+  .fire-section .desc { font-size: 13px; color: var(--ink-3); margin-bottom: 16px; }
+
+  /* ===== Action Plan ===== */
+  .action-section {
+    background: var(--card);
+    border-radius: 12px;
+    padding: 24px;
+    border: 1px solid var(--line);
+    margin-bottom: 24px;
+  }
+  .action-section h3 { font-size: 16px; font-weight: 600; margin-bottom: 16px; }
+  .action-group { margin-bottom: 20px; }
+  .action-group:last-child { margin-bottom: 0; }
+  .action-group .group-title {
+    font-size: 14px;
+    font-weight: 600;
+    margin-bottom: 10px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .action-group .dot { width: 8px; height: 8px; border-radius: 50%; }
+  .action-list { list-style: none; }
+  .action-list li {
+    padding: 8px 0;
+    border-bottom: 1px solid var(--line);
+    font-size: 14px;
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 12px;
+  }
+  .action-list li:last-child { border-bottom: none; }
+  .action-list .what { flex: 1; }
+  .action-list .why { font-size: 12px; color: var(--ink-3); margin-top: 2px; }
+  .action-list .impact {
+    font-size: 12px;
+    padding: 2px 8px;
+    border-radius: 4px;
+    white-space: nowrap;
+    font-weight: 500;
+  }
+
+  /* ===== Footer ===== */
+  .footer {
+    text-align: center;
+    font-size: 12px;
+    color: var(--ink-3);
+    padding: 20px 0;
+  }
+
+  /* ===== Responsive ===== */
+  @media (max-width: 900px) {
+    .kpi-grid { grid-template-columns: repeat(2, 1fr); }
+    .chart-grid { grid-template-columns: 1fr; }
+    .radar-row { grid-template-columns: 1fr; }
+    .issue-grid { grid-template-columns: 1fr; }
+    .score-banner { flex-direction: column; gap: 12px; align-items: flex-start; }
+    .score-banner .right { text-align: left; }
+  }
+</style>
+</head>
+<body>
+
+<!-- ===== Header ===== -->
+<div class="header">
+  <h1>个人财务状况分析</h1>
+  <div class="sub">数据截至 2026年9月 · 风险厌恶型 · 小米在职 · SJTU MBA在读</div>
+  <div class="score-banner">
+    <div class="left">
+      <div class="label">综合财务健康度</div>
+      <div class="score">70<span style="font-size:20px;opacity:0.6">/100</span></div>
+      <div class="verdict">底盘很稳，但盾牌有洞、引擎没开</div>
+    </div>
+    <div class="right">
+      收入强（年入41.5万税后）、储蓄率高（60%）、负债低（20%）<br>
+      但保险裸奔、40万现金全躺活期跑输通胀
+    </div>
+  </div>
+</div>
+
+<!-- ===== KPI Cards ===== -->
+<div class="kpi-grid">
+  <div class="kpi-card">
+    <div class="label">净资产</div>
+    <div class="value" style="color:var(--blue)">¥40.5万</div>
+    <span class="tag tag-blue">总资产50.8万 - 负债10.3万</span>
+  </div>
+  <div class="kpi-card">
+    <div class="label">月储蓄率</div>
+    <div class="value" style="color:var(--green)">~60%</div>
+    <span class="tag tag-green">每赚100存60，远超优秀线</span>
+  </div>
+  <div class="kpi-card">
+    <div class="label">应急金覆盖</div>
+    <div class="value" style="color:var(--green)">29个月</div>
+    <span class="tag tag-green">6个月即够，严重超标</span>
+  </div>
+  <div class="kpi-card">
+    <div class="label">商业保险</div>
+    <div class="value" style="color:var(--red)">裸奔</div>
+    <span class="tag tag-red">仅社保+车险，无重疾/医疗/意外</span>
+  </div>
+</div>
+
+<!-- ===== Chart Row 1: Asset Pie + Income/Expense Bar ===== -->
+<div class="chart-grid">
+  <div class="chart-card">
+    <h3>资产负债结构</h3>
+    <div class="desc">现金占比79%，车辆占21%；负债仅车贷10.3万</div>
+    <div id="chart-asset" class="chart-box"></div>
+  </div>
+  <div class="chart-card">
+    <h3>月度收支结构（税后）</h3>
+    <div class="desc">月入3.46万，月出1.36万，月结余2.09万</div>
+    <div id="chart-cashflow" class="chart-box"></div>
+  </div>
+</div>
+
+<!-- ===== Chart Row 2: Radar + Investment Allocation ===== -->
+<div class="radar-row">
+  <div class="chart-card">
+    <h3>六维财务健康度雷达</h3>
+    <div class="desc">储蓄能力极强，保险保障严重缺失</div>
+    <div id="chart-radar" class="chart-box"></div>
+  </div>
+  <div class="chart-card">
+    <h3>当前 vs 建议资产配置</h3>
+    <div class="desc">100%现金 → 建议30%现金+50%固收+20%指数基金</div>
+    <div id="chart-allocation" class="chart-box"></div>
+  </div>
+</div>
+
+<!-- ===== Issue Cards ===== -->
+<div class="issue-grid">
+  <div class="issue-card red">
+    <div class="title">保险裸奔（最紧急）</div>
+    <div class="body">
+      只有社保和车险，没有百万医疗险、重疾险、意外险。一场大病自费可能15-40万，直接击穿40万存款。
+    </div>
+    <div class="cost">解决成本：~5,000-7,000元/年</div>
+  </div>
+  <div class="issue-card amber">
+    <div class="title">资金效率极低</div>
+    <div class="body">
+      40万全放活期/存款，年收益~8,000元。按3%通胀算，每年购买力缩水~12,000元，净亏4,000元/年。
+    </div>
+    <div class="cost">优化后：多赚4,000-8,000元/年</div>
+  </div>
+  <div class="issue-card green">
+    <div class="title">储蓄能力极强</div>
+    <div class="body">
+      年入41.5万税后，年储蓄~25万，储蓄率60%。这是最大的财务优势，意味着每工作一年攒下普通人2-3年的积蓄。
+    </div>
+    <div class="cost">保持现状即可</div>
+  </div>
+</div>
+
+<!-- ===== FIRE Section ===== -->
+<div class="fire-section">
+  <h3>FIRE（财务自由）进度测算</h3>
+  <div class="desc">退休后月支出估1万 → 生存自由线300万 · 选择自由线360万</div>
+  <div id="chart-fire" style="width:100%;height:260px;"></div>
+</div>
+
+<!-- ===== Action Plan ===== -->
+<div class="action-section">
+  <h3>行动方案（按优先级）</h3>
+
+  <div class="action-group">
+    <div class="group-title"><span class="dot" style="background:var(--red)"></span>本周必做</div>
+    <ul class="action-list">
+      <li>
+        <div class="what">
+          买百万医疗险 + 意外险
+          <div class="why">几百块保几百万住院费用，杠杆最高的一笔投资</div>
+        </div>
+        <span class="impact tag tag-red">~500元/年</span>
+      </li>
+      <li>
+        <div class="what">
+          了解重疾险方案（咨询2-3个经纪人对比）
+          <div class="why">保额定3-5年年收入，补齐保障缺口</div>
+        </div>
+        <span class="impact tag tag-amber">~3,000-5,000元/年</span>
+      </li>
+    </ul>
+  </div>
+
+  <div class="action-group">
+    <div class="group-title"><span class="dot" style="background:var(--amber)"></span>本月内</div>
+    <ul class="action-list">
+      <li>
+        <div class="what">
+          落地卖车决策（最晚11月）
+          <div class="why">搬家后月均只开5-8天，每月多花~1,200元养车</div>
+        </div>
+        <span class="impact tag tag-green">月省~4,000元</span>
+      </li>
+      <li>
+        <div class="what">
+          划出8万应急金单独存放，多余现金转大额存单/国债
+          <div class="why">比活期多赚1-1.5%，32万×1.5%=多赚4,800元/年</div>
+        </div>
+        <span class="impact tag tag-green">+4,800元/年</span>
+      </li>
+    </ul>
+  </div>
+
+  <div class="action-group">
+    <div class="group-title"><span class="dot" style="background:var(--blue)"></span>本季度</div>
+    <ul class="action-list">
+      <li>
+        <div class="what">
+          配置重疾险 + 学习低风险投资
+          <div class="why">纯债基金、R2理财、国债逆回购，风险厌恶型的正确姿势</div>
+        </div>
+        <span class="impact tag tag-blue">长期复利</span>
+      </li>
+      <li>
+        <div class="what">
+          整理RSU持仓 + 公积金账户余额
+          <div class="why">纳入资产负债表，搞清隐性资产规模</div>
+        </div>
+        <span class="impact tag tag-blue">待补充</span>
+      </li>
+    </ul>
+  </div>
+</div>
+
+<div class="footer">
+  个人财务状况分析 · 2026年9月 · 数据基于用户提供实际账单与估算 · 建议每半年更新
+</div>
+
+<script>
+// ===== Chart 1: Asset Pie =====
+(function() {
+  var chart = echarts.init(document.getElementById('chart-asset'));
+  chart.setOption({
+    tooltip: { trigger: 'item', formatter: '{b}: ¥{c} ({d}%)' },
+    legend: { bottom: 0, left: 'center', textStyle: { fontSize: 12 } },
+    series: [{
+      type: 'pie',
+      radius: ['40%', '70%'],
+      center: ['50%', '45%'],
+      avoidLabelOverlap: true,
+      itemStyle: { borderRadius: 6, borderColor: '#fff', borderWidth: 2 },
+      label: { show: true, formatter: '{b}\n{d}%', fontSize: 12 },
+      data: [
+        { value: 400000, name: '现金/存款', itemStyle: { color: '#2563eb' } },
+        { value: 108000, name: '车辆(ET5T)', itemStyle: { color: '#7c3aed' } },
+        { value: -102873, name: '车贷(负债)', itemStyle: { color: '#dc2626' } }
+      ]
+    }]
+  });
+  window.addEventListener('resize', function() { chart.resize(); });
+})();
+
+// ===== Chart 2: Cashflow Bar =====
+(function() {
+  var chart = echarts.init(document.getElementById('chart-cashflow'));
+  chart.setOption({
+    tooltip: { trigger: 'axis', axisPointer: { type: 'shadow' } },
+    grid: { left: 80, right: 20, top: 20, bottom: 30 },
+    xAxis: { type: 'value', axisLabel: { formatter: '¥{value}' } },
+    yAxis: {
+      type: 'category',
+      data: ['其他消费', '日用百货', '停车', '车险', 'BaaS租电', '车贷月供', '房租', '餐饮', '工资(税后)'],
+      axisLabel: { fontSize: 11 }
+    },
+    series: [{
+      type: 'bar',
+      data: [
+        { value: 2193, itemStyle: { color: '#94a3b8' } },
+        { value: 688, itemStyle: { color: '#94a3b8' } },
+        { value: 200, itemStyle: { color: '#f97316' } },
+        { value: 433, itemStyle: { color: '#f97316' } },
+        { value: 583, itemStyle: { color: '#f97316' } },
+        { value: 3544, itemStyle: { color: '#f97316' } },
+        { value: 4500, itemStyle: { color: '#f97316' } },
+        { value: 1098, itemStyle: { color: '#94a3b8' } },
+        { value: 27500, itemStyle: { color: '#16a34a' } }
+      ],
+      barWidth: '60%',
+      label: { show: true, position: 'right', formatter: '¥{c}', fontSize: 11 }
+    }]
+  });
+  window.addEventListener('resize', function() { chart.resize(); });
+})();
+
+// ===== Chart 3: Radar =====
+(function() {
+  var chart = echarts.init(document.getElementById('chart-radar'));
+  chart.setOption({
+    tooltip: {},
+    radar: {
+      indicator: [
+        { name: '储蓄能力', max: 100 },
+        { name: '应急资金', max: 100 },
+        { name: '负债健康', max: 100 },
+        { name: '保险保障', max: 100 },
+        { name: '投资配置', max: 100 },
+        { name: '收入多元', max: 100 }
+      ],
+      radius: '65%',
+      center: ['50%', '52%'],
+      axisName: { fontSize: 12, color: '#4a5068' },
+      splitArea: { areaStyle: { color: ['#f8f9fb', '#fff'] } }
+    },
+    series: [{
+      type: 'radar',
+      data: [{
+        value: [95, 95, 85, 15, 10, 60],
+        name: '当前得分',
+        areaStyle: { color: 'rgba(37, 99, 235, 0.2)' },
+        lineStyle: { color: '#2563eb', width: 2 },
+        itemStyle: { color: '#2563eb' }
+      }, {
+        value: [95, 70, 85, 85, 70, 70],
+        name: '优化后目标',
+        areaStyle: { color: 'rgba(22, 163, 74, 0.15)' },
+        lineStyle: { color: '#16a34a', width: 2, type: 'dashed' },
+        itemStyle: { color: '#16a34a' }
+      }]
+    }],
+    legend: { bottom: 0, textStyle: { fontSize: 12 } }
+  });
+  window.addEventListener('resize', function() { chart.resize(); });
+})();
+
+// ===== Chart 4: Allocation =====
+(function() {
+  var chart = echarts.init(document.getElementById('chart-allocation'));
+  chart.setOption({
+    tooltip: { trigger: 'axis', axisPointer: { type: 'shadow' } },
+    legend: { bottom: 0, textStyle: { fontSize: 12 } },
+    grid: { left: 60, right: 20, top: 20, bottom: 50 },
+    xAxis: { type: 'category', data: ['现金/活期', '大额存单/国债', '纯债基金/R2理财', '指数基金/ETF'] },
+    yAxis: { type: 'value', max: 100, axisLabel: { formatter: '{value}%' } },
+    series: [
+      {
+        name: '当前',
+        type: 'bar',
+        data: [100, 0, 0, 0],
+        itemStyle: { color: '#94a3b8' },
+        barWidth: '30%'
+      },
+      {
+        name: '建议（风险厌恶型）',
+        type: 'bar',
+        data: [20, 30, 40, 10],
+        itemStyle: { color: '#2563eb' },
+        barWidth: '30%',
+        label: { show: true, position: 'top', formatter: '{c}%', fontSize: 11 }
+      }
+    ]
+  });
+  window.addEventListener('resize', function() { chart.resize(); });
+})();
+
+// ===== Chart 5: FIRE Timeline =====
+(function() {
+  var chart = echarts.init(document.getElementById('chart-fire'));
+  var years = ['2026', '2027', '2028', '2029', '2030', '2031', '2032', '2033', '2034'];
+  chart.setOption({
+    tooltip: { trigger: 'axis' },
+    legend: { bottom: 0, textStyle: { fontSize: 12 } },
+    grid: { left: 60, right: 40, top: 20, bottom: 50 },
+    xAxis: { type: 'category', data: years, boundaryGap: false },
+    yAxis: {
+      type: 'value',
+      name: '净资产(万)',
+      axisLabel: { formatter: '{value}万' }
+    },
+    series: [
+      {
+        name: '纯储蓄(0%)',
+        type: 'line',
+        data: [40.5, 65.5, 90.5, 115.5, 140.5, 165.5, 190.5, 215.5, 240.5],
+        lineStyle: { color: '#94a3b8', width: 2 },
+        itemStyle: { color: '#94a3b8' }
+      },
+      {
+        name: '稳健投资(3%)',
+        type: 'line',
+        data: [40.5, 66.7, 94.2, 123.1, 153.3, 185.0, 218.2, 252.9, 289.2],
+        lineStyle: { color: '#2563eb', width: 3 },
+        itemStyle: { color: '#2563eb' },
+        areaStyle: { color: 'rgba(37, 99, 235, 0.1)' }
+      },
+      {
+        name: '积极场景(5%+副业)',
+        type: 'line',
+        data: [40.5, 70.5, 103.0, 138.1, 175.9, 216.7, 260.5, 307.5, 357.9],
+        lineStyle: { color: '#16a34a', width: 2, type: 'dashed' },
+        itemStyle: { color: '#16a34a' }
+      },
+      {
+        name: '生存自由线(300万)',
+        type: 'line',
+        markLine: {
+          silent: true,
+          symbol: 'none',
+          lineStyle: { color: '#dc2626', type: 'dashed', width: 1.5 },
+          data: [{ yAxis: 300, label: { formatter: '生存自由线 300万', position: 'end' } }]
+        }
+      }
+    ]
+  });
+  window.addEventListener('resize', function() { chart.resize(); });
+})();
+</script>
+
+</body>
+</html>
