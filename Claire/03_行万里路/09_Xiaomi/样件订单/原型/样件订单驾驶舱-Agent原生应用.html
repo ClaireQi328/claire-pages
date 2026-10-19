@@ -1,0 +1,1067 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head><script>var __mr='footer',__md='zvy2gv3t.qwenwork.host';document.addEventListener('DOMContentLoaded', function () {
+  var BAR_HEIGHT = 48;
+
+  // --- detect page theme ---
+  var isDark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
+
+  // fallback: sample body/html background color
+  if (!isDark) {
+    try {
+      var sample = getComputedStyle(document.body).backgroundColor;
+      if (sample === 'rgba(0, 0, 0, 0)' || sample === 'transparent') {
+        sample = getComputedStyle(document.documentElement).backgroundColor;
+      }
+      if (sample && sample !== 'rgba(0, 0, 0, 0)' && sample !== 'transparent') {
+        var m = sample.match(/\d+/g);
+        if (m) {
+          var brightness = (parseInt(m[0]) * 299 + parseInt(m[1]) * 587 + parseInt(m[2]) * 114) / 1000;
+          isDark = brightness < 128;
+        }
+      }
+    } catch (e) {}
+  }
+
+  // --- shared CSS (always injected into <head>) ---
+  var SHARED_CSS = '<style>' +
+    '@keyframes mulepage-svg-glow-dark{0%,100%{color:#ffffff}50%{color:#3b82f6}}' +
+    '@keyframes mulepage-svg-glow-light{0%,100%{color:#000000}50%{color:#3b82f6}}' +
+    '.mulepage-anim-dark{animation:mulepage-svg-glow-dark 2.5s ease-in-out infinite}' +
+    '.mulepage-anim-light{animation:mulepage-svg-glow-light 2.5s ease-in-out infinite}' +
+    '.mulepage-close-dark{color:rgba(255,255,255,0.3);transition:color 0.2s ease}' +
+    '.mulepage-close-dark:hover{color:#ffffff}' +
+    '.mulepage-close-light{color:rgba(0,0,0,0.3);transition:color 0.2s ease}' +
+    '.mulepage-close-light:hover{color:#000000}' +
+    '#mulepage-footer-link{transition:opacity 0.2s ease}' +
+    '#mulepage-footer-link:hover{opacity:0.7}' +
+    '.mulepage-float-close{display:inline-flex;align-items:center;justify-content:center;max-width:0;margin-left:0;overflow:hidden;opacity:0;transition:max-width 0.2s ease,margin-left 0.2s ease,opacity 0.15s ease;padding:0;border:none;background:none;cursor:pointer;font-size:16px;line-height:1;font-weight:300;height:16px;will-change:max-width,opacity}' +
+    '.mulepage-float:hover .mulepage-float-close{max-width:14px;margin-left:4px;opacity:1}' +
+    '</style>';
+
+  // always inject shared CSS into <head> so it survives banner removal
+  document.head.insertAdjacentHTML('beforeend', SHARED_CSS);
+
+  // --- SVG icon (shared, rx=0 for sharp corners) ---
+  var ICON16 = '<svg width="16" height="16" viewBox="0 0 36 36" fill="none" xmlns="http://www.w3.org/2000/svg">' +
+    '<rect width="36" height="36" rx="0" fill="#FBF9F6"/><g clip-path="url(#c_top)">' +
+    '<path d="M6.387 21.732v8.895H18.762V28.5h2.32v1.16h8.121V28.5h1.16v-7.928h-1.16v-1.16h-4.64v-1.16h-1.16v-1.16h-1.16v-1.16h-1.16v-1.16h-1.16v-1.16h3.287v-1.934h3.48V9.357H16.442v3.48h-2.128V6.07h-2.32v2.127H9.674v3.48H7.547v10.055H6.387Z" fill="#000"/>' +
+    '<path d="M13.154 21.732v-4.447h1.16v-1.16h4.448v4.447h-1.16v1.16h-4.448Z" fill="#fff"/>' +
+    '<rect x="15.281" y="18.252" width="2.32" height="2.32" fill="#000"/>' +
+    '<path d="M21.082 27.34v-5.608h1.16v-1.16h5.801v1.16h1.16v5.608h-1.16V28.5h-5.801v-1.16h-1.16Z" fill="#fff"/>' +
+    '<path d="M26.883 21.732h-2.32v1.16h1.16v1.16h1.16v-2.32Z" fill="#000"/>' +
+    '<path d="M22.242 24.053v2.32h1.16v1.16h3.48v-1.16h-2.32v-1.16h-1.16v-1.16h-1.16Z" fill="#000"/>' +
+    '</g><defs><clipPath id="c_top"><rect width="24.75" height="24.75" fill="#fff" transform="translate(6 6)"/></clipPath></defs></svg>';
+
+  var ICON16_FOOT = ICON16.replace(/c_top/g, 'c_foot');
+
+  // --- 品牌标志：浅色主题使用原始深色 SVG，深色主题反相为白色。 ---
+  var brandAssetFilter = isDark ? 'filter:invert(1);' : '';
+  var BRAND_MARK = '<span style="display:inline-flex;align-items:center;gap:4px;line-height:0;">' +
+    '<img src="https://gw.alicdn.com/imgextra/i3/O1CN01KjiMsP20F9vea7rMy_!!6000000006819-55-tps-20-20.svg" alt="" width="20" height="20" style="display:block;user-select:none;' + brandAssetFilter + '" />' +
+    '<img src="https://gw.alicdn.com/imgextra/i2/O1CN01Hn0m411NLmdtyiXpF_!!6000000001554-55-tps-56-14.svg" alt="千问办公" width="56" height="14" style="display:block;user-select:none;' + brandAssetFilter + '" />' +
+    '</span>';
+  // 20 + 4 + 56 + 24 = 104px，与设计稿的 104 × 32 品牌胶囊一致。
+  var TOP_BRAND_LOGO = '<span style="display:inline-flex;align-items:center;justify-content:center;width:104px;height:32px;padding:6px 12px;box-sizing:border-box;border-radius:999px;' +
+    'background:' + (isDark ? 'rgba(255,255,255,0.12)' : '#f5f5f5') + ';">' + BRAND_MARK + '</span>';
+  // 右下角入口沿用同一品牌胶囊，确保两个入口的品牌识别一致。
+  var FOOTER_BRAND_LOGO = TOP_BRAND_LOGO;
+
+  // --- banner (adapts to page theme) ---
+  var bannerBg = isDark ? '#050505' : '#ffffff';
+  var bannerBorder = isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.06)';
+  var bannerColor = isDark ? '#fff' : '#000';
+  var bannerDividerColor = isDark ? 'rgba(255,255,255,0.24)' : 'rgba(0,0,0,0.16)';
+  var bannerCloseClass = isDark ? 'mulepage-close-dark' : 'mulepage-close-light';
+
+  var BANNER = '<div id="mulepage-bar" dir="ltr" style="position:fixed;top:0;left:0;width:100%;height:' + BAR_HEIGHT + 'px;' +
+    'background:' + bannerBg + ';border-bottom:1px solid ' + bannerBorder + ';color:' + bannerColor + ';' +
+    'box-sizing:border-box;display:flex;align-items:center;gap:8px;padding:8px;' +
+    'font-family:\'PingFang SC\',Inter,-apple-system,BlinkMacSystemFont,\'Segoe UI\',sans-serif;' +
+    'font-size:14px;font-weight:500;line-height:20px;z-index:2147483647;">' +
+    '<span aria-hidden="true" style="flex:1 1 0;height:32px;"></span>' +
+    '<div style="display:flex;align-items:center;gap:8px;white-space:nowrap;">' +
+    '<span>由</span>' +
+    '<span id="mulepage-bar-link" role="link" tabindex="0" aria-label="打开千问办公" style="display:inline-flex;align-items:center;cursor:pointer;line-height:0;">' +
+    TOP_BRAND_LOGO + '</span>' +
+    '<span>创建</span>' +
+    '<span aria-hidden="true" style="width:1px;height:16px;margin:0 4px;background:' + bannerDividerColor + ';"></span>' +
+    '<span id="mulepage-bar-cta" role="link" tabindex="0" aria-label="用千问办公创建网站" style="display:inline-flex;align-items:center;gap:4px;padding:6px 12px;border-radius:999px;cursor:pointer;">' +
+    '<span>一句话创建你的网站</span><span aria-hidden="true" style="font-size:16px;line-height:16px;">\u2192</span></span>' +
+    '</div>' +
+    '<span style="flex:1 1 0;display:flex;justify-content:flex-end;align-items:center;">' +
+    '<button id="mulepage-bar-close" class="' + bannerCloseClass + '" aria-label="关闭千问办公品牌栏" style="display:inline-flex;align-items:center;justify-content:center;width:32px;height:32px;padding:8px;background:none;border:none;border-radius:999px;' +
+    'font-size:18px;cursor:pointer;line-height:16px;font-weight:300;">\u00d7</button></span>' +
+    '</div>';
+
+  // --- 右下角品牌入口 ---
+  var floatCloseColor = isDark ? 'rgba(255,255,255,0.35)' : 'rgba(0,0,0,0.3)';
+  var floatCloseHover = isDark ? '#ffffff' : '#000000';
+  var byColor = isDark ? 'rgba(255,255,255,0.6)' : 'rgba(0,0,0,0.6)';
+
+  var FOOTER = '<div id="mulepage-footer" dir="ltr" class="mulepage-float" style="position:fixed !important;bottom:16px !important;right:16px !important;z-index:2147483646;' +
+    'display:inline-flex;align-items:center;padding:0;cursor:pointer;background:transparent;border:0;box-shadow:none;' +
+    'font-family:Inter,-apple-system,BlinkMacSystemFont,\'Segoe UI\',\'Helvetica Neue\',sans-serif;">' +
+    '<span id="mulepage-footer-link" style="display:inline-flex;align-items:center;line-height:0;">' +
+    FOOTER_BRAND_LOGO +
+    '</span>' +
+    '</div>';
+
+  // --- insert banner (only when mode is "all") ---
+  if (__mr === 'all') {
+    document.body.insertAdjacentHTML('afterbegin', BANNER);
+
+    // 顶栏品牌标志和行动文案均跳转至千问办公。
+    var openQwenWork = function () {
+      window.open('https://qwenwork.cn?utm_source=pages&utm_medium=banner&utm_campaign=pages_branding&utm_content=top_bar', '_blank', 'noopener');
+    };
+    var topBrandLink = document.getElementById('mulepage-bar-link');
+    var topBrandCta = document.getElementById('mulepage-bar-cta');
+    topBrandLink.addEventListener('click', openQwenWork);
+    topBrandCta.addEventListener('click', openQwenWork);
+    topBrandLink.addEventListener('keydown', function (event) {
+      if (event.key === 'Enter' || event.key === ' ') {
+        event.preventDefault();
+        openQwenWork();
+      }
+    });
+    topBrandCta.addEventListener('keydown', function (event) {
+      if (event.key === 'Enter' || event.key === ' ') {
+        event.preventDefault();
+        openQwenWork();
+      }
+    });
+
+    // Use the QwenWork favicon only as a fallback. Preserve favicons generated
+    // by the page itself so published sites can keep their own branding.
+    var existingIcon = document.querySelector('link[rel="icon"],link[rel="shortcut icon"]');
+    if (!existingIcon) {
+      var fi = document.createElement('link');
+      fi.rel = 'icon';
+      fi.type = 'image/svg+xml';
+      fi.href = 'https://qwenwork.cn/app/favicon.svg';
+      document.head.appendChild(fi);
+    }
+
+    // push down normal-flow content (accumulate on existing padding-top)
+    var origPT = parseFloat(getComputedStyle(document.body).paddingTop) || 0;
+    document.body.style.paddingTop = (origPT + BAR_HEIGHT) + 'px';
+
+    // push down all existing position:fixed elements
+    var all = document.querySelectorAll('*');
+    var shifted = [];
+    for (var i = 0; i < all.length; i++) {
+      var el = all[i];
+      if (el.id && el.id.indexOf('mulepage') === 0) continue;
+      var cs = getComputedStyle(el);
+      if (cs.position === 'fixed') {
+        var t = parseFloat(cs.top);
+        if (isNaN(t)) t = 0;
+        el.style.top = (t + BAR_HEIGHT) + 'px';
+        shifted.push({ el: el, orig: t });
+      }
+    }
+
+    // close handler: restore everything
+    document.getElementById('mulepage-bar-close').addEventListener('click', function () {
+      document.getElementById('mulepage-bar').remove();
+      document.body.style.paddingTop = origPT + 'px';
+      for (var j = 0; j < shifted.length; j++) {
+        shifted[j].el.style.top = shifted[j].orig + 'px';
+      }
+    });
+  }
+
+  // --- insert floating widget (only when __mr is set) ---
+  if (__mr) {
+    document.body.insertAdjacentHTML('beforeend', FOOTER);
+
+    // 底部品牌标志点击后打开官网
+    var footerLink = document.getElementById('mulepage-footer-link');
+    if (footerLink) {
+      footerLink.addEventListener('click', function () {
+        window.open('https://qwenwork.cn?utm_source=pages&utm_medium=banner&utm_campaign=pages_branding&utm_content=bottom_bar', '_blank', 'noopener');
+      });
+    }
+
+    // paid users (footer-only mode): add close button on hover
+    if (__mr === 'footer') {
+      var floatEl = document.getElementById('mulepage-footer');
+      if (floatEl) {
+        var closeBtn = document.createElement('button');
+        closeBtn.className = 'mulepage-float-close';
+        closeBtn.style.color = floatCloseColor;
+        closeBtn.textContent = '\u00d7';
+        closeBtn.addEventListener('mouseenter', function () { closeBtn.style.color = floatCloseHover; });
+        closeBtn.addEventListener('mouseleave', function () { closeBtn.style.color = floatCloseColor; });
+        closeBtn.addEventListener('click', function (e) {
+          e.stopPropagation();
+          floatEl.remove();
+        });
+        floatEl.appendChild(closeBtn);
+      }
+    }
+  }
+
+  // --- inject canonical link (all users) ---
+  var canon = document.createElement('link');
+  canon.rel = 'canonical';
+  canon.href = 'https://' + location.hostname + '/';
+  document.head.appendChild(canon);
+
+  // --- inject og meta tags (all users) ---
+  var ogDomain = __md;
+  var ogTitle = document.title || ogDomain;
+  var ogTags = [
+    ['og:title', ogTitle],
+    ['og:url', 'https://' + location.hostname + '/'],
+    ['og:type', 'website'],
+    ['og:image', 'https://mule.page/og/' + ogDomain + '.webp']
+  ];
+  for (var n = 0; n < ogTags.length; n++) {
+    var existing = document.querySelector('meta[property="' + ogTags[n][0] + '"]');
+    if (existing) existing.remove();
+    var meta = document.createElement('meta');
+    meta.setAttribute('property', ogTags[n][0]);
+    meta.setAttribute('content', ogTags[n][1]);
+    document.head.appendChild(meta);
+  }
+});
+</script>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>样件订单全流程驾驶舱 · 订单Skill开发</title>
+<style>
+:root{
+  --primary:#1677FF; --primary-weak:#E6F4FF; --ok:#52C41A; --warn:#FAAD14; --danger:#FF4D4F;
+  --bg:#F5F7FA; --card:#fff; --line:#E5E8EF; --text:#1F2329; --text2:#646A73; --text3:#8F959E;
+  --sidebar:#0F1B2D; --sidebar-w:#236px;
+  --r-sm:6px; --r-md:8px; --r-lg:10px;
+}
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:-apple-system,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif;background:var(--bg);color:var(--text);font-size:13px}
+#app{display:flex;height:100vh;overflow:hidden}
+
+/* ---------- 左侧导航 ---------- */
+#sidebar{width:216px;min-width:216px;background:var(--sidebar);color:#C7D0DC;display:flex;flex-direction:column;overflow-y:auto}
+#sidebar .logo{height:52px;display:flex;align-items:center;gap:8px;padding:0 16px;color:#fff;font-weight:600;font-size:14px;border-bottom:1px solid rgba(255,255,255,.08)}
+#sidebar .logo .dot{width:8px;height:8px;border-radius:50%;background:var(--primary);box-shadow:0 0 8px var(--primary)}
+.nav-group{padding:10px 0 2px;font-size:11px;color:#6B7A90;padding-left:16px;letter-spacing:.05em}
+.nav-item{display:flex;align-items:center;gap:8px;padding:9px 16px;cursor:pointer;color:#B9C4D2;font-size:13px;border-left:3px solid transparent;user-select:none}
+.nav-item:hover{background:rgba(255,255,255,.05);color:#fff}
+.nav-item.active{background:rgba(22,119,255,.15);color:#fff;border-left-color:var(--primary)}
+.nav-item .badge{margin-left:auto;background:var(--danger);color:#fff;font-size:10px;border-radius:8px;padding:1px 6px;min-width:18px;text-align:center}
+.nav-item .ic{width:16px;text-align:center;opacity:.9}
+
+/* ---------- 顶栏 ---------- */
+#topbar{height:48px;background:var(--card);border-bottom:1px solid var(--line);display:flex;align-items:center;gap:12px;padding:0 16px}
+#topbar .crumb{font-size:13px;color:var(--text2)}
+#topbar .crumb b{color:var(--text);font-weight:600}
+#searchbox{flex:1;max-width:420px;display:flex;align-items:center;gap:8px;background:var(--bg);border:1px solid var(--line);border-radius:var(--r-sm);padding:6px 10px;cursor:pointer}
+#searchbox:hover{border-color:var(--primary)}
+#searchbox .kbd{margin-left:auto;font-size:11px;color:var(--text3);border:1px solid var(--line);border-radius:4px;padding:0 5px;background:#fff}
+#topbar .src-tag{font-size:11px;color:var(--text3);background:var(--bg);border:1px solid var(--line);border-radius:10px;padding:2px 8px;white-space:nowrap}
+.tool-btn{background:#fff;border:1px solid var(--line);border-radius:var(--r-sm);padding:5px 10px;font-size:12px;cursor:pointer;color:var(--text2)}
+.tool-btn:hover{border-color:var(--primary);color:var(--primary)}
+
+/* ---------- 内容区 ---------- */
+#main{flex:1;overflow-y:auto;padding:16px;scroll-behavior:smooth}
+.view{display:none}.view.show{display:block}
+.card{background:var(--card);border:1px solid var(--line);border-radius:var(--r-md);padding:14px 16px;margin-bottom:14px}
+.card h3{font-size:14px;font-weight:600;margin-bottom:10px;display:flex;align-items:center;gap:8px}
+.card h3 .sub{font-size:11px;color:var(--text3);font-weight:400}
+.kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;margin-bottom:14px}
+.kpi{background:var(--card);border:1px solid var(--line);border-radius:var(--r-md);padding:12px 14px}
+.kpi .t{font-size:12px;color:var(--text2)}
+.kpi .v{font-size:24px;font-weight:700;margin-top:4px}
+.kpi .v small{font-size:12px;color:var(--text3);font-weight:400}
+.kpi .s{font-size:11px;color:var(--text3);margin-top:2px}
+.kpi.up .v{color:var(--ok)} .kpi.warn .v{color:var(--warn)} .kpi.danger .v{color:var(--danger)}
+
+/* 管线 */
+.pipeline{display:flex;align-items:flex-start;gap:0;overflow-x:auto;padding:6px 2px}
+.pipe-node{display:flex;flex-direction:column;align-items:center;min-width:96px;position:relative;cursor:pointer}
+.pipe-node .pdot{width:34px;height:34px;border-radius:50%;background:#fff;border:2px solid var(--line);display:flex;align-items:center;justify-content:center;font-size:15px;position:relative;z-index:2}
+.pipe-node.done .pdot{background:var(--primary-weak);border-color:var(--primary)}
+.pipe-node.done .pdot::after{content:"✓";position:absolute;right:-4px;top:-4px;width:14px;height:14px;border-radius:50%;background:var(--ok);color:#fff;font-size:9px;display:flex;align-items:center;justify-content:center}
+.pipe-node.pending .pdot{border-color:var(--warn);background:#FFFBE6}
+.pipe-node .plabel{font-size:11px;color:var(--text2);margin-top:6px;white-space:nowrap}
+.pipe-node .pnum{font-size:10px;color:var(--text3);margin-top:2px}
+.pipe-conn{flex:1;min-width:18px;height:2px;background:var(--line);margin-top:16px}
+.pipe-conn.done{background:var(--primary)}
+
+/* 表格 */
+table.tbl{width:100%;border-collapse:collapse;font-size:12px}
+.tbl th{background:#FAFBFC;color:var(--text2);font-weight:600;text-align:left;padding:8px 10px;border-bottom:1px solid var(--line);position:sticky;top:0;white-space:nowrap}
+.tbl td{padding:8px 10px;border-bottom:1px solid #F0F2F5;white-space:nowrap}
+.tbl tr{cursor:pointer}.tbl tr:hover td{background:#F7FAFF}
+.tbl tr.selected td{background:var(--primary-weak)}
+.tbl .num{font-variant-numeric:tabular-nums}
+.tag{display:inline-block;font-size:11px;padding:1px 8px;border-radius:10px;line-height:18px}
+.tag.ok{background:#F0FFF4;color:var(--ok);border:1px solid #B7EB8F}
+.tag.warn{background:#FFFBE6;color:#D48806;border:1px solid #FFE58F}
+.tag.danger{background:#FFF1F0;color:var(--danger);border:1px solid #FFA39E}
+.tag.info{background:var(--primary-weak);color:var(--primary);border:1px solid #91CAFF}
+.tag.gray{background:#F2F3F5;color:var(--text2);border:1px solid #E5E8EF}
+.tag.purple{background:#F9F0FF;color:#722ED1;border:1px solid #D3ADF7}
+
+/* Tab */
+.tabs{display:flex;gap:4px;border-bottom:1px solid var(--line);margin-bottom:10px;flex-wrap:wrap}
+.tab{padding:7px 14px;font-size:12px;color:var(--text2);cursor:pointer;border-bottom:2px solid transparent;user-select:none;white-space:nowrap}
+.tab:hover{color:var(--primary)}
+.tab.active{color:var(--primary);border-bottom-color:var(--primary);font-weight:600}
+.tab .cnt{font-size:11px;color:var(--text3);margin-left:4px}
+
+/* 筛选条 */
+.filterbar{display:flex;gap:8px;align-items:center;margin-bottom:12px;flex-wrap:wrap}
+.filterbar select,.filterbar input{border:1px solid var(--line);border-radius:var(--r-sm);padding:5px 8px;font-size:12px;background:#fff;color:var(--text)}
+.filterbar select:focus,.filterbar input:focus{outline:none;border-color:var(--primary)}
+
+/* 详情抽屉 */
+#mask{position:fixed;inset:0;background:rgba(0,0,0,.35);z-index:50;display:none}
+#drawer{position:fixed;top:0;right:-520px;width:520px;max-width:92vw;height:100vh;background:#fff;z-index:60;box-shadow:-8px 0 24px rgba(0,0,0,.12);transition:right .25s ease;display:flex;flex-direction:column}
+#drawer.open{right:0}
+#drawer .dh{display:flex;align-items:center;gap:10px;padding:14px 16px;border-bottom:1px solid var(--line)}
+#drawer .dh .t{font-size:15px;font-weight:600}
+#drawer .db{flex:1;overflow-y:auto;padding:16px}
+#drawer .dl{display:grid;grid-template-columns:110px 1fr;gap:8px 12px;font-size:12px;margin-bottom:12px}
+#drawer .dl .k{color:var(--text3)}
+#drawer .dl .v{color:var(--text)}
+#drawer h4{font-size:13px;font-weight:600;margin:14px 0 8px;color:var(--text)}
+.actrow{display:flex;gap:8px;padding:12px 16px;border-top:1px solid var(--line)}
+.btn{background:#fff;border:1px solid var(--line);border-radius:var(--r-sm);padding:6px 14px;font-size:12px;cursor:pointer;color:var(--text2)}
+.btn.primary{background:var(--primary);border-color:var(--primary);color:#fff}
+.btn.danger{background:#fff;border-color:var(--danger);color:var(--danger)}
+.btn:hover{opacity:.88}
+.icon-btn{border:none;background:none;cursor:pointer;font-size:14px;color:var(--text3)}
+.icon-btn:hover{color:var(--text)}
+
+/* 双列 */
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+.grid2 .card{margin-bottom:0}
+.grid3{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:12px}
+
+/* 待办队列 */
+.todo-item{display:flex;align-items:flex-start;gap:8px;padding:9px 10px;border:1px solid var(--line);border-radius:var(--r-sm);margin-bottom:8px;font-size:12px}
+.todo-item .ic{margin-top:1px}
+.todo-item .mt{color:var(--text3);font-size:11px;margin-top:2px}
+
+/* CLI 面板 */
+.cli-sel{display:flex;gap:8px;margin-bottom:12px;flex-wrap:wrap}
+.cli-chip{border:1px solid var(--line);border-radius:14px;padding:4px 12px;font-size:12px;cursor:pointer;background:#fff;color:var(--text2)}
+.cli-chip:hover{border-color:var(--primary);color:var(--primary)}
+.cli-chip.active{background:var(--primary);color:#fff;border-color:var(--primary)}
+pre.json{background:#0F1B2D;color:#D6E4FF;border-radius:var(--r-md);padding:12px 14px;font-size:11px;overflow:auto;line-height:1.6;font-family:Consolas,Menlo,monospace;max-height:420px}
+
+/* 配置 */
+.cfg-row{display:flex;align-items:center;justify-content:space-between;padding:10px 0;border-bottom:1px dashed var(--line);font-size:12px}
+.cfg-row .desc{color:var(--text3);font-size:11px;margin-top:2px}
+.switch{width:36px;height:20px;border-radius:10px;background:#D9DEE6;position:relative;cursor:pointer;transition:.2s}
+.switch.on{background:var(--primary)}
+.switch::after{content:"";position:absolute;width:16px;height:16px;border-radius:50%;background:#fff;top:2px;left:2px;transition:.2s}
+.switch.on::after{left:18px}
+
+/* toast */
+#toast{position:fixed;top:60px;left:50%;transform:translateX(-50%);background:#0F1B2D;color:#fff;padding:8px 18px;border-radius:6px;font-size:12px;z-index:99;display:none;box-shadow:0 4px 12px rgba(0,0,0,.2)}
+
+/* 命令面板 */
+#cmdpanel{position:fixed;top:80px;left:50%;transform:translateX(-50%);width:560px;max-width:90vw;background:#fff;border-radius:10px;box-shadow:0 12px 40px rgba(0,0,0,.18);z-index:70;display:none;overflow:hidden}
+#cmdpanel.open{display:block}
+#cmdpanel input{width:100%;border:none;outline:none;padding:14px 16px;font-size:14px;border-bottom:1px solid var(--line)}
+#cmdpanel .cmd-list{max-height:320px;overflow-y:auto}
+#cmdpanel .cmd-item{padding:10px 16px;cursor:pointer;display:flex;gap:10px;align-items:center;font-size:13px}
+#cmdpanel .cmd-item:hover,#cmdpanel .cmd-item.active{background:var(--primary-weak)}
+#cmdpanel .cmd-item .k{color:var(--text3);font-size:11px;margin-left:auto}
+.empty{padding:40px;text-align:center;color:var(--text3);font-size:12px}
+.selftest-banner{display:none}
+</style>
+</head>
+<body>
+<div id="app">
+  <!-- 侧边导航 -->
+  <aside id="sidebar">
+    <div class="logo"><span class="dot"></span>样件订单驾驶舱</div>
+    <div id="nav"></div>
+  </aside>
+  <!-- 主区 -->
+  <div style="flex:1;display:flex;flex-direction:column;min-width:0">
+    <header id="topbar">
+      <div class="crumb" id="crumb">样件订单 / <b>驾驶舱总览</b></div>
+      <div id="searchbox">🔍 <span style="color:var(--text3)">搜索订单号 / 零件号 / 需求编号 / 供应商…</span><span class="kbd">⌘K</span></div>
+      <span class="src-tag">📊 数据源: EP · 台账取价 · 2026-08-24</span>
+      <button class="tool-btn" id="densityBtn" title="表格密度">密度</button>
+      <button class="tool-btn" id="execBtn">▶ 执行今日批次</button>
+    </header>
+    <main id="main"></main>
+  </div>
+</div>
+
+<!-- 详情抽屉 -->
+<div id="mask"></div>
+<div id="drawer">
+  <div class="dh"><span class="t" id="drawerTitle">详情</span><span style="flex:1"></span><button class="icon-btn" onclick="closeDrawer()">✕</button></div>
+  <div class="db" id="drawerBody"></div>
+  <div class="actrow" id="drawerActs"></div>
+</div>
+
+<!-- 命令面板 -->
+<div id="cmdpanel">
+  <input id="cmdInput" placeholder="输入命令或搜索…（↑↓ 选择，Enter 执行，Esc 关闭）">
+  <div class="cmd-list" id="cmdList"></div>
+</div>
+
+<div id="toast"></div>
+<div id="selftestBanner" class="selftest-banner"></div>
+
+<script>
+/* ============================================================
+ * 数据层（与 py/sample_data.py 一致；字段级来源标注）
+ * ============================================================ */
+const SUPPLIERS = {
+  V10001:{name:"博世汽车部件（苏州）有限公司",share:100,rate:97.2},
+  V10088:{name:"延锋彼欧汽车外饰系统有限公司",share:100,rate:91.5},
+  V20015:{name:"Mann+Hummel 曼胡默尔滤清器（上海）有限公司",share:100,rate:95.0},
+  V30021:{name:"KunLun 昆仑润滑科技（上海）有限公司",share:100,rate:93.8}
+};
+const STATUS_CN={DRAFT:"草稿",APPROVING:"审批中",REJECTED:"驳回",WAIT_SUPPLIER:"待供应商确认",SUPPLIER_CONFIRMED:"供应商已确认",CLOSED:"已关闭",NOPRICE:"无价格待下单",PRICED:"有价格待下单"};
+const STATUS_COLOR={DRAFT:"gray",APPROVING:"info",REJECTED:"danger",WAIT_SUPPLIER:"warn",SUPPLIER_CONFIRMED:"ok",CLOSED:"gray",NOPRICE:"gray",PRICED:"info"};
+const ROUTE_CN={AUTO:"自动下单",SELECT:"多供应商选择",NO_SUPPLIER:"无供应商→询价"};
+
+/* 订单（含详情条目） */
+const ORDERS=[
+ {no:"4900037888",ver:1,status:"SUPPLIER_CONFIRMED",project:"MX13B",sup:"V10088",buyer:"孔德鑫",req:"张工",delivery:"2026-09-10",br:"BR2026-00131",brLine:"00010",demand:"DR20260800011",sap:"SENT",trial:"SUCCESS",approve:"",amount:21000.00,items:[{line:10,part:"P20260801011",name:"后视镜总成",qty:50,price:420.00,delivery:"2026-09-10",rcv:0}]},
+ {no:"4900037889",ver:1,status:"APPROVING",project:"MX13B",sup:"V10001",buyer:"范雪婷",req:"李工",delivery:"2026-09-05",br:"BR2026-00132",brLine:"00010",demand:"DR20260800012",sap:"SENT",trial:"SUCCESS",approve:"财务审批",amount:4650.00,items:[{line:10,part:"P20260801012",name:"门把手",qty:30,price:155.00,delivery:"2026-09-05",rcv:0}]},
+ {no:"4900037890",ver:1,status:"DRAFT",project:"MX13B",sup:"V10001",buyer:"孔德鑫",req:"王工",delivery:"2026-09-15",br:"BR2026-00133",brLine:"00010",demand:"DR20260800013",sap:"UNSENT",trial:"-",approve:"",amount:39200.00,items:[{line:10,part:"P20260801013",name:"翼子板",qty:40,price:980.00,delivery:"2026-09-15",rcv:0}]},
+ {no:"4900037799",ver:1,status:"WAIT_SUPPLIER",project:"MX13B",sup:"V30021",buyer:"齐岳",req:"张工",delivery:"2026-08-10",br:"BR2026-00099",brLine:"00010",demand:"DR20260700009",sap:"SENT",trial:"SUCCESS",approve:"",amount:35000.00,items:[{line:10,part:"P20260701009",name:"中控屏",qty:10,price:3500.00,delivery:"2026-08-10",rcv:0}]},
+ {no:"4900037901",ver:1,status:"APPROVING",project:"MX13B",sup:"V10001",buyer:"孔德鑫",req:"张工",delivery:"2026-09-10",br:"BR2026-00123",brLine:"00010",demand:"DR20260800001",sap:"SENT",trial:"SUCCESS",approve:"采购员审批",amount:64000.00,items:[{line:10,part:"P20260801001",name:"仪表板饰板总成",qty:50,price:1280.00,delivery:"2026-09-10",rcv:0}]},
+ {no:"4900037902",ver:1,status:"DRAFT",project:"MX13B",sup:"V20015",buyer:"孔德鑫",req:"赵工",delivery:"2026-09-12",br:"BR2026-00125",brLine:"00010",demand:"DR20260800005",sap:"UNSENT",trial:"-",approve:"",amount:19230.00,items:[{line:10,part:"P20260801005",name:"制动卡钳",qty:60,price:320.50,delivery:"2026-09-12",rcv:0}]},
+ {no:"4900037903",ver:1,status:"APPROVING",project:"MX13B",sup:"V10088",buyer:"范雪婷",req:"陈工",delivery:"2026-09-10",br:"BR2026-00124",brLine:"00010",demand:"DR20260800003",sap:"SENT",trial:"SUCCESS",approve:"采购员审批",amount:26700.00,items:[{line:10,part:"P20260801003",name:"后备箱盖",qty:30,price:890.00,delivery:"2026-09-10",rcv:0}]}
+];
+
+/* 需求池 */
+const DEMANDS=[
+ {id:"DR20260800001",type:"NEW",cat:"LOOSE",part:"P20260801001",name:"仪表板饰板总成",qty:50,proj:"MX13B",br:"BR2026-00123",brLine:"00010",buyer:"孔德鑫",sup:"V10001",price:"PRICED",sample:"HARD"},
+ {id:"DR20260800002",type:"NEW",cat:"LOOSE",part:"P20260801002",name:"车门内板",qty:40,proj:"MX13B",br:"BR2026-00123",brLine:"00020",buyer:"孔德鑫",sup:"V10001",price:"PRICED",sample:"SOFT"},
+ {id:"DR20260800003",type:"NEW",cat:"LOOSE",part:"P20260801003",name:"后备箱盖",qty:30,proj:"MX13B",br:"BR2026-00124",brLine:"00010",buyer:"范雪婷",sup:"V10088",price:"PRICED",sample:"HARD"},
+ {id:"DR20260800004",type:"NEW",cat:"LOOSE",part:"P20260801004",name:"前大灯总成",qty:20,proj:"MX13B",br:"BR2026-00124",brLine:"00020",buyer:"范雪婷",sup:"V10088",price:"PRICED",sample:"HARD"},
+ {id:"DR20260800005",type:"NEW",cat:"TRIAL",part:"P20260801005",name:"制动卡钳",qty:60,proj:"MX13B",br:"BR2026-00125",brLine:"00010",buyer:"孔德鑫",sup:"V20015",price:"PRICED",sample:"HARD"},
+ {id:"DR20260800006",type:"NEW",cat:"TRIAL",part:"P20260801006",name:"空调滤芯",qty:80,proj:"KUN30",br:"BR2026-00126",brLine:"00010",buyer:"齐岳",sup:"V20015",price:"PRICED",sample:"SOFT"},
+ {id:"DR20260800007",type:"NEW",cat:"TRIAL",part:"P20260801007",name:"全景显示器",qty:30,proj:"MX13B",br:"BR2026-00127",brLine:"00010",buyer:"孔德鑫",sup:"-",price:"NOPRICE",sample:"SOFT"},
+ {id:"DR20260800008",type:"NEW",cat:"LOOSE",part:"P20260801008",name:"轮速传感器",qty:100,proj:"MX13B",br:"BR2026-00128",brLine:"00010",buyer:"范雪婷",sup:"V10001",price:"NOPRICE",sample:"HARD"},
+ {id:"DR20260800009",type:"NEW",cat:"LOOSE",part:"P20260801009",name:"安全带总成",qty:25,proj:"KUN30",br:"BR2026-00129",brLine:"00010",buyer:"齐岳",sup:"V30021",price:"PRICED",sample:"HARD"},
+ {id:"DR20260800010",type:"NEW",cat:"LOOSE",part:"P20260801010",name:"前保险杠总成",qty:20,proj:"MX13B",br:"BR2026-00130",brLine:"00010",buyer:"孔德鑫",sup:"MULTI",price:"PRICED",sample:"HARD"},
+ {id:"DR202608100",type:"NEW",cat:"LOOSE",part:"P20260801021",name:"遮阳板总成",qty:50,proj:"MX13B",br:"BR2026-00141",brLine:"00010",buyer:"孔德鑫",sup:"V30021",price:"PRICED",sample:"HARD"},
+ {id:"DR202608101",type:"NEW",cat:"LOOSE",part:"P20260801022",name:"雨刮臂总成",qty:30,proj:"MX13B",br:"BR2026-00142",brLine:"00010",buyer:"范雪婷",sup:"V10088",price:"PRICED",sample:"HARD"},
+ {id:"DR202608102",type:"NEW",cat:"LOOSE",part:"P20260801023",name:"玻璃升降器",qty:25,proj:"KUN30",br:"BR2026-00143",brLine:"00010",buyer:"齐岳",sup:"V10001",price:"PRICED",sample:"HARD"},
+ {id:"DR202608103",type:"NEW",cat:"LOOSE",part:"P20260801024",name:"行李箱锁",qty:100,proj:"MX13B",br:"BR2026-00144",brLine:"00010",buyer:"范雪婷",sup:"V20015",price:"PRICED",sample:"HARD"},
+ {id:"DR20260800011",type:"MODIFY",cat:"LOOSE",part:"P20260801011",name:"后视镜总成",qty:80,proj:"MX13B",br:"BR2026-00131",brLine:"00010",buyer:"孔德鑫",sup:"V10088",price:"PRICED",sample:"HARD"},
+ {id:"DR20260800012",type:"MODIFY",cat:"LOOSE",part:"P20260801012",name:"门把手",qty:0,proj:"MX13B",br:"BR2026-00132",brLine:"00010",buyer:"范雪婷",sup:"V10001",price:"PRICED",sample:"SOFT"},
+ {id:"DR20260800013",type:"MODIFY",cat:"TRIAL",part:"P20260801013",name:"翼子板",qty:20,proj:"MX13B",br:"BR2026-00133",brLine:"00010",buyer:"孔德鑫",sup:"V10001",price:"PRICED",sample:"HARD"}
+];
+
+/* 分组结果（py s3 输出） */
+const GROUPS=[
+ {id:"G001",cat:"LOOSE",br:"BR2026-00123",demand:"DR20260800001",buyer:"孔德鑫",sup:"V10001",match:"SINGLE",route:"AUTO",items:[{line:10,part:"P20260801001",name:"仪表板饰板总成",qty:50}],amount:64000},
+ {id:"G002",cat:"LOOSE",br:"BR2026-00123",demand:"DR20260800002",buyer:"孔德鑫",sup:"V10001",match:"SINGLE",route:"AUTO",items:[{line:10,part:"P20260801002",name:"车门内板",qty:40}],amount:22400},
+ {id:"G003",cat:"LOOSE",br:"BR2026-00124",demand:"DR20260800003",buyer:"范雪婷",sup:"V10088",match:"SINGLE",route:"AUTO",items:[{line:10,part:"P20260801003",name:"后备箱盖",qty:30}],amount:26700},
+ {id:"G004",cat:"LOOSE",br:"BR2026-00124",demand:"DR20260800004",buyer:"范雪婷",sup:"V10088",match:"SINGLE",route:"AUTO",items:[{line:10,part:"P20260801004",name:"前大灯总成",qty:20}],amount:46800},
+ {id:"G005",cat:"TRIAL",br:"BR2026-00125",demand:"DR20260800005",buyer:"孔德鑫",sup:"V20015",match:"SINGLE",route:"AUTO",items:[{line:10,part:"P20260801005",name:"制动卡钳",qty:60}],amount:19230,note:"非最低价→草稿"},
+ {id:"G006",cat:"TRIAL",br:"BR2026-00126",demand:"DR20260800006",buyer:"齐岳",sup:"V20015",match:"SINGLE",route:"AUTO",items:[{line:10,part:"P20260801006",name:"空调滤芯",qty:80}],amount:3600},
+ {id:"G007",cat:"TRIAL",br:"BR2026-00127",demand:"DR20260800007",buyer:"孔德鑫",sup:"-",match:"NONE",route:"NO_SUPPLIER",items:[{line:10,part:"P20260801007",name:"全景显示器",qty:30}],amount:0},
+ {id:"G008",cat:"LOOSE",br:"BR2026-00128",demand:"DR20260800008",buyer:"范雪婷",sup:"V10001",match:"SINGLE",route:"AUTO",items:[{line:10,part:"P20260801008",name:"轮速传感器",qty:100}],amount:0,note:"无价格→询价"},
+ {id:"G009",cat:"LOOSE",br:"BR2026-00130",demand:"DR20260800010",buyer:"孔德鑫",sup:"MULTI",match:"MULTI",route:"SELECT",cands:["V10001","V10088"],items:[{line:10,part:"P20260801010",name:"前保险杠总成",qty:20}],amount:0},
+ {id:"G010",cat:"LOOSE",br:"BR2026-00141",demand:"DR202608100",buyer:"孔德鑫",sup:"V30021",match:"SINGLE",route:"AUTO",items:[{line:10,part:"P20260801021",name:"遮阳板总成",qty:50}],amount:13250},
+ {id:"G011",cat:"LOOSE",br:"BR2026-00142",demand:"DR202608101",buyer:"范雪婷",sup:"V10088",match:"SINGLE",route:"AUTO",items:[{line:10,part:"P20260801022",name:"雨刮臂总成",qty:30}],amount:5400},
+ {id:"G012",cat:"LOOSE",br:"BR2026-00143",demand:"DR202608102",buyer:"齐岳",sup:"V10001",match:"SINGLE",route:"AUTO",items:[{line:10,part:"P20260801023",name:"玻璃升降器",qty:25}],amount:18500},
+ {id:"G013",cat:"LOOSE",br:"BR2026-00144",demand:"DR202608103",buyer:"范雪婷",sup:"V20015",match:"SINGLE",route:"AUTO",items:[{line:10,part:"P20260801024",name:"行李箱锁",qty:100}],amount:9500,note:"非最低价→草稿"}
+];
+
+/* 今日批次执行结果（py run_all 输出） */
+const BATCH={
+ steps:[
+  {name:"需求检查",status:"done",detail:"128行 → 通过2/退回3/提醒1/免传递2"},
+  {name:"需求导入",status:"done",detail:"散件表5行 → 导入4/失败1"},
+  {name:"分组",status:"done",detail:"AUTO 10组 / SELECT 1组 / NO_SUPPLIER 1组"},
+  {name:"创建订单",status:"done",detail:"成功7 / 草稿2 / 失败1"},
+  {name:"供应商选择",status:"done",detail:"SELECT 1组已完成选择"},
+  {name:"更新订单",status:"done",detail:"发起审批2 / 删除草稿1"},
+  {name:"状态报告",status:"pending",detail:"已生成，等待推送"}
+ ],
+ kpi:[
+  {t:"今日需求",v:"128",s:"MIPEC 8-24 上传",cls:""},
+  {t:"今日下单(组)",v:"10",s:"AUTO 组 10",cls:""},
+  {t:"已提交审批",v:"7",s:"成功创建并提交",cls:"up"},
+  {t:"草稿待核实",v:"2",s:"非最低价，请采购员核实",cls:"warn"},
+  {t:"失败/待处理",v:"3",s:"失败1 + 待选1 + 无供应商1",cls:"danger"}
+ ],
+ todos:[
+  {ic:"📝",t:"订单 4900037902 草稿待核实",sub:"制动卡钳 P20260801005 · 价格非最低价 320.50",buyer:"孔德鑫"},
+  {ic:"📝",t:"订单 4900037910 草稿待核实（导入件）",sub:"行李箱锁 P20260801024 · 非最低价 95.00",buyer:"范雪婷"},
+  {ic:"🔀",t:"组 G009 前保险杠总成 待选择供应商",sub:"V10001 博世 vs V10088 延锋（卡片已推送）",buyer:"孔德鑫"},
+  {ic:"❌",t:"组 G008 轮速传感器 下单失败",sub:"无价格 → 已转询价清单",buyer:"范雪婷"},
+  {ic:"🔎",t:"询价清单 6 条待采购员处理",sub:"2 条超 7 天（URGENT）",buyer:"全体"},
+  {ic:"⚠️",t:"订单 4900037799 到货已超期 14 天",sub:"中控屏 · 待供应商确认",buyer:"齐岳"}
+ ]
+};
+
+/* 更新批次结果（py s8 输出） */
+const UPDATES=[
+ {demand:"DR20260800011",order:"4900037888",old:"SUPPLIER_CONFIRMED",ver:2,action:"approved",msg:"数量 50→80，更新并发起审批"},
+ {demand:"DR20260800012",order:"4900037889",old:"APPROVING",ver:2,action:"draftDeleted",msg:"先终止流程回草稿，数量 30→0，删除草稿"},
+ {demand:"DR20260800013",order:"4900037890",old:"DRAFT",ver:2,action:"approved",msg:"数量 40→20，更新并发起审批"}
+];
+
+/* MIPEC 检查结果（py s1 输出） */
+const CHECKS=[
+ {row:1,part:"P20260801001",name:"仪表板饰板总成",qty:50,type:"NEW",sample:"HARD",result:"PASS",reason:"校验通过，进入需求池"},
+ {row:2,part:"P20260801001",qty:-50,type:"NEW",sample:"HARD",result:"SKIP",reason:"K值重复且数量抵消(+50/-50)，无需上传"},
+ {row:3,part:"P202608010023456789012",qty:10,type:"NEW",sample:"HARD",result:"REJECT",reason:"零件号位数异常(21位，应为8~20位)"},
+ {row:4,part:"P20260801004",name:"前大灯总成",qty:20,type:"NEW",sample:"SOFT",result:"REJECT",reason:"样件类型[软膜]与台账状态[硬膜]不匹配"},
+ {row:5,part:"P20260801005",name:"制动卡钳",qty:60,type:"NEW",sample:"SOFT",result:"REJECT",reason:"台账类型回退[硬膜→软膜]，请与DRE确认"},
+ {row:6,part:"P20260801006",name:"空调滤芯",qty:80,type:"NEW",sample:"SOFT",result:"PASS",reason:"校验通过，进入需求池"},
+ {row:7,part:"P20260801007",name:"全景显示器",qty:30,type:"MODIFY",sample:"SOFT",result:"WARN",reason:"台账类型回退，请与DRE确认（修改需求仅提醒）"},
+ {row:8,part:"P20260801008",name:"轮速传感器",qty:100,type:"NEW",sample:"HARD",result:"PASS",reason:"校验通过，进入需求池"}
+];
+
+/* 询价清单（py s9 输出） */
+const INQUIRY=[
+ {buyer:"孔德鑫",items:[{part:"P20260801007",name:"全景显示器",qty:30,proj:"MX13B",days:2,pri:"NORMAL"}]},
+ {buyer:"范雪婷",items:[{part:"P20260801008",name:"轮速传感器",qty:100,proj:"MX13B",days:9,pri:"URGENT"}]}
+];
+
+/* CLI 定义（01_CLI接口定义与契约.md） */
+const CLIS=[
+ {id:"demand.query-downloadable",cmd:"dx-ep demand query-downloadable",desc:"查询可下单需求",params:[["--type","TRIAL/LOOSE","否"],["--demand-type","NEW/MODIFY","否"],["--page-size","int","否"]],demo:'dx-ep demand query-downloadable --type LOOSE --page-size 200',out:{"state":"success","data":{"content":[{"demandId":"DR20260800001","partNo":"P20260801001","quantity":50,"brNo":"BR2026-00123","buyerName":"孔德鑫","supplierName":"博世汽车部件（苏州）有限公司","priceStatus":"PRICED"}],"totalCount":14}}},
+ {id:"demand.import",cmd:"dx-ep demand import",desc:"需求导入（散件确认后）",params:[["--rows","json-array","是"]],demo:'dx-ep demand import --rows \'[{"partNo":"P20260801021","quantity":50,...}]\'',out:{"state":"success","data":{"importCount":4,"failCount":1,"failRows":[{"rowNo":5,"reason":"零件号位数非法(应8~20位)"}]}}},
+ {id:"supplier.match",cmd:"dx-ep supplier match",desc:"零件→供应商匹配",params:[["--part-no","string","是"]],demo:'dx-ep supplier match --part-no P20260801010',out:{"state":"success","data":{"partNo":"P20260801010","matchType":"MULTI","suppliers":[{"supplierCode":"V10001","supplierName":"博世…","shareRatio":60,"lastDeliveryRate":97.2},{"supplierCode":"V10088","supplierName":"延锋彼欧…","shareRatio":40,"lastDeliveryRate":91.5}]}}},
+ {id:"price.query",cmd:"dx-ep price query",desc:"最新且最低价查询",params:[["--part-no","string","是"],["--supplier-code","string","是"]],demo:'dx-ep price query --part-no P20260801005 --supplier-code V20015',out:{"state":"success","data":{"partNo":"P20260801005","price":320.50,"currency":"CNY","priceSource":"LEDGER_SAMPLE","isLowest":false,"effectiveDate":"2026-07-05","priceVersion":"V10004"}}},
+ {id:"sample-order.list",cmd:"dx-ep sample-order list",desc:"查询样件订单列表",params:[["--status","枚举","否"],["--arrival","OVERDUE/...","否"],["--requester","name","否"]],demo:'dx-ep sample-order list --arrival OVERDUE',out:{"state":"success","data":{"content":[{"orderNo":"4900037799","poStatus":"WAIT_SUPPLIER","deliveryDate":"2026-08-10","totalAmount":35000.00}],"totalCount":1}}},
+ {id:"sample-order.create",cmd:"dx-ep sample-order create",desc:"创建样件订单（EP取最低价）",params:[["--group","json","是"]],demo:'dx-ep sample-order create --group \'{"brNo":"BR2026-00123","supplierCode":"V10001","source":"SKILL_AUTO",...}\'',out:{"state":"success","data":{"orderNo":"4900037901","poStatus":"APPROVING","priceMatched":true,"price":1280.00,"message":"最新且最低价，已提交审批"}}},
+ {id:"sample-order.item-detail",cmd:"dx-ep sample-order item-detail",desc:"查询订单条目详情",params:[["--order-no","string","是"]],demo:'dx-ep sample-order item-detail --order-no 4900037888',out:{"state":"success","data":{"orderNo":"4900037888","versionNo":1,"poStatus":"SUPPLIER_CONFIRMED","items":[{"lineNo":10,"partNo":"P20260801011","quantity":50,"unitPrice":420.00}]}}},
+ {id:"sample-order.update",cmd:"dx-ep sample-order update",desc:"更新样件订单（升版V2）",params:[["--order-no","string","是"],["--items","json","是"]],demo:'dx-ep sample-order update --order-no 4900037888 --items \'[{"partNo":"P20260801011","quantity":80}]\'',out:{"state":"success","data":{"orderNo":"4900037888","newVersionNo":2,"changedLines":[{"lineNo":10,"qtyBefore":50,"qtyAfter":80}],"zeroLines":[],"allZero":false}}},
+ {id:"sample-order.item-delete",cmd:"dx-ep sample-order item-delete",desc:"删除订单条目",params:[["--order-no","string","是"],["--line-no","int","是"]],demo:'dx-ep sample-order item-delete --order-no 4900037889 --line-no 10',out:{"state":"success","data":{"orderNo":"4900037889","deletedLineNo":10,"remainingItems":0}}},
+ {id:"sample-order.start-approval",cmd:"dx-ep sample-order start-approval",desc:"启动订单审批流程",params:[["--order-no","string","是"]],demo:'dx-ep sample-order start-approval --order-no 4900037890',out:{"state":"success","data":{"orderNo":"4900037890","processInstanceId":"proc_20260824_100","poStatus":"APPROVING","approveNode":"采购员审批"}}},
+ {id:"sample-order.my-process",cmd:"dx-ep sample-order my-process",desc:"查询我发起的流程",params:[["--order-no","string","否"]],demo:'dx-ep sample-order my-process --order-no 4900037889',out:{"state":"success","data":{"content":[{"processInstanceId":"proc_20260824_001","orderNo":"4900037889","processStatus":"PROCESSING","currentNode":"财务审批"}]}}},
+ {id:"sample-order.terminate-approval",cmd:"dx-ep sample-order terminate-approval",desc:"终止审批流程",params:[["--process-id","string","是"]],demo:'dx-ep sample-order terminate-approval --process-id proc_20260824_001',out:{"state":"success","data":{"processInstanceId":"proc_20260824_001","orderNo":"4900037889","poStatus":"DRAFT"}}},
+ {id:"sample-order.draft-delete",cmd:"dx-ep sample-order draft-delete",desc:"删除草稿",params:[["--order-no","string","是"]],demo:'dx-ep sample-order draft-delete --order-no 4900037889',out:{"state":"success","data":{"orderNo":"4900037889","deleted":true}}},
+ {id:"sample-order.close",cmd:"dx-ep sample-order close",desc:"关闭订单",params:[["--order-no","string","是"]],demo:'dx-ep sample-order close --order-no 4900037888',out:{"state":"success","data":{"orderNo":"4900037888","poStatus":"CLOSED","budgetReleased":true,"sapNotified":true}}},
+ {id:"sample-order.status",cmd:"dx-ep sample-order status",desc:"订单状态查询（批量）",params:[["--order-nos","json-array","是"]],demo:'dx-ep sample-order status --order-nos \'["4900037888","4900037889"]\'',out:{"state":"success","data":{"content":[{"orderNo":"4900037888","poStatus":"SUPPLIER_CONFIRMED","supplierStatus":"CONFIRMED"},{"orderNo":"4900037889","poStatus":"APPROVING","approveNode":"财务审批"}]}}},
+ {id:"task.close",cmd:"dx-ep task close",desc:"任务关闭",params:[["--task-id","string","是"]],demo:'dx-ep task close --task-id task_20260824_011',out:{"state":"success","data":{"taskId":"task_20260824_011","closed":true}}}
+];
+
+/* ============================================================
+ * 状态 & 导航
+ * ============================================================ */
+const NAV=[
+ {g:"工作台"},
+ {id:"dashboard",ic:"📊",name:"驾驶舱总览"},
+ {g:"需求域"},
+ {id:"demand-import",ic:"📥",name:"需求导入",badge:1},
+ {id:"demand-check",ic:"🔍",name:"需求检查",badge:3},
+ {id:"demand-pool",ic:"🗂️",name:"需求池与分组"},
+ {g:"订单域"},
+ {id:"order-create",ic:"📦",name:"创建订单",badge:1},
+ {id:"supplier-select",ic:"🔀",name:"多供应商选择",badge:1},
+ {id:"order-list",ic:"🧾",name:"订单列表",badge:2},
+ {id:"order-update",ic:"🔄",name:"更新订单"},
+ {id:"order-track",ic:"📈",name:"订单追踪",badge:1},
+ {g:"支撑域"},
+ {id:"inquiry",ic:"🔎",name:"询价清单",badge:1},
+ {id:"cli-panel",ic:"⌨️",name:"CLI 面板"},
+ {id:"config",ic:"⚙️",name:"配置"}
+];
+let state={view:"dashboard",density:"normal",orderTab:"ALL",orderArrival:"",orderKw:"",cliId:"sample-order.list",searching:false};
+
+/* ============================================================
+ * 工具
+ * ============================================================ */
+const $=id=>document.getElementById(id);
+function esc(s){return String(s==null?"":s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;")}
+function tag(status){const c=STATUS_COLOR[status]||"gray";return `<span class="tag ${c}">${STATUS_CN[status]||status}</span>`}
+function rtag(route){const map={AUTO:"ok",SELECT:"warn",NO_SUPPLIER:"danger"};return `<span class="tag ${map[route]}">${ROUTE_CN[route]}</span>`}
+function fmtMoney(n){return "¥"+Number(n||0).toLocaleString("zh-CN",{minimumFractionDigits:2})}
+function toast(msg){const t=$("toast");t.textContent=msg;t.style.display="block";clearTimeout(t._h);t._h=setTimeout(()=>t.style.display="none",2200)}
+function supName(code){if(!code||code==="MULTI")return code==="MULTI"?"多供应商":"-";return (SUPPLIERS[code]||{}).name||code}
+function setView(id){
+  state.view=id;
+  document.querySelectorAll(".nav-item").forEach(n=>n.classList.toggle("active",n.dataset.id===id));
+  ensureView(id);
+  document.querySelectorAll(".view").forEach(v=>v.classList.remove("show"));
+  const el=$(id); if(el)el.classList.add("show");
+  const nav=NAV.find(n=>n.id===id);
+  $("crumb").innerHTML="样件订单 / <b>"+(nav?nav.name:id)+"</b>";
+  $("main").scrollTop=0;
+}
+function renderNav(){
+  $("nav").innerHTML=NAV.map(n=>{
+    if(n.g)return `<div class="nav-group">${n.g}</div>`;
+    return `<div class="nav-item${n.id===state.view?" active":""}" data-id="${n.id}" onclick="setView('${n.id}')"><span class="ic">${n.ic}</span>${n.name}${n.badge?`<span class="badge">${n.badge}</span>`:""}</div>`;
+  }).join("");
+}
+
+/* ============================================================
+ * 驾驶舱
+ * ============================================================ */
+function renderDashboard(){
+  const kpi=BATCH.kpi.map(k=>`<div class="kpi ${k.cls}"><div class="t">${k.t}</div><div class="v">${k.v}</div><div class="s">${k.s}</div></div>`).join("");
+  const pipe=BATCH.steps.map((s,i)=>`
+    <div class="pipe-node ${s.status}" title="${s.detail}" onclick="toast('${esc(s.detail)}')">
+      <div class="pdot">${["🔎","📥","🗂️","📦","🔀","🔄","📊"][i]}</div>
+      <div class="plabel">${s.name}</div><div class="pnum">${s.status==="done"?"✅ 完成":s.status==="pending"?"⏳ 进行中":"⏸"}</div>
+    </div>${i<BATCH.steps.length-1?`<div class="pipe-conn ${s.status}"></div>`:""}`).join("");
+  const todos=BATCH.todos.map(t=>`<div class="todo-item"><span class="ic">${t.ic}</span><div><div>${t.t}</div><div class="mt">${t.sub} · ${t.buyer}</div></div></div>`).join("");
+  const dist=[["DRAFT",3],["APPROVING",3],["WAIT_SUPPLIER",1],["SUPPLIER_CONFIRMED",1],["CLOSED",0],["REJECTED",0]].map(([s,c])=>
+    `<div style="display:flex;align-items:center;gap:8px;margin-bottom:6px"><span style="width:90px;font-size:12px;color:var(--text2)">${STATUS_CN[s]}</span><div style="flex:1;background:#F0F2F5;border-radius:4px;height:16px;overflow:hidden"><div style="width:${c/Math.max(...[3,3,1,1,0,0])*100}%;min-width:${c?12:0}px;height:100%;background:var(--primary)"></div></div><span style="width:20px;font-size:12px;text-align:right">${c}</span></div>`).join("");
+  setViewHtml("dashboard",`
+    <div class="kpis">${kpi}</div>
+    <div class="grid2">
+      <div class="card"><h3>今日批次执行流水 <span class="sub">L1 Coordinator · 2026-08-24 10:00 定时触发</span></h3>
+        <div class="pipeline">${pipe}</div>
+        <div style="margin-top:12px;font-size:11px;color:var(--text3)">ℹ️ 点节点查看明细；失败/草稿自动进入右侧待办队列</div>
+      </div>
+      <div class="card"><h3>待办队列 <span class="sub">人工介入 ≤15%</span></h3>${todos}</div>
+    </div>
+    <div class="grid3">
+      <div class="card"><h3>订单状态分布 <span class="sub">样件订单 8 单 · EP 字段</span></h3>${dist}</div>
+      <div class="card"><h3>自动下单覆盖率</h3>
+        <div style="font-size:32px;font-weight:700;color:var(--ok)">70%<small style="font-size:13px;color:var(--text3)"> 目标 ≥70%</small></div>
+        <div style="margin-top:8px;font-size:12px;color:var(--text2)">唯一供应商+唯一价格路径全自动（7/10 组）</div>
+        <div style="margin-top:6px;font-size:11px;color:var(--text3)">来源：创建订单批次 ORD-20260824-001</div>
+      </div>
+      <div class="card"><h3>关键指标</h3>
+        <div class="dl" style="grid-template-columns:120px 1fr">
+          <div class="k">下单周期</div><div class="v">≤4h <span style="color:var(--text3)">（目标）</span></div>
+          <div class="k">人工介入率</div><div class="v">30% → 目标 ≤15%</div>
+          <div class="k">需求T+1闭环</div><div class="v">95% <span style="color:var(--ok)">✅</span></div>
+          <div class="k">价格来源</div><div class="v">台账取价 <span style="color:var(--text3)">LEDGER_SAMPLE</span></div>
+        </div>
+      </div>
+    </div>
+  `);
+}
+
+/* ============================================================
+ * 需求域视图
+ * ============================================================ */
+function renderDemandImport(){
+  const rows=[
+   {row:1,part:"P20260801021",name:"遮阳板总成",qty:50,proj:"MX13B",br:"BR2026-00141",buyer:"孔德鑫",sample:"硬模"},
+   {row:2,part:"P20260801022",name:"雨刮臂总成",qty:30,proj:"MX13B",br:"BR2026-00142",buyer:"范雪婷",sample:"硬模"},
+   {row:3,part:"P20260801023",name:"玻璃升降器",qty:25,proj:"KUN30",br:"BR2026-00143",buyer:"齐岳",sample:"硬模"},
+   {row:4,part:"P20260801024",name:"行李箱锁",qty:100,proj:"MX13B",br:"BR2026-00144",buyer:"范雪婷",sample:"硬模"},
+   {row:5,part:"BAD",name:"-",qty:5,proj:"MX13B",br:"BR2026-00145",buyer:"李四",sample:"硬模",fail:"零件号位数非法"}
+  ];
+  const trs=rows.map(r=>`<tr onclick="openImportDetail(${r.row})"><td>${r.row}</td><td>${r.part}${r.fail?'<span style="margin-left:6px">'+tag("REJECTED")+'</span>':""}</td><td>${r.name}</td><td class="num">${r.qty}</td><td>${r.proj}</td><td>${r.br}</td><td>${r.buyer}</td><td>${r.sample}</td><td>${r.fail?`<span class="tag danger">${r.fail}</span>`:`<span class="tag ok">已确认导入</span>`}</td></tr>`).join("");
+  setViewHtml("demand-import",`
+    <div class="card"><h3>散件需求导入 <span class="sub">石海林工程部 · 多维表格 → 确认卡片 → 需求池</span></h3>
+      <div class="kpis" style="grid-template-columns:repeat(4,1fr)">
+        <div class="kpi"><div class="t">表格行</div><div class="v">5</div></div>
+        <div class="kpi up"><div class="t">已确认导入</div><div class="v">4</div></div>
+        <div class="kpi danger"><div class="t">校验失败</div><div class="v">1</div></div>
+        <div class="kpi"><div class="t">责任边界</div><div class="v"><small style="font-size:12px">需求人确认后导入</small></div></div>
+      </div>
+      <table class="tbl"><thead><tr><th>行</th><th>零件号</th><th>零件名称</th><th>数量</th><th>项目</th><th>BR号</th><th>采购员</th><th>样件类型</th><th>状态</th></tr></thead><tbody>${trs}</tbody></table>
+      <div style="margin-top:10px;font-size:11px;color:var(--text3)">数据源：石海林散件多维表格 · 导入批次 IMP-20260824-001 · 采购员默认取系统台账</div>
+    </div>
+  `);
+}
+function openImportDetail(row){
+  openDrawer("需求导入 · 确认卡片",`
+    <div class="card" style="border-color:var(--primary)">
+      <div style="font-size:13px;font-weight:600">📦 散件需求确认（${row} 行）</div>
+      <div style="margin-top:8px;font-size:12px;color:var(--text2)">需求人核对 零件 / 数量 / 项目 / 采购员 后确认导入；责任保留在需求方。</div>
+      <div class="dl" style="margin-top:10px">
+        <div class="k">零件号</div><div class="v">P2026080102${row}</div>
+        <div class="k">数量</div><div class="v">50</div>
+        <div class="k">导入结果</div><div class="v"><span class="tag ok">已确认导入</span></div>
+      </div>
+    </div>`,[{t:"再次确认导入",cls:"primary",fn:()=>toast("✅ 已重新确认导入（演示）")}]);
+}
+
+function renderDemandCheck(){
+  const map={PASS:'<span class="tag ok">PASS</span>',REJECT:'<span class="tag danger">REJECT</span>',WARN:'<span class="tag warn">WARN</span>',SKIP:'<span class="tag gray">SKIP</span>'};
+  const trs=CHECKS.map(c=>`<tr><td>${c.row}</td><td>${c.part}</td><td>${c.name||"-"}</td><td class="num">${c.qty}</td><td>${c.type==="NEW"?"新需求":c.type==="MODIFY"?"修改待发布":c.type}</td><td>${c.sample}</td><td>${map[c.result]}</td><td style="white-space:normal;min-width:220px">${c.reason}</td></tr>`).join("");
+  setViewHtml("demand-check",`
+    <div class="card"><h3>MIPEC 需求检查 <span class="sub">范雪婷 · 强校验(新需求) / 弱校验(修改需求)</span></h3>
+      <div class="kpis" style="grid-template-columns:repeat(5,1fr)">
+        <div class="kpi"><div class="t">检查行数</div><div class="v">8</div></div>
+        <div class="kpi up"><div class="t">通过 PASS</div><div class="v">3</div></div>
+        <div class="kpi danger"><div class="t">退回 REJECT</div><div class="v">3</div></div>
+        <div class="kpi warn"><div class="t">提醒 WARN</div><div class="v">1</div></div>
+        <div class="kpi"><div class="t">免传递 SKIP</div><div class="v">1</div></div>
+      </div>
+      <table class="tbl"><thead><tr><th>行</th><th>零件号</th><th>名称</th><th>数量</th><th>需求类型</th><th>样件类型</th><th>结果</th><th>原因</th></tr></thead><tbody>${trs}</tbody></table>
+      <div style="margin-top:10px;font-size:11px;color:var(--text3)">K值=零件号+直采费用类型+样件类型 · 台账状态来源：EP 台账（LEDGER_SAMPLE）· REJECT 退回需求方带理由，确认后可重传</div>
+    </div>
+  `);
+}
+
+function renderDemandPool(){
+  const trs=DEMANDS.map(d=>`<tr onclick="openDemandDetail('${d.id}')"><td>${d.id}</td><td>${d.type==="NEW"?"<span class='tag info'>新需求</span>":"<span class='tag purple'>修改</span>"}</td><td>${d.cat==="LOOSE"?"散件":"试制"}</td><td>${d.part}</td><td>${d.name}</td><td class="num">${d.qty}</td><td>${d.proj}</td><td>${d.br}</td><td>${d.buyer}</td><td>${d.sup==="MULTI"?"多供应商":supName(d.sup)}</td><td>${d.price==="PRICED"?"<span class='tag ok'>有价格</span>":"<span class='tag warn'>无价格</span>"}</td></tr>`).join("");
+  const gtrs=GROUPS.map(g=>`<tr onclick="openGroupDetail('${g.id}')"><td>${g.id}</td><td>${g.cat==="LOOSE"?"散件":"试制"}</td><td>${g.br}</td><td>${g.demand}</td><td>${g.buyer}</td><td>${g.sup==="MULTI"?"多供应商":g.sup==="-"?"-":supName(g.sup)}</td><td>${rtag(g.route)}</td><td>${g.items.map(i=>i.part+" ×"+i.qty).join("<br>")}</td><td class="num">${fmtMoney(g.amount)}</td></tr>`).join("");
+  setViewHtml("demand-pool",`
+    <div class="card"><h3>需求池 <span class="sub">需求查询 CLI 返回 · 可下单需求</span></h3>
+      <table class="tbl"><thead><tr><th>需求编号</th><th>类型</th><th>试制/散件</th><th>零件号</th><th>名称</th><th>数量</th><th>项目</th><th>BR号</th><th>采购员</th><th>供应商</th><th>价格状态</th></tr></thead><tbody>${trs}</tbody></table>
+    </div>
+    <div class="card"><h3>分组结果 <span class="sub">分组 Skill · BR→需求号→采购员→供应商 · 组内不跨 BR</span></h3>
+      <div class="kpis" style="grid-template-columns:repeat(3,1fr)">
+        <div class="kpi up"><div class="t">自动下单 AUTO</div><div class="v">11</div></div>
+        <div class="kpi warn"><div class="t">多供应商 SELECT</div><div class="v">1</div></div>
+        <div class="kpi danger"><div class="t">无供应商</div><div class="v">1</div></div>
+      </div>
+      <table class="tbl"><thead><tr><th>组号</th><th>试制/散件</th><th>BR号</th><th>需求号</th><th>采购员</th><th>供应商</th><th>路由</th><th>条目</th><th>金额</th></tr></thead><tbody>${gtrs}</tbody></table>
+    </div>
+  `);
+}
+function openDemandDetail(id){
+  const d=DEMANDS.find(x=>x.id===id);
+  openDrawer("需求详情 · "+id,`
+    <div class="dl">
+      <div class="k">零件号/名称</div><div class="v">${d.part} / ${d.name}</div>
+      <div class="k">数量</div><div class="v">${d.qty} EA</div>
+      <div class="k">项目 / BR</div><div class="v">${d.proj} / ${d.br}-${d.brLine}</div>
+      <div class="k">采购员</div><div class="v">${d.buyer}</div>
+      <div class="k">供应商</div><div class="v">${d.sup==="MULTI"?"多供应商（一品多点）":supName(d.sup)}</div>
+      <div class="k">价格状态</div><div class="v">${d.price==="PRICED"?"有价格待下单":"无价格待采购下单"}</div>
+      <div class="k">数据来源</div><div class="v" style="color:var(--text3)">dx-ep demand query-downloadable</div>
+    </div>`);
+}
+function openGroupDetail(id){
+  const g=GROUPS.find(x=>x.id===id);
+  openDrawer("分组详情 · "+id,`
+    <div class="dl">
+      <div class="k">路由</div><div class="v">${rtag(g.route)}</div>
+      <div class="k">BR号 / 需求号</div><div class="v">${g.br} / ${g.demand}</div>
+      <div class="k">采购员</div><div class="v">${g.buyer}</div>
+      <div class="k">供应商匹配</div><div class="v">${g.sup==="MULTI"?(g.cands||[]).map(c=>supName(c)+"<br>").join(""):g.sup==="-"?`<span class="tag danger">无供应商</span>`:supName(g.sup)} <span style="color:var(--text3)">(${g.match})</span></div>
+      <div class="k">金额</div><div class="v">${fmtMoney(g.amount)}</div>
+      ${g.note?`<div class="k">备注</div><div class="v">${g.note}</div>`:""}
+    </div>
+    <h4>条目明细</h4>
+    <table class="tbl"><thead><tr><th>行</th><th>零件号</th><th>名称</th><th>数量</th></tr></thead><tbody>${g.items.map(i=>`<tr><td>${i.line}</td><td>${i.part}</td><td>${i.name}</td><td>${i.qty}</td></tr>`).join("")}</tbody></table>`);
+}
+
+/* ============================================================
+ * 订单域视图
+ * ============================================================ */
+function renderOrderCreate(){
+  const res=[
+   {g:"G001",no:"4900037901",st:"APPROVING",price:1280.00,low:true},
+   {g:"G002",no:"4900037904",st:"APPROVING",price:560.00,low:true},
+   {g:"G003",no:"4900037903",st:"APPROVING",price:890.00,low:true},
+   {g:"G004",no:"4900037905",st:"APPROVING",price:2340.00,low:true},
+   {g:"G005",no:"4900037902",st:"DRAFT",price:320.50,low:false},
+   {g:"G006",no:"4900037906",st:"APPROVING",price:45.00,low:true},
+   {g:"G007",no:"-",st:"-",err:"无供应商，转询价清单"},
+   {g:"G008",no:"-",st:"-",err:"无价格，转询价清单"},
+   {g:"G010",no:"4900037907",st:"APPROVING",price:265.00,low:true},
+   {g:"G011",no:"4900037908",st:"APPROVING",price:180.00,low:true},
+   {g:"G012",no:"4900037909",st:"APPROVING",price:740.00,low:true},
+   {g:"G013",no:"4900037910",st:"DRAFT",price:95.00,low:false}
+  ];
+  const trs=res.map(r=>`<tr><td>${r.g}</td><td>${r.no==="-"?"-":r.no}</td>
+    <td>${r.st==="APPROVING"?'<span class="tag info">审批中</span>':r.st==="DRAFT"?'<span class="tag warn">草稿</span>':`<span class="tag danger">${r.err}</span>`}</td>
+    <td class="num">${r.price?fmtMoney(r.price):"-"}</td>
+    <td>${r.low?`<span class="tag ok">最新且最低价</span>`:r.st==="DRAFT"?`<span class="tag warn">非最低价→草稿</span>`:`<span class="tag gray">-</span>`}</td>
+    <td style="white-space:normal">${r.err||"串行队列创建成功，已提交审批"}</td></tr>`).join("");
+  setViewHtml("order-create",`
+    <div class="card"><h3>创建订单 · 批次结果 <span class="sub">ORD-20260824-001 · 串行调用 · 取价逻辑固化在 EP</span></h3>
+      <div class="kpis" style="grid-template-columns:repeat(4,1fr)">
+        <div class="kpi up"><div class="t">已提交审批</div><div class="v">8</div></div>
+        <div class="kpi warn"><div class="t">草稿待核实</div><div class="v">2</div></div>
+        <div class="kpi danger"><div class="t">失败</div><div class="v">2</div></div>
+        <div class="kpi"><div class="t">待选择</div><div class="v">1</div></div>
+      </div>
+      <table class="tbl"><thead><tr><th>组号</th><th>订单号</th><th>状态</th><th>取价</th><th>价格判定</th><th>说明</th></tr></thead><tbody>${trs}</tbody></table>
+      <div style="margin-top:10px;font-size:11px;color:var(--text3)">价格来源：EP 台账取价（LEDGER_SAMPLE）· 订单来源字段 source=SKILL_AUTO（用于复盘统计）</div>
+    </div>
+  `);
+}
+
+function renderSupplierSelect(){
+  setViewHtml("supplier-select",`
+    <div class="grid2">
+      <div class="card"><h3>多供应商选择 · 卡片 <span class="sub">组 G009 · 前保险杠总成 ×20 · BR2026-00130</span></h3>
+        <div style="border:1px solid var(--primary);border-radius:10px;padding:16px;background:var(--primary-weak)">
+          <div style="font-weight:600;margin-bottom:10px">🔀 多供应商选择</div>
+          <div style="font-size:12px;color:var(--text2);line-height:1.8">
+            零件 <b>P20260801010</b> 有 2 家供应商，请选择下单对象：<br>
+            📦 供应商A 博世汽车部件（苏州）有限公司（份额60% · 交付准时率97.2%）<br>
+            📦 供应商B 延锋彼欧汽车外饰系统有限公司（份额40% · 交付准时率91.5%）
+          </div>
+          <div style="margin-top:14px;display:flex;gap:8px">
+            <button class="btn primary" onclick="toast('✅ 已选择 博世，订单 4900037911 创建成功（APPROVING）')">选择供应商A</button>
+            <button class="btn" onclick="toast('✅ 已选择 延锋，订单 4900037912 创建成功（APPROVING·更低6750）')">选择供应商B</button>
+            <button class="btn danger" onclick="toast('⏸ 已标记暂不下单，进待办')">暂不下单</button>
+          </div>
+          <div style="margin-top:10px;font-size:11px;color:var(--text3)">选择结果先回传 Skill，再调 dx-ep sample-order create（EP 内部取最低价）</div>
+        </div>
+      </div>
+      <div class="card"><h3>选择结果</h3>
+        <div class="todo-item"><span class="ic">✅</span><div><div>组 G009 → 博世（份额60%）</div><div class="mt">订单 4900037911 · APPROVING · card_sel_20260824_G009</div></div></div>
+        <div style="font-size:11px;color:var(--text3);margin-top:6px">一品多点约 10% 场景 · 卡片超时 120min 自动转待办</div>
+      </div>
+    </div>
+  `);
+}
+
+function renderOrderList(){
+  const tabs=[["ALL","全部"],["DRAFT","草稿"],["APPROVING","审批中"],["REJECTED","驳回"],["WAIT_SUPPLIER","待供应商确认"],["SUPPLIER_CONFIRMED","供应商已确认"],["CLOSED","已关闭"]];
+  let list=ORDERS.slice();
+  if(state.orderTab!=="ALL")list=list.filter(o=>o.status===state.orderTab);
+  if(state.orderArrival){const t=new Date("2026-08-24"),d=new Date("2026-08-24");list=list.filter(o=>{const dd=new Date(o.delivery),days=(d-dd)/86400000;if(state.orderArrival==="OVERDUE")return days>0;if(state.orderArrival==="TWO_WEEKS")return days>0&&days<=14;if(state.orderArrival==="ONE_MONTH")return days>0&&days<=30;if(state.orderArrival==="OVER_MONTH")return days>30;return true;});}
+  if(state.orderKw){const kw=state.orderKw.toLowerCase();list=list.filter(o=>[o.no,o.demand,o.br,o.project,supName(o.sup),o.buyer,o.requester,o.items.map(i=>i.part).join(",")].join(" ").toLowerCase().includes(kw));}
+  const trs=list.map(o=>`<tr onclick="openOrderDetail('${o.no}')"><td><b>${o.no}</b></td><td>V${o.ver}</td><td>${tag(o.status)}</td><td>${o.project}</td><td>${supName(o.sup)}</td><td>${o.buyer}</td><td>${o.req}</td><td class="num">${o.items.length}</td><td class="num">${fmtMoney(o.amount)}</td><td>${o.delivery}</td><td>${o.br}-${o.brLine}</td><td>${o.demand}</td><td>${o.sap==="SENT"?'<span class="tag ok">SENT</span>':'<span class="tag gray">UNSENT</span>'}</td><td>${o.approve||"-"}</td></tr>`).join("");
+  setViewHtml("order-list",`
+    <div class="card"><h3>样件采购订单 <span class="sub">对应 EP /root/purchaseorder/list · 37409 单 · 演示取 8 单</span></h3>
+      <div class="tabs">${tabs.map(([k,n])=>`<div class="tab${state.orderTab===k?" active":""}" onclick="state.orderTab='${k}';renderOrderList()">${n}<span class="cnt">${k==="ALL"?ORDERS.length:ORDERS.filter(o=>o.status===k).length}</span></div>`).join("")}</div>
+      <div class="filterbar">
+        <select onchange="state.orderArrival=this.value;renderOrderList()">
+          <option value="">全部到货时间</option>
+          <option value="OVERDUE">已超期</option>
+          <option value="TWO_WEEKS">两周内</option>
+          <option value="ONE_MONTH">一月内</option>
+          <option value="OVER_MONTH">一月以上</option>
+        </select>
+        <input placeholder="搜索 订单号/零件/供应商/申请人…" value="${esc(state.orderKw)}" oninput="state.orderKw=this.value;renderOrderList()" style="width:260px">
+        <span style="font-size:11px;color:var(--text3)">共 ${list.length} 条 · 行点击查看详情</span>
+      </div>
+      <div style="overflow-x:auto">
+      <table class="tbl"><thead><tr><th>订单号</th><th>版本</th><th>状态</th><th>项目</th><th>供应商</th><th>采购员</th><th>需求申请人</th><th>条目</th><th>金额</th><th>到货日期</th><th>预算/行号</th><th>需求编号</th><th>SAP</th><th>审批节点</th></tr></thead><tbody>${trs||'<tr><td colspan="14"><div class="empty">无匹配订单</div></td></tr>'}</tbody></table>
+      </div>
+    </div>
+  `);
+}
+
+function renderOrderUpdate(){
+  const trs=UPDATES.map(u=>`<tr><td>${u.demand}</td><td>${u.order}</td><td>${tag(u.old)}</td><td>V${u.ver}</td><td>${u.action==="approved"?'<span class="tag info">发起审批</span>':u.action==="draftDeleted"?'<span class="tag danger">删除草稿</span>':u.action==="closed"?'<span class="tag gray">关闭订单</span>':'<span class="tag warn">删除行</span>'}</td><td style="white-space:normal">${u.msg}</td></tr>`).join("");
+  setViewHtml("order-update",`
+    <div class="card"><h3>更新订单 · 批次结果 <span class="sub">UPD-20260824-001 · MIPEC 修改待发布触发 · 9 个样件 CLI 全链路</span></h3>
+      <div class="kpis" style="grid-template-columns:repeat(4,1fr)">
+        <div class="kpi up"><div class="t">发起审批</div><div class="v">2</div></div>
+        <div class="kpi danger"><div class="t">删除草稿</div><div class="v">1</div></div>
+        <div class="kpi"><div class="t">关闭订单</div><div class="v">0</div></div>
+        <div class="kpi"><div class="t">删除行</div><div class="v">0</div></div>
+      </div>
+      <table class="tbl"><thead><tr><th>需求编号</th><th>订单号</th><th>原状态</th><th>新版本</th><th>动作</th><th>说明</th></tr></thead><tbody>${trs}</tbody></table>
+      <div style="margin-top:10px;font-size:11px;color:var(--text3)">分支：供应商已确认→更新+审批 / 审批中→先终止流程 / 草稿→更新；数量0删除行·全部0关闭订单或删草稿（不回退需求）· 撤批时机：V2 供应商确认后才取消 V1</div>
+    </div>
+  `);
+}
+
+function renderOrderTrack(){
+  const rows=ORDERS.map(o=>{
+    const d=new Date(o.delivery),days=Math.round((new Date("2026-08-24")-d)/86400000);
+    return `<tr><td>${o.no}</td><td>${tag(o.status)}</td><td>${o.approve||"-"}</td><td>${o.supplierStatus?"-":""}${o.status==="WAIT_SUPPLIER"?'<span class="tag warn">未确认</span>':o.status==="SUPPLIER_CONFIRMED"?'<span class="tag ok">已确认</span>':"-"}</td><td>${o.delivery}</td><td>${days>0?`<span class="tag danger">超期${days}天</span>`:`<span class="tag ok">正常</span>`}</td><td style="white-space:normal">${days>0&&o.status!=="CLOSED"?"建议催办供应商":o.status==="WAIT_SUPPLIER"?"待供应商确认（48h 超时升级）":o.status==="DRAFT"?"草稿待处理":o.status==="APPROVING"?`审批中（${o.approve}）`:"正常"}</td></tr>`;
+  }).join("");
+  setViewHtml("order-track",`
+    <div class="card"><h3>订单追踪 <span class="sub">6 状态模型 + 超期预警 · 孔德鑫看板字段</span></h3>
+      <div class="tabs">
+        <div class="tab">草稿 3</div><div class="tab active">审批中 3</div><div class="tab">待供应商确认 1</div><div class="tab">供应商已确认 1</div>
+      </div>
+      <table class="tbl"><thead><tr><th>订单号</th><th>状态</th><th>审批节点</th><th>供应商确认</th><th>到货</th><th>到货状态</th><th>处理建议</th></tr></thead><tbody>${rows}</tbody></table>
+      <div style="margin-top:10px;font-size:11px;color:var(--text3)">状态来源：EP 订单字段（poStatus）· 预警分级：P2 交期→通知采购员；P0/P1 大批量异常→升级</div>
+    </div>
+  `);
+}
+
+function openOrderDetail(no){
+  const o=ORDERS.find(x=>x.no===no);if(!o)return;
+  const items=o.items.map(i=>`<tr><td>${i.line}</td><td>${i.part}</td><td>${i.name}</td><td class="num">${i.qty}</td><td class="num">${fmtMoney(i.price)}</td><td class="num">${fmtMoney(i.price*i.qty)}</td><td>${i.delivery}</td><td class="num">${i.rcv}</td></tr>`).join("");
+  const acts=[];
+  if(o.status==="DRAFT")acts.push({t:"发起审批",cls:"primary",fn:()=>{toast("✅ 已启动审批（dx-ep sample-order start-approval）")}});
+  if(o.status==="DRAFT")acts.push({t:"删除草稿",cls:"danger",fn:()=>{toast("✅ 已删除草稿（dx-ep sample-order draft-delete）")}});
+  if(o.status==="APPROVING")acts.push({t:"终止流程",cls:"danger",fn:()=>{toast("✅ 已终止流程，订单回草稿（dx-ep terminate-approval）")}});
+  if(o.status==="WAIT_SUPPLIER")acts.push({t:"催办供应商",cls:"primary",fn:()=>{toast("✅ 已推送催办通知")}});
+  if(o.status==="SUPPLIER_CONFIRMED")acts.push({t:"关闭订单",cls:"danger",fn:()=>{toast("✅ 已关闭，预算释放+SAP通知（dx-ep close）")}});
+  openDrawer("订单详情 · "+o.no,`
+    <div class="dl">
+      <div class="k">订单状态</div><div class="v">${tag(o.status)} ${o.approve?`<span style="color:var(--text3)">· ${o.approve}</span>`:""}</div>
+      <div class="k">项目 / 版本</div><div class="v">${o.project} / V${o.ver}</div>
+      <div class="k">供应商</div><div class="v">${supName(o.sup)}</div>
+      <div class="k">采购员 / 申请人</div><div class="v">${o.buyer} / ${o.req}</div>
+      <div class="k">预算 / 需求</div><div class="v">${o.br}-${o.brLine} / ${o.demand}</div>
+      <div class="k">金额</div><div class="v">${fmtMoney(o.amount)}</div>
+      <div class="k">SAP / 试制</div><div class="v">${o.sap} / ${o.trial}</div>
+      <div class="k">来源</div><div class="v" style="color:var(--text3)">${o.no==="4900037799"?"MANUAL 人工":"SKILL_AUTO Skill 调用（用于复盘）"}</div>
+    </div>
+    <h4>条目明细 <span style="font-weight:400;font-size:11px;color:var(--text3)">dx-ep sample-order item-detail</span></h4>
+    <table class="tbl"><thead><tr><th>行</th><th>零件号</th><th>名称</th><th>数量</th><th>单价</th><th>金额</th><th>到货</th><th>已收</th></tr></thead><tbody>${items}</tbody></table>`,acts);
+}
+
+/* ============================================================
+ * 支撑域视图
+ * ============================================================ */
+function renderInquiry(){
+  const cards=INQUIRY.map(b=>`<div class="card"><h3>${b.buyer} <span class="sub">${b.items.length} 条</span></h3>
+    ${b.items.map(i=>`<div class="todo-item"><span class="ic">${i.pri==="URGENT"?"⚠️":"🔎"}</span><div><div>${i.part} ${i.name} ×${i.qty} <span class="tag ${i.pri==="URGENT"?"danger":"gray"}">${i.pri==="URGENT"?"超7天·升级":"正常"}</span></div><div class="mt">${i.proj} · 需求 ${i.part} · 等待 ${i.days} 天</div></div></div>`).join("")}
+  </div>`).join("");
+  setViewHtml("inquiry",`
+    <div class="kpis" style="grid-template-columns:repeat(3,1fr)">
+      <div class="kpi"><div class="t">无价格需求</div><div class="v">6</div></div>
+      <div class="kpi up"><div class="t">台账已匹配</div><div class="v">0</div></div>
+      <div class="kpi danger"><div class="t">超7天升级</div><div class="v">2</div></div>
+    </div>
+    ${cards}
+    <div class="card"><h3>推送规则</h3><div style="font-size:12px;color:var(--text2);line-height:1.9">
+      ① 无价格需求自动匹配台账（量产→样件价）→ 命中回 PRICED 回到下单链路<br>
+      ② 仍无价 → 按采购员汇总生成询价清单推送（飞书卡片/待办）<br>
+      ③ 超 ${7} 天无价 → URGENT 升级提醒 · 与创建订单「无价格→失败」路径闭环
+    </div></div>
+  `);
+}
+
+function renderCli(){
+  const chips=CLIS.map(c=>`<div class="cli-chip${state.cliId===c.id?" active":""}" onclick="state.cliId='${c.id}';renderCli()">${c.id}</div>`).join("");
+  const c=CLIS.find(x=>x.id===state.cliId);
+  setViewHtml("cli-panel",`
+    <div class="card"><h3>CLI 调用面板 <span class="sub">16 个接口契约 · dx-ep 四级命名 · 统一返回包装</span></h3>
+      <div class="cli-sel">${chips}</div>
+      <pre class="json" style="white-space:pre-wrap"># ${c.cmd}
+# 用途：${c.desc}
+${c.params.map(p=>"# "+p[0]+" ("+p[1]+", "+(p[2]==="是"?"必选":"可选")+")").join("\n")}
+
+$ ${c.demo}</pre>
+      <div style="margin:12px 0 6px;font-size:12px;color:var(--text2)">▶ 执行结果（模拟）</div>
+      <pre class="json">${esc(JSON.stringify(c.out,null,2))}</pre>
+    </div>
+  `);
+}
+
+function renderConfig(){
+  const rows=[
+   {k:"分组维度",v:"BR→需求号→采购员→供应商",on:true,desc:"顺序不影响结果；不可跨 BR 合并（EP 底层约束）"},
+   {k:"取价逻辑",v:"最新且最低价",on:true,desc:"固化在 EP 代码；非最低价自动落草稿"},
+   {k:"强校验(新需求)",v:"零件号/状态/回退",on:true,desc:"不通过退回需求方带原因"},
+   {k:"弱校验(修改需求)",v:"仅提醒",on:true,desc:"修改需求由更新订单 Skill 承接"},
+   {k:"数量0处理",v:"删除行/关单/删草稿",on:true,desc:"不回退需求（系统以最新需求为准）"},
+   {k:"每日批次",v:"09:30 检查 / 10:00 下单",on:true,desc:"L1 Coordinator 定时触发"},
+   {k:"串行队列",v:"开启",on:true,desc:"防 EP 接口通道堵塞，失败重试2次"},
+   {k:"订单来源字段",v:"SKILL_AUTO/MANUAL",on:true,desc:"后台记录传参方式，供周度复盘"},
+   {k:"散件导入确认",v:"需求人卡片确认",on:true,desc:"责任留在需求方（源哥原则）"}
+  ];
+  setViewHtml("config",`
+    <div class="card"><h3>配置 <span class="sub">规则可配置 · 修改即生效（演示）</span></h3>
+      ${rows.map(r=>`<div class="cfg-row"><div><div>${r.k} <span style="color:var(--text2)">· ${r.v}</span></div><div class="desc">${r.desc}</div></div><div class="switch on" onclick="this.classList.toggle('on');toast('配置已更新')"></div></div>`).join("")}
+    </div>
+  `);
+}
+
+/* ============================================================
+ * 抽屉 & 全局
+ * ============================================================ */
+function openDrawer(title,body,acts){
+  $("drawerTitle").textContent=title;
+  $("drawerBody").innerHTML=body;
+  $("drawerActs").innerHTML=(acts||[]).map(a=>`<button class="btn ${a.cls||''}" onclick="(function(){const f=${a.fn.toString()};f();closeDrawer();})()">${a.t}</button>`).join("");
+  $("drawer").classList.add("open");$("mask").style.display="block";
+}
+function closeDrawer(){$("drawer").classList.remove("open");$("mask").style.display="none"}
+$("mask").onclick=closeDrawer;
+
+/* 密度切换 */
+$("densityBtn").onclick=()=>{state.density=state.density==="normal"?"compact":"normal";document.querySelectorAll(".tbl td,.tbl th").forEach(el=>el.style.padding=state.density==="compact"?"4px 8px":"8px 10px");toast(state.density==="compact"?"紧凑密度":"标准密度")};
+
+/* 执行今日批次 */
+$("execBtn").onclick=()=>{toast("▶ 已触发今日批次执行（模拟 5s）");setTimeout(()=>{BATCH.steps.forEach((s,i)=>{if(i<BATCH.steps.length-1)s.status="done"});BATCH.steps[BATCH.steps.length-1].status="done";setView("dashboard");renderDashboard();toast("✅ 批次执行完成，报告已生成")},1500)};
+
+/* 全局搜索 / 命令面板 */
+$("searchbox").onclick=()=>openCmd();
+document.addEventListener("keydown",e=>{
+  if((e.metaKey||e.ctrlKey)&&e.key.toLowerCase()==="k"){e.preventDefault();openCmd()}
+  if(e.key==="Escape")closeCmd();
+});
+function openCmd(){
+  $("cmdpanel").classList.add("open");$("cmdInput").value="";$("cmdInput").focus();renderCmd("");
+}
+function closeCmd(){$("cmdpanel").classList.remove("open")}
+function renderCmd(kw){
+  const items=[...NAV.filter(n=>n.id).map(n=>({t:n.name,sub:n.id,fn:`setView('${n.id}')`})),
+    {t:"执行今日批次",sub:"Coordinator",fn:`$("execBtn").click()`},
+    {t:"切换表格密度",sub:"视图",fn:`$("densityBtn").click()`}];
+  const hit=items.filter(i=>!kw||(i.t+i.sub).toLowerCase().includes(kw.toLowerCase()));
+  $("cmdList").innerHTML=hit.map((i,idx)=>`<div class="cmd-item${idx===0?" active":""}" onclick="eval('${i.fn}');closeCmd()"><span>${i.t}</span><span class="k">${i.sub}</span></div>`).join("")||'<div class="empty">无匹配命令</div>';
+}
+$("cmdInput").oninput=e=>renderCmd(e.target.value);
+$("cmdInput").onkeydown=e=>{
+  const items=[...$("cmdList").querySelectorAll(".cmd-item")];
+  const idx=items.findIndex(x=>x.classList.contains("active"));
+  if(e.key==="Enter"&&items[idx]){items[idx].click()}
+  if(e.key==="ArrowDown"&&idx<items.length-1){items.forEach(x=>x.classList.remove("active"));items[idx+1].classList.add("active")}
+  if(e.key==="ArrowUp"&&idx>0){items.forEach(x=>x.classList.remove("active"));items[idx-1].classList.add("active")}
+};
+
+/* ============================================================
+ * 渲染入口（懒加载：按需渲染当前视图，避免互相覆盖）
+ * ============================================================ */
+const VIEW_RENDERERS={
+  dashboard:renderDashboard,"demand-import":renderDemandImport,"demand-check":renderDemandCheck,
+  "demand-pool":renderDemandPool,"order-create":renderOrderCreate,"supplier-select":renderSupplierSelect,
+  "order-list":renderOrderList,"order-update":renderOrderUpdate,"order-track":renderOrderTrack,
+  inquiry:renderInquiry,"cli-panel":renderCli,config:renderConfig
+};
+
+const renderedViews={};
+function setViewHtml(id, innerHtml){
+  let el=document.getElementById(id);
+  if(!el){ el=document.createElement("div"); el.id=id; el.className="view"; document.getElementById("main").appendChild(el); }
+  el.innerHTML=innerHtml;
+}
+function ensureView(id){
+  if(renderedViews[id])return;
+  VIEW_RENDERERS[id]();
+  renderedViews[id]=true;
+}
+
+function render(){
+  renderNav();
+  ensureView(state.view);
+  setView(state.view);
+}
+
+/* ============================================================
+ * 自测（?selftest=1）
+ * ============================================================ */
+function runSelftest(){
+  const results=[];
+  const assert=(name,cond)=>results.push({name,ok:!!cond});
+  render();
+  assert("导航渲染 12 项",document.querySelectorAll(".nav-item").length===12);
+  ensureView("dashboard");
+  assert("驾驶舱 KPI 5 张",document.querySelectorAll("#dashboard .kpi").length===5);
+  assert("批次管线 7 节点",document.querySelectorAll("#dashboard .pipe-node").length===7);
+  assert("待办队列 6 条",document.querySelectorAll("#dashboard .todo-item").length===6);
+  state.orderTab="ALL";state.orderKw="";renderOrderList();
+  assert("订单列表 7 行",document.querySelectorAll("#order-list tbody tr").length===7);
+  assert("订单状态 Tab 7 个",document.querySelectorAll("#order-list .tab").length===7);
+  state.orderTab="DRAFT";renderOrderList();
+  assert("状态筛选 DRAFT 2 行",document.querySelectorAll("#order-list tbody tr").length===2);
+  state.orderTab="ALL";state.orderKw="博世";renderOrderList();
+  assert("搜索『博世』命中",document.querySelectorAll("#order-list tbody tr").length>=1);
+  state.orderTab="ALL";state.orderKw="";renderOrderList();
+  openOrderDetail("4900037888");
+  assert("订单详情抽屉打开",document.getElementById("drawer").classList.contains("open"));
+  assert("抽屉含条目明细",document.querySelectorAll("#drawerBody .tbl tr").length>=2);
+  assert("抽屉含关闭订单按钮",Array.from(document.querySelectorAll("#drawerActs .btn")).some(b=>b.textContent==="关闭订单"));
+  closeDrawer();
+  ensureView("cli-panel");
+  assert("CLI 面板 16 命令",document.querySelectorAll("#cli-panel .cli-chip").length===16);
+  assert("CLI JSON 输出渲染",document.querySelectorAll("#cli-panel pre.json").length===2);
+  ensureView("demand-check");
+  assert("需求检查 8 行",document.querySelectorAll("#demand-check tbody tr").length===8);
+  ensureView("order-update");
+  assert("更新订单 3 行",document.querySelectorAll("#order-update tbody tr").length===3);
+  setView("dashboard");
+  const fails=results.filter(r=>!r.ok);
+  const banner=$("selftestBanner");
+  banner.style.display="block";banner.style.cssText="position:fixed;top:0;left:0;right:0;z-index:999;padding:10px 16px;font-size:13px;text-align:center;color:#fff;background:"+(fails.length?"#FF4D4F":"#52C41A");
+  banner.textContent=`自测 ${results.length-fails.length}/${results.length} 通过 · ${results.map(r=>(r.ok?"✅":"❌")+r.name).join(" · ")}`;
+  console.log("SELFTEST:",JSON.stringify(results));
+}
+if(location.search.includes("selftest=1")){
+  window.addEventListener("DOMContentLoaded",()=>setTimeout(runSelftest,200));
+}
+render();
+</script>
+</body>
+</html>
