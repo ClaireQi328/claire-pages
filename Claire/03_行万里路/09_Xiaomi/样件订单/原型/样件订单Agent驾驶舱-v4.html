@@ -1,0 +1,703 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>样件订单工作台 · Agent 驾驶舱 v4</title>
+<style>
+:root{--nav-h:52px;--side-w:240px;--blue:#3370ff;--blue-2:#2b5bdb;--ink:#1f2329;--grey:#646a73;--line:#e5e6eb;--bg:#f5f6f8;--orange:#ff6900;--red:#f53f3f;--green:#00a870;--yellow:#ff9d00}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font:13px/1.6 -apple-system,"PingFang SC","Microsoft YaHei",sans-serif;color:var(--ink);background:var(--bg);min-height:100vh}
+button{font:inherit;cursor:pointer;border:1px solid var(--line);background:#fff;border-radius:4px;padding:6px 14px;color:var(--ink);transition:all .15s}
+button:hover{border-color:var(--blue);color:var(--blue)}
+button.pri{background:var(--blue);border-color:var(--blue);color:#fff}
+button.pri:hover{background:var(--blue-2);color:#fff}
+button.green{background:var(--green);border-color:var(--green);color:#fff}
+button.green:hover{opacity:.9;color:#fff}
+button.warn{background:var(--yellow);border-color:var(--yellow);color:#fff}
+button.danger{background:#fff;border-color:var(--red);color:var(--red)}
+button.mini{padding:3px 10px;font-size:12px}
+input,select{font:inherit;border:1px solid var(--line);border-radius:4px;padding:6px 10px;outline:none;background:#fff;color:var(--ink)}
+input:focus,select:focus{border-color:var(--blue)}
+.tag{display:inline-block;padding:2px 8px;border-radius:3px;font-size:11px;line-height:1.5}
+.t-blue{background:#e8f0ff;color:var(--blue)} .t-green{background:#e5faf1;color:var(--green)}
+.t-red{background:#ffebe8;color:var(--red)} .t-orange{background:#fff4e5;color:#d47f00}
+.t-grey{background:#f2f3f5;color:var(--grey)}
+.hide{display:none!important}
+/* ===== 顶部导航（EP 样式） ===== */
+.topnav{position:fixed;top:0;left:0;right:0;height:var(--nav-h);background:#1c2433;color:#fff;display:flex;align-items:center;padding:0 20px;z-index:100;box-shadow:0 1px 4px rgba(0,0,0,.2)}
+.topnav .mi-logo{width:30px;height:30px;background:var(--orange);border-radius:5px;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:16px;color:#fff;margin-right:10px}
+.topnav .brand{font-size:15px;font-weight:600;margin-right:28px;letter-spacing:.3px}
+.topnav .menu{display:flex;gap:4px;align-items:center}
+.topnav .menu a{color:rgba(255,255,255,.82);text-decoration:none;padding:7px 12px;border-radius:4px;font-size:13px}
+.topnav .menu a:hover,.topnav .menu a.on{background:rgba(255,255,255,.12);color:#fff}
+.topnav .sp{flex:1}
+.topnav .user{color:#fff;font-size:13px;padding:6px 10px;border:1px solid rgba(255,255,255,.3);border-radius:4px}
+/* ===== 布局 ===== */
+.layout{display:flex;padding-top:var(--nav-h);min-height:100vh}
+.side{width:var(--side-w);flex:none;background:#fff;border-right:1px solid var(--line);padding:14px 0 40px;overflow-y:auto}
+.main{flex:1;padding:18px 22px;min-width:0}
+/* ===== 左侧栏（EP 样式：统计卡片 + 项目过滤） ===== */
+.side .grp-title{padding:14px 18px 8px;font-size:13px;font-weight:600;color:#1f2329}
+.side .grp-title:first-child{padding-top:6px}
+.side .stat{padding:2px 18px 2px}
+.side .stat .row{display:flex;justify-content:space-between;align-items:center;padding:6px 8px;border-radius:4px;cursor:pointer;font-size:13px;color:#333}
+.side .stat .row:hover{background:#f2f4f8}
+.side .stat .row.on{background:#e8f0ff;color:var(--blue);font-weight:500}
+.side .stat .row .cnt{color:var(--blue);font-weight:600}
+.side .stat .sub{color:#a4a8b0;font-size:11px;padding-left:8px}
+.side .proj{font-size:12.5px;color:#4e5969;padding:5px 8px;border-radius:4px;cursor:pointer;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.side .proj:hover{background:#f2f4f8;color:var(--blue)}
+.side .proj .n{float:right;color:#86909c;font-size:11px}
+/* ===== 主区内容 ===== */
+.page-tabs{display:flex;gap:0;background:#fff;border:1px solid var(--line);border-radius:6px;overflow:hidden;width:max-content;margin-bottom:16px}
+.page-tabs .pt{padding:9px 22px;font-size:13.5px;color:#4e5969;cursor:pointer;border-right:1px solid var(--line)}
+.page-tabs .pt:last-child{border-right:none}
+.page-tabs .pt.on{background:var(--blue);color:#fff;font-weight:500}
+.panel-head{display:flex;align-items:center;gap:10px;margin-bottom:14px;flex-wrap:wrap}
+.panel-head .title{font-size:16px;font-weight:600}
+.panel-head .badge{font-size:12px;color:var(--grey)}
+.card{background:#fff;border:1px solid var(--line);border-radius:6px;margin-bottom:16px}
+.card .hd{display:flex;align-items:center;gap:10px;padding:12px 16px;border-bottom:1px solid var(--line);font-weight:600;font-size:14px}
+.card .hd .tip{font-weight:400;font-size:12px;color:var(--grey);margin-left:auto}
+.card .bd{padding:14px 16px}
+/* 状态标签条 */
+.status-tabs{display:flex;gap:4px;flex-wrap:wrap;margin-bottom:12px}
+.status-tabs .st{padding:6px 14px;border-radius:4px;font-size:13px;cursor:pointer;border:1px solid transparent;color:#4e5969;background:#f2f3f5}
+.status-tabs .st .c{color:var(--blue);font-weight:600;margin-left:4px}
+.status-tabs .st.on{background:var(--blue);color:#fff;border-color:var(--blue)}
+.status-tabs .st.on .c{color:#fff}
+/* 工具栏 */
+.toolbar{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:12px}
+.toolbar .sp{flex:1}
+/* 表格（EP 风格） */
+.tbl{width:100%;border-collapse:collapse;font-size:12.5px}
+.tbl th{background:#f7f8fa;color:#4e5969;font-weight:500;text-align:left;padding:10px 12px;border-bottom:1px solid var(--line);white-space:nowrap}
+.tbl td{padding:9px 12px;border-bottom:1px solid #f0f1f3;vertical-align:middle}
+.tbl tr:hover td{background:#fafbfd}
+.tbl .num{font-variant-numeric:tabular-nums}
+.tbl .sub-row td{background:#fafbfd;color:var(--grey);font-size:12px;padding:5px 12px}
+.tbl .sub-row td a{color:var(--blue);cursor:pointer;text-decoration:none;margin-right:12px}
+.tbl .sub-row td a:hover{text-decoration:underline}
+.empty{text-align:center;color:#86909c;padding:40px 0;font-size:13px}
+.pager{display:flex;align-items:center;justify-content:flex-end;gap:10px;padding:10px 16px;color:#86909c;font-size:12px}
+/* ===== Skill 执行反馈流水 ===== */
+.skill-flow{display:flex;flex-direction:column;gap:12px}
+.skill-item{border:1px solid var(--line);border-radius:8px;padding:13px 15px;background:#fff}
+.skill-item .head{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.skill-item .no{width:22px;height:22px;border-radius:50%;background:var(--blue);color:#fff;font-size:12px;display:flex;align-items:center;justify-content:center;flex:none}
+.skill-item .nm{font-size:13.5px;font-weight:600}
+.skill-item .cli{font-size:11px;color:var(--grey);background:#f2f3f5;border-radius:4px;padding:2px 8px;font-family:Menlo,Consolas,monospace}
+.skill-item .sum{margin:8px 0 2px;font-size:12.5px;color:#4e5969}
+.skill-item .list{display:flex;flex-direction:column;gap:4px;margin-top:8px}
+.skill-item .li{display:flex;align-items:center;gap:10px;font-size:12.5px;padding:4px 10px;background:#fafbfd;border-radius:5px}
+.skill-item .li .s{width:16px;text-align:center;font-weight:700}
+.skill-item .li .s.ok{color:var(--green)}.skill-item .li .s.warn{color:var(--yellow)}.skill-item .li .s.bad{color:var(--red)}.skill-item .li .s.pend{color:var(--orange)}
+.skill-item .li .k{min-width:190px;color:#1f2329;font-weight:500}
+.skill-item .li .v{color:#4e5969}
+.skill-item .more{margin-top:6px;font-size:11.5px;color:#86909c}
+.skill-item .decide{display:flex;flex-direction:column;gap:10px;margin-top:8px}
+.decide-row{border:1px dashed #d9a05b;background:#fffdf5;border-radius:8px;padding:12px 14px}
+.decide-row .info{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:8px}
+.decide-row .info .pn{color:#4e5969;font-size:12.5px}
+.decide-row .info .tip2{font-size:11px;color:#d47f00;background:#fff4e5;border-radius:4px;padding:2px 8px}
+.decide-row .dsups{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:10px}
+.dsc{border:1px solid var(--line);border-radius:6px;padding:8px 14px;min-width:170px;cursor:pointer;background:#fff}
+.dsc:hover{border-color:var(--blue)}
+.dsc.sel{border-color:var(--green);background:#f5fdf8}
+.dsc .n{font-weight:600}
+.dsc .m{font-size:11.5px;color:var(--grey);margin-top:2px}
+.decide-row .dops{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.done-groups{margin-top:4px;font-size:12px;color:#86909c}
+.done-tip{font-size:12.5px;color:var(--green);padding:8px 0}
+/* ===== KPI ===== */
+.kpi-row{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:16px}
+.kpi{background:#fff;border:1px solid var(--line);border-radius:6px;padding:14px 16px;position:relative;overflow:hidden}
+.kpi .l{font-size:12px;color:var(--grey)}
+.kpi .v{font-size:26px;font-weight:700;color:#1f2329;margin-top:2px;font-variant-numeric:tabular-nums}
+.kpi .v small{font-size:13px;font-weight:400;color:var(--grey)}
+.kpi .d{font-size:11px;color:#86909c;margin-top:2px}
+.kpi::before{content:"";position:absolute;left:0;top:0;bottom:0;width:3px;background:var(--blue)}
+.kpi.o::before{background:var(--orange)} .kpi.g::before{background:var(--green)} .kpi.r::before{background:var(--red)}
+/* 批次流 */
+.flow{display:flex;align-items:center;gap:0;flex-wrap:wrap;margin:4px 0 6px}
+.flow .n{display:flex;flex-direction:column;gap:2px;padding:10px 16px;background:#f7f8fa;border-radius:6px;font-size:12.5px;min-width:130px}
+.flow .n .t{font-weight:600;color:#1f2329}
+.flow .n .s{font-size:11px;color:var(--blue)}
+.flow .n.done{background:#e5faf1}
+.flow .n.done .s{color:var(--green)}
+.flow .n.act{background:#e8f0ff;border:1px solid var(--blue)}
+.flow .arr{color:#c0c4cc;padding:0 8px;font-weight:700}
+/* 待办 */
+.todo-list{display:flex;flex-direction:column;gap:8px}
+.todo-item{display:flex;align-items:center;gap:10px;border:1px solid var(--line);border-radius:6px;padding:10px 12px;background:#fff}
+.todo-item .ic{font-size:18px}
+.todo-item .body{flex:1}
+.todo-item .title{font-weight:600;font-size:13px}
+.todo-item .desc{color:var(--grey);font-size:12px}
+/* 供应商选择（驾驶舱内列表） */
+.sel-flow{display:flex;flex-direction:column;gap:12px}
+.sel-summary{display:flex;gap:10px;margin-bottom:4px}
+.sel-summary .s{background:#f2f3f5;border-radius:4px;padding:5px 12px;font-size:12px}
+.sel-summary .s b{color:var(--blue)}
+.sel-row{border:1px solid var(--line);border-radius:6px;padding:14px;background:#fff}
+.sel-row.done{background:#fafbfd}
+.sel-row .head{display:flex;align-items:center;gap:10px;margin-bottom:10px;flex-wrap:wrap}
+.sel-row .head .g{font-weight:700;color:var(--blue)}
+.sel-row .head .pn{color:#4e5969;font-size:12.5px}
+.sel-row .head .st{margin-left:auto}
+.sel-row .sups{display:flex;gap:10px;flex-wrap:wrap}
+.sup-card{border:1px solid var(--line);border-radius:6px;padding:10px 14px;min-width:190px;cursor:pointer;background:#fff;transition:all .15s}
+.sup-card:hover{border-color:var(--blue)}
+.sup-card.sel{border-color:var(--green);background:#f5fdf8}
+.sup-card .n{font-weight:600}
+.sup-card .n .ok{color:var(--green);margin-left:4px}
+.sup-card .m{font-size:12px;color:var(--grey);margin-top:2px}
+.sup-card .meta{display:flex;gap:8px;font-size:11.5px;color:#4e5969;margin-top:6px}
+.sel-row .ops{display:flex;gap:8px;align-items:center;margin-top:12px}
+.sel-row .share{color:var(--green);font-weight:600;font-size:12.5px;margin-left:auto}
+/* AI 浮窗 */
+.ai-fab{position:fixed;right:26px;bottom:26px;width:52px;height:52px;border-radius:50%;background:linear-gradient(135deg,#3370ff,#7b61ff);color:#fff;font-size:24px;border:none;box-shadow:0 6px 20px rgba(51,112,255,.4);z-index:200}
+.ai-panel{position:fixed;right:26px;bottom:92px;width:380px;max-height:70vh;background:#fff;border-radius:12px;box-shadow:0 12px 40px rgba(0,0,0,.18);z-index:200;display:flex;flex-direction:column;overflow:hidden}
+.ai-panel .ph{padding:12px 16px;background:#1c2433;color:#fff;font-weight:600;display:flex;align-items:center;gap:8px}
+.ai-panel .ph .x{margin-left:auto;cursor:pointer;color:rgba(255,255,255,.7);font-size:16px}
+.ai-msgs{padding:14px;overflow-y:auto;flex:1;display:flex;flex-direction:column;gap:10px;max-height:46vh}
+.ai-msg{max-width:88%}
+.ai-msg .who{font-size:11px;color:var(--grey);margin-bottom:3px}
+.ai-msg .bubble{background:#f2f3f5;border-radius:8px;padding:9px 12px;font-size:12.5px;line-height:1.7}
+.ai-msg.me{align-self:flex-end}
+.ai-msg.me .bubble{background:var(--blue);color:#fff}
+.ai-msg .bubble .tbl{background:#fff;border-radius:6px;overflow:hidden;margin-top:6px}
+.ai-chips{display:flex;gap:6px;flex-wrap:wrap;padding:0 14px 10px}
+.ai-chip{font-size:11.5px;color:var(--blue);border:1px solid #cfe0ff;background:#f4f8ff;padding:4px 10px;border-radius:12px}
+.ai-chip:hover{background:#e8f0ff}
+.ai-in{display:flex;gap:8px;padding:10px 14px;border-top:1px solid var(--line)}
+.ai-in input{flex:1}
+.toast{position:fixed;top:66px;left:50%;transform:translateX(-50%);background:#1c2433;color:#fff;padding:8px 18px;border-radius:6px;font-size:13px;z-index:300;opacity:0;transition:opacity .25s;pointer-events:none}
+.toast.show{opacity:1}
+/* 自测横幅 */
+.selftest{position:fixed;top:0;left:0;right:0;background:var(--green);color:#fff;font-size:12px;padding:5px 14px;z-index:500}
+</style>
+</head>
+<body>
+<div id="selfBanner" class="selftest hide"></div>
+
+<!-- ===== 顶部导航（EP 样式） ===== -->
+<header class="topnav">
+  <div class="mi-logo">MI</div>
+  <div class="brand">小米汽车</div>
+  <nav class="menu">
+    <a href="#" class="on">首页</a>
+    <a href="#">个人中心</a>
+    <a href="#">供应商管理</a>
+    <a href="#">···</a>
+  </nav>
+  <div class="sp"></div>
+  <div class="user">👤 齐岳</div>
+</header>
+
+<div class="layout">
+  <!-- ===== 左侧栏（按页联动） ===== -->
+  <aside class="side" id="side"></aside>
+
+  <!-- ===== 主区 ===== -->
+  <main class="main">
+    <div class="page-tabs">
+      <div class="pt on" data-page="cockpit">驾驶舱</div>
+      <div class="pt" data-page="req">样件需求</div>
+      <div class="pt" data-page="rfq">需求转 RFQ</div>
+      <div class="pt" data-page="order">样件采购订单</div>
+    </div>
+
+    <!-- 页1：驾驶舱（AI 能力入口 + 数据汇总 + Skill 执行反馈） -->
+    <div class="page" id="pg-cockpit">
+      <!-- AI 能力入口 -->
+      <div class="card">
+        <div class="hd">🤖 AI 能力入口<span class="tip">数据汇总 · 一键生成 · 全流程问答</span></div>
+        <div class="bd">
+          <div style="display:flex;gap:8px;flex-wrap:wrap">
+            <input id="aiEntryIn" placeholder="问我：今日汇总 / 批次风险 / 供应商推荐…" style="flex:1;min-width:240px" onkeydown="if(event.key==='Enter')askEntry($('aiEntryIn').value)">
+            <button class="pri" onclick="askEntry($('aiEntryIn').value)">发送</button>
+          </div>
+          <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:12px">
+            <button class="mini" onclick="askEntry('生成今日汇总')">📊 生成今日汇总</button>
+            <button class="mini" onclick="askEntry('批次风险分析')">⚠️ 批次风险分析</button>
+            <button class="mini" onclick="askEntry('供应商推荐')">🏭 供应商推荐</button>
+            <button class="mini" onclick="askEntry('草稿订单建议')">📝 草稿订单建议</button>
+            <button class="mini" onclick="askEntry('待办事项汇总')">⏰ 待办事项汇总</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- KPI 数据汇总 -->
+      <div class="kpi-row" style="grid-template-columns:repeat(6,1fr)">
+        <div class="kpi"><div class="l">今日导入</div><div class="v">23 <small>条</small></div><div class="d">可导入 20 · 异常 3</div></div>
+        <div class="kpi g"><div class="l">需求检查</div><div class="v">20 <small>PASS</small></div><div class="d">WARN 1 · REJECT 1</div></div>
+        <div class="kpi"><div class="l">可下单</div><div class="v">12 <small>条</small></div><div class="d">query-ready</div></div>
+        <div class="kpi o"><div class="l">已创建订单</div><div class="v">4 <small>笔</small></div><div class="d">提交 2 · 草稿 2</div></div>
+        <div class="kpi r"><div class="l">待决策</div><div class="v" id="kpiDecide">1 <small>组</small></div><div class="d">一品多点</div></div>
+        <div class="kpi"><div class="l">人工介入率</div><div class="v">30% <small>→≤15%</small></div><div class="d">目标闭环 T+1</div></div>
+      </div>
+
+      <!-- Skill 执行反馈流水 -->
+      <div class="card">
+        <div class="hd">⚙️ Skill 执行反馈<span class="tip">每个 Skill 执行后反馈结果列表；一品多点先决策再执行</span></div>
+        <div class="bd">
+          <div class="toolbar" style="margin-bottom:14px">
+            <select id="batchSel" style="min-width:200px"><option>ORD-20260824-001</option><option>ORD-20260823-001</option></select>
+            <button class="pri" onclick="runBatch()">▶ 执行今日批次</button>
+            <span class="sp"></span>
+            <span class="tag t-blue" id="batchStat">顺序执行：导入 → 检查 → 可下单 → 创建 → 决策 → 提交查询</span>
+          </div>
+          <div class="skill-flow" id="skillFlow"></div>
+        </div>
+      </div>
+
+      <!-- 待办 -->
+      <div class="card">
+        <div class="hd">⏰ 待办队列<span class="tip">失败 / 草稿 / 待决策 自动汇聚</span></div>
+        <div class="bd"><div class="todo-list" id="todoList"></div></div>
+      </div>
+    </div>
+
+    <!-- 页2：样件需求（EP 原样复制） -->
+    <div class="page hide" id="pg-req">
+      <div class="panel-head">
+        <span class="title">样件需求</span>
+        <span class="badge">采购需求任务 · EP 系统原样</span>
+      </div>
+      <div class="card">
+        <div class="bd">
+          <div class="status-tabs" id="reqTabs">
+            <div class="st on">全部 <span class="c">99+</span></div>
+            <div class="st">待下单 <span class="c">99+</span></div>
+            <div class="st">下单中 <span class="c">99+</span></div>
+            <div class="st">已下单 <span class="c">99+</span></div>
+            <div class="st">退回 <span class="c">99+</span></div>
+          </div>
+          <div class="toolbar">
+            <input placeholder="请输入" style="width:200px">
+            <a href="#" style="color:var(--blue);font-size:12.5px">高级查询</a>
+            <span class="sp"></span>
+            <label style="font-size:12.5px;display:flex;align-items:center;gap:4px;color:#4e5969"><input type="checkbox" checked> 仅显示最新版</label>
+            <button>导入采购需求更新采购员</button>
+            <button>下载模板</button>
+          </div>
+          <div style="overflow-x:auto">
+            <table class="tbl" id="reqTbl">
+              <thead><tr><th>序号</th><th>采购需求</th><th>需求行号</th><th>版本</th><th>操作</th></tr></thead>
+              <tbody id="reqBody"></tbody>
+            </table>
+          </div>
+          <div class="pager">第 1 - 10 条，共 99+ 条　<b>10</b> 条/页</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 页3：需求转 RFQ（EP 原样复制） -->
+    <div class="page hide" id="pg-rfq">
+      <div class="panel-head">
+        <span class="title">需求转 RFQ</span>
+        <span class="badge">创建快速定点 RFQ · 基于样件需求</span>
+      </div>
+      <div class="card">
+        <div class="bd">
+          <div class="toolbar" style="margin-bottom:14px">
+            <span class="tag t-blue">已勾选 0 条</span>
+            <button class="pri" onclick="toast('已创建快速定点 RFQ')">创建快速定点 RFQ</button>
+            <button onclick="toast('已发起询报价')">发起询报价</button>
+            <span class="sp"></span>
+            <input placeholder="请输入" style="width:200px">
+            <a href="#" style="color:var(--blue);font-size:12.5px">高级查询</a>
+          </div>
+          <div style="overflow-x:auto">
+            <table class="tbl" id="rfqTbl">
+              <thead><tr><th></th><th>序号</th><th>采购需求</th><th>需求行号</th><th>版本</th><th>项目编号</th><th>零部件</th><th>需求数量</th><th>样件类型</th><th>要求到货</th><th>采购员</th><th>操作</th></tr></thead>
+              <tbody id="rfqBody"></tbody>
+            </table>
+          </div>
+          <div class="pager">第 1 - 8 条，共 8 条　<b>10</b> 条/页</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 页4：样件采购订单（EP 原样复制） -->
+    <div class="page hide" id="pg-order">
+      <div class="panel-head">
+        <span class="title">样件采购订单</span>
+        <span class="badge">采购订单列表 · EP 系统原样</span>
+      </div>
+      <div class="card">
+        <div class="bd">
+          <div class="status-tabs" id="ordTabs">
+            <div class="st on">全部 <span class="c">0</span></div>
+            <div class="st">已提交审批 <span class="c">2</span></div>
+            <div class="st">草稿待核实 <span class="c">2</span></div>
+            <div class="st">失败 <span class="c">1</span></div>
+            <div class="st">待选择 <span class="c">0</span></div>
+            <div class="st">审批中 <span class="c">2</span></div>
+            <div class="st">待供应商确认 <span class="c">1</span></div>
+            <div class="st">供应商已确认 <span class="c">1</span></div>
+          </div>
+          <div class="toolbar">
+            <input placeholder="请输入关键字搜索" style="width:220px">
+            <a href="#" style="color:var(--blue);font-size:12.5px">高级查询</a>
+            <span class="sp"></span>
+            <button>删除草稿</button>
+            <button>更新订单</button>
+            <button>关闭订单</button>
+            <button>恢复订单</button>
+            <button>导出订单</button>
+            <button>转 派</button>
+          </div>
+          <div style="overflow-x:auto">
+            <table class="tbl">
+              <thead><tr><th>序号</th><th>订单编号</th><th>版本</th><th>项目</th><th>供应商</th><th>采购金额</th><th>历史版本</th></tr></thead>
+              <tbody><tr><td colspan="7"><div class="empty">暂无数据（第 0 - 0 条，共 0 条）</div></td></tr></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+  </main>
+</div>
+
+<!-- AI 助手 -->
+<button class="ai-fab" id="aiFab" onclick="toggleAI()">🤖</button>
+<div class="ai-panel hide" id="aiPanel">
+  <div class="ph">🤖 AI 助手 · 样件订单<span class="x" onclick="toggleAI()">✕</span></div>
+  <div class="ai-msgs" id="aiMsgs"></div>
+  <div class="ai-chips">
+    <span class="ai-chip" onclick="aiAnswer('今日订单日报')">今日订单日报</span>
+    <span class="ai-chip" onclick="aiAnswer('供应商推荐')">供应商推荐</span>
+    <span class="ai-chip" onclick="aiAnswer('订单草稿建议')">订单草稿建议</span>
+    <span class="ai-chip" onclick="aiAnswer('批次风险')">批次风险</span>
+  </div>
+  <div class="ai-in">
+    <input id="aiInput" placeholder="问我：今日批次、订单状态、供应商推荐…" onkeydown="if(event.key==='Enter')askAI()">
+    <button class="pri" onclick="askAI()">发送</button>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+/* ================= 工具 ================= */
+function $(id){return document.getElementById(id)}
+function esc(s){return String(s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;")}
+function tag(h){var d=document.createElement("div");d.innerHTML=h.trim();return d.firstChild}
+var toastT;
+function toast(m){var t=$("toast");t.textContent=m;t.classList.add("show");clearTimeout(toastT);toastT=setTimeout(function(){t.classList.remove("show")},2200)}
+
+/* ================= 数据 ================= */
+var ORDERS=[
+ {o:"4900037888",v:"V3.1",proj:"SU7-Max",sup:"博世",amt:12000,st:"已提交审批",src:"create-order"},
+ {o:"4900037889",v:"V3.1",proj:"SU7-Max",sup:"大陆集团",amt:24800,st:"已提交审批",src:"create-order"},
+ {o:"4900037890",v:"V3.1",proj:"SU7-Max",sup:"敏实集团",amt:8600,st:"草稿待核实",src:"create-order"},
+ {o:"4900037891",v:"V3.1",proj:"SU7-Max",sup:"拓普集团",amt:8900,st:"草稿待核实",src:"create-order"},
+ {o:"4900037892",v:"V2.8",proj:"YU7",sup:"福耀玻璃",amt:5200,st:"失败",src:"create-order"},
+ {o:"4900037893",v:"V2.8",proj:"YU7",sup:"德赛西威",amt:14800,st:"审批中",src:"create-order"},
+ {o:"4900037894",v:"V2.8",proj:"YU7",sup:"均胜电子",amt:15000,st:"审批中",src:"create-order"},
+ {o:"4900037895",v:"V3.1",proj:"SU7-Max",sup:"采埃孚",amt:21800,st:"待供应商确认",src:"create-order"},
+ {o:"4900037896",v:"V2.8",proj:"YU7",sup:"信义玻璃",amt:5400,st:"供应商已确认",src:"create-order"}
+];
+var REQUESTS=[
+ {req:"CGFP2026082700001",ln:10,ver:"V2",p:"KunLun10系列",part:"前大灯总成",qty:50,type:"硬模",date:"2026-07-31",buyer:"李召"},
+ {req:"CGFP2026082700002",ln:10,ver:"V2",p:"123",part:"后尾灯总成",qty:50,type:"硬模",date:"2026-08-05",buyer:"庄坤"},
+ {req:"CGFP2026082700003",ln:10,ver:"V2",p:"122",part:"门内饰板左",qty:80,type:"软模",date:"2026-08-10",buyer:"李召"},
+ {req:"CGFP2026082700004",ln:10,ver:"V2",p:"MX14-G",part:"门内饰板右",qty:80,type:"软模",date:"2026-08-10",buyer:"李召"},
+ {req:"CGFP2026082700005",ln:10,ver:"V2",p:"Modena出口",part:"仪表板骨架",qty:30,type:"硬模",date:"2026-08-12",buyer:"庄坤"},
+ {req:"CGFP2026082700006",ln:10,ver:"V2",p:"Ultra出口",part:"保险杠本体",qty:60,type:"硬模",date:"2026-08-15",buyer:"李召"},
+ {req:"CGFP2026090400001",ln:10,ver:"V2",p:"Mann",part:"天窗总成",qty:10,type:"快速样件",date:"2026-08-20",buyer:"王楠"},
+ {req:"CGFP2026090400002",ln:10,ver:"V2",p:"Modena 28A",part:"标准件包",qty:200,type:"标准件",date:"2026-08-22",buyer:"王楠"}
+];
+
+var SELGROUPS=[
+ {g:"G009",pn:"P2026080123 · EPS控制器(二供)",supps:["博世","大陆集团"],sel:["博世","大陆集团"],share:"博世60% / 大陆40%",done:"已选择"},
+ {g:"G010",pn:"P2026080114 · 减震支架",supps:["敏实集团","拓普集团"],sel:[],share:"",done:""},
+ {g:"G011",pn:"P2026080115 · 前挡玻璃",supps:["福耀玻璃","信义玻璃"],sel:[],share:"",done:""},
+ {g:"G012",pn:"P2026080116 · 热管理阀",supps:["德赛西威","均胜电子"],sel:[],share:"",done:""},
+ {g:"G013",pn:"P2026080117 · 线控转向",supps:["博世","采埃孚"],sel:[],share:"",done:"超时转待办"}
+];
+var SUPPLIERS={
+ "博世":{price:12000,lead:14,score:96,lv:"S"},"大陆集团":{price:12400,lead:16,score:94,lv:"S"},
+ "敏实集团":{price:8600,lead:20,score:88,lv:"A"},"拓普集团":{price:8900,lead:22,score:85,lv:"A"},
+ "福耀玻璃":{price:5200,lead:12,score:95,lv:"S"},"信义玻璃":{price:5400,lead:18,score:90,lv:"S"},
+ "德赛西威":{price:14800,lead:19,score:83,lv:"A"},"均胜电子":{price:15000,lead:25,score:80,lv:"B"},
+ "采埃孚":{price:21800,lead:21,score:86,lv:"A"}
+};
+var TODOS=[
+ {ic:"⏳",t:"批次 ORD-20260824-001 · 12 条可下单待确认",d:"query-ready 完成 · 等待用户确认后执行 create-order",act:"去确认",page:"cockpit"},
+ {ic:"🤝",t:"组 G009 · EPS控制器(二供) 待分配",d:"博世 vs 大陆集团 · 一品多点约 10% 场景",act:"去选择",page:"cockpit"},
+ {ic:"⚠️",t:"4900037892 · 福耀玻璃 订单创建失败",d:"create-order 返回失败 · 已转人工核实",act:"查看",page:"cockpit"},
+ {ic:"📝",t:"2 条草稿待核实（4900037890/891）",d:"价格与预算一致，等待提交审批",act:"查看",page:"cockpit"}
+];
+
+/* ================= 页面切换 ================= */
+var PAGES=["cockpit","req","rfq","order"];
+var SIDE={
+ cockpit:{title:"工作台总览",stats:[["全部采购订单","38,193"],["我的采购订单","0","待我处理"],["待下单","5,760"],["待交货","6,358"]],groups:[["两周内未下单","99+"],["一个月内未下单","99+"],["超出一个月未下单","99+"]]},
+ req:{title:"样件需求任务",stats:[["待交货","6,358"],["待下单","5,760"]],groups:[["交货超期","99+"],["两周内要求到货","99+"],["一个月内要求到货","99+"],["一个月以上要求到货","99+"]]},
+ rfq:{title:"样件需求任务",stats:[["待交货","6,358"],["待下单","5,760"]],groups:[["交货超期","99+"],["两周内要求到货","99+"],["一个月内要求到货","99+"],["一个月以上要求到货","99+"]]},
+ order:{title:"样件采购订单",stats:[["全部采购订单","38,193"],["我的采购订单","0"]],groups:[["已超期","99+"],["两周内要求到货","99+"],["一个月内要求到货","99+"],["一个月以上要求到货","99+"]]}
+};
+var PROJS=["全部 (0/39)","KunLun10系列 (8770)","123 (8850)","122 (8041)","MX14-G (8041)","Modena出口车型 (8041)","Ultra出口车型 (8041)","Mann (8043)","Modena 28A国内左舵 (8041)","Modena-LUX (8043)","Le Mans-27B (8043)","MS14 (8041)","KunLun00 (8047)","Ultron (8290)","MX11 (8043)","L91M (8290)","MM21","MS13-L","Modena 25C","MS12","KunLun-30-X","KunLun20","MX11","Le Mans","MS11-P","MS11"];
+
+function renderSide(pg){
+  var s=SIDE[pg];
+  var h='<div class="grp-title">'+s.title+'</div><div class="stat">';
+  h+=s.stats.map(function(x){return '<div class="row"><span>'+x[0]+'</span><span class="cnt">'+x[1]+'</span></div>'}).join("");
+  h+='</div><div class="grp-title">待办预警</div><div class="stat">';
+  h+=s.groups.map(function(x){return '<div class="row"><span>'+x[0]+'</span><span class="cnt">'+x[1]+'</span></div>'}).join("");
+  h+='</div><div class="grp-title">项目过滤</div>';
+  h+=PROJS.slice(0,14).map(function(x,i){
+    var nm=x.replace(/\s*\(\d+.*\)/,""), n=x.match(/\((\d+[^)]*)\)/);
+    return '<div class="proj'+(i===0?' on':'')+'">'+nm+'<span class="n">'+n[1]+'</span></div>'}).join("");
+  $("side").innerHTML=h;
+}
+function switchPage(p){
+  document.querySelectorAll(".pt").forEach(function(x){x.classList.toggle("on",x.dataset.page===p)});
+  PAGES.forEach(function(x){$("pg-"+x).classList.toggle("hide",x!==p)});
+  renderSide(p);
+}
+document.querySelectorAll(".pt").forEach(function(x){x.addEventListener("click",function(){switchPage(x.dataset.page)})});
+
+/* ================= 驾驶舱：Skill 执行反馈流水 ================= */
+var SKILLS=[
+ {no:"①",name:"需求导入",cli:"dx-ep sapo order import-json",st:"成功",tag:"t-green",sum:"导入 20 条 · 异常 3 条",list:[
+   ["包 10 · P000000711001","10 个 · 硬模 · 2026-07-31","✓"],
+   ["包 10 · P000000711002","30 个 · 软模 · 2026-08-05","✓"],
+   ["包 11 · P000000711101","50 个 · 硬模 · 2026-08-10","✓"],
+   ["包 11 · P000000711102","80 个 · 软模 · 2026-08-10","✓"],
+   ["包 12 · P000000711201","60 个 · 硬模 · 2026-08-12","✓"]
+ ],more:"等 20 条已导入 · 3 条异常（EP 账号缺失，待补）"},
+ {no:"②",name:"需求检查",cli:"demand-check",st:"通过",tag:"t-green",sum:"PASS 20 · WARN 1 · REJECT 1",list:[
+   ["PASS","20 条 · 字段完整 / 数量 / 预算一致","✓"],
+   ["WARN","P2026080106 · 需求数量 60 超预算行 50","⚠"],
+   ["REJECT","P2026080107 · 无价格，退回补充","✕"]
+ ],more:"检查口径：必填 / 数量 / EP账号 / 日期 / 预算一致 / 样件用途"},
+ {no:"③",name:"查询可下单",cli:"dx-ep sapo order query-ready",st:"完成",tag:"t-green",sum:"12 条可下单",list:[
+   ["P2026080101 · 前大灯总成","博世 · 自动下单 AU","✓"],
+   ["P2026080102 · 后尾灯总成","博世 · 自动下单 AU","✓"],
+   ["P2026080103 · 门内饰板左","敏实集团 · 自动下单 AU","✓"],
+   ["P2026080104 · 门内饰板右","敏实集团 · 自动下单 AU","✓"],
+   ["P2026080105 · 仪表板骨架","拓普集团 · 自动下单 AU","✓"]
+ ],more:"等 12 条满足自动下单条件"},
+ {no:"④",name:"创建订单",cli:"dx-ep sapo order create-order",st:"部分失败",tag:"t-orange",sum:"已提交审批 2 · 草稿待核实 2 · 失败 1",list:[
+   ["4900037888 · 博世 · 12,000","已提交审批","✓"],
+   ["4900037889 · 大陆集团 · 24,800","已提交审批","✓"],
+   ["4900037890 · 敏实集团 · 8,600","草稿待核实 · 待提交","⏳"],
+   ["4900037891 · 拓普集团 · 8,900","草稿待核实 · 待提交","⏳"],
+   ["4900037892 · 福耀玻璃 · 5,200","失败 · 价格不一致 · 人工核实","✕"]
+ ],more:"失败单自动进入待办队列"},
+ {no:"⑤",name:"供应商选择（一品多点）",cli:"人工决策 → create-order",st:"待决策",tag:"t-orange",sum:"待决策 1 组 · 已处理 4 组",decide:true},
+ {no:"⑥",name:"当天提交查询",cli:"dx-ep sapo order submit-list",st:"完成",tag:"t-green",sum:"今日提交 5 笔",list:[
+   ["4900037888","liwenjun8 · 09:02 · 已提交审批","✓"],
+   ["4900037889","liwenjun8 · 09:03 · 已提交审批","✓"],
+   ["4900037893","wangwei7 · 09:40 · 审批中","✓"],
+   ["4900037894","wangwei7 · 09:41 · 审批中","✓"],
+   ["4900037896","zhangli3 · 10:12 · 供应商已确认","✓"]
+ ],more:"供日报 / 审计 / 排查使用"}
+];
+var SELGROUPS=[
+ {g:"G009",pn:"P2026080123 · EPS控制器(二供)",supps:["博世","大陆集团"],sel:[],share:"",done:""},
+ {g:"G010",pn:"P2026080114 · 减震支架",supps:["敏实集团","拓普集团"],sel:["敏实集团","拓普集团"],share:"先选 60% / 次选 40%",done:"已选择"},
+ {g:"G011",pn:"P2026080115 · 前挡玻璃",supps:["福耀玻璃","信义玻璃"],sel:["福耀玻璃","信义玻璃"],share:"先选 60% / 次选 40%",done:"已选择"},
+ {g:"G012",pn:"P2026080116 · 热管理阀",supps:["德赛西威","均胜电子"],sel:["德赛西威","均胜电子"],share:"均分 50% / 50%",done:"已选择"},
+ {g:"G013",pn:"P2026080117 · 线控转向",supps:["博世","采埃孚"],sel:["博世","采埃孚"],share:"单供 100%",done:"已选择"}
+];
+var SUPPLIERS={
+ "博世":{price:12000,lead:14,score:96,lv:"S"},"大陆集团":{price:12400,lead:16,score:94,lv:"S"},
+ "敏实集团":{price:8600,lead:20,score:88,lv:"A"},"拓普集团":{price:8900,lead:22,score:85,lv:"A"},
+ "福耀玻璃":{price:5200,lead:12,score:95,lv:"S"},"信义玻璃":{price:5400,lead:18,score:90,lv:"S"},
+ "德赛西威":{price:14800,lead:19,score:83,lv:"A"},"均胜电子":{price:15000,lead:25,score:80,lv:"B"},
+ "采埃孚":{price:21800,lead:21,score:86,lv:"A"}
+};
+function renderSkillFlow(){
+  var pend=SELGROUPS.filter(function(g){return !g.done}).length;
+  var done=SELGROUPS.length-pend;
+  $("kpiDecide").innerHTML=pend+" <small>组</small>";
+  var sk=SKILLS.map(function(s){
+    var h='<div class="skill-item">'+
+      '<div class="head"><span class="no">'+s.no+'</span><b class="nm">'+s.name+'</b><code class="cli">'+s.cli+'</code>'+
+      '<span class="tag '+s.tag+'" style="margin-left:auto">'+s.st+'</span></div>'+
+      '<div class="sum">'+s.sum+'</div>';
+    if(s.decide){
+      h+='<div class="decide" id="decideWrap">'+(pend?SELGROUPS.filter(function(g){return !g.done}).map(decideCard).join(""):'<div class="done-tip">✅ 全部已决策，无待选择组</div>')+
+        '<div class="done-groups">已处理 '+done+' 组：'+SELGROUPS.filter(function(g){return g.done}).map(function(g){return g.g+"("+g.share+")"}).join("、")+'</div></div>';
+    }else{
+      h+='<div class="list">'+s.list.map(function(r){return '<div class="li"><span class="s '+r[2].replace("✓","ok").replace("⚠","warn").replace("✕","bad").replace("⏳","pend")+'">'+r[2]+'</span><span class="k">'+r[0]+'</span><span class="v">'+r[1]+'</span></div>'}).join("")+
+        '<div class="more">'+s.more+'</div></div>';
+    }
+    h+='</div>';
+    return h;
+  }).join("");
+  $("skillFlow").innerHTML=sk;
+}
+function decideCard(g){
+  return '<div class="decide-row" data-g="'+g.g+'">'+
+    '<div class="info"><b>组 '+g.g+'</b><span class="pn">'+g.pn+'</span><span class="tip2">一品多点 · 需人工决策后执行</span></div>'+
+    '<div class="dsups">'+g.supps.map(function(sn){
+      var s=SUPPLIERS[sn],picked=g.sel.indexOf(sn)>=0;
+      return '<div class="dsc'+(picked?" sel":"")+'" onclick="pickDecide(\''+g.g+'\',\''+sn+'\')"><div class="n">'+sn+(picked?" ✓":"")+'</div><div class="m">报价 '+s.price.toLocaleString()+' · '+s.lead+' 天 · '+s.score+' 分 · '+s.lv+' 级</div></div>';
+    }).join("")+'</div>'+
+    '<div class="dops"><select class="share-sel" style="min-width:140px"><option>先选 60% / 次选 40%</option><option>均分 50% / 50%</option><option>单供 100%</option></select>'+
+    '<button class="green mini" onclick="confirmDecision(\''+g.g+'\')">确认分配并执行</button>'+
+    '<button class="mini" onclick="skipDecision(\''+g.g+'\')">暂不下单</button></div></div>';
+}
+function pickDecide(gId,sn){
+  var g=SELGROUPS.find(function(x){return x.g===gId});
+  if(g.done)return;
+  var i=g.sel.indexOf(sn);
+  if(i>=0)g.sel.splice(i,1);else if(g.sel.length<2)g.sel.push(sn);else{g.sel.shift();g.sel.push(sn)}
+  renderSkillFlow();
+}
+function confirmDecision(gId){
+  var g=SELGROUPS.find(function(x){return x.g===gId});
+  if(!g.sel.length){toast("请先选择供应商");return}
+  var share=g.sel.length===2?"先选 60% / 次选 40%":"单供 100%";
+  if(g.sel.length===2){
+    var sel=document.querySelector('.decide-row[data-g="'+gId+'"] .share-sel').value;
+    share=sel==="均分 50% / 50%"?"均分 50% / 50%":sel==="单供 100%"?"单供 100%":"先选 60% / 次选 40%";
+  }
+  g.done="已选择";g.share=g.sel.map(function(sn){return sn+(share.indexOf("均分")>=0?" 50%":share.indexOf("单供")>=0?" 100%":g.sel.length===2&&g.sel[0]===sn?" 60%":" 40%")}).join(" / ");
+  SKILLS[4].st="已执行";SKILLS[4].tag="t-green";SKILLS[4].sum="已分配：组 "+gId+" "+g.share+"（共 5 组全部处理）";
+  renderSkillFlow();
+  toast("组 "+gId+" 已确认分配并执行："+g.share);
+}
+function skipDecision(gId){
+  var g=SELGROUPS.find(function(x){return x.g===gId});g.done="已选择";g.share="暂不下单 · 转询价";
+  SKILLS[4].st="已执行";SKILLS[4].tag="t-green";SKILLS[4].sum="组 "+gId+" 暂不下单，转询价跟踪";
+  renderSkillFlow();
+  toast("组 "+gId+" 暂不下单，转询价跟踪");
+}
+
+/* ================= 驾驶舱：供应商选择（列表） ================= */
+function renderSelFlow(){
+  var pend=SELGROUPS.filter(function(g){return !g.done}).length;
+  var done=SELGROUPS.length-pend;
+  $("selFlow").innerHTML=
+    '<div class="sel-summary"><div class="s">待选择 <b>'+pend+'</b> 组</div><div class="s">已处理 <b>'+done+'</b> 组</div><div class="s">共 <b>'+SELGROUPS.length+'</b> 组 · 一日多单</div></div>'+
+    SELGROUPS.map(function(g){
+      var pcls=g.done==="已选择"?"t-green":g.done==="超时转待办"?"t-red":"t-orange";
+      return '<div class="sel-row'+(g.done?" done":"")+'" data-g="'+g.g+'">'+
+        '<div class="head"><span class="g">组 '+g.g+'</span><span class="pn">'+g.pn+'</span>'+
+        (g.done?'<span class="tag '+pcls+'">'+g.done+'</span>':'<span class="tag t-orange">待选择</span>')+
+        (g.share?'<span class="tag t-blue" style="margin-left:auto">'+g.share+'</span>':'')+'</div>'+
+        '<div class="sups">'+g.supps.map(function(sn){
+          var s=SUPPLIERS[sn], picked=g.sel.indexOf(sn)>=0;
+          return '<div class="sup-card'+(picked?" sel":"")+'" onclick="pickSup(\''+g.g+'\',\''+sn+'\')"><div class="n">'+sn+(picked?'<span class="ok">✓</span>':'')+'</div><div class="m">报价 '+s.price.toLocaleString()+' · '+s.lead+' 天 · '+s.score+' 分</div><div class="meta"><span class="tag '+(s.lv==="S"?"t-red":s.lv==="A"?"t-blue":"t-grey")+'">'+s.lv+' 级</span></div></div>'}).join("")+'</div>'+
+        (g.done?'<div class="ops"><span class="share">'+g.share+'</span></div>':
+        '<div class="ops"><select class="share-sel" style="min-width:150px"><option>先选 60% / 次选 40%</option><option>均分 50% / 50%</option><option>单供 100%</option></select>'+
+        '<button class="green mini" onclick="confirmGroup(\''+g.g+'\')">确认分配</button>'+
+        '<button class="mini" onclick="skipGroup(\''+g.g+'\')">暂不下单</button></div>')+
+        '</div>'}).join("");
+}
+function pickSup(gId,sn){
+  var g=SELGROUPS.find(function(x){return x.g===gId});
+  if(g.done)return;
+  var i=g.sel.indexOf(sn);
+  if(i>=0)g.sel.splice(i,1);else if(g.sel.length<2)g.sel.push(sn);else{g.sel.shift();g.sel.push(sn)}
+  renderSelFlow();
+}
+function confirmGroup(gId){
+  var g=SELGROUPS.find(function(x){return x.g===gId});
+  if(!g.sel.length){toast("请先选择供应商");return}
+  var share=g.sel.length===2?"先选 60% / 次选 40%":"单供 100%";
+  if(g.sel.length===2){
+    var sel=$("selFlow").querySelector('.sel-row[data-g="'+gId+'"] .share-sel').value;
+    share=sel==="均分 50% / 50%"?"均分 50% / 50%":sel==="单供 100%"?"单供 100%":"先选 60% / 次选 40%";
+  }
+  g.done="已选择";g.share=g.sel.map(function(sn){return sn+(share.indexOf("均分")>=0?" 50%":share.indexOf("单供")>=0?" 100%":g.sel.length===2&&g.sel[0]===sn?" 60%":" 40%")}).join(" / ");
+  renderSelFlow();toast("组 "+gId+" 已确认分配："+g.share);
+}
+function skipGroup(gId){var g=SELGROUPS.find(function(x){return x.g===gId});g.done="已选择";g.share="暂不下单 · 转询价";renderSelFlow();toast("组 "+gId+" 暂不下单，转询价跟踪")}
+
+/* ================= 驾驶舱：批次/待办 ================= */
+function runBatch(){
+  var b=$("batchSel").value;
+  toast("批次 "+b+" 已执行：导入 → 检查 → 可下单 → 创建 → 决策 → 提交查询");
+  $("batchStat").textContent="已执行 · 2 草稿待核实 / 1 失败 / 1 组待决策";
+  renderTodos();
+}
+function renderTodos(){
+  $("todoList").innerHTML=TODOS.map(function(t){
+    return '<div class="todo-item"><div class="ic">'+t.ic+'</div><div class="body"><div class="title">'+t.t+'</div><div class="desc">'+t.d+'</div></div>'+
+      '<button class="mini pri" onclick="toast(\''+t.act+'：已进入对应模块\')">'+t.act+'</button></div>';
+  }).join("");
+}
+
+/* ================= EP 原样页数据 ================= */
+function renderReq(){
+  $("reqBody").innerHTML=REQUESTS.map(function(r,i){
+    return '<tr><td class="num">'+(i+1)+'</td><td><a href="#" style="color:var(--blue)" onclick="event.preventDefault();toast(\'打开 '+r.req+'\')">'+r.req+'</a><div style="color:#86909c;font-size:11px">'+r.p+'</div></td><td class="num">'+r.ln+'</td><td>'+r.ver+'</td><td><button class="mini pri" onclick="toast(\'创建样件订单：'+r.req+'\')">创建样件订单</button></td></tr>'+
+      '<tr class="sub-row"><td colspan="2"></td><td colspan="3"><a onclick="toast(\'升版 '+r.req+'\')">升版</a><a onclick="toast(\'查看明细\')">查看明细</a><a onclick="toast(\'转RFQ\')">转 RFQ</a><span>'+r.part+' · 需求 '+r.qty+' 个 · '+r.type+'</span></td></tr>'}).join("");
+}
+function renderRfq(){
+  $("rfqBody").innerHTML=REQUESTS.map(function(r,i){
+    return '<tr><td><input type="checkbox"></td><td class="num">'+(i+1)+'</td><td>'+r.req+'</td><td class="num">'+r.ln+'</td><td>'+r.ver+'</td><td>'+r.p+'</td><td>'+r.part+'</td><td class="num">'+r.qty+'</td><td>'+r.type+'</td><td>'+r.date+'</td><td>'+r.buyer+'</td><td><button class="mini" onclick="toast(\'RFQ：'+r.req+'\')">转 RFQ</button></td></tr>'}).join("");
+}
+
+/* ================= AI 助手 ================= */
+function toggleAI(){$("aiPanel").classList.toggle("hide")}
+function aiSay(m){
+  var d=tag('<div class="ai-msg"><div class="who">AI</div><div class="bubble"></div></div>');
+  d.querySelector(".bubble").innerHTML=m;$("aiMsgs").appendChild(d);$("aiMsgs").scrollTop=99999;
+}
+function aiMe(m){var d=tag('<div class="ai-msg me"><div class="who">你</div><div class="bubble">'+esc(m)+'</div></div>');$("aiMsgs").appendChild(d);$("aiMsgs").scrollTop=99999}
+function aiAnswer(kw){
+  var q=$("aiInput");if(kw){q.value=kw}
+  askAI();
+}
+function askAI(){
+  var q=$("aiInput").value.trim();if(!q)return;
+  aiMe(q);
+  var r=aiReply(q);
+  aiSay(r);
+  $("aiInput").value="";
+}
+function aiReply(q){
+  if(q.indexOf("汇总")>=0||q.indexOf("日报")>=0){
+    return '<b>📊 今日汇总（ORD-20260824-001）</b><br>'+
+      '导入 <b>20</b> 条（异常 3）→ 检查 <b>20</b> PASS → 可下单 <b>12</b> 条 → 已创建 <b>4</b> 笔（提交 2 · 草稿 2 · 失败 1）<br>'+
+      '待决策 <b>1</b> 组（G009 一品多点）· 人工介入率 30%（目标 ≤15%）。';
+  }
+  if(q.indexOf("待办")>=0){
+    return '<b>⏰ 待办事项汇总</b><br>① 组 G009 EPS控制器(二供) 待供应商分配<br>② 2 条草稿待提交审批（4900037890/891）<br>③ 1 条订单创建失败待人工核实（4900037892 福耀玻璃）';
+  }
+  if(q.indexOf("供应商")>=0||q.indexOf("推荐")>=0){
+    var pend=SELGROUPS.filter(function(g){return !g.done});
+    return '<b>🏭 供应商推荐（评分优先）</b><br>博世 96 分（S）· 福耀玻璃 95 分（S）· 大陆集团 94 分（S）<br>待决策：'+pend.map(function(g){return "组 "+g.g}).join("、")+'；建议按评分 + 交期组合分配。';
+  }
+  if(q.indexOf("草稿")>=0)return '<b>📝 订单草稿建议</b><br>4900037890（敏实 8,600）与 4900037891（拓普 8,900）预算一致，建议提交审批；注意 4900037892（福耀）创建失败需人工核实价格。';
+  if(q.indexOf("风险")>=0||q.indexOf("批次")>=0)return '<b>⚠️ 批次风险</b><br>① G013 线控转向超时转待办；② 福耀玻璃订单失败（价格不一致）；③ 人工介入率 30% 高于目标 15%，建议下批优先核对唯一价。';
+  return '<b>🤖 AI 助手</b><br>可问我：今日汇总 / 待办事项汇总 / 供应商推荐 / 订单草稿建议 / 批次风险。';
+}
+function askEntry(q){
+  toggleAI();$("aiInput").value=q;askAI();
+}
+
+/* ================= 自测 ================= */
+function selftest(){
+  var out=[];var pass=function(n,c){out.push((c?"✅":"❌")+" "+n);return c};
+  pass("4 个 Tab 页",document.querySelectorAll(".pt").length===4);
+  pass("AI 能力入口卡",$("aiEntryIn")!==null&&document.querySelectorAll("#pg-cockpit .card")[0].querySelector("input")!==null);
+  pass("KPI 6 张数据汇总",document.querySelectorAll("#pg-cockpit .kpi").length===6);
+  pass("Skill 流水 6 项",document.querySelectorAll("#skillFlow .skill-item").length===6);
+  pass("每项有反馈列表",(function(){var n=0;SKILLS.forEach(function(s){if(!s.decide&&s.list)n++});return n===5})());
+  pass("一品多点待决策 1 组",document.querySelectorAll("#decideWrap .decide-row").length===1);
+  pass("决策执行联动",(function(){pickDecide("G009","博世");pickDecide("G009","大陆集团");confirmDecision("G009");return SKILLS[4].st==="已执行"&&document.querySelectorAll("#decideWrap .decide-row").length===0})());
+  pass("需求页表格 8 行+子行",document.querySelectorAll("#reqBody tr").length===16);
+  pass("RFQ 页表格 8 行",document.querySelectorAll("#rfqBody tr").length===8);
+  pass("订单页 EP 空态",$("pg-order").querySelector(".empty")!==null);
+  pass("待办队列 4 条",document.querySelectorAll("#todoList .todo-item").length===4);
+  pass("AI 汇总回答",aiReply("生成今日汇总").indexOf("今日汇总")>=0);
+  var b=$("selfBanner");b.textContent="自测 "+out.filter(function(x){return x[0]==="✅"}).length+"/"+out.length+" 通过 · "+out.join(" · ");b.classList.remove("hide");
+}
+
+/* ================= 初始化 ================= */
+renderSide("cockpit");renderSkillFlow();renderTodos();renderReq();renderRfq();
+if(location.search.indexOf("selftest=1")>=0)selftest();
+</script>
+</body>
+</html>
