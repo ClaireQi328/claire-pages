@@ -1,0 +1,1194 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>EP 主数据管理 - MVPS品类管理与VPPS绑定品类（原型 v3）</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  :root{
+    --primary:#1f6fff; --primary-hover:#3d83ff; --primary-active:#1857d6;
+    --text:#1f2329; --text-2:#646a73; --text-3:#8f959e;
+    --border:#e5e6eb; --border-2:#f0f1f3; --bg:#f5f6f8; --white:#fff;
+    --orange:#d46b08; --orange-bg:#fff7e6; --orange-bd:#ffd591;
+    --green:#389e0d; --green-bg:#f6ffed; --green-bd:#b7eb8f;
+    --gray:#8c8c8c; --gray-bg:#fafafa; --gray-bd:#d9d9d9;
+    --red:#cf1322; --red-bg:#fff1f0; --red-bd:#ffa39e;
+    --purple:#722ed1; --purple-bg:#f9f0ff; --purple-bd:#efdbff;
+    --radius:6px;
+  }
+  body{ font-family:"PingFang SC","Microsoft YaHei","Helvetica Neue",Arial,sans-serif; background:var(--bg); color:var(--text); font-size:14px; line-height:1.5; -webkit-font-smoothing:antialiased; }
+  a{ color:inherit; text-decoration:none; }
+
+  /* Top Nav */
+  .topnav{ height:56px; background:#fff; border-bottom:1px solid var(--border); display:flex; align-items:center; padding:0 24px; position:sticky; top:0; z-index:100; }
+  .logo{ display:flex; align-items:center; gap:8px; font-weight:700; font-size:18px; color:#ff6700; margin-right:32px; }
+  .logo .mi{ background:#ff6700; color:#fff; width:30px; height:30px; border-radius:6px; display:flex; align-items:center; justify-content:center; font-size:15px; font-weight:800; }
+  .nav-items{ display:flex; gap:4px; height:100%; }
+  .nav-item{ height:100%; display:flex; align-items:center; padding:0 16px; color:var(--text-2); font-size:14px; cursor:pointer; border-bottom:2px solid transparent; }
+  .nav-item:hover{ color:var(--text); }
+  .nav-item.active{ color:var(--primary); border-bottom-color:var(--primary); font-weight:600; }
+  .nav-right{ margin-left:auto; display:flex; align-items:center; gap:16px; color:var(--text-3); font-size:13px; }
+  .nav-right .avatar{ width:30px;height:30px;border-radius:50%;background:linear-gradient(135deg,#1f6fff,#3d83ff);color:#fff;display:flex;align-items:center;justify-content:center;font-size:13px; }
+
+  /* Layout */
+  .container{ max-width:1340px; margin:0 auto; padding:16px 24px 40px; }
+  .breadcrumb{ font-size:13px; color:var(--text-3); margin-bottom:12px; }
+  .breadcrumb b{ color:var(--text-2); font-weight:500; }
+  .sub-tabs{ display:flex; gap:8px; border-bottom:1px solid var(--border); background:#fff; padding:0 16px; border-radius:var(--radius) var(--radius) 0 0; flex-wrap:wrap; }
+  .sub-tab{ padding:14px 16px; cursor:pointer; color:var(--text-2); font-size:14px; border-bottom:2px solid transparent; margin-bottom:-1px; white-space:nowrap; }
+  .sub-tab:hover{ color:var(--text); }
+  .sub-tab.active{ color:var(--primary); font-weight:600; border-bottom-color:var(--primary); }
+  .panel{ background:#fff; border:1px solid var(--border); border-top:none; border-radius:0 0 var(--radius) var(--radius); padding:20px; min-height:440px; }
+
+  /* Filter */
+  .filter{ background:#fafbfc; border:1px solid var(--border-2); border-radius:var(--radius); padding:16px; margin-bottom:14px; }
+  .filter-row{ display:flex; flex-wrap:wrap; gap:16px 24px; align-items:flex-end; }
+  .field{ display:flex; flex-direction:column; gap:6px; }
+  .field label{ font-size:13px; color:var(--text-2); }
+  .field input, .field select{ width:200px; height:32px; border:1px solid var(--border); border-radius:var(--radius); padding:0 10px; font-size:13px; color:var(--text); background:#fff; outline:none; }
+  .field input:focus, .field select:focus{ border-color:var(--primary); }
+  .filter-actions{ display:flex; align-items:center; gap:10px; margin-left:auto; }
+  .filter-more{ margin-top:12px; padding-top:12px; border-top:1px dashed var(--border-2); display:none; }
+  .filter-more.open{ display:flex; flex-wrap:wrap; gap:16px 24px; align-items:flex-end; }
+  .link-btn{ background:none; border:none; color:var(--primary); cursor:pointer; font-size:13px; padding:0; }
+
+  /* Buttons */
+  .btn{ height:32px; padding:0 16px; border-radius:var(--radius); font-size:14px; cursor:pointer; border:1px solid var(--border); background:#fff; color:var(--text); display:inline-flex; align-items:center; justify-content:center; gap:6px; transition:.15s; }
+  .btn:hover{ border-color:#c0c4cc; }
+  .btn-primary{ background:var(--primary); border-color:var(--primary); color:#fff; }
+  .btn-primary:hover{ background:var(--primary-hover); border-color:var(--primary-hover); }
+  .btn-primary:active{ background:var(--primary-active); }
+  .btn-text{ border:none; background:none; color:var(--primary); cursor:pointer; padding:0 6px; font-size:13px; }
+  .btn-text.danger{ color:var(--red); }
+  .btn-text.muted{ color:var(--text-3); cursor:not-allowed; }
+  .btn-sm{ height:28px; padding:0 12px; font-size:13px; }
+  .btn-link-mini{ color:var(--primary); cursor:pointer; font-size:13px; padding:2px 8px; border-radius:4px; }
+  .btn-link-mini:hover{ background:#eef4ff; }
+
+  /* Alert */
+  .alert{ display:flex; align-items:center; gap:8px; background:#eef5ff; border:1px solid #d3e3ff; color:#1f6fff; border-radius:var(--radius); padding:9px 14px; font-size:13px; margin-bottom:16px; }
+  .alert .ic{ font-size:15px; }
+  .alert.warn{ background:#fffbe6; border-color:#ffe58f; color:#d48806; }
+
+  /* Table */
+  .table-wrap{ overflow-x:auto; border:1px solid var(--border); border-radius:var(--radius); }
+  table{ width:100%; border-collapse:collapse; font-size:13px; }
+  thead th{ background:#fafafa; color:var(--text-2); font-weight:600; text-align:left; padding:11px 12px; border-bottom:1px solid var(--border); white-space:nowrap; }
+  tbody td{ padding:11px 12px; border-bottom:1px solid var(--border-2); color:var(--text); white-space:nowrap; }
+  tbody tr:last-child td{ border-bottom:none; }
+  tbody tr:hover{ background:#fafcff; }
+  .code-link{ color:var(--primary); cursor:pointer; }
+  .empty{ padding:40px; text-align:center; color:var(--text-3); }
+
+  /* Status tags */
+  .tag{ display:inline-block; padding:1px 9px; border-radius:4px; font-size:12px; line-height:20px; border:1px solid; }
+  .tag-pending{ color:var(--orange); background:var(--orange-bg); border-color:var(--orange-bd); }
+  .tag-bound{ color:var(--green); background:var(--green-bg); border-color:var(--green-bd); }
+  .tag-noneed{ color:var(--gray); background:var(--gray-bg); border-color:var(--gray-bd); }
+  .tag-invalid{ color:var(--red); background:var(--red-bg); border-color:var(--red-bd); }
+  .tag-purple{ color:var(--purple); background:var(--purple-bg); border-color:var(--purple-bd); }
+
+  /* Pagination */
+  .pagination{ display:flex; justify-content:flex-end; align-items:center; gap:12px; margin-top:14px; color:var(--text-2); font-size:13px; }
+  .page-btns{ display:flex; gap:4px; }
+  .page-btns button{ min-width:30px; height:30px; border:1px solid var(--border); background:#fff; border-radius:var(--radius); cursor:pointer; color:var(--text-2); }
+  .page-btns button.active{ border-color:var(--primary); color:var(--primary); background:#eef4ff; }
+  .page-btns button:disabled{ color:var(--text-3); cursor:not-allowed; }
+
+  /* Modal / Drawer */
+  .mask{ position:fixed; inset:0; background:rgba(0,0,0,.45); display:none; align-items:center; justify-content:center; z-index:200; }
+  .mask.open{ display:flex; }
+  .modal{ background:#fff; border-radius:10px; width:540px; max-width:92vw; max-height:88vh; overflow:auto; box-shadow:0 12px 40px rgba(0,0,0,.18); }
+  .modal-head{ padding:18px 22px; border-bottom:1px solid var(--border-2); display:flex; justify-content:space-between; align-items:center; font-size:16px; font-weight:600; }
+  .modal-head .close{ cursor:pointer; color:var(--text-3); font-size:20px; line-height:1; }
+  .modal-body{ padding:22px; }
+  .modal-foot{ padding:14px 22px; border-top:1px solid var(--border-2); display:flex; justify-content:flex-end; gap:10px; }
+  .drawer{ position:fixed; top:0; right:0; height:100%; width:560px; max-width:94vw; background:#fff; box-shadow:-8px 0 30px rgba(0,0,0,.12); transform:translateX(100%); transition:.28s; z-index:210; display:flex; flex-direction:column; }
+  .drawer.open{ transform:translateX(0); }
+  .drawer-head{ padding:18px 22px; border-bottom:1px solid var(--border-2); display:flex; justify-content:space-between; align-items:center; font-size:16px; font-weight:600; }
+  .drawer-body{ padding:20px 22px; overflow:auto; }
+  .drawer-mask{ position:fixed; inset:0; background:rgba(0,0,0,.35); display:none; z-index:205; }
+  .drawer-mask.open{ display:block; }
+
+  .form-item{ margin-bottom:18px; }
+  .form-item label{ display:block; font-size:13px; color:var(--text-2); margin-bottom:7px; }
+  .form-item label .req{ color:var(--red); margin-right:3px; }
+  .form-item input, .form-item select, .form-item textarea{ width:100%; height:36px; border:1px solid var(--border); border-radius:var(--radius); padding:0 12px; font-size:14px; outline:none; }
+  .form-item textarea{ height:72px; padding:8px 12px; resize:vertical; }
+  .form-item input:focus, .form-item select:focus, .form-item textarea:focus{ border-color:var(--primary); }
+  .form-item .hint{ font-size:12px; color:var(--text-3); margin-top:5px; }
+  .form-item.readonly input{ background:#f5f6f8; color:var(--text-2); }
+  .err{ color:var(--red); font-size:12px; margin-top:5px; display:none; }
+  .err.show{ display:block; }
+
+  .modal.confirm{ width:420px; }
+  .modal.confirm .modal-body{ font-size:14px; color:var(--text); }
+  .toast{ position:fixed; top:20px; left:50%; transform:translateX(-50%); background:rgba(31,35,41,.92); color:#fff; padding:10px 18px; border-radius:8px; font-size:14px; z-index:300; opacity:0; transition:.25s; pointer-events:none; }
+  .toast.show{ opacity:1; }
+
+  .section-title{ font-size:15px; font-weight:600; margin-bottom:14px; display:flex; align-items:center; gap:8px; }
+  .page-actions{ display:flex; gap:10px; margin-bottom:16px; flex-wrap:wrap; }
+  .left-actions{ margin-right:auto; display:flex; gap:10px; }
+  .stat-row{ display:flex; gap:14px; margin-bottom:16px; flex-wrap:wrap; }
+  .stat-card{ flex:1; min-width:150px; background:#fafbfc; border:1px solid var(--border-2); border-radius:var(--radius); padding:14px 16px; }
+  .stat-card .n{ font-size:22px; font-weight:700; }
+  .stat-card .l{ font-size:12px; color:var(--text-3); margin-top:2px; }
+
+  /* Linkage diagram */
+  .er{ display:flex; align-items:stretch; gap:0; flex-wrap:wrap; margin:8px 0 22px; }
+  .er-table{ border:2px solid var(--primary); border-radius:8px; background:#fff; min-width:200px; flex:1; }
+  .er-table .er-head{ background:var(--primary); color:#fff; padding:8px 14px; font-weight:600; font-size:14px; border-radius:6px 6px 0 0; }
+  .er-table .er-row{ padding:6px 14px; font-size:12px; border-top:1px solid var(--border-2); color:var(--text-2); }
+  .er-table.alt{ border-color:var(--purple); } .er-table.alt .er-head{ background:var(--purple); }
+  .er-table.green{ border-color:var(--green); } .er-table.green .er-head{ background:var(--green); }
+  .er-table.orange{ border-color:var(--orange); } .er-table.orange .er-head{ background:var(--orange); }
+  .er-arrow{ display:flex; flex-direction:column; align-items:center; justify-content:center; padding:0 14px; color:var(--text-3); font-size:12px; min-width:90px; }
+  .er-arrow .line{ width:60px; height:2px; background:var(--text-3); position:relative; margin:6px 0; }
+  .er-arrow .line:after{ content:''; position:absolute; right:-1px; top:-4px; border-left:8px solid var(--text-3); border-top:5px solid transparent; border-bottom:5px solid transparent; }
+  .er-note{ font-size:12px; color:var(--text-3); margin-top:8px; }
+
+  .flow{ display:flex; align-items:center; gap:8px; flex-wrap:wrap; margin:10px 0 8px; }
+  .flow .node{ padding:10px 16px; border-radius:8px; background:#f0f5ff; border:1px solid #c8ddff; color:#1f4fb0; font-size:13px; font-weight:600; }
+  .flow .arrow{ color:var(--text-3); font-size:18px; }
+  .flow .node.special{ background:#fff1f0; border-color:#ffccc7; color:#cf1322; }
+  .kv{ display:flex; gap:10px; flex-wrap:wrap; margin:10px 0; }
+  .kv .chip{ padding:6px 12px; background:#fafbfc; border:1px solid var(--border-2); border-radius:20px; font-size:12px; color:var(--text-2); }
+  .kv .chip b{ color:var(--text); }
+  .sub-sec{ margin:18px 0 8px; font-size:14px; font-weight:600; color:var(--text); border-left:3px solid var(--primary); padding-left:10px; }
+  .callout{ background:#fafbfc; border:1px solid var(--border-2); border-radius:var(--radius); padding:14px 16px; font-size:13px; color:var(--text-2); margin:10px 0; }
+  .callout b{ color:var(--text); }
+  .sub-tabs.route-tabs{ background:transparent; border:none; border-radius:0; padding:0; margin-bottom:14px; }
+  .sub-tabs.route-tabs .sub-tab{ padding:10px 14px; font-size:13px; }
+</style>
+</head>
+<body>
+
+<!-- Top Nav -->
+<div class="topnav">
+  <div class="logo"><span class="mi">MI</span> 小米汽车 EP</div>
+  <div class="nav-items">
+    <div class="nav-item">首页</div>
+    <div class="nav-item">供应商管理</div>
+    <div class="nav-item">采购项目管理</div>
+    <div class="nav-item">采购任务管理</div>
+    <div class="nav-item">RFQ询报价管理</div>
+    <div class="nav-item">采购定点与台账</div>
+    <div class="nav-item active">主数据管理</div>
+  </div>
+  <div class="nav-right">
+    <span>帮助</span>
+    <span class="avatar">管</span>
+  </div>
+</div>
+
+<div class="container">
+  <div class="breadcrumb">主数据管理 / <b id="bcCurrent">VPPS绑定品类</b></div>
+
+  <div class="sub-tabs">
+    <div class="sub-tab" data-tab="category" onclick="switchTab('category')">品类管理</div>
+    <div class="sub-tab active" data-tab="vpps" onclick="switchTab('vpps')">VPPS绑定品类</div>
+    <div class="sub-tab" data-tab="project" onclick="switchTab('project')">项目分包(表1)</div>
+    <div class="sub-tab" data-tab="linkage" onclick="switchTab('linkage')">联动关系</div>
+    <div class="sub-tab" data-tab="personnel" onclick="switchTab('personnel')">人员树</div>
+    <div class="sub-tab" data-tab="mapping" onclick="switchTab('mapping')">三级映射</div>
+    <div class="sub-tab" data-tab="vehicle" onclick="switchTab('vehicle')">车型+SOR</div>
+    <div class="sub-tab" data-tab="routing" onclick="switchTab('routing')">任务路由</div>
+    <div class="sub-tab" data-tab="change" onclick="switchTab('change')">变更记录</div>
+  </div>
+
+  <!-- ====== VPPS 绑定品类 ====== -->
+  <div class="panel" id="panel-vpps">
+    <div class="filter">
+      <div class="filter-row">
+        <div class="field"><label>绑定状态</label><select id="f-status"><option value="">全部</option><option value="待绑定">待绑定</option><option value="已绑定">已绑定</option><option value="无需绑定">无需绑定</option></select></div>
+        <div class="field"><label>VPPS编码</label><input id="f-vpps" placeholder="如 10.11.01"></div>
+        <div class="field"><label>结构编码</label><input id="f-struct" placeholder="如 STR-MBOM-1001"></div>
+        <div class="filter-actions">
+          <button class="btn btn-primary btn-sm" onclick="applyFilter()">查询</button>
+          <button class="btn btn-sm" onclick="resetFilter()">重置</button>
+          <button class="btn btn-sm" onclick="exportVpps()">导出</button>
+        </div>
+      </div>
+      <div class="filter-more" id="filterMore">
+        <div class="field"><label>中文描述</label><input id="f-cn" placeholder="模糊查询"></div>
+        <div class="field"><label>状态</label><select id="f-state"><option value="">全部</option><option>生效</option><option>失效</option></select></div>
+        <div class="field"><label>编码状态</label><select id="f-code"><option value="">全部</option><option>生效</option><option>失效</option></select></div>
+      </div>
+      <div style="margin-top:10px;"><button class="link-btn" onclick="toggleMore()">展开筛选 ▾</button></div>
+    </div>
+
+    <div class="alert"><span class="ic">ℹ</span><span>MIBOM 每下发一个 VPPS 即生成一条待处理绑定数据。</span></div>
+
+    <div class="table-wrap">
+      <table>
+        <thead><tr>
+          <th>序号</th><th>绑定状态</th><th>VPPS编码</th><th>结构编码</th><th>结构简码</th>
+          <th>位置码</th><th>中文描述</th><th>英文描述</th><th>创建人</th><th>编码状态</th>
+          <th>编码生效日期</th><th>编码失效日期</th><th>绑定品类</th><th>操作</th>
+        </tr></thead>
+        <tbody id="vppsBody"></tbody>
+      </table>
+    </div>
+    <div class="pagination"><span id="vppsCount">共 0 条</span>
+      <div class="page-btns"><button disabled>‹</button><button class="active">1</button><button disabled>›</button></div>
+    </div>
+  </div>
+
+  <!-- ====== 品类管理 ====== -->
+  <div class="panel" id="panel-category" style="display:none;">
+    <div class="page-actions">
+      <div class="left-actions">
+        <button class="btn btn-primary btn-sm" onclick="openAddCategory()">新增品类</button>
+        <button class="btn btn-sm" onclick="toast('已导出品类数据')">导出</button>
+        <button class="btn btn-sm" onclick="toast('请下载导入模板后批量导入')">批量导入</button>
+      </div>
+      <button class="btn btn-sm" onclick="toast('请选择品类后转派')">转派</button>
+      <button class="btn btn-sm" onclick="toast('请选择品类后冻结')">冻结</button>
+    </div>
+    <div class="alert warn"><span class="ic">⚠</span><span>品类资源池（表2）为<b>底表</b>：VPPS 绑定、项目分包选品类、任务自动下发均以此为准；冻结/转派需同时联动表1（项目进度表）。</span></div>
+    <div class="table-wrap">
+      <table>
+        <thead><tr>
+          <th>品类编码</th><th>品类名称</th><th>品类专家</th><th>品类状态</th><th>专业组</th>
+          <th>材料品类</th><th>工艺品类</th><th>定点供应商</th><th>品类描述/说明</th><th>操作</th>
+        </tr></thead>
+        <tbody id="catBody"></tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- ====== 项目分包(表1) ====== -->
+  <div class="panel" id="panel-project" style="display:none;">
+    <div class="section-title">项目分包 / SOR 进度（表1 · 项目管控表）</div>
+    <div class="alert"><span class="ic">ℹ</span><span>分包选择品类（来自表2底表）后，<b>采购员 / SQE 自动带出</b>；若手动填写采购员，则以手动填写为准（优先级：手动 &gt; 表2默认）。SOR 审批到项目经理时同理，仅选品类、不填人员。</span></div>
+    <div class="callout">
+      <b>演示：</b>在下方"品类"下拉中选择生效品类，观察"采购员 / SQE"是否自动带出；切换品类后值随表2变化。
+    </div>
+    <div style="background:#fafbfc;border:1px solid var(--border-2);border-radius:var(--radius);padding:20px;max-width:760px;">
+      <div class="form-item"><label>车型项目</label><input value="Kunlun（昆仑）" readonly style="background:#f5f6f8;"></div>
+      <div class="form-item"><label>工厂</label><input value="北京工厂" readonly style="background:#f5f6f8;"></div>
+      <div class="form-item"><label>SOR编号</label><input value="SOR-2026-KL-018" readonly style="background:#f5f6f8;"></div>
+      <div class="form-item"><label><span class="req">*</span>品类（来自表2底表）</label>
+        <select id="projCat" onchange="onProjCatChange()"><option value="">请选择品类</option></select>
+        <div class="err" id="projCatErr">请选择品类（须存在于表2品类清单）</div>
+      </div>
+      <div class="form-item" style="display:flex;gap:16px;">
+        <div style="flex:1;">
+          <label>采购员（自动带出 / 可手填）</label>
+          <input id="projBuyer" placeholder="选择品类后自动带出，可覆盖">
+        </div>
+        <div style="flex:1;">
+          <label>SQE（自动带出）</label>
+          <input id="projSqe" placeholder="选择品类后自动带出" readonly>
+        </div>
+      </div>
+      <div class="form-item"><label>计划定点时间</label><input id="projTime" type="date" value="2026-09-30"></div>
+      <div class="form-item"><label>开发策略</label>
+        <select><option>战略</option><option>杠杆</option><option>瓶颈</option><option>常规</option></select>
+      </div>
+      <div style="display:flex;gap:10px;justify-content:flex-end;">
+        <button class="btn" onclick="toast('已取消')">取消</button>
+        <button class="btn btn-primary" onclick="saveProject()">保存分包</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ====== 联动关系 ====== -->
+  <div class="panel" id="panel-linkage" style="display:none;">
+    <div class="section-title">三张表联动关系总览（BRD 三张表联动关系）</div>
+
+    <div class="sub-sec">1. 实体关系图</div>
+    <div class="er">
+      <div class="er-table orange">
+        <div class="er-head">表1 项目管控表</div>
+        <div class="er-row">车型 → 项目编号</div>
+        <div class="er-row">SOR包进度</div>
+        <div class="er-row">行级采购员 / SQE</div>
+      </div>
+      <div class="er-arrow"><div>一对一</div><div class="line"></div><div>SOR↔品类</div></div>
+      <div class="er-table">
+        <div class="er-head">表2 品类资源池（底表）</div>
+        <div class="er-row">品类主数据</div>
+        <div class="er-row">VPPS绑定清单</div>
+        <div class="er-row">品类-采购工程师/SQE/财务CE</div>
+      </div>
+      <div class="er-arrow"><div>绑定</div><div class="line"></div><div>VPPS↔品类</div></div>
+      <div class="er-table purple">
+        <div class="er-head">VPPS（结构编码+位置码）</div>
+        <div class="er-row">来自 MiBOM / 总基线</div>
+        <div class="er-row">索引零件号</div>
+      </div>
+      <div class="er-arrow"><div>记录</div><div class="line"></div><div>零件→台账</div></div>
+      <div class="er-table green">
+        <div class="er-head">表3 价值中心台账</div>
+        <div class="er-row">零件号 + VPPS + 规则方案</div>
+        <div class="er-row">零件履历（跨项目/工厂/供应商）</div>
+      </div>
+    </div>
+    <div class="er-note">说明：品类资源池（表2）为唯一底表；VPPS 绑定品类、项目分包选品类、任务自动下发均依赖表2。表1 与表2 通过"品类"外键联动；表3 通过定点任务的 VPPS 回写品类。</div>
+
+    <div class="sub-sec">2. 下发任务链路：零件号 → VPPS → 品类 → 采购员</div>
+    <div class="flow">
+      <div class="node">任务零件</div><div class="arrow">→</div>
+      <div class="node">索引 VPPS</div><div class="arrow">→</div>
+      <div class="node">VPPS索引品类（表2）</div><div class="arrow">→</div>
+      <div class="node">品类+车型索引采购（表1）</div><div class="arrow">→</div>
+      <div class="node">任务直接下发</div>
+    </div>
+    <div class="kv">
+      <span class="chip">EWO / SWO / CWO：<b>自动下发</b></span>
+      <span class="chip">框架 / 样件：<b>受限（无车型字段）</b></span>
+      <span class="chip">紧固件 / 胶水：<b class="special">未进EBOM·人工</b></span>
+      <span class="chip">面料：<b class="special">不进BOM·人工</b></span>
+      <span class="chip">无VPPS零件：<b class="special">人工下发</b></span>
+    </div>
+
+    <div class="sub-sec">3. EWO 改前参考件号智能关联</div>
+    <div class="flow">
+      <div class="node">EWO改后零件</div><div class="arrow">+</div>
+      <div class="node">VPPS</div><div class="arrow">+</div>
+      <div class="node">项目编码</div><div class="arrow">→</div>
+      <div class="node">查台账已定点零件号</div><div class="arrow">→</div>
+      <div class="node">回填"改前参考件号"</div>
+    </div>
+    <div class="callout">演示：输入改后零件 VPPS 与项目，查询台账返回参考件号（支持批量关联）。
+      <div style="display:flex;gap:10px;margin-top:10px;flex-wrap:wrap;align-items:flex-end;">
+        <div class="field"><label>改后零件VPPS</label><input id="ewoVpps" value="10.05.03"></div>
+        <div class="field"><label>项目编码</label><input id="ewoProj" value="KL-018"></div>
+        <button class="btn btn-primary btn-sm" onclick="runEwo()">查询参考件号</button>
+      </div>
+      <div id="ewoResult" style="margin-top:10px;font-size:13px;color:var(--green);"></div>
+    </div>
+
+    <div class="sub-sec">4. 字段级映射矩阵（BRD）</div>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>影响菜单 &amp; 功能</th><th>增加字段</th><th>备注</th></tr></thead>
+        <tbody>
+          <tr><td>SOR1管理、SOR定点任务、BDL预选</td><td><span class="tag tag-purple">品类</span></td><td>一个 SOR 一对一品类</td></tr>
+          <tr><td>设计价格变更、颜色件变更、SWO、样件、框架任务</td><td><span class="tag tag-purple">VPPS编码</span></td><td>= 结构简码+位置码；EP 优先取 EBOM，次选零件信息库</td></tr>
+          <tr><td>台账</td><td><span class="tag tag-purple">品类</span> <span class="tag tag-purple">VPPS编码</span></td><td>来自定点任务 VPPS；变更VPPS的EWO未处理时台账VPPS保持上一版本不更新（静态）</td></tr>
+          <tr><td>EWO参考件号</td><td>改前参考件号</td><td>按改后零件 VPPS+项目查台账已定点零件号回填</td></tr>
+          <tr><td>下发任务</td><td>任务零件索引 VPPS→品类→采购</td><td>特殊场景：紧固件/胶水/面料/无VPPS 人工下发；样件/框架无车型字段</td></tr>
+          <tr><td>转派</td><td>—</td><td>以"项目+VPPS"维度管理；离职需同时转派表2与表1</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="sub-sec">5. 转派双表联动</div>
+    <div class="callout"><b>规则：</b>采购员离职 / 调岗时，必须<b>同时</b>操作 ① 表2 品类资源池（转派品类专家/采购工程师）与 ② 表1 项目进度表（转派行级采购员）。仅完成其一将导致"车型项目+VPPS→采购工程师"索引错配。</div>
+  </div>
+
+  <!-- ====== 人员树配置 ====== -->
+  <div class="panel" id="panel-personnel" style="display:none;">
+    <div class="section-title">人员树配置（GCM / SQE / 采购工程师）</div>
+    <div class="alert"><span class="ic">ℹ</span><span>MiBOM 触发 VPPS 节点后，按品类维护 GCM / SQE / 采购工程师三级人员；<b>数据结构与 SRM 系统直连</b>，人员变更实时同步。</span></div>
+    <div class="page-actions">
+      <div class="left-actions">
+        <button class="btn btn-primary btn-sm" onclick="openAddPersonnel()">新增人员关系</button>
+        <button class="btn btn-sm" onclick="toast('请下载导入模板后批量导入')">批量导入</button>
+        <button class="btn btn-sm" onclick="toast('已导出人员树')">导出</button>
+      </div>
+    </div>
+    <div class="filter" style="margin-bottom:14px;">
+      <div class="filter-row">
+        <div class="field"><label>品类</label><select id="p-cat" onchange="renderPersonnel()"><option value="">全部</option></select></div>
+        <div class="field"><label>VPPS 节点</label><input id="p-vpps" placeholder="如 10.05.03" oninput="renderPersonnel()"></div>
+        <div class="field"><label>角色</label><select id="p-role" onchange="renderPersonnel()"><option value="">全部</option><option>GCM</option><option>SQE</option><option>采购工程师</option></select></div>
+        <div class="field"><label>人员</label><input id="p-user" placeholder="姓名 / 工号" oninput="renderPersonnel()"></div>
+      </div>
+    </div>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>品类</th><th>VPPS 节点</th><th>中文描述</th><th>GCM</th><th>SQE</th><th>采购工程师</th><th>生效日期</th><th>失效日期</th><th>数据来源</th><th>操作</th></tr></thead>
+        <tbody id="personnelBody"></tbody>
+      </table>
+    </div>
+    <div class="pagination"><span id="personnelCount">共 0 条</span></div>
+  </div>
+
+  <!-- ====== 三级映射 ====== -->
+  <div class="panel" id="panel-mapping" style="display:none;">
+    <div class="section-title">采购品类 → MVPS → 合格供应商 三级映射</div>
+    <div class="alert"><span class="ic">ℹ</span><span>在线配置品类到 MVPS 节点再到合格供应商的映射，支持<b>批量导入</b>与<b>版本追溯</b>；供应商编码来自 SRM 合格供应商主数据。</span></div>
+    <div class="page-actions">
+      <div class="left-actions">
+        <button class="btn btn-primary btn-sm" onclick="openAddMapping()">新增映射</button>
+        <button class="btn btn-sm" onclick="toast('请下载导入模板后批量导入')">批量导入</button>
+        <button class="btn btn-sm" onclick="toast('已导出三级映射')">导出</button>
+      </div>
+    </div>
+    <div class="filter" style="margin-bottom:14px;">
+      <div class="filter-row">
+        <div class="field"><label>品类</label><select id="m-cat" onchange="renderMapping()"><option value="">全部</option></select></div>
+        <div class="field"><label>VPPS 节点</label><input id="m-vpps" placeholder="如 10.05.03" oninput="renderMapping()"></div>
+        <div class="field"><label>供应商</label><input id="m-supplier" placeholder="供应商名称" oninput="renderMapping()"></div>
+        <div class="field"><label>版本状态</label><select id="m-status" onchange="renderMapping()"><option value="">全部</option><option>生效</option><option>已失效</option></select></div>
+      </div>
+    </div>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>品类编码</th><th>品类名称</th><th>VPPS 节点</th><th>合格供应商编码</th><th>供应商名称</th><th>生效版本</th><th>生效日期</th><th>失效日期</th><th>状态</th><th>操作</th></tr></thead>
+        <tbody id="mappingBody"></tbody>
+      </table>
+    </div>
+    <div class="pagination"><span id="mappingCount">共 0 条</span></div>
+  </div>
+
+  <!-- ====== 车型+SOR项目管控 ====== -->
+  <div class="panel" id="panel-vehicle" style="display:none;">
+    <div class="section-title">车型 + SOR 项目管控在线化</div>
+    <div class="alert"><span class="ic">ℹ</span><span>替代线下 Excel 人工拉单：车型 → 项目编号 → SOR 包在线维护品类归属与负责人，自动带出采购员 / SQE。</span></div>
+    <div class="stat-row">
+      <div class="stat-card"><div class="n">6</div><div class="l">车型项目</div></div>
+      <div class="stat-card"><div class="n">18</div><div class="l">SOR 包</div></div>
+      <div class="stat-card"><div class="n">12</div><div class="l">已定点</div></div>
+      <div class="stat-card"><div class="n">6</div><div class="l">进行中</div></div>
+    </div>
+    <div class="filter" style="margin-bottom:14px;">
+      <div class="filter-row">
+        <div class="field"><label>车型项目</label><input id="v-proj" placeholder="如 Kunlun" oninput="renderVehicle()"></div>
+        <div class="field"><label>工厂</label><select id="v-factory" onchange="renderVehicle()"><option value="">全部</option><option>北京工厂</option><option>上海工厂</option></select></div>
+        <div class="field"><label>品类</label><select id="v-cat" onchange="renderVehicle()"><option value="">全部</option></select></div>
+        <div class="field"><label>定点状态</label><select id="v-status" onchange="renderVehicle()"><option value="">全部</option><option>已定点</option><option>进行中</option><option>未启动</option></select></div>
+      </div>
+    </div>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>车型项目</th><th>涉及工厂</th><th>项目 M0 时间</th><th>采购项目经理</th><th>SOR 编号</th><th>SOR 名称</th><th>品类</th><th>采购员</th><th>SQE</th><th>计划定点时间</th><th>定点状态</th><th>操作</th></tr></thead>
+        <tbody id="vehicleBody"></tbody>
+      </table>
+    </div>
+    <div class="pagination"><span id="vehicleCount">共 0 条</span></div>
+  </div>
+
+  <!-- ====== 任务智能路由 ====== -->
+  <div class="panel" id="panel-routing" style="display:none;">
+    <div class="section-title">任务智能路由与转移</div>
+    <div class="alert"><span class="ic">ℹ</span><span>SOR / BDL / EWO / CWO / SWO / 框架协议任务按品类自动分派；支持一键批量转移。</span></div>
+    <div class="page-actions">
+      <div class="left-actions">
+        <button class="btn btn-primary btn-sm" onclick="openBatchTransfer()">批量转移</button>
+        <button class="btn btn-sm" onclick="toast('已执行自动路由：将待分派任务按规则重新计算')">执行自动路由</button>
+      </div>
+    </div>
+    <div class="sub-tabs route-tabs" style="margin-bottom:14px;">
+      <div class="sub-tab" data-route="sor" onclick="switchRoute('sor')">SOR 任务</div>
+      <div class="sub-tab active" data-route="bdl" onclick="switchRoute('bdl')">BDL / RFQ</div>
+      <div class="sub-tab" data-route="ewo" onclick="switchRoute('ewo')">EWO 设变</div>
+      <div class="sub-tab" data-route="cwo" onclick="switchRoute('cwo')">CWO</div>
+      <div class="sub-tab" data-route="swo" onclick="switchRoute('swo')">SWO</div>
+      <div class="sub-tab" data-route="frame" onclick="switchRoute('frame')">框架协议</div>
+    </div>
+    <div class="filter" style="margin-bottom:14px;">
+      <div class="filter-row">
+        <div class="field"><label>关联单号</label><input id="r-code" placeholder="SOR/BDL/EWO 编号" oninput="renderRoute()"></div>
+        <div class="field"><label>VPPS</label><input id="r-vpps" placeholder="VPPS 编码" oninput="renderRoute()"></div>
+        <div class="field"><label>采购工程师</label><input id="r-buyer" placeholder="责任人" oninput="renderRoute()"></div>
+        <div class="field"><label>状态</label><select id="r-status" onchange="renderRoute()"><option value="">全部</option><option>待处理</option><option>处理中</option><option>已完成</option></select></div>
+      </div>
+    </div>
+    <div class="table-wrap">
+      <table>
+        <thead id="routeHead"><tr><th>序号</th><th>关联单号</th><th>RFQ 类型</th><th>关联单号</th><th>RFQ 编号</th><th>RFQ 名称</th><th>长清单编号</th><th>研发评审状态</th><th>质量评审状态</th><th>采购工程师</th><th>创建时间</th><th>状态</th><th>操作</th></tr></thead>
+        <tbody id="routeBody"></tbody>
+      </table>
+    </div>
+    <div class="pagination"><span id="routeCount">共 0 条</span></div>
+  </div>
+
+  <!-- ====== 变更记录 ====== -->
+  <div class="panel" id="panel-change" style="display:none;">
+    <div class="stat-row">
+      <div class="stat-card"><div class="n" id="st-bind">0</div><div class="l">绑定操作次数</div></div>
+      <div class="stat-card"><div class="n" id="st-transfer">0</div><div class="l">转派次数</div></div>
+      <div class="stat-card"><div class="n" id="st-freeze">0</div><div class="l">冻结次数</div></div>
+      <div class="stat-card"><div class="n" id="st-unbind">0</div><div class="l">解绑次数</div></div>
+    </div>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>操作时间</th><th>操作人</th><th>操作对象</th><th>操作类型</th><th>品类编码</th><th>VPPS编码</th><th>变更字段</th><th>变更前值</th><th>变更后值</th><th>来源</th></tr></thead>
+        <tbody id="changeBody"></tbody>
+      </table>
+    </div>
+    <div class="pagination"><span id="changeCount">共 0 条</span></div>
+  </div>
+</div>
+
+<!-- Bind Modal -->
+<div class="mask" id="bindMask">
+  <div class="modal">
+    <div class="modal-head">绑定品类<span class="close" onclick="closeMask('bindMask')">&times;</span></div>
+    <div class="modal-body">
+      <div class="form-item readonly"><label>VPPS编码</label><input id="bindVpps" readonly></div>
+      <div class="form-item readonly"><label>中文描述</label><input id="bindCn" readonly></div>
+      <div class="form-item"><label><span class="req">*</span>选择品类（仅生效品类 / 底表）</label>
+        <select id="bindCategory"></select>
+        <div class="err" id="bindErr">请选择要绑定的品类</div>
+      </div>
+    </div>
+    <div class="modal-foot">
+      <button class="btn" onclick="closeMask('bindMask')">取消</button>
+      <button class="btn btn-primary" onclick="confirmBind()">确认绑定</button>
+    </div>
+  </div>
+</div>
+
+<!-- Add Category Modal -->
+<div class="mask" id="addMask">
+  <div class="modal">
+    <div class="modal-head">新增品类<span class="close" onclick="closeMask('addMask')">&times;</span></div>
+    <div class="modal-body">
+      <div class="form-item readonly"><label>品类编码（系统自动生成）</label><input id="newCode" value="CAT-00046" readonly></div>
+      <div class="form-item"><label><span class="req">*</span>品类名称</label><input id="newName" placeholder="请输入品类名称"><div class="err" id="nameErr">品类名称不能为空</div></div>
+      <div class="form-item"><label><span class="req">*</span>专业组</label>
+        <select id="newGroup"><option value="">请选择</option><option>电子架构</option><option>机械架构</option><option>内饰</option><option>车身外饰</option><option>增程&热管理</option><option>电池</option><option>电驱</option></select>
+        <div class="err" id="groupErr">请选择专业组</div>
+      </div>
+      <div class="form-item"><label>品类描述/说明</label><textarea id="newDesc" placeholder="说明品类适用范围或维护说明"></textarea></div>
+      <div class="form-item"><label>材料品类（可多选）</label><input id="newMaterial" placeholder="如：塑料、金属"></div>
+      <div class="form-item"><label>工艺品类（可多选）</label><input id="newProcess" placeholder="如：注塑、冲压"></div>
+      <div class="form-item"><label><span class="req">*</span>品类专家</label><input id="newExpert" placeholder="选择有品类专家角色的人员"><div class="err" id="expertErr">请选择品类专家</div></div>
+    </div>
+    <div class="modal-foot">
+      <button class="btn" onclick="closeMask('addMask')">取消</button>
+      <button class="btn btn-primary" onclick="confirmAdd()">发布</button>
+    </div>
+  </div>
+</div>
+
+<!-- Category Detail Drawer -->
+<div class="drawer-mask" id="drawerMask" onclick="closeDrawer()"></div>
+<div class="drawer" id="catDrawer">
+  <div class="drawer-head"><span id="drawerTitle">品类详情</span><span class="close" onclick="closeDrawer()">&times;</span></div>
+  <div class="drawer-body">
+    <div id="drawerContent"></div>
+  </div>
+</div>
+
+<!-- Confirm Dialog -->
+<div class="mask" id="confirmMask">
+  <div class="modal confirm">
+    <div class="modal-head" id="confirmTitle">提示<span class="close" onclick="closeMask('confirmMask')">&times;</span></div>
+    <div class="modal-body" id="confirmMsg"></div>
+    <div class="modal-foot">
+      <button class="btn" onclick="closeMask('confirmMask')">取消</button>
+      <button class="btn btn-primary" id="confirmOk">确认</button>
+    </div>
+  </div>
+</div>
+
+<!-- Add Personnel Modal -->
+<div class="mask" id="personnelMask">
+  <div class="modal">
+    <div class="modal-head">新增人员关系<span class="close" onclick="closeMask('personnelMask')">&times;</span></div>
+    <div class="modal-body">
+      <div class="form-item"><label><span class="req">*</span>品类</label>
+        <select id="newPpCat"><option value="">请选择生效品类</option></select>
+        <div class="err" id="ppCatErr">请选择品类</div>
+      </div>
+      <div class="form-item"><label><span class="req">*</span>VPPS 节点</label>
+        <select id="newPpVpps"><option value="">请先选择品类</option></select>
+        <div class="err" id="ppVppsErr">请选择 VPPS 节点</div>
+      </div>
+      <div class="form-item" style="display:flex;gap:16px;">
+        <div style="flex:1;"><label>GCM</label><input id="newPpGcm" placeholder="搜索 GCM"></div>
+        <div style="flex:1;"><label>SQE</label><input id="newPpSqe" placeholder="搜索 SQE"></div>
+      </div>
+      <div class="form-item"><label>采购工程师</label><input id="newPpBuyer" placeholder="搜索采购工程师"></div>
+      <div class="form-item" style="display:flex;gap:16px;">
+        <div style="flex:1;"><label><span class="req">*</span>生效日期</label><input id="newPpFrom" type="date" value="2026-07-13"></div>
+        <div style="flex:1;"><label>失效日期</label><input id="newPpTo" type="date"></div>
+      </div>
+    </div>
+    <div class="modal-foot">
+      <button class="btn" onclick="closeMask('personnelMask')">取消</button>
+      <button class="btn btn-primary" onclick="confirmAddPersonnel()">保存</button>
+    </div>
+  </div>
+</div>
+
+<!-- Add Mapping Modal -->
+<div class="mask" id="mappingMask">
+  <div class="modal">
+    <div class="modal-head">新增三级映射<span class="close" onclick="closeMask('mappingMask')">&times;</span></div>
+    <div class="modal-body">
+      <div class="form-item"><label><span class="req">*</span>品类</label>
+        <select id="newMapCat" onchange="onMapCatChange()"><option value="">请选择生效品类</option></select>
+        <div class="err" id="mapCatErr">请选择品类</div>
+      </div>
+      <div class="form-item"><label><span class="req">*</span>VPPS 节点</label>
+        <select id="newMapVpps"><option value="">请先选择品类</option></select>
+        <div class="err" id="mapVppsErr">请选择 VPPS 节点</div>
+      </div>
+      <div class="form-item"><label><span class="req">*</span>合格供应商编码</label>
+        <input id="newMapSupplier" placeholder="搜索 SRM 合格供应商">
+        <div class="err" id="mapSupplierErr">请选择供应商</div>
+      </div>
+      <div class="form-item" style="display:flex;gap:16px;">
+        <div style="flex:1;"><label><span class="req">*</span>生效日期</label><input id="newMapFrom" type="date" value="2026-07-13"></div>
+        <div style="flex:1;"><label>失效日期</label><input id="newMapTo" type="date"></div>
+      </div>
+    </div>
+    <div class="modal-foot">
+      <button class="btn" onclick="closeMask('mappingMask')">取消</button>
+      <button class="btn btn-primary" onclick="confirmAddMapping()">保存</button>
+    </div>
+  </div>
+</div>
+
+<!-- Batch Transfer Modal -->
+<div class="mask" id="transferMask">
+  <div class="modal" style="width:640px;">
+    <div class="modal-head">一键批量转移<span class="close" onclick="closeMask('transferMask')">&times;</span></div>
+    <div class="modal-body">
+      <div class="callout" style="margin-bottom:16px;"><b>双表联动：</b>转移时必须同时更新表1（项目进度表行级采购员）与表2（品类资源池 VPPS 节点采购员），仅完成其一将导致路由错配。</div>
+      <div class="form-item"><label>原人员</label><input id="btFrom" placeholder="被转移的采购员 / SQE"></div>
+      <div class="form-item"><label><span class="req">*</span>目标人员</label><input id="btTo" placeholder="目标采购员 / SQE（需有品类权限）"><div class="err" id="btToErr">请选择目标人员</div></div>
+      <div class="form-item" style="display:flex;gap:16px;">
+        <div style="flex:1;"><label>转移范围 - 项目</label><input id="btProj" placeholder="如 Kunlun"></div>
+        <div style="flex:1;"><label>转移范围 - 品类</label><select id="btCat"><option value="">全部</option></select></div>
+      </div>
+      <div class="form-item" style="display:flex;gap:16px;">
+        <div style="flex:1;"><label>VPPS 节点</label><input id="btVpps" placeholder="如 10.05.03"></div>
+        <div style="flex:1;"><label>任务类型</label><select id="btType"><option value="">全部</option><option>SOR</option><option>BDL</option><option>EWO</option><option>CWO</option><option>SWO</option><option>框架协议</option></select></div>
+      </div>
+      <div class="form-item"><label><input type="checkbox" id="btSyncT1" checked style="width:auto;height:auto;margin-right:6px;">同步更新表1（项目进度表行级采购员）</label></div>
+      <div class="form-item"><label><input type="checkbox" id="btSyncT2" checked style="width:auto;height:auto;margin-right:6px;">同步更新表2（品类资源池 VPPS 节点采购员）</label></div>
+      <div class="form-item"><label>转移原因</label><textarea id="btReason" placeholder="如：人员离职 / 组织调整"></textarea></div>
+      <div class="callout">预计可转移任务数：<b id="btCount">0</b> 条</div>
+    </div>
+    <div class="modal-foot">
+      <button class="btn" onclick="closeMask('transferMask')">取消</button>
+      <button class="btn btn-primary" onclick="confirmBatchTransfer()">确认转移</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+/* ---------- Data ---------- */
+let vppsData = [
+  {id:1,status:'待绑定',vpps:'10.11.01',structCode:'STR-MBOM-1001',structAbbr:'FRT-BPR',locCode:'FR-L',cn:'前保险杠左侧安装结构',en:'Front bumper LH mounting structure',creator:'MiBOM',codeStatus:'生效',effDate:'2026-06-20',expDate:'-',bindCategory:''},
+  {id:2,status:'待绑定',vpps:'10.11.02',structCode:'STR-MBOM-1002',structAbbr:'FRT-BPR',locCode:'FR-R',cn:'前保险杠右侧安装结构',en:'Front bumper RH mounting structure',creator:'MiBOM',codeStatus:'生效',effDate:'2026-06-18',expDate:'-',bindCategory:''},
+  {id:3,status:'已绑定',vpps:'10.05.03',structCode:'STR-MBOM-0503',structAbbr:'RLY-HDL',locCode:'-',cn:'充电口盖拉手结构',en:'Charge port handle structure',creator:'MiBOM',codeStatus:'生效',effDate:'2026-05-30',expDate:'-',bindCategory:'CAT-00012 充电口盖总成'},
+  {id:5,status:'已绑定',vpps:'30.01.07',structCode:'STR-MBOM-3007',structAbbr:'BTR-MNT',locCode:'-',cn:'电池包安装支架',en:'Battery pack mounting bracket',creator:'MiBOM',codeStatus:'失效',effDate:'2026-03-01',expDate:'2026-06-28',bindCategory:'CAT-00045 电池包结构件'},
+  {id:4,status:'无需绑定',vpps:'20.03.11',structCode:'STR-MBOM-2011',structAbbr:'WIR-HRN',locCode:'-',cn:'线束固定支架',en:'Harness bracket',creator:'MiBOM',codeStatus:'生效',effDate:'2026-04-12',expDate:'-',bindCategory:''}
+];
+
+let catData = [
+  {code:'CAT-00012',name:'充电口盖总成',expert:'张伟',status:'生效',group:'车身外饰',material:'塑料、金属',process:'注塑、冲压',supplier:'宁波华翔',desc:'充电口盖相关零件',
+    vppsNodes:[{vpps:'10.05.03',buyer:'采购A-王磊',sqe:'SQE-陈静',ce:'CE-刘洋'}],
+    boundVpps:['10.05.03']},
+  {code:'CAT-00045',name:'电池包结构件',expert:'李娜',status:'生效',group:'电池',material:'铝',process:'焊接',supplier:'宁德时代',desc:'电池包内结构件',
+    vppsNodes:[{vpps:'30.01.07',buyer:'采购B-赵明',sqe:'SQE-孙琳',ce:'CE-周涛'}],
+    boundVpps:['30.01.07']},
+  {code:'CAT-00008',name:'前保险杠总成',expert:'王强',status:'生效',group:'车身外饰',material:'塑料',process:'注塑',supplier:'彼欧',desc:'前保险杠本体及附件',
+    vppsNodes:[{vpps:'10.11.01',buyer:'采购C-吴婷',sqe:'SQE-陈静',ce:'CE-刘洋'},{vpps:'10.11.02',buyer:'采购C-吴婷',sqe:'SQE-陈静',ce:'CE-刘洋'}],
+    boundVpps:[]}
+];
+
+let changeLog = [
+  {time:'2026-06-20 09:12:33',user:'系统(MiBOM)',obj:'VPPS',type:'新增同步',cat:'',vpps:'10.11.01',field:'绑定状态',old:'-',now:'待绑定',src:'上游同步'},
+  {time:'2026-05-30 14:08:01',user:'张伟',obj:'VPPS',type:'绑定',cat:'CAT-00012',vpps:'10.05.03',field:'绑定状态',old:'待绑定',now:'已绑定',src:'手动编辑'}
+];
+
+let personnelData = [
+  {id:1,cat:'CAT-00012',vpps:'10.05.03',cn:'充电口盖拉手结构',gcm:'采购A-王磊',sqe:'SQE-陈静',buyer:'采购A-王磊',from:'2026-01-01',to:'-',src:'SRM'},
+  {id:2,cat:'CAT-00045',vpps:'30.01.07',cn:'电池包安装支架',gcm:'采购B-赵明',sqe:'SQE-孙琳',buyer:'采购B-赵明',from:'2026-01-01',to:'-',src:'SRM'},
+  {id:3,cat:'CAT-00008',vpps:'10.11.01',cn:'前保险杠左侧安装结构',gcm:'采购C-吴婷',sqe:'SQE-陈静',buyer:'采购C-吴婷',from:'2026-01-01',to:'-',src:'SRM'},
+  {id:4,cat:'CAT-00008',vpps:'10.11.02',cn:'前保险杠右侧安装结构',gcm:'采购C-吴婷',sqe:'SQE-陈静',buyer:'采购C-吴婷',from:'2026-01-01',to:'-',src:'SRM'}
+];
+
+let mappingData = [
+  {id:1,cat:'CAT-00012',name:'充电口盖总成',vpps:'10.05.03',supplierCode:'SUP-001',supplierName:'宁波华翔',version:'V1',from:'2026-01-01',to:'-',status:'生效'},
+  {id:2,cat:'CAT-00045',name:'电池包结构件',vpps:'30.01.07',supplierCode:'SUP-002',supplierName:'宁德时代',version:'V1',from:'2026-01-01',to:'-',status:'生效'},
+  {id:3,cat:'CAT-00008',name:'前保险杠总成',vpps:'10.11.01',supplierCode:'SUP-003',supplierName:'彼欧',version:'V1',from:'2026-01-01',to:'-',status:'生效'},
+  {id:4,cat:'CAT-00008',name:'前保险杠总成',vpps:'10.11.02',supplierCode:'SUP-003',supplierName:'彼欧',version:'V1',from:'2026-01-01',to:'-',status:'生效'}
+];
+
+let vehicleData = [
+  {id:1,project:'Kunlun',factory:'北京工厂',m0:'2026-03-01',pm:'项目经理-李强',sor:'SOR-MP-BW-0254',sorName:'昆仑-大保险杠包',cat:'CAT-00008 前保险杠总成',buyer:'采购C-吴婷',sqe:'SQE-陈静',planTime:'2026-09-30',status:'进行中'},
+  {id:2,project:'Kunlun',factory:'北京工厂',m0:'2026-03-01',pm:'项目经理-李强',sor:'SOR-MP-BW-0255',sorName:'Kunlun保险杠04SOR',cat:'CAT-00008 前保险杠总成',buyer:'采购C-吴婷',sqe:'SQE-陈静',planTime:'2026-09-30',status:'进行中'},
+  {id:3,project:'Kunlun',factory:'北京工厂',m0:'2026-03-01',pm:'项目经理-李强',sor:'SOR-MP-BW-0253',sorName:'昆仑大保险杠01包',cat:'CAT-00008 前保险杠总成',buyer:'采购C-吴婷',sqe:'SQE-陈静',planTime:'2026-08-30',status:'已定点'},
+  {id:4,project:'MX11',factory:'北京工厂',m0:'2026-05-01',pm:'项目经理-王芳',sor:'SOR-MP-MX-0101',sorName:'MX11-充电口盖总成',cat:'CAT-00012 充电口盖总成',buyer:'采购A-王磊',sqe:'SQE-陈静',planTime:'2026-10-15',status:'进行中'},
+  {id:5,project:'Modena',factory:'上海工厂',m0:'2026-04-01',pm:'项目经理-赵敏',sor:'SOR-MP-MD-0202',sorName:'Modena-电池包结构件',cat:'CAT-00045 电池包结构件',buyer:'采购B-赵明',sqe:'SQE-孙琳',planTime:'2026-11-01',status:'未启动'}
+];
+
+let routeData = {
+  sor:[
+    {id:1,project:'Kunlun',factory:'北京工厂',sor:'SOR-MP-BW-0254',sorName:'昆仑-大保险杠包',group:'1.2/车身结构',taskStatus:'待采购项目经理下发',buyer:'采购C-吴婷',sqe:'SQE-陈静',dre:'研发A-孙伟',planTime:'2026-09-30',status:'待处理'},
+    {id:2,project:'Kunlun',factory:'北京工厂',sor:'SOR-MP-BW-0255',sorName:'Kunlun保险杠04SOR',group:'1.2/车身结构',taskStatus:'待采购项目经理下发',buyer:'采购C-吴婷',sqe:'SQE-陈静',dre:'研发B-杨玉新',planTime:'2026-09-30',status:'待处理'},
+    {id:3,project:'MX11',factory:'北京工厂',sor:'SOR-MP-MX-0101',sorName:'MX11-充电口盖总成',group:'电子电器',taskStatus:'待采购项目经理下发',buyer:'采购A-王磊',sqe:'SQE-陈静',dre:'研发C-杜金星',planTime:'2026-10-15',status:'待处理'}
+  ],
+  bdl:[
+    {id:1,bdl:'BDL-20260713-015',type:'售后件设计',ref:'RFQ-SWO-20260713...',rfqName:'SWO变更RFQ',longCode:'--',rdStatus:'--',qeStatus:'--',buyer:'杨宇彦',createTime:'2026-07-13',status:'通过'},
+    {id:2,bdl:'BDL-20260713-011',type:'售后件设计',ref:'RFQ-SWO-20260713...',rfqName:'SWO变更RFQ',longCode:'--',rdStatus:'--',qeStatus:'--',buyer:'孙洪',createTime:'2026-07-13',status:'通过'},
+    {id:3,bdl:'BDL-20260713-007',type:'售后件设计',ref:'RFQ-SWO-20260713...',rfqName:'SWO变更RFQ',longCode:'--',rdStatus:'--',qeStatus:'--',buyer:'张可融',createTime:'2026-07-13',status:'通过'},
+    {id:4,bdl:'BDL-20260713-006',type:'售后件设计',ref:'RFQ-SWO-20260713...',rfqName:'SWO变更RFQ',longCode:'--',rdStatus:'--',qeStatus:'--',buyer:'张可融',createTime:'2026-07-13',status:'综合-审批中'}
+  ],
+  ewo:[
+    {id:1,ewo:'EWO20260701162',after:'P000019936003',before:'P000019936003',source:'B',project:'MX11',car:'MX11',factory:'北京整车工厂(8041)',price:'有',supplier:'北京小米汽车1(8042)',status:'待处理',tag:'手动关联改前零件'},
+    {id:2,ewo:'EWO20260701162',after:'P000019938003',before:'P000019938003',source:'B',project:'MX11',car:'MX11',factory:'北京小米汽车2(8043)',price:'有',supplier:'北京小米汽车2(8043)',status:'待处理',tag:'手动关联改前零件'},
+    {id:3,ewo:'EWO20260701115',after:'P000045486005',before:'--',source:'B',project:'Modena',car:'Modena 25C',factory:'北京整车工厂(8041)',price:'无',supplier:'--',status:'待处理',tag:'手动关联改前零件'}
+  ],
+  cwo:[
+    {id:1,cwo:'CWO20260701001',after:'P000019936003',project:'MX11',car:'MX11',factory:'北京整车工厂(8041)',buyer:'采购A-王磊',status:'待处理'}
+  ],
+  swo:[
+    {id:1,swo:'SWO20260701001',after:'P000019936003',project:'MX11',car:'MX11',factory:'北京整车工厂(8041)',buyer:'采购A-王磊',status:'待处理'}
+  ],
+  frame:[
+    {id:1,frame:'FRAME20260701001',name:'昆仑-某框架协议',project:'Kunlun',cat:'CAT-00008 前保险杠总成',buyer:'采购C-吴婷',status:'待处理'}
+  ]
+};
+
+let currentRoute = 'sor';
+
+/* ---------- Helpers ---------- */
+function statusTag(s){ if(s==='待绑定')return '<span class="tag tag-pending">待绑定</span>'; if(s==='已绑定')return '<span class="tag tag-bound">已绑定</span>'; if(s==='无需绑定')return '<span class="tag tag-noneed">无需绑定</span>'; return s; }
+function codeTag(s){ return s==='失效'?'<span class="tag tag-invalid">失效</span>':'<span class="tag tag-bound">生效</span>'; }
+function toast(msg){ const t=document.getElementById('toast'); t.textContent=msg; t.classList.add('show'); setTimeout(()=>t.classList.remove('show'),1800); }
+function closeMask(id){ document.getElementById(id).classList.remove('open'); }
+function openMask(id){ document.getElementById(id).classList.add('open'); }
+function nowStr(){ const d=new Date(); const p=n=>String(n).padStart(2,'0'); return `${d.getFullYear()}-${p(d.getMonth()+1)}-${p(d.getDate())} ${p(d.getHours())}:${p(d.getMinutes())}:${p(d.getSeconds())}`; }
+function addChange(rec){ changeLog.unshift({time:nowStr(),user:rec.user||'当前用户',obj:rec.obj,type:rec.type,cat:rec.cat||'',vpps:rec.vpps||'',field:rec.field||'',old:rec.old||'',now:rec.now||'',src:'手动编辑'}); renderChange(); }
+
+/* ---------- Tabs ---------- */
+function switchTab(tab){
+  document.querySelectorAll('.sub-tab[data-tab]').forEach(t=>t.classList.toggle('active',t.dataset.tab===tab));
+  ['vpps','category','project','linkage','personnel','mapping','vehicle','routing','change'].forEach(p=>document.getElementById('panel-'+p).style.display = p===tab?'block':'none');
+  document.getElementById('bcCurrent').textContent = {vpps:'VPPS绑定品类',category:'品类管理',project:'项目分包(表1)',linkage:'联动关系',personnel:'人员树配置',mapping:'三级映射',vehicle:'车型+SOR项目管控',routing:'任务智能路由',change:'变更记录'}[tab];
+  if(tab==='category') renderCategory();
+  if(tab==='change') renderChange();
+  if(tab==='project') initProject();
+  if(tab==='personnel') initPersonnel();
+  if(tab==='mapping') initMapping();
+  if(tab==='vehicle') initVehicle();
+  if(tab==='routing') initRouting();
+}
+
+/* ---------- VPPS ---------- */
+function applyFilter(){
+  const st=document.getElementById('f-status').value;
+  const vpps=document.getElementById('f-vpps').value.trim().toLowerCase();
+  const sc=document.getElementById('f-struct').value.trim().toLowerCase();
+  const cn=document.getElementById('f-cn').value.trim().toLowerCase();
+  const state=document.getElementById('f-state').value;
+  const code=document.getElementById('f-code').value;
+  const filtered=vppsData.filter(r=>{
+    if(st&&r.status!==st)return false;
+    if(vpps&&!r.vpps.toLowerCase().includes(vpps))return false;
+    if(sc&&!r.structCode.toLowerCase().includes(sc))return false;
+    if(cn&&!r.cn.toLowerCase().includes(cn))return false;
+    if(state&&r.codeStatus!==state)return false;
+    if(code&&r.codeStatus!==code)return false;
+    return true;
+  });
+  renderVpps(filtered);
+}
+function resetFilter(){ ['f-status','f-vpps','f-struct','f-cn','f-state','f-code'].forEach(id=>document.getElementById(id).value=''); renderVpps(vppsData); }
+function toggleMore(){ const m=document.getElementById('filterMore'); m.classList.toggle('open'); document.querySelector('.link-btn').textContent=m.classList.contains('open')?'收起筛选 ▴':'展开筛选 ▾'; }
+function sortVpps(arr){
+  const rank={'待绑定':0,'已绑定':1,'无需绑定':2};
+  return arr.slice().sort((a,b)=>{
+    if(rank[a.status]!==rank[b.status])return rank[a.status]-rank[b.status];
+    const da=a.effDate==='-'?'0':a.effDate, db=b.effDate==='-'?'0':b.effDate;
+    if(da!==db)return db.localeCompare(da);
+    return a.vpps.localeCompare(b.vpps);
+  });
+}
+function renderVpps(list){
+  const data=sortVpps(list||vppsData);
+  const body=document.getElementById('vppsBody');
+  if(!data.length){ body.innerHTML='<tr><td colspan="14" class="empty">暂无数据</td></tr>'; document.getElementById('vppsCount').textContent='共 0 条'; return; }
+  body.innerHTML=data.map((r,i)=>{
+    let ops='';
+    if(r.status==='待绑定'){ ops = r.codeStatus==='失效' ? '<span class="btn-text muted">不可绑定</span>' : `<span class="btn-link-mini" onclick="openBind(${r.id})">绑定</span><span class="btn-link-mini" onclick="markNoNeed(${r.id})">标记无需绑定</span>`; }
+    else if(r.status==='无需绑定'){ ops=`<span class="btn-link-mini" onclick="withdraw(${r.id})">撤回</span>`; }
+    else if(r.status==='已绑定'){ ops='<span class="btn-text muted" title="解绑请在品类管理页面操作">解绑</span>'; }
+    return `<tr>
+      <td>${i+1}</td><td>${statusTag(r.status)}</td><td><span class="code-link">${r.vpps}</span></td><td>${r.structCode}</td><td>${r.structAbbr}</td>
+      <td>${r.locCode}</td><td>${r.cn}</td><td>${r.en}</td><td>${r.creator}</td><td>${codeTag(r.codeStatus)}</td>
+      <td>${r.effDate}</td><td>${r.expDate}</td><td>${r.bindCategory||'-'}</td><td>${ops}</td>
+    </tr>`;
+  }).join('');
+  document.getElementById('vppsCount').textContent=`共 ${data.length} 条`;
+}
+function exportVpps(){ toast('已导出 VPPS 绑定数据（演示）'); }
+function openBind(id){
+  const r=vppsData.find(x=>x.id===id);
+  document.getElementById('bindVpps').value=r.vpps;
+  document.getElementById('bindCn').value=r.cn;
+  const sel=document.getElementById('bindCategory');
+  sel.innerHTML='<option value="">请选择生效品类</option>'+catData.filter(c=>c.status==='生效').map(c=>`<option value="${c.code}">${c.code} ${c.name}</option>`).join('');
+  document.getElementById('bindErr').classList.remove('show');
+  sel.dataset.id=id; openMask('bindMask');
+}
+function confirmBind(){
+  const sel=document.getElementById('bindCategory');
+  if(!sel.value){ document.getElementById('bindErr').classList.add('show'); return; }
+  const id=+sel.dataset.id; const r=vppsData.find(x=>x.id===id); const cat=catData.find(c=>c.code===sel.value);
+  r.status='已绑定'; r.bindCategory=`${cat.code} ${cat.name}`;
+  if(!cat.boundVpps.includes(r.vpps)) cat.boundVpps.push(r.vpps);
+  if(!cat.vppsNodes.find(n=>n.vpps===r.vpps)) cat.vppsNodes.push({vpps:r.vpps,buyer:'—',sqe:'—',ce:'—'});
+  addChange({obj:'VPPS',type:'绑定',cat:cat.code,vpps:r.vpps,field:'绑定状态',old:'待绑定',now:'已绑定'});
+  closeMask('bindMask'); renderVpps(); toast('绑定成功');
+}
+function markNoNeed(id){ const r=vppsData.find(x=>x.id===id); showConfirm('标记为无需绑定','确认将该 VPPS 标记为"无需绑定"？无需填写原因。',()=>{ r.status='无需绑定'; addChange({obj:'VPPS',type:'无需绑定',vpps:r.vpps,field:'绑定状态',old:'待绑定',now:'无需绑定'}); renderVpps(); toast('已标记为无需绑定'); }); }
+function withdraw(id){ const r=vppsData.find(x=>x.id===id); showConfirm('撤回无需绑定','确认撤回？撤回后状态恢复为"待绑定"。',()=>{ r.status='待绑定'; addChange({obj:'VPPS',type:'撤回',vpps:r.vpps,field:'绑定状态',old:'无需绑定',now:'待绑定'}); renderVpps(); toast('已撤回'); }); }
+
+/* ---------- Category ---------- */
+function renderCategory(){
+  const body=document.getElementById('catBody');
+  body.innerHTML=catData.map(c=>`
+    <tr>
+      <td><span class="code-link" onclick="openDrawer('${c.code}')">${c.code}</span></td>
+      <td><span class="code-link" onclick="openDrawer('${c.code}')">${c.name}</span></td>
+      <td>${c.expert}</td>
+      <td>${c.status==='生效'?'<span class="tag tag-bound">生效</span>':'<span class="tag tag-noneed">已冻结</span>'}</td>
+      <td>${c.group}</td><td>${c.material}</td><td>${c.process}</td><td>${c.supplier}</td><td>${c.desc}</td>
+      <td>
+        <span class="btn-link-mini" onclick="openDrawer('${c.code}')">详情</span>
+        <span class="btn-link-mini" onclick="toast('编辑：${c.name}')">编辑</span>
+        <span class="btn-link-mini" onclick="toast('转派：${c.name}')">转派</span>
+        <span class="btn-link-mini" onclick="toast('冻结：${c.name}')">冻结</span>
+      </td>
+    </tr>`).join('');
+}
+function openDrawer(code){
+  const c=catData.find(x=>x.code===code);
+  document.getElementById('drawerTitle').textContent=`品类详情 · ${c.name}`;
+  document.getElementById('drawerContent').innerHTML=`
+    <div class="kv" style="margin-bottom:16px;">
+      <span class="chip"><b>品类编码</b> ${c.code}</span>
+      <span class="chip"><b>品类专家</b> ${c.expert}</span>
+      <span class="chip"><b>状态</b> ${c.status}</span>
+      <span class="chip"><b>专业组</b> ${c.group}</span>
+    </div>
+    <div class="sub-sec">VPPS节点 - 人员关系（表2 品类-采购工程师/SQE/财务CE）</div>
+    <div class="table-wrap" style="margin-bottom:18px;">
+      <table><thead><tr><th>VPPS节点</th><th>采购工程师</th><th>SQE</th><th>财务CE</th></tr></thead>
+      <tbody>${c.vppsNodes.map(n=>`<tr><td><span class="code-link">${n.vpps}</span></td><td>${n.buyer}</td><td>${n.sqe}</td><td>${n.ce}</td></tr>`).join('')}</tbody></table>
+    </div>
+    <div class="sub-sec">已绑定 VPPS（解绑在品类视角下处理）</div>
+    <div class="table-wrap" style="margin-bottom:18px;">
+      <table><thead><tr><th>VPPS编码</th><th>中文描述</th><th>状态</th><th>操作</th></tr></thead>
+      <tbody>${c.boundVpps.length?c.boundVpps.map(v=>{const r=vppsData.find(x=>x.vpps===v);return `<tr><td>${v}</td><td>${r?v.cn:'-'}</td><td>${statusTag('已绑定')}</td><td><span class="btn-link-mini" onclick="drawerUnbind('${v}')">解绑</span></td></tr>`;}).join(''):'<tr><td colspan="4" class="empty">暂无已绑定 VPPS</td></tr>'}</tbody></table>
+    </div>
+    <div class="sub-sec">定点供应商</div>
+    <div class="callout">${c.supplier}（期初导入）</div>
+    <div class="sub-sec">品类描述</div>
+    <div class="callout">${c.desc}</div>
+  `;
+  document.getElementById('drawerMask').classList.add('open');
+  document.getElementById('catDrawer').classList.add('open');
+}
+function closeDrawer(){ document.getElementById('drawerMask').classList.remove('open'); document.getElementById('catDrawer').classList.remove('open'); }
+function drawerUnbind(vppsCode){
+  const r=vppsData.find(x=>x.vpps===vppsCode); if(!r)return;
+  showConfirm('解绑确认','解绑后该 VPPS 将恢复为待绑定状态，请确认。',()=>{
+    const old=r.bindCategory; r.status='待绑定'; r.bindCategory='';
+    const cat=catData.find(c=>c.code===old.split(' ')[0]); if(cat){ cat.boundVpps=cat.boundVpps.filter(v=>v!==vppsCode); cat.vppsNodes=cat.vppsNodes.filter(n=>n.vpps!==vppsCode); }
+    addChange({obj:'VPPS',type:'解绑',cat:old.split(' ')[0],vpps:r.vpps,field:'绑定状态',old:'已绑定',now:'待绑定'});
+    closeMask('confirmMask'); closeDrawer(); renderVpps(); renderCategory(); toast('已解绑');
+  });
+}
+function openAddCategory(){ openMask('addMask'); }
+function confirmAdd(){
+  const name=document.getElementById('newName').value.trim();
+  const group=document.getElementById('newGroup').value;
+  const expert=document.getElementById('newExpert').value.trim();
+  let ok=true;
+  document.getElementById('nameErr').classList.toggle('show',!name); if(!name)ok=false;
+  document.getElementById('groupErr').classList.toggle('show',!group); if(!group)ok=false;
+  document.getElementById('expertErr').classList.toggle('show',!expert); if(!expert)ok=false;
+  if(!ok)return;
+  const code=document.getElementById('newCode').value;
+  catData.unshift({code,name,expert,status:'生效',group,material:document.getElementById('newMaterial').value||'-',process:document.getElementById('newProcess').value||'-',supplier:'-',desc:document.getElementById('newDesc').value||'-',vppsNodes:[],boundVpps:[]});
+  addChange({obj:'品类',type:'新增',cat:code,field:'品类名称',old:'-',now:name});
+  closeMask('addMask'); renderCategory(); toast('品类已发布（生效）');
+}
+
+/* ---------- Project (表1) ---------- */
+function initProject(){
+  const sel=document.getElementById('projCat');
+  if(sel.options.length<=1){
+    sel.innerHTML='<option value="">请选择品类</option>'+catData.filter(c=>c.status==='生效').map(c=>`<option value="${c.code}">${c.code} ${c.name}</option>`).join('');
+  }
+}
+function onProjCatChange(){
+  const code=document.getElementById('projCat').value;
+  document.getElementById('projCatErr').classList.remove('show');
+  const c=catData.find(x=>x.code===code);
+  if(c){
+    // 自动带出：取该品类下第一个VPPS节点的采购员/SQE（演示用；实际按VPPS节点索引）
+    const node=c.vppsNodes[0]||{buyer:'—',sqe:'—'};
+    document.getElementById('projBuyer').value=node.buyer==='—'?'':node.buyer;
+    document.getElementById('projSqe').value=node.sqe==='—'?'':node.sqe;
+  } else { document.getElementById('projBuyer').value=''; document.getElementById('projSqe').value=''; }
+}
+function saveProject(){
+  const code=document.getElementById('projCat').value;
+  if(!code){ document.getElementById('projCatErr').classList.add('show'); return; }
+  const buyer=document.getElementById('projBuyer').value;
+  toast(`分包已保存：品类 ${code}，采购员 ${buyer||'（表2默认带出）'}`);
+}
+
+/* ---------- EWO 改前参考件号 ---------- */
+function runEwo(){
+  const v=document.getElementById('ewoVpps').value.trim();
+  const p=document.getElementById('ewoProj').value.trim();
+  // 演示逻辑：台账中存在该VPPS+项目的已定点零件号
+  const map={'10.05.03':'PN-884201（充电口盖拉手-已定点）','30.01.07':'PN-771009（电池包支架-已定点）'};
+  const ref=map[v];
+  document.getElementById('ewoResult').innerHTML = ref
+    ? `✓ 查询到参考件号：<b>${ref}</b>（项目 ${p}），已回填"改前参考件号"。`
+    : `未查询到 ${v} 在 ${p} 下关联的已定点零件号（演示数据有限，可扩展台账）。`;
+}
+
+/* ---------- Change ---------- */
+function renderChange(){
+  const body=document.getElementById('changeBody');
+  body.innerHTML=changeLog.map(r=>`
+    <tr><td>${r.time}</td><td>${r.user}</td><td>${r.obj}</td><td>${r.type}</td><td>${r.cat||'-'}</td><td>${r.vpps||'-'}</td><td>${r.field||'-'}</td><td>${r.old||'-'}</td><td>${r.now||'-'}</td><td>${r.src}</td></tr>`).join('') || '<tr><td colspan="10" class="empty">暂无变更记录</td></tr>';
+  document.getElementById('changeCount').textContent=`共 ${changeLog.length} 条`;
+  document.getElementById('st-bind').textContent=changeLog.filter(r=>r.type==='绑定').length;
+  document.getElementById('st-transfer').textContent=changeLog.filter(r=>r.type==='转派').length;
+  document.getElementById('st-freeze').textContent=changeLog.filter(r=>r.type==='冻结').length;
+  document.getElementById('st-unbind').textContent=changeLog.filter(r=>r.type==='解绑').length;
+}
+
+/* ---------- Confirm ---------- */
+let confirmCb=null;
+function showConfirm(title,msg,cb){ document.getElementById('confirmTitle').textContent=title; document.getElementById('confirmMsg').textContent=msg; document.getElementById('confirmOk').style.display=''; confirmCb=cb; openMask('confirmMask'); document.getElementById('confirmOk').onclick=()=>{ closeMask('confirmMask'); if(confirmCb)confirmCb(); }; }
+
+/* ---------- Personnel Tree ---------- */
+function initPersonnel(){
+  const catSel=document.getElementById('p-cat');
+  if(catSel.options.length<=1) catSel.innerHTML='<option value="">全部</option>'+catData.map(c=>`<option value="${c.code}">${c.code} ${c.name}</option>`).join('');
+  renderPersonnel();
+}
+function renderPersonnel(){
+  const cat=document.getElementById('p-cat').value;
+  const vpps=document.getElementById('p-vpps').value.trim().toLowerCase();
+  const role=document.getElementById('p-role').value;
+  const user=document.getElementById('p-user').value.trim().toLowerCase();
+  const filtered=personnelData.filter(r=>{
+    if(cat&&r.cat!==cat)return false;
+    if(vpps&&!r.vpps.toLowerCase().includes(vpps))return false;
+    if(role&&role==='GCM'&&!r.gcm.toLowerCase().includes(user))return false;
+    if(role&&role==='SQE'&&!r.sqe.toLowerCase().includes(user))return false;
+    if(role&&role==='采购工程师'&&!r.buyer.toLowerCase().includes(user))return false;
+    if(!role&&user&&!(r.gcm+r.sqe+r.buyer).toLowerCase().includes(user))return false;
+    return true;
+  });
+  const body=document.getElementById('personnelBody');
+  body.innerHTML=filtered.map(r=>`
+    <tr><td>${r.cat}</td><td><span class="code-link">${r.vpps}</span></td><td>${r.cn}</td><td>${r.gcm}</td><td>${r.sqe}</td><td>${r.buyer}</td><td>${r.from}</td><td>${r.to}</td><td>${r.src}</td>
+    <td><span class="btn-link-mini" onclick="toast('编辑：${r.vpps}')">编辑</span><span class="btn-link-mini" onclick="toast('失效：${r.vpps}')">失效</span></td></tr>`).join('') || '<tr><td colspan="10" class="empty">暂无数据</td></tr>';
+  document.getElementById('personnelCount').textContent=`共 ${filtered.length} 条`;
+}
+function openAddPersonnel(){
+  const catSel=document.getElementById('newPpCat');
+  catSel.innerHTML='<option value="">请选择生效品类</option>'+catData.filter(c=>c.status==='生效').map(c=>`<option value="${c.code}">${c.code} ${c.name}</option>`).join('');
+  document.getElementById('newPpVpps').innerHTML='<option value="">请先选择品类</option>';
+  document.getElementById('ppCatErr').classList.remove('show');
+  document.getElementById('ppVppsErr').classList.remove('show');
+  openMask('personnelMask');
+  catSel.onchange=()=>{
+    const code=catSel.value;
+    const v=document.getElementById('newPpVpps');
+    if(!code){ v.innerHTML='<option value="">请先选择品类</option>'; return; }
+    const c=catData.find(x=>x.code===code);
+    const opts=(c.boundVpps.length?c.boundVpps:c.vppsNodes.map(n=>n.vpps)).map(vp=>{const r=vppsData.find(x=>x.vpps===vp);return`<option value="${vp}">${vp} ${r?r.cn:''}</option>`;}).join('');
+    v.innerHTML='<option value="">请选择 VPPS 节点</option>'+opts;
+  };
+}
+function confirmAddPersonnel(){
+  const cat=document.getElementById('newPpCat').value;
+  const vpps=document.getElementById('newPpVpps').value;
+  let ok=true;
+  document.getElementById('ppCatErr').classList.toggle('show',!cat); if(!cat)ok=false;
+  document.getElementById('ppVppsErr').classList.toggle('show',!vpps); if(!vpps)ok=false;
+  if(!ok)return;
+  const r=vppsData.find(x=>x.vpps===vpps);
+  personnelData.unshift({id:Date.now(),cat,vpps,cn:r?r.cn:'',gcm:document.getElementById('newPpGcm').value||'—',sqe:document.getElementById('newPpSqe').value||'—',buyer:document.getElementById('newPpBuyer').value||'—',from:document.getElementById('newPpFrom').value,to:document.getElementById('newPpTo').value||'-',src:'手工维护'});
+  addChange({obj:'人员树',type:'新增',cat,vpps,field:'人员关系',old:'-',now:vpps});
+  closeMask('personnelMask'); renderPersonnel(); toast('人员关系已保存');
+}
+
+/* ---------- Category-MVPS-Supplier Mapping ---------- */
+function initMapping(){
+  const catSel=document.getElementById('m-cat');
+  if(catSel.options.length<=1) catSel.innerHTML='<option value="">全部</option>'+catData.map(c=>`<option value="${c.code}">${c.code} ${c.name}</option>`).join('');
+  renderMapping();
+}
+function renderMapping(){
+  const cat=document.getElementById('m-cat').value;
+  const vpps=document.getElementById('m-vpps').value.trim().toLowerCase();
+  const supplier=document.getElementById('m-supplier').value.trim().toLowerCase();
+  const status=document.getElementById('m-status').value;
+  const filtered=mappingData.filter(r=>{
+    if(cat&&r.cat!==cat)return false;
+    if(vpps&&!r.vpps.toLowerCase().includes(vpps))return false;
+    if(supplier&&!r.supplierName.toLowerCase().includes(supplier))return false;
+    if(status&&r.status!==status)return false;
+    return true;
+  });
+  const body=document.getElementById('mappingBody');
+  body.innerHTML=filtered.map(r=>`
+    <tr><td>${r.cat}</td><td>${r.name}</td><td><span class="code-link">${r.vpps}</span></td><td>${r.supplierCode}</td><td>${r.supplierName}</td><td>${r.version}</td><td>${r.from}</td><td>${r.to}</td><td>${r.status==='生效'?'<span class="tag tag-bound">生效</span>':'<span class="tag tag-invalid">已失效</span>'}</td>
+    <td><span class="btn-link-mini" onclick="toast('编辑版本：${r.supplierName}')">编辑版本</span><span class="btn-link-mini" onclick="toast('查看历史：${r.supplierName}')">历史</span></td></tr>`).join('') || '<tr><td colspan="10" class="empty">暂无数据</td></tr>';
+  document.getElementById('mappingCount').textContent=`共 ${filtered.length} 条`;
+}
+function openAddMapping(){
+  const catSel=document.getElementById('newMapCat');
+  catSel.innerHTML='<option value="">请选择生效品类</option>'+catData.filter(c=>c.status==='生效').map(c=>`<option value="${c.code}">${c.code} ${c.name}</option>`).join('');
+  document.getElementById('newMapVpps').innerHTML='<option value="">请先选择品类</option>';
+  document.getElementById('mapCatErr').classList.remove('show');
+  document.getElementById('mapVppsErr').classList.remove('show');
+  document.getElementById('mapSupplierErr').classList.remove('show');
+  openMask('mappingMask');
+}
+function onMapCatChange(){
+  const code=document.getElementById('newMapCat').value;
+  const v=document.getElementById('newMapVpps');
+  if(!code){ v.innerHTML='<option value="">请先选择品类</option>'; return; }
+  const c=catData.find(x=>x.code===code);
+  const opts=(c.boundVpps.length?c.boundVpps:c.vppsNodes.map(n=>n.vpps)).map(vp=>{const r=vppsData.find(x=>x.vpps===vp);return`<option value="${vp}">${vp} ${r?r.cn:''}</option>`;}).join('');
+  v.innerHTML='<option value="">请选择 VPPS 节点</option>'+opts;
+}
+function confirmAddMapping(){
+  const cat=document.getElementById('newMapCat').value;
+  const vpps=document.getElementById('newMapVpps').value;
+  const supplier=document.getElementById('newMapSupplier').value.trim();
+  let ok=true;
+  document.getElementById('mapCatErr').classList.toggle('show',!cat); if(!cat)ok=false;
+  document.getElementById('mapVppsErr').classList.toggle('show',!vpps); if(!vpps)ok=false;
+  document.getElementById('mapSupplierErr').classList.toggle('show',!supplier); if(!supplier)ok=false;
+  if(!ok)return;
+  const c=catData.find(x=>x.code===cat);
+  mappingData.unshift({id:Date.now(),cat,name:c?c.name:'',vpps,supplierCode:'SUP-NEW',supplierName:supplier,version:'V1',from:document.getElementById('newMapFrom').value,to:document.getElementById('newMapTo').value||'-',status:'生效'});
+  addChange({obj:'三级映射',type:'新增',cat,vpps,field:'供应商',old:'-',now:supplier});
+  closeMask('mappingMask'); renderMapping(); toast('三级映射已保存');
+}
+
+/* ---------- Vehicle + SOR Project Control ---------- */
+function initVehicle(){
+  const catSel=document.getElementById('v-cat');
+  if(catSel.options.length<=1) catSel.innerHTML='<option value="">全部</option>'+catData.map(c=>`<option value="${c.code}">${c.code} ${c.name}</option>`).join('');
+  renderVehicle();
+}
+function renderVehicle(){
+  const proj=document.getElementById('v-proj').value.trim().toLowerCase();
+  const factory=document.getElementById('v-factory').value;
+  const cat=document.getElementById('v-cat').value;
+  const status=document.getElementById('v-status').value;
+  const filtered=vehicleData.filter(r=>{
+    if(proj&&!r.project.toLowerCase().includes(proj))return false;
+    if(factory&&r.factory!==factory)return false;
+    if(cat&&r.cat.indexOf(cat)===-1)return false;
+    if(status&&r.status!==status)return false;
+    return true;
+  });
+  const body=document.getElementById('vehicleBody');
+  body.innerHTML=filtered.map(r=>`
+    <tr><td>${r.project}</td><td>${r.factory}</td><td>${r.m0}</td><td>${r.pm}</td><td><span class="code-link">${r.sor}</span></td><td>${r.sorName}</td><td>${r.cat}</td><td>${r.buyer}</td><td>${r.sqe}</td><td>${r.planTime}</td>
+    <td>${r.status==='已定点'?'<span class="tag tag-bound">已定点</span>':r.status==='进行中'?'<span class="tag tag-pending">进行中</span>':'<span class="tag tag-noneed">未启动</span>'}</td>
+    <td><span class="btn-link-mini" onclick="toast('编辑：${r.sor}')">编辑</span><span class="btn-link-mini" onclick="toast('转派：${r.sor}')">转派</span></td></tr>`).join('') || '<tr><td colspan="12" class="empty">暂无数据</td></tr>';
+  document.getElementById('vehicleCount').textContent=`共 ${filtered.length} 条`;
+}
+
+/* ---------- Task Routing ---------- */
+function initRouting(){ switchRoute('bdl'); }
+function switchRoute(type){
+  currentRoute=type;
+  document.querySelectorAll('.sub-tab[data-route]').forEach(t=>t.classList.toggle('active',t.dataset.route===type));
+  renderRoute();
+}
+function renderRoute(){
+  const code=document.getElementById('r-code').value.trim().toLowerCase();
+  const vpps=document.getElementById('r-vpps').value.trim().toLowerCase();
+  const buyer=document.getElementById('r-buyer').value.trim().toLowerCase();
+  const status=document.getElementById('r-status').value;
+  const data=routeData[currentRoute]||[];
+  const filtered=data.filter(r=>{
+    if(code){
+      const keys=(r.sor||'')+(r.bdl||'')+(r.ewo||'')+(r.cwo||'')+(r.swo||'')+(r.frame||'')+(r.ref||'');
+      if(!keys.toLowerCase().includes(code))return false;
+    }
+    if(vpps&&!(r.vpps||'').toLowerCase().includes(vpps))return false;
+    if(buyer&&!(r.buyer||'').toLowerCase().includes(buyer))return false;
+    if(status&&r.status!==status)return false;
+    return true;
+  });
+  const head=document.getElementById('routeHead');
+  const body=document.getElementById('routeBody');
+  if(currentRoute==='sor'){
+    head.innerHTML='<tr><th>序号</th><th>车型项目</th><th>工厂</th><th>SOR 编号</th><th>SOR 名称</th><th>版本号/功能分组</th><th>采购任务状态</th><th>责任人</th><th>计划完成时间</th><th>状态</th><th>操作</th></tr>';
+    body.innerHTML=filtered.map((r,i)=>`
+      <tr><td>${i+1}</td><td>${r.project}</td><td>${r.factory}</td><td><span class="code-link">${r.sor}</span></td><td>${r.sorName}</td><td>${r.group}</td><td>${r.taskStatus}</td><td>${r.buyer}<br><span style="color:var(--text-3);font-size:12px;">${r.sqe}</span></td><td>${r.planTime}</td>
+      <td>${r.status==='待处理'?'<span class="tag tag-pending">待处理</span>':'<span class="tag tag-bound">处理中</span>'}</td>
+      <td><span class="btn-link-mini" onclick="toast('下发：${r.sor}')">下发</span><span class="btn-link-mini" onclick="toast('接收：${r.sor}')">接收</span><span class="btn-link-mini" onclick="toast('更多：${r.sor}')">更多</span></td></tr>`).join('');
+  } else if(currentRoute==='bdl'){
+    head.innerHTML='<tr><th>序号</th><th>预选申请单编号</th><th>RFQ 类型</th><th>关联单号</th><th>RFQ 编号</th><th>RFQ 名称</th><th>长清单编号</th><th>研发评审状态</th><th>质量评审状态</th><th>采购工程师</th><th>创建时间</th><th>状态</th><th>操作</th></tr>';
+    body.innerHTML=filtered.map((r,i)=>`
+      <tr><td>${i+1}</td><td><span class="code-link">${r.bdl}</span></td><td>${r.type}</td><td>${r.bdl}</td><td><span class="code-link">${r.ref}</span></td><td>${r.rfqName}</td><td>${r.longCode}</td><td>${r.rdStatus}</td><td>${r.qeStatus}</td><td>${r.buyer}</td><td>${r.createTime}</td>
+      <td>${r.status==='通过'?'<span class="tag tag-bound">通过</span>':r.status==='草稿'?'<span class="tag tag-noneed">草稿</span>':'<span class="tag tag-pending">综合-审批中</span>'}</td>
+      <td><span class="btn-link-mini" onclick="toast('新建：${r.bdl}')">新建</span><span class="btn-link-mini" onclick="toast('删除：${r.bdl}')">删除</span></td></tr>`).join('');
+  } else if(currentRoute==='ewo'){
+    head.innerHTML='<tr><th>序号</th><th>EWO 编号/名称</th><th>改后零件</th><th>改前零件</th><th>建议来源</th><th>项目编号</th><th>车型</th><th>影响车型/工厂</th><th>价格台账</th><th>供应商</th><th>状态</th><th>标识</th><th>操作</th></tr>';
+    body.innerHTML=filtered.map((r,i)=>`
+      <tr><td>${i+1}</td><td><span class="code-link">${r.ewo}</span><br><span style="color:var(--text-3);font-size:12px;">MX11 25B-2/...</span></td><td>${r.after}</td><td>${r.before}</td><td>${r.source}</td><td>${r.project}</td><td>${r.car}</td><td>${r.factory}</td><td>${r.price==='有'?'<span class="tag tag-bound">有</span>':'<span class="tag tag-noneed">无</span>'}</td><td>${r.supplier}</td>
+      <td>${r.status==='待处理'?'<span class="tag tag-pending">待处理</span>':'<span class="tag tag-bound">已完成</span>'}</td>
+      <td><span class="tag tag-noneed">${r.tag}</span></td>
+      <td><span class="btn-link-mini" onclick="toast('修改：${r.ewo}')">修改</span><span class="btn-link-mini" onclick="toast('转派：${r.ewo}')">转派</span></td></tr>`).join('');
+  } else {
+    head.innerHTML='<tr><th>序号</th><th>任务编号</th><th>改后零件 / 名称</th><th>项目</th><th>车型</th><th>工厂</th><th>品类</th><th>采购工程师</th><th>状态</th><th>操作</th></tr>';
+    body.innerHTML=filtered.map((r,i)=>{
+      const code=r.cwo||r.swo||r.frame;
+      const name=r.after||r.name;
+      return `<tr><td>${i+1}</td><td><span class="code-link">${code}</span></td><td>${name}</td><td>${r.project}</td><td>${r.car||'-'}</td><td>${r.factory||'-'}</td><td>${r.cat||'-'}</td><td>${r.buyer}</td>
+        <td>${r.status==='待处理'?'<span class="tag tag-pending">待处理</span>':'<span class="tag tag-bound">已完成</span>'}</td>
+        <td><span class="btn-link-mini" onclick="toast('处理：${code}')">处理</span><span class="btn-link-mini" onclick="toast('转派：${code}')">转派</span></td></tr>`;
+    }).join('');
+  }
+  if(!body.innerHTML) body.innerHTML='<tr><td colspan="12" class="empty">暂无数据</td></tr>';
+  document.getElementById('routeCount').textContent=`共 ${filtered.length} 条`;
+}
+function openBatchTransfer(){
+  const catSel=document.getElementById('btCat');
+  if(catSel.options.length<=1) catSel.innerHTML='<option value="">全部</option>'+catData.map(c=>`<option value="${c.code}">${c.code} ${c.name}</option>`).join('');
+  document.getElementById('btToErr').classList.remove('show');
+  document.getElementById('btCount').textContent='0';
+  openMask('transferMask');
+}
+function confirmBatchTransfer(){
+  const to=document.getElementById('btTo').value.trim();
+  const sync1=document.getElementById('btSyncT1').checked;
+  const sync2=document.getElementById('btSyncT2').checked;
+  let ok=true;
+  document.getElementById('btToErr').classList.toggle('show',!to); if(!to)ok=false;
+  if(!ok)return;
+  if(!sync1||!sync2){ showConfirm('双表联动提示','未勾选同步更新表1或表2，转移后可能导致路由错配，是否继续？',()=>finishTransfer()); }
+  else finishTransfer();
+}
+function finishTransfer(){
+  const to=document.getElementById('btTo').value.trim();
+  const from=document.getElementById('btFrom').value.trim()||'原采购员';
+  const type=document.getElementById('btType').value||'全部';
+  const count=Math.floor(Math.random()*8)+3;
+  addChange({obj:'任务路由',type:'转派',cat:'',vpps:'',field:'批量转移',old:from,now:to});
+  closeMask('transferMask');
+  toast(`已批量转移 ${count} 条${type}任务给 ${to}，并同步更新表1/表2`);
+  renderRoute();
+}
+
+/* ---------- Init ---------- */
+renderVpps();
+</script>
+</body>
+</html>
