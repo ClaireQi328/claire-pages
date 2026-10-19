@@ -1,0 +1,540 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>报价成本库 · 数据看板</title>
+<link rel="stylesheet" href="https://miaoda.feishu.cn/fonts/css2?family=Noto+Sans+SC:wght@400;500;600;700&display=swap">
+<style>
+  :root{
+    --navy:#1F4E79; --blue:#2E75B6; --sky:#6FA8DC; --pale:#D6E4F0;
+    --amber:#E8A33D; --amber-soft:#FBEEDC;
+    --bg:#F4F6F9; --card:#FFFFFF; --ink:#1B2430; --muted:#5A6B7E;
+    --line:#E3E8EF; --gray:#B7BCC4;
+  }
+  *{margin:0;padding:0;box-sizing:border-box;}
+  html{-webkit-text-size-adjust:100%;}
+  body{
+    font-family:"Noto Sans SC","PingFang SC","Hiragino Sans GB","Microsoft YaHei",system-ui,sans-serif;
+    background:var(--bg); color:var(--ink); line-height:1.6; font-size:14px;
+  }
+  .wrap{max-width:1180px;margin:0 auto;padding:28px 20px 48px;}
+  /* ===== 头部 ===== */
+  header.hero{
+    background:linear-gradient(135deg,#1F4E79 0%,#2E75B6 78%,#3E7CB1 100%);
+    border-radius:16px;padding:34px 36px 30px;color:#fff;
+    position:relative;overflow:hidden;
+  }
+  header.hero::after{
+    content:"";position:absolute;right:-70px;top:-70px;width:260px;height:260px;border-radius:50%;
+    background:rgba(255,255,255,.07);
+  }
+  header.hero::before{
+    content:"";position:absolute;right:70px;bottom:-110px;width:200px;height:200px;border-radius:50%;
+    background:rgba(255,255,255,.05);
+  }
+  .hero .tag{
+    display:inline-block;background:rgba(255,255,255,.16);border:1px solid rgba(255,255,255,.28);
+    color:#fff;font-size:12px;padding:3px 12px;border-radius:999px;letter-spacing:.08em;margin-bottom:14px;
+  }
+  .hero h1{font-size:30px;font-weight:700;letter-spacing:.02em;}
+  .hero .sub{margin-top:10px;font-size:14px;color:rgba(255,255,255,.85);max-width:760px;}
+  .hero .chips{margin-top:20px;display:flex;flex-wrap:wrap;gap:10px;}
+  .hero .chip{
+    background:rgba(255,255,255,.14);border:1px solid rgba(255,255,255,.22);border-radius:10px;
+    padding:8px 14px;font-size:12px;color:#fff;
+  }
+  .hero .chip b{display:block;font-size:19px;font-weight:700;line-height:1.3;}
+  /* ===== 区块 ===== */
+  section{margin-top:36px;}
+  .sec-head{display:flex;align-items:center;gap:12px;margin-bottom:16px;}
+  .sec-head .bar{width:5px;height:22px;background:var(--amber);border-radius:3px;}
+  .sec-head h2{font-size:20px;font-weight:700;color:var(--navy);}
+  .sec-head .note{font-size:12px;color:var(--muted);}
+  /* ===== 关键要素卡片 ===== */
+  .elem-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;}
+  .elem-card{
+    background:var(--card);border:1px solid var(--line);border-radius:12px;padding:16px 16px 14px;
+    transition:box-shadow .18s ease, transform .18s ease;
+  }
+  .elem-card:hover{box-shadow:0 6px 18px rgba(31,78,121,.10);transform:translateY(-2px);}
+  .elem-card .ic{width:34px;height:34px;border-radius:9px;display:flex;align-items:center;justify-content:center;margin-bottom:10px;}
+  .elem-card .ic svg{width:19px;height:19px;}
+  .elem-card h3{font-size:15px;font-weight:600;color:var(--ink);}
+  .elem-card .val{font-size:16px;font-weight:700;color:var(--navy);margin-top:4px;}
+  .elem-card .val .unit{font-size:12px;font-weight:400;color:var(--muted);}
+  .elem-card p{font-size:12px;color:var(--muted);margin-top:6px;line-height:1.55;}
+  .ic-navy{background:var(--pale);} .ic-navy svg{stroke:var(--navy);}
+  .ic-amber{background:var(--amber-soft);} .ic-amber svg{stroke:#C77E1E;}
+  /* ===== 结构总览 ===== */
+  .struct-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;}
+  .struct-card{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:16px;display:flex;flex-direction:column;}
+  .struct-card .grp{font-size:12px;font-weight:600;color:var(--navy);background:var(--pale);display:inline-block;padding:2px 10px;border-radius:999px;align-self:flex-start;margin-bottom:10px;}
+  .struct-card ul{list-style:none;display:flex;flex-direction:column;gap:7px;}
+  .struct-card li{font-size:12.5px;color:var(--ink);line-height:1.5;}
+  .struct-card li b{color:var(--navy);font-weight:600;}
+  .struct-card li .dim{color:var(--muted);font-size:11.5px;}
+  .struct-card .tip{margin-top:auto;padding-top:10px;font-size:11.5px;color:var(--muted);border-top:1px dashed var(--line);}
+  /* ===== 图表 ===== */
+  .chart-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:14px;}
+  .chart-card{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:18px 16px 10px;}
+  .chart-card h3{font-size:15px;font-weight:600;color:var(--ink);display:flex;align-items:baseline;gap:8px;}
+  .chart-card h3 .tag{font-size:11px;font-weight:400;color:var(--muted);}
+  .chart-box{width:100%;height:340px;margin-top:6px;}
+  .chart-card.wide{grid-column:1/-1;}
+  .chart-note{font-size:11.5px;color:var(--muted);padding:2px 2px 4px;}
+  /* ===== 报价一览表 ===== */
+  .tbl-wrap{background:var(--card);border:1px solid var(--line);border-radius:12px;overflow:auto;}
+  table{width:100%;border-collapse:collapse;min-width:900px;font-size:12.5px;}
+  thead th{
+    background:var(--navy);color:#fff;font-weight:600;padding:10px 12px;text-align:left;white-space:nowrap;
+    position:sticky;top:0;
+  }
+  tbody td{padding:9px 12px;border-bottom:1px solid var(--line);vertical-align:top;white-space:nowrap;}
+  tbody tr:nth-child(even){background:#F7F9FC;}
+  tbody tr:hover{background:var(--pale);}
+  td.num{font-variant-numeric:tabular-nums;text-align:right;}
+  td .src{color:var(--muted);font-size:11.5px;}
+  .badge{display:inline-block;font-size:11px;padding:1px 8px;border-radius:999px;}
+  .badge.demo{background:var(--amber-soft);color:#C77E1E;}
+  .badge.real{background:#E8F2EC;color:#2E7D5B;}
+  .badge.kwh{background:var(--pale);color:var(--navy);}
+  /* ===== 费率库 ===== */
+  .rate-tbl{min-width:760px;}
+  .rate-tbl td.rate{font-weight:600;color:var(--navy);font-variant-numeric:tabular-nums;white-space:nowrap;}
+  .cat{display:inline-block;font-size:11px;font-weight:600;padding:2px 10px;border-radius:999px;}
+  .cat-人工{background:#E8F2EC;color:#2E7D5B;}
+  .cat-场地{background:#FBEEDC;color:#C77E1E;}
+  .cat-能源{background:#EAF1FB;color:#2E75B6;}
+  .cat-折旧{background:#EEF0F4;color:#4A5568;}
+  .cat-比率{background:#F6EBF4;color:#8E4A7C;}
+  .cat-产能{background:#EAF6F4;color:#2A7A70;}
+  .cat-包装{background:#F4F0E9;color:#8A6D3B;}
+  /* ===== 导入流程 ===== */
+  .flow{display:grid;grid-template-columns:repeat(5,1fr);gap:0;counter-reset:step;}
+  .flow .step{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:16px 14px;position:relative;}
+  .flow .step:not(:last-child){margin-right:18px;}
+  .flow .step::after{
+    content:"";position:absolute;right:-18px;top:50%;transform:translateY(-50%);
+    border-top:2px dashed var(--sky);width:18px;
+  }
+  .flow .step:last-child::after{display:none;}
+  .flow .no{
+    counter-increment:step;width:28px;height:28px;border-radius:50%;background:var(--navy);color:#fff;
+    display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700;margin-bottom:10px;
+  }
+  .flow .no::before{content:counter(step);}
+  .flow h4{font-size:13.5px;font-weight:600;color:var(--ink);margin-bottom:5px;}
+  .flow p{font-size:12px;color:var(--muted);line-height:1.55;}
+  /* ===== 页脚 ===== */
+  footer{margin-top:40px;padding:20px 22px;background:var(--card);border:1px solid var(--line);border-radius:12px;font-size:12px;color:var(--muted);}
+  footer h4{font-size:13px;color:var(--navy);font-weight:600;margin-bottom:8px;}
+  footer ul{list-style:none;display:flex;flex-wrap:wrap;gap:6px 18px;}
+  footer li{line-height:1.7;}
+  footer .warn{margin-top:8px;color:#C77E1E;background:var(--amber-soft);border-radius:8px;padding:8px 12px;}
+  /* ===== 响应式 ===== */
+  @media (max-width:1024px){
+    .elem-grid{grid-template-columns:repeat(2,1fr);}
+    .struct-grid{grid-template-columns:repeat(2,1fr);}
+    .chart-grid{grid-template-columns:1fr;}
+    .chart-card.wide{grid-column:auto;}
+    .flow{grid-template-columns:1fr;gap:10px;}
+    .flow .step:not(:last-child){margin-right:0;}
+    .flow .step::after{display:none;}
+  }
+  @media (max-width:640px){
+    .wrap{padding:16px 12px 40px;}
+    header.hero{padding:24px 20px;border-radius:12px;}
+    .hero h1{font-size:22px;}
+    .elem-grid,.struct-grid{grid-template-columns:1fr;}
+    .hero .chip b{font-size:16px;}
+    .chart-box{height:300px;}
+  }
+  @media (prefers-reduced-motion:reduce){
+    *{transition:none!important;animation:none!important;}
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<header class="hero">
+  <span class="tag">报价成本库 · 原型 v0.1 · 数据库 + 呈现层</span>
+  <h1>报价成本库 · 数据看板</h1>
+  <p class="sub">以《报价细项模版final》为主体骨架，按数据库范式沉淀报价过程的关键成本要素：人工、场地、设备折旧、能耗、模具、开发、物流、管理与样件。主表与明细通过「报价ID」关联，历史报价已抽取入库，新报价按导入流程持续积累。</p>
+  <div class="chips">
+    <div class="chip"><b>6</b>条历史报价</div>
+    <div class="chip"><b>12</b>张数据表</div>
+    <div class="chip"><b>52</b>主表成本字段</div>
+    <div class="chip"><b>24</b>项关键要素费率</div>
+  </div>
+</header>
+
+<!-- ===== 关键成本要素 ===== -->
+<section>
+  <div class="sec-head"><span class="bar"></span><h2>关键成本要素</h2><span class="note">本库重点沉淀对象 · 数值来自 8-关键要素费率库 与历史报价</span></div>
+  <div class="elem-grid">
+    <div class="elem-card">
+      <div class="ic ic-navy"><svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="7.5" r="3.2"/><path d="M5.5 20c.6-3.2 3.2-5 6.5-5s5.9 1.8 6.5 5"/></svg></div>
+      <h3>人工</h3>
+      <div class="val">10<small class="unit"> 万元/(人·年)</small></div>
+      <p>直接人工费率（电芯产线）；制造费人工按工段工时 × 小时费率（含个税与福利）计算。</p>
+    </div>
+    <div class="elem-card">
+      <div class="ic ic-amber"><svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 21V9l8-6 8 6v12"/><path d="M9 21v-6h6v6"/></svg></div>
+      <h3>场地成本</h3>
+      <div class="val">23<small class="unit"> 元/(㎡·年)</small></div>
+      <p>电芯占地 25 万㎡口径；厂房单位成本 = 租金 × 面积 ÷ 24h ÷ 班次 ÷ 工时（LCR）。</p>
+    </div>
+    <div class="elem-card">
+      <div class="ic ic-navy"><svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v4M12 17v4M3 12h4M17 12h4"/><circle cx="12" cy="12" r="4.5"/></svg></div>
+      <h3>设备折旧</h3>
+      <div class="val">1 亿 / 10 年</div>
+      <p>产线总投资 1 亿元、折旧 10 年；设备维护费按原值 1%~3%/年；基建按 20 年。</p>
+    </div>
+    <div class="elem-card">
+      <div class="ic ic-amber"><svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M13 2 4.5 13.5H11L9.5 22 19 9.5h-6.5L13 2z"/></svg></div>
+      <h3>能耗</h3>
+      <div class="val">0.85<small class="unit"> 元/度 · 水 5 元/吨</small></div>
+      <p>电芯年电耗 1000 万度；能耗按 电/可燃气/水 分类，多种能耗可拆行计费。</p>
+    </div>
+    <div class="elem-card">
+      <div class="ic ic-navy"><svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M14 3v4a1 1 0 0 0 1 1h4"/><path d="M17 21H7a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h7l5 5v11a2 2 0 0 1-2 2z"/><path d="M9 13h6M9 17h4"/></svg></div>
+      <h3>模具 / 工装</h3>
+      <div class="val">35.58 万 → 6.78<small class="unit"> 元/件</small></div>
+      <p>分摊 = 总额 ÷ 生命周期量；仪表板饰板 13 项模具/工装/检具按 5.25 万件分摊。</p>
+    </div>
+    <div class="elem-card">
+      <div class="ic ic-amber"><svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l2.5 5 5.5.8-4 3.9.9 5.5L12 16l-4.9 2.2.9-5.5-4-3.9L9.5 8 12 3z"/></svg></div>
+      <h3>开发费</h3>
+      <div class="val">581.3 万 → 5.81<small class="unit"> 元/件</small></div>
+      <p>人员 / 试验 / 标定三项，按生命周期量分摊；全景显示器口径（100 万件）。</p>
+    </div>
+    <div class="elem-card">
+      <div class="ic ic-navy"><svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7h11v10H3z"/><path d="M14 10h4l3 3v4h-7"/><circle cx="7" cy="18.5" r="1.6"/><circle cx="17.5" cy="18.5" r="1.6"/></svg></div>
+      <h3>物流</h3>
+      <div class="val">28<small class="unit"> 元/件（全景）</small></div>
+      <p>运输 + 包装 + 中转 + 排序；全景 2100km：运输 12 + 包装 12 + 中转 4 元/件。</p>
+    </div>
+    <div class="elem-card">
+      <div class="ic ic-amber"><svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 12h6M9 16h6"/><rect x="4" y="4" width="16" height="16" rx="2"/><path d="M9 2v4M15 2v4"/></svg></div>
+      <h3>管理费 / 样件</h3>
+      <div class="val">DB 6% + 利管 4%</div>
+      <p>管理费按费率计提；样件费按 手工/软模/硬模 倍数（3/2/1）计算，另行单列。</p>
+    </div>
+  </div>
+</section>
+
+<!-- ===== 库结构总览 ===== -->
+<section>
+  <div class="sec-head"><span class="bar"></span><h2>库结构总览</h2><span class="note">12 张子表 = 主体骨架（模板） + 成本明细 + 要素/参考库</span></div>
+  <div class="struct-grid">
+    <div class="struct-card">
+      <span class="grp">主体骨架 · 模板</span>
+      <ul>
+        <li><b>1-报价主表</b> <span class="dim">一单一行 · 52 字段</span></li>
+      </ul>
+      <div class="tip">报价基本信息 + 价格 + 材料/制造/模具/开发/物流/管理/样件汇总，字段口径对齐 RFW 报价细项与 EP 导出。</div>
+    </div>
+    <div class="struct-card">
+      <span class="grp">成本明细 · 2~7</span>
+      <ul>
+        <li><b>2-材料费明细</b> <span class="dim">BOM 级 · 21 行</span></li>
+        <li><b>3-制造费明细</b> <span class="dim">要素 × 参数 · 17 行</span></li>
+        <li><b>4-模具工装费</b> <span class="dim">13 项明细</span></li>
+        <li><b>5-开发费明细</b> / <b>6-物流费明细</b> / <b>7-管理费样件费</b></li>
+      </ul>
+      <div class="tip">与主表通过「报价ID」关联；人工、场地、设备、能耗、耗材、报废逐项落库并沉淀参数。</div>
+    </div>
+    <div class="struct-card">
+      <span class="grp">要素与参考库</span>
+      <ul>
+        <li><b>8-关键要素费率库</b> <span class="dim">24 项参数</span></li>
+        <li><b>9-材料品类库</b> <span class="dim">81 条下拉源</span></li>
+        <li><b>10-工艺品类库</b> <span class="dim">50 条下拉源</span></li>
+        <li><b>11-包装尺寸库</b> <span class="dim">35 条下拉源</span></li>
+      </ul>
+      <div class="tip">人工费率、场地单价、能源单价、折旧年限、比率等参数集中沉淀，横向复用与对比。</div>
+    </div>
+    <div class="struct-card">
+      <span class="grp">使用入口</span>
+      <ul>
+        <li><b>0-使用说明</b></li>
+      </ul>
+      <div class="tip">定位与目标、库结构、关键成本要素、新报价入库流程、口径与数据说明。</div>
+    </div>
+  </div>
+</section>
+
+<!-- ===== 图表区 ===== -->
+<section>
+  <div class="sec-head"><span class="bar"></span><h2>历史报价 · 成本构成</h2><span class="note">单件口径元/件 · 数据来自 1-报价主表（弧焊螺柱为演示值）</span></div>
+
+  <div class="chart-grid">
+    <div class="chart-card wide">
+      <h3>三份 RFW 报价 · 单件成本构成（堆叠）<span class="tag">材料 + 制造 + 模具/开发分摊 + 物流 + 管理</span></h3>
+      <div id="chartA" class="chart-box"></div>
+      <div class="chart-note">弧焊螺柱 386（演示值）｜ 全景显示器 2551.55 ｜ 仪表板饰板 479.23。全景显示器以整机外购为主，材料费占绝对大头。</div>
+    </div>
+
+    <div class="chart-card">
+      <h3>电芯 · 制造费构成（元/KWh）<span class="tag">CELL-001</span></h3>
+      <div id="chartB" class="chart-box"></div>
+      <div class="chart-note">合计 1.633 元/KWh；源文件口径：材料 1.398、KWh 报价 1.290（元/KWh）。人工与场地为电芯口径下重点要素。</div>
+    </div>
+
+    <div class="chart-card">
+      <h3>仪表板饰板 · BOM 材料费 Top10（元/件）<span class="tag">外购 vs 自制</span></h3>
+      <div id="chartC" class="chart-box"></div>
+      <div class="chart-note">21 行 BOM 合计 350.571 元 = 外购 241 + 自制 109.571；Top10 占 87.9%。铝模 IP 0.1mm 外购 80 元为最大单项。</div>
+    </div>
+  </div>
+</section>
+
+<!-- ===== 历史报价一览 ===== -->
+<section>
+  <div class="sec-head"><span class="bar"></span><h2>历史报价一览</h2><span class="note">6 条记录已入库 · 金额元/件（电芯行元/KWh）</span></div>
+  <div class="tbl-wrap">
+    <table>
+      <thead><tr>
+        <th>报价ID</th><th>零件</th><th>项目 / 车型</th><th>供应商</th><th>报价日期</th>
+        <th>价格</th><th>材料费</th><th>制造费</th><th>模具分摊</th><th>开发分摊</th><th>物流</th><th>管理</th><th>数据来源</th>
+      </tr></thead>
+      <tbody>
+        <tr>
+          <td><b>RFW-001</b></td><td>弧焊焊接螺柱<br><span class="src">P000000519002</span></td><td>—</td><td>—</td>
+          <td>2026-04-30</td><td class="num">386.00</td><td class="num">58.00</td><td class="num">45.00</td><td class="num">1.00</td><td class="num">1.00</td><td class="num">278.00</td><td class="num">3.00</td>
+          <td><span class="badge demo">演示值</span><br><span class="src">RFW…519002.xlsx</span></td>
+        </tr>
+        <tr>
+          <td><b>RFW-002</b></td><td>全景显示器<br><span class="src">P000046758001</span></td><td>—</td><td>德赛西威惠南</td>
+          <td>2026-05-13</td><td class="num">2551.55</td><td class="num">2178.74</td><td class="num">93.00</td><td class="num">5.00</td><td class="num">5.81</td><td class="num">28.00</td><td class="num">241.00</td>
+          <td><span class="badge real">真实样例</span><br><span class="src">RFW…92557.xlsx</span></td>
+        </tr>
+        <tr>
+          <td><b>RFW-003</b></td><td>仪表板饰板总成<br><span class="src">P000056656001</span></td><td>—</td><td>诺维汽车内饰件</td>
+          <td>2026-05-13</td><td class="num">479.23</td><td class="num">350.57</td><td class="num">78.93</td><td class="num">6.78</td><td class="num">—</td><td class="num">25.00</td><td class="num">17.95</td>
+          <td><span class="badge real">真实样例</span><br><span class="src">RFW…总成本.xlsx</span></td>
+        </tr>
+        <tr>
+          <td><b>MX11-001</b></td><td>后盖左电撑杆总成<br><span class="src">P000056149001</span></td><td>MX11-2027B</td><td>爱德夏机电（昆山）</td>
+          <td>2026-05-22</td><td class="num">0.60</td><td class="num">0.60</td><td class="num">—</td><td class="num">1.00</td><td class="num">—</td><td class="num">—</td><td class="num">—</td>
+          <td><span class="badge demo">演示值</span><br><span class="src">小米报价表-爱德夏.xlsx</span></td>
+        </tr>
+        <tr>
+          <td><b>MX11-002</b></td><td>后盖右电撑杆总成<br><span class="src">P000056148001</span></td><td>MX11-2027B</td><td>爱德夏机电（昆山）</td>
+          <td>2026-05-22</td><td class="num">0.60</td><td class="num">0.60</td><td class="num">—</td><td class="num">1.00</td><td class="num">—</td><td class="num">—</td><td class="num">—</td>
+          <td><span class="badge demo">演示值</span><br><span class="src">小米报价表-爱德夏.xlsx</span></td>
+        </tr>
+        <tr>
+          <td><b>CELL-001</b></td><td>电芯（磷酸铁锂）<br><span class="src">单颗电芯</span></td><td>—</td><td>—</td>
+          <td>—</td><td class="num">1.290<span class="badge kwh" style="margin-left:6px">元/KWh</span></td><td class="num">1.398</td><td class="num">1.633</td><td class="num">—</td><td class="num">—</td><td class="num">—</td><td class="num">—</td>
+          <td><span class="badge real">真实样例</span><br><span class="src">电芯报价模板.xlsx</span></td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<!-- ===== 关键要素费率库 ===== -->
+<section>
+  <div class="sec-head"><span class="bar"></span><h2>关键要素费率库</h2><span class="note">8-关键要素费率库 · 24 项参数沉淀，新报价可复用、可横向对比</span></div>
+  <div class="tbl-wrap">
+    <table class="rate-tbl">
+      <thead><tr><th>要素分类</th><th>要素名称</th><th>单位</th><th>参考值 / 费率</th><th>数据来源</th><th>备注</th></tr></thead>
+      <tbody>
+        <tr><td><span class="cat cat-人工">人工</span></td><td>直接人工费率（电芯产线）</td><td>元/(人·年)</td><td class="rate">100,000</td><td class="src">电芯报价模板.xlsx</td><td>一线员工，直接参与产线操作</td></tr>
+        <tr><td><span class="cat cat-人工">人工</span></td><td>间接人工费率（电芯产线）</td><td>元/(人·年)</td><td class="rate">100,000</td><td class="src">电芯报价模板.xlsx</td><td>—</td></tr>
+        <tr><td><span class="cat cat-人工">人工</span></td><td>开发-岗位职能分类</td><td>—</td><td class="rate">管理人员 / 测试人员 / 技术人员 / 其他</td><td class="src">报价细项模版final</td><td>下拉选项</td></tr>
+        <tr><td><span class="cat cat-人工">人工</span></td><td>制造-直接人员类型</td><td>—</td><td class="rate">操作工 / 检验人员(专职) / 配料员</td><td class="src">报价细项模版final</td><td>小时费含个税和福利</td></tr>
+        <tr><td><span class="cat cat-人工">人工</span></td><td>制造-间接人员类型</td><td>—</td><td class="rate">管理人员 / 点检人员 / 维修人员 / 巡检人员</td><td class="src">报价细项模版final</td><td>—</td></tr>
+        <tr><td><span class="cat cat-场地">场地</span></td><td>厂房单位成本（产线口径）</td><td>元/h/㎡</td><td class="rate">租金 × 面积 ÷ 24 ÷ 班次 ÷ 工时</td><td class="src">模版final-制造费-产线</td><td>占地费 = 面积×单价÷24h×工时÷LCR</td></tr>
+        <tr><td><span class="cat cat-场地">场地</span></td><td>每年单位基础设施费用（电芯口径）</td><td>元/(㎡·年)</td><td class="rate">23</td><td class="src">电芯报价模板.xlsx</td><td>基础设施按 20 年折旧</td></tr>
+        <tr><td><span class="cat cat-场地">场地</span></td><td>厂房折旧年限参考</td><td>年</td><td class="rate">20（参考 50）</td><td class="src">报价细项模版final</td><td>—</td></tr>
+        <tr><td><span class="cat cat-能源">能源</span></td><td>电单价</td><td>元/度</td><td class="rate">0.85</td><td class="src">电芯报价模板.xlsx</td><td>—</td></tr>
+        <tr><td><span class="cat cat-能源">能源</span></td><td>水单价</td><td>元/吨</td><td class="rate">5</td><td class="src">电芯报价模板.xlsx</td><td>含污水处理</td></tr>
+        <tr><td><span class="cat cat-能源">能源</span></td><td>能耗种类</td><td>—</td><td class="rate">电(度) / 可燃气(升) / 水(吨) 等</td><td class="src">报价细项模版final</td><td>多种能耗可拆行</td></tr>
+        <tr><td><span class="cat cat-折旧">折旧</span></td><td>设备折旧年限参考</td><td>年</td><td class="rate">5 / 8 / 10</td><td class="src">报价细项模版final</td><td>—</td></tr>
+        <tr><td><span class="cat cat-折旧">折旧</span></td><td>产线折旧年限</td><td>年</td><td class="rate">10</td><td class="src">电芯报价模板.xlsx</td><td>—</td></tr>
+        <tr><td><span class="cat cat-折旧">折旧</span></td><td>设备维护费比例参考</td><td>%</td><td class="rate">1% ~ 3%</td><td class="src">报价细项模版final</td><td>设备原值 × 比例 / 年</td></tr>
+        <tr><td><span class="cat cat-比率">比率</span></td><td>OEE 设计值推荐</td><td>%</td><td class="rate">75%</td><td class="src">电芯报价模板.xlsx</td><td>两班；高于此值按实际填写</td></tr>
+        <tr><td><span class="cat cat-比率">比率</span></td><td>报废成本占比</td><td>%</td><td class="rate">5%</td><td class="src">电芯报价模板.xlsx</td><td>电芯口径</td></tr>
+        <tr><td><span class="cat cat-比率">比率</span></td><td>期间费用占比</td><td>%</td><td class="rate">3%</td><td class="src">电芯报价模板.xlsx</td><td>电芯口径</td></tr>
+        <tr><td><span class="cat cat-比率">比率</span></td><td>利润占比</td><td>%</td><td class="rate">5%</td><td class="src">电芯报价模板.xlsx</td><td>电芯口径</td></tr>
+        <tr><td><span class="cat cat-比率">比率</span></td><td>DB 管理费率（样例）</td><td>%</td><td class="rate">6%</td><td class="src">RFW…56656001.xlsx</td><td>仪表板饰板样例</td></tr>
+        <tr><td><span class="cat cat-比率">比率</span></td><td>利管率（样例）</td><td>%</td><td class="rate">4%</td><td class="src">RFW…56656001.xlsx</td><td>仪表板饰板样例</td></tr>
+        <tr><td><span class="cat cat-比率">比率</span></td><td>样件倍数（手工 / 软模 / 硬模）</td><td>倍</td><td class="rate">1.5</td><td class="src">RFW报价细项样例</td><td>样例值</td></tr>
+        <tr><td><span class="cat cat-产能">产能</span></td><td>电芯年设计产能</td><td>KWh/年</td><td class="rate">20,000,000</td><td class="src">电芯报价模板.xlsx</td><td>—</td></tr>
+        <tr><td><span class="cat cat-产能">产能</span></td><td>产线总投资</td><td>元</td><td class="rate">100,000,000</td><td class="src">电芯报价模板.xlsx</td><td>含工装、运输等辅助设备</td></tr>
+        <tr><td><span class="cat cat-包装">包装</span></td><td>包装收容数 / 循环周期参考</td><td>—</td><td class="rate">见 11-包装尺寸库</td><td class="src">报价细项模版final</td><td>周转箱循环周期单位：小时</td></tr>
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<!-- ===== 新报价入库流程 ===== -->
+<section>
+  <div class="sec-head"><span class="bar"></span><h2>新报价如何入库</h2><span class="note">五步导入流程 · 详见 0-使用说明</span></div>
+  <div class="flow">
+    <div class="step">
+      <div class="no"></div>
+      <h4>建报价ID</h4>
+      <p>在「1-报价主表」新增一行，生成唯一「报价ID」（如 RFW-004 / MX11-003）。</p>
+    </div>
+    <div class="step">
+      <div class="no"></div>
+      <h4>明细映射入库</h4>
+      <p>把 RFW 报价细项各子表数据，按列名映射复制到 2~7 明细表（列名与模板保持一致）。</p>
+    </div>
+    <div class="step">
+      <div class="no"></div>
+      <h4>参数沉淀费率库</h4>
+      <p>人工费率、场地单价、能源单价等参数沉淀到「8-关键要素费率库」，供后续复用。</p>
+    </div>
+    <div class="step">
+      <div class="no"></div>
+      <h4>横向对比分析</h4>
+      <p>在飞书中用筛选 / 透视表，按零件号、供应商、报价日期横向对比成本。</p>
+    </div>
+    <div class="step">
+      <div class="no"></div>
+      <h4>参考库保口径</h4>
+      <p>下拉数据源引用 9/10/11 参考库（材料、工艺、包装），保证口径统一。</p>
+    </div>
+  </div>
+</section>
+
+<footer>
+  <h4>数据来源与口径说明</h4>
+  <ul>
+    <li>· 金额单位默认「元/件（EA）」；电芯报价行口径为「元/KWh」，已在备注标注</li>
+    <li>· 「分摊」指模具费 / 开发费按生命周期量分摊到单件；「一次性」不摊入单价</li>
+    <li>· 数据来源文件：RFW 报价细项 ×3、小米报价表-爱德夏电撑杆、电芯报价模板、报价细项模版final、BOM样例-ICMall、B(M1)转向机总成（列模型参考）</li>
+    <li>· 本看板全部数字与《报价成本库原型.xlsx》逐项一致；弧焊螺柱、电撑杆为演示值</li>
+  </ul>
+  <div class="warn">示例数据说明：RFW-001 弧焊螺柱与 MX11-001/002 电撑杆的部分数字来自样例演示（标注「演示值」），不代表真实报价；其余为样例文件中的真实数值。</div>
+</footer>
+
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/echarts@5.5.0/dist/echarts.min.js"></script>
+<script>
+(function(){
+  "use strict";
+  var NAVY="#1F4E79", BLUE="#2E75B6", SKY="#6FA8DC", PALE="#A9C6E8", AMBER="#E8A33D", GRAY="#B7BCC4", INK="#1B2430", MUTED="#5A6B7E";
+
+  function initAll(){
+    try{
+      var cards=document.querySelectorAll(".chart-card");
+      for(var i=0;i<cards.length;i++){cards[i].style.opacity=1;}
+    }catch(e){}
+    drawA(); drawB(); drawC();
+    var t;
+    window.addEventListener("resize",function(){
+      clearTimeout(t); t=setTimeout(function(){
+        if(window.chartA)window.chartA.resize();
+        if(window.chartB)window.chartB.resize();
+        if(window.chartC)window.chartC.resize();
+      },200);
+    });
+  }
+
+  function baseTooltip(trigger){
+    return { trigger:trigger, triggerOn:"click", renderMode:"richText", confine:true,
+      textStyle:{ fontSize:11, lineHeight:15 }, padding:[6,8] };
+  }
+  function merge(a,b){ for(var k in b){ if(b.hasOwnProperty(k)){ a[k]=b[k]; } } return a; }
+
+  /* 图表A：三份 RFW 报价单件成本构成（堆叠） */
+  function drawA(){
+    var el=document.getElementById("chartA");
+    if(!el) return;
+    var TOT=[386,2551.55,479.23];
+    window.chartA=echarts.init(el);
+    window.chartA.setOption({
+      backgroundColor:"transparent",
+      tooltip:merge(baseTooltip("axis"),{axisPointer:{type:"shadow"}}),
+      legend:{ top:0, type:"scroll", itemWidth:14, itemHeight:8, textStyle:{ color:MUTED, fontSize:11 } },
+      grid:{ left:8, right:16, top:44, bottom:8, containLabel:true },
+      xAxis:{ type:"category", data:["弧焊螺柱\nRFW-001","全景显示器\nRFW-002","仪表板饰板\nRFW-003"],
+        axisLabel:{ color:INK, fontSize:12, lineHeight:16 } },
+      yAxis:{ type:"value", name:"元/件", nameTextStyle:{ color:MUTED, fontSize:11 },
+        axisLabel:{ color:MUTED, fontSize:11 } },
+      series:[
+        { name:"材料", type:"bar", stack:"c", data:[58,2178.74,350.571], itemStyle:{ color:NAVY }, barMaxWidth:64 },
+        { name:"制造", type:"bar", stack:"c", data:[45,93,78.929], itemStyle:{ color:BLUE } },
+        { name:"模具分摊", type:"bar", stack:"c", data:[1,5,6.776], itemStyle:{ color:SKY } },
+        { name:"开发分摊", type:"bar", stack:"c", data:[1,5.813,0], itemStyle:{ color:PALE } },
+        { name:"物流", type:"bar", stack:"c", data:[278,28,25], itemStyle:{ color:AMBER } },
+        { name:"管理", type:"bar", stack:"c", data:[3,241,17.953], itemStyle:{ color:GRAY },
+          label:{ show:true, position:"top", color:INK, fontSize:11, fontWeight:600,
+            formatter:function(p){ return "合计 "+TOT[p.dataIndex]; } } }
+      ]
+    });
+  }
+
+  /* 图表B：电芯制造费构成（元/KWh） */
+  function drawB(){
+    var el=document.getElementById("chartB");
+    if(!el) return;
+    window.chartB=echarts.init(el);
+    window.chartB.setOption({
+      backgroundColor:"transparent",
+      tooltip:Object.assign(baseTooltip("item"),{formatter:"{b}: {c} 元/KWh ({d}%)"}),
+      legend:{ bottom:0, type:"scroll", itemWidth:14, itemHeight:8, textStyle:{ color:MUTED, fontSize:11 } },
+      series:[{
+        name:"制造费构成", type:"pie", radius:["44%","68%"], center:["50%","46%"],
+        avoidLabelOverlap:true,
+        label:{ formatter:"{b}\n{d}%", color:MUTED, fontSize:11, lineHeight:14 },
+        labelLine:{ length:12, length2:8 },
+        data:[
+          { value:0.475, name:"设备折旧", itemStyle:{ color:NAVY } },
+          { value:0.39,  name:"人工",     itemStyle:{ color:AMBER } },
+          { value:0.425, name:"能耗",     itemStyle:{ color:SKY } },
+          { value:0.2875,name:"场地",     itemStyle:{ color:BLUE } },
+          { value:0.055, name:"其他",     itemStyle:{ color:GRAY } }
+        ]
+      }]
+    });
+  }
+
+  /* 图表C：仪表板饰板 BOM 材料费 Top10 */
+  function drawC(){
+    var el=document.getElementById("chartC");
+    if(!el) return;
+    var names=["铝模 IP 0.1mm","电镀条 IP 上-LH","电镀条 IP 上-RH","喷漆件 IP 中","科技木",
+               "电镀条 IP 下-LH","注塑材料","防护棉","卡子","底漆"];
+    var vals=[80,45,45,35,27.158,20,18.24,16.8,11.025,9.921];
+    var buys={0:1,1:1,2:1,3:1,5:1};  /* 外购 */
+    var data=[];
+    for(var i=0;i<names.length;i++){
+      data.push({ value:vals[i], itemStyle:{ color: buys[i]?NAVY:SKY } });
+    }
+    window.chartC=echarts.init(el);
+    window.chartC.setOption({
+      backgroundColor:"transparent",
+      tooltip:merge(baseTooltip("item"),{formatter:function(p){
+        var kind=buys[p.dataIndex]?"外购件":"自制材料";
+        return p.name+String.fromCharCode(10)+kind+": "+p.value+" 元/件";
+      }}),
+      grid:{ left:8, right:40, top:10, bottom:8, containLabel:true },
+      xAxis:{ type:"value", name:"元/件", nameTextStyle:{ color:MUTED, fontSize:11 },
+        axisLabel:{ color:MUTED, fontSize:11 } },
+      yAxis:{ type:"category", inverse:true, data:names,
+        axisLabel:{ color:INK, fontSize:11.5 } },
+      series:[{ name:"材料费", type:"bar", data:data, barMaxWidth:18 }]
+    });
+  }
+
+  if(window.echarts){
+    initAll();
+  }else{
+    var s=document.createElement("script");
+    s.src="https://cdnjs.cloudflare.com/ajax/libs/echarts/5.5.0/echarts.min.js";
+    s.onload=initAll;
+    document.body.appendChild(s);
+  }
+})();
+</script>
+</body>
+</html>

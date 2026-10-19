@@ -1,0 +1,727 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>订单自动化 · FDE 整体方案与下一步工作拆解</title>
+<style>
+:root{
+  --primary:#1677FF;--primary-hover:#4096FF;--primary-active:#0958D9;--primary-light:#E6F4FF;--primary-border:#91CAFF;
+  --border:#D9D9D9;--border-light:#F0F0F0;--header-bg:#FAFAFA;--hover-bg:#F5F5F5;
+  --text:rgba(0,0,0,.88);--text-secondary:rgba(0,0,0,.65);--text-tertiary:rgba(0,0,0,.45);
+  --success:#52C41A;--warning:#FAAD14;--error:#FF4D4F;--info:#1677FF;
+  --bg:#F5F7FA;--card-bg:#fff;--radius:6px;--radius-lg:8px;
+  --shadow:0 1px 2px rgba(0,0,0,.06),0 1px 6px rgba(0,0,0,.04);
+  --shadow-hover:0 2px 8px rgba(0,0,0,.08),0 4px 12px rgba(0,0,0,.04);
+}
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Microsoft YaHei",sans-serif;font-size:13px;color:var(--text);background:var(--bg);line-height:1.7}
+a{color:var(--primary);text-decoration:none}
+a:hover{color:var(--primary-hover)}
+.container{max-width:1200px;margin:0 auto;padding:24px 32px}
+/* Nav */
+.topnav{position:sticky;top:0;z-index:100;background:rgba(255,255,255,.92);backdrop-filter:blur(12px);border-bottom:1px solid var(--border-light);padding:0 32px}
+.topnav-inner{max-width:1200px;margin:0 auto;display:flex;align-items:center;height:52px;gap:4px;overflow-x:auto}
+.topnav a{padding:6px 14px;border-radius:var(--radius);font-size:13px;color:var(--text-secondary);white-space:nowrap;transition:all .2s}
+.topnav a:hover{background:var(--primary-light);color:var(--primary)}
+.topnav a.active{background:var(--primary);color:#fff}
+/* Hero */
+.hero{background:linear-gradient(135deg,var(--primary) 0%,var(--primary-active) 100%);color:#fff;padding:40px 32px;border-radius:0 0 12px 12px;margin-bottom:32px}
+.hero h1{font-size:24px;font-weight:600;margin-bottom:8px}
+.hero p{font-size:14px;opacity:.9;max-width:800px}
+.hero .meta{display:flex;gap:24px;margin-top:16px;font-size:12px;opacity:.85}
+.hero .meta span{display:flex;align-items:center;gap:4px}
+/* Section */
+.section{margin-bottom:40px}
+.section-head{display:flex;align-items:center;gap:12px;margin-bottom:16px;padding-bottom:12px;border-bottom:2px solid var(--primary)}
+.section-no{background:var(--primary);color:#fff;width:28px;height:28px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:600;flex-shrink:0}
+.section-head h2{font-size:18px;font-weight:600}
+.section-head .sub{font-size:12px;color:var(--text-tertiary);margin-left:auto}
+/* Cards */
+.card{background:var(--card-bg);border:1px solid var(--border);border-radius:var(--radius-lg);padding:20px;box-shadow:var(--shadow);margin-bottom:16px}
+.card-title{font-size:14px;font-weight:600;margin-bottom:12px;display:flex;align-items:center;gap:8px}
+/* Tags */
+.tag{display:inline-flex;align-items:center;gap:4px;padding:2px 8px;border-radius:4px;font-size:11px;font-weight:500;line-height:1.4}
+.tag-cli{background:#E6F4FF;color:#0958D9;border:1px solid #91CAFF}
+.tag-skill{background:#F6FFED;color:#389E0D;border:1px solid #B7EB8F}
+.tag-agent{background:#FFF7E6;color:#D46B08;border:1px solid #FFD591}
+.tag-mcp{background:#F9F0FF;color:#531DAB;border:1px solid #D3ADF7}
+.tag-done{background:#F6FFED;color:#389E0D;border:1px solid #B7EB8F}
+.tag-wip{background:#FFF7E6;color:#D46B08;border:1px solid #FFD591}
+.tag-todo{background:#FFF1F0;color:#CF1322;border:1px solid #FFA39E}
+.tag-p0{background:#FF4D4F;color:#fff}
+.tag-p1{background:#FAAD14;color:#fff}
+.tag-p2{background:#1677FF;color:#fff}
+/* Tables */
+table{width:100%;border-collapse:collapse;font-size:12px;margin-bottom:12px}
+th{background:var(--header-bg);text-align:left;padding:10px 12px;font-weight:600;color:var(--text-secondary);border-bottom:1px solid var(--border);white-space:nowrap}
+td{padding:8px 12px;border-bottom:1px solid var(--border-light);vertical-align:top}
+tr:hover td{background:var(--hover-bg)}
+/* Grid */
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+.grid3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:16px}
+@media(max-width:768px){.grid2,.grid3{grid-template-columns:1fr}}
+/* Highlight */
+.hl{border-left:4px solid var(--primary);background:var(--primary-light);padding:12px 16px;border-radius:0 var(--radius) var(--radius) 0;margin-bottom:12px}
+.hl-warn{border-left-color:var(--warning);background:#FFFBE6}
+.hl-err{border-left-color:var(--error);background:#FFF1F0}
+.hl-ok{border-left-color:var(--success);background:#F6FFED}
+/* Timeline */
+.timeline{position:relative;padding-left:32px}
+.timeline::before{content:'';position:absolute;left:8px;top:0;bottom:0;width:2px;background:var(--border)}
+.tl-item{position:relative;margin-bottom:20px}
+.tl-item::before{content:'';position:absolute;left:-28px;top:4px;width:12px;height:12px;border-radius:50%;background:var(--primary);border:2px solid #fff;box-shadow:0 0 0 2px var(--primary)}
+.tl-item.done::before{background:var(--success);box-shadow:0 0 0 2px var(--success)}
+.tl-item.wip::before{background:var(--warning);box-shadow:0 0 0 2px var(--warning)}
+.tl-item.todo::before{background:var(--text-tertiary);box-shadow:0 0 0 2px var(--text-tertiary)}
+.tl-date{font-size:11px;color:var(--text-tertiary);font-weight:500}
+.tl-title{font-size:13px;font-weight:600;margin:2px 0 4px}
+.tl-desc{font-size:12px;color:var(--text-secondary)}
+/* Stat row */
+.stats{display:flex;gap:16px;margin-bottom:16px;flex-wrap:wrap}
+.stat{flex:1;min-width:140px;background:var(--card-bg);border:1px solid var(--border);border-radius:var(--radius);padding:16px;text-align:center}
+.stat .num{font-size:28px;font-weight:700;color:var(--primary)}
+.stat .num.done{color:var(--success)}
+.stat .num.wip{color:var(--warning)}
+.stat .num.todo{color:var(--text-tertiary)}
+.stat .lbl{font-size:11px;color:var(--text-tertiary);margin-top:4px}
+/* FDE flow */
+.fde-flow{display:flex;align-items:stretch;gap:0;margin:16px 0}
+.fde-step{flex:1;background:var(--card-bg);border:1px solid var(--border);border-radius:var(--radius);padding:16px;position:relative;text-align:center}
+.fde-step:not(:last-child)::after{content:'→';position:absolute;right:-12px;top:50%;transform:translateY(-50%);font-size:20px;color:var(--primary);z-index:1;background:var(--bg);width:24px;height:24px;display:flex;align-items:center;justify-content:center;border-radius:50%}
+.fde-step h4{font-size:13px;font-weight:600;margin-bottom:8px;color:var(--primary)}
+.fde-step p{font-size:11px;color:var(--text-secondary)}
+.fde-step .role{font-size:10px;color:var(--text-tertiary);margin-top:8px;padding:2px 6px;background:var(--hover-bg);border-radius:4px;display:inline-block}
+/* Phase */
+.phase{border:1px solid var(--border);border-radius:var(--radius-lg);overflow:hidden;margin-bottom:16px}
+.phase-head{padding:12px 20px;font-size:14px;font-weight:600;display:flex;align-items:center;gap:12px;color:#fff}
+.phase-1 .phase-head{background:linear-gradient(135deg,#1677FF,#0958D9)}
+.phase-2 .phase-head{background:linear-gradient(135deg,#52C41A,#389E0D)}
+.phase-3 .phase-head{background:linear-gradient(135deg,#722ED1,#531DAB)}
+.phase-body{padding:16px 20px;background:var(--card-bg)}
+.work-item{display:flex;gap:12px;padding:10px 0;border-bottom:1px solid var(--border-light)}
+.work-item:last-child{border-bottom:none}
+.wi-no{font-size:11px;font-weight:700;color:var(--primary);min-width:28px;padding-top:2px}
+.wi-content{flex:1}
+.wi-title{font-size:13px;font-weight:600;margin-bottom:2px}
+.wi-desc{font-size:12px;color:var(--text-secondary);margin-bottom:4px}
+.wi-meta{display:flex;gap:12px;flex-wrap:wrap;font-size:11px}
+.wi-meta span{color:var(--text-tertiary)}
+.wi-meta b{color:var(--text-secondary)}
+/* Footer */
+.footer{text-align:center;padding:24px 0;font-size:11px;color:var(--text-tertiary);border-top:1px solid var(--border-light);margin-top:32px}
+</style>
+</head>
+<body>
+
+<nav class="topnav"><div class="topnav-inner">
+<a href="#s1">现状盘点</a>
+<a href="#s2">Skill/CLI 全景</a>
+<a href="#s3">飞书0818对齐</a>
+<a href="#s4">FDE落地路径</a>
+<a href="#s5">下一步拆解</a>
+<a href="#s6">风险与保障</a>
+</div></nav>
+
+<div class="container">
+
+<!-- Hero -->
+<div class="hero">
+<h1>📋 订单自动化 · FDE 整体方案与下一步工作拆解</h1>
+<p>基于历史本地记录（订单自动化方案 v5、样件自动下单方案、样件全流程线上化机会分析、品类路由 Agent 化方案、EP CLI 权限分析、Q3 立项报告）+ 飞书白板「样件订单全流程方案锁定 0818」，梳理 Skill / CLI / Agent 全景分布，制定 FDE 模式落地路径与分阶段工作计划。</p>
+<div class="meta">
+<span>📅 2026-08-20</span>
+<span>👤 齐岳（PM）</span>
+<span>🏗️ FDE 编排模式</span>
+<span>🎯 样件自动下单 + 合同在线化 + MVPS 品类主数据</span>
+</div>
+</div>
+
+<!-- Section 1: 现状盘点 -->
+<div class="section" id="s1">
+<div class="section-head">
+<div class="section-no">1</div>
+<h2>现状盘点：已建 / 在建 / 待建</h2>
+<span class="sub">截至 2026-08-20</span>
+</div>
+
+<div class="stats">
+<div class="stat"><div class="num done">19</div><div class="lbl">研发已交付系统接口</div></div>
+<div class="stat"><div class="num done">4</div><div class="lbl">WorkBuddy 已封装 Skill</div></div>
+<div class="stat"><div class="num wip">3</div><div class="lbl">Q3 立项项目（在建）</div></div>
+<div class="stat"><div class="num todo">8</div><div class="lbl">线上化机会点（待建）</div></div>
+<div class="stat"><div class="num todo">25</div><div class="lbl">CLI 接口（14 已通 / 8 待改 / 2 部分）</div></div>
+</div>
+
+<div class="card">
+<div class="card-title">📌 已建成资产清单</div>
+<table>
+<thead><tr><th width="120">资产</th><th>说明</th><th width="80">形态</th><th width="80">状态</th></tr></thead>
+<tbody>
+<tr><td><b>dx-ep CLI</b></td><td>5 域（supplier / sor / rfq / nomi / process），19 个只读系统接口已对接 EP API 网关（garagehub-cli-gateway），RISK_READ 级别</td><td><span class="tag tag-cli">CLI</span></td><td><span class="tag tag-done">✅ 已交付</span></td></tr>
+<tr><td><b>ep-supplier-query</b></td><td>原子 Skill：供应商基本信息 / 列表模糊搜 / 变更历史（基于 dx-ep supplier 模块）</td><td><span class="tag tag-skill">Skill</span></td><td><span class="tag tag-done">✅ 已封装</span></td></tr>
+<tr><td><b>ep-supplier-earnings</b></td><td>路由门面 Skill：组合 supplier-query + earnings-analysis + due-diligence</td><td><span class="tag tag-skill">Skill</span></td><td><span class="tag tag-done">✅ 已封装</span></td></tr>
+<tr><td><b>baojia-detail-analysis</b></td><td>报价细项统计分析 Skill：CSV→HTML 报告 + FDS 上传 + 三 Tab（数据/Insight/附录）</td><td><span class="tag tag-skill">Skill</span></td><td><span class="tag tag-done">✅ 已封装</span></td></tr>
+<tr><td><b>ce-pricing-completion</b></td><td>CE 核价完成率分析 Skill：Excel 双 Sheet 关联 + 项目维度拆解 + FDS 上传</td><td><span class="tag tag-skill">Skill</span></td><td><span class="tag tag-done">✅ 已封装</span></td></tr>
+<tr><td><b>MVPS 品类应用原型</b></td><td>单文件 HTML 原型，622 交互节点 0 死链，含品类管理 / 路由规则 / 任务转派 / 权限体系</td><td>原型</td><td><span class="tag tag-wip">🔧 原型完成</span></td></tr>
+<tr><td><b>MVPS 品类 PRD</b></td><td>12 章 PRD，含 26 条 CLI 定义 + 7 个 Skill + 35 条验收标准 + 追溯矩阵</td><td>PRD</td><td><span class="tag tag-wip">🔧 待评审</span></td></tr>
+<tr><td><b>订单自动化方案 v5</b></td><td>4 Skills + 3 层 Agent + CLI 接口定义 + MVP 4 期 + KPI 体系</td><td>方案</td><td><span class="tag tag-wip">🔧 方案锁定</span></td></tr>
+<tr><td><b>样件全流程分析</b></td><td>白底单页 HTML：泳道图 + 8 痛点 + 8 机会点 + 4 层架构 + 落地优先级</td><td>分析</td><td><span class="tag tag-done">✅ 已完成</span></td></tr>
+<tr><td><b>CLI 权限分析</b></td><td>25 接口权限现状审计 + 3 类改动策略 + 立项申请 HTML</td><td>立项</td><td><span class="tag tag-wip">🔧 待业务确认</span></td></tr>
+</tbody>
+</table>
+</div>
+
+<div class="hl hl-warn">
+<b>⚠️ 关键缺口：</b>研发已交付 19 个只读接口，但<b>写操作接口（订单创建/审批触发/状态回写）尚未开放</b>。当前 CLI 全部为 RISK_READ 级别，无法支撑自动下单闭环。这是 FDE 落地的第一阻塞项。
+</div>
+</div>
+
+<!-- Section 2: Skill/CLI 全景 -->
+<div class="section" id="s2">
+<div class="section-head">
+<div class="section-no">2</div>
+<h2>Skill / CLI / Agent 全景分布</h2>
+<span class="sub">跨 3 大工作线汇总</span>
+</div>
+
+<div class="card">
+<div class="card-title">📋 样件订单自动化线（核心主线）</div>
+<table>
+<thead><tr><th width="40">No</th><th>能力名称</th><th width="80">形态</th><th>职责</th><th width="80">状态</th><th>依赖</th></tr></thead>
+<tbody>
+<tr><td>S1</td><td><b>Price Matcher</b></td><td><span class="tag tag-skill">Skill</span></td><td>智能价格匹配：历史价/报价/RFQ 三态分流，偏差≤15% 自动取低价</td><td><span class="tag tag-todo">⏳ 待开发</span></td><td>价格库 CLI (price ledger)</td></tr>
+<tr><td>S2</td><td><b>Order Dispatcher</b></td><td><span class="tag tag-skill">Skill</span></td><td>订单智能分流：唯一供应商(80%)/多家(15%)/无供应商(5%)三路径</td><td><span class="tag tag-todo">⏳ 待开发</span></td><td>vendor profile CLI</td></tr>
+<tr><td>S3</td><td><b>Batch Orderer</b></td><td><span class="tag tag-skill">Skill</span></td><td>批量下单：≤50 单/批，逐单创建，失败不阻断整批</td><td><span class="tag tag-todo">⏳ 待开发</span></td><td>SRM 订单创建 API（写接口）</td></tr>
+<tr><td>S4</td><td><b>Notification Sender</b></td><td><span class="tag tag-skill">Skill</span></td><td>结果通知：下单成功/失败/异常 → 飞书卡片</td><td><span class="tag tag-todo">⏳ 待开发</span></td><td>飞书 Bot webhook</td></tr>
+<tr><td>A1</td><td><b>需求导入 Agent</b></td><td><span class="tag tag-agent">Agent</span></td><td>监听 MI-PEC webhook + EP BOM 轮询 → 统一需求池</td><td><span class="tag tag-todo">⏳ 待开发</span></td><td>MI-PEC Webhook / EP API</td></tr>
+<tr><td>A1.5</td><td><b>聚合定价 Agent</b></td><td><span class="tag tag-agent">Agent</span></td><td>需求多维聚合 + Price Matcher 调用 + 定价任务生成</td><td><span class="tag tag-todo">⏳ 待开发</span></td><td>S1 Price Matcher</td></tr>
+<tr><td>A2</td><td><b>自动下单 Agent</b></td><td><span class="tag tag-agent">Agent</span></td><td>Coordinator：编排 S1→S2→S3→S4，HITL 双确认</td><td><span class="tag tag-todo">⏳ 待开发</span></td><td>S1-S4 全部就绪</td></tr>
+<tr><td>A3</td><td><b>进度追踪 Agent</b></td><td><span class="tag tag-agent">Agent</span></td><td>日报生成 + 异常预警 + 全流程状态看板</td><td><span class="tag tag-todo">⏳ 待开发</span></td><td>SRM 状态 webhook</td></tr>
+<tr><td>C1</td><td><code>order dispatch</code></td><td><span class="tag tag-cli">CLI</span></td><td>订单分流：输入 source/parts/priority → 返回路由+状态</td><td><span class="tag tag-todo">⏳ 待开发</span></td><td>S2 Order Dispatcher</td></tr>
+<tr><td>C2</td><td><code>order execute</code></td><td><span class="tag tag-cli">CLI</span></td><td>执行下单：输入 task-id + confirm → 返回 PO 号</td><td><span class="tag tag-todo">⏳ 待开发</span></td><td>S3 Batch Orderer + SRM 写接口</td></tr>
+<tr><td>C3</td><td><code>price match</code></td><td><span class="tag tag-cli">CLI</span></td><td>价格查询：输入 part/supplier/qty → 返回价格+状态</td><td><span class="tag tag-todo">⏳ 待开发</span></td><td>S1 Price Matcher</td></tr>
+</tbody>
+</table>
+
+<div class="hl">
+<b>🔑 线上化机会点（OP-01 ~ OP-08）形态分布：</b>
+<br>Agent × 4（OP-01 多源对接 / OP-04 价格三态 / OP-06 自动下单 / OP-08 智能追踪）
+<br>Skill × 2（OP-02 字段映射 / OP-04 价格匹配）
+<br>CLI × 4（OP-02 字段映射 / OP-03 台账清洗 / OP-05 一品多点强制选 / OP-07 工厂维度物流价）
+</div>
+</div>
+
+<div class="card">
+<div class="card-title">📋 品类管理线（MVPS / 路由 Agent）</div>
+<table>
+<thead><tr><th width="40">No</th><th>能力名称</th><th width="80">形态</th><th>职责</th><th width="80">状态</th></tr></thead>
+<tbody>
+<tr><td>M-S1</td><td><b>category-classify</b></td><td><span class="tag tag-skill">Skill</span></td><td>品类自动识别：PN → MVPS 品类映射</td><td><span class="tag tag-todo">⏳ 待开发</span></td></tr>
+<tr><td>M-S2</td><td><b>buyer-resolve</b></td><td><span class="tag tag-skill">Skill</span></td><td>采购员解析：品类 + 车型 → 采购员/采购组</td><td><span class="tag tag-todo">⏳ 待开发</span></td></tr>
+<tr><td>M-S3</td><td><b>route-match</b></td><td><span class="tag tag-skill">Skill</span></td><td>路由匹配：任务 + 规则 → 目标采购员</td><td><span class="tag tag-todo">⏳ 待开发</span></td></tr>
+<tr><td>M-S4</td><td><b>rule-evaluate</b></td><td><span class="tag tag-skill">Skill</span></td><td>规则引擎求值：条件字段 → 匹配算法 → 路由结果</td><td><span class="tag tag-todo">⏳ 待开发</span></td></tr>
+<tr><td>M-S5</td><td><b>load-balance</b></td><td><span class="tag tag-skill">Skill</span></td><td>负载均衡：采购员当前任务量 → 溢出/转派判定</td><td><span class="tag tag-todo">⏳ 待开发</span></td></tr>
+<tr><td>M-S6</td><td><b>task-assign</b></td><td><span class="tag tag-skill">Skill</span></td><td>任务下发：写入 EP 任务表（表2+表1联动）</td><td><span class="tag tag-todo">⏳ 待开发</span></td></tr>
+<tr><td>M-S7</td><td><b>task-reassign</b></td><td><span class="tag tag-skill">Skill</span></td><td>任务转派：离职/调岗 → 批量转移所有单据</td><td><span class="tag tag-todo">⏳ 待开发</span></td></tr>
+<tr><td>M-S8</td><td><b>exception-detect</b></td><td><span class="tag tag-skill">Skill</span></td><td>异常检测：路由失败 → 异常队列 → 通知</td><td><span class="tag tag-todo">⏳ 待开发</span></td></tr>
+<tr><td>M-S9</td><td><b>route-explain</b></td><td><span class="tag tag-skill">Skill</span></td><td>路由可解释性：输出决策链路（命中规则/候选/权重）</td><td><span class="tag tag-todo">⏳ 待开发</span></td></tr>
+<tr><td>M-S10</td><td><b>feedback-learn</b></td><td><span class="tag tag-skill">Skill</span></td><td>反馈学习：人改派 → 回流 → 准确率评估 → 规则优化</td><td><span class="tag tag-todo">⏳ 待开发</span></td></tr>
+<tr><td>M-C1</td><td><code>ep category</code></td><td><span class="tag tag-cli">CLI</span></td><td>品类主数据 CRUD（列表/详情/VPPS/变更记录）</td><td><span class="tag tag-done">✅ 已交付(6)</span></td></tr>
+<tr><td>M-C2</td><td><code>ep route</code></td><td><span class="tag tag-cli">CLI</span></td><td>规则引擎（规则列表/试跑/结果/异常队列）</td><td><span class="tag tag-todo">⏳ 待开发</span></td></tr>
+<tr><td>M-C3</td><td><code>ep agent</code></td><td><span class="tag tag-cli">CLI</span></td><td>Agent 控制（启动/停止/状态/日志）</td><td><span class="tag tag-todo">⏳ 待开发</span></td></tr>
+<tr><td>M-C4</td><td><code>ep mcp</code></td><td><span class="tag tag-cli">CLI</span></td><td>MCP 对外暴露（API 网关/鉴权/限流）</td><td><span class="tag tag-todo">⏳ 待开发</span></td></tr>
+<tr><td>M-C5</td><td><code>ep observe</code></td><td><span class="tag tag-cli">CLI</span></td><td>监控（准确率/耗时/异常率/降级）</td><td><span class="tag tag-todo">⏳ 待开发</span></td></tr>
+</tbody>
+</table>
+</div>
+
+<div class="card">
+<div class="card-title">📋 EP CLI 底座线（研发交付 + WorkBuddy 已封装）</div>
+<table>
+<thead><tr><th width="80">域</th><th>已有 CLI（研发交付，只读）</th><th width="80">权限状态</th><th>WorkBuddy Skill</th></tr></thead>
+<tbody>
+<tr><td><b>supplier</b></td><td>vendor-profile / supplier-list / supplier-change / supplier-search</td><td><span class="tag tag-done">✅ 4/4 一致</span></td><td>ep-supplier-query ✅</td></tr>
+<tr><td><b>sor</b></td><td>sor-list / sor-detail / sor-progress</td><td><span class="tag tag-wip">⚠️ 1/3 需改</span></td><td>—</td></tr>
+<tr><td><b>rfq</b></td><td>rfq-info / rfq-quote-list / rfq-quote-supplier / inquiry-progress</td><td><span class="tag tag-todo">❌ 3/4 需改</span></td><td>—</td></tr>
+<tr><td><b>nomi</b></td><td>nomi-status / preselect-list / apply-generate</td><td><span class="tag tag-wip">⚠️ 2/3 部分一致</span></td><td>—</td></tr>
+<tr><td><b>process</b></td><td>process-info</td><td><span class="tag tag-done">✅ 1/1 一致</span></td><td>—</td></tr>
+<tr><td><b>price</b></td><td>price-ledger / price-framework-check</td><td><span class="tag tag-done">✅ 已定义</span></td><td>—（订单自动化依赖）</td></tr>
+<tr><td><b>category</b></td><td>category-list / category-detail / vpps-list / change-record</td><td><span class="tag tag-done">✅ 6/6 一致</span></td><td>—</td></tr>
+</tbody>
+</table>
+<div class="hl hl-err">
+<b>❌ 写操作接口缺失：</b>当前 19 个接口全部为只读（RISK_READ）。订单自动化闭环需要：<b>订单创建 / 审批触发 / 状态回写 / BOM 发布触发</b> 等 WAVE2 写接口。这是 FDE 编排的前置条件。
+</div>
+</div>
+</div>
+
+<!-- Section 3: 飞书 0818 对齐 -->
+<div class="section" id="s3">
+<div class="section-head">
+<div class="section-no">3</div>
+<h2>飞书「样件订单全流程方案锁定 0818」对齐</h2>
+<span class="sub">白板 token: WRriwPAsjhIqTUbZ6MYcqlsknte</span>
+</div>
+
+<div class="card">
+<div class="card-title">📌 白板内容说明</div>
+<div class="hl hl-warn">
+<b>⚠️ 白板内容提取说明：</b>飞书 wiki 页面 <code>ClrRwV3X1i1lNJkfbGbcyJ2Qnkg</code> 标题为「样件订单全流程方案锁定 0818」，内容主体为一张白板（whiteboard），@mi/feishu CLI 的 whiteboard fetch 返回 1770002（not found），无法提取白板内结构化内容。
+<br><br>
+<b>以下对齐基于：</b>① 白板标题（方案已锁定 0818）→ 表明方案已进入执行锁定阶段；② 本地已有方案文档 v5.0（2026-07-27）+ 样件自动下单方案（2026-06-10）+ 全流程分析（2026-07-14）+ Q3 立项报告（2026-07-29）四份文档的完整内容。若白板有增量变更，需在评审会上逐条确认。
+</div>
+
+<table>
+<thead><tr><th width="120">对齐维度</th><th>本地方案（v5.0 + 立项报告）</th><th>白板 0818 可能增量</th><th>对齐状态</th></tr></thead>
+<tbody>
+<tr><td><b>核心目标</b></td><td>自动下单率 70%、人工介入率 ≤15%、下单周期 ≤4h</td><td>可能微调指标基线</td><td><span class="tag tag-wip">⚠️ 需确认</span></td></tr>
+<tr><td><b>分流逻辑</b></td><td>唯一供应商 80% 全自动 / 多家 15% 人工选 / 无供应商 5% 预选</td><td>可能调整占比或增加新路径</td><td><span class="tag tag-wip">⚠️ 需确认</span></td></tr>
+<tr><td><b>Skill 分布</b></td><td>4 Skills（Price Matcher / Dispatcher / Batch Orderer / Notification）</td><td>可能合并/拆分/新增</td><td><span class="tag tag-wip">⚠️ 需确认</span></td></tr>
+<tr><td><b>CLI 分布</b></td><td>3 新 CLI（order dispatch/execute + price match）+ 6 已有 EP CLI</td><td>可能调整 CLI 分组或新增</td><td><span class="tag tag-wip">⚠️ 需确认</span></td></tr>
+<tr><td><b>Agent 架构</b></td><td>3 层（L1 Coordinator / L2 域 Agent × 4 / L3 叶子 Agent × 3）</td><td>可能简化或调整层级</td><td><span class="tag tag-wip">⚠️ 需确认</span></td></tr>
+<tr><td><b>HITL 节点</b></td><td>双确认：需求确认（飞书卡片）+ 下单确认（飞书卡片）</td><td>可能调整确认方式</td><td><span class="tag tag-wip">⚠️ 需确认</span></td></tr>
+<tr><td><b>MVP 分期</b></td><td>4 期（需求导入 4w / 聚合下单 4w / 追踪 3w / 优化持续）</td><td>0818 可能锁定最终排期</td><td><span class="tag tag-wip">⚠️ 需确认</span></td></tr>
+<tr><td><b>排期</b></td><td>立项报告：0801-0822（3 周）</td><td>0818 锁定 → 可能已调整</td><td><span class="tag tag-wip">⚠️ 需确认</span></td></tr>
+</tbody>
+</table>
+
+<div class="hl">
+<b>📋 下一步行动：</b>在评审会上打开白板，逐条对照本地方案 v5.0，标记 Δ（差异项），更新本文档后作为 FDE 编排的基准版本。
+</div>
+</div>
+</div>
+
+<!-- Section 4: FDE 落地路径 -->
+<div class="section" id="s4">
+<div class="section-head">
+<div class="section-no">4</div>
+<h2>FDE 模式落地路径</h2>
+<span class="sub">研发原子化 → FDE 编排 → 业务验收</span>
+</div>
+
+<div class="card">
+<div class="card-title">🔑 FDE 核心逻辑</div>
+<p style="margin-bottom:16px;color:var(--text-secondary)">研发资源 18 人（约特斯拉 45%），传统「业务提需求→产品写 PRD→研发排期」跑不动。FDE = 研发把系统能力<b>原子化交出来</b>（已完成 19 个只读接口），FDE 拿这些原子能力<b>编排成业务场景</b>，业务方只定义<b>目标和验收</b>。研发做一次、FDE 复用多次、业务持续受益。</p>
+
+<div class="fde-flow">
+<div class="fde-step">
+<h4>① 研发交付</h4>
+<p>原子化系统能力：CLI 接口 + API 网关 + 数据模型</p>
+<div class="role">研发 / 文飞</div>
+</div>
+<div class="fde-step">
+<h4>② FDE 编排</h4>
+<p>组合原子能力为业务场景：Skill 封装 + Agent 串联 + 规则配置</p>
+<div class="role">FDE / 齐岳</div>
+</div>
+<div class="fde-step">
+<h4>③ 业务验收</h4>
+<p>定义目标 + 验收标准 + 试用反馈</p>
+<div class="role">业务方 / 采购组</div>
+</div>
+</div>
+</div>
+
+<div class="card">
+<div class="card-title">📋 FDE 三层职责矩阵</div>
+<table>
+<thead><tr><th width="100">层</th><th>研发职责</th><th>FDE 职责</th><th>业务职责</th></tr></thead>
+<tbody>
+<tr><td><b>数据层</b></td><td>EP API 对接 + 网关鉴权 + 数据模型</td><td>CLI 封装（dx-ep 已完成 5 域 19 接口）</td><td>提供主数据（品类/供应商/价格库）</td></tr>
+<tr><td><b>能力层</b></td><td>WAVE2 写接口交付（订单创建/审批/回写）</td><td>Skill 封装（Price Matcher/Dispatcher/...）+ 规则引擎</td><td>定义比价规则/分流阈值/审批矩阵</td></tr>
+<tr><td><b>编排层</b></td><td>—</td><td>Agent 串联（Coordinator → 域 Agent → 叶子 Agent）+ HITL 卡片</td><td>试用 + 验收 + 反馈回流</td></tr>
+<tr><td><b>暴露层</b></td><td>—</td><td>MCP 对外暴露（未来 Phase 3）</td><td>—</td></tr>
+</tbody>
+</table>
+</div>
+
+<div class="card">
+<div class="card-title">📋 FDE 落地四阶段</div>
+<table>
+<thead><tr><th width="80">阶段</th><th>目标</th><th>研发交付</th><th>FDE 编排</th><th>业务验收</th><th width="80">周期</th></tr></thead>
+<tbody>
+<tr><td><b>Phase 1</b><br><span class="tag tag-p0">P0</span></td><td>需求导入 + 价格匹配跑通</td><td>MI-PEC Webhook 对接 + EP BOM 查询 API + 价格库查询 API</td><td>Agent1 需求导入 + Skill S1 Price Matcher + CLI price match</td><td>需求导入率 ≥90% / 价格匹配率 ≥70%</td><td>4 周</td></tr>
+<tr><td><b>Phase 2</b><br><span class="tag tag-p1">P1</span></td><td>智能聚合 + 自动下单</td><td><b>WAVE2 写接口：SRM 订单创建 / 审批触发</b></td><td>Agent1.5 聚合定价 + Skill S2/S3 + CLI order dispatch/execute</td><td>聚合后订单减 40% / 自动下单率 ≥60%</td><td>4 周</td></tr>
+<tr><td><b>Phase 3</b><br><span class="tag tag-p2">P2</span></td><td>订单追踪 + 可视化</td><td>SRM 状态 webhook + 实时事件总线</td><td>Agent3 进度追踪 + 看板 + 异常检测</td><td>异常响应 ≤2h / 看板实时</td><td>3 周</td></tr>
+<tr><td><b>Phase 4</b><br><span class="tag tag-p2">持续</span></td><td>智能优化 + 扩展</td><td>—</td><td>价格预测 / 供应商推荐 / 订单合并优化 + MCP 暴露</td><td>持续迭代</td><td>持续</td></tr>
+</tbody>
+</table>
+</div>
+
+<div class="hl hl-ok">
+<b>✅ FDE 优势：</b>① 研发一次交付、FDE 多次复用（Price Matcher 可用于订单自动化 + 合同在线化 + 品类管理三条线）；② FDE 可快速调整编排逻辑而不依赖研发排期；③ 业务方只需定义规则和验收，降低参与成本。
+</div>
+</div>
+
+<!-- Section 5: 下一步工作拆解 -->
+<div class="section" id="s5">
+<div class="section-head">
+<div class="section-no">5</div>
+<h2>下一步工作拆解</h2>
+<span class="sub">按周排列，含 Owner / 依赖 / 交付物 / 验收</span>
+</div>
+
+<!-- Phase 1 -->
+<div class="phase phase-1">
+<div class="phase-head"><span>Phase 1 · 夯底座 + 需求导入</span><span style="margin-left:auto;font-size:12px;opacity:.8">Week 1-4 · 0801-0828</span></div>
+<div class="phase-body">
+
+<div class="work-item">
+<div class="wi-no">1.1</div>
+<div class="wi-content">
+<div class="wi-title">📋 飞书 0818 白板方案逐条对齐</div>
+<div class="wi-desc">打开白板，逐条对照本地方案 v5.0，标记 Δ 差异项，产出最终版方案锁定文档</div>
+<div class="wi-meta">
+<span>👤 <b>齐岳</b></span>
+<span>📎 依赖：飞书白板 + 本地方案 v5</span>
+<span>📦 交付：方案锁定文档 v6（含 Δ 标注）</span>
+<span>✅ 验收：方案 3 人签字（齐岳/文飞/佳佳）</span>
+</div>
+</div>
+</div>
+
+<div class="work-item">
+<div class="wi-no">1.2</div>
+<div class="wi-content">
+<div class="wi-title">🔧 EP CLI 权限业务确认</div>
+<div class="wi-desc">25 接口权限现状（14一致/2部分/8需改），需找业务确认 CLI 受众与使用场景，锁定改动范围。核心原则：CLI 权限 = 页面权限同源校验</div>
+<div class="wi-meta">
+<span>👤 <b>齐岳 → 张宁/陈千钧</b></span>
+<span>📎 依赖：立项申请 HTML</span>
+<span>📦 交付：权限改动范围确认书</span>
+<span>✅ 验收：8 个需改接口逐条确认做法（API 过滤/角色收敛/身份透传）</span>
+</div>
+</div>
+</div>
+
+<div class="work-item">
+<div class="wi-no">1.3</div>
+<div class="wi-content">
+<div class="wi-title">🔧 MI-PEC Webhook 对接 + EP BOM 查询 API</div>
+<div class="wi-desc">研发交付：MI-PEC 样件生产订单 webhook 推送接口 + EP 试制 BOM 查询 API。当前 EP CLI 已有只读接口，需新增 webhook 接入端点</div>
+<div class="wi-meta">
+<span>👤 <b>研发 / 文飞</b></span>
+<span>📎 依赖：MI-PEC 系统开放 webhook</span>
+<span>📦 交付：Webhook 端点 + BOM 查询 API</span>
+<span>✅ 验收：模拟推送 → 需求数据正确入库</span>
+</div>
+</div>
+</div>
+
+<div class="work-item">
+<div class="wi-no">1.4</div>
+<div class="wi-content">
+<div class="wi-title">🔧 价格库查询 CLI 封装</div>
+<div class="wi-desc">FDE 编排：基于已有 <code>price ledger</code> CLI 封装为 WorkBuddy Skill <b>Price Matcher</b>（S1），实现历史价/报价/RFQ 三态分流 + 偏差计算</div>
+<div class="wi-meta">
+<span>👤 <b>齐岳（FDE）</b></span>
+<span>📎 依赖：price ledger CLI + 供应商报价库</span>
+<span>📦 交付：Price Matcher Skill + CLI <code>price match</code></span>
+<span>✅ 验收：P000046758001 查询返回正确价格+状态</span>
+</div>
+</div>
+</div>
+
+<div class="work-item">
+<div class="wi-no">1.5</div>
+<div class="wi-content">
+<div class="wi-title">🔧 Agent1 需求导入编排</div>
+<div class="wi-desc">FDE 编排：用 LangGraph 编排 Agent1——监听 webhook → 字段解析 → 数据校验 → 写入统一需求池。含标准化字段处理（零件号/项目/品类/供应商）</div>
+<div class="wi-meta">
+<span>👤 <b>齐岳（FDE）</b></span>
+<span>📎 依赖：1.3 webhook + 1.4 Price Matcher</span>
+<span>📦 交付：Agent1 需求导入 + 统一需求池</span>
+<span>✅ 验收：需求自动导入率 ≥90%</span>
+</div>
+</div>
+</div>
+
+<div class="work-item">
+<div class="wi-no">1.6</div>
+<div class="wi-content">
+<div class="wi-title">📋 台账数据清洗（OP-03 P0）</div>
+<div class="wi-desc">开发 CLI 脚本：剔除价格为 0 但含软模费的无效记录、合并同零件号+同供应商+同价格重复项。直接提升自动下单覆盖率基线</div>
+<div class="wi-meta">
+<span>👤 <b>齐岳（FDE）/ 订单管理员</b></span>
+<span>📎 依赖：EP 台账数据访问</span>
+<span>📦 交付：清洗 CLI + 清洗报告</span>
+<span>✅ 验收：无效/重复记录清零</span>
+</div>
+</div>
+</div>
+
+</div>
+</div>
+
+<!-- Phase 2 -->
+<div class="phase phase-2">
+<div class="phase-head"><span>Phase 2 · 智能聚合 + 自动下单</span><span style="margin-left:auto;font-size:12px;opacity:.8">Week 5-8 · 0829-0925</span></div>
+<div class="phase-body">
+
+<div class="work-item">
+<div class="wi-no">2.1</div>
+<div class="wi-content">
+<div class="wi-title">🔧 WAVE2 写接口交付（关键阻塞项）</div>
+<div class="wi-desc">研发交付：SRM 订单创建 API + 审批触发 API + 状态回写 API。这是自动下单闭环的硬前置——没有写接口，FDE 无法编排「自动下单」</div>
+<div class="wi-meta">
+<span>👤 <b>研发 / 文飞</b></span>
+<span>📎 依赖：Phase 1 权限确认（1.2）</span>
+<span>📦 交付：3 个写接口 + 鉴权</span>
+<span>✅ 验收：CLI <code>order execute</code> 能创建真实 PO 号</span>
+<span class="tag tag-p0">P0 阻塞</span>
+</div>
+</div>
+</div>
+
+<div class="work-item">
+<div class="wi-no">2.2</div>
+<div class="wi-content">
+<div class="wi-title">🔧 Order Dispatcher Skill 封装（S2）</div>
+<div class="wi-desc">FDE 编排：封装订单分流三路径逻辑。唯一供应商→自动创建；多家→飞书选择卡片；无供应商→提醒预选</div>
+<div class="wi-meta">
+<span>👤 <b>齐岳（FDE）</b></span>
+<span>📎 依赖：vendor profile CLI + 2.1 写接口</span>
+<span>📦 交付：Order Dispatcher Skill + CLI <code>order dispatch</code></span>
+<span>✅ 验收：三路径各跑通 1 个 case</span>
+</div>
+</div>
+</div>
+
+<div class="work-item">
+<div class="wi-no">2.3</div>
+<div class="wi-content">
+<div class="wi-title">🔧 Batch Orderer + Notification Skill 封装（S3+S4）</div>
+<div class="wi-desc">FDE 编排：批量下单 ≤50 单/批 + 飞书卡片通知（下单成功/失败/异常）</div>
+<div class="wi-meta">
+<span>👤 <b>齐岳（FDE）</b></span>
+<span>📎 依赖：2.1 写接口 + 2.2 Dispatcher</span>
+<span>📦 交付：Batch Orderer Skill + Notification Skill</span>
+<span>✅ 验收：批量 10 单 0 失败 + 卡片推送到达</span>
+</div>
+</div>
+</div>
+
+<div class="work-item">
+<div class="wi-no">2.4</div>
+<div class="wi-content">
+<div class="wi-title">🔧 Agent1.5 + Agent2 编排</div>
+<div class="wi-desc">FDE 编排：Agent1.5 聚合定价（需求多维聚合 + Price Matcher 调用）+ Agent2 自动下单 Coordinator（S1→S2→S3→S4 串联 + HITL 双确认）</div>
+<div class="wi-meta">
+<span>👤 <b>齐岳（FDE）</b></span>
+<span>📎 依赖：S1-S4 全部就绪 + 2.1 写接口</span>
+<span>📦 交付：Agent1.5 + Agent2 + 飞书 Bot 卡片</span>
+<span>✅ 验收：自动下单率 ≥60%（目标 70%）</span>
+</div>
+</div>
+</div>
+
+<div class="work-item">
+<div class="wi-no">2.5</div>
+<div class="wi-content">
+<div class="wi-title">📋 字段自动映射补全（OP-02 P0）</div>
+<div class="wi-desc">米Tab 项目编码/车型映射至采购界面，替代备注文本。封装为 Skill + CLI</div>
+<div class="wi-meta">
+<span>👤 <b>齐岳（FDE）</b></span>
+<span>📎 依赖：米Tab 数据源 + EP category CLI</span>
+<span>📦 交付：字段映射 Skill + CLI</span>
+<span>✅ 验收：字段缺失率下降</span>
+</div>
+</div>
+</div>
+
+<div class="work-item">
+<div class="wi-no">2.6</div>
+<div class="wi-content">
+<div class="wi-title">📋 一品多点强制选择（OP-05 P1）+ 工厂维度物流价（OP-07 P1）</div>
+<div class="wi-desc">审批环节嵌强制选供应商组件（Agent 推荐 + 采购员确认）；下单补送货地按工厂区分物流价</div>
+<div class="wi-meta">
+<span>👤 <b>齐岳（FDE）/ 采购员</b></span>
+<span>📎 依赖：2.2 Dispatcher + 物流价数据</span>
+<span>📦 交付：强制选组件 CLI + 物流价补全 CLI</span>
+<span>✅ 验收：~10% 一品多点 100% 经强制确认</span>
+</div>
+</div>
+</div>
+
+</div>
+</div>
+
+<!-- Phase 3 -->
+<div class="phase phase-3">
+<div class="phase-head"><span>Phase 3 · 追踪 + 可视化 + 扩展</span><span style="margin-left:auto;font-size:12px;opacity:.8">Week 9-11 · 0926-1016</span></div>
+<div class="phase-body">
+
+<div class="work-item">
+<div class="wi-no">3.1</div>
+<div class="wi-content">
+<div class="wi-title">🔧 SRM 状态 webhook + 事件总线</div>
+<div class="wi-desc">研发交付：供应商确认/发货/到货/质检状态实时推送，替代人工查询</div>
+<div class="wi-meta">
+<span>👤 <b>研发 / 文飞</b></span>
+<span>📎 依赖：SRM 系统开放 webhook</span>
+<span>📦 交付：状态 webhook + 事件总线</span>
+<span>✅ 验收：状态延迟 ≤5min</span>
+</div>
+</div>
+</div>
+
+<div class="work-item">
+<div class="wi-no">3.2</div>
+<div class="wi-content">
+<div class="wi-title">🔧 Agent3 进度追踪 + 看板 + 异常检测</div>
+<div class="wi-desc">FDE 编排：Agent3 日报自动生成 + 异常分级预警（P0-P3）+ 全局/项目/供应商/品类四维度看板</div>
+<div class="wi-meta">
+<span>👤 <b>齐岳（FDE）</b></span>
+<span>📎 依赖：3.1 webhook</span>
+<span>📦 交付：Agent3 + 看板 + 异常引擎</span>
+<span>✅ 验收：异常响应 ≤2h / Excel 手工统计归零</span>
+</div>
+</div>
+</div>
+
+<div class="work-item">
+<div class="wi-no">3.3</div>
+<div class="wi-content">
+<div class="wi-title">📋 智能进度追踪（OP-08 P2）+ 自然语言查询</div>
+<div class="wi-desc">看板 + Agent 进度汇总 + 自然语言查询（如「P123 到哪了」→ 返回全链路状态）</div>
+<div class="wi-meta">
+<span>👤 <b>齐岳（FDE）</b></span>
+<span>📎 依赖：3.2 Agent3</span>
+<span>📦 交付：NL 查询接口</span>
+<span>✅ 验收：5 个典型问句正确回答</span>
+</div>
+</div>
+</div>
+
+<div class="work-item">
+<div class="wi-no">3.4</div>
+<div class="wi-content">
+<div class="wi-title">📋 与 MVPS 品类管理 / 合同在线化协同</div>
+<div class="wi-desc">样件自动下单跑通后，把订单/交付数据回写为三库（品类/供应商/成本）的第一批真实数据。合同在线化复用 Price Matcher Skill。</div>
+<div class="wi-meta">
+<span>👤 <b>齐岳（FDE）</b></span>
+<span>📎 依赖：Phase 2 下单闭环跑通</span>
+<span>📦 交付：数据回写管道 + 合同复用方案</span>
+<span>✅ 验收：三库有第一批真实数据写入</span>
+</div>
+</div>
+</div>
+
+</div>
+</div>
+</div>
+
+<!-- Section 6: 风险与保障 -->
+<div class="section" id="s6">
+<div class="section-head">
+<div class="section-no">6</div>
+<h2>风险识别与 FDE 保障措施</h2>
+<span class="sub">确保下一步顺利展开</span>
+</div>
+
+<div class="card">
+<table>
+<thead><tr><th width="60">级别</th><th>风险</th><th>影响</th><th>保障措施</th><th width="80">负责人</th></tr></thead>
+<tbody>
+<tr>
+<td><span class="tag tag-p0">P0</span></td>
+<td><b>写接口未交付</b></td>
+<td>自动下单闭环无法跑通，Phase 2 全部阻塞</td>
+<td>① 立项报告已排期 0801-0822，飞书 0818 已锁定；② 评审会上明确 WAVE2 3 个写接口为 P0 交付项；③ FDE 可先用 mock 接口编排，真接口到位后切换</td>
+<td>文飞（研发）</td>
+</tr>
+<tr>
+<td><span class="tag tag-p0">P0</span></td>
+<td><b>飞书 0818 方案与本地 v5 有差异</b></td>
+<td>编排基准不对齐，返工</td>
+<td>① 评审会逐条对齐（工作项 1.1）；② 以 0818 白板为最终基准；③ 差异项标记 Δ 并更新方案文档</td>
+<td>齐岳</td>
+</tr>
+<tr>
+<td><span class="tag tag-p1">P1</span></td>
+<td><b>CLI 权限改动范围未确认</b></td>
+<td>8 个接口权限不明确，FDE 封装后可能被权限拦截</td>
+<td>① 立项申请 HTML 已产出；② 找张宁/陈千钧确认（工作项 1.2）；③ 原则：不投大力气做底层改造，只对有真实场景的做控制</td>
+<td>齐岳 → 张宁</td>
+</tr>
+<tr>
+<td><span class="tag tag-p1">P1</span></td>
+<td><b>价格数据质量差</b></td>
+<td>Price Matcher 自动匹配失败率高</td>
+<td>① Phase 1 优先做台账清洗（工作项 1.6）；② 价格库先用历史价 + 有效期 ≤6 月过滤；③ 匹配失败自动转 RFQ 不阻塞</td>
+<td>齐岳（FDE）</td>
+</tr>
+<tr>
+<td><span class="tag tag-p1">P1</span></td>
+<td><b>采购员抵触自动化</b></td>
+<td>使用率低，数据飞轮转不起来</td>
+<td>① 渐进推广——先 80% 唯一供应商全自动，采购员只管 20% 异常；② 保留人工入口作兜底；③ 用速赢换话语权</td>
+<td>齐岳 + 采购组</td>
+</tr>
+<tr>
+<td><span class="tag tag-p2">P2</span></td>
+<td><b>MI-PEC/EP 接口不稳定</b></td>
+<td>需求导入中断</td>
+<td>重试机制 + 手动兜底入口 + 健康检查告警</td>
+<td>研发</td>
+</tr>
+<tr>
+<td><span class="tag tag-p2">P2</span></td>
+<td><b>聚合策略不合理</b></td>
+<td>订单合并错误</td>
+<td>规则可配置 + 人工审核 + 逐步放开聚合维度</td>
+<td>齐岳（FDE）</td>
+</tr>
+<tr>
+<td><span class="tag tag-p2">P2</span></td>
+<td><b>FDE 能力沉淀不足</b></td>
+<td>做完一个场景不能复用到下一个</td>
+<td>① Skill 设计坚持原子化（Price Matcher 可复用于合同/品类）；② 每完成一个 Skill 记录 input/output 清单；③ WorkBuddy skill 体系持续积累</td>
+<td>齐岳（FDE）</td>
+</tr>
+</tbody>
+</table>
+</div>
+
+<div class="hl hl-ok">
+<b>✅ FDE 模式顺利展开的 5 个前置条件：</b>
+<ol style="margin:8px 0 0 20px;line-height:2">
+<li><b>研发原子能力已就位</b> → 19 个只读 CLI 已交付 ✅</li>
+<li><b>写接口排期已锁定</b> → 飞书 0818 白板方案锁定 + 立项报告排期 ✅（待交付）</li>
+<li><b>方案基准已对齐</b> → 评审会逐条对齐 0818 白板（工作项 1.1）⏳</li>
+<li><b>权限范围已确认</b> → 25 接口权限分析完成，待业务确认（工作项 1.2）⏳</li>
+<li><b>FDE 编排工具链就绪</b> → WorkBuddy skill 体系（4 个已封装）+ LangGraph + 飞书 Bot ✅</li>
+</ol>
+</div>
+
+<div class="card">
+<div class="card-title">📋 WorkBuddy Skill 体系与 FDE 的关系</div>
+<p style="color:var(--text-secondary);margin-bottom:12px">WorkBuddy 上的 skill 是 FDE 编排能力的<b>本地沉淀</b>——每个封装好的 skill 对应一个可复用的原子能力，在下次类似场景中直接调用，不需要重新编排。</p>
+<table>
+<thead><tr><th>WorkBuddy Skill</th><th width="80">类型</th><th>FDE 对应</th><th>可复用场景</th></tr></thead>
+<tbody>
+<tr><td>ep-supplier-query</td><td>原子</td><td>Order Dispatcher 的供应商查询部分</td><td>订单自动化 / 合同在线化 / 供应商管理</td></tr>
+<tr><td>ep-supplier-earnings</td><td>路由门面</td><td>供应商综合查询</td><td>供应商管理 / 尽调 / 风险评估</td></tr>
+<tr><td>baojia-detail-analysis</td><td>原子</td><td>报价分析（已独立运转）</td><td>报价细项周报 / 成本库建设</td></tr>
+<tr><td>ce-pricing-completion</td><td>原子</td><td>CE 核价分析（已独立运转）</td><td>核价监控 / 成本管控</td></tr>
+<tr><td><b>Price Matcher</b>（待建）</td><td>原子</td><td>S1 价格匹配</td><td><b>订单自动化 / 合同在线化 / 品类管理</b></td></tr>
+<tr><td><b>Order Dispatcher</b>（待建）</td><td>原子</td><td>S2 订单分流</td><td>订单自动化（核心）</td></tr>
+<tr><td><b>Field Mapper</b>（待建）</td><td>原子</td><td>OP-02 字段映射</td><td>订单自动化 / BOM 解析</td></tr>
+</tbody>
+</table>
+<div class="hl">
+<b>📋 FDE 能力沉淀原则：</b>① 每完成一个 Skill → 封装为 WorkBuddy skill（input/output 清单 + 参考数据）；② 路由门面 skill 组合原子 skill（如 ep-supplier-earnings 模式）；③ 真实查询数据验证后再更新文档；④ 不做假设、操作前验证、报错停下问。
+</div>
+</div>
+
+</div>
+
+<div class="footer">
+订单自动化 · FDE 整体方案与下一步工作拆解 · 2026-08-20 · 齐岳<br>
+基于：订单自动化方案 v5.0 / 样件自动下单方案 / 样件全流程分析 / 品类路由方案 / EP CLI 权限分析 / Q3 立项报告 / 飞书白板 0818
+</div>
+
+</div>
+</body>
+</html>

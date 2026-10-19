@@ -1,0 +1,437 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>报价包全量导出 · 三屏原型</title>
+<style>
+:root{
+  --p:#1677ff;--ph:#4096ff;--pl:#e6f4ff;--pa:rgba(22,119,255,.06);
+  --s:#52c41a;--sl:#f6ffed;--sa:rgba(82,196,26,.08);
+  --w:#faad14;--wl:#fffbe6;--wa:rgba(250,173,20,.08);
+  --d:#ff4d4f;--dl:#fff2f0;--da:rgba(255,77,79,.06);
+  --g50:#fafafa;--g100:#f5f5f5;--g200:#e8e8e8;--g300:#d9d9d9;
+  --g400:#bfbfbf;--g500:#8c8c8c;--g600:#595959;--g700:#434343;
+  --g800:#262626;--g900:#1f1f1f;
+  --r:10px;--rs:6px;--rl:14px;
+  --sh:0 1px 3px rgba(0,0,0,.04),0 1px 2px rgba(0,0,0,.06);
+  --shm:0 4px 12px rgba(0,0,0,.07);
+  --nav-bg:#001529;
+  --tr:all .2s ease;
+}
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif;background:#f0f2f5;color:var(--g800);line-height:1.6;font-size:13px;min-height:100vh}
+
+/* ===== Top Nav ===== */
+.topnav{background:var(--nav-bg);height:48px;display:flex;align-items:center;padding:0 16px;position:fixed;top:0;left:0;right:0;z-index:3000}
+.topnav-logo{display:flex;align-items:center;gap:8px;margin-right:20px;flex-shrink:0}
+.topnav-logo .mi{width:28px;height:28px;background:linear-gradient(135deg,#ff6700,#ff4d00);border-radius:6px;display:flex;align-items:center;justify-content:center;color:#fff;font-size:12px;font-weight:700}
+.topnav-logo span{color:#fff;font-size:14px;font-weight:600;white-space:nowrap}
+.topnav-menu{display:flex;align-items:center;flex:1;white-space:nowrap}
+.topnav-item{padding:0 13px;height:48px;display:flex;align-items:center;color:rgba(255,255,255,.65);font-size:13px;cursor:pointer;white-space:nowrap;transition:var(--tr);position:relative;user-select:none}
+.topnav-item:hover{color:#fff;background:rgba(255,255,255,.08)}
+.topnav-item.active{color:#fff;background:rgba(255,255,255,.12)}
+.topnav-item.active::after{content:'';position:absolute;bottom:0;left:8px;right:8px;height:2px;background:var(--p);border-radius:2px 2px 0 0}
+.topnav-item-wrap{position:relative}
+.topnav-item-wrap:hover .nav-dropdown{display:block}
+.nav-dropdown{display:none;position:absolute;top:48px;left:0;background:#fff;border-radius:0 0 8px 8px;box-shadow:0 6px 20px rgba(0,0,0,.12);min-width:168px;padding:6px 0;z-index:3001}
+.nav-dropdown a{display:flex;align-items:center;justify-content:space-between;padding:9px 16px;color:var(--g700);font-size:13px;cursor:pointer;text-decoration:none}
+.nav-dropdown a:hover{background:var(--g100);color:var(--p)}
+.nav-dropdown a.active{background:var(--g100);color:var(--g900);font-weight:600}
+.nav-dropdown .badge-new{background:var(--p);color:#fff;font-size:11px;padding:0 6px;border-radius:8px;line-height:16px}
+.nav-user{margin-left:12px;display:flex;align-items:center;gap:6px;color:#fff;font-size:13px;cursor:pointer;flex-shrink:0}
+.nav-user .avatar{width:26px;height:26px;border-radius:50%;background:var(--p);display:flex;align-items:center;justify-content:center;font-size:12px;color:#fff}
+
+/* ===== Layout ===== */
+.page{display:none;padding:64px 20px 24px;max-width:1440px;margin:0 auto}
+.page.show{display:block}
+.breadcrumb{font-size:12px;color:var(--g500);margin-bottom:4px}
+.breadcrumb b{color:var(--g700);font-weight:600}
+.page-title{font-size:16px;font-weight:600;color:var(--g900);margin-bottom:14px;display:flex;align-items:center;justify-content:space-between}
+.card{background:#fff;border-radius:var(--r);box-shadow:var(--sh);padding:16px}
+.filter-bar{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:14px}
+.filter-bar label{color:var(--g600);font-size:13px}
+.inp{height:30px;border:1px solid var(--g300);border-radius:var(--rs);padding:0 10px;font-size:13px;color:var(--g800);outline:none;min-width:180px;background:#fff}
+.inp:focus{border-color:var(--p);box-shadow:0 0 0 2px var(--pa)}
+.inp.sm{min-width:120px}
+.btn{height:30px;padding:0 14px;border-radius:var(--rs);font-size:13px;cursor:pointer;border:1px solid var(--g300);background:#fff;color:var(--g700);transition:var(--tr)}
+.btn:hover{border-color:var(--p);color:var(--p)}
+.btn.primary{background:var(--p);border-color:var(--p);color:#fff}
+.btn.primary:hover{background:var(--ph)}
+.btn.danger{background:var(--d);border-color:var(--d);color:#fff}
+.btn.sm{height:24px;padding:0 8px;font-size:12px;border-radius:4px}
+.filter-right{margin-left:auto;display:flex;gap:8px;align-items:center}
+.quick-tag{color:var(--p);cursor:pointer;font-size:12px;padding:4px 8px;border-radius:4px;user-select:none}
+.quick-tag:hover{background:var(--pl)}
+
+/* ===== Table ===== */
+table.tbl{width:100%;border-collapse:collapse;font-size:13px}
+table.tbl th{background:var(--g50);color:var(--g600);font-weight:600;text-align:left;padding:10px 12px;border-bottom:1px solid var(--g200);white-space:nowrap}
+table.tbl td{padding:9px 12px;border-bottom:1px solid var(--g100);color:var(--g800);vertical-align:middle}
+table.tbl tr:hover td{background:var(--g50)}
+.link{color:var(--p);cursor:pointer;text-decoration:none}
+.link:hover{color:var(--ph);text-decoration:underline}
+.op-btn{color:var(--p);cursor:pointer;font-size:13px;margin-right:14px;user-select:none}
+.op-btn:hover{color:var(--ph)}
+.op-btn.disabled{color:var(--g400);cursor:not-allowed}
+
+/* ===== Tag ===== */
+.tag{display:inline-flex;align-items:center;gap:4px;padding:1px 8px;border-radius:4px;font-size:12px;line-height:20px}
+.tag.pending{background:var(--g100);color:var(--g600)}
+.tag.generating{background:var(--pl);color:var(--p)}
+.tag.done{background:var(--sl);color:var(--s)}
+.tag.fail{background:var(--dl);color:var(--d)}
+.tag.normal{background:var(--g100);color:var(--g600)}
+
+/* ===== Progress ===== */
+.prog{display:inline-flex;align-items:center;gap:8px}
+.prog .bar{width:110px;height:8px;background:var(--g100);border-radius:4px;overflow:hidden}
+.prog .bar i{display:block;height:100%;background:var(--p);border-radius:4px;transition:width .4s}
+.prog span{font-size:12px;color:var(--g600)}
+
+/* ===== Modal ===== */
+.modal-mask{display:none;position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:4000;align-items:center;justify-content:center}
+.modal-mask.show{display:flex}
+.modal{width:480px;background:#fff;border-radius:var(--rl);box-shadow:0 8px 24px rgba(0,0,0,.15);overflow:hidden}
+.modal-head{display:flex;align-items:center;justify-content:space-between;padding:14px 20px;border-bottom:1px solid var(--g100);font-size:15px;font-weight:600}
+.modal-head .x{cursor:pointer;color:var(--g400);font-size:16px}
+.modal-head .x:hover{color:var(--g600)}
+.modal-body{padding:16px 20px}
+.modal-foot{display:flex;justify-content:flex-end;gap:10px;padding:12px 20px;border-top:1px solid var(--g100)}
+.frow{display:flex;margin-bottom:10px;font-size:13px;line-height:22px}
+.frow .fl{width:86px;color:var(--g600);flex-shrink:0}
+.frow .fv{color:var(--g800)}
+.frow .fv .sub{color:var(--g500);font-size:12px;margin-left:6px}
+.f-notice{background:var(--pl);border-radius:var(--rs);padding:8px 12px;font-size:12px;color:#0958d9;line-height:1.7}
+.f-notice.warn{background:var(--wl);color:#ad6800}
+
+/* ===== Notice page ===== */
+.notice-item{display:flex;gap:10px;padding:12px 14px;border-bottom:1px solid var(--g100);cursor:pointer;align-items:flex-start}
+.notice-item:hover{background:var(--g50)}
+.notice-item .dot{width:8px;height:8px;border-radius:50%;background:var(--p);margin-top:6px;flex-shrink:0}
+.notice-item.read .dot{background:var(--g300)}
+.notice-item .tt{font-size:13px;color:var(--g800)}
+.notice-item .meta{font-size:12px;color:var(--g500);margin-top:2px}
+.pager{display:flex;justify-content:flex-end;gap:6px;margin-top:14px;align-items:center;font-size:12px;color:var(--g600)}
+.pager .pg{border:1px solid var(--g300);border-radius:4px;padding:2px 10px;cursor:pointer;background:#fff}
+.pager .pg.on{background:var(--p);color:#fff;border-color:var(--p)}
+.toast{position:fixed;top:62px;left:50%;transform:translateX(-50%);background:rgba(0,0,0,.8);color:#fff;padding:10px 18px;border-radius:8px;font-size:13px;z-index:5000;display:none;max-width:680px;text-align:center;line-height:1.7;box-shadow:0 4px 16px rgba(0,0,0,.2)}
+.auto-dl{display:flex;align-items:flex-start;gap:6px;font-size:13px;margin-top:12px;cursor:pointer;color:var(--g800)}
+.auto-dl input{width:14px;height:14px;accent-color:var(--p);margin-top:3px}
+</style>
+</head>
+<body>
+
+<!-- ===== Top Nav ===== -->
+<div class="topnav">
+  <div class="topnav-logo"><div class="mi">米</div><span>小米汽车</span></div>
+  <div class="topnav-menu" id="topnavMenu"></div>
+  <div class="nav-user"><div class="avatar">齐</div><span>齐岳</span><span style="opacity:.6">▾</span></div>
+</div>
+
+<!-- ===== Page 1: 询报价列表 ===== -->
+<div class="page show" id="pg-rfq">
+  <div class="breadcrumb">首页 / <b>询报价与定点</b> / 询报价列表</div>
+  <div class="page-title">询报价列表
+    <div style="font-size:12px;color:var(--g500);font-weight:400">支持对报价包发起全量导出（新增）</div>
+  </div>
+  <div class="card">
+    <div class="filter-bar">
+      <label>报价包编号</label><input class="inp" placeholder="请输入RFQ编号">
+      <label>RFQ名称</label><input class="inp" placeholder="请输入名称">
+      <label>状态</label><input class="inp sm" placeholder="请选择">
+      <div class="filter-right">
+        <button class="btn">重置</button><button class="btn primary">查询</button>
+      </div>
+    </div>
+    <table class="tbl">
+      <thead><tr>
+        <th>序号</th><th>RFQ编号</th><th>RFQ名称</th><th>总轮次</th><th>供应商数</th><th>状态</th><th>采购员</th><th>创建时间</th><th>操作</th>
+      </tr></thead>
+      <tbody id="rfqRows">
+        <tr>
+          <td>1</td>
+          <td><span class="link">RFQ-20260603-004</span></td>
+          <td>Lemans-27B热成型单件包</td><td>3</td><td>6</td>
+          <td><span class="tag generating">询价中</span></td>
+          <td>纪文慧</td><td>2026-06-03</td>
+          <td><span class="op-btn">详情</span><span class="op-btn disabled" title="报价完成后可导出">全量导出</span></td>
+        </tr>
+        <tr>
+          <td>2</td>
+          <td><span class="link">RFQ-20260707-006</span></td>
+          <td>MS15电调管柱</td><td>1</td><td>2</td>
+          <td><span class="tag generating">询价中</span></td>
+          <td>章淙</td><td>2026-07-07</td>
+          <td><span class="op-btn">详情</span><span class="op-btn disabled" title="报价完成后可导出">全量导出</span></td>
+        </tr>
+        <tr>
+          <td>3</td>
+          <td><span class="link">RFQ-20260605-002</span></td>
+          <td>MX14副仪表板SOR</td><td>2</td><td>2</td>
+          <td><span class="tag done">已完成</span></td>
+          <td>张莞婷</td><td>2026-06-05</td>
+          <td><span class="op-btn">详情</span><span class="op-btn" onclick="openExport('RFQ-20260605-002','MX14副仪表板SOR',2,6)">全量导出</span></td>
+        </tr>
+        <tr>
+          <td>4</td>
+          <td><span class="link">RFQ-20260603-001</span></td>
+          <td>Lemans-27B冷冲压上车体</td><td>2</td><td>3</td>
+          <td><span class="tag done">已完成</span></td>
+          <td>纪文慧</td><td>2026-06-03</td>
+          <td><span class="op-btn">详情</span><span class="op-btn" onclick="openExport('RFQ-20260603-001','Lemans-27B冷冲压上车体',3,9)">全量导出</span></td>
+        </tr>
+        <tr>
+          <td>5</td>
+          <td><span class="link">RFQ-20260526-006</span></td>
+          <td>Leman27B前转向节SOR</td><td>1</td><td>5</td>
+          <td><span class="tag done">已完成</span></td>
+          <td>齐岳</td><td>2026-05-26</td>
+          <td><span class="op-btn">详情</span><span class="op-btn" onclick="openExport('RFQ-20260526-006','Leman27B前转向节SOR',5,15)">全量导出</span></td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<!-- ===== Page 2: 导出任务列表 ===== -->
+<div class="page" id="pg-task">
+  <div class="breadcrumb">首页 / <b>个人中心</b> / 导出任务</div>
+  <div class="page-title">导出任务列表
+    <div style="font-size:12px;color:var(--g500);font-weight:400">报价包批量导出，生成zip后7天内可下载</div>
+  </div>
+  <div class="card">
+    <div class="filter-bar">
+      <label>报价包</label><input class="inp" placeholder="RFQ编号或名称">
+      <label>任务状态</label><input class="inp sm" placeholder="请选择">
+      <label>创建人</label><input class="inp sm" placeholder="请输入">
+      <div class="filter-right">
+        <span class="quick-tag">最近3日</span><span class="quick-tag">3日前</span>
+        <button class="btn">重置</button><button class="btn primary">查询</button>
+      </div>
+    </div>
+    <table class="tbl">
+      <thead><tr>
+        <th>序号</th><th>报价包</th><th>任务状态</th><th>进度</th><th>文件数</th><th>zip大小</th><th>创建人</th><th>创建时间</th><th>完成时间</th><th>操作</th>
+      </tr></thead>
+      <tbody id="taskRows">
+        <tr id="tr-done2">
+          <td>1</td>
+          <td><span class="link">RFQ-20260707-006</span> MS15电调管柱</td>
+          <td><span class="tag done">已完成</span></td><td>—</td><td>6</td><td>1.2MB</td><td>齐岳</td>
+          <td>2026-08-11 15:20</td><td>2026-08-11 15:21</td>
+          <td><span class="op-btn">下载</span></td>
+        </tr>
+        <tr id="tr-done1">
+          <td>2</td>
+          <td><span class="link">RFQ-20260605-002</span> MX14副仪表板SOR</td>
+          <td><span class="tag done">已完成</span></td><td>—</td><td>6</td><td>1.1MB</td><td>张莞婷</td>
+          <td>2026-08-10 09:12</td><td>2026-08-10 09:13</td>
+          <td><span class="op-btn">下载</span></td>
+        </tr>
+        <tr id="tr-fail">
+          <td>3</td>
+          <td><span class="link">RFQ-20260526-006</span> Leman27B前转向节SOR</td>
+          <td><span class="tag fail">失败</span></td><td>—</td><td>—</td><td>—</td><td>齐岳</td>
+          <td>2026-08-08 11:02</td><td>2026-08-08 11:02</td>
+          <td><span class="op-btn">重试</span><span style="color:var(--g400);font-size:12px">生成数据异常</span></td>
+        </tr>
+      </tbody>
+    </table>
+    <div class="pager"><span>共 3 条</span><span class="pg on">1</span></div>
+  </div>
+</div>
+
+<!-- ===== Page 3: 通知管理 ===== -->
+<div class="page" id="pg-notice">
+  <div class="breadcrumb">首页 / <b>个人中心</b> / 通知管理</div>
+  <div class="page-title">通知管理</div>
+  <div class="card" style="padding:8px 0">
+    <div class="notice-item" id="notice-new" onclick="goTask()">
+      <div class="dot"></div>
+      <div>
+        <div class="tt">【导出任务】报价包 <b>RFQ-20260603-004 Lemans-27B热成型单件包</b> 批量导出已完成，共 18 个文件，3.2MB，链接 7 天内有效 <span class="link">查看任务 →</span></div>
+        <div class="meta">2026-08-12 10:32 · 齐岳</div>
+      </div>
+    </div>
+    <div class="notice-item read" onclick="goTask()">
+      <div class="dot"></div>
+      <div>
+        <div class="tt">【导出任务】报价包 <b>RFQ-20260707-006 MS15电调管柱</b> 批量导出已完成，共 6 个文件，1.2MB，链接 7 天内有效 <span class="link">查看任务 →</span></div>
+        <div class="meta">2026-08-11 15:21 · 齐岳</div>
+      </div>
+    </div>
+    <div class="notice-item read">
+      <div class="dot"></div>
+      <div>
+        <div class="tt">【询报价】供应商 <b>爱德夏机电（昆山）有限公司</b> 已提交报价，请及时查看</div>
+        <div class="meta">2026-08-11 10:05 · 系统</div>
+      </div>
+    </div>
+    <div class="notice-item read">
+      <div class="dot"></div>
+      <div>
+        <div class="tt">【任务提醒】采购项目经理确认提醒：SOR-M511(8041)-0003 待处理</div>
+        <div class="meta">2026-08-11 09:30 · 系统</div>
+      </div>
+    </div>
+    <div class="pager" style="padding:0 16px"><span>共 4 条</span><span class="pg on">1</span></div>
+  </div>
+</div>
+
+<!-- ===== 全量导出确认弹窗 ===== -->
+<div class="modal-mask" id="exportModal">
+  <div class="modal">
+    <div class="modal-head">批量导出报价细项 <span class="x" onclick="closeModal()">✕</span></div>
+    <div class="modal-body">
+      <div class="frow"><div class="fl">报价包</div><div class="fv"><span id="m-rfq">RFQ-20260603-004</span> <span id="m-name" style="color:var(--g500)">Lemans-27B热成型单件包</span></div></div>
+      <div class="frow"><div class="fl">导出范围</div><div class="fv">当前轮次<span class="sub">每零件×供应商最新已提交轮次</span></div></div>
+      <div class="frow"><div class="fl">预估文件数</div><div class="fv"><span id="m-count">18</span> 个</div></div>
+      <div class="frow"><div class="fl">文件粒度</div><div class="fv">未拆解零件导出总成文件，有下级零件导出全量下级文件（13-sheet模板），打包zip</div></div>
+      <div class="f-notice">导出为异步任务，完成后将通过通知告知，可在「个人中心-导出任务」中下载，链接 7 天有效。</div>
+      <label class="auto-dl"><input type="checkbox" id="autoDownload" checked>
+        <span>任务完成后自动下载压缩包<span style="color:var(--g500)">（若被浏览器拦截，可在任务列表手动下载）</span></span>
+      </label>
+    </div>
+    <div class="modal-foot">
+      <button class="btn" onclick="closeModal()">取消</button>
+      <button class="btn primary" onclick="confirmExport()">确认导出</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toastBox"></div>
+
+<script>
+/* ===== 顶栏菜单（按UAT截图） ===== */
+var MENUS = ['首页','个人中心','供应商管理','采购项目管理','SOR管理','采购任务管理','询报价与定点','价格中心','履约管理','合同管理','订单管理','文档管理','基础数据管理','采购需求导入','样件预算管理','售后需求管理','物流相关','供应商评审','采购品类管理','人员数据转移'];
+var PCDROPDOWN = [
+  {t:'待处理任务'},{t:'已处理任务'},{t:'我发起的流程'},{t:'通知管理',pg:'pg-notice'},{t:'导出任务',pg:'pg-task',neu:true}
+];
+(function(){
+  var nav = document.getElementById('topnavMenu');
+  MENUS.forEach(function(m,i){
+    if(m === '个人中心'){
+      var wrap = document.createElement('div');
+      wrap.className = 'topnav-item-wrap';
+      var item = document.createElement('div');
+      item.className = 'topnav-item active';
+      item.textContent = m + ' ▾';
+      wrap.appendChild(item);
+      var dd = document.createElement('div');
+      dd.className = 'nav-dropdown';
+      PCDROPDOWN.forEach(function(d){
+        var a = document.createElement('a');
+        a.textContent = d.t;
+        if(d.neu){
+          var b = document.createElement('span');
+          b.className = 'badge-new'; b.textContent = '新';
+          a.appendChild(b);
+        }
+        if(d.pg) a.onclick = function(){ showPage(d.pg); };
+        if(d.t === '通知管理') a.className = 'active';
+        dd.appendChild(a);
+      });
+      wrap.appendChild(dd);
+      nav.appendChild(wrap);
+    } else {
+      var it = document.createElement('div');
+      it.className = 'topnav-item' + (m === '询报价与定点' ? ' active' : '');
+      it.textContent = m;
+      it.onclick = function(){ if(m === '询报价与定点') showPage('pg-rfq'); };
+      nav.appendChild(it);
+    }
+  });
+})();
+
+function showPage(id){
+  document.querySelectorAll('.page').forEach(function(p){ p.classList.remove('show'); });
+  document.getElementById(id).classList.add('show');
+}
+
+/* ===== 导出弹窗 ===== */
+var exportCtx = null;
+function openExport(code, name, supp, files){
+  exportCtx = {code:code, name:name, files:files};
+  document.getElementById('m-rfq').textContent = code;
+  document.getElementById('m-name').textContent = name;
+  document.getElementById('m-count').textContent = files;
+  document.getElementById('exportModal').classList.add('show');
+}
+function closeModal(){ document.getElementById('exportModal').classList.remove('show'); }
+
+/* ===== 确认导出：创建任务 + 动态进度 ===== */
+function toast(msg, ms){
+  var t = document.getElementById('toastBox');
+  t.innerHTML = msg;
+  t.style.display = 'block';
+  clearTimeout(t._h);
+  t._h = setTimeout(function(){ t.style.display = 'none'; }, ms || 4500);
+}
+function confirmExport(){
+  closeModal();
+  showPage('pg-task');
+  var autoDl = document.getElementById('autoDownload').checked;
+  var rows = document.getElementById('taskRows');
+  var tr = document.createElement('tr');
+  tr.innerHTML = '<td>1</td><td><span class="link">' + exportCtx.code + '</span> ' + exportCtx.name +
+    '</td><td><span class="tag pending">排队中</span></td><td>—</td><td>—</td><td>—</td><td>齐岳</td>' +
+    '<td>2026-08-12 10:30</td><td>—</td><td><span class="op-btn disabled">处理中</span></td>';
+  rows.insertBefore(tr, rows.firstChild);
+  // 序号整体后移
+  reindex();
+  var pg = document.querySelector('#pg-task .pager span:first-child');
+  if(pg) pg.textContent = '共 ' + (rows.children.length) + ' 条';
+  var total = exportCtx.files, done = 0;
+  setTimeout(function(){
+    var tag = tr.querySelector('.tag');
+    tag.className = 'tag generating'; tag.textContent = '生成中';
+    tr.querySelectorAll('td')[3].innerHTML = '<div class="prog"><div class="bar"><i style="width:0%"></i></div><span>0/' + total + '</span></div>';
+    var timer = setInterval(function(){
+      done += 1;
+      var pct = Math.round(done / total * 100);
+      tr.querySelector('.bar i').style.width = pct + '%';
+      tr.querySelector('.prog span').textContent = done + '/' + total;
+      if(done >= total){
+        clearInterval(timer);
+        tag.className = 'tag done'; tag.textContent = '已完成';
+        var c = tr.cells;
+        c[4].textContent = total;
+        c[5].textContent = (total * 0.18).toFixed(1) + 'MB';
+        c[8].textContent = '2026-08-12 10:32';
+        c[9].innerHTML = '<span class="op-btn">下载</span>';
+        // 新增通知
+        var nn = document.getElementById('notice-new');
+        if(nn){
+          nn.querySelector('.tt').innerHTML = '【导出任务】报价包 <b>' + exportCtx.code + ' ' + exportCtx.name + '</b> 批量导出已完成，共 ' + total + ' 个文件，' + (total*0.18).toFixed(1) + 'MB，链接 7 天内有效 <span class="link">查看任务 →</span>';
+          nn.classList.remove('read');
+        }
+        // 自动下载（勾选时）
+        if(autoDl){
+          var fname = exportCtx.code + '_报价细项_' + total + '个文件.zip';
+          toast('&#10003; 任务完成，已自动下载 <b>' + fname + '</b><br>若未弹出下载，请点击任务列表「下载」按钮', 6000);
+          try{
+            var a = document.createElement('a');
+            a.href = URL.createObjectURL(new Blob(['报价包全量导出演示文件：' + exportCtx.code + ' ' + exportCtx.name + '，共 ' + total + ' 个报价细项'], {type:'application/zip'}));
+            a.download = fname;
+            document.body.appendChild(a);
+            a.click();
+            setTimeout(function(){ URL.revokeObjectURL(a.href); a.remove(); }, 500);
+          }catch(e){
+            toast('浏览器拦截了自动下载，请点击任务列表「下载」按钮');
+          }
+        } else {
+          toast('&#10003; 任务完成：' + exportCtx.code + '，共 ' + total + ' 个文件，可点击「下载」', 4500);
+        }
+      }
+    }, 300);
+  }, 1200);
+}
+function reindex(){
+  var rows = document.querySelectorAll('#taskRows tr');
+  rows.forEach(function(r,i){ r.cells[0].textContent = i + 1; });
+}
+function goTask(){ showPage('pg-task'); }
+</script>
+</body>
+</html>

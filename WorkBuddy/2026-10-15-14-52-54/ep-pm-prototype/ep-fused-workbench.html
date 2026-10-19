@@ -1,0 +1,402 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>EP 采购工作台 · 融合版（首页任务中心 × 项目管理资源池）</title>
+<style>
+  /* ===== Ant Design 5 设计语言（统一 token） ===== */
+  :root{
+    --primary:#1677ff; --primary-h:#4096ff; --primary-bg:#e6f4ff;
+    --success:#52c41a; --success-bg:#f6ffed; --warning:#faad14; --warning-bg:#fffbe6;
+    --error:#ff4d4f; --error-bg:#fff2f0; --purple:#722ed1; --purple-bg:#f9f0ff;
+    --text:#1f2329; --text-2:#5c6066; --text-3:#8a919b; --border:#e5e6eb; --border-2:#f0f0f0;
+    --bg:#f5f6f8; --panel:#ffffff; --sider:#ffffff; --radius:10px; --shadow:0 1px 3px rgba(0,0,0,.05),0 4px 12px rgba(0,0,0,.04);
+    --font:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{font-family:var(--font);background:var(--bg);color:var(--text);font-size:14px;line-height:1.6}
+  /* layout */
+  .layout{display:flex;min-height:100vh}
+  .sider{width:228px;background:var(--sider);border-right:1px solid var(--border);display:flex;flex-direction:column;position:sticky;top:0;height:100vh}
+  .logo{display:flex;align-items:center;gap:10px;padding:18px 18px;font-size:15px;font-weight:700;color:var(--text);border-bottom:1px solid var(--border-2)}
+  .logo .mk{width:30px;height:30px;border-radius:8px;background:linear-gradient(135deg,var(--primary),#69b1ff);color:#fff;display:flex;align-items:center;justify-content:center;font-size:15px}
+  .menu{flex:1;overflow:auto;padding:10px 8px}
+  .grp{font-size:11.5px;color:var(--text-3);padding:14px 12px 6px;letter-spacing:.5px}
+  .mi{display:flex;align-items:center;gap:10px;padding:9px 12px;border-radius:8px;color:var(--text-2);cursor:pointer;font-size:13.5px;margin:2px 0;transition:.15s}
+  .mi:hover{background:var(--bg);color:var(--text)}
+  .mi.active{background:var(--primary-bg);color:var(--primary);font-weight:600}
+  .mi .ic{font-size:16px;width:18px;text-align:center}
+  .main{flex:1;display:flex;flex-direction:column;min-width:0}
+  .header{height:56px;background:var(--panel);border-bottom:1px solid var(--border);display:flex;align-items:center;padding:0 22px;gap:16px}
+  .htitle{font-size:15px;font-weight:600}
+  .htitle small{font-weight:400;color:var(--text-3);font-size:12px;margin-left:8px}
+  .spacer{flex:1}
+  .search{background:var(--bg);border:1px solid var(--border);border-radius:18px;padding:6px 14px;color:var(--text-3);font-size:13px;min-width:200px}
+  .role{display:flex;align-items:center;gap:8px;cursor:pointer}
+  .avatar{width:30px;height:30px;border-radius:50%;background:var(--primary);color:#fff;display:flex;align-items:center;justify-content:center;font-size:13px}
+  .content{padding:22px;overflow:auto;flex:1}
+  .crumbs{color:var(--text-3);font-size:12.5px;margin-bottom:14px}
+  .crumbs b{color:var(--text-2)}
+  /* cards */
+  .grid{display:grid;gap:16px}
+  .g2{grid-template-columns:1fr 1fr}.g3{grid-template-columns:repeat(3,1fr)}.g4{grid-template-columns:repeat(4,1fr)}
+  @media(max-width:1100px){.g3,.g4{grid-template-columns:1fr 1fr}}
+  @media(max-width:760px){.g2,.g3,.g4{grid-template-columns:1fr}.sider{display:none}}
+  .card{background:var(--panel);border:1px solid var(--border);border-radius:var(--radius);box-shadow:var(--shadow);padding:18px}
+  .card h3{font-size:14px;margin-bottom:12px;display:flex;align-items:center;gap:8px}
+  .card .sub{font-size:12px;color:var(--text-3);font-weight:400}
+  /* stat */
+  .stat .n{font-size:26px;font-weight:700;color:var(--text)}
+  .stat .l{font-size:12.5px;color:var(--text-3);margin-top:2px}
+  .stat .trend{font-size:12px;margin-top:4px}
+  .up{color:var(--success)}.down{color:var(--error)}
+  /* tag/badge */
+  .tag{display:inline-flex;align-items:center;font-size:11.5px;padding:1px 9px;border-radius:10px;border:1px solid var(--border);background:var(--bg);color:var(--text-2)}
+  .tag.primary{background:var(--primary-bg);color:var(--primary);border-color:#91caff}
+  .tag.success{background:var(--success-bg);color:#389e0d;border-color:#b7eb8f}
+  .tag.warning{background:var(--warning-bg);color:#d48806;border-color:#ffe58f}
+  .tag.purple{background:var(--purple-bg);color:var(--purple);border-color:#d3adf7}
+  .tag.error{background:var(--error-bg);color:#cf1322;border-color:#ffa39e}
+  .badge{position:absolute;top:-6px;right:-6px;background:var(--error);color:#fff;font-size:10px;min-width:16px;height:16px;border-radius:8px;display:flex;align-items:center;justify-content:center;padding:0 4px}
+  /* progress */
+  .prog{height:8px;background:var(--border-2);border-radius:6px;overflow:hidden;margin-top:8px}
+  .prog>i{display:block;height:100%;border-radius:6px;background:linear-gradient(90deg,var(--primary),#69b1ff)}
+  .prog.warn>i{background:linear-gradient(90deg,var(--warning),#ffd666)}
+  .prog.good>i{background:linear-gradient(90deg,var(--success),#95de64)}
+  /* list/todo */
+  .todo-group{margin-bottom:14px}
+  .todo-group .gh{display:flex;align-items:center;gap:8px;font-size:12.5px;color:var(--text-2);font-weight:600;margin-bottom:8px}
+  .todo{display:flex;align-items:center;gap:10px;padding:10px 12px;border:1px solid var(--border);border-radius:8px;margin-bottom:8px;background:var(--panel);cursor:pointer;transition:.15s}
+  .todo:hover{border-color:var(--primary);box-shadow:0 2px 8px rgba(22,119,255,.08)}
+  .todo .dot{width:8px;height:8px;border-radius:50%;flex-shrink:0}
+  .todo .tx{flex:1;font-size:13px}
+  .todo .tm{font-size:11.5px;color:var(--text-3)}
+  /* table */
+  table{width:100%;border-collapse:collapse;font-size:13px}
+  th,td{text-align:left;padding:10px 12px;border-bottom:1px solid var(--border-2)}
+  th{color:var(--text-3);font-weight:500;background:var(--bg);font-size:12.5px}
+  tbody tr{cursor:pointer}
+  tbody tr:hover{background:var(--primary-bg)}
+  /* supplier card */
+  .sup{border:1px solid var(--border);border-radius:10px;padding:14px;cursor:pointer;transition:.15s;background:var(--panel)}
+  .sup:hover{border-color:var(--primary);box-shadow:var(--shadow)}
+  .sup .nm{font-weight:600;font-size:14px;display:flex;align-items:center;gap:8px}
+  .sup .meta{font-size:12px;color:var(--text-3);margin:6px 0}
+  /* radar */
+  .radar-wrap{display:flex;justify-content:center}
+  /* assistant */
+  .bot{display:flex;gap:10px;align-items:flex-start;margin-bottom:10px}
+  .bot .av{width:28px;height:28px;border-radius:8px;background:var(--purple);color:#fff;display:flex;align-items:center;justify-content:center;font-size:14px;flex-shrink:0}
+  .bot .bub{background:var(--purple-bg);border:1px solid #efd6ff;border-radius:10px;padding:9px 12px;font-size:13px;flex:1}
+  .bot.user .av{background:var(--primary)} .bot.user .bub{background:var(--primary-bg);border-color:#91caff}
+  /* drawer */
+  .mask{position:fixed;inset:0;background:rgba(0,0,0,.35);display:none;z-index:50}
+  .mask.show{display:block}
+  .drawer{position:fixed;top:0;right:0;height:100%;width:420px;max-width:92vw;background:#fff;box-shadow:-4px 0 24px rgba(0,0,0,.12);transform:translateX(100%);transition:.25s;z-index:51;display:flex;flex-direction:column}
+  .drawer.show{transform:translateX(0)}
+  .dh{padding:18px 20px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between}
+  .db{padding:18px 20px;overflow:auto;flex:1}
+  .dx{padding:10px 0;border-bottom:1px dashed var(--border-2);font-size:13px;display:flex;justify-content:space-between}
+  .dx b{color:var(--text)}
+  /* toast */
+  .toast{position:fixed;top:18px;left:50%;transform:translateX(-50%) translateY(-12px);background:#fff;border:1px solid var(--border);box-shadow:var(--shadow);border-radius:10px;padding:10px 18px;font-size:13px;opacity:0;transition:.2s;z-index:99;pointer-events:none}
+  .toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+  /* architecture */
+  .layer{display:flex;gap:14px;align-items:stretch;margin-bottom:14px}
+  .layer .lv{width:90px;flex-shrink:0;border-radius:10px;color:#fff;display:flex;align-items:center;justify-content:center;text-align:center;font-size:13px;font-weight:600;padding:10px}
+  .l1{background:#1677ff}.l2{background:#722ed1}.l3{background:#13c2c2}
+  .layer .lc{flex:1;display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+  .chip{background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:7px 12px;font-size:12.5px}
+  .ia-map{display:grid;grid-template-columns:140px 1fr;gap:10px;font-size:13px}
+  .ia-map .col{background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:10px 12px}
+  .ia-node{display:inline-block;background:#fff;border:1px solid var(--border);border-radius:6px;padding:4px 9px;margin:3px;font-size:12px}
+  .ia-node.link{cursor:pointer}.ia-node.link:hover{border-color:var(--primary);color:var(--primary)}
+  .section-title{font-size:16px;font-weight:700;margin:4px 0 4px}
+  .muted{color:var(--text-3);font-size:12.5px}
+  .divider{height:1px;background:var(--border-2);margin:16px 0}
+  .empty{color:var(--text-3);text-align:center;padding:30px;font-size:13px}
+</style>
+</head>
+<body>
+<div class="layout">
+  <!-- 侧边导航：统一信息架构 -->
+  <aside class="sider">
+    <div class="logo"><span class="mk">EP</span><span>采购工作台</span></div>
+    <nav class="menu" id="menu">
+      <div class="grp">工作台</div>
+      <div class="mi active" data-view="home"><span class="ic">🏠</span>首页任务中心</div>
+      <div class="grp">项目管理 · 资源池</div>
+      <div class="mi" data-view="suppliers"><span class="ic">🏭</span>供应商资源池</div>
+      <div class="mi" data-view="category"><span class="ic">📦</span>品类资源池</div>
+      <div class="mi" data-view="quotation"><span class="ic">💰</span>报价明细成本库</div>
+      <div class="mi" data-view="contracts"><span class="ic">📜</span>合同签署管理</div>
+      <div class="grp">架构</div>
+      <div class="mi" data-view="arch"><span class="ic">🧩</span>架构视角</div>
+    </nav>
+  </aside>
+
+  <div class="main">
+    <header class="header">
+      <div class="htitle" id="htitle">首页任务中心<small id="hsub">角色化 · 流程驱动 · AI 增强</small></div>
+      <div class="spacer"></div>
+      <div class="search">🔍 搜索供应商 / RFQ / 合同 / 待办…</div>
+      <div class="role" id="roleBtn">
+        <span class="avatar" id="roleAv">齐</span>
+        <span id="roleName">齐岳 · PM</span>
+      </div>
+    </header>
+    <div class="content">
+      <div class="crumbs" id="crumbs"></div>
+      <div id="view"></div>
+    </div>
+  </div>
+</div>
+
+<!-- 抽屉 -->
+<div class="mask" id="mask"></div>
+<aside class="drawer" id="drawer">
+  <div class="dh"><b id="drawerTitle">详情</b><span style="cursor:pointer" onclick="closeDrawer()">✕</span></div>
+  <div class="db" id="drawerBody"></div>
+</aside>
+<div class="toast" id="toast"></div>
+
+<script>
+/* ============ 角色 ============ */
+const ROLES=[
+  {key:'齐岳',name:'齐岳 · PM',av:'齐'},
+  {key:'采购员',name:'王磊 · 采购员',av:'王'},
+  {key:'CE',name:'李娜 · CE',av:'李'},
+  {key:'SQE',name:'赵强 · SQE',av:'赵'},
+];
+let curRole='齐岳';
+/* ============ 数据（mock，统一口径） ============ */
+const SUPPLIERS=[
+  {name:'博世汽车部件(苏州)',code:'SUP-001',cat:'座椅系统 / 被动安全',coop:'3年',amount:'¥2.4亿',score:85,risk:'低',
+   dim:{质量:88,成本:82,交付:90,技术:85,服务:80,产能:86}},
+  {name:'宁德时代',code:'SUP-002',cat:'三电 / 电池',coop:'2年',amount:'¥5.1亿',score:88,risk:'低',
+   dim:{质量:92,成本:78,交付:88,技术:94,服务:82,产能:90}},
+  {name:'延锋国际',code:'SUP-003',cat:'座舱 / 内饰',coop:'4年',amount:'¥3.0亿',score:84,risk:'中',
+   dim:{质量:84,成本:85,交付:80,技术:82,服务:88,产能:83}},
+  {name:'汇川技术',code:'SUP-004',cat:'电驱 / 电控',coop:'1年',amount:'¥1.2亿',score:82,risk:'中',
+   dim:{质量:80,成本:76,交付:85,技术:90,服务:78,产能:82}},
+  {name:'福耀玻璃',code:'SUP-005',cat:'车身 / 玻璃',coop:'5年',amount:'¥2.8亿',score:87,risk:'低',
+   dim:{质量:90,成本:88,交付:86,技术:84,服务:85,产能:89}},
+];
+const CATEGORY=[{n:'座椅系统',p:32,s:5},{n:'三电电池',p:24,s:3},{n:'座舱内饰',p:18,s:4},{n:'电驱电控',p:12,s:2},{n:'车身玻璃',p:9,s:2},{n:'其他',p:5,s:3}];
+const QUOTES=[
+  {rfq:'RFQ-2026-003',item:'座椅骨架',sup:'延锋国际',price:'¥1,240',target:'¥1,180',status:'待审核',due:'3天后截止'},
+  {rfq:'RFQ-2026-005',item:'电驱壳体',sup:'汇川技术',price:'¥860',target:'¥900',status:'已报价',due:'已超时1天'},
+  {rfq:'RFQ-2026-007',item:'电池上盖',sup:'宁德时代',price:'¥2,050',target:'¥2,100',status:'二次议价',due:'谈判中'},
+  {rfq:'RFQ-2026-009',item:'被动减振器',sup:'博世汽车部件(苏州)',price:'¥430',target:'¥420',status:'待审批',due:'今日截止'},
+];
+const CONTRACTS=[
+  {name:'MS11 BCP 定点价格协议',sup:'博世汽车部件(苏州)',type:'定点价格协议',status:'已签署',due:'有效至 2027-06'},
+  {name:'年度框架协议',sup:'宁德时代',type:'框架协议',status:'即将到期',due:'2026-12 到期 · 4份提醒'},
+  {name:'座椅总成供货合同',sup:'延锋国际',type:'供货合同',status:'执行中',due:'月度交付'},
+  {name:'电驱系统技术协议',sup:'汇川技术',type:'技术协议',status:'变更中',due:'EWO 评审'},
+];
+const TODOS={
+  '齐岳':[
+    {g:'审批类',c:'error',x:'定点申请待审批 - NA-2026-003',t:'影响 MS11 交期',act:'contracts'},
+    {g:'审批类',c:'error',x:'成本分析报告审核 - Q2汇总',t:'待签批',act:'quotation'},
+    {g:'评审类',c:'warning',x:'SOR-2026-008 待 AI 解析',t:'BDL 长名单',act:'suppliers'},
+    {g:'评审类',c:'warning',x:'MS11 定点方案审批待确认',t:'跨 3 家供方',act:'contracts'},
+    {g:'跟进类',c:'primary',x:'新供应商准入评审 - 2家',t:'本周',act:'suppliers'},
+    {g:'预警类',c:'error',x:'合同到期提醒 - 4份',t:'2026-12 前',act:'contracts'},
+    {g:'预警类',c:'warning',x:'EWO 变更影响分析 - 电驱系统',t:'汇川',act:'quotation'},
+  ],
+  '采购员':[
+    {g:'审批类',c:'error',x:'供应商报价审核 - 宁德时代',t:'RFQ-2026-007',act:'quotation'},
+    {g:'跟进类',c:'primary',x:'RFQ 技术答疑 - 座椅骨架',t:'延锋',act:'quotation'},
+    {g:'预警类',c:'warning',x:'订单异常 - 物流延迟预警',t:'在途 2 批',act:'contracts'},
+  ],
+  'CE':[
+    {g:'评审类',c:'warning',x:'BDL 技术能力评审 - 3家供方',t:'座椅系统',act:'suppliers'},
+    {g:'评审类',c:'warning',x:'SOR-2026-010 技术评审待确认',t:'被动安全',act:'suppliers'},
+  ],
+  'SQE':[
+    {g:'跟进类',c:'primary',x:'供应商绩效评估 - Q2汇总',t:'5家核心',act:'suppliers'},
+    {g:'预警类',c:'error',x:'质量闭环流程偏差 - 1项',t:'延锋',act:'suppliers'},
+  ],
+};
+const FLOWS=[
+  {n:'项目流程总览',p:72,cls:''},{n:'价格流程',p:65,cls:''},
+  {n:'准入与样件流程',p:48,cls:'warn'},{n:'质量闭环流程',p:80,cls:'good'},{n:'履约流程',p:55,cls:''},
+];
+const BOT=[
+  '今日建议优先处理「定点申请 NA-2026-003」（影响 MS11 交期，已阻塞 2 天）。',
+  '宁德时代 RFQ-2026-007 报价较目标价高 2.4%，建议发起二次议价。',
+  '检测到 4 份框架协议将于 2026-12 到期，建议本周启动续签流程。',
+];
+/* ============ 视图标题 ============ */
+const TITLES={
+  home:['首页任务中心','角色化 · 流程驱动 · AI 增强'],
+  suppliers:['供应商资源池','六维能力 · 风险筛查 · 合作履历'],
+  category:['品类资源池','品类覆盖 · 份额分布'],
+  quotation:['报价明细成本库','RFQ · 目标价对比 · 议价状态'],
+  contracts:['合同签署管理','定点协议 · 框架协议 · 到期预警'],
+  arch:['架构视角','三层能力架构 · 信息架构 · 能力分层'],
+};
+/* ============ 工具 ============ */
+const $=id=>document.getElementById(id);
+function toast(msg){const t=$('toast');t.textContent=msg;t.classList.add('show');clearTimeout(t._t);t._t=setTimeout(()=>t.classList.remove('show'),1800);}
+function go(view,extra){$('menu').querySelectorAll('.mi').forEach(m=>m.classList.toggle('active',m.dataset.view===view));
+  curView=view;render();if(extra)toast(extra);}
+function openDrawer(title,html){$('drawerTitle').textContent=title;$('drawerBody').innerHTML=html;$('mask').classList.add('show');$('drawer').classList.add('show');}
+function closeDrawer(){$('mask').classList.remove('show');$('drawer').classList.remove('show');}
+$('mask').onclick=closeDrawer;
+/* ============ 渲染：首页任务中心 ============ */
+function renderHome(){
+  const my=TODOS[curRole]||[];
+  const groups={};my.forEach(t=>{(groups[t.g]=groups[t.g]||[]).push(t);});
+  const gColors={审批类:'error',评审类:'warning',跟进类:'primary',预警类:'error'};
+  let todoHtml='';
+  Object.keys(groups).forEach(g=>{
+    todoHtml+=`<div class="todo-group"><div class="gh"><span class="tag ${gColors[g]||''}">${g}</span><span class="muted">${groups[g].length} 项</span></div>`;
+    groups[g].forEach(t=>{todoHtml+=`<div class="todo" onclick="go('${t.act}','已跳转：${t.x}')"><span class="dot" style="background:var(--${t.c==='error'?'error':t.c==='warning'?'warning':'primary'})"></span><span class="tx">${t.x}</span><span class="tm">${t.t}</span></div>`;});
+    todoHtml+='</div>';
+  });
+  const flowHtml=FLOWS.map(f=>`<div class="card" style="padding:14px" onclick="toast('流程钻取：${f.n}')"><div style="display:flex;justify-content:space-between;font-size:13px"><b>${f.n}</b><span class="tag ${f.cls==='good'?'success':f.cls==='warn'?'warning':'primary'}">${f.p}%</span></div><div class="prog ${f.cls}"><i style="width:${f.p}%"></i></div></div>`).join('');
+  const botHtml=BOT.map(b=>`<div class="bot"><div class="av">AI</div><div class="bub">${b}</div></div>`).join('')+
+    `<div class="bot user"><div class="av">齐</div><div class="bub">把今日待办按风险排序，并给出处理顺序 →</div></div>`+
+    `<div class="bot"><div class="av">AI</div><div class="bub">已生成晨报：① NA-2026-003（阻塞）② 4份合同续签 ③ 宁德二次议价。需要我代发催办吗？</div></div>`;
+  return `
+  <div class="grid g4" style="margin-bottom:16px">
+    <div class="card stat"><div class="n">${my.length}</div><div class="l">我的待办（${curRole}）</div><div class="trend up">▲ 今日 +2</div></div>
+    <div class="card stat"><div class="n">4</div><div class="l">风险预警</div><div class="trend down">⚠ 需行动</div></div>
+    <div class="card stat"><div class="n">72%</div><div class="l">项目流程总览</div><div class="trend up">▲ 本周 +5%</div></div>
+    <div class="card stat"><div class="n">5</div><div class="l">在管核心供应商</div><div class="trend">资源池</div></div>
+  </div>
+  <div class="grid g3">
+    <div class="card" style="grid-column:span 2">
+      <h3>📋 今日待办 · 按任务属性分层聚合 <span class="sub">点击任意待办 → 跳转对应模块</span></h3>
+      ${todoHtml}
+    </div>
+    <div class="card">
+      <h3>🤖 EP 智能助手 <span class="tag purple">AI</span></h3>
+      ${botHtml}
+      <button class="tag primary" style="cursor:pointer;margin-top:6px" onclick="toast('已注入 EP 智能助手（演示）')">注入上下文 →</button>
+    </div>
+  </div>
+  <div class="divider"></div>
+  <h3 class="section-title">📊 流程进度 · 项目流程全景</h3>
+  <p class="muted">从「待办列表式」升级为「流程驱动」：让其一进首页就知道——今天要做什么、流程到哪了、什么需要我行动。</p>
+  <div class="grid g3" style="margin-top:12px">${flowHtml}</div>
+  <div class="divider"></div>
+  <h3 class="section-title">⭐ 我的收藏 / 最近访问 <span class="tag">卡片自由编排</span></h3>
+  <div class="grid g4" style="margin-top:10px">
+    ${['博世汽车部件(苏州)','RFQ-2026-009 被动减振器','MS11 BCP 定点价格协议','宁德时代'].map(x=>`<div class="card" style="padding:12px;cursor:pointer;font-size:13px" onclick="toast('打开收藏：${x}')">🔖 ${x}</div>`).join('')}
+  </div>`;
+}
+/* ============ 渲染：供应商资源池 ============ */
+function radar(dim){
+  const keys=Object.keys(dim);const cx=90,cy=90,r=70;let pts=[],axis='';
+  keys.forEach((k,i)=>{const a=Math.PI*2*i/keys.length-Math.PI/2;const x=cx+Math.cos(a)*r,y=cy+Math.sin(a)*r;axis+=`<line x1="${cx}" y1="${cy}" x2="${x}" y2="${y}" stroke="#eee"/>`;axis+=`<text x="${cx+Math.cos(a)*(r+12)-6}" y="${cy+Math.sin(a)*(r+12)+4}" font-size="10" fill="#8a919b">${k}</text>`;});
+  keys.forEach((k,i)=>{const a=Math.PI*2*i/keys.length-Math.PI/2;const v=dim[k]/100;const x=cx+Math.cos(a)*r*v,y=cy+Math.sin(a)*r*v;pts.push(`${x.toFixed(1)},${y.toFixed(1)}`);});
+  return `<svg width="180" height="180" viewBox="0 0 180 180">${axis}<polygon points="${pts.join(' ')}" fill="rgba(22,119,255,.18)" stroke="#1677ff" stroke-width="2"/></svg>`;
+}
+function renderSuppliers(){
+  const cards=SUPPLIERS.map(s=>`<div class="sup" onclick="openSup('${s.code}')"><div class="nm">${s.name} ${s.risk==='低'?'<span class="tag success">低风险</span>':'<span class="tag warning">中风险</span>'}</div><div class="meta">${s.cat} · 合作 ${s.coop} · ${s.amount}</div><div style="display:flex;align-items:center;gap:10px"><div class="radar-wrap" style="transform:scale(.62);transform-origin:left top;width:112px;height:112px">${radar(s.dim)}</div><div><div style="font-size:22px;font-weight:700;color:var(--primary)">${s.score}</div><div class="muted" style="font-size:11px">综合绩效</div></div></div></div></div>`).join('');
+  return `<div class="grid g3">${cards}</div>`;
+}
+function openSup(code){
+  const s=SUPPLIERS.find(x=>x.code===code);if(!s)return;
+  const rows=Object.entries(s.dim).map(([k,v])=>`<div class="dx"><span>${k}</span><b>${v} <span class="tag ${v>=85?'success':v>=80?'primary':'warning'}">${v>=85?'优':v>=80?'良':'中'}</span></b></div>`).join('');
+  openDrawer(s.name,`
+    <div style="margin-bottom:10px">${radar(s.dim)}</div>
+    <div class="dx"><span>供应商编码</span><b>${s.code}</b></div>
+    <div class="dx"><span>品类归属</span><b>${s.cat}</b></div>
+    <div class="dx"><span>合作履历</span><b>${s.coop} · ${s.amount}</b></div>
+    <div class="dx"><span>综合绩效</span><b>${s.score}</b></div>
+    <div class="dx"><span>风险筛查</span><b>${s.risk==='低'?'<span class="tag success">低</span>':'<span class="tag warning">中</span>'}</b></div>
+    <div class="divider"></div>
+    <h3 class="section-title" style="font-size:14px">六维能力评分卡</h3>${rows}
+    <div class="divider"></div>
+    <button class="tag primary" style="cursor:pointer" onclick="go('quotation','已跳转报价明细成本库（按 ${s.name} 过滤）');closeDrawer()">💰 查看该供应商报价成本</button>
+    <button class="tag" style="cursor:pointer;margin-left:8px" onclick="go('contracts','已跳转合同签署管理（按 ${s.name} 过滤）');closeDrawer()">📜 查看合同</button>
+  `);
+}
+/* ============ 渲染：品类资源池 ============ */
+function renderCategory(){
+  const max=Math.max(...CATEGORY.map(c=>c.p));
+  const bars=CATEGORY.map(c=>`<div style="display:flex;align-items:center;gap:10px;margin:8px 0"><div style="width:70px;font-size:12.5px">${c.n}</div><div style="flex:1" class="prog"><i style="width:${c.p/max*100}%"></i></div><div style="width:90px;font-size:12px;color:var(--text-3)">${c.p}% · ${c.s}家</div></div>`).join('');
+  const totalSup=CATEGORY.reduce((a,c)=>a+c.s,0);
+  return `<div class="grid g2"><div class="card"><h3>📊 品类份额分布</h3>${bars}</div>
+  <div class="card"><h3>🗂 品类覆盖统计</h3><div class="grid g2" style="margin-top:8px">
+    <div class="stat"><div class="n">${CATEGORY.length}</div><div class="l">管理品类</div></div>
+    <div class="stat"><div class="n">${totalSup}</div><div class="l">覆盖供应商</div></div>
+    <div class="stat"><div class="n">32%</div><div class="l">座椅系统占比</div></div>
+    <div class="stat"><div class="n">3</div><div class="l">风险品类</div></div></div>
+    <div class="divider"></div><p class="muted">点击供应商资源池中的卡片可下钻至单家供方的六维能力与合同。</p></div></div>`;
+}
+/* ============ 渲染：报价明细成本库 ============ */
+function renderQuotation(){
+  const rows=QUOTES.map(q=>{const over=parseInt(q.price.replace(/[^\d]/g,''))>parseInt(q.target.replace(/[^\d]/g,''));
+    return `<tr onclick="toast('查看 ${q.rfq} 明细')"><td><b>${q.rfq}</b></td><td>${q.item}</td><td>${q.sup}</td><td>¥${q.price.replace('¥','')}</td><td>¥${q.target.replace('¥','')}</td><td>${over?'<span class="tag error">超目标</span>':'<span class="tag success">达标</span>'}</td><td>${q.status==='待审批'||q.status==='待审核'?'<span class="tag warning">'+q.status+'</span>':'<span class="tag primary">'+q.status+'</span>'}</td><td class="tm">${q.due}</td></tr>`;}).join('');
+  return `<div class="card" style="padding:0;overflow:hidden"><table><thead><tr><th>RFQ</th><th>零部件</th><th>供应商</th><th>报价</th><th>目标价</th><th>对比</th><th>状态</th><th>节点</th></tr></thead><tbody>${rows}</tbody></table></div>
+  <p class="muted" style="margin-top:10px">💡 与首页「成本分析报告审核」「二次议价」待办联动：点击待办即从首页跳转至此并按供应商过滤。</p>`;
+}
+/* ============ 渲染：合同签署管理 ============ */
+function renderContracts(){
+  const rows=CONTRACTS.map(c=>`<tr onclick="toast('查看合同：${c.name}')"><td><b>${c.name}</b></td><td>${c.sup}</td><td>${c.type}</td><td>${c.status==='即将到期'||c.status==='变更中'?'<span class="tag warning">'+c.status+'</span>':c.status==='已签署'?'<span class="tag success">'+c.status+'</span>':'<span class="tag primary">'+c.status+'</span>'}</td><td class="tm">${c.due}</td></tr>`).join('');
+  return `<div class="card" style="padding:0;overflow:hidden"><table><thead><tr><th>合同名称</th><th>供应商</th><th>类型</th><th>状态</th><th>节点</th></tr></thead><tbody>${rows}</tbody></table></div>
+  <div class="grid g3" style="margin-top:14px">
+    <div class="card stat"><div class="n">4</div><div class="l">即将到期提醒</div><div class="trend down">⚠ 2026-12 前</div></div>
+    <div class="card stat"><div class="n">1</div><div class="l">变更中（EWO）</div><div class="trend">评审中</div></div>
+    <div class="card stat"><div class="n">2</div><div class="l">已签署定点协议</div><div class="trend up">有效</div></div></div>`;
+}
+/* ============ 渲染：架构视角 ============ */
+function renderArch(){
+  return `
+  <div class="card">
+    <h3>🧩 三层能力架构 <span class="sub">前端界面 → 平台能力 → 原子组件（沿用 V2 架构图，统一承载）</span></h3>
+    <div class="layer"><div class="lv l1">第一层<br>前端界面</div><div class="lc"><span class="chip">信息架构（本工作台导航）</span><span class="chip">交互设计（跨模块联动）</span><span class="chip">视觉规范（Ant Design 5 token）</span></div></div>
+    <div class="layer"><div class="lv l2">第二层<br>平台能力</div><div class="lc"><span class="chip">角色化任务中心</span><span class="chip">流程进度可视化</span><span class="chip">EP 智能助手</span><span class="chip">资源池（供应商/品类/报价/合同）</span><span class="chip">卡片自由编排</span></div></div>
+    <div class="layer"><div class="lv l3">第三层<br>原子组件</div><div class="lc"><span class="chip">Stat / Tag / Progress</span><span class="chip">Todo 分组</span><span class="chip">Radar 六维</span><span class="chip">Table / Drawer</span><span class="chip">待办分层聚合</span></div></div>
+    <div class="note" style="background:var(--primary-bg);border-color:#91caff;color:#0958d9;padding:10px 14px;border-radius:8px;font-size:12.5px;margin-top:6px">沉淀原则：组件与 EP 接口解耦、仅复用规范层；有第二个用户才做成独立 npm 包——避免成为一次性消耗品。</div>
+  </div>
+  <div class="grid g2" style="margin-top:16px">
+    <div class="card">
+      <h3>🗺 融合信息架构（同一套导航）</h3>
+      <div class="ia-map">
+        <div class="col"><b>入口</b><br>首页任务中心</div>
+        <div class="col"><span class="ia-node link" onclick="go('home')">角色待办</span><span class="ia-node link" onclick="go('home')">流程进度</span><span class="ia-node link" onclick="go('home')">AI 助手</span></div>
+        <div class="col"><b>资源池</b><br>项目管理</div>
+        <div class="col"><span class="ia-node link" onclick="go('suppliers')">供应商</span><span class="ia-node link" onclick="go('category')">品类</span><span class="ia-node link" onclick="go('quotation')">报价成本</span><span class="ia-node link" onclick="go('contracts')">合同</span></div>
+        <div class="col"><b>联动</b></div>
+        <div class="col muted">待办 → 模块 · 供应商 → 报价/合同 · 流程 → 节点钻取</div>
+      </div>
+    </div>
+    <div class="card">
+      <h3>🪜 能力分层（对齐 AI×EP 五层）</h3>
+      <ul style="font-size:13px;line-height:2">
+        <li><b>L1 数据看板</b>：KPI / 流程进度 / 品类份额</li>
+        <li><b>L2 文档协同</b>：合同 / 报价归档（飞书为主）</li>
+        <li><b>L3 流程联动</b>：待办分层 → 模块跳转、供应商下钻</li>
+        <li><b>L4 智能 Agent</b>：EP 智能助手（规划态）</li>
+        <li><b>L5 CLI/API</b>：dx-ep / 飞书 MCP（规划态）</li>
+      </ul>
+    </div>
+  </div>`;
+}
+/* ============ 主渲染 ============ */
+let curView='home';
+const RENDER={home:renderHome,suppliers:renderSuppliers,category:renderCategory,quotation:renderQuotation,contracts:renderContracts,arch:renderArch};
+function render(){
+  const t=TITLES[curView];$('htitle').firstChild.textContent=t[0];$('hsub').textContent=t[1];
+  $('crumbs').innerHTML=`工作台 / <b>${t[0]}</b>`;
+  $('view').innerHTML=RENDER[curView]();
+}
+/* 菜单 */
+$('menu').addEventListener('click',e=>{const mi=e.target.closest('.mi');if(mi)go(mi.dataset.view);});
+/* 角色切换 */
+$('roleBtn').addEventListener('click',()=>{
+  const i=ROLES.findIndex(r=>r.key===curRole);const nx=ROLES[(i+1)%ROLES.length];
+  curRole=nx.key;$('roleAv').textContent=nx.av;$('roleName').textContent=nx.name;
+  toast('已切换角色：'+nx.name);if(curView==='home')render();
+});
+render();
+</script>
+</body>
+</html>

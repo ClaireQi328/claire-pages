@@ -1,0 +1,531 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>样件订单自动化 - 完整工作流流程图</title>
+    <script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', sans-serif;
+            background: #f5f7fa;
+            color: #1f2329;
+            line-height: 1.6;
+        }
+        .container { max-width: 1400px; margin: 0 auto; padding: 24px; }
+        .header {
+            background: linear-gradient(135deg, #3370ff 0%, #1456f0 100%);
+            color: white;
+            padding: 32px;
+            border-radius: 12px;
+            margin-bottom: 24px;
+        }
+        .header h1 { font-size: 28px; margin-bottom: 8px; }
+        .header p { font-size: 14px; opacity: 0.9; }
+        .section {
+            background: white;
+            border-radius: 12px;
+            padding: 24px;
+            margin-bottom: 24px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+        }
+        .section h2 {
+            font-size: 20px;
+            color: #1f2329;
+            margin-bottom: 16px;
+            padding-bottom: 12px;
+            border-bottom: 2px solid #e5e6eb;
+        }
+        .section h3 {
+            font-size: 16px;
+            color: #3370ff;
+            margin: 20px 0 12px;
+        }
+        .mermaid {
+            background: #fafbfc;
+            border-radius: 8px;
+            padding: 20px;
+            overflow-x: auto;
+        }
+        .branch-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 16px 0;
+            font-size: 13px;
+        }
+        .branch-table th {
+            background: #f0f3f8;
+            padding: 10px 12px;
+            text-align: left;
+            font-weight: 600;
+            border: 1px solid #e5e6eb;
+        }
+        .branch-table td {
+            padding: 10px 12px;
+            border: 1px solid #e5e6eb;
+            vertical-align: top;
+        }
+        .branch-table tr:hover { background: #f8f9fa; }
+        .tag {
+            display: inline-block;
+            padding: 2px 8px;
+            border-radius: 4px;
+            font-size: 12px;
+            font-weight: 500;
+        }
+        .tag-success { background: #e8f7ee; color: #00b42a; }
+        .tag-warning { background: #fff7e8; color: #ff7d00; }
+        .tag-error { background: #ffece8; color: #f53f3f; }
+        .tag-info { background: #e8f3ff; color: #3370ff; }
+        .tag-purple { background: #f5e8ff; color: #722ed1; }
+        .grid-2 {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 16px;
+            margin: 16px 0;
+        }
+        .card {
+            background: #fafbfc;
+            border-radius: 8px;
+            padding: 16px;
+            border-left: 4px solid #3370ff;
+        }
+        .card h4 { font-size: 14px; margin-bottom: 8px; color: #1f2329; }
+        .card ul { padding-left: 20px; font-size: 13px; }
+        .card li { margin-bottom: 4px; }
+        .legend {
+            display: flex;
+            gap: 16px;
+            flex-wrap: wrap;
+            margin: 16px 0;
+            padding: 12px;
+            background: #fafbfc;
+            border-radius: 8px;
+        }
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            font-size: 13px;
+        }
+        .legend-box {
+            width: 16px;
+            height: 16px;
+            border-radius: 3px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>📦 样件订单自动化 - 完整工作流流程图</h1>
+            <p>版本：0916 | 涵盖所有条件分支与异常处理 | 人做决策，AI 做执行</p>
+        </div>
+
+        <!-- 图例 -->
+        <div class="section">
+            <h2>📖 图例说明</h2>
+            <div class="legend">
+                <div class="legend-item"><div class="legend-box" style="background:#e8f7ee;border:1px solid #00b42a"></div>开始/结束</div>
+                <div class="legend-item"><div class="legend-box" style="background:#e8f3ff;border:1px solid #3370ff"></div>处理步骤</div>
+                <div class="legend-item"><div class="legend-box" style="background:#fff7e8;border:1px solid #ff7d00"></div>判断分支</div>
+                <div class="legend-item"><div class="legend-box" style="background:#ffece8;border:1px solid #f53f3f"></div>异常/错误</div>
+                <div class="legend-item"><div class="legend-box" style="background:#f5e8ff;border:1px solid #722ed1"></div>人工确认点</div>
+                <div class="legend-item"><div class="legend-box" style="background:#f0f3f8;border:1px solid #86909c"></div>数据沉淀</div>
+            </div>
+        </div>
+
+        <!-- 整体流程图 -->
+        <div class="section">
+            <h2>🔄 整体工作流（端到端）</h2>
+            <div class="mermaid">
+flowchart TD
+    Start([🚀 任务开始]) --> EnvCheck{环境检查}
+    
+    EnvCheck -->|✅ 通过| PullData[拉取待导入需求]
+    EnvCheck -->|❌ 失败| EnvError[发送环境异常卡片]
+    EnvError --> End1([任务结束])
+    
+    PullData --> Validate{字段校验}
+    Validate -->|全部通过| Confirm1[推送导入确认卡片]
+    Validate -->|有异常| Warn1[推送警告卡片<br/>异常记录跳过]
+    Warn1 --> Confirm1
+    
+    Confirm1 --> UserConfirm1{用户确认?}
+    UserConfirm1 -->|✅ 确认| Import[执行需求导入]
+    UserConfirm1 -->|❌ 取消| End2([任务结束])
+    
+    Import --> ImportResult{导入结果}
+    ImportResult -->|成功X条/失败Y条| Notify1[推送导入结果卡片]
+    Notify1 --> Query[查询可下单需求]
+    
+    Query --> Filter[过滤到货日期>30天]
+    Filter --> Confirm2[推送订单确认卡片]
+    
+    Confirm2 --> UserConfirm2{用户确认?}
+    UserConfirm2 -->|✅ 确认| Analyze[一价一供/一价多供判断]
+    UserConfirm2 -->|❌ 取消| End3([任务结束])
+    
+    Analyze --> SinglePrice[一价一供<br/>直接创建订单]
+    Analyze --> MultiPrice{一价多供数量判断}
+    
+    MultiPrice -->|< 5个需求| CardRoute[卡片通路<br/>每个需求一个卡片]
+    MultiPrice -->|>= 5个需求| BitableRoute[多维表格通路]
+    
+    CardRoute --> UserSelect1[用户点击选择供应商]
+    BitableRoute --> WriteBitable[写入供应商选择表]
+    WriteBitable --> UserSelect2[用户在多维表格选择]
+    UserSelect2 --> Poll[Agent轮询检测]
+    
+    Poll -->|全部选择完成| CreateOrder[创建订单]
+    Poll -->|超时| TimeoutNotify[推送超时通知]
+    TimeoutNotify --> WaitUser[等待用户完成后手动触发]
+    
+    UserSelect1 --> CreateOrder
+    SinglePrice --> CreateOrder
+    
+    CreateOrder --> OrderResult{订单创建结果}
+    OrderResult -->|✅ 成功/审批中| SuccessNotify[推送成功通知]
+    OrderResult -->|⚠️ 草稿非最低价| DraftNotify[推送人工核实]
+    OrderResult -->|❌ 失败| FailNotify[推送失败通知]
+    
+    SuccessNotify --> Log[执行记录沉淀多维表格]
+    DraftNotify --> Log
+    FailNotify --> Log
+    Log --> EndFinal([🎯 任务完成])
+            </div>
+        </div>
+
+        <!-- 阶段1：环境检查 -->
+        <div class="section">
+            <h2>1️⃣ 阶段一：环境检查分支</h2>
+            <div class="mermaid">
+flowchart TD
+    Start([开始]) --> CheckCLI{CLI已安装?}
+    CheckCLI -->|❌ 未安装| InstallCLI[安装CLI<br/>npm install -g @mi/dx-ep-cli]
+    InstallCLI --> CheckConfig
+    CheckCLI -->|✅ 已安装| CheckConfig{settings.json配置正确?}
+    
+    CheckConfig -->|❌ 未配置| ConfigGuide[引导配置dev/uat环境]
+    ConfigGuide --> CheckLogin
+    CheckConfig -->|✅ 已配置| CheckLogin{已登录?}
+    
+    CheckLogin -->|❌ 未登录| Login[触发登录流程]
+    Login -->|✅ 登录成功| CheckFeishu
+    Login -->|❌ 登录超时| LoginError[发送登录超时卡片]
+    LoginError --> End([结束])
+    
+    CheckLogin -->|✅ 已登录| CheckFeishu{飞书MCP可用?}
+    CheckFeishu -->|✅ 可用| Pass([✅ 环境检查通过])
+    CheckFeishu -->|❌ 不可用| FeishuError[发送飞书异常卡片]
+    FeishuError --> End
+            </div>
+            
+            <h3>环境检查条件分支表</h3>
+            <table class="branch-table">
+                <thead>
+                    <tr><th>检查项</th><th>条件</th><th>处理方式</th><th>是否通知</th></tr>
+                </thead>
+                <tbody>
+                    <tr><td>CLI 安装</td><td>未安装</td><td>自动执行 npm install</td><td><span class="tag tag-info">仅记录</span></td></tr>
+                    <tr><td>settings.json</td><td>未配置/配置错误</td><td>引导配置 dev/uat 地址</td><td><span class="tag tag-info">仅记录</span></td></tr>
+                    <tr><td>登录状态</td><td>未登录</td><td>触发登录流程</td><td><span class="tag tag-warning">通知</span></td></tr>
+                    <tr><td>登录状态</td><td>登录超时</td><td>报错，不自动重试</td><td><span class="tag tag-error">必须通知</span></td></tr>
+                    <tr><td>飞书 MCP</td><td>不可用</td><td>降级为 Agent 输出</td><td><span class="tag tag-error">必须通知</span></td></tr>
+                </tbody>
+            </table>
+        </div>
+
+        <!-- 阶段2：需求导入 -->
+        <div class="section">
+            <h2>2️⃣ 阶段二：需求导入分支</h2>
+            <div class="mermaid">
+flowchart TD
+    Start([开始]) --> Pull[拉取待导入记录]
+    Pull --> Empty{有记录?}
+    Empty -->|❌ 无记录| EmptyNotify[发送无可导入通知]
+    EmptyNotify --> End([结束])
+    Empty -->|✅ 有记录| Map[字段映射与清洗]
+    
+    Map --> Validate{校验结果}
+    Validate -->|全部通过| Confirm[推送导入确认卡片]
+    Validate -->|有异常| Warn[推送警告卡片<br/>异常记录跳过]
+    Warn --> Confirm
+    
+    Confirm --> UserAction{用户操作}
+    UserAction -->|✅ 确认导入| Import[执行导入]
+    UserAction -->|❌ 取消| CancelNotify[记录取消原因]
+    CancelNotify --> End
+    
+    Import --> ImportResult{导入结果}
+    ImportResult -->|全部成功| Success[推送成功卡片]
+    ImportResult -->|部分失败| Partial[推送部分失败卡片<br/>含失败原因]
+    ImportResult -->|全部失败| Fail[推送全部失败卡片]
+    
+    Success --> Log[记录执行日志]
+    Partial --> Log
+    Fail --> Log
+    Log --> End
+            </div>
+            
+            <h3>需求导入条件分支表</h3>
+            <table class="branch-table">
+                <thead>
+                    <tr><th>场景</th><th>条件</th><th>处理方式</th><th>通知对象</th></tr>
+                </thead>
+                <tbody>
+                    <tr><td>无待导入记录</td><td>拉取结果为空</td><td>结束批次</td><td><span class="tag tag-info">需求导入人</span></td></tr>
+                    <tr><td>校验全部通过</td><td>0条异常</td><td>直接推送确认卡片</td><td><span class="tag tag-info">需求导入人</span></td></tr>
+                    <tr><td>校验有异常</td><td>>0条异常</td><td>异常跳过，推送警告</td><td><span class="tag tag-warning">需求导入人</span></td></tr>
+                    <tr><td>用户取消</td><td>点击取消</td><td>记录原因，结束</td><td><span class="tag tag-info">仅记录</span></td></tr>
+                    <tr><td>导入全部成功</td><td>失败=0</td><td>推送成功卡片</td><td><span class="tag tag-success">需求导入人</span></td></tr>
+                    <tr><td>导入部分失败</td><td>0<失败<总数</td><td>推送部分失败卡片，含原因</td><td><span class="tag tag-warning">需求导入人</span></td></tr>
+                    <tr><td>导入全部失败</td><td>失败=总数</td><td>推送全部失败卡片</td><td><span class="tag tag-error">需求导入人</span></td></tr>
+                </tbody>
+            </table>
+        </div>
+
+        <!-- 阶段3：查询可下单需求 -->
+        <div class="section">
+            <h2>3️⃣ 阶段三：查询可下单需求分支</h2>
+            <div class="mermaid">
+flowchart TD
+    Start([开始]) --> Query[调用query-ready<br/>分页获取全部]
+    Query --> QueryResult{查询结果}
+    QueryResult -->|❌ CLI报错| QueryError[发送查询失败卡片]
+    QueryError --> End([结束])
+    QueryResult -->|✅ 成功| Filter[过滤到货日期>30天]
+    
+    Filter --> Empty{有可下单需求?}
+    Empty -->|❌ 无需求| EmptyNotify[发送无可下单通知]
+    EmptyNotify --> End
+    Empty -->|✅ 有需求| Summary[汇总统计]
+    
+    Summary --> Confirm[推送订单确认卡片<br/>含汇总+详情]
+    Confirm --> UserAction{用户操作}
+    UserAction -->|✅ 确认下单| Next([进入供应商判断])
+    UserAction -->|❌ 取消| CancelNotify[记录取消原因]
+    CancelNotify --> End
+            </div>
+        </div>
+
+        <!-- 阶段4：一价一供/一价多供判断 -->
+        <div class="section">
+            <h2>4️⃣ 阶段四：供应商判断与选择分支</h2>
+            <div class="mermaid">
+flowchart TD
+    Start([开始]) --> Group[按零部件号分组]
+    Group --> ForEach{遍历每个零件}
+    
+    ForEach --> SupplierCount{供应商数量}
+    SupplierCount -->|=1家| Single[一价一供<br/>直接下单]
+    SupplierCount -->|>1家| Multi[一价多供<br/>需选择]
+    
+    Single --> SingleList[加入一价一供列表]
+    Multi --> MultiList[加入一价多供列表]
+    
+    SingleList --> Count{一价多供数量}
+    MultiList --> Count
+    
+    Count -->|< 5个需求| CardRoute[卡片通路]
+    Count -->|>= 5个需求| BitableRoute[多维表格通路]
+    
+    subgraph 卡片通路
+        CardRoute --> SendCards[每个需求推送一个选择卡片]
+        SendCards --> UserClick[用户点击选择]
+        UserClick --> AllSelected1{全部选择完成?}
+        AllSelected1 -->|✅ 是| CreateOrder([创建订单])
+        AllSelected1 -->|❌ 否| Wait1[等待用户选择]
+        Wait1 --> UserClick
+    end
+    
+    subgraph 多维表格通路
+        BitableRoute --> WriteTable[写入供应商选择表<br/>默认状态=待选择]
+        WriteTable --> SendLink[推送多维表格链接卡片]
+        SendLink --> UserSelect[用户在表格中选择]
+        UserSelect --> Poll[Agent轮询<br/>每30秒一次]
+        Poll --> AllSelected2{全部选择完成?}
+        AllSelected2 -->|✅ 是| UpdateStatus[自动更新状态=已选择]
+        UpdateStatus --> CreateOrder
+        AllSelected2 -->|❌ 否| TimeoutCheck{超时?}
+        TimeoutCheck -->|✅ 未超时| Poll
+        TimeoutCheck -->|❌ 超时| TimeoutNotify[推送超时通知]
+        TimeoutNotify --> WaitManual[等待用户手动触发]
+    end
+            </div>
+            
+            <h3>供应商选择条件分支表</h3>
+            <table class="branch-table">
+                <thead>
+                    <tr><th>场景</th><th>条件</th><th>通路</th><th>交互方式</th></tr>
+                </thead>
+                <tbody>
+                    <tr><td>一价一供</td><td>供应商=1家</td><td>直接下单</td><td>无需选择</td></tr>
+                    <tr><td>一价多供（少量）</td><td>1 < 需求数 < 5</td><td><span class="tag tag-purple">卡片通路</span></td><td>每个需求一个卡片，点击选择</td></tr>
+                    <tr><td>一价多供（大量）</td><td>需求数 >= 5</td><td><span class="tag tag-info">多维表格通路</span></td><td>批量选择，Agent轮询</td></tr>
+                    <tr><td>轮询超时</td><td>>2分钟未完成</td><td>-</td><td>推送超时通知，等待手动触发</td></tr>
+                </tbody>
+            </table>
+        </div>
+
+        <!-- 阶段5：创建订单 -->
+        <div class="section">
+            <h2>5️⃣ 阶段五：订单创建结果分支</h2>
+            <div class="mermaid">
+flowchart TD
+    Start([开始]) --> Create[调用create-order]
+    Create --> Result{创建结果}
+    
+    Result -->|✅ 成功/审批中| Success[记录订单号]
+    Success --> SuccessNotify[推送成功卡片]
+    
+    Result -->|⚠️ 草稿非最低价| Draft[记录草稿信息]
+    Draft --> DraftNotify[推送人工核实卡片]
+    DraftNotify --> UserDecision{用户决策}
+    UserDecision -->|重试| Retry[重新创建订单]
+    UserDecision -->|放弃| Abandon[记录放弃原因]
+    
+    Result -->|❌ 失败| Fail[记录失败原因]
+    Fail --> FailNotify[推送失败卡片]
+    FailNotify --> UserDecision2{用户决策}
+    UserDecision2 -->|重试| Retry
+    UserDecision2 -->|放弃| Abandon
+    
+    Retry --> Create
+    Abandon --> Log[记录执行日志]
+    SuccessNotify --> Log
+    Log --> End([结束])
+            </div>
+            
+            <h3>订单创建结果分支表</h3>
+            <table class="branch-table">
+                <thead>
+                    <tr><th>结果类型</th><th>条件</th><th>处理方式</th><th>是否需人工</th></tr>
+                </thead>
+                <tbody>
+                    <tr><td>成功/审批中</td><td>EP返回成功</td><td>记录订单号，推送通知</td><td><span class="tag tag-success">否</span></td></tr>
+                    <tr><td>草稿（非最低价）</td><td>价格不是最低</td><td>推送人工核实</td><td><span class="tag tag-warning">是</span></td></tr>
+                    <tr><td>创建失败</td><td>EP返回错误</td><td>记录原因，推送人工处理</td><td><span class="tag tag-error">是</span></td></tr>
+                    <tr><td>用户重试</td><td>人工确认重试</td><td>重新调用create-order</td><td>-</td></tr>
+                    <tr><td>用户放弃</td><td>人工确认放弃</td><td>记录原因，结束</td><td>-</td></tr>
+                </tbody>
+            </table>
+        </div>
+
+        <!-- 异常处理汇总 -->
+        <div class="section">
+            <h2>⚠️ 异常处理全部分支</h2>
+            <div class="grid-2">
+                <div class="card">
+                    <h4>🔧 CLI 相关异常</h4>
+                    <ul>
+                        <li><span class="tag tag-error">登录超时</span> → 报错提示重新登录，不自动重试</li>
+                        <li><span class="tag tag-error">命令不存在</span> → 检查安装，提示安装命令</li>
+                        <li><span class="tag tag-warning">参数错误</span> → 修正参数后重试，记录原始错误</li>
+                        <li><span class="tag tag-error">返回非JSON</span> → 保存原始输出，提示版本问题</li>
+                        <li><span class="tag tag-warning">调用超时</span> → 重试1次，仍失败则报错</li>
+                    </ul>
+                </div>
+                <div class="card">
+                    <h4>📋 业务相关异常</h4>
+                    <ul>
+                        <li><span class="tag tag-warning">校验不通过</span> → 异常只进报告，不进records</li>
+                        <li><span class="tag tag-error">导入失败</span> → 记录原因，跳过继续，最后汇总</li>
+                        <li><span class="tag tag-info">无可下单需求</span> → 结束批次，报告"无可下单"</li>
+                        <li><span class="tag tag-purple">一价多供</span> → 暂停，推送供应商选择</li>
+                        <li><span class="tag tag-warning">草稿非最低价</span> → 推送人工核实</li>
+                        <li><span class="tag tag-error">订单创建失败</span> → 记录原因，推送人工处理</li>
+                        <li><span class="tag tag-info">到货日期超期</span> → 自动过滤，记录过滤数量</li>
+                    </ul>
+                </div>
+                <div class="card">
+                    <h4>🖥️ 系统相关异常</h4>
+                    <ul>
+                        <li><span class="tag tag-error">多维表格写入失败</span> → 重试1次，仍失败保存本地</li>
+                        <li><span class="tag tag-warning">飞书卡片发送失败</span> → 降级为纯文本，仍失败则Agent输出</li>
+                        <li><span class="tag tag-warning">配置文件缺失</span> → 提示检查，使用默认配置继续</li>
+                        <li><span class="tag tag-warning">分页获取异常</span> → 已获取数据保留，提示部分数据未获取</li>
+                    </ul>
+                </div>
+                <div class="card">
+                    <h4>👤 人工确认点（共4个）</h4>
+                    <ul>
+                        <li><span class="tag tag-purple">确认点1</span>：需求导入确认（需求导入人）</li>
+                        <li><span class="tag tag-purple">确认点2</span>：可下单需求确认（订单管理员）</li>
+                        <li><span class="tag tag-purple">确认点3</span>：供应商选择（订单管理员）</li>
+                        <li><span class="tag tag-purple">确认点4</span>：草稿/失败订单处理（订单管理员）</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+
+        <!-- 卡片场景汇总 -->
+        <div class="section">
+            <h2>💬 飞书卡片场景汇总（共9种）</h2>
+            <table class="branch-table">
+                <thead>
+                    <tr><th>序号</th><th>卡片类型</th><th>触发时机</th><th>接收人</th><th>包含按钮</th></tr>
+                </thead>
+                <tbody>
+                    <tr><td>1</td><td>环境异常卡片</td><td>环境检查失败</td><td>订单管理员</td><td>查看详情</td></tr>
+                    <tr><td>2</td><td>需求导入确认卡片</td><td>校验完成后</td><td>需求导入人</td><td>确认导入 / 取消</td></tr>
+                    <tr><td>3</td><td>导入警告卡片</td><td>校验有异常</td><td>需求导入人</td><td>查看异常详情</td></tr>
+                    <tr><td>4</td><td>导入结果卡片</td><td>导入完成后</td><td>需求导入人</td><td>查看详情</td></tr>
+                    <tr><td>5</td><td>订单确认汇总卡片</td><td>查询完成后</td><td>订单管理员</td><td>确认下单 / 选择供应商 / 查看记录</td></tr>
+                    <tr><td>6</td><td>供应商选择卡片</td><td>一价多供<5个</td><td>订单管理员</td><td>每家供应商一个选择按钮</td></tr>
+                    <tr><td>7</td><td>多维表格通路通知</td><td>一价多供>=5个</td><td>订单管理员</td><td>跳转多维表格</td></tr>
+                    <tr><td>8</td><td>订单创建结果卡片</td><td>创建完成后</td><td>订单管理员</td><td>查看订单详情</td></tr>
+                    <tr><td>9</td><td>超时/异常通知卡片</td><td>轮询超时/系统异常</td><td>订单管理员</td><td>查看详情 / 手动触发</td></tr>
+                </tbody>
+            </table>
+        </div>
+
+        <!-- 数据沉淀 -->
+        <div class="section">
+            <h2>📊 执行记录沉淀</h2>
+            <div class="mermaid">
+flowchart LR
+    Start([执行动作]) --> Log[写入执行日志表]
+    Log --> Fields[记录字段]
+    Fields --> F1[执行人员]
+    Fields --> F2[执行命令]
+    Fields --> F3[执行时间]
+    Fields --> F4[零件号]
+    Fields --> F5[供应商]
+    Fields --> F6[数量]
+    Fields --> F7[用户动作]
+    Fields --> F8[状态]
+    Fields --> F9[耗时]
+    Fields --> F10[批次号]
+    Log --> Dashboard[仪表盘统计]
+    Dashboard --> D1[今日执行次数]
+    Dashboard --> D2[成功率]
+    Dashboard --> D3[订单数量]
+    Dashboard --> D4[异常统计]
+            </div>
+        </div>
+
+    </div>
+    
+    <script>
+        mermaid.initialize({
+            startOnLoad: true,
+            theme: 'default',
+            flowchart: {
+                useMaxWidth: true,
+                htmlLabels: true,
+                curve: 'basis'
+            },
+            themeVariables: {
+                primaryColor: '#e8f3ff',
+                primaryTextColor: '#1f2329',
+                primaryBorderColor: '#3370ff',
+                lineColor: '#86909c',
+                secondaryColor: '#e8f7ee',
+                tertiaryColor: '#fff7e8'
+            }
+        });
+    </script>
+</body>
+</html>

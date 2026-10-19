@@ -1,0 +1,633 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>主控 Agent · 全流程操作手册：查询 → 下单 → 日报</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'><rect width='24' height='24' rx='5' fill='%23ff6700'/><text x='12' y='17' font-size='14' text-anchor='middle' fill='white' font-weight='bold'>单</text></svg>">
+<style>
+:root{
+  --brand:#ff6700; --brand-soft:#fff4ec;
+  --ink:#1f2329; --ink-2:#4e5561; --ink-3:#86909c;
+  --line:#e5e6eb; --bg:#fafafa;
+  --ok:#00b578; --warn:#ff8800; --err:#f54a45; --blue:#3370ff;
+  --mono:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+}
+*{margin:0;padding:0;box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{font-family:-apple-system,"PingFang SC","Noto Sans SC","Microsoft YaHei",sans-serif;background:var(--bg);color:var(--ink);line-height:1.7;font-size:14px}
+.wrap{max-width:1120px;margin:0 auto;padding:0 20px 60px}
+/* ===== header ===== */
+header{background:linear-gradient(135deg,#fff 0%,var(--brand-soft) 100%);border-bottom:1px solid var(--line);padding:36px 0 28px;margin-bottom:0}
+.hd-inner{max-width:1120px;margin:0 auto;padding:0 20px}
+.breadcrumb{color:var(--ink-3);font-size:12px;letter-spacing:.5px}
+h1{font-size:26px;margin:8px 0 6px;font-weight:800}
+.sub{color:var(--ink-2);font-size:13px}
+.tags{display:flex;gap:8px;margin-top:14px;flex-wrap:wrap}
+.tag{font-size:12px;background:#fff;border:1px solid var(--line);border-radius:20px;padding:3px 12px;color:var(--ink-2)}
+.tag b{color:var(--brand)}
+/* ===== nav ===== */
+nav{position:sticky;top:0;z-index:50;background:rgba(255,255,255,.95);backdrop-filter:blur(8px);border-bottom:1px solid var(--line);margin-bottom:28px;box-shadow:0 1px 6px rgba(0,0,0,.04)}
+nav .wrap{display:flex;gap:2px;padding-top:0;padding-bottom:0;overflow-x:auto}
+nav a{display:block;padding:13px 13px;font-size:13px;color:var(--ink-2);text-decoration:none;white-space:nowrap;border-bottom:2px solid transparent}
+nav a:hover{color:var(--brand)}
+nav a.on{color:var(--brand);border-bottom-color:var(--brand);font-weight:600}
+/* ===== section ===== */
+section{background:#fff;border:1px solid var(--line);border-radius:12px;padding:24px 26px;margin-bottom:24px}
+.sec-title{display:flex;align-items:center;gap:10px;font-size:18px;font-weight:700;margin-bottom:4px}
+.sec-desc{color:var(--ink-3);font-size:12px;margin-bottom:16px}
+.sec-num{display:inline-flex;align-items:center;justify-content:center;width:28px;height:28px;border-radius:8px;background:var(--brand);color:#fff;font-size:14px;font-weight:700;flex:none}
+h3{font-size:15px;margin:20px 0 10px;padding-left:10px;border-left:3px solid var(--brand)}
+h4{font-size:13px;margin:14px 0 6px;color:var(--ink-2)}
+/* ===== code ===== */
+pre{background:#1f2329;color:#e6e8eb;border-radius:8px;padding:12px 16px;overflow-x:auto;font-family:var(--mono);font-size:12.5px;line-height:1.6;margin:8px 0}
+code{font-family:var(--mono);background:#f2f3f5;border-radius:4px;padding:1px 6px;font-size:12px}
+pre code{background:none;padding:0}
+.cmd-desc{color:var(--ink-3);font-size:12px;margin-top:2px}
+/* ===== tables ===== */
+table{width:100%;border-collapse:collapse;margin:10px 0 4px;font-size:13px;table-layout:fixed}
+colgroup col:nth-child(1){width:22%}
+colgroup col:nth-child(2){width:44%}
+colgroup col:nth-child(3){width:34%}
+th{background:#f7f8fa;text-align:left;font-weight:600;color:var(--ink-2)}
+th,td{border:1px solid var(--line);padding:8px 10px;vertical-align:top;word-wrap:break-word}
+td code{white-space:normal;word-break:break-all}
+tr:hover td{background:#fafbfc}
+/* ===== flow ===== */
+.flow{display:flex;align-items:stretch;gap:0;margin:14px 0;flex-wrap:wrap}
+.fstep{flex:1;min-width:130px;background:var(--brand-soft);border:1px solid #ffd9bd;border-radius:10px;padding:10px 8px;text-align:center;position:relative}
+.fstep .no{display:inline-flex;width:22px;height:22px;border-radius:50%;background:var(--brand);color:#fff;font-size:12px;align-items:center;justify-content:center;font-weight:700;margin-bottom:4px}
+.fstep .nm{font-size:12.5px;font-weight:600}
+.fstep .en{font-size:10.5px;color:var(--ink-3);margin-top:2px}
+.fstep .sk{font-size:10.5px;color:var(--brand);font-weight:600;margin-top:4px}
+.farrow{align-self:center;color:var(--brand);font-weight:700;padding:0 5px;font-size:16px}
+.fstep.hl{background:#fff;border-color:var(--brand);box-shadow:0 2px 8px rgba(255,103,0,.12)}
+/* ===== cards ===== */
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:12px;margin:12px 0}
+.fc-grid2{display:grid;grid-template-columns:repeat(2,1fr);gap:12px;margin:12px 0}
+.fc-card .fc-desc{font-size:11.5px;color:var(--ink-2);line-height:1.6;margin-top:4px}
+.grid3{grid-template-columns:repeat(3,1fr)}
+.prog{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin:12px 0}
+.prog .pc{border:1px solid var(--line);border-top:3px solid var(--brand);border-radius:10px;padding:12px 14px;background:#fff}
+.prog .pc .pl{font-size:10px;font-weight:800;color:var(--brand);letter-spacing:1px}
+.prog .pc .pt{font-size:13px;font-weight:700;color:var(--ink);margin:2px 0 6px}
+.prog .pc .pd{font-size:11.5px;color:var(--ink-2);line-height:1.6}
+.prog .pc .px{margin-top:8px;padding-top:8px;border-top:1px dashed var(--line);font-size:10.5px;color:#92400e;line-height:1.5}
+@media (max-width:900px){.prog{grid-template-columns:1fr 1fr}}
+.skill-tag{display:inline-block;background:#FFF7ED;border:1px solid #FDBA74;color:#9A3412;border-radius:4px;font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:0.92em;font-weight:700;padding:0 5px;line-height:1.45}
+.cap-tag{display:inline-block;background:#EFF6FF;border:1px solid #93C5FD;color:#1D4ED8;border-radius:4px;font-size:0.92em;font-weight:700;padding:0 5px;line-height:1.45}
+@media (max-width:560px){.prog{grid-template-columns:1fr}}
+.card{border:1px solid var(--line);border-radius:10px;padding:14px 16px;background:#fff}
+.card .t{font-weight:600;font-size:13.5px;margin-bottom:4px;display:flex;align-items:center;gap:8px}
+.card .d{font-size:12px;color:var(--ink-2)}
+.card .meta{font-size:11px;color:var(--ink-3);margin-top:6px;font-family:var(--mono);word-break:break-all}
+.card svg{flex:none}
+/* ===== badges ===== */
+.b{display:inline-block;font-size:11.5px;border-radius:4px;padding:1px 8px;margin:1px 2px;font-weight:600}
+.b-ok{background:#e8faf2;color:var(--ok)}
+.b-warn{background:#fff3e0;color:var(--warn)}
+.b-err{background:#ffeded;color:var(--err)}
+.b-info{background:#e8f1ff;color:var(--blue)}
+/* ===== steps ===== */
+ol.steps{padding-left:22px;margin:8px 0}
+ol.steps li{margin:6px 0}
+ul.plain{list-style:none;padding-left:0}
+ul.plain li{padding:4px 0 4px 18px;position:relative;font-size:13px}
+ul.plain li::before{content:"";position:absolute;left:2px;top:12px;width:6px;height:6px;border-radius:50%;background:var(--brand)}
+/* ===== table-scroll (横向滚动表) ===== */
+.table-scroll{overflow-x:auto;margin:10px 0 4px}
+.table-scroll table{margin:0}
+@media (max-width:720px){
+  .tbl4{min-width:560px}
+  .tbl4 col:nth-child(1){width:22%!important}
+  .tbl4 col:nth-child(2){width:28%!important}
+  .tbl4 col:nth-child(3){width:12%!important}
+  .tbl4 col:nth-child(4){width:38%!important}
+  .tbl6{min-width:620px}
+  .tbl6 col:nth-child(1){width:13%!important}
+  .tbl6 col:nth-child(2){width:17%!important}
+  .tbl6 col:nth-child(3){width:17%!important}
+  .tbl6 col:nth-child(4){width:17%!important}
+  .tbl6 col:nth-child(5){width:18%!important}
+  .tbl6 col:nth-child(6){width:18%!important}
+}
+.note code, .card code, .faq-item code, .sec-desc code, li code, p code{white-space:normal;word-break:break-word}
+/* ===== note ===== */
+.note{background:var(--brand-soft);border:1px solid #ffd9bd;border-radius:8px;padding:10px 14px;font-size:12.5px;color:#7a3a00;margin:10px 0}
+.note.err{background:#ffeded;border-color:#ffc9c9;color:#b2352e}
+.note.ok{background:#e8faf2;border-color:#b7ebd3;color:#08734a}
+.note.warn{background:#fff3e0;border-color:#ffd591;color:#ad5f00}
+.note b{font-weight:700}
+/* ===== timeline ===== */
+.tl{border-left:2px solid var(--line);margin:14px 0 14px 6px;padding-left:18px}
+.tl-item{position:relative;padding:0 0 16px}
+.tl-item:last-child{padding-bottom:0}
+.tl-item::before{content:"";position:absolute;left:-25px;top:6px;width:10px;height:10px;border-radius:50%;background:var(--brand);border:2px solid #fff;box-shadow:0 0 0 2px var(--brand)}
+.tl-item .ph{font-weight:700;font-size:13.5px}
+.tl-item .ph .en2{font-weight:400;color:var(--ink-3);font-size:11.5px;margin-left:6px}
+.tl-item .desc{font-size:12.5px;color:var(--ink-2);margin-top:3px}
+/* ===== pipeline lanes ===== */
+.lanes{margin:14px 0;border:1px solid var(--line);border-radius:10px;overflow:hidden}
+.lane{display:grid;grid-template-columns:110px 1fr;border-bottom:1px solid var(--line);font-size:12.5px}
+.lane:last-child{border-bottom:none}
+.lane .who{background:#f7f8fa;font-weight:600;padding:10px 12px;color:var(--ink-2);display:flex;align-items:center}
+.lane .act{padding:10px 14px;color:var(--ink)}
+.lane .act b{color:var(--brand)}
+/* ===== journey (角色旅程泳道) ===== */
+.jr{margin:14px 0;border:1px solid var(--line);border-radius:12px;overflow:hidden}
+.jr-head{display:grid;grid-template-columns:180px 1fr;align-items:center;padding:12px 16px;font-size:13.5px;font-weight:700}
+.jr-head .t{display:flex;align-items:center;gap:8px}
+.jr-head .who-chip{display:inline-flex;align-items:center;gap:6px;background:var(--brand-soft);border:1px solid #ffd9bd;color:#ad4e00;border-radius:20px;padding:2px 12px;font-size:12px;font-weight:600}
+.jr-body{padding:0}
+.jr-row{display:grid;grid-template-columns:180px 1fr;border-top:1px solid var(--line);font-size:12.5px}
+.jr-row .k{background:#f7f8fa;color:var(--ink-2);font-weight:600;padding:10px 14px;border-right:1px solid var(--line)}
+.jr-row .v{padding:10px 14px;color:var(--ink)}
+.jr-row .v .t2{color:var(--ink);font-weight:600}
+.jr-row .v .sub-line{color:var(--ink-2);font-size:12px;margin-top:2px}
+.jr-row .v ul{margin:4px 0 0;padding-left:18px}
+.jr-row .v li{font-size:12.5px;margin:2px 0}
+.jr-row.before .v{color:var(--ink-3)}
+.jr-row.before .v li{color:var(--ink-3)}
+.jr-row.up .k{color:var(--ok)}
+@media (max-width:720px){
+  .jr-head,.jr-row{grid-template-columns:1fr}
+  .jr-row .k{border-right:none;border-bottom:1px solid var(--line);padding:8px 12px}
+}
+/* ===== faq ===== */
+.faq-item{border:1px solid var(--line);border-radius:10px;padding:12px 16px;margin:10px 0}
+.faq-item .q{font-weight:600;font-size:13.5px;color:var(--ink)}
+.faq-item .a{font-size:12.5px;color:var(--ink-2);margin-top:4px}
+/* ===== cmp 前后对比 ===== */
+.cmp2{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin:14px 0}
+.cmp-col{border:1px solid var(--line);border-radius:10px;padding:12px;background:#fff}
+.cmp-title{font-weight:700;font-size:13px;padding:6px 12px;border-radius:6px;margin-bottom:10px}
+.cmp-title.before{background:#f2f3f5;color:var(--ink-2)}
+.cmp-title.now{background:var(--brand-soft);color:var(--brand)}
+.flow-v{display:flex;flex-direction:column;gap:2px}
+.flow-v .fstep{min-width:0;width:100%;display:flex;align-items:center;gap:8px;text-align:left;padding:7px 10px;border-radius:8px;background:#fff}
+.cmp-col.before .flow-v .fstep{border:1px solid var(--line)}
+.cmp-col.now .flow-v .fstep{border:1px solid #ffd9bd;background:var(--brand-soft)}
+.flow-v .fstep .no{flex:none;margin-bottom:0;width:20px;height:20px;font-size:11px}
+.flow-v .fstep .nm{flex:1;font-size:12.5px}
+.flow-v .fstep .en{font-size:11px;color:var(--ink-3);text-align:right}
+.farrow-v{align-self:center;color:var(--brand);font-weight:700;font-size:13px;padding:1px 0;line-height:1}
+.cmp-col.before .farrow-v{color:var(--ink-3)}
+.cmp-foot{font-size:12px;color:var(--ink-2);margin-top:8px;text-align:center}
+@media (max-width:720px){
+  .cmp2{grid-template-columns:1fr}
+}
+
+/* ===== 业务全景 flowchart ===== */
+.fc{margin:14px 0;display:flex;flex-direction:column;gap:10px}
+.fc-src{display:flex;gap:10px;justify-content:center}
+.fc-src .fc-card{flex:1;max-width:260px}
+.fc-card{background:#fff;border:1px solid var(--line);border-radius:10px;padding:8px 12px;display:flex;flex-direction:column;gap:2px;position:relative;box-shadow:0 1px 2px rgba(0,0,0,.03)}
+.fc-card .fc-n{position:absolute;top:-7px;left:10px;background:var(--brand);color:#fff;font-size:10px;font-weight:700;width:16px;height:16px;border-radius:50%;display:inline-flex;align-items:center;justify-content:center}
+.fc-card b{font-size:12.5px;color:var(--ink)}
+.fc-card em{font-size:10.5px;color:var(--ink-3);font-style:normal}
+.fc-card .fc-tag{font-size:9.5px;background:var(--brand-soft);color:#ad4e00;border-radius:3px;padding:0 5px;align-self:flex-start;font-weight:600}
+.fc-card .fc-tag.b{background:#e8f1ff;color:#2457b5}
+.fc-card.flag{border-color:var(--brand);border-width:1.5px;background:#fff8f2}
+.fc-card.flag b{color:#c2410c}
+.fc-joint{text-align:center;font-size:11px;color:var(--ink-3);padding:2px 0}
+.fc-joint::before{content:"↓";display:block;color:var(--brand);font-weight:700;font-size:13px}
+.fc-mod{border:1px solid var(--line);border-radius:12px;overflow:hidden;background:#fff}
+.fc-mod-head{display:flex;align-items:center;gap:8px;background:#f7f8fa;padding:9px 14px;font-weight:700;font-size:13px;border-bottom:1px solid var(--line);flex-wrap:wrap}
+.fc-mod-head .fc-mod-no{width:22px;height:22px;border-radius:6px;background:var(--brand);color:#fff;font-size:12px;display:inline-flex;align-items:center;justify-content:center;font-weight:700;flex:none}
+.fc-mod-head em{font-size:11px;color:var(--ink-3);font-weight:400;margin-left:auto}
+.fc-mod-body{padding:14px}
+.fc-branch{border:1px dashed var(--line);border-radius:8px;padding:10px;margin-bottom:10px}
+.fc-branch:last-child{margin-bottom:0}
+.fc-br-title{font-size:11px;font-weight:700;color:var(--ink-2);margin-bottom:8px;display:flex;align-items:center;gap:6px}
+.fc-br-title::before{content:"";width:8px;height:8px;border-radius:2px;background:var(--brand);display:inline-block}
+.fc-steps{display:flex;align-items:stretch;gap:6px;flex-wrap:wrap}
+.fc-steps .fc-card{flex:1;min-width:130px;justify-content:center}
+.fc-arrow{display:flex;align-items:center;color:var(--brand);font-weight:700;font-size:13px;flex:none}
+.fc-mod-foot{background:var(--brand-soft);font-size:11.5px;color:#7a3a00;padding:7px 14px;text-align:center;font-weight:600}
+.fc-grid3{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
+.fc-grid3 .fc-card{min-height:64px}
+.fc-foot{border:1px solid var(--line);border-radius:10px;background:var(--brand-soft);padding:9px 14px;font-size:11.5px;color:#7a3a00;display:flex;gap:16px;flex-wrap:wrap;align-items:center;justify-content:center}
+.fc-foot b{color:var(--brand)}
+@media (max-width:720px){
+  .fc-src{flex-direction:column;align-items:stretch}
+  .fc-src .fc-card{max-width:none}
+  .fc-steps{flex-direction:column}
+  .fc-arrow{transform:rotate(90deg);justify-content:center;padding:2px 0}
+  .fc-grid3{grid-template-columns:1fr}
+  .fc-mod-head em{margin-left:0;width:100%}
+}
+/* ===== 模块颜色区分（流程图内） ===== */
+.fc-mod.mod1{border-color:#f0b27a}.fc-mod.mod1 .fc-mod-head{background:#fff4e8}
+.fc-mod.mod1 .fc-mod-head .fc-mod-no{background:var(--brand)}
+.fc-mod.mod2{border-color:#9db8e8}.fc-mod.mod2 .fc-mod-head{background:#eef4ff}
+.fc-mod.mod2 .fc-mod-head .fc-mod-no{background:#3370ff}
+.fc-mod.mod3{border-color:#a8d5a8}.fc-mod.mod3 .fc-mod-head{background:#f0faf0}
+.fc-mod.mod3 .fc-mod-head .fc-mod-no{background:var(--ok)}
+.fc-mod.mod2 .fc-br-title::before{background:#3370ff}
+.fc-mod.mod3 .fc-br-title::before{background:var(--ok)}
+/* ===== 角色卡 rcard ===== */
+.rcards{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin:12px 0}
+.rcard{border:1px solid var(--line);border-radius:12px;overflow:hidden;background:#fff;display:flex;flex-direction:column}
+.rcard .rh{padding:9px 13px;background:#f7f8fa;border-bottom:1px solid var(--line);display:flex;align-items:center;gap:8px}
+.rcard .rh .avatar{width:30px;height:30px;border-radius:8px;background:var(--brand);color:#fff;font-size:15px;display:inline-flex;align-items:center;justify-content:center;flex:none}
+.rcard .rh .who{font-weight:700;font-size:13px}
+.rcard .rh .role{font-size:10.5px;color:var(--ink-3)}
+.rcard .rb{padding:10px 13px;flex:1}
+.rcard .rt{font-size:11px;font-weight:700;color:var(--ink-2);margin-bottom:6px;display:flex;align-items:center;gap:5px}
+.rcard .rt::before{content:"";width:7px;height:7px;border-radius:2px;background:var(--brand);display:inline-block}
+.rcard .rday{display:flex;flex-direction:column;gap:5px;margin-bottom:9px}
+.rcard .rstep{display:flex;gap:7px;font-size:11.5px;line-height:1.5}
+.rcard .rstep .rdot{flex:none;width:5px;height:5px;border-radius:50%;background:var(--brand);margin-top:5px}
+.rcard .rstep b{color:var(--ink)}
+.rcard .rcmp{border-top:1px dashed var(--line);padding-top:8px}
+.rcard .cmp-row{display:flex;gap:6px;font-size:11px;line-height:1.55;align-items:flex-start}
+.rcard .cmp-row .tag-b{flex:none;font-size:9.5px;font-weight:700;border-radius:3px;padding:1px 5px;margin-top:1px}
+.rcard .cmp-row .tag-b.before{background:#f2f3f5;color:var(--ink-3)}
+.rcard .cmp-row .tag-b.after{background:#e8f7ed;color:var(--ok)}
+@media (max-width:720px){.rcards{grid-template-columns:1fr}}
+/* ===== 分支对比 branch ===== */
+.branch2{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin:12px 0}
+.branch{border:1px solid var(--line);border-radius:10px;overflow:hidden;background:#fff}
+.branch .bh{background:var(--brand-soft);border-bottom:1px solid #ffd9bd;padding:9px 14px;font-weight:700;font-size:13px;display:flex;align-items:center;gap:8px}
+.branch .bh .role{font-weight:400;font-size:11px;color:var(--ink-3)}
+.branch .bb{padding:10px 14px}
+.vstep{display:flex;gap:9px;padding:6px 0;border-bottom:1px dashed var(--line);font-size:12px}
+.vstep:last-child{border-bottom:none}
+.vstep .no{flex:none;width:20px;height:20px;border-radius:50%;background:var(--brand);color:#fff;font-size:11px;font-weight:700;display:inline-flex;align-items:center;justify-content:center;margin-top:1px}
+.vstep .no.gray{background:#c9cdd4}
+.vstep .tx{flex:1}
+.vstep .tx .t2{font-weight:600;color:var(--ink)}
+.vstep .tx .d2{font-size:11px;color:var(--ink-2);margin-top:1px}
+.vstep .tx .who2{font-size:10.5px;color:var(--brand);font-weight:600}
+.vstep .tx .out{font-size:10px;background:#e8f1ff;color:#2457b5;border-radius:3px;padding:0 5px;margin-left:4px}
+/* ===== 模块泳道 modlane ===== */
+.modlane{margin:12px 0;border:1px solid var(--line);border-radius:12px;overflow:hidden}
+.modlane .mh{display:flex;align-items:center;gap:8px;background:#f7f8fa;padding:9px 14px;font-weight:700;font-size:13px;border-bottom:1px solid var(--line)}
+.modlane .mh .mn{width:22px;height:22px;border-radius:6px;background:var(--brand);color:#fff;font-size:12px;display:inline-flex;align-items:center;justify-content:center;font-weight:700}
+.modlane .ml{padding:6px 14px}
+.mini{display:grid;grid-template-columns:16% 1fr;border-bottom:1px dashed var(--line);padding:7px 0;font-size:12px}
+.mini:last-child{border-bottom:none}
+.mini .mk{color:var(--ink-3);font-size:11px;font-weight:600;padding-top:1px}
+.mini .mv b{color:var(--brand)}
+@media (max-width:720px){
+  .pano-stage,.pano-grid{grid-template-columns:1fr}
+  .prow .who{grid-column:1}
+  .branch2{grid-template-columns:1fr}
+  .mini{grid-template-columns:1fr}
+  .pano-foot{flex-direction:column;align-items:flex-start;gap:4px}
+}
+
+/* ===== misc ===== */
+.footer-note{color:var(--ink-3);font-size:12px;text-align:center;padding:20px 0}
+@media (max-width:720px){
+  h1{font-size:21px}
+  section{padding:18px 16px}
+  nav a{padding:11px 10px;font-size:12px}
+  .lane{grid-template-columns:1fr}
+  .lane .who{border-right:none;border-bottom:1px solid var(--line);padding:8px 12px}
+  body{font-size:15px}
+  .card .d, ul.plain li, .tl-item .desc, .faq-item .a, .note, .cmd-desc{font-size:13.5px}
+  .card .t{font-size:14.5px}
+  table{font-size:12.5px}
+  .grid{grid-template-columns:1fr}
+  pre{font-size:12px}
+}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="hd-inner">
+    <div class="breadcrumb">小米供应链 · 样件订单自动化 / AgentSpace 上架文档</div>
+    <h1>样件订单自动化 · 操作手册</h1>
+    <div class="sub">两类需求来源，散件 / 试制 → 需求导入 → 四个业务环节 → 全链路通知与留痕；Agent 跑腿、人只在关键节点拍板 · 含能力全景、使用方式与操作细节</div>
+    <div class="tags">
+      <span class="tag">版本 <b>2026-09-24</b></span>
+      <span class="tag">关联 Skill <span class="skill-tag">demand-query</span> <span class="skill-tag">demand-order</span> <span class="skill-tag">daily-report</span></span>
+      <span class="tag">CLI <b>dx-ep 1.0.7-beta.4</b></span>
+      <span class="tag">前置 <b>需求导入 Agent</b></span>
+    </div>
+  </div>
+</header>
+
+<nav>
+  <div class="wrap">
+    <a href="#s1" class="on">① 能力全景</a>
+    <a href="#s2">② 使用方式</a>
+    <a href="#s3">③ 落地方案</a>
+    <a href="#s4">④ 角色分工</a>
+    <a href="#s5">⑤ 操作细节</a>
+    <a href="#s6">⑥ 常见问题</a>
+  </div>
+</nav>
+
+<div class="wrap">
+
+<!-- ===== 一、能力全景 ===== -->
+<section id="s1">
+  <div class="sec-title"><span class="sec-num">1</span>能力全景</div>
+  <div class="sec-desc">两类需求来源，散件 / 试制 → 需求导入 → 四个业务环节 → 全链路通知与留痕；每个环节既可独立使用，也可串成完整流程。需求导入是前置环节：散件用需求导入 Skill、试制用需求检查 Skill，各自完成后汇入同一个可下单需求池</div>
+
+  <h3>1.1 两类需求来源：散件 / 试制 → 各自导入 → 汇入可下单需求池</h3>
+  <div class="fc-grid2">
+    <div class="fc-card">
+      <b>散件需求</b>
+      <em>研发工程师 · 登记需求到收集表</em>
+      <span class="fc-tag b">需求导入 Skill · <span class="skill-tag">demand-import</span></span>
+      <div class="fc-desc">处理数据并导入 EP：每日推送「今日待导入」+ 预览页，人确认后导入</div>
+    </div>
+    <div class="fc-card">
+      <b>试制需求</b>
+      <em>需求提出方 · 提交试制需求</em>
+      <span class="fc-tag b">需求检查 Skill · <span class="skill-tag">demand-check</span></span>
+      <div class="fc-desc">检查导入的需求是否正确：PASS / WARN / FAIL，检查通过后确认导入 MiPEC</div>
+    </div>
+  </div>
+  <div class="fc-joint">两分支导入完成后 → 可下单需求池，由环节 ① 统一查询、分组、下单</div>
+
+  <h3>1.2 四个业务环节 + 通知与留痕：每个环节独立可用，也可串成完整流程</h3>
+  <div class="flow">
+    <div class="fstep hl"><div class="no">1</div><div class="nm">查询可下单需求</div><div class="en"><span class="skill-tag">demand-query</span></div><div class="sk">query-ready + <span class="cap-tag">自动分组</span></div></div>
+    <div class="farrow">→</div>
+    <div class="fstep"><div class="no">2</div><div class="nm">人工确认</div><div class="en">AgentSpace 对话</div><div class="sk">确认页/选供应商</div></div>
+    <div class="farrow">→</div>
+    <div class="fstep"><div class="no">3</div><div class="nm">执行下单</div><div class="en"><span class="skill-tag">demand-order</span></div><div class="sk">create-order 合并</div></div>
+    <div class="farrow">→</div>
+    <div class="fstep"><div class="no">4</div><div class="nm">统计日报</div><div class="en"><span class="skill-tag">daily-report</span></div><div class="sk">submit-list</div></div>
+  </div>
+
+  <div class="grid grid3">
+    <div class="card">
+      <div class="t">🔍 查询可下单需求</div>
+      <div class="d">自动盘库：拉取可下单需求 → <span class="cap-tag">自动分组</span><br>- 一品一点：单供应商直接成组<br>- 一品多点：多供应商进确认页待选<br>- 无供应商：标人工介入，不自动下单<br>→ 生成可视化确认页，产出 one / multi 两个链接。</div>
+      <div class="meta">产出：确认页 one/multi 链接</div>
+    </div>
+    <div class="card">
+      <div class="t">👤 人工确认</div>
+      <div class="d">在 AgentSpace 对话框里看确认页、选供应商、确认执行；下单路径由你选：<b>① 一品一点直接下单</b>，核对即执行；<b>② 一品多点先选供应商</b>，列表行勾选后自动合并重分组再下单。</div>
+      <div class="meta">人机协作的关键节点 · 两种下单路径任选</div>
+    </div>
+    <div class="card">
+      <div class="t">✅ 执行下单</div>
+      <div class="d">按订单组合并同键需求 → 一条 create-order 下单，价格取最新最低价，结果四分类：成功/草稿/失败/计划；一品一点直接执行、一品多点按已选供应商执行。</div>
+      <div class="meta">下单前二次确认 · 路径跟随你的选择</div>
+    </div>
+    <div class="card">
+      <div class="t">📊 统计日报</div>
+      <div class="d">按日/周期统计下单情况 → 生成两层统计 HTML：概览 + 明细→ 推送到群。</div>
+      <div class="meta">附报告链接</div>
+    </div>
+    <div class="card">
+      <div class="t">🔔 通知与留痕</div>
+      <div class="d">群机器人为唯一主动通知主体：查询/下单/统计每个节点发一张卡片；全部操作写飞书执行日志面板，需求进度表实时更新。</div>
+      <div class="meta">谁都能看到进展</div>
+    </div>
+  </div>
+
+  <div class="note"><b>每环节独立可用</b>：不只支持「一键跑全流程」，也可以单独说「查一下今天有哪些可下单需求」「把昨天的日报发一下」——每个 Skill 单独调用都成立，详见第 2 节。</div>
+
+  <h3>1.3 渐进式落地：CLI → Skill → Agent → 平台，四层递进、逐层验证</h3>
+  <div class="prog">
+    <div class="pc">
+      <div class="pl">L1</div>
+      <div class="pt">CLI · 原子能力层</div>
+      <div class="pd">把 EP 能力下沉为命令行，先验证「自动能不能做」。</div>
+      <div class="px">样件订单：dx-ep CLI 1.0.7-beta.4，staging 网关跑通 query-ready / create-order / submit-list / import-json 全套命令。</div>
+    </div>
+    <div class="pc">
+      <div class="pl">L2</div>
+      <div class="pt">Skill · 场景封装层</div>
+      <div class="pd">命令流封装为可复用技能，输入输出标准化，单环节独立可用。</div>
+      <div class="px">样件订单：<span class="skill-tag">demand-import</span> 散件专用 / <span class="skill-tag">demand-check</span> 试制专用 / <span class="skill-tag">demand-query</span> 查询分组 / <span class="skill-tag">demand-order</span> 合并下单 / <span class="skill-tag">daily-report</span> 日报。</div>
+    </div>
+    <div class="pc">
+      <div class="pl">L3</div>
+      <div class="pt">Agent · 智能编排层</div>
+      <div class="pd">技能串成业务流，自然语言发起 + 自动执行 + 人工拍板。</div>
+      <div class="px">样件订单：AgentSpace 对话 + 定时任务；群机器人通知、回 AgentSpace 确认；人只留 2 个拍板点。</div>
+    </div>
+    <div class="pc">
+      <div class="pl">L4</div>
+      <div class="pt">平台 · 业务承载层</div>
+      <div class="pd">工作台 + 留痕 + 通知 + 多角色，形成运营闭环。</div>
+      <div class="px">样件订单：飞书工作台执行日志唯一权威 + 需求进度表实时刷新 + 三层留痕 + 群通知分层。</div>
+    </div>
+  </div>
+  <div class="note"><b>三条原则</b>：逐层验证，每层先在验证环境跑通再叠加；寄生增强，不替换 EP 系统，风险隔离；人机分工，AI 跑腿、人只拍板，每个拍板点都有预览页 / 确认页支撑。<br><b>上线路径</b>：验证环境逐层跑通 → CLI 正式版发布即切换，查询 / 分组 / 下单 / 日报一次从测试网关落到正式接口 → Skill 与 Agent 迁移正式环境，每日推送、确认、下单、日报自动运转，人只拍板。</div>
+</section>
+
+<!-- ===== 二、使用方式 ===== -->
+<section id="s2">
+  <div class="sec-title"><span class="sec-num">2</span>使用方式</div>
+  <div class="sec-desc">同一套能力，按场景选择入口：对话 / 定时任务 / 线下</div>
+
+  <div class="grid">
+    <div class="card">
+      <div class="t">💬 方式一 · AgentSpace 对话</div>
+      <div class="d">打开 AgentSpace 里的 Agent，如「订单自动化」，随时用自然语言发起：查可下单需求、生成确认页、下单、出日报。不止固定流程——<b>大模型按你的话做个性化执行</b>，例如「只下 A 供应商的单」「跳过这批」「一品一点的直接下，一品多点的先给我确认」「按项目汇总今天的」；结果在对话框给链接和统计，人工确认也在对话框完成。</div>
+      <div class="meta">适合：日常随时发起、例外处理、临时查看、个性化需求</div>
+    </div>
+    <div class="card">
+      <div class="t">⏰ 方式二 · 定时任务 / 工作流</div>
+      <div class="d">在 AgentSpace「自动化」里配置定时触发：每天固定时间自动跑完整链路「需求导入 → 查询 → 确认页 → 待人工确认 → 下单 → 日报」。群机器人把结果推给相关人。</div>
+      <div class="meta">适合：每日例行、无人值守、到点自动</div>
+    </div>
+    <div class="card">
+      <div class="t">🖥️ 方式三 · 线下本地 Agent</div>
+      <div class="d">在本机终端直接跑 Skill，python 脚本，输入输出与云端一致。适合调试、自测、或在本地环境单独跑某一环节。</div>
+      <div class="meta">适合：开发调试、本地验证、离线排障</div>
+    </div>
+  </div>
+
+  <div class="note"><b>三者关系</b>：三种方式共用同一套 Skill 和同一份配置，产物确认页和日报都上传到同一个 FDS 链接体系、日志写同一个面板——换入口不换数据，互不冲突。</div>
+</section>
+
+<!-- ===== 三、落地方案：任务流 ===== -->
+<section id="s3">
+  <div class="sec-title"><span class="sec-num">3</span>落地方案：一条任务流</div>
+  <div class="sec-desc">「AgentSpace 定时任务驱动 + 飞书群机器人触发通知 + 返回 AgentSpace 交互」</div>
+
+  <div class="flow">
+    <div class="fstep hl"><div class="no">1</div><div class="nm">定时任务驱动</div><div class="en">AgentSpace 自动化</div><div class="sk">每天到点自动启动</div></div>
+    <div class="farrow">→</div>
+    <div class="fstep"><div class="no">2</div><div class="nm">Agent 编排执行</div><div class="en">查询→分组→确认页</div><div class="sk">输出链接+统计</div></div>
+    <div class="farrow">→</div>
+    <div class="fstep"><div class="no">3</div><div class="nm">群机器人通知</div><div class="en">飞书群卡片</div><div class="sk">明细+链接+引流</div></div>
+    <div class="farrow">→</div>
+    <div class="fstep"><div class="no">4</div><div class="nm">返回 AgentSpace 确认</div><div class="en">对话框交互</div><div class="sk">选供应商/确认执行</div></div>
+  </div>
+
+  <h3>4.1 任务流如何转起来</h3>
+  <ol class="steps">
+    <li><b>定时驱动</b>：AgentSpace「自动化」配置 cron 任务，如每个工作日 9:30，到点自动唤起 Agent，无需人盯。</li>
+    <li><b>自动编排</b>：Agent 按预设流程依次调用 Skill：查询可下单需求 → 分组 → 生成确认页 → 上传 FDS 拿链接。</li>
+    <li><b>群机器人通知</b>：关键节点发飞书群卡片——「查询完成：可下单 X 条，一品一点 N 组 / 一品多点 M 组，无供应商 K 条，确认页链接」，卡片尾部带「🛰️ 前往 AgentSpace」引流链接。</li>
+    <li><b>回 AgentSpace 交互</b>：人点卡片回 AgentSpace，在对话框/确认页完成「选供应商 + 确认执行」；确认后 Agent 继续下单、出日报，再推结果卡片。</li>
+  </ol>
+
+  <div class="note"><b>为什么群机器人是唯一主动主体</b>：AgentSpace 空间内消息、空间机器人、群机器人三处各发一遍会重复打扰。约定：<b>主动通知只走群机器人</b>，含引流回 AgentSpace 的链接；AgentSpace 空间内只回一句短摘要：状态+批次+链接，不重复贴全文。</div>
+
+  <h3>4.2 每个节点的通知与交互</h3>
+  <div class="table-scroll">
+  <table class="tbl4">
+    <colgroup><col style="width:22%"><col style="width:28%"><col style="width:12%"><col style="width:38%"></colgroup>
+    <tr><th>事件</th><th>渠道</th><th>标题 emoji</th><th>内容要点</th></tr>
+    <tr><td>查询完成</td><td>群机器人，原机器人 <code>3110a395</code></td><td>📋</td><td>日期 + 批次号 + 6 项统计 + 确认页 one/multi 链接 + 无供应商条数 + 引流</td></tr>
+    <tr><td>需求导入完成</td><td>群机器人，需求群 <code>4cde29b7</code></td><td>📥</td><td>今日待导入清单 + 导入预览链接 + 有效/无效统计 + 引流，需求导入 Agent 环节</td></tr>
+    <tr><td>下单成功</td><td>群机器人，原机器人 <code>3110a395</code></td><td>✅</td><td>日期 + 批次号 + 成功单数 + 订单号 + 明细链接 + 引流；另通知需求导入人</td></tr>
+    <tr><td>下单失败/草稿</td><td>群机器人，原机器人 <code>3110a395</code></td><td>⚠️</td><td>失败批次 + 原因 + 待处理链接，引导回 AgentSpace 处理</td></tr>
+    <tr><td>统计日报</td><td>群机器人，原机器人 <code>3110a395</code></td><td>📊</td><td>日期 + 周期 + 统计 + 报告链接 + 操作人</td></tr>
+  </table>
+  </div>
+
+  <h3>4.3 任务链接，引流用</h3>
+  <ul class="plain">
+    <li>每个 AgentSpace 任务有独立详情页：<code>https://agent-space.ev.mioffice.cn/order/issues/&lt;taskId&gt;</code>，taskId 为 UUID，如 WS-51 → <code>…/order/issues/82b5bb2f-fba1-4af1-851c-bd40d7ac7dfe</code></li>
+    <li>运行前把当前任务链接注入 <code>AGENTSPACE_TASK_URL</code>，群卡片尾部「🛰️ 前往 AgentSpace」自动渲染为可点击直达</li>
+    <li>Agent 也可以从平台「我的任务」页自动取当前任务链接注入</li>
+  </ul>
+</section>
+
+<!-- ===== 四、角色分工 ===== -->
+<section id="s4">
+  <div class="sec-title"><span class="sec-num">4</span>三个角色怎么用</div>
+  <div class="sec-desc">研发需求管理员 / 订单管理员 / 需求申请人，各自做什么、看到什么，能力全景的角色速查版</div>
+
+  <div class="lanes">
+    <div class="lane">
+      <div class="who">研发需求管理员</div>
+      <div class="act">
+        <b>负责需求导入</b>：每天早上收到「今日待导入」推送，明细 + 预览链接→ 确认后导入 → 导入结果推群。使用「需求导入 Agent」或定时任务。
+      </div>
+    </div>
+    <div class="lane">
+      <div class="who">订单管理员</div>
+      <div class="act">
+        <b>负责查询与下单</b>：收到「查询完成」推送 → 打开确认页盘点：一品一点直接确认，一品多点选供应商→ 回 AgentSpace 确认执行 → 收到下单结果和日报。也可随时对话发起：「查一下今天可下单需求」。
+      </div>
+    </div>
+    <div class="lane">
+      <div class="who">需求申请人</div>
+      <div class="act">
+        <b>关注进度</b>：不用自己盯系统，需求进度表实时显示下单状态；订单完成后自动收到通知。想看进展随时在群里问，或打开进度表看自己的需求到哪一步。
+      </div>
+    </div>
+  </div>
+
+  <div class="note"><b>进度可见性</b>：执行日志面板，唯一权威日志；需求进度表，按需求人维度展示下单状态；群通知，主动推送，三层留痕覆盖"谁在什么时候做了什么、结果如何"。</div>
+</section>
+
+<!-- ===== 五、操作细节，备查 ===== -->
+<section id="s5">
+  <div class="sec-title"><span class="sec-num">5</span>操作细节，备查</div>
+  <div class="sec-desc">环境、依赖、关键规则——日常使用不需要看，排障/上线时查阅</div>
+
+  <h3>7.1 依赖与工具</h3>
+  <table>
+    <colgroup><col><col><col></colgroup>
+    <tr><th>依赖</th><th>说明</th><th>用途</th></tr>
+    <tr><td><span class="skill-tag">demand-query</span> Skill</td><td>查询可下单需求 + 分组 + 生成 one/multi 确认页 + 上传 FDS</td><td>查询环节</td></tr>
+    <tr><td><span class="skill-tag">demand-order</span> Skill</td><td>消费 query 输出的 items + grouping→ 按订单组合并 → create-order 下单</td><td>下单环节</td></tr>
+    <tr><td><span class="skill-tag">daily-report</span> Skill</td><td>submit-list 按日/周期统计 → 两层统计 HTML → FDS</td><td>日报环节</td></tr>
+    <tr><td>dx-ep CLI</td><td><code>@mi/dx-ep-cli@beta</code> = <b>1.0.7-beta.4</b>，含 sapo 域：query-ready / submit-list / create-order / import-item / import-json 全套</td><td>全部业务调用</td></tr>
+    <tr><td>whoami</td><td>自动取登录人，下单人 = 实际登录 CLI 的人</td><td>created_by / 操作人</td></tr>
+    <tr><td>feishu-mcp，仅日志/进度表场景</td><td>写飞书执行日志面板 / 更新需求进度表，登录态在 <code>~/.feishu-mcp-pro/auth.json</code></td><td>留痕</td></tr>
+    <tr><td>xiaomi-fds-auto-upload</td><td>确认页 / 结果页 / 日报页上传 FDS 生成链接</td><td>在线链接</td></tr>
+  </table>
+
+  <h3>7.2 环境检查：Agent 预设统一做，Skill 不重复</h3>
+  <div class="table-scroll">
+  <table style="min-width:640px">
+    <colgroup><col style="width:18%"><col style="width:40%"><col style="width:42%"></colgroup>
+    <tr><th>检查项</th><th>命令</th><th>通过标准</th></tr>
+    <tr><td>python3</td><td><code>python3 --version</code></td><td>存在，3 个 skill 是 Python、必检</td></tr>
+    <tr><td>Python 依赖</td><td><code>python3 -c "import requests, openpyxl"</code></td><td>均可 import，FDS 上传依赖、缺 requests 上传会挂</td></tr>
+    <tr><td>dx-ep CLI 域</td><td><code>dx-ep sapo order --help</code></td><td>命令存在且列出 <b>query-ready / submit-list / create-order</b></td></tr>
+    <tr><td>CLI 配置</td><td>读 <code>~/.dx-garagehub/settings.json</code></td><td>base_url 指向 dev 网关，缺才写、写前备份、不盲目覆盖</td></tr>
+    <tr><td>登录态</td><td><code>dx-garagehub auth status</code></td><td><b>判据防坑</b>：匹配大写 <code>Logged in</code>，非 "Not logged in"<br>勿用 <code>grep -i "logged in"</code>——未登录文本含该子串会误判通过<br><code>Logged in</code> = 通过；<code>Not logged in</code> = 需登录</td></tr>
+  </table>
+  </div>
+
+  <div class="note"><b>版本门</b>，2026-09-22 实跑更正：当前推荐 <code>@mi/dx-ep-cli@beta</code> = <b>1.0.7-beta.4</b>，sapo 域已并入 beta 线。安装 pin beta 标签，装完必 <code>dx-ep sapo order --help</code> 实测。历史坑：<code>latest</code>，1.0.7 稳定版，未必含 sapo，别用 <code>@latest</code>。<br><code style="display:inline-block;margin-top:6px;padding:2px 8px;background:#1f2329;color:#e6e8eb;border-radius:4px;word-break:break-all">npm i -g @mi/dx-ep-cli@beta --registry=&lt;mi-npm&gt;</code></div>
+
+  <h3>7.3 关键业务规则</h3>
+  <ul class="plain">
+    <li><b>分组内核</b>：供应商取 <code>supplierOptions</code> 去重稳定排序，逐条判 单供/多供/无供，六字段键聚合：<code>originType|brNo|brLineNumber|companyEntityId|supplierId|buyerId</code></li>
+    <li><b>60 天窗口</b>：要求到货日期超出 60 天剔除，不进确认页、报告剔除数</li>
+    <li><b>多供应商不再静默按首供处理</b>：全部进确认页待人工选，不自动下单</li>
+    <li><b>下单路径由用户选定</b>：对话中指定「一品一点直接下单」或「一品多点先选供应商」；一品一点核对即执行，一品多点勾选供应商后自动合并重分组再执行</li>
+    <li><b>无供应商项</b>：标 <code>needs_human: true</code>，不自动下单，人工介入</li>
+    <li><b>下单按订单组合并</b>：同键多需求 → 一条 <code>create-order</code>，<code>--pr-ids</code> 逗号拼全部成员；价格取 CLI 最新最低价，EP 侧判断</li>
+    <li><b>下单不可逆</b>：执行前必须二次确认；结果严格分 <code>submitted_success / submitted_as_draft / create_failed / planned</code>，草稿/状态不明绝不报成功</li>
+    <li><b>飞书卡片无法回调交互</b>：确认一律引导回 AgentSpace 对话框操作</li>
+  </ul>
+
+  <h3>7.4 环境变量：Agent「环境变量」页注入</h3>
+  <div class="grid">
+    <div class="card"><div class="t">网关</div><div class="d"><code>DX_EP_BASE_URL</code>，网关真名、<b>非</b> <code>DX_BASE_URL</code></div></div>
+    <div class="card"><div class="t">FDS</div><div class="d"><code>FDS_ACCESS_ID</code> / <code>FDS_ACCESS_SECRET</code> / <code>FDS_ENDPOINT</code></div></div>
+    <div class="card"><div class="t">下单人</div><div class="d"><code>EP_SAMPLE_ORDER_CREATED_BY</code>，仅覆盖默认 created_by 时填，默认取 whoami 登录人</div></div>
+    <div class="card"><div class="t">引流</div><div class="d"><code>AGENTSPACE_TASK_URL</code>，运行前注入当前任务链接，群卡片尾行渲染为可点击引流</div></div>
+    <div class="card"><div class="t">多维表格</div><div class="d"><code>EP_WORKBENCH_*</code>，工作台；<code>EP_SAMPLE_ORDER_BASE_TOKEN</code>，留痕</div></div>
+    <div class="card"><div class="t">飞书机器人</div><div class="d"><code>FEISHU_BOT_APP_ID/SECRET</code>，发消息身份，与表格 base 是两类东西</div></div>
+  </div>
+</section>
+
+<!-- ===== 六、常见问题 ===== -->
+<section id="s6">
+  <div class="sec-title"><span class="sec-num">6</span>常见问题与异常</div>
+  <div class="sec-desc">高频问题速查</div>
+
+  <div class="faq-item">
+    <div class="q">1. 我可以不跑全流程，只单独查一下吗？</div>
+    <div class="a">可以。每种 Skill 都能单独调用：「查一下今天有哪些可下单需求」「把确认页重新生成一下」「发一下昨天的日报」。在 AgentSpace 对话里直接说即可。</div>
+  </div>
+  <div class="faq-item">
+    <div class="q">2. 一品多点一定要人工选供应商吗？</div>
+    <div class="a">是的。多供应商项不自动按首供下单，确认页里逐行选择供应商，默认勾选 EP 推荐；选完自动合并重分组，确认后执行。避免猜错供应商下错单。</div>
+  </div>
+  <div class="faq-item">
+    <div class="q">3. 我怎么知道任务跑到哪一步了？</div>
+    <div class="a">群机器人每个节点推卡片；也可以打开需求进度表按需求人维度看下单状态，或执行日志面板看完整留痕：谁、何时、做了什么、结果。</div>
+  </div>
+  <div class="faq-item">
+    <div class="q">4. 飞书卡片上能直接点确认吗？</div>
+    <div class="a">不能。飞书卡片不支持回调交互，所以卡片只做通知+引流，真正的确认回 AgentSpace 对话框做，这也是「返回 AgentSpace 交互」这一环存在的原因。</div>
+  </div>
+  <div class="faq-item">
+    <div class="q">5. 定时任务跑挂了怎么办？</div>
+    <div class="a">看群卡片里的失败原因 + 执行日志面板的失败记录；常见是 CLI 登录态过期或网关不可达，重新登录/修复后手动重跑一次即可。日志面板有 failed 记录可回溯。</div>
+  </div>
+  <div class="faq-item">
+    <div class="q">6. 通知会不会太吵？</div>
+    <div class="a">已做分层：主动通知只走群机器人一张卡，AgentSpace 空间内只回一句摘要，三处不重复。无结果也会发「查询完成：暂无可下单需求」，让群知道今天盘过了。</div>
+  </div>
+</section>
+
+<div class="footer-note">
+  配套：5 个 Skill 上传包在 <code>skill-simple/agentspace-packs/</code> ｜ Agent 预设 = <code>主控Agent-样件订单自动化-v3.txt</code> ｜ 需求导入见《需求导入Agent-上架说明-20260924》
+</div>
+
+</div>
+
+<script>
+// 导航高亮：滚动监听当前章节
+(function(){
+  var links = document.querySelectorAll('nav a');
+  var secs = document.querySelectorAll('section');
+  function onScroll(){
+    var y = window.scrollY + 90;
+    var cur = null;
+    secs.forEach(function(s){
+      if (s.offsetTop <= y) cur = s.id;
+    });
+    links.forEach(function(a){
+      a.classList.toggle('on', a.getAttribute('href') === '#' + cur);
+    });
+  }
+  window.addEventListener('scroll', onScroll, {passive:true});
+  onScroll();
+})();
+</script>
+</body>
+</html>

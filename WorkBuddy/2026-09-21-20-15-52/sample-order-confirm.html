@@ -1,0 +1,1344 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>样件订单自动化 - 全流程方案总结</title>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif; background: #f0f2f5; color: #1f2937; padding: 20px; font-size: 13px; line-height: 1.6; }
+.container { max-width: 1400px; margin: 0 auto; }
+
+/* Header */
+.header { background: linear-gradient(135deg, #1e3a5f 0%, #2d5a87 100%); color: white; padding: 32px 40px; border-radius: 8px; margin-bottom: 16px; }
+.header h1 { font-size: 26px; font-weight: 700; margin-bottom: 8px; }
+.header .subtitle { font-size: 14px; opacity: 0.85; margin-bottom: 16px; }
+.header .meta { display: flex; gap: 32px; font-size: 12px; opacity: 0.9; }
+.header .meta-item { display: flex; align-items: center; gap: 6px; }
+.header .meta-label { opacity: 0.7; }
+.header .meta-value { font-weight: 600; }
+
+/* Tabs */
+.tabs { display: flex; gap: 4px; margin-bottom: 16px; background: white; padding: 6px; border-radius: 6px; box-shadow: 0 1px 3px rgba(0,0,0,0.08); }
+.tab { padding: 10px 20px; cursor: pointer; border-radius: 4px; font-size: 13px; font-weight: 500; color: #64748b; transition: all 0.2s; }
+.tab:hover { background: #f1f5f9; color: #1e3a5f; }
+.tab.active { background: #1e3a5f; color: white; }
+.tab-content { display: none; }
+.tab-content.active { display: block; }
+
+/* Cards */
+.card { background: white; border-radius: 6px; padding: 20px 24px; margin-bottom: 16px; box-shadow: 0 1px 3px rgba(0,0,0,0.08); }
+.card-title { font-size: 16px; font-weight: 600; color: #1e3a5f; margin-bottom: 16px; padding-bottom: 10px; border-bottom: 2px solid #e2e8f0; display: flex; align-items: center; }
+.card-title::before { content: ""; display: inline-block; width: 4px; height: 16px; background: #1e3a5f; margin-right: 10px; border-radius: 2px; }
+.card-title .badge { margin-left: auto; font-size: 11px; background: #e0f2fe; color: #0369a1; padding: 2px 10px; border-radius: 10px; font-weight: 500; }
+
+/* Stats Grid */
+.stats-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-bottom: 16px; }
+.stat-card { background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 6px; padding: 16px; border-left: 3px solid #1e3a5f; }
+.stat-card.blue { border-left-color: #2563eb; }
+.stat-card.green { border-left-color: #059669; }
+.stat-card.orange { border-left-color: #d97706; }
+.stat-card .label { font-size: 12px; color: #64748b; margin-bottom: 6px; }
+.stat-card .value { font-size: 24px; font-weight: 700; color: #1e3a5f; }
+.stat-card .unit { font-size: 12px; color: #94a3b8; margin-left: 4px; font-weight: 400; }
+
+/* Timeline */
+.timeline { position: relative; padding-left: 28px; }
+.timeline::before { content: ""; position: absolute; left: 8px; top: 0; bottom: 0; width: 2px; background: #cbd5e1; }
+.timeline-item { position: relative; margin-bottom: 20px; }
+.timeline-item::before { content: ""; position: absolute; left: -24px; top: 4px; width: 12px; height: 12px; border-radius: 50%; background: #1e3a5f; border: 2px solid white; box-shadow: 0 0 0 2px #1e3a5f; }
+.timeline-item.failed::before { background: #dc2626; box-shadow: 0 0 0 2px #dc2626; }
+.timeline-item.success::before { background: #059669; box-shadow: 0 0 0 2px #059669; }
+.timeline-item.warn::before { background: #d97706; box-shadow: 0 0 0 2px #d97706; }
+.timeline-title { font-size: 14px; font-weight: 600; color: #1e3a5f; margin-bottom: 4px; }
+.timeline-desc { font-size: 12px; color: #475569; line-height: 1.7; }
+.timeline-tag { display: inline-block; font-size: 11px; padding: 1px 8px; border-radius: 3px; margin-right: 6px; font-weight: 500; }
+.tag-fail { background: #fee2e2; color: #991b1b; }
+.tag-success { background: #d1fae5; color: #065f46; }
+.tag-warn { background: #fef3c7; color: #92400e; }
+.tag-info { background: #dbeafe; color: #1e40af; }
+
+/* Architecture */
+.arch-layer { background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 6px; padding: 16px; margin-bottom: 12px; }
+.arch-layer-title { font-size: 13px; font-weight: 600; color: #1e3a5f; margin-bottom: 10px; display: flex; align-items: center; gap: 8px; }
+.arch-layer-title .layer-num { background: #1e3a5f; color: white; width: 22px; height: 22px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 11px; }
+.arch-items { display: flex; gap: 10px; flex-wrap: wrap; }
+.arch-item { background: white; border: 1px solid #cbd5e1; border-radius: 4px; padding: 10px 14px; font-size: 12px; flex: 1; min-width: 140px; }
+.arch-item .name { font-weight: 600; color: #1e3a5f; margin-bottom: 4px; }
+.arch-item .desc { color: #64748b; font-size: 11px; line-height: 1.5; }
+.arch-arrow { text-align: center; color: #94a3b8; font-size: 18px; margin: 4px 0; }
+
+/* Workflow */
+.workflow { display: flex; align-items: stretch; gap: 0; margin-bottom: 16px; }
+.wf-step { flex: 1; background: white; border: 1px solid #e2e8f0; border-radius: 6px; padding: 14px; text-align: center; position: relative; }
+.wf-step:not(:last-child)::after { content: "→"; position: absolute; right: -14px; top: 50%; transform: translateY(-50%); color: #94a3b8; font-size: 16px; z-index: 1; }
+.wf-step .step-num { display: inline-block; width: 24px; height: 24px; background: #1e3a5f; color: white; border-radius: 50%; line-height: 24px; font-size: 12px; font-weight: 600; margin-bottom: 8px; }
+.wf-step .step-title { font-size: 13px; font-weight: 600; color: #1e3a5f; margin-bottom: 4px; }
+.wf-step .step-desc { font-size: 11px; color: #64748b; line-height: 1.5; }
+.wf-step.highlight { background: #eff6ff; border-color: #2563eb; }
+
+/* Table */
+table { width: 100%; border-collapse: collapse; font-size: 12px; }
+thead th { background: #f1f5f9; padding: 10px 12px; text-align: left; font-weight: 600; color: #475569; border-bottom: 2px solid #cbd5e1; }
+tbody td { padding: 8px 12px; border-bottom: 1px solid #f1f5f9; color: #334155; }
+tbody tr:hover { background: #f8fafc; }
+tbody tr:nth-child(even) { background: #fafbfc; }
+
+/* Pitfall */
+.pitfall { background: #fffbeb; border: 1px solid #fde68a; border-left: 4px solid #d97706; border-radius: 4px; padding: 14px 18px; margin-bottom: 12px; }
+.pitfall-title { font-size: 13px; font-weight: 600; color: #92400e; margin-bottom: 6px; }
+.pitfall-desc { font-size: 12px; color: #78350f; line-height: 1.7; }
+.pitfall-solution { font-size: 12px; color: #166534; margin-top: 6px; padding-top: 6px; border-top: 1px dashed #fde68a; }
+
+/* Insight */
+.insight { background: #f0fdf4; border: 1px solid #bbf7d0; border-left: 4px solid #059669; border-radius: 4px; padding: 14px 18px; margin-bottom: 12px; }
+.insight-title { font-size: 13px; font-weight: 600; color: #065f46; margin-bottom: 6px; }
+.insight-desc { font-size: 12px; color: #14532d; line-height: 1.7; }
+
+/* Comparison */
+.compare-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 12px; margin-bottom: 16px; }
+.compare-col { background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 6px; padding: 16px; }
+.compare-col.final { background: #eff6ff; border-color: #2563eb; }
+.compare-col-title { font-size: 14px; font-weight: 600; color: #1e3a5f; margin-bottom: 10px; text-align: center; padding-bottom: 8px; border-bottom: 2px solid #cbd5e1; }
+.compare-col.final .compare-col-title { color: #1e40af; border-bottom-color: #2563eb; }
+.compare-item { font-size: 12px; color: #475569; margin-bottom: 6px; padding-left: 14px; position: relative; }
+.compare-item::before { content: "•"; position: absolute; left: 0; color: #94a3b8; }
+.compare-item.bad { color: #991b1b; }
+.compare-item.bad::before { content: "✗"; color: #dc2626; }
+.compare-item.good { color: #065f46; }
+.compare-item.good::before { content: "✓"; color: #059669; }
+
+/* Footer */
+.footer { text-align: center; padding: 20px; color: #94a3b8; font-size: 12px; }
+</style>
+</head>
+<body>
+
+<div class="container">
+    <div class="header">
+        <h1>样件订单自动化 · 全流程方案总结</h1>
+        <div class="subtitle">CLI-Skill-Agent 三层架构 · 样件订单自动化全流程总结</div>
+        <div class="meta">
+            <div class="meta-item"><span class="meta-label">项目周期：</span><span class="meta-value">2026.09.14 - 2026.09.21</span></div>
+            <div class="meta-item"><span class="meta-label">最终方案：</span><span class="meta-value">5 Skill + 5 Handler 双版本</span></div>
+            <div class="meta-item"><span class="meta-label">单Skill执行耗时：</span><span class="meta-value">2~3分钟/任务，可接受</span></div>
+        </div>
+    </div>
+
+    <div class="tabs">
+        <div class="tab active" onclick="switchTab(0)">📋 项目概述</div>
+        <div class="tab" onclick="switchTab(1)">🏗️ 架构设计</div>
+        <div class="tab" onclick="switchTab(2)">📖 使用指南</div>
+        <div class="tab" onclick="switchTab(3)">🔄 方案演进</div>
+        <div class="tab" onclick="switchTab(4)">⚠️ 踩坑指南</div>
+        <div class="tab" onclick="switchTab(5)">💡 经验总结</div>
+    </div>
+
+    <!-- ========== Tab 0: 项目概述 ========== -->
+    <div class="tab-content active">
+        <div style="background:#eff6ff; border:1px solid #93c5fd; border-radius:6px; padding:10px 14px; margin-bottom:16px; font-size:12px; color:#1e40af;">
+            📌 <strong>本页回答：</strong>这是什么项目？为什么要做？
+        </div>
+
+        <div class="card">
+            <div class="card-title">业务背景 <span class="badge">Why</span></div>
+            <div style="font-size:13px; color:#334155; line-height:1.9; margin-bottom:16px;">
+                小米整车工程部研发样件采购，在产品开发各阶段（散件/SM/M/VP/PT/PP/MP）需要大量小批量定制样件。
+                传统流程是采购工程师手动在 EP 系统逐条创建订单，重复度高、效率低、容易出错。
+            </div>
+            <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px;">
+                <div style="background:#fef2f2; border-left:4px solid #ef4444; padding:14px; border-radius:0 6px 6px 0;">
+                    <div style="font-size:13px; font-weight:600; color:#991b1b; margin-bottom:8px;">😤 传统流程痛点</div>
+                    <div style="font-size:12px; color:#475569; line-height:1.8;">
+                        • 每天手动查询 100+ 条可下单需求<br>
+                        • 逐条创建订单，复制粘贴容易出错<br>
+                        • 一品多供场景需要人工判断选哪家<br>
+                        • 每天手动统计订单执行情况<br>
+                        • 重复操作占采购工程师 30%+ 时间
+                    </div>
+                </div>
+                <div style="background:#f0fdf4; border-left:4px solid #10b981; padding:14px; border-radius:0 6px 6px 0;">
+                    <div style="font-size:13px; font-weight:600; color:#065f46; margin-bottom:8px;">✅ 自动化目标</div>
+                    <div style="font-size:12px; color:#475569; line-height:1.8;">
+                        • 自动查询可下单需求（只读，安全）<br>
+                        • 生成 HTML 确认页，人工拍板后自动下单<br>
+                        • 一品多供场景可视化选择供应商<br>
+                        • 自动统计每天/每周订单执行情况<br>
+                        • 采购工程师只做决策，不做重复操作
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="card">
+            <div class="card-title">项目范围 <span class="badge">Scope</span></div>
+            <table>
+                <thead><tr><th style="width:50%">✅ In Scope（自动化覆盖）</th><th style="width:50%">❌ Out of Scope（不在范围）</th></tr></thead>
+                <tbody>
+                    <tr>
+                        <td style="font-size:12px; color:#166534; line-height:1.9;">
+                            ✓ 可下单需求自动查询<br>
+                            ✓ 需求数据自动校验<br>
+                            ✓ 批量自动创建订单<br>
+                            ✓ 一品多供可视化选择<br>
+                            ✓ 订单执行自动统计<br>
+                            ✓ HTML 确认页自动生成
+                        </td>
+                        <td style="font-size:12px; color:#991b1b; line-height:1.9;">
+                            ✗ 样件需求提报（研发手动）<br>
+                            ✗ 供应商接单确认（供应商系统）<br>
+                            ✗ 物流状态跟踪（物流系统）<br>
+                            ✗ 样件质检入库（仓库系统）<br>
+                            ✗ 价格谈判（人工线下）<br>
+                            ✗ 预算审批（EP 系统自带）
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+
+        <div class="card">
+            <div class="card-title">量化目标 <span class="badge">Metrics</span></div>
+            <div class="stats-grid">
+                <div class="stat-card">
+                    <div class="label">采购工程师日节省时间</div>
+                    <div class="value">2<span class="unit">小时</span></div>
+                </div>
+                <div class="stat-card blue">
+                    <div class="label">每天自动处理订单</div>
+                    <div class="value">50<span class="unit">+单</span></div>
+                </div>
+                <div class="stat-card green">
+                    <div class="label">下单错误率</div>
+                    <div class="value">0.1<span class="unit">%↓</span></div>
+                </div>
+                <div class="stat-card orange">
+                    <div class="label">采购工程师满意度</div>
+                    <div class="value">95<span class="unit">%↑</span></div>
+                </div>
+            </div>
+        </div>
+
+        <div class="card">
+            <div class="card-title">方案细节：5 个模块的职责 <span class="badge">Modules</span></div>
+            <table>
+                <thead>
+                    <tr>
+                        <th style="width:20%">模块</th>
+                        <th style="width:15%">skill / handler</th>
+                        <th style="width:40%">做什么</th>
+                        <th style="width:25%">输出什么</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td><strong>① 需求导入</strong></td>
+                        <td>demand-import</td>
+                        <td>把用户导出的 Excel 需求，按 37 个字段映射成 EP 系统能接收的 JSON 格式，做基础校验</td>
+                        <td>records JSON + 导入预览 HTML</td>
+                    </tr>
+                    <tr>
+                        <td><strong>② 需求校验</strong></td>
+                        <td>demand-check</td>
+                        <td>对导入的需求做完整性校验：必填字段、预算行号连续、日期合理、EP 账号匹配</td>
+                        <td>校验报告（PASS / WARN / FAIL）</td>
+                    </tr>
+                    <tr>
+                        <td><strong>③ 查询可下单</strong></td>
+                        <td>demand-query-ready</td>
+                        <td>调用 EP CLI 分页拉取 60 天内可下单的需求，过滤过期数据，生成可视化确认页</td>
+                        <td>HTML 确认页 + 统计概览</td>
+                    </tr>
+                    <tr>
+                        <td><strong>④ 创建订单</strong></td>
+                        <td>demand-order-create</td>
+                        <td>用户确认后，批量调用 EP CLI 创建订单，区分成功/草稿/失败，生成结果汇总</td>
+                        <td>下单结果 JSON + 执行统计</td>
+                    </tr>
+                    <tr>
+                        <td><strong>⑤ 执行统计</strong></td>
+                        <td>daily-report</td>
+                        <td>按天/按周查询已提交的订单，按采购员/供应商/零件分类统计，生成报告</td>
+                        <td>统计报告 HTML</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+
+        <div class="card">
+            <div class="card-title">交互流程：从发起请求到拿到结果 <span class="badge">Flow</span></div>
+            
+            <div style="background:#f8fafc; border:1px solid #e2e8f0; border-radius:8px; padding:20px; margin-bottom:16px;">
+                <div style="font-size:13px; font-weight:600; color:#1e3a5f; margin-bottom:16px;">🔄 完整交互闭环</div>
+                
+                <div style="display:flex; flex-direction:column; gap:12px;">
+                    <div style="display:flex; gap:12px; align-items:flex-start;">
+                        <div style="background:#2563eb; color:white; width:28px; height:28px; border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:13px; font-weight:600; flex-shrink:0;">1</div>
+                        <div style="flex:1; background:white; border:1px solid #e2e8f0; border-radius:6px; padding:12px 16px;">
+                            <div style="font-size:13px; font-weight:600; color:#1e3a5f; margin-bottom:4px;">用户发起请求</div>
+                            <div style="font-size:12px; color:#475569; line-height:1.7;">
+                                用户对 Agent 说：「帮我查一下今天能下哪些样件订单」<br>
+                                <span style="color:#94a3b8;">→ Agent 识别意图，路由到 query_ready handler</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div style="display:flex; gap:12px; align-items:flex-start;">
+                        <div style="background:#059669; color:white; width:28px; height:28px; border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:13px; font-weight:600; flex-shrink:0;">2</div>
+                        <div style="flex:1; background:white; border:1px solid #e2e8f0; border-radius:6px; padding:12px 16px;">
+                            <div style="font-size:13px; font-weight:600; color:#1e3a5f; margin-bottom:4px;">系统自动查询</div>
+                            <div style="font-size:12px; color:#475569; line-height:1.7;">
+                                Handler 调用 EP CLI，分页拉取 136 条需求 → 60 天过滤后剩 7 条 → 生成 HTML 确认页 → 上传 FDS 拿到公开链接<br>
+                                <span style="color:#94a3b8;">→ 全程约 3 秒（agno 版），用户只需要等一下</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div style="display:flex; gap:12px; align-items:flex-start;">
+                        <div style="background:#d97706; color:white; width:28px; height:28px; border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:13px; font-weight:600; flex-shrink:0;">3</div>
+                        <div style="flex:1; background:#fffbeb; border:1px solid #fde68a; border-radius:6px; padding:12px 16px;">
+                            <div style="font-size:13px; font-weight:600; color:#92400e; margin-bottom:4px;">👤 人工确认（关键节点）</div>
+                            <div style="font-size:12px; color:#78350f; line-height:1.7;">
+                                Agent 回复：「查到 7 条可下单需求，确认页在这里 → 链接」<br>
+                                用户打开确认页：核对数据、一品多供选供应商（如果需要）<br>
+                                用户回到对话：回复「确认」或「按这个下单」<br>
+                                <span style="color:#94a3b8;">→ 这一步是人工决策点，系统不会自动执行不可逆操作</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div style="display:flex; gap:12px; align-items:flex-start;">
+                        <div style="background:#2563eb; color:white; width:28px; height:28px; border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:13px; font-weight:600; flex-shrink:0;">4</div>
+                        <div style="flex:1; background:white; border:1px solid #e2e8f0; border-radius:6px; padding:12px 16px;">
+                            <div style="font-size:13px; font-weight:600; color:#1e3a5f; margin-bottom:4px;">系统自动下单</div>
+                            <div style="font-size:12px; color:#475569; line-height:1.7;">
+                                Agent 识别到「确认」指令，路由到 create_order handler<br>
+                                批量调用 EP CLI 创建订单 → 区分成功/草稿/失败 → 生成结果汇总<br>
+                                <span style="color:#94a3b8;">→ 7 条需求全部处理完，约 5 秒</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div style="display:flex; gap:12px; align-items:flex-start;">
+                        <div style="background:#059669; color:white; width:28px; height:28px; border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:13px; font-weight:600; flex-shrink:0;">5</div>
+                        <div style="flex:1; background:white; border:1px solid #e2e8f0; border-radius:6px; padding:12px 16px;">
+                            <div style="font-size:13px; font-weight:600; color:#1e3a5f; margin-bottom:4px;">结果反馈</div>
+                            <div style="font-size:12px; color:#475569; line-height:1.7;">
+                                Agent 回复：「✅ 7 条需求下单完成：成功 5 条 / 草稿 1 条 / 失败 1 条」<br>
+                                用户随时可以问：「今天的订单统计一下」→ 拿到统计报告 HTML
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div style="background:#eff6ff; border:1px solid #93c5fd; border-radius:6px; padding:14px; margin-bottom:16px;">
+                <div style="font-size:13px; font-weight:600; color:#1e40af; margin-bottom:8px;">🔒 安全设计</div>
+                <div style="font-size:12px; color:#475569; line-height:1.8;">
+                    • <strong>只读查询</strong>：query_ready 只查数据，不改任何东西，安全<br>
+                    • <strong>人工确认</strong>：下单前必须用户回复「确认」，系统不会自动下单<br>
+                    • <strong>幂等执行</strong>：重复点确认不会重复下单（同一批次号只处理一次）
+                </div>
+            </div>
+
+            <div style="background:#f0fdf4; border:1px solid #86efac; border-radius:6px; padding:14px;">
+                <div style="font-size:13px; font-weight:600; color:#065f46; margin-bottom:10px;">🚀 三种使用入口：从对话到自动化全覆盖</div>
+                
+                <div style="display:grid; grid-template-columns:1fr 1fr 1fr; gap:12px;">
+                    <!-- 方式一：Agent Space 对话 -->
+                    <div style="background:white; border:1px solid #bbf7d0; border-radius:6px; padding:12px;">
+                        <div style="font-size:12px; font-weight:600; color:#2563eb; margin-bottom:8px;">💬 方式一：Agent Space 对话</div>
+                        <div style="font-size:11px; color:#475569; line-height:1.8;">
+                            <strong>怎么用：</strong><br>
+                            打开 Agent Space，和 Agent 对话，说「帮我查一下」就行<br>
+                            <br>
+                            <strong>特点：</strong><br>
+                            • 人工交互，随时确认<br>
+                            • 灵活，想干嘛说干嘛<br>
+                            • 适合探索期、非例行操作
+                        </div>
+                        <div style="margin-top:8px; padding-top:8px; border-top:1px dashed #bbf7d0; font-size:10px; color:#64748b;">
+                            👉 就是我们现在一直在用的方式
+                        </div>
+                    </div>
+
+                    <!-- 方式二：工作流定时 -->
+                    <div style="background:white; border:1px solid #bbf7d0; border-radius:6px; padding:12px;">
+                        <div style="font-size:12px; font-weight:600; color:#d97706; margin-bottom:8px;">⏰ 方式二：工作流定时任务</div>
+                        <div style="font-size:11px; color:#475569; line-height:1.8;">
+                            <strong>怎么用：</strong><br>
+                            在飞书项目/工作流里配好流程，每天早上 9 点自动跑<br>
+                            <br>
+                            <strong>特点：</strong><br>
+                            • 无人值守，自动触发<br>
+                            • 固定流程，稳定可靠<br>
+                            • 适合每天例行的工作
+                        </div>
+                        <div style="margin-top:8px; padding-top:8px; border-top:1px dashed #bbf7d0; font-size:10px; color:#64748b;">
+                            👉 配好就不用管了，到点自动跑
+                        </div>
+                    </div>
+
+                    <!-- 方式三：Agno 高码 -->
+                    <div style="background:white; border:1px solid #bbf7d0; border-radius:6px; padding:12px;">
+                        <div style="font-size:12px; font-weight:600; color:#059669; margin-bottom:8px;">⚙️ 方式三：Agno 高码集成</div>
+                        <div style="font-size:11px; color:#475569; line-height:1.8;">
+                            <strong>怎么用：</strong><br>
+                            把 handler 集成到 ep-agno 框架里，生产级部署<br>
+                            <br>
+                            <strong>特点：</strong><br>
+                            • 性能高（3.2s vs 26s）<br>
+                            • 框架级支持，可扩展<br>
+                            • 适合大规模生产使用
+                        </div>
+                        <div style="margin-top:8px; padding-top:8px; border-top:1px dashed #bbf7d0; font-size:10px; color:#64748b;">
+                            👉 最终生产方案，5 个 handler 已就绪
+                        </div>
+                    </div>
+                </div>
+
+                <div style="margin-top:12px; padding-top:10px; border-top:1px dashed #bbf7d0; font-size:11px; color:#64748b; line-height:1.7;">
+                    <strong>演进路径：</strong>对话验证业务逻辑 → 工作流自动化日常 → 高码框架上生产。同一个业务逻辑，三种封装形式，按需选择。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ========== Tab 1: 方案演进 ========== -->
+    <div class="tab-content">
+        <div style="background:#eff6ff; border:1px solid #93c5fd; border-radius:6px; padding:10px 14px; margin-bottom:16px; font-size:12px; color:#1e40af;">
+            📌 <strong>本页回答：</strong>现在系统长什么样？怎么调用的？
+        </div>
+
+        <div class="card">
+            <div class="card-title">CLI-Skill-Agent 三层架构 <span class="badge">整体分层</span></div>
+            <div class="arch-layer">
+                <div class="arch-layer-title"><span class="layer-num">L3</span>Agent 层（编排与交互）</div>
+                <div class="arch-items">
+                    <div class="arch-item"><div class="name">自然语言交互</div><div class="desc">用户对话确认需求、执行下单</div></div>
+                    <div class="arch-item"><div class="name">工作流编排</div><div class="desc">按顺序调用Skill，处理异常</div></div>
+                    <div class="arch-item"><div class="name">环境检查</div><div class="desc">统一检查Node、CLI版本、登录态</div></div>
+                </div>
+            </div>
+            <div class="arch-arrow">↓</div>
+            <div class="arch-layer">
+                <div class="arch-layer-title"><span class="layer-num">L2</span>Skill/Handler 层（业务封装）</div>
+                <div class="arch-items">
+                    <div class="arch-item"><div class="name">需求导入</div><div class="desc">Excel→JSON字段映射+校验</div></div>
+                    <div class="arch-item"><div class="name">需求查询</div><div class="desc">分页拉取+过滤+HTML确认页</div></div>
+                    <div class="arch-item"><div class="name">订单创建</div><div class="desc">批量调用CLI+结果分类统计</div></div>
+                    <div class="arch-item"><div class="name">执行统计</div><div class="desc">两层统计+HTML报告</div></div>
+                </div>
+            </div>
+            <div class="arch-arrow">↓</div>
+            <div class="arch-layer">
+                <div class="arch-layer-title"><span class="layer-num">L1</span>CLI 层（原始能力）</div>
+                <div class="arch-items">
+                    <div class="arch-item"><div class="name">dx-ep CLI</div><div class="desc">query-ready / create-order / import-json</div></div>
+                    <div class="arch-item"><div class="name">FDS 上传</div><div class="desc">HTML 上传公共桶，生成公开链接</div></div>
+                </div>
+            </div>
+        </div>
+
+        <div class="card">
+            <div class="card-title">双版本技术对比 <span class="badge">Skill vs Agno</span></div>
+            <table>
+                <thead><tr><th>维度</th><th>Agent Space 版（skill）</th><th>Agno 高码版</th></tr></thead>
+                <tbody>
+                    <tr><td><strong>定位</strong></td><td>快速验证、业务人员可改</td><td>生产级、高并发、框架集成</td></tr>
+                    <tr><td><strong>目录结构</strong></td><td>5 个独立 Python 脚本 + SKILL.md</td><td>handlers/ + pipeline.py + fds_uploader.py</td></tr>
+                    <tr><td><strong>调用方式</strong></td><td>命令行：python demand_query.py</td><td>框架内：run_handler_sync("query_ready", {})</td></tr>
+                    <tr><td><strong>环境检查</strong></td><td>Agent 设定里写 4 条命令</td><td>pipeline 层统一处理</td></tr>
+                    <tr><td><strong>性能</strong></td><td>~26s</td><td>~3.2s（快 8 倍）</td></tr>
+                    <tr><td><strong>扩展成本</strong></td><td>低，改脚本就行</td><td>中，要继承 BaseHandler</td></tr>
+                </tbody>
+            </table>
+        </div>
+
+        <div class="card">
+            <div class="card-title">自然语言触发机制（agno 版）<span class="badge">LLM 意图路由</span></div>
+            
+            <div style="display:grid; grid-template-columns:1fr 1fr; gap:16px; margin-bottom:16px;">
+                <div style="background:#eff6ff; border:1px solid #93c5fd; border-radius:6px; padding:14px;">
+                    <div style="font-size:13px; font-weight:600; color:#1e40af; margin-bottom:10px;">💬 用户怎么说（示例）</div>
+                    <div style="font-size:12px; color:#475569; line-height:2;">
+                        「帮我查一下今天能下哪些样件订单」<br>
+                        「上周的样件订单统计一下」<br>
+                        「这 7 条需求确认了，帮我下单」
+                    </div>
+                </div>
+                <div style="background:#f0fdf4; border:1px solid #86efac; border-radius:6px; padding:14px;">
+                    <div style="font-size:13px; font-weight:600; color:#065f46; margin-bottom:10px;">🤖 Agent 怎么路由</div>
+                    <div style="font-size:12px; color:#475569; line-height:2;">
+                        LLM 看 5 个 handler 的 description：<br>
+                        → query_ready：查询可下单需求<br>
+                        → create_order：创建订单<br>
+                        → daily_report：统计执行情况
+                    </div>
+                </div>
+            </div>
+
+            <div style="background:#fef2f2; border:1px solid #fecaca; border-radius:6px; padding:14px;">
+                <div style="font-size:13px; font-weight:600; color:#991b1b; margin-bottom:10px;">⚠️ 完整流程示例</div>
+                <div style="font-size:12px; color:#475569; line-height:2;">
+                    <strong>用户：</strong>帮我查一下今天能下哪些样件订单<br>
+                    <strong>Agent 路由：</strong>用户说"查"+"能下哪些" → 匹配 query_ready<br>
+                    <strong>Agent 调用：</strong><code>run_handler_sync("query_ready", {})</code><br>
+                    <strong>Handler 返回：</strong>html_url + stats + message<br>
+                    <strong>Agent 回复用户：</strong>（原样透传 message）+ 补一句「回复确认就下单」
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ========== Tab 3: 使用指南 ========== -->
+    <div class="tab-content">
+        <div style="background:#eff6ff; border:1px solid #93c5fd; border-radius:6px; padding:10px 14px; margin-bottom:16px; font-size:12px; color:#1e40af;">
+            📌 <strong>本页回答：</strong>用户每天怎么用？
+        </div>
+
+        <div class="card">
+            <div class="card-title">日常使用流程 <span class="badge">每日 SOP</span></div>
+            
+            <div class="workflow">
+                <div class="wf-step highlight">
+                    <div class="step-num">1</div>
+                    <div class="step-title">早上：查询可下单需求</div>
+                    <div class="step-desc">对 Agent 说："帮我查一下今天能下哪些样件订单"</div>
+                </div>
+                <div class="wf-step">
+                    <div class="step-num">2</div>
+                    <div class="step-title">看确认页</div>
+                    <div class="step-desc">打开 HTML 确认页，核对需求数据，一品多供选供应商</div>
+                </div>
+                <div class="wf-step">
+                    <div class="step-num">3</div>
+                    <div class="step-title">回复确认</div>
+                    <div class="step-desc">对 Agent 说："确认" 或 "按这个下单"</div>
+                </div>
+                <div class="wf-step">
+                    <div class="step-num">4</div>
+                    <div class="step-title">晚上：看统计</div>
+                    <div class="step-desc">对 Agent 说："今天的订单统计一下"</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="card">
+            <div class="card-title">常用指令对照表 <span class="badge">你说什么 → 系统做什么</span></div>
+            <table>
+                <thead>
+                    <tr>
+                        <th>你说什么</th>
+                        <th>系统调用什么</th>
+                        <th>系统返回什么</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td>"帮我查一下今天能下哪些样件订单"</td>
+                        <td>query_ready</td>
+                        <td>HTML 确认页链接 + 统计概览</td>
+                    </tr>
+                    <tr>
+                        <td>"确认" / "执行下单"</td>
+                        <td>create_order</td>
+                        <td>下单结果（成功/草稿/失败）</td>
+                    </tr>
+                    <tr>
+                        <td>"今天的订单统计一下"</td>
+                        <td>daily_report</td>
+                        <td>统计报告 HTML 链接</td>
+                    </tr>
+                    <tr>
+                        <td>"上周的样件订单统计一下"</td>
+                        <td>daily_report</td>
+                        <td>周维度统计报告</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+
+        <div class="card">
+            <div class="card-title">一品多供怎么选 <span class="badge">操作步骤</span></div>
+            
+            <div style="background:#eff6ff; border:1px solid #93c5fd; border-radius:6px; padding:14px; margin-bottom:16px;">
+                <div style="font-size:13px; font-weight:600; color:#1e40af; margin-bottom:8px;">✅ 不改供应商</div>
+                <div style="font-size:12px; color:#475569; line-height:1.8;">
+                    直接回复"确认"就行，Agent 自动下单，用默认供应商（列表里第一个）。
+                </div>
+            </div>
+
+            <div style="background:#fffbeb; border:1px solid #fbbf24; border-radius:6px; padding:14px;">
+                <div style="font-size:13px; font-weight:600; color:#92400e; margin-bottom:8px;">⚠️ 要改供应商</div>
+                <div style="font-size:12px; color:#475569; line-height:1.8;">
+                    <strong>步骤：</strong><br>
+                    1. 打开 HTML 确认页链接<br>
+                    2. 在一品多供的那行，点前面的单选圆圈（●）切换供应商<br>
+                    3. 选完后，点底部的「生成确认结果」按钮<br>
+                    4. 复制生成的 JSON，粘贴回对话，说"按这个下单"
+                </div>
+            </div>
+        </div>
+
+        <div class="card">
+            <div class="card-title">常见问题 <span class="badge">FAQ</span></div>
+            <table>
+                <thead>
+                    <tr><th>问题</th><th>怎么处理</th></tr>
+                </thead>
+                <tbody>
+                    <tr><td>确认页打不开？</td><td>等几秒再刷新，FDS 上传需要 2-3 秒</td></tr>
+                    <tr><td>查询结果是 0 条？</td><td>说明 60 天内没有可下单需求，正常</td></tr>
+                    <tr><td>下单失败了？</td><td>看报错信息，可能是供应商没选对或者价格不是最低价</td></tr>
+                    <tr><td>想取消下单？</td><td>还没回复"确认"就没事，回复了就已经创建了，要去 EP 系统里取消</td></tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- ========== Tab 4: 踩坑指南 ========== -->
+    <div class="tab-content">
+        <div style="background:#eff6ff; border:1px solid #93c5fd; border-radius:6px; padding:10px 14px; margin-bottom:16px; font-size:12px; color:#1e40af;">
+            📌 <strong>本页回答：</strong>探索了哪些路？为什么走不通？最终为什么选这条路？
+        </div>
+
+        <div class="card">
+            <div class="card-title">方案演进对比 <span class="badge">演进路径</span></div>
+            <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px; margin-bottom:12px;">
+                <div class="compare-col">
+                    <div class="compare-col-title">版本1：早期复杂版（13 Skill 过度设计）</div>
+                    <div class="compare-item bad">拆了13个skill，带独立env-check、demand-interact</div>
+                    <div class="compare-item bad">重复代码多，改一处漏一处</div>
+                    <div class="compare-item bad">依赖飞书MCP，登录态2小时过期</div>
+                    <div class="compare-item good">覆盖全流程</div>
+                    <div class="compare-item" style="margin-top:10px; color:#d97706; font-weight:600;">→ 简化为5个核心Skill，去掉冗余环节</div>
+                </div>
+                
+                <div class="compare-col">
+                    <div class="compare-col-title">版本2：飞书卡片交互版</div>
+                    <div class="compare-item good">卡片推送，用户点击按钮即可确认</div>
+                    <div class="compare-item good">不需要用户回到AgentSpace操作</div>
+                    <div class="compare-item bad">AgentSpace 暂不支持卡片按钮回调</div>
+                    <div class="compare-item bad">需要平台层支持消息回传</div>
+                    <div class="compare-item" style="margin-top:10px; color:#d97706; font-weight:600;">→ 暂搁置，待平台支持后再做</div>
+                </div>
+            </div>
+            <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px; margin-top:12px;">
+                <!-- Skill 版 -->
+                <div style="background:#eff6ff; border:2px solid #2563eb; border-radius:6px; padding:16px;">
+                    <div style="font-size:14px; font-weight:700; color:#1e40af; margin-bottom:10px; display:flex; align-items:center; gap:6px;">
+                        📦 方案 A：Skill 版（Agent Space）
+                    </div>
+                    <div style="font-size:12px; color:#475569; line-height:1.8;">
+                        <strong>定位：</strong>快速验证、业务人员可改<br>
+                        <strong>架构：</strong>5 个独立 Python 脚本 + SKILL.md<br>
+                        <strong>特点：</strong><br>
+                        • 纯 CLI 驱动，不依赖 MCP<br>
+                        • HTML 确认页 + FDS 链接<br>
+                        • 自然语言交互确认<br>
+                        • 改起来简单，业务人员就能改<br>
+                        <br>
+                        <strong>性能：</strong>~26s<br>
+                        <strong>当前状态：</strong>✅ 已跑通，5 个 skill 齐全
+                    </div>
+                </div>
+
+                <!-- Agno 版 -->
+                <div style="background:#f0fdf4; border:2px solid #059669; border-radius:6px; padding:16px;">
+                    <div style="font-size:14px; font-weight:700; color:#065f46; margin-bottom:10px; display:flex; align-items:center; gap:6px;">
+                        ⚙️ 方案 B：Agno 高码版
+                    </div>
+                    <div style="font-size:12px; color:#475569; line-height:1.8;">
+                        <strong>定位：</strong>生产级、高并发、框架集成<br>
+                        <strong>架构：</strong>handlers/ + pipeline.py + fds_uploader.py<br>
+                        <strong>特点：</strong><br>
+                        • 继承 BaseHandler，统一基类<br>
+                        • 公共逻辑下沉，代码复用<br>
+                        • 框架级支持，可扩展<br>
+                        • 性能更高，适合大规模使用<br>
+                        <br>
+                        <strong>性能：</strong>~3.2s（快 8 倍）<br>
+                        <strong>当前状态：</strong>✅ 已跑通，5 个 handler 就绪
+                    </div>
+                </div>
+            </div>
+
+            <div style="margin-top:12px; padding:10px 14px; background:#fef3c7; border:1px solid #fde68a; border-radius:6px; font-size:11px; color:#92400e; line-height:1.7;">
+                💡 <strong>两套方案是并行的，不是同一套：</strong>业务逻辑一样，但封装形式、运行环境、使用场景都不同。Skill 版跑在 Agent Space，Agno 版跑在 ep-agno 框架。两边各自独立，互不依赖。
+            </div>
+        </div>
+
+        <div class="card">
+            <div class="card-title">关键决策：为什么放弃，为什么选择 <span class="badge">惨痛教训</span></div>
+            <div style="background:#fef2f2; border:1px solid #fecaca; border-radius:6px; padding:12px; margin-bottom:16px; font-size:12px; color:#991b1b; line-height:1.7;">
+                ⚠️ <strong>先说结论：</strong>这 4 个决策，每一个都花了至少半天时间踩坑才想明白。不是我拍脑袋选的，是踩坑踩出来的。
+            </div>
+
+            <!-- 决策 1 -->
+            <div style="background:#fffbeb; border:1px solid #fde68a; border-left:4px solid #d97706; border-radius:0 6px 6px 0; padding:16px; margin-bottom:16px;">
+                <div style="font-size:14px; font-weight:700; color:#92400e; margin-bottom:12px;">
+                    🔴 决策 1：为什么放弃飞书 MCP？
+                </div>
+
+                <!-- 踩坑时间线 -->
+                <div style="margin-bottom:12px;">
+                    <div style="font-size:12px; font-weight:600; color:#78350f; margin-bottom:8px;">📉 踩坑过程（改了 4 轮，花了 ~6 小时）</div>
+                    <div style="display:flex; flex-direction:column; gap:6px; font-size:11px; color:#78350f; line-height:1.8;">
+                        <div style="display:flex; gap:8px;">
+                            <span style="color:#dc2626; font-weight:600;">第 1 轮：</span>
+                            <span>以为 access token 过期了，重新登录了一遍，好了 2 小时又坏了</span>
+                        </div>
+                        <div style="margin:2px 0 4px 56px; font-size:10.5px; color:#9a3412; line-height:1.6;">
+                            ↳ 错在哪：重新登录只重置了临时的"用户在场"会话，没碰"为什么被迫走 browser flow"这个根——而 browser flow 无法无头刷新，所以 2 小时必断、反复重演。
+                        </div>
+                        <div style="display:flex; gap:8px;">
+                            <span style="color:#dc2626; font-weight:600;">第 2 轮：</span>
+                            <span>以为是 settings.json 配置不对，改了好几版 base_url，还是报 20029 错误</span>
+                        </div>
+                        <div style="margin:2px 0 4px 56px; font-size:10.5px; color:#9a3412; line-height:1.6;">
+                            ↳ 错在哪：20029 是授权重定向错误，根因是环境 / 凭证错配，不是网关地址写错。改 base_url 只是换连法、没动"该用哪套环境、谁的凭证"，反而可能连错网关、越改越乱。
+                        </div>
+                        <div style="display:flex; gap:8px;">
+                            <span style="color:#dc2626; font-weight:600;">第 3 轮：</span>
+                            <span>以为是 CLI 版本不对，升级降级试了好几个版本，还是不行</span>
+                        </div>
+                        <div style="margin:2px 0 4px 56px; font-size:10.5px; color:#9a3412; line-height:1.6;">
+                            ↳ 错在哪：故障在<strong>环境 / 配置</strong>里，不在二进制里。每换一个版本，CLI 读的是同一套被覆盖的环境变量，自然复现同一处 browser flow 误判——版本迭代对<strong>配置型 bug 是零作用</strong>，纯属往错误的方向烧时间。
+                        </div>
+                        <div style="display:flex; gap:8px;">
+                            <span style="color:#dc2626; font-weight:600;">第 4 轮：</span>
+                            <span>去看 ep-agno 源码才发现：容器里 CLI 误判有浏览器，走了 browser flow！</span>
+                        </div>
+                        <div style="margin-top:6px; padding:6px 10px; background:#fff7ed; border:1px dashed #fdba74; border-radius:4px; font-size:10.5px; color:#9a3412; line-height:1.6;">
+                            🔗 四轮的共同盲区：前 3 轮都在"症状邻居"上迭代——token / 地址 / 版本，没一轮怀疑过"环境变量被谁偷换了"。第 4 轮跳出表象、直接看源码，才摸到真因。
+                        </div>
+                    </div>
+                    <!-- 根因 -->
+                    <div style="margin-top:8px; padding:8px 10px; background:#fef2f2; border:1px solid #fecaca; border-left:3px solid #dc2626; border-radius:4px; font-size:11px; color:#991b1b; line-height:1.8;">
+                        🔧 <strong>根因：</strong>同时挂上了自己账号的飞书 MCP 和订单自动化助手的 MCP，环境变量被写成了订单自动化助手的预设值，CLI 据此误判"有浏览器可用"，强行走了浏览器登录流程 → 才反复 20029 / 登录态 2 小时就失效。
+                    </div>
+                </div>
+
+                <div style="background:white; border-radius:4px; padding:10px; margin-bottom:10px;">
+                    <div style="font-size:12px; font-weight:600; color:#78350f; margin-bottom:6px;">💡 想明白的道理</div>
+                    <div style="font-size:11px; color:#78350f; line-height:1.8;">
+                        表面现象是 20029 / 登录态 2 小时就失效，但<strong>真因不是 token 过期</strong>——是自己账号 MCP 与订单自动化助手 MCP 同时挂载，环境变量被覆盖成后者的预设值，CLI 误判"有浏览器"走了 browser flow。MCP 的登录态本就是"用户在场"设计、不适合无人值守，再叠加多套 MCP / 环境变量打架，坑被放大了好几倍。
+                    </div>
+                </div>
+
+                <div style="background:#eef2ff; border:1px solid #c7d2fe; border-left:4px solid #4338ca; border-radius:4px; padding:10px; margin-bottom:10px;">
+                    <div style="font-size:12px; font-weight:600; color:#3730a3; margin-bottom:6px;">🧭 更深一层：身份双轨，Agent 分不清该用谁的凭证</div>
+                    <div style="font-size:11px; color:#3730a3; line-height:1.8;">
+                        即便把第 4 轮的环境变量冲突修好，这个场景对飞书 MCP 仍是<strong>结构性不匹配</strong>——它要同时干两件身份相反的事：<br>
+                        • <strong>读</strong>：以「你自己」的身份拉多维表格（bitable）——权限、可见范围都绑在你的账号；<br>
+                        • <strong>写</strong>：以「订单自动化助手」的身份发通知——动作落在对方侧、要可审计可追溯。<br><br>
+                        单条 MCP 通道没法按"这次调用该用谁的凭证"精准切换身份上下文，<strong>本质要靠 Agent 自己判断</strong>。而 Agent 在"这回用齐岳的 token 还是助手的 token"上做选择，是猜的——猜错一次就是越权读不到表、或通知发错身份，且这种错日志里很难一眼看穿。<br><br>
+                        所以环境变量冲突是"引爆点"，<strong>身份双轨才是底层的雷</strong>：它从根上解释了为什么 MCP 不适合这种"既要代你读、又要替你发"的无人值守场景。
+                    </div>
+                </div>
+
+                <div style="background:#f0fdf4; border-radius:4px; padding:10px;">
+                    <div style="font-size:12px; font-weight:600; color:#065f46; margin-bottom:6px;">✅ 最终替代方案</div>
+                    <div style="font-size:11px; color:#065f46; line-height:1.8;">
+                        需求导入改成用户从飞书导出 Excel，脚本读本地文件；日志改成本地 JSON + HTML 上传 FDS。每个环节凭证都写死、各走各的——读用你的导出、发用助手的 API，<strong>身份不再需要 Agent 临场判断</strong>。彻底不依赖 MCP，稳定多了。
+                    </div>
+                </div>
+            </div>
+
+            <!-- 决策 2 -->
+            <div style="background:#fffbeb; border:1px solid #fde68a; border-left:4px solid #d97706; border-radius:0 6px 6px 0; padding:16px; margin-bottom:16px;">
+                <div style="font-size:14px; font-weight:700; color:#92400e; margin-bottom:12px;">
+                    🔴 决策 2：为什么放弃飞书卡片交互？
+                </div>
+
+                <!-- 踩坑时间线 -->
+                <div style="margin-bottom:12px;">
+                    <div style="font-size:12px; font-weight:600; color:#78350f; margin-bottom:8px;">📉 踩坑过程（改了 3 轮，花了 ~4 小时）</div>
+                    <div style="display:flex; flex-direction:column; gap:6px; font-size:11px; color:#78350f; line-height:1.8;">
+                        <div style="display:flex; gap:8px;">
+                            <span style="color:#dc2626; font-weight:600;">第 1 轮：</span>
+                            <span>设计了漂亮的飞书卡片，有「确认」「取消」按钮，觉得用户体验肯定好</span>
+                        </div>
+                        <div style="display:flex; gap:8px;">
+                            <span style="color:#dc2626; font-weight:600;">第 2 轮：</span>
+                            <span>按钮点了没反应，查了半天才发现 AgentSpace 不支持卡片回调！</span>
+                        </div>
+                        <div style="display:flex; gap:8px;">
+                            <span style="color:#dc2626; font-weight:600;">第 3 轮：</span>
+                            <span>想绕过去：让用户点完按钮再回对话里说"确认"，那我做卡片干嘛？多此一举</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div style="background:white; border-radius:4px; padding:10px; margin-bottom:10px;">
+                    <div style="font-size:12px; font-weight:600; color:#78350f; margin-bottom:6px;">💡 想明白的道理</div>
+                    <div style="font-size:11px; color:#78350f; line-height:1.8;">
+                        一开始就想做"漂亮的交互"，但忽略了平台能力边界。卡片回调需要服务端支持，而 AgentSpace 是"对话式"的，没有服务端回调能力。不要为了炫技而炫技，平台不支持的就是不支持。
+                    </div>
+                </div>
+
+                <div style="background:#f0fdf4; border-radius:4px; padding:10px;">
+                    <div style="font-size:12px; font-weight:600; color:#065f46; margin-bottom:6px;">✅ 最终替代方案</div>
+                    <div style="font-size:11px; color:#065f46; line-height:1.8;">
+                        生成 HTML 确认页上传 FDS，用户在浏览器里看，然后在对话里回复"确认"。简单但可靠，虽然不酷，但能用。
+                    </div>
+                </div>
+            </div>
+
+            <!-- 决策 3 -->
+            <div style="background:#fffbeb; border:1px solid #fde68a; border-left:4px solid #d97706; border-radius:0 6px 6px 0; padding:16px; margin-bottom:16px;">
+                <div style="font-size:14px; font-weight:700; color:#92400e; margin-bottom:12px;">
+                    🔴 决策 3：为什么先做 skill 版，再做 agno 版？
+                </div>
+
+                <!-- 踩坑时间线 -->
+                <div style="margin-bottom:12px;">
+                    <div style="font-size:12px; font-weight:600; color:#78350f; margin-bottom:8px;">📉 踩坑过程（凭记忆写字段名，全错了）</div>
+                    <div style="display:flex; flex-direction:column; gap:6px; font-size:11px; color:#78350f; line-height:1.8;">
+                        <div style="display:flex; gap:8px;">
+                            <span style="color:#dc2626; font-weight:600;">第 1 轮：</span>
+                            <span>直接上手写 agno 版 handler，凭记忆写字段映射</span>
+                        </div>
+                        <div style="display:flex; gap:8px;">
+                            <span style="color:#dc2626; font-weight:600;">第 2 轮：</span>
+                            <span>跑出来 0 条需求，查了半天发现字段名全错：以为是 requireArrivalDate，实际是 deliveryDate</span>
+                        </div>
+                        <div style="display:flex; gap:8px;">
+                            <span style="color:#dc2626; font-weight:600;">第 3 轮：</span>
+                            <span>一个一个字段对，加了 normalize_items() 做映射，才跑通</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div style="background:white; border-radius:4px; padding:10px; margin-bottom:10px;">
+                    <div style="font-size:12px; font-weight:600; color:#78350f; margin-bottom:6px;">💡 想明白的道理</div>
+                    <div style="font-size:11px; color:#78350f; line-height:1.8;">
+                        一开始就做复杂架构会浪费更多时间。业务逻辑还没跑通，直接做架构优化是舍本逐末。先把业务逻辑验证对了，再考虑架构调整。
+                    </div>
+                </div>
+
+                <div style="background:#f0fdf4; border-radius:4px; padding:10px;">
+                    <div style="font-size:12px; font-weight:600; color:#065f46; margin-bottom:6px;">✅ 最终结论</div>
+                    <div style="font-size:11px; color:#065f46; line-height:1.8;">
+                        先 skill 版跑通业务逻辑（7 天），再 agno 版做架构优化（1 天）。迁移成本不高，业务逻辑是一样的，核心逻辑直接搬过来就行。
+                    </div>
+                </div>
+            </div>
+
+            <!-- 决策 4 -->
+            <div style="background:#fffbeb; border:1px solid #fde68a; border-left:4px solid #d97706; border-radius:0 6px 6px 0; padding:16px; margin-bottom:0;">
+                <div style="font-size:14px; font-weight:700; color:#92400e; margin-bottom:12px;">
+                    🔴 决策 4：为什么环境检查归 Agent，不归 skill？
+                </div>
+
+                <!-- 踩坑时间线 -->
+                <div style="margin-bottom:12px;">
+                    <div style="font-size:12px; font-weight:600; color:#78350f; margin-bottom:8px;">📉 踩坑过程（环境检查跑了 6 次）</div>
+                    <div style="display:flex; flex-direction:column; gap:6px; font-size:11px; color:#78350f; line-height:1.8;">
+                        <div style="display:flex; gap:8px;">
+                            <span style="color:#dc2626; font-weight:600;">现象：</span>
+                            <span>每次跑一个 skill，它都先 check_login() 一次，跑 5 个 skill 就检查 5 次，加上 Agent 自己的检查，一共 6 次</span>
+                        </div>
+                        <div style="display:flex; gap:8px;">
+                            <span style="color:#dc2626; font-weight:600;">为什么：</span>
+                            <span>每个 skill 都觉得自己是独立的，所以都要自己检查一遍，"我不管别人检没检，我自己要检"</span>
+                        </div>
+                        <div style="display:flex; gap:8px;">
+                            <span style="color:#dc2626; font-weight:600;">结果：</span>
+                            <span>光环境检查就花了 30 秒，用户以为卡住了</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 两种方案对比 -->
+                <div style="margin-bottom:12px;">
+                    <div style="font-size:12px; font-weight:600; color:#78350f; margin-bottom:8px;">⚖️ 两种方案对比</div>
+                    <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px;">
+                        <!-- 方案 A：放在 skill 里 -->
+                        <div style="background:#fef2f2; border:1px solid #fecaca; border-radius:4px; padding:10px;">
+                            <div style="font-size:11px; font-weight:700; color:#991b1b; margin-bottom:6px;">❌ 方案 A：放在 skill 里</div>
+                            <div style="font-size:10px; color:#7f1d1d; line-height:1.7;">
+                                <strong>做法：</strong>每个 skill 启动时自己 check_login()<br>
+                                <strong>优点：</strong><br>
+                                • skill 完全独立，自己跑也行<br>
+                                • 不用依赖外部环境<br>
+                                <strong>缺点：</strong><br>
+                                • 跑 5 个 skill 就检查 5 次，浪费时间<br>
+                                • 每个 skill 都要写一遍，代码重复<br>
+                                • 改的时候要改 5 个地方，容易漏<br>
+                                • 就是我们现在踩的坑
+                            </div>
+                        </div>
+
+                        <!-- 方案 B：放在 Agent 里 -->
+                        <div style="background:#f0fdf4; border:1px solid #86efac; border-radius:4px; padding:10px;">
+                            <div style="font-size:11px; font-weight:700; color:#065f46; margin-bottom:6px;">✅ 方案 B：放在 Agent 里</div>
+                            <div style="font-size:10px; color:#065f46; line-height:1.7;">
+                                <strong>做法：</strong>Agent 启动时统一检查一次，再调 skill<br>
+                                <strong>优点：</strong><br>
+                                • 只检查一次，省 30 秒<br>
+                                • 只写一处，好维护<br>
+                                • 逻辑清晰，通用能力下沉<br>
+                                <strong>缺点：</strong><br>
+                                • skill 不能单独跑了（脱离 Agent）<br>
+                                • 但我们本来就不单独跑
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 为什么选 B -->
+                <div style="background:white; border-radius:4px; padding:10px; margin-bottom:10px;">
+                    <div style="font-size:12px; font-weight:600; color:#78350f; margin-bottom:6px;">💡 为什么选 B？</div>
+                    <div style="font-size:11px; color:#78350f; line-height:1.8;">
+                        <strong>核心判断：</strong>skill 不单独用（除了本地调试的情况），所以"skill 独立性"这个优点对我们不重要。<br><br>
+                        实际使用场景是：Agent Space 启动 → Agent 做环境检查 → Agent 调 skill。skill 永远是被 Agent 调的，不会单独被用户直接调用。<br><br>
+                        那为什么要让 skill 自己再检查一遍？多此一举。
+                    </div>
+                </div>
+
+                <div style="background:#f0fdf4; border-radius:4px; padding:10px;">
+                    <div style="font-size:12px; font-weight:600; color:#065f46; margin-bottom:6px;">✅ 最终执行结果</div>
+                    <div style="font-size:11px; color:#065f46; line-height:1.8;">
+                        删掉所有 skill 里的 check_login()，环境检查统一到 Agent 层，只跑一次。快了 30 秒。<br>
+                        <strong>本地调试的情况：</strong>需要手动跑一遍环境检查命令，就当是开发成本了，反正不常用。
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ========== Tab 2: 架构设计 ========== -->
+    <div class="tab-content">
+        <div style="background:#eff6ff; border:1px solid #93c5fd; border-radius:6px; padding:10px 14px; margin-bottom:16px; font-size:12px; color:#1e40af;">
+            📌 <strong>本页回答：</strong>踩了哪些技术坑？本质是什么？以后怎么避免？
+        </div>
+
+        <!-- 共性总结 highlight -->
+        <div style="background:linear-gradient(135deg, #1e3a5f 0%, #2563eb 100%); border-radius:8px; padding:18px; margin-bottom:20px; color:white;">
+            <div style="font-size:14px; font-weight:700; margin-bottom:12px;">🎯 所有坑的共性：Agent 开发的"认知盲区"</div>
+            
+            <div style="display:grid; grid-template-columns:1fr 1fr; gap:14px; margin-bottom:14px;">
+                <div>
+                    <div style="font-size:12px; font-weight:600; margin-bottom:8px; opacity:0.9;">👨‍💻 传统开发：先想清楚再动手</div>
+                    <ul style="font-size:11px; line-height:1.9; opacity:0.85; margin:0; padding-left:16px;">
+                        <li>先看文档，搞清楚规则再写代码</li>
+                        <li>先定接口契约，再写实现</li>
+                        <li>路径、配置这些固定的东西，一眼就知道</li>
+                        <li>有项目记忆，知道之前做过什么决策</li>
+                        <li>知道"现在调的是哪个系统"</li>
+                    </ul>
+                </div>
+                <div>
+                    <div style="font-size:12px; font-weight:600; margin-bottom:8px; opacity:0.9;">🤖 Agent 开发：边做边想</div>
+                    <ul style="font-size:11px; line-height:1.9; opacity:0.85; margin:0; padding-left:16px;">
+                        <li>直接上手写，跑一下看报错</li>
+                        <li>不知道系统边界，开错药（授权搞混）</li>
+                        <li>不知道哪些是固定的，瞎改路径</li>
+                        <li>每次都是新的开始，没有记忆（审查对轰）</li>
+                        <li>凭记忆写字段名，错了好几个</li>
+                    </ul>
+                </div>
+            </div>
+
+            <div style="padding:12px; background:rgba(255,255,255,0.15); border-radius:6px; font-size:11px; line-height:1.8;">
+                <strong>💡 一句话总结：</strong>我们花了 60% 的时间，不是在解决业务问题，而是在补"非专业开发者的认知盲区"——授权方式、系统边界、接口设计、基础设施规则，这些东西专业开发一眼就懂，但我们（和 AI）都没有基本框架，所以只能瞎猜，猜错了再改，浪费大量时间。
+            </div>
+        </div>
+
+        <!-- 时间分配 -->
+        <div class="card">
+            <div class="card-title">时间花在哪了（真实数据）<span class="badge">复盘</span></div>
+            <div class="stats-grid">
+                <div class="stat-card" style="border-left-color: #dc2626;">
+                    <div class="label">反复修授权问题</div>
+                    <div class="value" style="color: #dc2626;">60%</div>
+                    <div class="desc" style="font-size:11px; color:#64748b;">同一个 20029 错误改了 4 轮</div>
+                </div>
+                <div class="stat-card" style="border-left-color: #d97706;">
+                    <div class="label">审查 Agent 对轰</div>
+                    <div class="value" style="color: #d97706;">20%</div>
+                    <div class="desc" style="font-size:11px; color:#64748b;">互相矛盾改了又改</div>
+                </div>
+                <div class="stat-card" style="border-left-color: #2563eb;">
+                    <div class="label">FDS 上传问题</div>
+                    <div class="value" style="color: #2563eb;">15%</div>
+                    <div class="desc" style="font-size:11px; color:#64748b;">换了 3 种实现方式</div>
+                </div>
+                <div class="stat-card" style="border-left-color: #059669;">
+                    <div class="label">真正写业务逻辑</div>
+                    <div class="value" style="color: #059669;">5%</div>
+                    <div class="desc" style="font-size:11px; color:#64748b;">8 轮迭代</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- P0 级问题 -->
+        <div class="card">
+            <div class="card-title">P0 级问题（反复踩坑，花时间最长）<span class="badge">核心问题</span></div>
+            
+            <!-- P0-1: 授权问题 -->
+            <div class="pitfall">
+                <div class="pitfall-title">P0-1：CLI 授权环境混用，反复报 20029 错误</div>
+                <div class="pitfall-desc">
+                    <div style="margin-bottom:8px; padding:6px 10px; background:#eff6ff; border:1px solid #bfdbfe; border-left:3px solid #2563eb; border-radius:4px; font-size:11px; color:#1e40af; line-height:1.7;">
+                        ⚠️ <strong>与「决策 1：放弃飞书 MCP」是两回事：</strong>这里是 <strong>dev / 生产网关地址 + token 混在同一容器</strong>；决策 1 是 <strong>双飞书 MCP + 环境变量被订单自动化助手预设值覆盖</strong>。两个独立问题，根因不同、解法也不同。
+                    </div>
+                    <strong>发生了什么：</strong>AgentSpace 容器里跑 CLI 永远报不明确的「重定向 URL 错误」（20029），授权链接打不开，改了 4 轮配置都没解决。<br><br>
+                    <div style="margin:4px 0 8px; padding:8px 10px; background:#fef2f2; border:1px solid #fecaca; border-left:3px solid #dc2626; border-radius:4px; font-size:11px; color:#991b1b; line-height:1.8;">
+                        🔧 <strong>真实根因：</strong>dev 环境和生产环境的网关地址、token 混在同一个容器里，CLI 不知道该走哪条，只报"重定向 URL 错误"（20029），<strong>完全不提示是环境冲突</strong>——这才是一连改 4 轮都没找着的扳机。
+                    </div>
+                    <strong>踩坑过程：</strong><br>
+                    • 第 1 轮：以为登录态过期 → 重新登录 → 没用<br>
+                    • 第 2 轮：以为 settings.json 不对 → 改 base_url → 越改越乱<br>
+                    • 第 3 轮：以为 CLI 版本不对 → 反复升降级 → 没用<br>
+                    • 第 4 轮：明确环境隔离 → dev 全走 dev 网关，生产全走生产网关，写死地址不混用 → 好了
+                </div>
+                <div class="pitfall-solution">
+                    <strong>解法：</strong>环境完全隔离——dev环境的配置和授权全部走dev网关，生产环境全部走生产网关，不混用任何一套配置和token；环境检查里直接写死当前要用的网关地址，不允许AI自动识别或修改路径。
+                </div>
+            </div>
+
+            <!-- P0-1.5: 授权搞混 -->
+            <div class="pitfall" style="margin-top:12px;">
+                <div class="pitfall-title">P0-2：feishumcp 和 garagehub 授权完全搞混了</div>
+                <div class="pitfall-desc">
+                    <strong>发生了什么：</strong>为了解决 garagehub CLI 的 20029 错误，AI 跑去调飞书 MCP 的授权流程，让用户点飞书的授权页，结果当然没用，白折腾了好几轮。<br><br>
+                    <strong>两套授权：</strong><br>
+                    • 飞书 MCP 授权：读飞书多维表格，入口是飞书 scope-authorization 页<br>
+                    • GarageHub CLI 授权：调 EP 接口，入口是 garagehub-cli-auth 域名
+                </div>
+                <div class="pitfall-solution">
+                    <strong>解法：</strong>报错时先看域名/报错码，先判断是哪个系统的授权问题，再对症下药。
+                </div>
+                <div style="margin-top:10px; padding:10px; background:#fffbeb; border-radius:4px; font-size:11px; color:#78350f; line-height:1.8;">
+                    <strong>🧠 本质思考：</strong>都是"授权"，报错信息都长得像，AI 分不清是哪个系统的。本质上是<strong>缺乏系统边界感</strong>——不知道"我现在调的是哪个系统，这个系统的授权长什么样"。专业开发脑子里有一张"系统清单+每个系统的授权方式"，但 AI 脑子里没有，所以会开错药。
+                </div>
+            </div>
+
+            <!-- P0-1.6: AI 乱改路径 -->
+            <div class="pitfall" style="margin-top:12px;">
+                <div class="pitfall-title">P0-3：AI 自己乱改配置路径，越改越糟</div>
+                <div class="pitfall-desc">
+                    <strong>发生了什么：</strong>每次授权卡住，AI 就自己改 settings.json 的路径，一会儿改成 /home/xxx，一会儿改成 /root/xxx，改完更不对了。
+                </div>
+                <div class="pitfall-solution">
+                    <strong>解法：</strong>把配置路径写死在 skill 脚本里，AI 只负责写配置内容，不负责选路径。
+                </div>
+                <div style="margin-top:10px; padding:10px; background:#fffbeb; border-radius:4px; font-size:11px; color:#78350f; line-height:1.8;">
+                    <strong>🧠 本质思考：</strong>AI 不知道真实的文件系统路径，凭感觉猜，猜完改，改完坏，坏了再猜。这是<strong>典型的"不知道边界在哪"的问题</strong>——AI 不知道哪些东西是固定的（路径、配置位置），哪些东西是可以改的（配置内容）。专业开发一眼就知道"路径是写死的，别瞎改"，但 AI 不知道。
+                </div>
+            </div>
+
+            <!-- P0-2: 公共逻辑重复 -->
+            <div class="pitfall" style="margin-top:12px;">
+                <div class="pitfall-title">P0-4：公共逻辑重复，改一处漏一处</div>
+                <div class="pitfall-desc">
+                    <strong>发生了什么：</strong>改了 demand-query，漏了 demand-order 和 daily-report，前后漏了 3 次。<br>
+                    <strong>根因：</strong>4 个调 CLI 的 skill 各抄了一份 check_login、upload_to_fds，重复代码至少 300 行。
+                </div>
+                <div class="pitfall-solution">
+                    <strong>解法：</strong>Agno 版抽了 handlers/base.py + fds_uploader.py，所有 handler 复用。
+                </div>
+                <div style="margin-top:10px; padding:10px; background:#fffbeb; border-radius:4px; font-size:11px; color:#78350f; line-height:1.8;">
+                    <strong>🧠 本质思考：</strong>流程串联和连接，有没有更丝滑的方式？MCP 本质就是把"调用外部能力"标准化：你不用自己写上传 FDS 的代码，直接调 MCP 工具就行。但 MCP 也有问题：封装得太好，反而让人不理解底层逻辑。<strong>结论：MCP 方向是对的，但需要"足够薄"——封装调用，但不封装授权和配置。</strong>
+                </div>
+            </div>
+
+            <!-- P0-3: 审查 Agent 对轰 -->
+            <div class="pitfall" style="margin-top:12px;">
+                <div class="pitfall-title">P0-5：不同审查 Agent 互相矛盾，改了又改</div>
+                <div class="pitfall-desc">
+                    <strong>发生了什么：</strong>第 1 个审查说要抽公共层，第 2 个说不要，第 3 个说 import 中文是断点，第 4 个又说 import 中文是对的。
+                </div>
+                <div class="pitfall-solution">
+                    <strong>解法：</strong>做代码审查前，必须先把「之前的决策历史和约束条件」喂给审查 Agent。
+                </div>
+                <div style="margin-top:10px; padding:10px; background:#fffbeb; border-radius:4px; font-size:11px; color:#78350f; line-height:1.8;">
+                    <strong>🧠 本质思考：</strong>每个审查 Agent 都是"失忆"的，不知道之前做过什么决策，所以每次都从头开始评判，结果就是互相矛盾。这是<strong>Agent 缺乏上下文连续性</strong>的问题。专业开发有"项目记忆"，知道之前为什么这么选，但 Agent 没有，所以每次都是新的开始。
+                </div>
+            </div>
+        </div>
+
+        <!-- P1 级问题 -->
+        <div class="card">
+            <div class="card-title">P1 级问题（影响稳定性）<span class="badge">稳定性</span></div>
+            
+            <!-- P1-1: FDS 上传 -->
+            <div class="pitfall">
+                <div class="pitfall-title">P1-1：FDS 上传反复失败，换了 3 种方式</div>
+                <div class="pitfall-desc">
+                    <strong>发生了什么：</strong>URL 虚拟主机风格→路径风格；签名 Galaxy→Galaxy-V2；没设 ACL；ACL 少了 type: GROUP 字段。
+                </div>
+                <div class="pitfall-solution">
+                    <strong>解法：</strong>URL 用路径风格，签名用 Galaxy-V2，上传后加 ACL 设置。
+                </div>
+                <div style="margin-top:10px; padding:10px; background:#fffbeb; border-radius:4px; font-size:11px; color:#78350f; line-height:1.8;">
+                    <strong>🧠 本质思考：</strong>又是"不知道这个系统的规则"的问题。FDS 有自己的一套规则（URL 风格、签名算法、ACL 格式），但 AI 不知道，只能试，试错了再改，改了再试，来回好几次。和授权问题本质一样：<strong>对非业务流程类的基础设施，缺乏基本的认知框架。</strong>
+                </div>
+            </div>
+
+            <!-- P1-2: 输出契约 -->
+            <div class="pitfall" style="margin-top:12px;">
+                <div class="pitfall-title">P1-2：输出契约不统一，skill 串联失败</div>
+                <div class="pitfall-desc">
+                    <strong>发生了什么：</strong>demand-query 输出 stats，demand-order 读 summary，字段名对不上。
+                </div>
+                <div class="pitfall-solution">
+                    <strong>解法：</strong>定死统一输出格式：status / stage / batch_id / summary / details / outputs / message。
+                </div>
+                <div style="margin-top:10px; padding:10px; background:#fffbeb; border-radius:4px; font-size:11px; color:#78350f; line-height:1.8;">
+                    <strong>🧠 本质思考：</strong>这是<strong>接口设计</strong>的问题。专业开发做系统集成第一件事就是定接口契约，字段名、类型、含义都写清楚。但 Agent 开发是"边做边想"，做了一个 skill 就直接跑，没考虑下一个 skill 怎么接，结果就是接不上。<strong>正确姿势：先定契约，再写实现。</strong>
+                </div>
+            </div>
+
+            <!-- P1-3: Agent 输出两条 -->
+            <div class="pitfall" style="margin-top:12px;">
+                <div class="pitfall-title">P1-3：Agent 自己加工 skill 的 message，输出两条回复</div>
+                <div class="pitfall-desc">
+                    <strong>发生了什么：</strong>skill 输出 message 字段，Agent 又自己写一段总结，用户看到两条回复。
+                </div>
+                <div class="pitfall-solution">
+                    <strong>解法：</strong>Agent 设定里明确：只允许原样输出 message 字段，禁止 Agent 自己加工总结。
+                </div>
+                <div style="margin-top:10px; padding:10px; background:#fffbeb; border-radius:4px; font-size:11px; color:#78350f; line-height:1.8;">
+                    <strong>🧠 本质思考：</strong>这是<strong>"谁负责输出"的边界问题</strong>。skill 说"我已经写好 message 了"，Agent 说"我还要再加工一下"，结果就是输出两份。专业开发里，"展示层"和"业务层"是分开的：业务层返回数据，展示层负责渲染。但 Agent 里这两个层是混在一起的，Agent 既当业务又当展示，结果就重复输出了。
+                </div>
+            </div>
+
+            <!-- P1-4: 字段映射 -->
+            <div class="pitfall" style="margin-top:12px;">
+                <div class="pitfall-title">P1-4：Agno 版字段名凭记忆写，全错了</div>
+                <div class="pitfall-desc">
+                    <strong>发生了什么：</strong>agno 版 query_ready 跑出来 0 条需求。凭记忆写字段映射，以为是 requireArrivalDate，实际是 deliveryDate。
+                </div>
+                <div class="pitfall-solution">
+                    <strong>解法：</strong>加 normalize_items() 函数，做字段映射。不要凭记忆写字段名。
+                </div>
+                <div style="margin-top:10px; padding:10px; background:#fffbeb; border-radius:4px; font-size:11px; color:#78350f; line-height:1.8;">
+                    <strong>🧠 本质思考：</strong>传统开发和 Agent 开发的差异：<br>
+                    • <strong>传统开发：</strong>先看 API 文档 → 写 schema / DTO → 写 mapping → 写单元测试。严谨，但慢。<br>
+                    • <strong>Agent 开发：</strong>直接上手写 → 跑一下看报错 → 错了再改。快，但不严谨。<br><br>
+                    我们踩的坑就是 Agent 开发的"不严谨"放大了：凭记忆写字段名，错了好几个，跑了 3 轮才全部改对。<strong>正确姿势：Agent 开发也要先调一次真实 API，把返回结构拿下来，再写映射函数。这是从传统开发借过来的好习惯。</strong>
+                </div>
+            </div>
+        </div>
+
+        <!-- 平台生态的思考 -->
+        <div class="card">
+            <div class="card-title">平台选择的思考：Agent Space / Agno / 本地 / Mico<span class="badge">生态思考</span></div>
+            
+            <div style="background:#f8fafc; border:1px solid #e2e8f0; border-radius:6px; padding:14px; margin-bottom:12px;">
+                <div style="font-size:12px; font-weight:600; color:#1e3a5f; margin-bottom:10px;">🤔 小白会迷惑的问题</div>
+                <div style="font-size:11px; color:#475569; line-height:1.9;">
+                    编排完 skill 之后，可选平台有好几个：Agent Space / Agno / 本地 Agent / Mico。每个平台都说自己好，结果就是不知道用哪个，或者每个平台都试一遍，浪费时间。
+                </div>
+            </div>
+
+            <div style="margin-top:10px; padding:10px; background:#fffbeb; border-radius:4px; font-size:11px; color:#78350f; line-height:1.8;">
+                <strong>🧠 本质思考：</strong>问题不是"选哪个平台"，而是"怎么让一套代码能跑在所有平台上"。就像手机 App：你不用关心用户用 iOS 还是 Android，只要一套代码能编译到两个平台就行。<br><br>
+                Agent 时代也是一样：<br>
+                • 核心业务逻辑应该是平台无关的<br>
+                • 平台适配层负责对接不同平台<br>
+                • 换平台只需要改适配层，不用改业务逻辑<br><br>
+                <strong>未来方向：</strong>把核心业务逻辑抽成一个公共库，不同平台都调这个库。这样不管出什么新平台，只要写个薄适配层就行。
+            </div>
+        </div>
+    </div>
+
+<div class="tab-content">
+        <div style="background:#eff6ff; border:1px solid #93c5fd; border-radius:6px; padding:10px 14px; margin-bottom:16px; font-size:12px; color:#1e40af;">
+            📌 <strong>本页回答：</strong>方法论上有什么收获？
+        </div>
+
+        <div class="card">
+            <div class="card-title">什么场景适合 Agent 化 <span class="badge">选型判断</span></div>
+            <div class="insight">
+                <div class="insight-title">✓ 适合 Agent 化的场景</div>
+                <div class="insight-desc">
+                    1. <strong>高频重复操作</strong>：规则固定、重复度高<br>
+                    2. <strong>有明确 CLI/API 接口</strong>：业务系统已暴露接口<br>
+                    3. <strong>需要人工确认节点</strong>：Agent 生成确认页，等待用户回复<br>
+                    4. <strong>多步骤编排</strong>：需要按顺序调用多个接口、处理异常<br>
+                    5. <strong>非实时性要求</strong>：允许秒级到分钟级的执行延迟
+                </div>
+            </div>
+            <div class="pitfall" style="background:#fef2f2; border-color:#fecaca; border-left-color:#dc2626;">
+                <div class="pitfall-title" style="color:#991b1b;">✗ 不适合 Agent 化的场景</div>
+                <div class="pitfall-desc" style="color:#7f1d1d;">
+                    1. <strong>强实时性要求</strong>：需要毫秒级响应<br>
+                    2. <strong>复杂UI交互</strong>：依赖图形界面拖拽<br>
+                    3. <strong>需要回调的交互</strong>：如飞书卡片按钮回调<br>
+                    4. <strong>登录态频繁失效的外部系统</strong>：如飞书 MCP 的 2 小时 token
+                </div>
+            </div>
+        </div>
+
+        <div class="card">
+            <div class="card-title">开发方式建议 <span class="badge">实际耗时复盘</span></div>
+            
+            <!-- 实际时间分布 -->
+            <div style="margin-bottom:16px;">
+                <div style="font-size:13px; font-weight:600; color:#1e3a5f; margin-bottom:12px;">⏱️ 本项目实际花了多少时间（AI 辅助开发）</div>
+                
+                <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px; margin-bottom:12px;">
+                    <div style="background:#f8fafc; border:1px solid #e2e8f0; border-radius:6px; padding:14px;">
+                        <div style="font-size:12px; font-weight:600; color:#1e3a5f; margin-bottom:8px;">📦 Skill 版开发</div>
+                        <div style="font-size:11px; color:#475569; line-height:1.8;">
+                            • 5 个核心 skill 脚本：~3 天<br>
+                            • HTML 确认页迭代（下拉框→radio）：~1 天<br>
+                            • Agent 设定 + 环境检查：~1 天<br>
+                            • 踩坑（授权 20029）：~2 天<br>
+                            <strong style="color:#1e40af;">合计：~7 天</strong>
+                        </div>
+                    </div>
+                    <div style="background:#f8fafc; border:1px solid #e2e8f0; border-radius:6px; padding:14px;">
+                        <div style="font-size:12px; font-weight:600; color:#1e3a5f; margin-bottom:8px;">⚙️ Agno 版开发</div>
+                        <div style="font-size:11px; color:#475569; line-height:1.8;">
+                            • 5 个 handler 迁移：~0.5 天<br>
+                            • 字段名修正 + normalize：~0.5 天<br>
+                            • FDS 上传调试：~0.5 天<br>
+                            • 测试 + 跑通：~0.5 天<br>
+                            <strong style="color:#065f46;">合计：~2 天</strong>
+                        </div>
+                    </div>
+                </div>
+
+                <div style="background:#fef2f2; border:1px solid #fecaca; border-radius:6px; padding:12px;">
+                    <div style="font-size:12px; font-weight:600; color:#991b1b; margin-bottom:6px;">⚠️ 时间分布真相（AI 辅助开发）</div>
+                    <div style="font-size:11px; color:#7f1d1d; line-height:1.8;">
+                        • 真正写业务逻辑：<strong>~5%</strong><br>
+                        • 反复修授权问题：<strong>~60%</strong><br>
+                        • 审查 Agent 对轰，改了又改：<strong>~20%</strong><br>
+                        • FDS 上传调试：<strong>~15%</strong>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 三种方式对比 -->
+            <div style="font-size:13px; font-weight:600; color:#1e3a5f; margin-bottom:12px;">📊 三种开发方式对比</div>
+            <table>
+                <thead>
+                    <tr>
+                        <th style="width:20%">维度</th>
+                        <th style="width:26%">AI 辅助开发（本项目）</th>
+                        <th style="width:27%">专职开发（业务已验证）</th>
+                        <th style="width:27%">低代码/无代码</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td><strong>总耗时</strong></td>
+                        <td>✅ 9 天（含踩坑）</td>
+                        <td>⚠️ 预估 2-3 周</td>
+                        <td>⚠️ 预估 1-2 周</td>
+                    </tr>
+                    <tr>
+                        <td><strong>时间花在哪</strong></td>
+                        <td>60% 踩坑，5% 写代码</td>
+                        <td>60% 沟通对齐，20% 熟悉代码，20% 写代码</td>
+                        <td>主要花在平台限制和适配</td>
+                    </tr>
+                    <tr>
+                        <td><strong>开发速度</strong></td>
+                        <td>快，业务方直接写</td>
+                        <td>中等，需需求对齐+排期</td>
+                        <td>中等，可视化拖拽</td>
+                    </tr>
+                    <tr>
+                        <td><strong>代码质量</strong></td>
+                        <td>中等，需大量测试</td>
+                        <td>高，专业规范+Code Review</td>
+                        <td>低，黑盒不可控</td>
+                    </tr>
+                    <tr>
+                        <td><strong>业务理解</strong></td>
+                        <td>深，开发者即业务方</td>
+                        <td>中，需业务方反复讲</td>
+                        <td>中等，看配置人</td>
+                    </tr>
+                    <tr>
+                        <td><strong>灵活度</strong></td>
+                        <td>高，想改就改</td>
+                        <td>中，需排期改</td>
+                        <td>低，平台限制多</td>
+                    </tr>
+                    <tr>
+                        <td><strong>适用阶段</strong></td>
+                        <td>探索期、MVP、内部工具</td>
+                        <td>生产级、核心系统</td>
+                        <td>简单流程、快速搭</td>
+                    </tr>
+                </tbody>
+            </table>
+
+            <!-- 专职开发时间拆解 -->
+            <div style="margin-top:12px; background:#f8fafc; border:1px solid #e2e8f0; border-radius:6px; padding:14px;">
+                <div style="font-size:12px; font-weight:600; color:#1e3a5f; margin-bottom:10px;">⏱️ 专职开发时间拆解（业务已验证的前提下）</div>
+                <div style="display:grid; grid-template-columns:1fr 1fr; gap:8px; font-size:11px; color:#475569; line-height:1.8;">
+                    <div>
+                        <strong>时间占比：</strong><br>
+                        • 需求对齐 + 业务沟通：~60%（3-5 天）<br>
+                        • 熟悉现有代码库：~20%（1-2 天）<br>
+                        • 写代码 + 测试：~20%（1-2 天）
+                    </div>
+                    <div>
+                        <strong>为什么不需要那么久：</strong><br>
+                        • 业务逻辑已经验证过了，不用再探索<br>
+                        • EP CLI 接口已经摸清了，不用再踩坑<br>
+                        • 字段映射已经搞清楚了，不用再猜<br>
+                        • 专职开发只要照着写就行
+                    </div>
+                </div>
+            </div>
+
+            <div style="margin-top:12px; padding:10px 14px; background:#f0fdf4; border:1px solid #86efac; border-radius:6px; font-size:11px; color:#065f46; line-height:1.7;">
+                💡 <strong>结论：</strong>探索期用 AI 辅助开发最快（9 天 vs 专职 2-3 周），但优势没那么大。专职开发的主要成本是"沟通对齐"，不是"写代码"。等业务逻辑验证对了，再转专职开发上生产，代码质量和可维护性会好很多。
+            </div>
+        </div>
+
+        <div class="card">
+            <div class="card-title">我们自己的教训 <span class="badge">血泪总结</span></div>
+            <div class="insight">
+                <div class="insight-desc" style="font-size:13px; line-height:2.2;">
+                    1. <strong>不要闭门造车：</strong>一开始就应该先看同团队已经跑通的 ep-agno 是怎么做的<br>
+                    2. <strong>不要拒绝公共逻辑：</strong>「独立自包含」不等于代码复制，公共逻辑必须下沉<br>
+                    3. <strong>不要相信多个 Agent 的审查结果：</strong>每个 Agent 都不了解业务背景，很容易改了又改<br>
+                    4. <strong>先跑通再优化：</strong>先把业务逻辑验证对了，再做架构优化<br>
+                    5. <strong>不要凭记忆写字段映射：</strong>先调一次真实 API 看返回结构<br>
+                    6. <strong>业务术语不要猜：</strong>找业务方确认，猜错了改起来很麻烦
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="footer">
+        样件订单自动化 · 全流程方案总结 · 2026.09.21
+    </div>
+
+</div>
+<script>
+function switchTab(index) {
+    document.querySelectorAll('.tab').forEach((t, i) => t.classList.toggle('active', i === index));
+    document.querySelectorAll('.tab-content').forEach((c, i) => c.classList.toggle('active', i === index));
+}
+</script>
+</body>
+</html>    <!-- Tab 4: 踩坑指南 -->
+    <div class="footer">
+        样件订单自动化 · 全流程方案总结 · 2026.09.21
+    </div>
+
+</div>
+<script>
+function switchTab(index) {
+    document.querySelectorAll('.tab').forEach((t, i) => t.classList.toggle('active', i === index));
+    document.querySelectorAll('.tab-content').forEach((c, i) => c.classList.toggle('active', i === index));
+}
+</script>
+</body>
+</html>    <!-- Tab 4: 踩坑指南 -->
+    </div>
+</body>
+</html>

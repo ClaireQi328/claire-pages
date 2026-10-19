@@ -1,0 +1,1263 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SRM 供应商关系管理平台</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        :root {
+            --primary: #1677ff;
+            --primary-light: #e6f4ff;
+            --primary-dark: #0958d9;
+            --success: #52c41a;
+            --warning: #faad14;
+            --error: #ff4d4f;
+            --text: #262626;
+            --text-secondary: #8c8c8c;
+            --border: #d9d9d9;
+            --bg: #f5f5f5;
+            --white: #ffffff;
+        }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; background: var(--bg); color: var(--text); }
+
+        /* Layout */
+        .layout { display: flex; min-height: 100vh; }
+        .sidebar { width: 240px; background: var(--white); border-right: 1px solid var(--border); position: fixed; height: 100vh; overflow-y: auto; }
+        .main { margin-left: 240px; flex: 1; }
+        .header { height: 64px; background: var(--white); border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; padding: 0 24px; position: sticky; top: 0; z-index: 100; }
+        .content { padding: 24px; }
+
+        /* Sidebar */
+        .logo { height: 64px; display: flex; align-items: center; padding: 0 16px; border-bottom: 1px solid var(--border); }
+        .logo h1 { font-size: 18px; font-weight: 600; color: var(--primary); }
+        .nav-section { padding: 16px 0; }
+        .nav-title { padding: 8px 16px; font-size: 12px; color: var(--text-secondary); text-transform: uppercase; }
+        .nav-item { display: flex; align-items: center; padding: 10px 16px; cursor: pointer; transition: all 0.2s; }
+        .nav-item:hover { background: var(--primary-light); }
+        .nav-item.active { background: var(--primary-light); color: var(--primary); border-right: 3px solid var(--primary); }
+        .nav-item i { width: 20px; margin-right: 10px; }
+
+        /* Cards */
+        .card { background: var(--white); border-radius: 8px; border: 1px solid var(--border); padding: 20px; margin-bottom: 16px; }
+        .card-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; }
+        .card-title { font-size: 16px; font-weight: 600; }
+
+        /* Stats */
+        .stats-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; margin-bottom: 24px; }
+        .stat-card { background: var(--white); border-radius: 8px; border: 1px solid var(--border); padding: 20px; }
+        .stat-value { font-size: 28px; font-weight: 600; color: var(--text); }
+        .stat-label { font-size: 14px; color: var(--text-secondary); margin-top: 4px; }
+        .stat-change { font-size: 12px; margin-top: 8px; }
+        .stat-change.up { color: var(--success); }
+        .stat-change.down { color: var(--error); }
+
+        /* Table */
+        .table-container { overflow-x: auto; }
+        table { width: 100%; border-collapse: collapse; }
+        th, td { padding: 12px 16px; text-align: left; border-bottom: 1px solid var(--border); }
+        th { background: var(--bg); font-weight: 600; font-size: 13px; color: var(--text-secondary); }
+        tr:hover { background: var(--primary-light); }
+
+        /* Badges */
+        .badge { display: inline-block; padding: 2px 8px; border-radius: 4px; font-size: 12px; font-weight: 500; }
+        .badge-success { background: #f6ffed; color: var(--success); border: 1px solid #b7eb8f; }
+        .badge-warning { background: #fffbe6; color: var(--warning); border: 1px solid #ffe58f; }
+        .badge-error { background: #fff2f0; color: var(--error); border: 1px solid #ffccc7; }
+        .badge-primary { background: var(--primary-light); color: var(--primary); border: 1px solid #91caff; }
+
+        /* Buttons */
+        .btn { display: inline-flex; align-items: center; padding: 6px 16px; border-radius: 6px; font-size: 14px; cursor: pointer; border: 1px solid var(--border); background: var(--white); transition: all 0.2s; }
+        .btn-primary { background: var(--primary); color: var(--white); border-color: var(--primary); }
+        .btn-primary:hover { background: var(--primary-dark); }
+        .btn-sm { padding: 4px 12px; font-size: 12px; }
+
+        /* Tabs */
+        .tabs { display: flex; border-bottom: 1px solid var(--border); margin-bottom: 16px; }
+        .tab { padding: 12px 20px; cursor: pointer; border-bottom: 2px solid transparent; transition: all 0.2s; }
+        .tab:hover { color: var(--primary); }
+        .tab.active { color: var(--primary); border-bottom-color: var(--primary); }
+
+        /* Forms */
+        .form-group { margin-bottom: 16px; }
+        .form-label { display: block; font-size: 14px; font-weight: 500; margin-bottom: 6px; }
+        .form-input { width: 100%; padding: 8px 12px; border: 1px solid var(--border); border-radius: 6px; font-size: 14px; }
+        .form-input:focus { outline: none; border-color: var(--primary); box-shadow: 0 0 0 2px var(--primary-light); }
+        .form-select { width: 100%; padding: 8px 12px; border: 1px solid var(--border); border-radius: 6px; font-size: 14px; background: var(--white); }
+
+        /* Price specific */
+        .price-tier { display: flex; align-items: center; padding: 12px; background: var(--bg); border-radius: 6px; margin-bottom: 8px; }
+        .price-tier-range { flex: 1; font-weight: 500; }
+        .price-tier-price { font-size: 18px; font-weight: 600; color: var(--primary); }
+        .price-trend { height: 60px; display: flex; align-items: flex-end; gap: 4px; }
+        .price-bar { flex: 1; background: var(--primary); border-radius: 2px 2px 0 0; transition: height 0.3s; }
+
+        /* Modal */
+        .modal-overlay { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.5); display: flex; align-items: center; justify-content: center; z-index: 1000; }
+        .modal { background: var(--white); border-radius: 8px; width: 600px; max-height: 80vh; overflow-y: auto; }
+        .modal-header { padding: 16px 20px; border-bottom: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center; }
+        .modal-body { padding: 20px; }
+        .modal-footer { padding: 16px 20px; border-top: 1px solid var(--border); display: flex; justify-content: flex-end; gap: 8px; }
+
+        /* Grid */
+        .grid-2 { display: grid; grid-template-columns: repeat(2, 1fr); gap: 16px; }
+        .grid-3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; }
+
+        /* Progress */
+        .progress-bar { height: 8px; background: var(--bg); border-radius: 4px; overflow: hidden; }
+        .progress-fill { height: 100%; background: var(--primary); transition: width 0.3s; }
+
+        /* Page sections */
+        .page-section { display: none; }
+        .page-section.active { display: block; }
+
+        /* Timeline */
+        .timeline { position: relative; padding-left: 24px; }
+        .timeline::before { content: ''; position: absolute; left: 8px; top: 0; bottom: 0; width: 2px; background: var(--border); }
+        .timeline-item { position: relative; margin-bottom: 24px; }
+        .timeline-dot { position: absolute; left: -20px; width: 12px; height: 12px; border-radius: 50%; background: var(--primary); }
+        .timeline-content { background: var(--bg); padding: 12px 16px; border-radius: 6px; }
+    </style>
+</head>
+<body>
+    <div class="layout">
+        <!-- Sidebar -->
+        <aside class="sidebar">
+            <div class="logo">
+                <h1><i class="fas fa-link"></i> SRM 平台</h1>
+            </div>
+            <nav>
+                <div class="nav-section">
+                    <div class="nav-title">概览</div>
+                    <div class="nav-item active" onclick="showPage('dashboard')">
+                        <i class="fas fa-home"></i> 工作台
+                    </div>
+                </div>
+                <div class="nav-section">
+                    <div class="nav-title">供应商管理</div>
+                    <div class="nav-item" onclick="showPage('supplier')">
+                        <i class="fas fa-building"></i> 供应商库
+                    </div>
+                    <div class="nav-item" onclick="showPage('assessment')">
+                        <i class="fas fa-chart-bar"></i> 绩效评估
+                    </div>
+                </div>
+                <div class="nav-section">
+                    <div class="nav-title">寻源采购</div>
+                    <div class="nav-item" onclick="showPage('sourcing')">
+                        <i class="fas fa-search"></i> 寻源定点
+                    </div>
+                    <div class="nav-item" onclick="showPage('quotation')">
+                        <i class="fas fa-file-invoice-dollar"></i> 询报价
+                    </div>
+                </div>
+                <div class="nav-section">
+                    <div class="nav-title">价格管理</div>
+                    <div class="nav-item" onclick="showPage('price')">
+                        <i class="fas fa-tags"></i> 价格库
+                    </div>
+                    <div class="nav-item" onclick="showPage('tiered')">
+                        <i class="fas fa-layer-group"></i> 阶梯价
+                    </div>
+                    <div class="nav-item" onclick="showPage('change')">
+                        <i class="fas fa-exchange-alt"></i> 变价管理
+                    </div>
+                </div>
+                <div class="nav-section">
+                    <div class="nav-title">合同订单</div>
+                    <div class="nav-item" onclick="showPage('contract')">
+                        <i class="fas fa-file-contract"></i> 框架协议
+                    </div>
+                    <div class="nav-item" onclick="showPage('order')">
+                        <i class="fas fa-shopping-cart"></i> 采购订单
+                    </div>
+                </div>
+                <div class="nav-section">
+                    <div class="nav-title">协同管理</div>
+                    <div class="nav-item" onclick="showPage('quota')">
+                        <i class="fas fa-balance-scale"></i> 配额管理
+                    </div>
+                    <div class="nav-item" onclick="showPage('forecast')">
+                        <i class="fas fa-chart-line"></i> 预测协同
+                    </div>
+                </div>
+            </nav>
+        </aside>
+
+        <!-- Main Content -->
+        <main class="main">
+            <header class="header">
+                <div style="display: flex; align-items: center; gap: 16px;">
+                    <h2 id="page-title">工作台</h2>
+                </div>
+                <div style="display: flex; align-items: center; gap: 16px;">
+                    <span><i class="fas fa-bell"></i></span>
+                    <span><i class="fas fa-cog"></i></span>
+                    <div style="width: 32px; height: 32px; background: var(--primary); border-radius: 50%; display: flex; align-items: center; justify-content: center; color: white; font-size: 14px;">C</div>
+                </div>
+            </header>
+
+            <div class="content">
+                <!-- ==================== 工作台 ==================== -->
+                <div id="page-dashboard" class="page-section active">
+                    <div class="stats-grid">
+                        <div class="stat-card">
+                            <div class="stat-value">1,286</div>
+                            <div class="stat-label">在册供应商</div>
+                            <div class="stat-change up"><i class="fas fa-arrow-up"></i> +12 本月新增</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-value">¥2.8亿</div>
+                            <div class="stat-label">本月采购额</div>
+                            <div class="stat-change up"><i class="fas fa-arrow-up"></i> +8.5% 环比</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-value">96.2%</div>
+                            <div class="stat-label">准时交付率</div>
+                            <div class="stat-change up"><i class="fas fa-arrow-up"></i> +0.3%</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-value">23</div>
+                            <div class="stat-label">待审批价格</div>
+                            <div class="stat-change down"><i class="fas fa-exclamation-triangle"></i> 5 项即将过期</div>
+                        </div>
+                    </div>
+
+                    <div class="grid-2">
+                        <div class="card">
+                            <div class="card-header">
+                                <span class="card-title">价格异常预警</span>
+                                <span class="badge badge-error">5 项</span>
+                            </div>
+                            <table>
+                                <thead>
+                                    <tr>
+                                        <th>物料</th>
+                                        <th>供应商</th>
+                                        <th>偏差</th>
+                                        <th>状态</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr>
+                                        <td>MT-001 传感器</td>
+                                        <td>XX 电子</td>
+                                        <td style="color: var(--error);">+15.2%</td>
+                                        <td><span class="badge badge-error">超阈值</span></td>
+                                    </tr>
+                                    <tr>
+                                        <td>MT-002 连接器</td>
+                                        <td>YY 精密</td>
+                                        <td style="color: var(--warning);">+8.5%</td>
+                                        <td><span class="badge badge-warning">关注</span></td>
+                                    </tr>
+                                    <tr>
+                                        <td>MT-003 外壳</td>
+                                        <td>ZZ 模具</td>
+                                        <td style="color: var(--error);">-12.3%</td>
+                                        <td><span class="badge badge-error">异常低价</span></td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+
+                        <div class="card">
+                            <div class="card-header">
+                                <span class="card-title">价格有效期预警</span>
+                                <span class="badge badge-warning">8 项</span>
+                            </div>
+                            <table>
+                                <thead>
+                                    <tr>
+                                        <th>供应商</th>
+                                        <th>到期日</th>
+                                        <th>剩余天数</th>
+                                        <th>状态</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr>
+                                        <td>XX 电子</td>
+                                        <td>2026-08-15</td>
+                                        <td>17 天</td>
+                                        <td><span class="badge badge-error">紧急</span></td>
+                                    </tr>
+                                    <tr>
+                                        <td>YY 精密</td>
+                                        <td>2026-09-30</td>
+                                        <td>63 天</td>
+                                        <td><span class="badge badge-warning">预警</span></td>
+                                    </tr>
+                                    <tr>
+                                        <td>ZZ 模具</td>
+                                        <td>2026-10-31</td>
+                                        <td>94 天</td>
+                                        <td><span class="badge badge-primary">提醒</span></td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                    <div class="card">
+                        <div class="card-header">
+                            <span class="card-title">待办事项</span>
+                            <button class="btn btn-primary btn-sm">查看全部</button>
+                        </div>
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>类型</th>
+                                    <th>内容</th>
+                                    <th>供应商</th>
+                                    <th>截止日期</th>
+                                    <th>操作</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td><span class="badge badge-error">紧急</span></td>
+                                    <td>价格审批：MT-001 年度降价</td>
+                                    <td>XX 电子</td>
+                                    <td>2026-08-01</td>
+                                    <td><button class="btn btn-primary btn-sm">处理</button></td>
+                                </tr>
+                                <tr>
+                                    <td><span class="badge badge-warning">普通</span></td>
+                                    <td>框架协议续签：2026-Q3</td>
+                                    <td>YY 精密</td>
+                                    <td>2026-08-15</td>
+                                    <td><button class="btn btn-primary btn-sm">处理</button></td>
+                                </tr>
+                                <tr>
+                                    <td><span class="badge badge-primary">提醒</span></td>
+                                    <td>供应商绩效评估：Q2</td>
+                                    <td>-</td>
+                                    <td>2026-08-31</td>
+                                    <td><button class="btn btn-primary btn-sm">处理</button></td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- ==================== 供应商库 ==================== -->
+                <div id="page-supplier" class="page-section">
+                    <div class="card">
+                        <div class="card-header">
+                            <span class="card-title">供应商库</span>
+                            <div style="display: flex; gap: 8px;">
+                                <input type="text" class="form-input" placeholder="搜索供应商..." style="width: 200px;">
+                                <select class="form-select" style="width: 120px;">
+                                    <option>全部状态</option>
+                                    <option>在册</option>
+                                    <option>认可中</option>
+                                    <option>冻结</option>
+                                </select>
+                                <button class="btn btn-primary"><i class="fas fa-plus"></i> 新增</button>
+                            </div>
+                        </div>
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>供应商编码</th>
+                                    <th>供应商名称</th>
+                                    <th>状态</th>
+                                    <th>来源类型</th>
+                                    <th>PPAP 状态</th>
+                                    <th>QCD 评分</th>
+                                    <th>操作</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td>SUP-001</td>
+                                    <td>XX 电子科技有限公司</td>
+                                    <td><span class="badge badge-success">在册</span></td>
+                                    <td>双源</td>
+                                    <td><span class="badge badge-success">已批准</span></td>
+                                    <td>
+                                        <div style="display: flex; gap: 4px;">
+                                            <span class="badge badge-success">Q:92</span>
+                                            <span class="badge badge-primary">C:88</span>
+                                            <span class="badge badge-success">D:95</span>
+                                        </div>
+                                    </td>
+                                    <td>
+                                        <button class="btn btn-sm">详情</button>
+                                        <button class="btn btn-sm">评估</button>
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td>SUP-002</td>
+                                    <td>YY 精密制造有限公司</td>
+                                    <td><span class="badge badge-success">在册</span></td>
+                                    <td>独供</td>
+                                    <td><span class="badge badge-success">已批准</span></td>
+                                    <td>
+                                        <div style="display: flex; gap: 4px;">
+                                            <span class="badge badge-warning">Q:78</span>
+                                            <span class="badge badge-success">C:92</span>
+                                            <span class="badge badge-success">D:89</span>
+                                        </div>
+                                    </td>
+                                    <td>
+                                        <button class="btn btn-sm">详情</button>
+                                        <button class="btn btn-sm">评估</button>
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td>SUP-003</td>
+                                    <td>ZZ 模具有限公司</td>
+                                    <td><span class="badge badge-warning">认可中</span></td>
+                                    <td>新增</td>
+                                    <td><span class="badge badge-warning">审核中</span></td>
+                                    <td>
+                                        <div style="display: flex; gap: 4px;">
+                                            <span class="badge badge-primary">Q:--</span>
+                                            <span class="badge badge-primary">C:--</span>
+                                            <span class="badge badge-primary">D:--</span>
+                                        </div>
+                                    </td>
+                                    <td>
+                                        <button class="btn btn-sm">详情</button>
+                                        <button class="btn btn-sm">评估</button>
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- ==================== 价格库 ==================== -->
+                <div id="page-price" class="page-section">
+                    <div class="tabs">
+                        <div class="tab active" onclick="switchPriceTab('list')">价格列表</div>
+                        <div class="tab" onclick="switchPriceTab('analysis')">价格分析</div>
+                        <div class="tab" onclick="switchPriceTab('compare')">供应商对比</div>
+                    </div>
+
+                    <div id="price-tab-list">
+                        <div class="card">
+                            <div class="card-header">
+                                <span class="card-title">价格库</span>
+                                <div style="display: flex; gap: 8px;">
+                                    <select class="form-select" style="width: 120px;">
+                                        <option>全部类型</option>
+                                        <option>固定价</option>
+                                        <option>阶梯价</option>
+                                        <option>公式价</option>
+                                    </select>
+                                    <select class="form-select" style="width: 120px;">
+                                        <option>全部状态</option>
+                                        <option>生效中</option>
+                                        <option>即将到期</option>
+                                        <option>已过期</option>
+                                    </select>
+                                    <button class="btn btn-primary"><i class="fas fa-plus"></i> 新增价格</button>
+                                </div>
+                            </div>
+                            <table>
+                                <thead>
+                                    <tr>
+                                        <th>物料</th>
+                                        <th>供应商</th>
+                                        <th>价格类型</th>
+                                        <th>单价(含税)</th>
+                                        <th>有效期</th>
+                                        <th>状态</th>
+                                        <th>操作</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr>
+                                        <td>MT-001 传感器组件</td>
+                                        <td>XX 电子</td>
+                                        <td><span class="badge badge-primary">阶梯价</span></td>
+                                        <td style="font-weight: 600; color: var(--primary);">¥12.50</td>
+                                        <td>2026-01-01 ~ 2026-12-31</td>
+                                        <td><span class="badge badge-success">生效中</span></td>
+                                        <td>
+                                            <button class="btn btn-sm">详情</button>
+                                            <button class="btn btn-sm">变价</button>
+                                        </td>
+                                    </tr>
+                                    <tr>
+                                        <td>MT-002 铜制连接器</td>
+                                        <td>YY 精密</td>
+                                        <td><span class="badge badge-warning">公式价</span></td>
+                                        <td style="font-weight: 600; color: var(--primary);">¥8.20</td>
+                                        <td>2026-01-01 ~ 2026-12-31</td>
+                                        <td><span class="badge badge-success">生效中</span></td>
+                                        <td>
+                                            <button class="btn btn-sm">详情</button>
+                                            <button class="btn btn-sm">变价</button>
+                                        </td>
+                                    </tr>
+                                    <tr>
+                                        <td>MT-003 塑料外壳</td>
+                                        <td>ZZ 模具</td>
+                                        <td><span class="badge badge-primary">固定价</span></td>
+                                        <td style="font-weight: 600; color: var(--primary);">¥5.80</td>
+                                        <td>2025-07-01 ~ 2026-06-30</td>
+                                        <td><span class="badge badge-error">已过期</span></td>
+                                        <td>
+                                            <button class="btn btn-sm">详情</button>
+                                            <button class="btn btn-sm">续签</button>
+                                        </td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                    <div id="price-tab-analysis" style="display: none;">
+                        <div class="grid-2">
+                            <div class="card">
+                                <div class="card-header">
+                                    <span class="card-title">价格趋势 - MT-001 传感器</span>
+                                </div>
+                                <div class="price-trend">
+                                    <div class="price-bar" style="height: 80%;"></div>
+                                    <div class="price-bar" style="height: 75%;"></div>
+                                    <div class="price-bar" style="height: 70%;"></div>
+                                    <div class="price-bar" style="height: 65%;"></div>
+                                    <div class="price-bar" style="height: 60%;"></div>
+                                    <div class="price-bar" style="height: 55%;"></div>
+                                </div>
+                                <div style="display: flex; justify-content: space-between; margin-top: 8px; font-size: 12px; color: var(--text-secondary);">
+                                    <span>2026-Q1</span>
+                                    <span>2026-Q2</span>
+                                    <span>2026-Q3</span>
+                                    <span>2026-Q4</span>
+                                </div>
+                                <div style="margin-top: 16px; padding: 12px; background: var(--bg); border-radius: 6px;">
+                                    <div style="font-size: 13px; color: var(--text-secondary);">年降目标</div>
+                                    <div style="font-size: 20px; font-weight: 600; color: var(--success);">-5.0%</div>
+                                    <div class="progress-bar" style="margin-top: 8px;">
+                                        <div class="progress-fill" style="width: 60%;"></div>
+                                    </div>
+                                    <div style="font-size: 12px; color: var(--text-secondary); margin-top: 4px;">已完成 60%</div>
+                                </div>
+                            </div>
+
+                            <div class="card">
+                                <div class="card-header">
+                                    <span class="card-title">价格类型分布</span>
+                                </div>
+                                <div style="display: flex; flex-direction: column; gap: 12px;">
+                                    <div style="display: flex; align-items: center; gap: 12px;">
+                                        <div style="width: 12px; height: 12px; background: var(--primary); border-radius: 2px;"></div>
+                                        <span style="flex: 1;">固定价</span>
+                                        <span style="font-weight: 600;">45%</span>
+                                    </div>
+                                    <div style="display: flex; align-items: center; gap: 12px;">
+                                        <div style="width: 12px; height: 12px; background: var(--success); border-radius: 2px;"></div>
+                                        <span style="flex: 1;">阶梯价</span>
+                                        <span style="font-weight: 600;">30%</span>
+                                    </div>
+                                    <div style="display: flex; align-items: center; gap: 12px;">
+                                        <div style="width: 12px; height: 12px; background: var(--warning); border-radius: 2px;"></div>
+                                        <span style="flex: 1;">公式价</span>
+                                        <span style="font-weight: 600;">15%</span>
+                                    </div>
+                                    <div style="display: flex; align-items: center; gap: 12px;">
+                                        <div style="width: 12px; height: 12px; background: var(--error); border-radius: 2px;"></div>
+                                        <span style="flex: 1;">暂作价</span>
+                                        <span style="font-weight: 600;">10%</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div id="price-tab-compare" style="display: none;">
+                        <div class="card">
+                            <div class="card-header">
+                                <span class="card-title">供应商价格对比 - MT-001 传感器组件</span>
+                            </div>
+                            <table>
+                                <thead>
+                                    <tr>
+                                        <th>供应商</th>
+                                        <th>单价(含税)</th>
+                                        <th>阶梯价</th>
+                                        <th>有效期</th>
+                                        <th>结算权限</th>
+                                        <th>操作</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr>
+                                        <td>XX 电子 (SUP-001)</td>
+                                        <td style="font-weight: 600; color: var(--primary);">¥12.50</td>
+                                        <td>
+                                            <div style="font-size: 12px;">
+                                                1-999: ¥12.50<br>
+                                                1000+: ¥11.80<br>
+                                                5000+: ¥11.20
+                                            </div>
+                                        </td>
+                                        <td>2026-12-31</td>
+                                        <td><span class="badge badge-success">可结算</span></td>
+                                        <td><button class="btn btn-primary btn-sm">选择</button></td>
+                                    </tr>
+                                    <tr>
+                                        <td>YY 精密 (SUP-002)</td>
+                                        <td style="font-weight: 600;">¥12.80</td>
+                                        <td>
+                                            <div style="font-size: 12px;">
+                                                1-4999: ¥12.80<br>
+                                                5000+: ¥12.00
+                                            </div>
+                                        </td>
+                                        <td>2026-12-31</td>
+                                        <td><span class="badge badge-success">可结算</span></td>
+                                        <td><button class="btn btn-primary btn-sm">选择</button></td>
+                                    </tr>
+                                    <tr>
+                                        <td>ZZ 模具 (SUP-003)</td>
+                                        <td style="font-weight: 600; color: var(--warning);">¥13.50</td>
+                                        <td>
+                                            <div style="font-size: 12px;">
+                                                固定价，无阶梯
+                                            </div>
+                                        </td>
+                                        <td>2026-06-30</td>
+                                        <td><span class="badge badge-warning">暂作价</span></td>
+                                        <td><button class="btn btn-sm">评估</button></td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- ==================== 阶梯价 ==================== -->
+                <div id="page-tiered" class="page-section">
+                    <div class="card">
+                        <div class="card-header">
+                            <span class="card-title">阶梯价配置 - MT-001 传感器组件</span>
+                            <button class="btn btn-primary btn-sm"><i class="fas fa-edit"></i> 编辑阶梯</button>
+                        </div>
+
+                        <div style="display: flex; gap: 24px; margin-bottom: 24px;">
+                            <div style="flex: 1;">
+                                <div class="form-label">供应商</div>
+                                <div>XX 电子科技有限公司 (SUP-001)</div>
+                            </div>
+                            <div style="flex: 1;">
+                                <div class="form-label">有效期</div>
+                                <div>2026-01-01 ~ 2026-12-31</div>
+                            </div>
+                            <div style="flex: 1;">
+                                <div class="form-label">状态</div>
+                                <div><span class="badge badge-success">生效中</span></div>
+                            </div>
+                        </div>
+
+                        <div class="form-label" style="margin-bottom: 12px;">价格阶梯</div>
+                        <div class="price-tier">
+                            <div style="width: 40px; height: 40px; background: var(--primary-light); border-radius: 50%; display: flex; align-items: center; justify-content: center; margin-right: 16px;">
+                                <span style="font-weight: 600; color: var(--primary);">1</span>
+                            </div>
+                            <div class="price-tier-range">
+                                <div style="font-weight: 500;">1 ~ 999 件</div>
+                                <div style="font-size: 12px; color: var(--text-secondary);">标准单价</div>
+                            </div>
+                            <div class="price-tier-price">¥12.50</div>
+                        </div>
+                        <div class="price-tier">
+                            <div style="width: 40px; height: 40px; background: var(--primary-light); border-radius: 50%; display: flex; align-items: center; justify-content: center; margin-right: 16px;">
+                                <span style="font-weight: 600; color: var(--primary);">2</span>
+                            </div>
+                            <div class="price-tier-range">
+                                <div style="font-weight: 500;">1,000 ~ 4,999 件</div>
+                                <div style="font-size: 12px; color: var(--text-secondary);">月度订单</div>
+                            </div>
+                            <div class="price-tier-price">¥11.80</div>
+                            <div style="margin-left: 16px; padding: 4px 8px; background: var(--success); color: white; border-radius: 4px; font-size: 12px;">-5.6%</div>
+                        </div>
+                        <div class="price-tier">
+                            <div style="width: 40px; height: 40px; background: var(--primary-light); border-radius: 50%; display: flex; align-items: center; justify-content: center; margin-right: 16px;">
+                                <span style="font-weight: 600; color: var(--primary);">3</span>
+                            </div>
+                            <div class="price-tier-range">
+                                <div style="font-weight: 500;">5,000 ~ 9,999 件</div>
+                                <div style="font-size: 12px; color: var(--text-secondary);">月度订单</div>
+                            </div>
+                            <div class="price-tier-price">¥11.20</div>
+                            <div style="margin-left: 16px; padding: 4px 8px; background: var(--success); color: white; border-radius: 4px; font-size: 12px;">-10.4%</div>
+                        </div>
+                        <div class="price-tier">
+                            <div style="width: 40px; height: 40px; background: var(--primary-light); border-radius: 50%; display: flex; align-items: center; justify-content: center; margin-right: 16px;">
+                                <span style="font-weight: 600; color: var(--primary);">4</span>
+                            </div>
+                            <div class="price-tier-range">
+                                <div style="font-weight: 500;">10,000+ 件</div>
+                                <div style="font-size: 12px; color: var(--text-secondary);">季度框架协议</div>
+                            </div>
+                            <div class="price-tier-price">¥10.50</div>
+                            <div style="margin-left: 16px; padding: 4px 8px; background: var(--success); color: white; border-radius: 4px; font-size: 12px;">-16.0%</div>
+                        </div>
+
+                        <div style="margin-top: 24px; padding: 16px; background: var(--bg); border-radius: 6px;">
+                            <div class="form-label">特殊条款</div>
+                            <div style="display: flex; gap: 24px; font-size: 14px;">
+                                <div><span style="color: var(--text-secondary);">MOQ:</span> <span style="font-weight: 500;">100 件</span></div>
+                                <div><span style="color: var(--text-secondary);">MPQ:</span> <span style="font-weight: 500;">500 件</span></div>
+                                <div><span style="color: var(--text-secondary);">税率:</span> <span style="font-weight: 500;">13%</span></div>
+                                <div><span style="color: var(--text-secondary);">年降:</span> <span style="font-weight: 500; color: var(--success);">5%/年</span></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- ==================== 变价管理 ==================== -->
+                <div id="page-change" class="page-section">
+                    <div class="card">
+                        <div class="card-header">
+                            <span class="card-title">变价管理</span>
+                            <button class="btn btn-primary"><i class="fas fa-plus"></i> 发起变价</button>
+                        </div>
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>变价编号</th>
+                                    <th>变价类型</th>
+                                    <th>物料</th>
+                                    <th>供应商</th>
+                                    <th>原价格</th>
+                                    <th>新价格</th>
+                                    <th>幅度</th>
+                                    <th>审批状态</th>
+                                    <th>操作</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td>PC-2026-001</td>
+                                    <td><span class="badge badge-primary">年度降本</span></td>
+                                    <td>MT-001 传感器</td>
+                                    <td>XX 电子</td>
+                                    <td>¥12.50</td>
+                                    <td>¥11.88</td>
+                                    <td style="color: var(--success); font-weight: 600;">-5.0%</td>
+                                    <td><span class="badge badge-warning">待审批</span></td>
+                                    <td><button class="btn btn-primary btn-sm">审批</button></td>
+                                </tr>
+                                <tr>
+                                    <td>PC-2026-002</td>
+                                    <td><span class="badge badge-warning">原材料联动</span></td>
+                                    <td>MT-002 连接器</td>
+                                    <td>YY 精密</td>
+                                    <td>¥8.20</td>
+                                    <td>¥8.61</td>
+                                    <td style="color: var(--error); font-weight: 600;">+5.0%</td>
+                                    <td><span class="badge badge-success">已批准</span></td>
+                                    <td><button class="btn btn-sm">查看</button></td>
+                                </tr>
+                                <tr>
+                                    <td>PC-2026-003</td>
+                                    <td><span class="badge badge-success">汇率联动</span></td>
+                                    <td>MT-004 芯片</td>
+                                    <td>海外供应商</td>
+                                    <td>$2.50</td>
+                                    <td>$2.45</td>
+                                    <td style="color: var(--success); font-weight: 600;">-2.0%</td>
+                                    <td><span class="badge badge-success">已批准</span></td>
+                                    <td><button class="btn btn-sm">查看</button></td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- ==================== 寻源定点 ==================== -->
+                <div id="page-sourcing" class="page-section">
+                    <div class="card">
+                        <div class="card-header">
+                            <span class="card-title">寻源项目</span>
+                            <button class="btn btn-primary"><i class="fas fa-plus"></i> 新建寻源</button>
+                        </div>
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>项目编号</th>
+                                    <th>项目名称</th>
+                                    <th>物料</th>
+                                    <th>状态</th>
+                                    <th>报价数</th>
+                                    <th>截止日期</th>
+                                    <th>操作</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td>RFQ-2026-001</td>
+                                    <td>传感器组件年度寻源</td>
+                                    <td>MT-001</td>
+                                    <td><span class="badge badge-success">报价中</span></td>
+                                    <td>3/5</td>
+                                    <td>2026-08-15</td>
+                                    <td><button class="btn btn-primary btn-sm">查看报价</button></td>
+                                </tr>
+                                <tr>
+                                    <td>RFQ-2026-002</td>
+                                    <td>铜制连接器竞争性寻源</td>
+                                    <td>MT-002</td>
+                                    <td><span class="badge badge-warning">评审中</span></td>
+                                    <td>4/4</td>
+                                    <td>2026-07-31</td>
+                                    <td><button class="btn btn-primary btn-sm">比价分析</button></td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- ==================== 询报价 ==================== -->
+                <div id="page-quotation" class="page-section">
+                    <div class="card">
+                        <div class="card-header">
+                            <span class="card-title">报价明细 - RFQ-2026-001</span>
+                        </div>
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>供应商</th>
+                                    <th>材料费</th>
+                                    <th>加工费</th>
+                                    <th>管理费</th>
+                                    <th>包装费</th>
+                                    <th>利润</th>
+                                    <th>总价</th>
+                                    <th>排名</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr style="background: #f6ffed;">
+                                    <td>XX 电子 (SUP-001)</td>
+                                    <td>¥5.20</td>
+                                    <td>¥3.80</td>
+                                    <td>¥0.80</td>
+                                    <td>¥0.30</td>
+                                    <td>¥2.40</td>
+                                    <td style="font-weight: 600; color: var(--primary);">¥12.50</td>
+                                    <td><span class="badge badge-success">🥇 1st</span></td>
+                                </tr>
+                                <tr>
+                                    <td>YY 精密 (SUP-002)</td>
+                                    <td>¥5.50</td>
+                                    <td>¥3.60</td>
+                                    <td>¥0.85</td>
+                                    <td>¥0.35</td>
+                                    <td>¥2.50</td>
+                                    <td style="font-weight: 600;">¥12.80</td>
+                                    <td><span class="badge badge-primary">🥈 2nd</span></td>
+                                </tr>
+                                <tr>
+                                    <td>ZZ 模具 (SUP-003)</td>
+                                    <td>¥5.80</td>
+                                    <td>¥4.00</td>
+                                    <td>¥0.90</td>
+                                    <td>¥0.40</td>
+                                    <td>¥2.40</td>
+                                    <td style="font-weight: 600;">¥13.50</td>
+                                    <td><span class="badge badge-warning">🥉 3rd</span></td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- ==================== 框架协议 ==================== -->
+                <div id="page-contract" class="page-section">
+                    <div class="card">
+                        <div class="card-header">
+                            <span class="card-title">框架协议</span>
+                            <button class="btn btn-primary"><i class="fas fa-plus"></i> 新建协议</button>
+                        </div>
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>协议编号</th>
+                                    <th>协议类型</th>
+                                    <th>供应商</th>
+                                    <th>有效期</th>
+                                    <th>协议金额</th>
+                                    <th>执行进度</th>
+                                    <th>状态</th>
+                                    <th>操作</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td>FA-2026-001</td>
+                                    <td>价格协议</td>
+                                    <td>XX 电子</td>
+                                    <td>2026-01 ~ 2026-12</td>
+                                    <td>¥1,500 万</td>
+                                    <td>
+                                        <div class="progress-bar" style="width: 100px;">
+                                            <div class="progress-fill" style="width: 65%;"></div>
+                                        </div>
+                                        <span style="font-size: 12px; margin-left: 4px;">65%</span>
+                                    </td>
+                                    <td><span class="badge badge-success">执行中</span></td>
+                                    <td><button class="btn btn-sm">详情</button></td>
+                                </tr>
+                                <tr>
+                                    <td>FA-2026-002</td>
+                                    <td>量价协议</td>
+                                    <td>YY 精密</td>
+                                    <td>2026-01 ~ 2027-12</td>
+                                    <td>¥2,800 万</td>
+                                    <td>
+                                        <div class="progress-bar" style="width: 100px;">
+                                            <div class="progress-fill" style="width: 30%;"></div>
+                                        </div>
+                                        <span style="font-size: 12px; margin-left: 4px;">30%</span>
+                                    </td>
+                                    <td><span class="badge badge-success">执行中</span></td>
+                                    <td><button class="btn btn-sm">详情</button></td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- ==================== 采购订单 ==================== -->
+                <div id="page-order" class="page-section">
+                    <div class="card">
+                        <div class="card-header">
+                            <span class="card-title">采购订单</span>
+                            <div style="display: flex; gap: 8px;">
+                                <select class="form-select" style="width: 120px;">
+                                    <option>全部状态</option>
+                                    <option>待确认</option>
+                                    <option>已确认</option>
+                                    <option>已发货</option>
+                                    <option>已收货</option>
+                                </select>
+                                <button class="btn btn-primary"><i class="fas fa-plus"></i> 新建订单</button>
+                            </div>
+                        </div>
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>订单号</th>
+                                    <th>供应商</th>
+                                    <th>物料</th>
+                                    <th>数量</th>
+                                    <th>单价</th>
+                                    <th>金额</th>
+                                    <th>交期</th>
+                                    <th>状态</th>
+                                    <th>操作</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td>PO-20260729-001</td>
+                                    <td>XX 电子</td>
+                                    <td>MT-001 传感器</td>
+                                    <td>5,000</td>
+                                    <td>¥11.20</td>
+                                    <td>¥56,000</td>
+                                    <td>2026-08-15</td>
+                                    <td><span class="badge badge-success">已确认</span></td>
+                                    <td><button class="btn btn-sm">跟踪</button></td>
+                                </tr>
+                                <tr>
+                                    <td>PO-20260729-002</td>
+                                    <td>YY 精密</td>
+                                    <td>MT-002 连接器</td>
+                                    <td>10,000</td>
+                                    <td>¥8.20</td>
+                                    <td>¥82,000</td>
+                                    <td>2026-08-20</td>
+                                    <td><span class="badge badge-warning">已发货</span></td>
+                                    <td><button class="btn btn-sm">收货</button></td>
+                                </tr>
+                                <tr>
+                                    <td>PO-20260729-003</td>
+                                    <td>ZZ 模具</td>
+                                    <td>MT-003 外壳</td>
+                                    <td>2,000</td>
+                                    <td>¥5.80</td>
+                                    <td>¥11,600</td>
+                                    <td>2026-08-10</td>
+                                    <td><span class="badge badge-primary">待确认</span></td>
+                                    <td><button class="btn btn-sm">催单</button></td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- ==================== 配额管理 ==================== -->
+                <div id="page-quota" class="page-section">
+                    <div class="card">
+                        <div class="card-header">
+                            <span class="card-title">配额管理 - MT-001 传感器组件</span>
+                            <button class="btn btn-primary"><i class="fas fa-edit"></i> 调整配额</button>
+                        </div>
+
+                        <div style="display: flex; gap: 24px; margin-bottom: 24px;">
+                            <div style="flex: 1;">
+                                <div class="form-label">物料</div>
+                                <div>MT-001 传感器组件</div>
+                            </div>
+                            <div style="flex: 1;">
+                                <div class="form-label">策略</div>
+                                <div>双源主辅模式</div>
+                            </div>
+                            <div style="flex: 1;">
+                                <div class="form-label">下次评审</div>
+                                <div>2026-Q4</div>
+                            </div>
+                        </div>
+
+                        <div class="grid-2">
+                            <div style="padding: 20px; background: var(--primary-light); border-radius: 8px; border-left: 4px solid var(--primary);">
+                                <div style="display: flex; justify-content: space-between; align-items: center;">
+                                    <div>
+                                        <div style="font-size: 18px; font-weight: 600;">XX 电子 (SUP-001)</div>
+                                        <div style="color: var(--text-secondary); margin-top: 4px;">主供应商</div>
+                                    </div>
+                                    <div style="font-size: 32px; font-weight: 600; color: var(--primary);">70%</div>
+                                </div>
+                                <div class="progress-bar" style="margin-top: 16px;">
+                                    <div class="progress-fill" style="width: 70%;"></div>
+                                </div>
+                                <div style="display: flex; justify-content: space-between; margin-top: 8px; font-size: 12px;">
+                                    <span>目标: 70%</span>
+                                    <span style="color: var(--success);">实际: 68%</span>
+                                </div>
+                            </div>
+
+                            <div style="padding: 20px; background: var(--bg); border-radius: 8px; border-left: 4px solid var(--border);">
+                                <div style="display: flex; justify-content: space-between; align-items: center;">
+                                    <div>
+                                        <div style="font-size: 18px; font-weight: 600;">YY 精密 (SUP-002)</div>
+                                        <div style="color: var(--text-secondary); margin-top: 4px;">辅供应商</div>
+                                    </div>
+                                    <div style="font-size: 32px; font-weight: 600;">30%</div>
+                                </div>
+                                <div class="progress-bar" style="margin-top: 16px;">
+                                    <div class="progress-fill" style="width: 30%; background: var(--border);"></div>
+                                </div>
+                                <div style="display: flex; justify-content: space-between; margin-top: 8px; font-size: 12px;">
+                                    <span>目标: 30%</span>
+                                    <span style="color: var(--success);">实际: 32%</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- ==================== 预测协同 ==================== -->
+                <div id="page-forecast" class="page-section">
+                    <div class="card">
+                        <div class="card-header">
+                            <span class="card-title">需求预测 - MT-001 传感器组件</span>
+                            <div style="display: flex; gap: 8px;">
+                                <select class="form-select" style="width: 120px;">
+                                    <option>月度预测</option>
+                                    <option>周度预测</option>
+                                </select>
+                                <button class="btn btn-primary"><i class="fas fa-upload"></i> 导入预测</button>
+                            </div>
+                        </div>
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>月份</th>
+                                    <th>需求预测</th>
+                                    <th>供应商配额</th>
+                                    <th>产能匹配</th>
+                                    <th>安全库存</th>
+                                    <th>状态</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td>2026-08</td>
+                                    <td style="font-weight: 600;">50,000 件</td>
+                                    <td>XX: 35,000 / YY: 15,000</td>
+                                    <td>
+                                        <div class="progress-bar" style="width: 100px;">
+                                            <div class="progress-fill" style="width: 100%;"></div>
+                                        </div>
+                                        <span style="font-size: 12px;">100%</span>
+                                    </td>
+                                    <td>10,000 件</td>
+                                    <td><span class="badge badge-success">已确认</span></td>
+                                </tr>
+                                <tr>
+                                    <td>2026-09</td>
+                                    <td style="font-weight: 600;">55,000 件</td>
+                                    <td>XX: 38,500 / YY: 16,500</td>
+                                    <td>
+                                        <div class="progress-bar" style="width: 100px;">
+                                            <div class="progress-fill" style="width: 90%; background: var(--warning);"></div>
+                                        </div>
+                                        <span style="font-size: 12px;">90%</span>
+                                    </td>
+                                    <td>11,000 件</td>
+                                    <td><span class="badge badge-warning">待确认</span></td>
+                                </tr>
+                                <tr>
+                                    <td>2026-10</td>
+                                    <td style="font-weight: 600;">60,000 件</td>
+                                    <td>XX: 42,000 / YY: 18,000</td>
+                                    <td>
+                                        <div class="progress-bar" style="width: 100px;">
+                                            <div class="progress-fill" style="width: 75%; background: var(--error);"></div>
+                                        </div>
+                                        <span style="font-size: 12px;">75%</span>
+                                    </td>
+                                    <td>12,000 件</td>
+                                    <td><span class="badge badge-error">产能不足</span></td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- ==================== 绩效评估 ==================== -->
+                <div id="page-assessment" class="page-section">
+                    <div class="card">
+                        <div class="card-header">
+                            <span class="card-title">供应商绩效评估</span>
+                        </div>
+                        <div class="grid-3">
+                            <div style="padding: 20px; background: var(--bg); border-radius: 8px; text-align: center;">
+                                <div style="font-size: 14px; color: var(--text-secondary);">准时交付率</div>
+                                <div style="font-size: 32px; font-weight: 600; color: var(--success);">96.2%</div>
+                                <div style="font-size: 12px; color: var(--success);">目标: 95%</div>
+                            </div>
+                            <div style="padding: 20px; background: var(--bg); border-radius: 8px; text-align: center;">
+                                <div style="font-size: 14px; color: var(--text-secondary);">质量合格率</div>
+                                <div style="font-size: 32px; font-weight: 600; color: var(--success);">98.5%</div>
+                                <div style="font-size: 12px; color: var(--success);">目标: 98%</div>
+                            </div>
+                            <div style="padding: 20px; background: var(--bg); border-radius: 8px; text-align: center;">
+                                <div style="font-size: 14px; color: var(--text-secondary);">PPM</div>
+                                <div style="font-size: 32px; font-weight: 600; color: var(--success);">150</div>
+                                <div style="font-size: 12px; color: var(--success);">目标: ≤500</div>
+                            </div>
+                        </div>
+
+                        <table style="margin-top: 24px;">
+                            <thead>
+                                <tr>
+                                    <th>供应商</th>
+                                    <th>Q (质量)</th>
+                                    <th>C (成本)</th>
+                                    <th>D (交付)</th>
+                                    <th>S (服务)</th>
+                                    <th>T (技术)</th>
+                                    <th>综合评分</th>
+                                    <th>等级</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td>XX 电子</td>
+                                    <td>92</td>
+                                    <td>88</td>
+                                    <td>95</td>
+                                    <td>90</td>
+                                    <td>85</td>
+                                    <td style="font-weight: 600; color: var(--success);">90.0</td>
+                                    <td><span class="badge badge-success">A</span></td>
+                                </tr>
+                                <tr>
+                                    <td>YY 精密</td>
+                                    <td>78</td>
+                                    <td>92</td>
+                                    <td>89</td>
+                                    <td>82</td>
+                                    <td>88</td>
+                                    <td style="font-weight: 600; color: var(--primary);">85.8</td>
+                                    <td><span class="badge badge-primary">B</span></td>
+                                </tr>
+                                <tr>
+                                    <td>ZZ 模具</td>
+                                    <td>70</td>
+                                    <td>75</td>
+                                    <td>72</td>
+                                    <td>68</td>
+                                    <td>71</td>
+                                    <td style="font-weight: 600; color: var(--warning);">71.2</td>
+                                    <td><span class="badge badge-warning">C</span></td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <script>
+        // 页面切换
+        function showPage(pageName) {
+            // 隐藏所有页面
+            document.querySelectorAll('.page-section').forEach(page => {
+                page.classList.remove('active');
+            });
+
+            // 显示目标页面
+            const targetPage = document.getElementById('page-' + pageName);
+            if (targetPage) {
+                targetPage.classList.add('active');
+            }
+
+            // 更新导航状态
+            document.querySelectorAll('.nav-item').forEach(item => {
+                item.classList.remove('active');
+            });
+            event.currentTarget.classList.add('active');
+
+            // 更新标题
+            const titles = {
+                'dashboard': '工作台',
+                'supplier': '供应商库',
+                'assessment': '绩效评估',
+                'sourcing': '寻源定点',
+                'quotation': '询报价',
+                'price': '价格库',
+                'tiered': '阶梯价管理',
+                'change': '变价管理',
+                'contract': '框架协议',
+                'order': '采购订单',
+                'quota': '配额管理',
+                'forecast': '预测协同'
+            };
+            document.getElementById('page-title').textContent = titles[pageName] || pageName;
+        }
+
+        // 价格标签切换
+        function switchPriceTab(tabName) {
+            // 隐藏所有标签内容
+            document.getElementById('price-tab-list').style.display = 'none';
+            document.getElementById('price-tab-analysis').style.display = 'none';
+            document.getElementById('price-tab-compare').style.display = 'none';
+
+            // 显示目标内容
+            document.getElementById('price-tab-' + tabName).style.display = 'block';
+
+            // 更新标签状态
+            document.querySelectorAll('.tabs .tab').forEach(tab => {
+                tab.classList.remove('active');
+            });
+            event.currentTarget.classList.add('active');
+        }
+    </script>
+</body>
+</html>

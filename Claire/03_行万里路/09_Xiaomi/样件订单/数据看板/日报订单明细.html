@@ -1,0 +1,359 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>日报订单明细 · 样件订单自动化</title>
+<style>
+:root{
+  --nav-h:48px;--blue:#3370ff;--ink:#1f2329;--grey:#646a73;--line:#e5e6eb;--bg:#f5f7fa;
+  --green:#00a870;--red:#f53f3f;--orange:#ff9d00;--purple:#722ed1;--yellow:#d97706;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font:12px/1.55 -apple-system,"PingFang SC","Microsoft YaHei",sans-serif;color:var(--ink);background:var(--bg);padding-top:var(--nav-h)}
+.topnav{position:fixed;top:0;left:0;right:0;height:var(--nav-h);background:linear-gradient(135deg,#1c2433,#2a3a5c);color:#fff;display:flex;align-items:center;padding:0 20px;z-index:100;box-shadow:0 1px 4px rgba(0,0,0,.2)}
+.topnav .logo{display:flex;align-items:center;gap:8px;margin-right:24px}
+.topnav .logo-icon{width:24px;height:24px;background:#ff6900;border-radius:4px;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:12px}
+.topnav .logo-text{font-size:13px;font-weight:600}
+.topnav .menu{display:flex;gap:2px}
+.topnav .menu a{color:rgba(255,255,255,.8);text-decoration:none;padding:6px 12px;border-radius:4px;font-size:12px;cursor:pointer}
+.topnav .menu a:hover{background:rgba(255,255,255,.1)}
+.topnav .menu a.on{background:rgba(255,255,255,.18);color:#fff;font-weight:500}
+.topnav .sp{flex:1}
+.topnav .meta{font-size:11px;color:rgba(255,255,255,.6)}
+.wrap{max-width:1150px;margin:0 auto;padding:16px 24px 40px}
+.page-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px}
+.page-head h1{font-size:18px;font-weight:700}
+.page-head .date-select select{padding:5px 10px;border:1px solid var(--line);border-radius:4px;font-size:11px;background:#fff}
+.page-head .refresh button{background:var(--blue);color:#fff;border:none;padding:5px 12px;border-radius:4px;font-size:11px;cursor:pointer;margin-left:8px}
+.kpi-row{display:grid;grid-template-columns:repeat(5,1fr);gap:8px;margin-bottom:14px}
+.kpi{background:#fff;border:1px solid var(--line);border-radius:6px;padding:10px 12px;position:relative;overflow:hidden}
+.kpi::before{content:'';position:absolute;left:0;top:0;bottom:0;width:3px;background:var(--blue)}
+.kpi.g::before{background:var(--green)}.kpi.o::before{background:var(--orange)}.kpi.r::before{background:var(--red)}.kpi.p::before{background:var(--purple)}
+.kpi .v{font-size:20px;font-weight:700;line-height:1.2}
+.kpi .l{font-size:11px;color:var(--grey);margin-top:2px}
+.card{background:#fff;border:1px solid var(--line);border-radius:6px;margin-bottom:12px;overflow:hidden}
+.card .hd{padding:8px 14px;border-bottom:1px solid var(--line);font-weight:600;font-size:13px;display:flex;align-items:center;gap:6px}
+.card .hd .tip{font-weight:400;font-size:11px;color:var(--grey);margin-left:auto}
+.card .bd{padding:12px 14px}
+table{width:100%;border-collapse:collapse;font-size:11.5px}
+th{background:#f7f8fa;color:#3a4353;font-weight:600;text-align:left;padding:7px 10px;border-bottom:2px solid var(--line);white-space:nowrap;font-size:11px}
+td{padding:6px 10px;border-bottom:1px solid #f0f1f3;vertical-align:middle}
+tr:hover td{background:#fafbfe}
+.tag{display:inline-block;padding:1px 7px;border-radius:3px;font-size:10px;font-weight:600}
+.t-green{background:#e5faf1;color:var(--green)}.t-orange{background:#fff4e5;color:#b36b00}
+.t-red{background:#ffebe8;color:var(--red)}.t-grey{background:#f2f3f5;color:var(--grey)}.t-blue{background:#e8f0ff;color:var(--blue)}.t-purple{background:#f5e8ff;color:var(--purple)}
+.cat-tag{display:inline-flex;align-items:center;gap:3px;padding:1px 7px;border-radius:3px;font-size:10px;font-weight:600}
+.cat-a{background:#e5faf1;color:var(--green)}.cat-b{background:#fff4e5;color:#b36b00}
+.cat-c{background:#e8f0ff;color:var(--blue)}.cat-d{background:#f5e8ff;color:var(--purple)}
+.mono{font-family:ui-monospace,Menlo,Consolas,monospace;font-size:10.5px;color:#47536b}
+.order-group{border:1px solid var(--line);border-radius:6px;margin-bottom:10px;overflow:hidden}
+.order-group .gh{padding:7px 12px;background:#f7f8fa;border-bottom:1px solid var(--line);display:flex;align-items:center;gap:8px;font-size:12px;font-weight:600}
+.order-group .gh .sp{flex:1;font-weight:400;font-size:11px;color:var(--grey)}
+.supplier-card{border:1px dashed #d9a05b;background:#fffdf5;border-radius:6px;padding:10px 12px;margin-bottom:8px}
+.supplier-card .title{font-size:12.5px;font-weight:600;color:#b36b00;margin-bottom:5px;display:flex;align-items:center;gap:6px}
+.supplier-card .info{font-size:11px;color:#4e5969;margin-bottom:6px;line-height:1.6}
+.supplier-options{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:6px}
+.supplier-option{border:1px solid #e5e6eb;border-radius:4px;padding:7px 10px;background:#fff;font-size:11px}
+.supplier-option.selected{border-color:var(--blue);background:#e8f0ff}
+.supplier-option .name{font-weight:600;margin-bottom:2px}
+.supplier-option .price{font-size:14px;font-weight:700;color:var(--blue)}
+.supplier-option .meta{font-size:10px;color:var(--grey);margin-top:2px}
+.timeline{position:relative;padding-left:20px;margin:8px 0}
+.timeline::before{content:'';position:absolute;left:7px;top:3px;bottom:3px;width:2px;background:var(--line)}
+.tli{position:relative;margin-bottom:8px}
+.tli::before{content:'';position:absolute;left:-16px;top:4px;width:8px;height:8px;border-radius:50%;background:var(--blue);border:2px solid #fff;box-shadow:0 0 0 2px var(--blue)}
+.tli.ok::before{background:var(--green);box-shadow:0 0 0 2px var(--green)}
+.tli.warn::before{background:var(--orange);box-shadow:0 0 0 2px var(--orange)}
+.tli.err::before{background:var(--red);box-shadow:0 0 0 2px var(--red)}
+.tli .t{font-size:11.5px;font-weight:600;margin-bottom:1px}
+.tli .d{font-size:10.5px;color:var(--grey)}
+.empty{text-align:center;padding:24px;color:var(--grey);font-size:12px}
+.loading{text-align:center;padding:40px;color:var(--grey);font-size:13px}
+.error{text-align:center;padding:40px;color:var(--red);font-size:13px}
+@media(max-width:900px){.kpi-row{grid-template-columns:repeat(3,1fr)}}
+@media(max-width:600px){.kpi-row{grid-template-columns:repeat(2,1fr)}.topnav .menu{display:none}}
+</style>
+</head>
+<body>
+
+<div class="topnav">
+  <div class="logo"><div class="logo-icon">MI</div><div class="logo-text">样件订单自动化</div></div>
+  <div class="menu">
+    <a href="执行日志面板.html">执行日志面板</a>
+    <a href="执行日报.html">执行日报</a>
+    <a class="on">日报订单明细</a>
+  </div>
+  <div class="sp"></div>
+  <div class="meta" id="genTime">加载中...</div>
+</div>
+
+<div class="wrap">
+  <div class="page-head">
+    <h1>📦 日报订单明细</h1>
+    <div style="display:flex;align-items:center;gap:10px">
+      <div class="date-select"><select id="dateSelect"><option value="">全部日期</option></select></div>
+      <div class="refresh"><button onclick="location.reload()">🔄 刷新</button></div>
+    </div>
+  </div>
+
+  <div id="loading" class="loading">正在加载数据...</div>
+  <div id="error" class="error" style="display:none"></div>
+  <div id="content" style="display:none">
+
+    <!-- KPI -->
+    <div class="kpi-row" id="kpiRow"></div>
+
+    <!-- A/B/C/D 分类统计 -->
+    <div class="card">
+      <div class="hd">🏷️ 订单分类统计（A/B/C/D）<span class="tip">价格唯一性 × 供应商唯一性</span></div>
+      <div class="bd">
+        <table>
+          <thead><tr><th>分类</th><th>条件</th><th>数量</th><th>处理方式</th><th>供应商选择</th></tr></thead>
+          <tbody>
+            <tr><td><span class="cat-tag cat-a">A类</span></td><td>唯一价格 + 唯一供应商</td><td class="mono" id="catA">0</td><td>自动汇总 → 一键下单</td><td>不需要</td></tr>
+            <tr><td><span class="cat-tag cat-b">B类</span></td><td>唯一价格 + 多个供应商</td><td class="mono" id="catB">0</td><td>推送供应商选择 → 选择后下单</td><td>需要</td></tr>
+            <tr><td><span class="cat-tag cat-c">C类</span></td><td>多个价格 + 唯一供应商</td><td class="mono" id="catC">0</td><td>CLI 内部自动选最新价格 → 下单</td><td>不需要</td></tr>
+            <tr><td><span class="cat-tag cat-d">D类</span></td><td>多个价格 + 多个供应商</td><td class="mono" id="catD">0</td><td>CLI 内部选价格 → 推送供应商选择 → 下单</td><td>需要</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- 订单创建明细 -->
+    <div class="card">
+      <div class="hd">📝 订单创建明细<span class="tip" id="orderCount">共 0 条</span></div>
+      <div class="bd" id="orderDetail"></div>
+    </div>
+
+    <!-- 供应商选择 -->
+    <div class="card">
+      <div class="hd">🎯 供应商选择（一品多点）<span class="tip" id="supplierCount">共 0 组</span></div>
+      <div class="bd" id="supplierDetail"></div>
+    </div>
+
+    <!-- 订单处理时间线 -->
+    <div class="card">
+      <div class="hd">⏱️ 订单处理时间线<span class="tip">按时间倒序</span></div>
+      <div class="bd">
+        <div class="timeline" id="timeline"></div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<script>
+let allData = null;
+let currentDate = '';
+
+async function loadData() {
+  try {
+    const res = await fetch('data.json?_=' + Date.now());
+    if (!res.ok) throw new Error('HTTP ' + res.status);
+    allData = await res.json();
+    document.getElementById('loading').style.display = 'none';
+    document.getElementById('content').style.display = 'block';
+    document.getElementById('genTime').textContent = '数据更新：' + allData.generated_at;
+    initDateSelect();
+    renderAll();
+  } catch (e) {
+    document.getElementById('loading').style.display = 'none';
+    document.getElementById('error').style.display = 'block';
+    document.getElementById('error').textContent = '数据加载失败：' + e.message + '（请先运行 python3 fetch_data.py 生成 data.json）';
+  }
+}
+
+function initDateSelect() {
+  const dates = [...new Set(allData.execution_logs.map(l => l.date).filter(Boolean))].sort().reverse();
+  const sel = document.getElementById('dateSelect');
+  sel.innerHTML = '<option value="">全部日期</option>' + dates.map(d => `<option value="${d}">${d}</option>`).join('');
+  sel.addEventListener('change', e => { currentDate = e.target.value; renderAll(); });
+}
+
+function getFilteredLogs() {
+  if (!currentDate) return allData.execution_logs;
+  return allData.execution_logs.filter(l => l.date === currentDate);
+}
+
+function statusTag(s) {
+  const map = {'成功':'t-green','部分成功':'t-orange','待决策':'t-purple','失败':'t-red'};
+  return `<span class="tag ${map[s]||'t-grey'}">${s||'未知'}</span>`;
+}
+
+function renderAll() {
+  const logs = getFilteredLogs();
+  renderKPI(logs);
+  renderOrderDetail(logs);
+  renderSupplierDetail();
+  renderTimeline(logs);
+}
+
+function renderKPI(logs) {
+  const orderLogs = logs.filter(l => l.skill === '创建订单');
+  const queryLogs = logs.filter(l => l.skill === '查询可下单');
+  const importLogs = logs.filter(l => l.skill === '需求导入');
+  const success = orderLogs.filter(l => l.status === '成功').length;
+  const failed = orderLogs.filter(l => l.status === '失败').length;
+  const pending = allData.supplier_selections.filter(s => s.status === '待选择').length;
+  const selected = allData.supplier_selections.filter(s => s.status === '已选择').length;
+
+  const kpis = [
+    {v: importLogs.length, l: '需求导入次数', c: ''},
+    {v: queryLogs.length, l: '查询可下单次数', c: ''},
+    {v: orderLogs.length, l: '创建订单次数', c: 'g'},
+    {v: failed, l: '订单失败', c: 'r'},
+    {v: pending, l: '待供应商选择', c: 'p'},
+  ];
+  document.getElementById('kpiRow').innerHTML = kpis.map(k =>
+    `<div class="kpi ${k.c}"><div class="v">${k.v}</div><div class="l">${k.l}</div></div>`
+  ).join('');
+}
+
+function renderOrderDetail(logs) {
+  const orderLogs = logs.filter(l => l.skill === '创建订单');
+  document.getElementById('orderCount').textContent = `共 ${orderLogs.length} 条记录`;
+
+  if (orderLogs.length === 0) {
+    document.getElementById('orderDetail').innerHTML = '<div class="empty">该日期暂无订单创建记录</div>';
+    return;
+  }
+
+  // 按状态分组
+  const groups = {};
+  orderLogs.forEach(log => {
+    const status = log.status || '未知';
+    if (!groups[status]) groups[status] = [];
+    groups[status].push(log);
+  });
+
+  const statusOrder = ['成功', '部分成功', '待决策', '失败'];
+  const sortedStatuses = [...Object.keys(groups)].sort((a, b) => {
+    const ia = statusOrder.indexOf(a);
+    const ib = statusOrder.indexOf(b);
+    if (ia === -1 && ib === -1) return a.localeCompare(b);
+    if (ia === -1) return 1;
+    if (ib === -1) return -1;
+    return ia - ib;
+  });
+
+  let html = '';
+  sortedStatuses.forEach(status => {
+    const groupLogs = groups[status];
+    html += `<div class="order-group">
+      <div class="gh">
+        ${statusTag(status)}
+        <span>${groupLogs.length} 条</span>
+        <span class="sp">${status === '成功' ? '订单创建成功' : status === '失败' ? '创建失败，需人工介入' : status === '部分成功' ? '部分成功，部分需处理' : '待决策'}</span>
+      </div>
+      <div style="overflow-x:auto">
+        <table>
+          <thead><tr><th>时间</th><th>批次号</th><th>CLI</th><th>状态</th><th>耗时</th><th>摘要</th><th>明细</th></tr></thead>
+          <tbody>`;
+    groupLogs.forEach(log => {
+      html += `<tr>
+        <td class="mono">${log.time || ''}</td>
+        <td class="mono">${log.batch || '-'}</td>
+        <td class="mono" style="max-width:180px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${log.cli||''}">${log.cli || '-'}</td>
+        <td>${statusTag(log.status)}</td>
+        <td class="mono">${log.duration ? Number(log.duration).toFixed(1) + 's' : '-'}</td>
+        <td style="max-width:200px">${log.summary || '-'}</td>
+        <td style="max-width:250px;font-size:10.5px;color:var(--grey)">${log.detail ? log.detail.slice(0, 80) + (log.detail.length > 80 ? '...' : '') : '-'}</td>
+      </tr>`;
+      if (log.error) {
+        html += `<tr><td colspan="7" style="background:#fff5f5;padding:6px 12px"><span style="color:var(--red);font-size:10.5px">❌ 错误：${log.error}</span></td></tr>`;
+      }
+    });
+    html += `</tbody></table></div></div>`;
+  });
+
+  document.getElementById('orderDetail').innerHTML = html;
+}
+
+function renderSupplierDetail() {
+  const selections = allData.supplier_selections || [];
+  document.getElementById('supplierCount').textContent = `共 ${selections.length} 组`;
+
+  if (selections.length === 0) {
+    document.getElementById('supplierDetail').innerHTML = '<div class="empty">暂无供应商选择记录</div>';
+    return;
+  }
+
+  let html = '';
+  selections.forEach(s => {
+    const isSelected = s.status === '已选择';
+    html += `<div class="supplier-card">
+      <div class="title">
+        ${isSelected ? '<span class="tag t-green">已选择</span>' : '<span class="tag t-orange">待选择</span>'}
+        ${s.part_name || s.part_no || '未命名零件'}
+      </div>
+      <div class="info">
+        ${s.part_no ? `零件号：<span class="mono">${s.part_no}</span>` : ''}
+        ${s.quantity ? ` · 数量：${s.quantity}` : ''}
+        ${s.delivery_date ? ` · 要求到货：${s.delivery_date}` : ''}
+        ${s.budget_no ? ` · 预算编号：<span class="mono">${s.budget_no}</span>` : ''}
+        ${s.workflow_id ? ` · 工作流：<span class="mono">${s.workflow_id}</span>` : ''}
+        ${s.supplier_count ? ` · 候选供应商：${s.supplier_count} 家` : ''}
+      </div>`;
+
+    // 供应商选项
+    if (s.supplier_options) {
+      try {
+        const options = typeof s.supplier_options === 'string' ? JSON.parse(s.supplier_options) : s.supplier_options;
+        if (Array.isArray(options) && options.length > 0) {
+          html += '<div class="supplier-options">';
+          options.forEach(opt => {
+            const isSel = s.selected_supplier_id && (opt.supplierId === s.selected_supplier_id || opt.supplierName === s.selected_supplier_name);
+            html += `<div class="supplier-option ${isSel ? 'selected' : ''}">
+              <div class="name">${opt.supplierName || opt.name || '未知供应商'}</div>
+              ${opt.price ? `<div class="price">¥${opt.price}</div>` : ''}
+              <div class="meta">
+                ${opt.deliveryDays ? `交货期：${opt.deliveryDays}天` : ''}
+                ${opt.moq ? ` · MOQ：${opt.moq}` : ''}
+                ${opt.currency ? ` · ${opt.currency}` : ''}
+              </div>
+            </div>`;
+          });
+          html += '</div>';
+        }
+      } catch (e) {
+        html += `<div style="font-size:10.5px;color:var(--grey)">供应商选项：${s.supplier_options}</div>`;
+      }
+    }
+
+    if (isSelected) {
+      html += `<div style="margin-top:6px;font-size:10.5px;color:var(--green)">✅ 已选择：${s.selected_supplier_name || s.selected_supplier_id || '未知'}${s.selector ? ' · 选择人：' + s.selector : ''}${s.select_time ? ' · 时间：' + s.select_time : ''}</div>`;
+    } else {
+      html += `<div style="margin-top:6px;font-size:10.5px;color:var(--orange)">⚠️ 待选择 · 请在多维表格中填写「已选供应商ID」后自动切换状态</div>`;
+    }
+
+    html += '</div>';
+  });
+
+  document.getElementById('supplierDetail').innerHTML = html;
+}
+
+function renderTimeline(logs) {
+  const relevantLogs = logs.filter(l => ['需求导入', '需求检查', '查询可下单', '创建订单', '交互确认'].includes(l.skill));
+  const sorted = [...relevantLogs].sort((a, b) => (b.time || '').localeCompare(a.time || ''));
+
+  if (sorted.length === 0) {
+    document.getElementById('timeline').innerHTML = '<div class="empty">暂无处理记录</div>';
+    return;
+  }
+
+  const html = sorted.slice(0, 20).map(log => {
+    const cls = log.status === '成功' ? 'ok' : (log.status === '失败' ? 'err' : (log.status === '待决策' ? 'warn' : ''));
+    return `<div class="tli ${cls}">
+      <div class="t">${log.time ? log.time.slice(11) : ''} · ${log.skill || '未知'} · ${statusTag(log.status)}</div>
+      <div class="d">${log.summary || '-'}${log.duration ? ' · 耗时 ' + Number(log.duration).toFixed(1) + 's' : ''}${log.batch ? ' · 批次 ' + log.batch : ''}</div>
+    </div>`;
+  }).join('');
+
+  document.getElementById('timeline').innerHTML = html;
+}
+
+loadData();
+</script>
+</body>
+</html>

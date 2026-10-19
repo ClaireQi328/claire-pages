@@ -1,0 +1,373 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>样件订单自动化 · 方案说明与避雷指南</title>
+<style>
+  :root{
+    --primary:#1677ff; --primary-bg:#e6f4ff; --primary-hover:#4096ff;
+    --success:#52c41a; --success-bg:#f6ffed; --success-border:#b7eb8f;
+    --warning:#faad14; --warning-bg:#fffbe6; --warning-border:#ffe58f;
+    --error:#ff4d4f;   --error-bg:#fff2f0;   --error-border:#ffccc7;
+    --text:#000000d9; --text-2:#000000a6; --text-3:#00000073;
+    --border:#d9d9d9; --border-2:#f0f0f0; --fill:#f5f5f5; --fill-2:#fafafa;
+    --radius:8px;
+    --shadow:0 1px 2px 0 rgba(0,0,0,.03),0 1px 6px -1px rgba(0,0,0,.02),0 2px 4px 0 rgba(0,0,0,.02);
+    --shadow-lg:0 6px 16px 0 rgba(0,0,0,.08),0 3px 6px -4px rgba(0,0,0,.12),0 9px 28px 8px rgba(0,0,0,.05);
+  }
+  *{box-sizing:border-box}
+  html{scroll-behavior:smooth}
+  body{margin:0;background:var(--fill);color:var(--text);
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Helvetica Neue",Arial,
+      "PingFang SC","Hiragino Sans GB","Microsoft YaHei",sans-serif;
+    font-size:14px;line-height:1.75;-webkit-font-smoothing:antialiased;}
+  .container{max-width:1080px;margin:0 auto;padding:0 24px 64px;}
+
+  /* ===== Page Header ===== */
+  .page-header{background:#fff;border-bottom:1px solid var(--border-2);padding:28px 24px;}
+  .page-header .inner{max-width:1080px;margin:0 auto;padding:0 24px;}
+  .breadcrumb{font-size:13px;color:var(--text-3);margin-bottom:10px;}
+  .breadcrumb b{color:var(--primary)}
+  .page-header h1{margin:0;font-size:28px;font-weight:600;letter-spacing:.3px;color:var(--text);}
+  .page-header .desc{margin-top:8px;color:var(--text-2);font-size:14px;max-width:820px;}
+  .tags{display:flex;flex-wrap:wrap;gap:8px;margin-top:16px;}
+  .tag{display:inline-flex;align-items:center;height:24px;padding:0 10px;border-radius:6px;
+    font-size:12px;line-height:22px;border:1px solid var(--border-2);background:var(--fill);color:var(--text-2);}
+  .tag.blue{background:var(--primary-bg);border-color:#91caff;color:var(--primary);}
+  .tag.green{background:var(--success-bg);border-color:var(--success-border);color:var(--success);}
+  .tag.orange{background:var(--warning-bg);border-color:var(--warning-border);color:#d48806;}
+
+  /* ===== Card ===== */
+  .card{background:#fff;border:1px solid var(--border-2);border-radius:var(--radius);
+    box-shadow:var(--shadow);padding:24px;margin:20px 0;}
+  .section{margin-top:32px;}
+  .sec-title{display:flex;align-items:center;gap:12px;margin:0 0 4px;}
+  .sec-title .no{width:30px;height:30px;border-radius:8px;background:var(--primary);color:#fff;
+    display:grid;place-items:center;font-size:14px;font-weight:600;flex:0 0 auto;}
+  .sec-title.green .no{background:var(--success)} .sec-title.orange .no{background:var(--warning)}
+  .sec-title.purple .no{background:#722ed1} .sec-title.cyan .no{background:#13c2c2}
+  .sec-title h2{margin:0;font-size:20px;font-weight:600;}
+  .sec-sub{color:var(--text-3);font-size:13px;margin:2px 0 0 42px;}
+
+  h3.sub{font-size:15px;font-weight:600;margin:20px 0 10px;color:var(--text);}
+  p{margin:8px 0;color:var(--text-2);}
+  ul{margin:8px 0;padding-left:20px;color:var(--text-2);} li{margin:5px 0;}
+  code{background:var(--fill);border:1px solid var(--border-2);border-radius:4px;padding:1px 5px;
+    font-family:"SFMono-Regular",Consolas,"Liberation Mono",Menlo,monospace;font-size:12.5px;color:#c41d7f;}
+  .hl{background:#fff2f0;color:var(--error);padding:0 4px;border-radius:4px;font-weight:600;}
+
+  /* ===== Alert ===== */
+  .alert{border-radius:var(--radius);padding:12px 16px;margin:16px 0;font-size:13.5px;
+    border:1px solid transparent;display:flex;gap:10px;align-items:flex-start;}
+  .alert .ic{font-size:16px;line-height:1.5;flex:0 0 auto;}
+  .alert.info{background:var(--primary-bg);border-color:#91caff;}
+  .alert.warning{background:var(--warning-bg);border-color:var(--warning-border);}
+  .alert.success{background:var(--success-bg);border-color:var(--success-border);}
+  .alert .body{color:var(--text);}
+  .alert b{color:var(--text);}
+
+  /* ===== Steps ===== */
+  .steps{display:flex;margin:18px 0 6px;}
+  .step{flex:1;position:relative;padding:0 8px;text-align:center;}
+  .step:not(:last-child):after{content:"";position:absolute;top:15px;left:60%;right:-40%;height:2px;background:var(--border-2);}
+  .step .dot{width:32px;height:32px;border-radius:50%;background:var(--primary);color:#fff;
+    display:grid;place-items:center;margin:0 auto 8px;font-weight:600;font-size:14px;position:relative;z-index:1;}
+  .step.auto .dot{background:var(--success);}
+  .step .t{font-weight:600;font-size:13px;color:var(--text);}
+  .step .d{font-size:12px;color:var(--text-3);margin-top:2px;}
+
+  /* ===== Statistic ===== */
+  .stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:16px;margin:18px 0;}
+  .stat{background:var(--fill-2);border:1px solid var(--border-2);border-radius:var(--radius);padding:18px 16px;text-align:center;}
+  .stat .v{font-size:30px;font-weight:700;color:var(--text);line-height:1.1;font-variant-numeric:tabular-nums;}
+  .stat .v.blue{color:var(--primary)} .stat .v.green{color:var(--success)} .stat .v.orange{color:#d48806}
+  .stat .v small{font-size:15px;font-weight:600;}
+  .stat .k{font-size:12.5px;color:var(--text-3);margin-top:8px;}
+
+  /* ===== Table ===== */
+  table{width:100%;border-collapse:collapse;margin:14px 0;font-size:13.5px;background:#fff;border-radius:var(--radius);overflow:hidden;border:1px solid var(--border-2);}
+  th,td{border-bottom:1px solid var(--border-2);border-right:1px solid var(--border-2);padding:10px 14px;text-align:left;vertical-align:top;}
+  th:last-child,td:last-child{border-right:none} tr:last-child td{border-bottom:none}
+  thead th{background:var(--fill-2);color:var(--text);font-weight:600;white-space:nowrap;}
+  tbody tr:hover{background:#fafcff;}
+
+  /* ===== Pitfall card ===== */
+  .pitfall{border:1px solid var(--border-2);border-left:4px solid var(--warning);border-radius:var(--radius);
+    background:#fff;padding:16px 18px;margin:14px 0;box-shadow:var(--shadow);}
+  .pitfall h4{margin:0 0 8px;font-size:14.5px;font-weight:600;color:var(--text);}
+  .pitfall .row{margin:6px 0;font-size:13px;}
+  .pitfall .lab{display:inline-block;min-width:54px;color:var(--text-3);font-weight:600;}
+  .pitfall .fix{background:var(--success-bg);border-radius:6px;padding:8px 12px;margin-top:8px;font-size:13px;color:var(--text);}
+
+  /* ===== Lesson grid ===== */
+  .lessons{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:14px;margin:16px 0;}
+  .lesson{border:1px solid var(--border-2);border-top:3px solid var(--primary);border-radius:var(--radius);
+    background:#fff;padding:14px 16px;box-shadow:var(--shadow);}
+  .lesson b{color:var(--text);font-size:13.5px;}
+  .lesson .x{display:block;color:var(--text-2);margin-top:5px;font-size:12.8px;}
+  .golden{background:linear-gradient(90deg,#e6f4ff,#f0f7ff);border:1px solid #91caff;border-radius:var(--radius);
+    padding:18px 20px;margin:18px 0;font-size:14px;}
+  .golden b{color:var(--primary);}
+
+  .footer{text-align:center;color:var(--text-3);font-size:12.5px;margin-top:40px;padding-top:20px;border-top:1px solid var(--border-2);}
+  @media print{body{background:#fff}.card,.page-header{box-shadow:none}}
+</style>
+</head>
+<body>
+
+<!-- Page Header -->
+<header class="page-header">
+  <div class="inner">
+    <div class="breadcrumb">供应链数字化 <b>/</b> 样件订单自动化 <b>/</b> 方案说明与避雷指南</div>
+    <h1>样件订单自动化：从「人肉建单」到「人只选供应商」</h1>
+    <div class="desc">一个 10 天、2 套方案并行、20+ 真实踩坑的故事 —— 既讲清做成了什么，也把每一个坑和边界原样摊开，让下一个项目直接跳过交过的学费。</div>
+    <div class="tags">
+      <span class="tag blue">🗓 10 天迭代</span>
+      <span class="tag blue">🧩 2 套方案并行</span>
+      <span class="tag orange">💥 20+ 真实踩坑</span>
+      <span class="tag orange">⏱ 60% 时间补盲区</span>
+      <span class="tag green">✅ 1363 条全自动</span>
+      <span class="tag green">🔑 9 条可复制经验</span>
+    </div>
+  </div>
+</header>
+
+<div class="container">
+
+  <!-- TOC -->
+  <div class="card" style="margin-top:24px">
+    <div style="display:flex;flex-wrap:wrap;gap:10px">
+      <a href="#s1" style="flex:1 1 160px;text-decoration:none;background:var(--fill-2);border:1px solid var(--border-2);border-radius:6px;padding:10px 14px;color:var(--text-2);font-size:13px"><b style="color:var(--primary)">01 / 痛点</b><br>场景痛点</a>
+      <a href="#s2" style="flex:1 1 160px;text-decoration:none;background:var(--fill-2);border:1px solid var(--border-2);border-radius:6px;padding:10px 14px;color:var(--text-2);font-size:13px"><b style="color:var(--primary)">02 / AI</b><br>AI 做法</a>
+      <a href="#s3" style="flex:1 1 160px;text-decoration:none;background:var(--fill-2);border:1px solid var(--border-2);border-radius:6px;padding:10px 14px;color:var(--text-2);font-size:13px"><b style="color:var(--success)">03 / 效果</b><br>效果（数字）</a>
+      <a href="#s4" style="flex:1 1 160px;text-decoration:none;background:var(--fill-2);border:1px solid var(--border-2);border-radius:6px;padding:10px 14px;color:var(--text-2);font-size:13px"><b style="color:#722ed1">04 / 避雷</b><br>踩坑与边界</a>
+      <a href="#s5" style="flex:1 1 160px;text-decoration:none;background:var(--fill-2);border:1px solid var(--border-2);border-radius:6px;padding:10px 14px;color:var(--text-2);font-size:13px"><b style="color:#13c2c2">05 / 经验</b><br>可复制经验</a>
+    </div>
+  </div>
+
+  <!-- ===================== 1. 场景痛点 ===================== -->
+  <section id="s1" class="section">
+    <div class="sec-title"><div class="no">1</div><h2>场景痛点：重复劳动 + 认知盲区</h2></div>
+    <div class="sec-sub">问题从哪来 · 为什么值得做</div>
+
+    <div class="card">
+      <h3 class="sub">😤 传统流程：采购工程师在 EP 里「逐条建单」</h3>
+      <p>样件订单（研发打样要的零件）原来靠人肉在 EP 系统里一条条创建。三个痛点叠在一起，既慢又容易出错：</p>
+      <ul>
+        <li><b>量大人肉</b>：可下单需求原始就有 <span class="hl">4699 条</span>，60 天窗口内有效 <span class="hl">1434 条</span>。逐条看、逐条建，重复操作占采购工程师 <span class="hl">30%+ 的时间</span>。</li>
+        <li><b>一品多供要人判断</b>：同一零件有多个候选供应商，得人工决定选哪家 —— 仅「多供应商组」就有 <span class="hl">291 个</span>，每个都要拍板。</li>
+        <li><b>价格 / 定点纠缠</b>：旧流程让人去选「价格类型」，但 EP 内部才判价，结果 <span class="hl">237 条（占多供应商组 81%）在做无效操作</span>。</li>
+        <li><b>留痕难追溯</b>：结果散落各处，谁下了、下了什么、为什么草稿，事后说不清。</li>
+      </ul>
+      <div class="alert warning"><span class="ic">⚠️</span><div class="body">真正的痛，不只是「慢」。慢还能熬，<b>慢 + 易错 + 不可追溯</b>组合起来，才是采购流程数字化最该先切的那一刀。</div></div>
+    </div>
+
+    <div class="card">
+      <h3 class="sub">🎯 要解决的，和明确不解决的</h3>
+      <table>
+        <thead><tr><th style="background:var(--success-bg);color:var(--success)">✅ In Scope（自动化覆盖）</th><th style="background:var(--error-bg);color:var(--error)">❌ Out of Scope（边界）</th></tr></thead>
+        <tbody>
+          <tr><td>拉取需求、按供应商分组、生成可视化确认页</td><td>不选价（价格由 EP 内部台账判定，人工不参与）</td></tr>
+          <tr><td>人工拍板后自动下单、草稿态透出</td><td>不覆盖无供（无候选供应商的，先走 EP 定点）</td></tr>
+          <tr><td>下单结果自动写飞书多维表格留痕</td><td>不催审批（草稿需人工去 EP 提交，系统只透出）</td></tr>
+          <tr><td>日报汇总推送</td><td>不做价格谈判（人工线下）</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <!-- ===================== 2. AI 做法 ===================== -->
+  <section id="s2" class="section">
+    <div class="sec-title green"><div class="no">2</div><h2>AI 做法：三层架构 + 一个黄金原则</h2></div>
+    <div class="sec-sub">怎么做的 · 设计哲学</div>
+
+    <div class="card">
+      <h3 class="sub">🧱 CLI — Skill — Agent 三层架构</h3>
+      <p><code>EP CLI</code> 是数据唯一权威（query-ready / create-order / submit-list）→ <code>3 个 Skill</code>（demand-query 查询 / demand-order 下单 / daily-report 日报）封装业务逻辑 → <code>Agent</code> 负责编排与人工交互。</p>
+      <div class="alert info"><span class="ic">💡</span><div class="body"><b>黄金原则：价格交给 EP，供应商留给人。</b><br>人从头到尾只做一个动作 —— 在确认页上「选供应商」（或勾掉不要的行）。判价在 EP 内部完成，create-order 只收 <code>--supplier-id</code>，根本不存在 <code>--price-type</code>。把「需要人判断的」和「能自动的」一刀切干净，才换来后面的自动化率。</div></div>
+    </div>
+
+    <div class="card">
+      <h3 class="sub">🔄 四步链路：①④⑤ 自动跑，②③ 人参与</h3>
+      <div class="steps">
+        <div class="step auto"><div class="dot">①</div><div class="t">查询 demand-query</div><div class="d">全自动 · ~60s</div></div>
+        <div class="step"><div class="dot">②</div><div class="t">人工确认</div><div class="d">需人工 · ~3min</div></div>
+        <div class="step auto"><div class="dot">③</div><div class="t">执行下单 demand-order</div><div class="d">预演后执行</div></div>
+        <div class="step auto"><div class="dot">④</div><div class="t">统计日报 daily-report</div><div class="d">定时任务</div></div>
+      </div>
+      <table>
+        <thead><tr><th>STEP</th><th>环节</th><th>做什么</th><th>性质 / 耗时</th></tr></thead>
+        <tbody>
+          <tr><td>①</td><td>查询 demand-query</td><td>拉 EP 需求 → 60 天窗口过滤 → 按供应商分组 → 生成两个确认页 → 上传 FDS → 推群卡片</td><td>全自动 · 约 60s</td></tr>
+          <tr><td>②</td><td>人工确认</td><td>打开确认页 → 勾掉不想要的行 → 多点组选一个供应商 → 复制 JSON 贴回对话</td><td>需人工 · 约 3 分钟</td></tr>
+          <tr><td>③</td><td>执行下单 demand-order</td><td>读 JSON 应用选择 → dry-run 预演 → create-order → 草稿态透出 → 飞书留痕</td><td>预演后执行</td></tr>
+          <tr><td>④</td><td>统计日报 daily-report</td><td>汇总成功/草稿/失败/跳过 → 生成日报页 → 推送</td><td>定时任务</td></tr>
+        </tbody>
+      </table>
+      <p style="font-size:13px;color:var(--text-3)">一句话看懂：EP 拉数据 → 自动分组生成确认页 → 推群通知 → 人只做「选供应商」→ 系统下单 → 价格 EP 判 → 结果留痕进日报。<span class="hl" style="background:var(--warning-bg);color:#d48806">草稿不是失败，是「存在更低价需人工确认」的业务分支</span>，日报单独列出等跟进。</p>
+    </div>
+
+    <div class="card">
+      <h3 class="sub">📡 同一批数据，推三处、按「谁需要什么」分层</h3>
+      <ul>
+        <li><b>L1 围观者 · 飞书群卡片</b>：批次号 + 一句话结论 + 确认页链接。5 秒看懂，不需操作。</li>
+        <li><b>L2 跟进者 · AgentSpace Issue</b>：状态流转 + 三组核心数 + 链接。事后可追溯。</li>
+        <li><b>L3 操作者 · Agent 对话回复</b>：唯一可交互，可替代群机器人，含结论/链接/待办/异常/下一步。</li>
+      </ul>
+    </div>
+
+    <div class="card">
+      <h3 class="sub">🚀 三种使用入口：同一业务逻辑，三种封装</h3>
+      <p>演进路径是 <b>对话验证业务逻辑 → 工作流自动化日常 → 高码框架上生产</b>。Skill 版跑 Agent Space，Agno 版跑 ep-agno 框架，两边并行、互不依赖 —— 业务一样，封装形式、运行环境、使用场景不同，按需选用。</p>
+    </div>
+  </section>
+
+  <!-- ===================== 3. 效果 ===================== -->
+  <section id="s3" class="section">
+    <div class="sec-title green"><div class="no">3</div><h2>效果：尽量给数字</h2></div>
+    <div class="sec-sub">做成了什么 · 用数据说话</div>
+
+    <div class="stats">
+      <div class="stat"><div class="v">4699</div><div class="k">原始可下单需求</div></div>
+      <div class="stat"><div class="v">1434</div><div class="k">60 天窗口内有效</div></div>
+      <div class="stat"><div class="v green">1363</div><div class="k">全自动下单（一点）</div></div>
+      <div class="stat"><div class="v blue">71</div><div class="k">需人工选供应商（多点）</div></div>
+      <div class="stat"><div class="v orange">−76<small>%</small></div><div class="k">多供应商组 291→71</div></div>
+      <div class="stat"><div class="v blue">~2<small>h</small></div><div class="k">采购工程师日节省</div></div>
+      <div class="stat"><div class="v green">95<small>%↑</small></div><div class="k">效率提升</div></div>
+      <div class="stat"><div class="v orange">0.1<small>%↓</small></div><div class="k">错误率下降</div></div>
+    </div>
+
+    <div class="card">
+      <h3 class="sub">📊 几个关键数字背后的故事</h3>
+      <ul>
+        <li><b>查询吞吐</b>：47 页 / 4699 条，全流程约 <span class="hl" style="background:var(--primary-bg);color:var(--primary)">60s</span>。并发上限实测锁在 <b>5</b> —— 盲目拉到 20 并发反而从 5.6s 劣化到 9.8s（服务端限流）。</li>
+        <li><b>人工极简</b>：每批人工确认约 <b>3 分钟</b>，且只做「选供应商」一个动作。</li>
+        <li><b>−76% 的来历</b>：旧设计按「价格类型」去重，291 个多供应商组都要人点；改成按 <code>supplierId</code> 去重、同供应商多价合并为只读提示后，多供应商组骤降到 <b>71</b>，1363 条直接全自动。</li>
+        <li><b>真实跑通</b>：真实待导入 <b>25 条全有效</b>；真实下单创建订单 <span class="hl">4900022810</span> 成功；全流程体检 <b>13.7s</b>。</li>
+      </ul>
+      <div class="alert warning"><span class="ic">💡</span><div class="body">一个扎心的数字：<b>真正写业务逻辑只占了 ~5% 的时间</b>。其余 60% 补授权/边界/契约的认知盲区，20% 耗在审查 Agent 互相矛盾，15% 在调 FDS 上传。下文「踩坑」就是这 60% 的清单。</div></div>
+    </div>
+  </section>
+
+  <!-- ===================== 4. 踩坑与边界 ===================== -->
+  <section id="s4" class="section">
+    <div class="sec-title purple"><div class="no">4</div><h2>踩坑与边界：20+ 坑收敛成 6 条根因</h2></div>
+    <div class="sec-sub">避雷指南主体 · 真实发生 → 根因 → 解法</div>
+
+    <div class="card">
+      <h3 class="sub">🕳 所有坑的「共性本质」（先看这 6 条）</h3>
+      <table>
+        <thead><tr><th style="width:48px">#</th><th>根因</th><th>一句话</th></tr></thead>
+        <tbody>
+          <tr><td>1</td><td>授权体系混淆</td><td>feishu-mcp 与 GarageHub 两套独立授权被当一回事，20029 错改了 4 轮</td></tr>
+          <tr><td>2</td><td>接口契约频繁变动</td><td>CLI 版本跳变（稳定版移除 sapo 域、beta.3 缺 createdBy）→ 锁版本 + 翻源码 + 留降级</td></tr>
+          <tr><td>3</td><td>公共逻辑重复 = N 份坑</td><td>4 个 skill 各抄 300+ 行环境检查/FDS 上传，改一处漏一处（漏 3 次）</td></tr>
+          <tr><td>4</td><td>平台能力边界要先探测</td><td>卡片无回调、视图筛选不支持、user token 假成功 —— 能调通 ≠ 权限够</td></tr>
+          <tr><td>5</td><td>AI 行为要强约束</td><td>AI 会乱改路径、把输出加工成「第二遍」、漏跑环境检查</td></tr>
+          <tr><td>6</td><td>先跑通再优化</td><td>一周陷在「完美架构」上，业务闭环还没通</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="card">
+      <h3 class="sub">📖 精选坑故事（最有代表性的 8 个）</h3>
+
+      <div class="pitfall">
+        <h4>坑 A · FDS 密钥手敲错一个字符，连环排查三轮（3 小时返工）</h4>
+        <div class="row"><span class="lab">现象</span>配置了正确的环境变量，上传仍报 <code>403 Signature Does Not Match</code>。穷举了 header 大小写、charset、客户端实现都试过。</div>
+        <div class="row"><span class="lab">根因</span>手敲凭证时第 39 位写错（给了 <code>...WRDsRv</code>，正确是 <code>...WRDsNv</code>）。差一个字母，HMAC 完全不同，而错误信息只说「签名不匹配」。更坑的是中途有几轮「成功」——因为那次读的是配置文件里的真值，时好时坏最误导判断。</div>
+        <div class="fix">✅ 解法：凭证这类必须逐字符精确的东西，<b>绝不手敲，一律从配置文件读取</b>；验证时要确保「测的东西」和「用的东西」是同一来源。</div>
+      </div>
+
+      <div class="pitfall">
+        <h4>坑 B · 静态结构正确 ≠ 渲染正确（2 轮返工）</h4>
+        <div class="row"><span class="lab">现象</span>确认页布局错乱，候选跑到表格左边单独成行。检查 HTML 结构完全正常 —— colspan 已去、rowspan 正确、列数对齐。</div>
+        <div class="row"><span class="lab">根因</span><code>.mat-cell{display:flex}</code>。单元格一旦不是 <code>table-cell</code> 就脱离表格布局算法，后面的列全错。这问题静态检查看不出，只有真渲染才暴露。当时没浏览器渲染能力，连猜两次都错。</div>
+        <div class="fix">✅ 解法：环境受限无法验证时，<b>明确说「我无法验证渲染」，而不是反复猜然后下「修好了」的结论</b>。事后补装 headless chromium，这类问题一次就定位。</div>
+      </div>
+
+      <div class="pitfall">
+        <h4>坑 C · rowspan 方案太脆弱（连续两次修补没解决根因）</h4>
+        <div class="row"><span class="lab">现象</span>主行 9 个 td 全部 <code>rowspan=N</code> + 额外 N 个候选行填第 10 列，rowspan 出现 <b>2619 处</b>。先后修了 colspan、加了 min-width，都不是根因。</div>
+        <div class="fix">✅ 解法：直接取消候选行和 rowspan，改成主行 10 个 td、候选装在第 10 列内 flex 竖排。rowspan 归零，问题一次性消失。<b>当某个机制反复出问题，换结构比修参数有效。</b></div>
+      </div>
+
+      <div class="pitfall">
+        <h4>坑 D · 口径没对齐 PRD，人在做无效操作（237 条 / 81%）</h4>
+        <div class="row"><span class="lab">现象</span>确认页让用户在「定点价 / 快速定点价」之间点选，看起来很合理。</div>
+        <div class="row"><span class="lab">真因</span><code>create-order</code> 根本没有 <code>--price-type</code> 参数（实测确认），价格判断完全在 EP 内部。用户在页面选的 priceType，<b>EP 根本不接收</b> —— 237 条需求（占多供应商组 81%）在做无效操作。</div>
+        <div class="fix">✅ 改法：去重键从 <code>(sid, priceType)</code> 改为 <code>sid</code>，同供应商多价合并为一个候选、价格类型降级为只读提示。多供应商组 291 → 71（−76%）。<b>动手前先读 PRD 确认「谁负责什么」，别凭直觉设计交互。</b></div>
+      </div>
+
+      <div class="pitfall">
+        <h4>坑 E · 20029 授权坑改了 4 轮，花了 ~6 小时（最深的雷）</h4>
+        <div class="row"><span class="lab">现象</span>AgentSpace 容器里跑 CLI 永远报「重定向 URL 错误 / 20029」，本地一切正常。4 轮排查：① 当登录态过期反复重登 → ② 改 base_url → ③ 升 CLI 版本 → ④ 翻 ep-agno 代码库才发现根因。</div>
+        <div class="row"><span class="lab">真因</span>自己账号的飞书 MCP 与订单自动化助手的 MCP <b>同时挂载</b>，环境变量被覆盖成后者的预设值，CLI 误判「有浏览器可用」，强行走了需要本地回调的 browser flow → 而容器根本没有浏览器，2 小时必断、反复重演。</div>
+        <div class="row"><span class="lab">底层雷</span>飞书 MCP 要同时干两件<b>身份相反</b>的事 —— 既要「以你的身份读」又要「以助手身份发」。MCP 登录态本就是「用户在场」设计，不适合无人值守。环境变量冲突是引爆点，身份双轨才是底雷。</div>
+        <div class="fix">✅ 解法：加 <code>GARAGEHUB_AUTH_MODE=device</code> 强制 device flow；无人值守场景别用「用户在场」型 MCP 既读又写。</div>
+      </div>
+
+      <div class="pitfall">
+        <h4>坑 F · 飞书卡片回调坑了 3 轮，~4 小时</h4>
+        <div class="row"><span class="lab">现象</span>想在飞书消息卡片上直接点「确认下单」，结果群机器人 webhook 卡片点了没反应。</div>
+        <div class="row"><span class="lab">根因</span>群机器人 webhook 是<b>单向推送</b>通道，没有回调机制；交互式卡片需要应用机器人 + 事件订阅 + 权限，而应用机器人缺 <code>bitable:app</code> 权限（99991672）。</div>
+        <div class="fix">✅ 解法：人工确认改到 HTML 确认页（FDS 上传，浏览器操作）→ 回填 JSON 给 Agent；通知卡片只做「提醒 + 链接」，不做交互。<b>「推送」和「交互」是两种能力，群机器人只有前者。</b></div>
+      </div>
+
+      <div class="pitfall">
+        <h4>坑 G · 公共逻辑重复 300+ 行，改一处漏一处（漏 3 次）</h4>
+        <div class="row"><span class="lab">现象</span>device 模式只加了 demand-query 漏了 demand-order；FDS 占位符替换只改了一处；登录态缓存只加了 query 漏了其他 skill。4 个调 CLI 的 skill 各抄一份环境检查 / FDS 上传 / 登录态检查。</div>
+        <div class="fix">✅ 解法：公共层收敛（logger / feishu_bot / fds / config_loader / result_builder 下沉 common/），环境检查归 Agent 预设统一调用。<b>「独立自包含」≠「代码复制」。</b></div>
+      </div>
+
+      <div class="pitfall">
+        <h4>坑 H · 审查 Agent 对轰 5+ 版本，2 天白改</h4>
+        <div class="row"><span class="lab">现象</span>审查报告 1 说「要抽公共层」，报告 2 说「不要抽要独立」，报告 5/6 对 env_check 硬编码版本互相矛盾。很多修改最后证明是错的。</div>
+        <div class="row"><span class="lab">根因</span>每个审查 Agent 都不了解业务背景和决策历史，拿通用规范凭空挑错。</div>
+        <div class="fix">✅ 解法：审查前必须把决策历史 / 约束条件喂给审查 Agent；报告分「必改 bug / 建议优化」，<b>最终决策由业务方拍板，不信 Agent 对轰</b>。</div>
+      </div>
+
+      <div class="alert info"><span class="ic">🧭</span><div class="body"><b>边界清单（明确不做什么，比「能做什么」更重要）</b>：① 不选价（EP 内部判）② 不覆盖无供（先走定点）③ 不催审批（草稿人工去 EP 提交）④ 草稿 ≠ 失败（是业务分支，日报单列）⑤ 推送 ≠ 交互（要操作就给页面）。</div></div>
+    </div>
+  </section>
+
+  <!-- ===================== 5. 可复制经验 ===================== -->
+  <section id="s5" class="section">
+    <div class="sec-title cyan"><div class="no">5</div><h2>可复制经验：9 条方法论 + 3 句金句</h2></div>
+    <div class="sec-sub">把学费变成资产 · 下一个项目直接套</div>
+
+    <div class="card">
+      <div class="lessons">
+        <div class="lesson"><b>① 输出强约束</b><span class="x">定死输出契约，禁自由发挥。统一 status/stage/batch_id/summary/details/outputs/message；Agent 只「原样输出 message + 至多一行提示」，禁重写/开场白/重复。</span></div>
+        <div class="lesson"><b>② 契约三防</b><span class="x">外部依赖锁版本、翻源码、留降级。CLI 跳变靠 env-check 锁 + 直连 API 兜底（订单 4900022810 就是降级通道跑通的）。</span></div>
+        <div class="lesson"><b>③ 授权地图</b><span class="x">先建「谁需要什么登录态」清单。feishu-mcp(用户态) 与 GarageHub(device flow) 两套，失败按图引导，禁 AI 猜。</span></div>
+        <div class="lesson"><b>④ 公共收敛</b><span class="x">公共逻辑下沉 common/，业务各自独立。环境检查归 Agent 预设统一调用，避免 N 份重复 + N 份不一致。</span></div>
+        <div class="lesson"><b>⑤ 边界先测</b><span class="x">平台能力矩阵先探测再设计（通道 × 操作 × 权限）。卡片回调、视图筛选、应用权限，不支持的直接排除出方案。</span></div>
+        <div class="lesson"><b>⑥ 字段分口径</b><span class="x">提交口径（账号/邮箱前缀）与展示口径（姓名/中文）分离；日期统一格式化；人员字段按类型转换。</span></div>
+        <div class="lesson"><b>⑦ 通知即接线</b><span class="x">写完 notify 函数立刻在主流程接线并 grep 验证；卡片必带日期 + 链接（无链接 = 无效通知）。</span></div>
+        <div class="lesson"><b>⑧ 审查喂料</b><span class="x">审查 Agent 先喂决策历史；报告分「必改 bug / 建议优化」，业务方拍板，不盲信对轰。</span></div>
+        <div class="lesson"><b>⑨ 先跑通</b><span class="x">先最小闭环再优化。调试纪律：报错读全、同错两次换方向、路径以脚本目录为基准。</span></div>
+      </div>
+      <div class="golden">🔑 <b>如果只记三句话：</b><br>
+        ① 静态检查通过 ≠ 渲染正确 —— 有浏览器就自己验，没有就明说，别猜。<br>
+        ② 动手前先读 PRD 确认「谁负责什么」，别凭直觉设计交互。<br>
+        ③ 一个机制反复出问题就换结构，别在脆弱设计上反复修补。</div>
+    </div>
+
+    <div class="card">
+      <h3 class="sub">📜 一句话总结这段旅程</h3>
+      <p>我们花了 <span class="hl" style="background:var(--primary-bg);color:var(--primary)">60% 的时间</span>，不是在解决业务问题，而是在补「非专业开发者的认知盲区」——授权方式、系统边界、接口设计、基础设施规则。这些东西专业开发一眼就懂，我们（和 AI）却只能瞎猜，猜错再改，浪费大量时间。</p>
+      <div class="alert success"><span class="ic">✅</span><div class="body">但正是这些坑，沉淀出上面 9 条方法论。<b>下一个项目，跳过这 60%，就是这套指南最大的价值。</b></div></div>
+    </div>
+  </section>
+
+  <div class="footer">
+    样件订单自动化 · 方案说明与避雷指南　|　素材来源：全流程方案总结(FDS) / 执行方案与踩坑记录(v2 20261016) / 踩坑全记录(2026.09.14–09.23)<br>
+    所有数字与坑点均取自真实项目记录，未作虚构。
+  </div>
+
+</div>
+</body>
+</html>

@@ -1,0 +1,311 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>执行日报 · 样件订单自动化</title>
+<style>
+:root{
+  --nav-h:48px;--blue:#3370ff;--ink:#1f2329;--grey:#646a73;--line:#e5e6eb;--bg:#f5f7fa;
+  --green:#00a870;--red:#f53f3f;--orange:#ff9d00;--purple:#722ed1;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font:12px/1.55 -apple-system,"PingFang SC","Microsoft YaHei",sans-serif;color:var(--ink);background:var(--bg);padding-top:var(--nav-h)}
+.topnav{position:fixed;top:0;left:0;right:0;height:var(--nav-h);background:linear-gradient(135deg,#1c2433,#2a3a5c);color:#fff;display:flex;align-items:center;padding:0 20px;z-index:100;box-shadow:0 1px 4px rgba(0,0,0,.2)}
+.topnav .logo{display:flex;align-items:center;gap:8px;margin-right:24px}
+.topnav .logo-icon{width:24px;height:24px;background:#ff6900;border-radius:4px;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:12px}
+.topnav .logo-text{font-size:13px;font-weight:600}
+.topnav .menu{display:flex;gap:2px}
+.topnav .menu a{color:rgba(255,255,255,.8);text-decoration:none;padding:6px 12px;border-radius:4px;font-size:12px;cursor:pointer}
+.topnav .menu a:hover{background:rgba(255,255,255,.1)}
+.topnav .menu a.on{background:rgba(255,255,255,.18);color:#fff;font-weight:500}
+.topnav .sp{flex:1}
+.topnav .meta{font-size:11px;color:rgba(255,255,255,.6)}
+.wrap{max-width:1100px;margin:0 auto;padding:16px 24px 40px}
+.page-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px}
+.page-head h1{font-size:18px;font-weight:700}
+.page-head .date-select{display:flex;align-items:center;gap:8px}
+.page-head .date-select select{padding:5px 10px;border:1px solid var(--line);border-radius:4px;font-size:11px;background:#fff}
+.page-head .refresh button{background:var(--blue);color:#fff;border:none;padding:5px 12px;border-radius:4px;font-size:11px;cursor:pointer;margin-left:8px}
+.status-bar{background:linear-gradient(135deg,#1c2433,#2a3a5c);color:#fff;border-radius:6px;padding:12px 18px;margin-bottom:12px;display:flex;align-items:center;gap:20px;flex-wrap:wrap}
+.status-bar .title{font-size:14px;font-weight:600}
+.status-bar .items{display:flex;gap:16px;flex-wrap:wrap}
+.status-bar .item{display:flex;align-items:center;gap:5px;font-size:12px}
+.status-bar .item .dot{width:8px;height:8px;border-radius:50%}
+.kpi-row{display:grid;grid-template-columns:repeat(6,1fr);gap:8px;margin-bottom:14px}
+.kpi{background:#fff;border:1px solid var(--line);border-radius:6px;padding:10px 12px;position:relative;overflow:hidden}
+.kpi::before{content:'';position:absolute;left:0;top:0;bottom:0;width:3px;background:var(--blue)}
+.kpi.g::before{background:var(--green)}.kpi.o::before{background:var(--orange)}.kpi.r::before{background:var(--red)}.kpi.p::before{background:var(--purple)}
+.kpi .v{font-size:20px;font-weight:700;line-height:1.2}
+.kpi .l{font-size:11px;color:var(--grey);margin-top:2px}
+.card{background:#fff;border:1px solid var(--line);border-radius:6px;margin-bottom:12px;overflow:hidden}
+.card .hd{padding:8px 14px;border-bottom:1px solid var(--line);font-weight:600;font-size:13px;display:flex;align-items:center;gap:6px}
+.card .hd .tip{font-weight:400;font-size:11px;color:var(--grey);margin-left:auto}
+.card .bd{padding:12px 14px}
+.skill-block{border:1px solid var(--line);border-radius:6px;margin-bottom:10px;overflow:hidden}
+.skill-block .sh{padding:8px 12px;background:#f7f8fa;border-bottom:1px solid var(--line);display:flex;align-items:center;gap:8px;cursor:pointer}
+.skill-block .sh:hover{background:#eef0f4}
+.skill-block .sh .name{font-weight:600;font-size:12.5px}
+.skill-block .sh .cli{font-family:ui-monospace,Menlo,Consolas,monospace;font-size:10.5px;color:var(--grey);background:#fff;padding:2px 6px;border-radius:3px;border:1px solid var(--line)}
+.skill-block .sh .sp{flex:1}
+.skill-block .sh .count{font-size:11px;color:var(--grey)}
+.skill-block .sb{padding:10px 12px;display:none}
+.skill-block.open .sb{display:block}
+.skill-block .summary{background:#f0f4ff;border-left:3px solid var(--blue);padding:8px 12px;border-radius:0 4px 4px 0;margin-bottom:8px;font-size:12px}
+.exec-item{padding:6px 0;border-bottom:1px dashed #eee;font-size:11.5px;display:flex;gap:10px;align-items:flex-start}
+.exec-item:last-child{border-bottom:none}
+.exec-item .time{font-family:ui-monospace,Menlo,Consolas,monospace;color:var(--grey);min-width:120px;font-size:10.5px}
+.exec-item .content{flex:1}
+.exec-item .content .sum{font-weight:500}
+.exec-item .content .det{color:var(--grey);font-size:10.5px;margin-top:2px;white-space:pre-wrap}
+.exec-item .content .err{color:var(--red);font-size:10.5px;margin-top:2px;white-space:pre-wrap}
+.tag{display:inline-block;padding:1px 7px;border-radius:3px;font-size:10px;font-weight:600}
+.t-green{background:#e5faf1;color:var(--green)}.t-orange{background:#fff4e5;color:#b36b00}
+.t-red{background:#ffebe8;color:var(--red)}.t-grey{background:#f2f3f5;color:var(--grey)}.t-blue{background:#e8f0ff;color:var(--blue)}.t-purple{background:#f5e8ff;color:var(--purple)}
+.mono{font-family:ui-monospace,Menlo,Consolas,monospace;font-size:10.5px;color:#47536b}
+.raw-log{background:#1e1e1e;color:#d4d4d4;border-radius:6px;padding:12px;font-family:ui-monospace,Menlo,Consolas,monospace;font-size:10.5px;line-height:1.6;max-height:400px;overflow-y:auto;white-space:pre-wrap;word-break:break-all}
+.raw-log .ts{color:#6a9955}
+.raw-log .lvl-info{color:#569cd6}
+.raw-log .lvl-warn{color:#dcdcaa}
+.raw-log .lvl-err{color:#f44747}
+.empty{text-align:center;padding:30px;color:var(--grey);font-size:12px}
+.loading{text-align:center;padding:40px;color:var(--grey);font-size:13px}
+.error{text-align:center;padding:40px;color:var(--red);font-size:13px}
+@media(max-width:900px){.kpi-row{grid-template-columns:repeat(3,1fr)}}
+@media(max-width:600px){.kpi-row{grid-template-columns:repeat(2,1fr)}.topnav .menu{display:none}}
+</style>
+</head>
+<body>
+
+<div class="topnav">
+  <div class="logo"><div class="logo-icon">MI</div><div class="logo-text">样件订单自动化</div></div>
+  <div class="menu">
+    <a href="执行日志面板.html">执行日志面板</a>
+    <a class="on">执行日报</a>
+    <a href="日报订单明细.html">日报订单明细</a>
+  </div>
+  <div class="sp"></div>
+  <div class="meta" id="genTime">加载中...</div>
+</div>
+
+<div class="wrap">
+  <div class="page-head">
+    <h1>⚙️ 执行日报</h1>
+    <div style="display:flex;align-items:center;gap:10px">
+      <div class="date-select">
+        <select id="dateSelect"><option value="">全部日期</option></select>
+      </div>
+      <div class="refresh"><button onclick="location.reload()">🔄 刷新</button></div>
+    </div>
+  </div>
+
+  <div id="loading" class="loading">正在加载数据...</div>
+  <div id="error" class="error" style="display:none"></div>
+  <div id="content" style="display:none">
+
+    <!-- 总体状态 -->
+    <div class="status-bar" id="statusBar"></div>
+
+    <!-- KPI -->
+    <div class="kpi-row" id="kpiRow"></div>
+
+    <!-- 各 Skill 执行反馈 -->
+    <div class="card">
+      <div class="hd">🔧 各 Skill 执行反馈<span class="tip" id="skillCount">共 0 个 Skill</span></div>
+      <div class="bd" id="skillBlocks"></div>
+    </div>
+
+    <!-- 原始执行日志 -->
+    <div class="card">
+      <div class="hd">📜 原始执行日志<span class="tip">JSONL 格式</span></div>
+      <div class="bd">
+        <div class="raw-log" id="rawLog"></div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<script>
+let allData = null;
+let currentDate = '';
+
+async function loadData() {
+  try {
+    const res = await fetch('data.json?_=' + Date.now());
+    if (!res.ok) throw new Error('HTTP ' + res.status);
+    allData = await res.json();
+    document.getElementById('loading').style.display = 'none';
+    document.getElementById('content').style.display = 'block';
+    document.getElementById('genTime').textContent = '数据更新：' + allData.generated_at;
+    initDateSelect();
+    renderAll();
+  } catch (e) {
+    document.getElementById('loading').style.display = 'none';
+    document.getElementById('error').style.display = 'block';
+    document.getElementById('error').textContent = '数据加载失败：' + e.message + '（请先运行 python3 fetch_data.py 生成 data.json）';
+  }
+}
+
+function initDateSelect() {
+  const dates = [...new Set(allData.execution_logs.map(l => l.date).filter(Boolean))].sort().reverse();
+  const sel = document.getElementById('dateSelect');
+  sel.innerHTML = '<option value="">全部日期</option>' + dates.map(d => `<option value="${d}">${d}</option>`).join('');
+  sel.addEventListener('change', e => { currentDate = e.target.value; renderAll(); });
+}
+
+function getFilteredLogs() {
+  if (!currentDate) return allData.execution_logs;
+  return allData.execution_logs.filter(l => l.date === currentDate);
+}
+
+function statusTag(s) {
+  const map = {'成功':'t-green','部分成功':'t-orange','待决策':'t-purple','失败':'t-red'};
+  return `<span class="tag ${map[s]||'t-grey'}">${s||'未知'}</span>`;
+}
+
+function renderAll() {
+  const logs = getFilteredLogs();
+  renderStatusBar(logs);
+  renderKPI(logs);
+  renderSkillBlocks(logs);
+  renderRawLog(logs);
+}
+
+function renderStatusBar(logs) {
+  const success = logs.filter(l => l.status === '成功').length;
+  const partial = logs.filter(l => l.status === '部分成功').length;
+  const pending = logs.filter(l => l.status === '待决策').length;
+  const failed = logs.filter(l => l.status === '失败').length;
+  const totalDuration = logs.reduce((s, l) => s + (Number(l.duration) || 0), 0);
+  const dateLabel = currentDate || '全部日期';
+
+  let overall = '正常运行';
+  let overallColor = 'var(--green)';
+  if (failed > 0) { overall = '存在失败'; overallColor = 'var(--red)'; }
+  else if (pending > 0) { overall = '有待决策项'; overallColor = 'var(--purple)'; }
+  else if (partial > 0) { overall = '部分成功'; overallColor = 'var(--orange)'; }
+
+  document.getElementById('statusBar').innerHTML = `
+    <div class="title">📊 ${dateLabel} · 总体状态：<span style="color:${overallColor}">${overall}</span></div>
+    <div class="items">
+      <div class="item"><span class="dot" style="background:var(--green)"></span>成功 ${success}</div>
+      <div class="item"><span class="dot" style="background:var(--orange)"></span>部分成功 ${partial}</div>
+      <div class="item"><span class="dot" style="background:#f0b429"></span>待决策 ${pending}</div>
+      <div class="item"><span class="dot" style="background:var(--red)"></span>失败 ${failed}</div>
+      <div class="item">⏱️ 总耗时 ${totalDuration.toFixed(1)}s</div>
+    </div>`;
+}
+
+function renderKPI(logs) {
+  const success = logs.filter(l => l.status === '成功').length;
+  const partial = logs.filter(l => l.status === '部分成功').length;
+  const pending = logs.filter(l => l.status === '待决策').length;
+  const failed = logs.filter(l => l.status === '失败').length;
+  const totalDuration = logs.reduce((s, l) => s + (Number(l.duration) || 0), 0);
+  const skills = new Set(logs.map(l => l.skill).filter(Boolean)).size;
+  const successRate = logs.length > 0 ? ((success / logs.length) * 100).toFixed(0) : 0;
+
+  const kpis = [
+    {v: logs.length, l: '执行次数', c: ''},
+    {v: success, l: '成功', c: 'g'},
+    {v: failed, l: '失败', c: 'r'},
+    {v: pending, l: '待决策', c: 'p'},
+    {v: successRate + '%', l: '成功率', c: 'o'},
+    {v: totalDuration.toFixed(1) + 's', l: '总耗时', c: ''},
+  ];
+  document.getElementById('kpiRow').innerHTML = kpis.map(k =>
+    `<div class="kpi ${k.c}"><div class="v">${k.v}</div><div class="l">${k.l}</div></div>`
+  ).join('');
+}
+
+function renderSkillBlocks(logs) {
+  const skillMap = {};
+  logs.forEach(log => {
+    const skill = log.skill || '未知';
+    if (!skillMap[skill]) skillMap[skill] = [];
+    skillMap[skill].push(log);
+  });
+
+  const skillOrder = ['需求导入', '需求检查', '查询可下单', '创建订单', '交互确认'];
+  const sortedSkills = [...Object.keys(skillMap)].sort((a, b) => {
+    const ia = skillOrder.indexOf(a);
+    const ib = skillOrder.indexOf(b);
+    if (ia === -1 && ib === -1) return a.localeCompare(b);
+    if (ia === -1) return 1;
+    if (ib === -1) return -1;
+    return ia - ib;
+  });
+
+  document.getElementById('skillCount').textContent = `共 ${sortedSkills.length} 个 Skill`;
+
+  let html = '';
+  sortedSkills.forEach((skill, idx) => {
+    const skillLogs = skillMap[skill];
+    const cli = skillLogs.find(l => l.cli)?.cli || '';
+    const success = skillLogs.filter(l => l.status === '成功').length;
+    const failed = skillLogs.filter(l => l.status === '失败').length;
+    const totalDuration = skillLogs.reduce((s, l) => s + (Number(l.duration) || 0), 0);
+
+    html += `<div class="skill-block ${idx===0?'open':''}" id="skill-${idx}">
+      <div class="sh" onclick="toggleSkill(${idx})">
+        <span class="name">${skill}</span>
+        ${cli ? `<span class="cli">${cli}</span>` : ''}
+        <span class="sp"></span>
+        <span class="count">${skillLogs.length} 次 · 成功 ${success} · 失败 ${failed} · ${totalDuration.toFixed(1)}s</span>
+        <span style="font-size:10px;color:var(--grey)">${idx===0?'▼':'▶'}</span>
+      </div>
+      <div class="sb">`;
+
+    // 汇总
+    const summaries = skillLogs.filter(l => l.summary).map(l => l.summary);
+    if (summaries.length > 0) {
+      html += `<div class="summary">📋 ${summaries.join(' | ')}</div>`;
+    }
+
+    // 执行明细
+    skillLogs.forEach(log => {
+      html += `<div class="exec-item">
+        <span class="time">${log.time || ''}</span>
+        <div class="content">
+          <div class="sum">${statusTag(log.status)} ${log.summary || '-'}</div>
+          ${log.detail ? `<div class="det">明细：${log.detail}</div>` : ''}
+          ${log.error ? `<div class="err">错误：${log.error}</div>` : ''}
+          ${log.duration ? `<div class="det">耗时：${Number(log.duration).toFixed(1)}s${log.batch?' · 批次：'+log.batch:''}</div>` : ''}
+        </div>
+      </div>`;
+    });
+
+    html += `</div></div>`;
+  });
+
+  if (sortedSkills.length === 0) {
+    html = '<div class="empty">该日期暂无执行记录</div>';
+  }
+
+  document.getElementById('skillBlocks').innerHTML = html;
+}
+
+function toggleSkill(idx) {
+  const block = document.getElementById('skill-' + idx);
+  block.classList.toggle('open');
+  const arrow = block.querySelector('.sh span:last-child');
+  arrow.textContent = block.classList.contains('open') ? '▼' : '▶';
+}
+
+function renderRawLog(logs) {
+  const lines = logs.map(log => {
+    const ts = log.time ? log.time.replace('T', ' ').slice(0, 19) : '';
+    const level = log.status === '失败' ? 'ERROR' : (log.status === '部分成功' ? 'WARN' : 'INFO');
+    const levelClass = level === 'ERROR' ? 'lvl-err' : (level === 'WARN' ? 'lvl-warn' : 'lvl-info');
+    const msg = [log.skill, log.summary, log.detail ? 'detail=' + log.detail : '', log.error ? 'error=' + log.error : '']
+      .filter(Boolean).join(' | ');
+    return `<span class="ts">[${ts}]</span> <span class="${levelClass}">[${level}]</span> ${msg}`;
+  });
+  document.getElementById('rawLog').innerHTML = lines.join('\n') || '<span style="color:#888">暂无日志</span>';
+}
+
+loadData();
+</script>
+</body>
+</html>

@@ -1,0 +1,221 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>样件订单业务线梳理与文档合并方案</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: -apple-system, "PingFang SC", "Microsoft YaHei", "Segoe UI", Roboto, Arial, sans-serif; background: #F5F6F8; color: #1A1B1C; line-height: 1.7; padding: 0 0 48px; }
+  .wrap { max-width: 1080px; margin: 0 auto; padding: 0 20px; }
+  header { background: linear-gradient(135deg, #0F3D5C 0%, #1E6E96 60%, #2E8FB0 100%); color: #fff; padding: 40px 0 36px; margin-bottom: 28px; }
+  header .kicker { font-size: 13px; letter-spacing: 2px; opacity: .8; margin-bottom: 8px; }
+  header h1 { font-size: 28px; font-weight: 700; line-height: 1.35; }
+  header .sub { margin-top: 10px; font-size: 14px; opacity: .9; }
+  header .meta { margin-top: 14px; font-size: 12px; opacity: .75; display: flex; gap: 16px; flex-wrap: wrap; }
+  h2 { font-size: 20px; margin: 32px 0 14px; padding-left: 12px; border-left: 4px solid #1E6E96; }
+  h3 { font-size: 16px; margin: 20px 0 10px; color: #0F3D5C; }
+  p { margin: 8px 0; }
+  .lead { background: #fff; border: 1px solid #E4E8EC; border-radius: 12px; padding: 18px 20px; margin: 14px 0; }
+  .card { background: #fff; border: 1px solid #E4E8EC; border-radius: 12px; padding: 18px 20px; margin: 14px 0; }
+  table { width: 100%; border-collapse: collapse; margin: 12px 0; font-size: 13px; background: #fff; }
+  th, td { border: 1px solid #E4E8EC; padding: 9px 10px; text-align: left; vertical-align: top; }
+  th { background: #F0F4F7; color: #0F3D5C; font-weight: 600; }
+  tr:nth-child(even) td { background: #FAFBFD; }
+  .tag { display: inline-block; padding: 2px 10px; border-radius: 20px; font-size: 12px; font-weight: 500; white-space: nowrap; }
+  .t-core { background: #E8F1FB; color: #1E6E96; }
+  .t-flow { background: #EAF6EE; color: #2E7D4F; }
+  .t-tech { background: #FDF3E3; color: #9A6A1F; }
+  .t-sop { background: #F3EFFB; color: #6B46C1; }
+  .step { display: flex; align-items: flex-start; gap: 12px; margin: 10px 0; }
+  .step .n { flex: 0 0 30px; height: 30px; border-radius: 50%; background: #1E6E96; color: #fff; display: flex; align-items: center; justify-content: center; font-size: 13px; font-weight: 600; }
+  .step .c { flex: 1; }
+  .grid { display: flex; flex-wrap: wrap; gap: 12px; }
+  .grid .it { flex: 1 1 200px; background: #F0F4F7; border-radius: 10px; padding: 12px 14px; }
+  .grid .it b { color: #0F3D5C; display: block; margin-bottom: 4px; }
+  ul { padding-left: 20px; margin: 6px 0; }
+  li { margin: 4px 0; }
+  .note { font-size: 12px; color: #6B7280; }
+  .callout { background: #FFF9E8; border: 1px solid #F3E2B0; border-left: 4px solid #E0B64E; border-radius: 8px; padding: 12px 16px; margin: 12px 0; }
+  .merge { border-left: 4px solid #2E8FB0; padding: 6px 0 6px 14px; margin: 14px 0; }
+  .merge b { color: #0F3D5C; }
+  .src { font-size: 11px; color: #9AA3AB; word-break: break-all; }
+  footer { margin-top: 40px; padding-top: 16px; border-top: 1px solid #E4E8EC; font-size: 12px; color: #6B7280; }
+</style>
+</head>
+<body>
+<header>
+  <div class="wrap">
+    <div class="kicker">小米汽车 · 样件订单业务线</div>
+    <h1>样件订单业务线背景梳理 与 文档合并方案</h1>
+    <div class="sub">基于 12 份飞书文档（流程制度 / Skill 与 Agent 化方案 / EP 系统技术方案 / 操作手册）的合并梳理</div>
+    <div class="meta"><span>数据来源：mi.feishu.cn 12 份业务文档</span><span>梳理日期：2026-09-01</span></div>
+  </div>
+</header>
+
+<div class="wrap">
+
+  <div class="lead">
+    <b>一句话结论：</b>样件订单是小米汽车支撑研发/试制阶段样件采购的核心业务线。当前业务已跑通「需求→预算→采购→下单→验收→结算」全流程，但订单管理员仍以大量手工操作为主（日均 200 单、单笔约 10 分钟）。团队正推进<b>样件订单 Skill / Agent 化改造</b>（路径二试点：Skill 写逻辑 + EP 提供 CLI 接口），将「查需求→校验→分组→下单→更新→追踪」沉淀为 <b>9 个 Skill + 15 个 CLI</b>，这也是后续写 Skill、转 py 的落点。
+  </div>
+
+  <h2>一、业务线背景</h2>
+
+  <div class="card">
+    <h3>1.1 业务定位</h3>
+    <p>样件采购用于支撑 <b>竞品分析、调试/测试/试验、试制（BOX car、SM车、M车、VP车）</b>等场景下上车零部件总成及散件的采购需求（《汽车部直采样件采购流程 V1.0》适用范围）。整车工程部的研发试验测试样件（散件）单独由《整车工程部研发样件管理规则》规范。</p>
+    <p>样件订单 = 样件采购订单（EP 系统中实体为 <b>SaPo / SaPoItem</b>），是样件采购全生命周期管理 7 大模块之一（需求、导入、任务、RFQ、快速定点、台账、订单）。</p>
+  </div>
+
+  <div class="card">
+    <h3>1.2 端到端业务流程</h3>
+    <div class="step"><div class="n">1</div><div class="c"><b>需求提出</b><br>零部件实际需求人（研发产品工程师 / DRE / 试制工程师）提出样件需求；编写 SOR 明确交样要求与总体计划。</div></div>
+    <div class="step"><div class="n">2</div><div class="c"><b>预算 / BR 申请</b><br>样件需求部门在<b>预算申请系统</b>提报阶段性样件采购申请；散件需求人申请 BR 单号并提报至二级部门接口人。</div></div>
+    <div class="step"><div class="n">3</div><div class="c"><b>需求汇总与传递</b><br>整车试制：研发在 <b>MI-PEC 系统</b>打点单车需求，试制 BOM 工程师汇总；散件/零散：部门提报人汇总阶段性需求后在 <b>EP 系统</b>导入。</div></div>
+    <div class="step"><div class="n">4</div><div class="c"><b>采购申请与定点</b><br>量产供应商已定点件 → 直接下单；量产供应商非量产件（散件/改制件/替代件）→ EP 快速定点流程；非量产供应商非量产件 → 快速定点 + 样件采购合同签署。</div></div>
+    <div class="step"><div class="n">5</div><div class="c"><b>采购订单（PO）</b><br>供应链运营接收需求 → 在 EP 转化为 PO（SaPo）→ 审批（金额 &gt;50w 需联合评审）→ 下发供应商确认 → SAP 下发。下单周期：新定点供应商最长 6 周，已定点供应商 3 天–1 周。</div></div>
+    <div class="step"><div class="n">6</div><div class="c"><b>样件验收</b><br>整车在<b>汽车非资产验收平台</b>验收（整车：试制工程师；散件：需求人/汇总人）；研发阶段散件需保证「样件用途=A 散件」「未全部收货」等条件。</div></div>
+    <div class="step"><div class="n">7</div><div class="c"><b>结算付款</b><br>账务负责发票校验、过账及付款，完成样件结算合同流程与对公付款。</div></div>
+  </div>
+
+  <div class="card">
+    <h3>1.3 关键系统</h3>
+    <div class="grid">
+      <div class="it"><b>EP</b>采购/订单主系统，样件模块 7 大子模块</div>
+      <div class="it"><b>MI-PEC</b>试制系统，整车试制需求打点</div>
+      <div class="it"><b>SRM</b>供应商关系系统</div>
+      <div class="it"><b>预算申请系统</b>阶段性预算 &amp; BR 申请</div>
+      <div class="it"><b>汽车非资产验收平台</b>样件/散件验收</div>
+      <div class="it"><b>SAP</b>订单下发与结算</div>
+      <div class="it"><b>小米审批</b>流程审批（合同/订单）</div>
+    </div>
+  </div>
+
+  <div class="card">
+    <h3>1.4 职责分工</h3>
+    <ul>
+      <li><b>零部件实际需求人</b>：提起样件需求、系统确认收货</li>
+      <li><b>部门提报人 / 试制 BOM 工程师</b>：汇总需求、定期传递至采购</li>
+      <li><b>研发产品工程师（零部件负责人）</b>：编写 SOR、跟踪交样</li>
+      <li><b>采购工程师</b>：确认样件价格、签订价格相关合同</li>
+      <li><b>供应链运营</b>：接收需求、EP 需求转 PO、核查一致性</li>
+      <li><b>财务 / 账务</b>：确认审核预算与价格、发票校验过账付款</li>
+      <li><b>需求复核人（DRE）</b>：整车工程部样件需求复核</li>
+    </ul>
+  </div>
+
+  <div class="card">
+    <h3>1.5 现状痛点（8-18 会议确认）</h3>
+    <table>
+      <tr><th>痛点</th><th>现状</th><th>影响</th></tr>
+      <tr><td>需求人工校验</td><td>订单管理员每天手工检查 MIPEC 需求表（多时一天 800 条），K 值重复 / 零件号位数 / 台账状态靠肉眼</td><td>耗时易漏，退回无理由，需求方反复传错</td></tr>
+      <tr><td>分组下单全靠手点</td><td>试制/散件 → BR / 需求号 / 采购员 / 供应商分组，EP 里一条条勾选合并下单</td><td>日均 200 单 × 5 分钟，纯重复劳动</td></tr>
+      <tr><td>订单变更无脑重复</td><td>"更新→终止流程→删草稿→关闭订单" 全是规则化点击</td><td>占用一名全职人力</td></tr>
+      <tr><td>状态查询滞后</td><td>订单状态需人工进 EP 查询，异常发现晚</td><td>交付风险高</td></tr>
+    </table>
+  </div>
+
+  <h2>二、Agent 化改造项目（核心主题）</h2>
+
+  <div class="lead">
+    定位：<b>样件自动下单试点（路径二）</b>—— Skill 写逻辑，EP 提供 CLI 接口。AI 负责编排与判断，EP 固化价格等高风险逻辑，飞书承载人工确认。<b>「人做决策，AI 做执行」</b>。目标：把订单管理员"查需求→校验→分组→下单→更新→追踪"的重复操作沉淀为 <b>9 个可编排 Skill（配套 15 个 CLI）</b>，先以一天一次的节奏跑通试点。
+  </div>
+
+  <div class="card">
+    <h3>2.1 覆盖模块与三层形态</h3>
+    <p><b>四模块：</b>需求导入 / 创建订单 / 更新订单 / 样件询价清单</p>
+    <p><b>三层形态：</b>CLI（确定性批量操作）+ Skill（规则/数据/动作打包）+ Agent（多源对接与异常兜底），并纳入"岗位虾"体系。</p>
+  </div>
+
+  <div class="card">
+    <h3>2.2 已规划 Skill 能力</h3>
+    <table>
+      <tr><th>Skill</th><th>自然语言操作逻辑（要点）</th><th>来源文档</th></tr>
+      <tr><td>样件下单</td><td>查询有价格可下单需求 → 试制/散件分类 + A/B/C/D 四类（价格与供应商唯一/多）→ 分组下单 → 特殊情况（报错/预算不足）处理</td><td>doc4</td></tr>
+      <tr><td>订单更新</td><td>筛选【草稿&供应商已确认】/【审批中&待供应商确认】→ 更新、删除零条目、删除草稿、关闭订单、终止流程；报错类（收货数量&gt;需求、换 BR 后仍待更新）</td><td>doc5</td></tr>
+      <tr><td>散件样件需求导入 <span class="src">sample-demand-import</span></td><td>抓取整车工程部研发样件需求收集表格「待导入」→ 清洗字段 → 映射 EP 采购需求导入模板 → 按需求申请人分包 → 生成 CSV 导入 EP → 启动审批流 → 回填状态</td><td>doc6 / doc8</td></tr>
+      <tr><td>需求导入 Agent 化</td><td>多源（DRE/试制/散件/物流）需求自动归集；米Tab 映射项目编码/车型，字段完整率 ≥99%；「闸门一·需求锁定」</td><td>doc7</td></tr>
+    </table>
+  </div>
+
+  <div class="card">
+    <h3>2.3 CLI 契约（EP 侧）</h3>
+    <p>以 CLI 语义 + 字段口径 + 验收标准定义，核心覆盖：<b>查询可下单需求、创建样件订单、查询当天提交订单、需求明细导入</b> 等；价格判断、是否提交、草稿保存等高风险规则由 EP 系统在创建订单流程内部完成。关键改造点：① 取价逻辑（最新且最低价）；② 订单增加来源字段（SKILL_AUTO/MANUAL）用于统计复盘；③ 撤批时机调整（V2 供应商确认后才取消 V1）。</p>
+  </div>
+
+  <h2>三、12 份文档地图</h2>
+
+  <table>
+    <tr><th>#</th><th>文档</th><th>类型</th><th>作者 / 版本</th><th>核心内容</th></tr>
+    <tr><td>1</td><td>汽车部直采样件采购流程 V1.0</td><td><span class="tag t-flow">制度流程</span></td><td>路梦瑶 / V1.0</td><td>直采样件全流程：预算、采购申请、订单、需求变更、验收、付款；EP/MI-PEC/SRM 系统介绍；流程图</td></tr>
+    <tr><td>2</td><td>样件订单 Skill 开发 · 整体解决方案与 CLI 契约</td><td><span class="tag t-core">方案·核心</span></td><td>v1.0 · 2026-08-24</td><td>「00 整体解决方案」+「01 CLI 契约」合并版；9 Skill + 15 CLI；含 <b>skill 架构画板</b></td></tr>
+    <tr><td>3</td><td>EP 样件自动下单 CLI 方案</td><td><span class="tag t-core">CLI 方案</span></td><td>v1.0 草案</td><td>核心 CLI：查询可下单需求 / 创建样件订单 / 查询当天提交订单 / 需求导入</td></tr>
+    <tr><td>4</td><td>EP skill（样件下单功能）</td><td><span class="tag t-core">Skill</span></td><td>范雪婷 / 李文俊</td><td>下单自然语言操作逻辑（A/B/C/D 四类）、路径流程图、CLI 清单、自然语义对照表</td></tr>
+    <tr><td>5</td><td>EP 系统样件订单更新功能 skill V3.0</td><td><span class="tag t-core">Skill</span></td><td>黄一轩 / V3.0</td><td>订单更新逻辑（草稿/审批中 + 报错类）、路径流程图、CLI 清单、自然语义对照表</td></tr>
+    <tr><td>6</td><td>Skill 评审：散件样件需求导入（sample-demand-import）</td><td><span class="tag t-core">Skill 评审</span></td><td>—</td><td>需求导入 Skill 元信息、背景、评审关注点（字段映射/分包/权限/异常/与 MIPEC 冲突）</td></tr>
+    <tr><td>7</td><td>需求导入 Agent 化方案 v0.1</td><td><span class="tag t-core">方案</span></td><td>v0.1 草案</td><td>需求导入模块 CLI+Skill+Agent 三层；多源归集、米Tab 补全、闸门一需求锁定、岗位虾</td></tr>
+    <tr><td>8</td><td>导入操作步骤</td><td><span class="tag t-sop">SOP</span></td><td>—</td><td>散件需求导入 EP 手动操作步骤（筛选→导出→分列→整理邮箱字段）</td></tr>
+    <tr><td>9</td><td>整车工程部研发样件管理规则 V0.4</td><td><span class="tag t-flow">制度流程</span></td><td>仇逸文等 / V0.4</td><td>整车工程部研发样件（散件）管理制度：职责、下单流程（BR/提需/EP 审核/下单/验收）、状态追踪、接口人</td></tr>
+    <tr><td>10</td><td>样件模块详细技术方案 v2.0</td><td><span class="tag t-tech">EP 技术方案</span></td><td>刘文飞 / v2.0</td><td>EP 样件 7 模块技术设计：核心实体、数据表（SaPo 等）、API、技术栈（Spring Boot + Oracle + SAP）；含业务流程画板</td></tr>
+    <tr><td>11</td><td>研发阶段样件 / 散件验收流程</td><td><span class="tag t-sop">SOP</span></td><td>—</td><td>验收范围与前置条件（样件用途 A 散件、未完成收货、账号要求），汽车非资产验收平台</td></tr>
+    <tr><td>12</td><td>样件自动下单 CLI 技术方案</td><td><span class="tag t-tech">占位</span></td><td>郑佳佳</td><td><b>空白占位文档</b>（仅标题，内容待填充）</td></tr>
+  </table>
+
+  <h2>四、文档合并方案（12 → 4）</h2>
+
+  <div class="callout">
+    <b>合并原则：</b>按「读者与用途」归组，同类合并、去重、统一版本；<b>Skill 相关图（架构画板、路径流程图、业务流程画板）一律原样保留</b>，不因合并而丢失；空白占位文档 doc12 作为待填项并入对应方案，避免无效文档堆积。
+  </div>
+
+  <div class="merge">
+    <b>A · 业务制度与流程基线</b> <span class="tag t-flow">制度</span><br>
+    合并：<span class="tag t-flow">doc1 汽车部直采样件采购流程</span> + <span class="tag t-flow">doc9 整车工程部研发样件管理规则</span><br>
+    产出：<b>《样件订单业务制度与流程基线》</b>（直采总流程 + 整车工程部散件管理规则，含业务流程图）<br>
+    <span class="note">→ 面向业务执行与制度查阅；两张主要业务流程图需保留。</span>
+  </div>
+
+  <div class="merge">
+    <b>B · Skill/Agent 化总体方案（核心）</b> <span class="tag t-core">方案</span><br>
+    合并：<span class="tag t-core">doc2 整体解决方案与 CLI 契约</span> + <span class="tag t-core">doc3 EP 样件自动下单 CLI 方案</span> + <span class="tag t-tech">doc12 样件自动下单 CLI 技术方案（占位）</span><br>
+    产出：<b>《样件订单 Skill/Agent 化总体方案与 CLI 契约》</b>（定位/目标/9 Skill 拆解/15 CLI 契约/EP 改造点）<br>
+    <span class="note">→ 面向项目评审与 EP 开发；<b>doc2 的 skill 架构画板是「最核心要保留的图」</b>，必须原样迁移。</span>
+  </div>
+
+  <div class="merge">
+    <b>C · Skill 详细规格与评审</b> <span class="tag t-core">Skill</span><br>
+    合并：<span class="tag t-core">doc4 下单 skill</span> + <span class="tag t-core">doc5 更新订单 skill</span> + <span class="tag t-core">doc6 sample-demand-import 评审</span> + <span class="tag t-core">doc7 需求导入 Agent 化方案</span><br>
+    产出：<b>《样件订单 Skill 详细规格》</b>（各 Skill 自然语言操作逻辑 + 路径流程图 + CLI 清单 + 自然语义对照表 + 评审结论）<br>
+    <span class="note">→ 面向 Skill 开发与测试；doc4/doc5 的<b>路径流程图</b>、doc7 的需求锁定规则保留。</span>
+  </div>
+
+  <div class="merge">
+    <b>D · 操作手册与 EP 技术方案</b> <span class="tag t-sop">手册 / 技术</span><br>
+    合并：<span class="tag t-sop">doc8 导入操作步骤</span> + <span class="tag t-tech">doc10 样件模块详细技术方案</span> + <span class="tag t-sop">doc11 验收流程</span><br>
+    产出：<b>《样件订单操作手册与 EP 技术方案》</b>（手动 SOP + EP 7 模块系统设计 + 验收流程）<br>
+    <span class="note">→ 面向订单管理员操作与系统开发；doc10 的核心业务流程概览/台账数据流画板保留。</span>
+  </div>
+
+  <table>
+    <tr><th>合并后</th><th>来源文档</th><th>保留的图</th></tr>
+    <tr><td>A 业务制度与流程基线</td><td>doc1 + doc9</td><td>直采流程图、整车工程部业务流程图</td></tr>
+    <tr><td>B Skill/Agent 化总体方案与 CLI 契约</td><td>doc2 + doc3 + doc12</td><td><b>doc2 skill 架构画板</b></td></tr>
+    <tr><td>C Skill 详细规格</td><td>doc4 + doc5 + doc6 + doc7</td><td>doc4 / doc5 路径流程图</td></tr>
+    <tr><td>D 操作手册与 EP 技术方案</td><td>doc8 + doc10 + doc11</td><td>doc10 业务流程/台账数据流画板</td></tr>
+  </table>
+
+  <div class="card">
+    <h3>执行建议与后续</h3>
+    <ul>
+      <li><b>立即</b>：按 A/B/C/D 四组在飞书建立 4 个合并文档，把 12 份内容迁移、去重、统一版本号；doc12 占位并入 B 组由郑佳佳补齐。</li>
+      <li><b>图保全</b>：迁移时画板/流程图使用「复制为副本」或原文档引用方式，确保图不因合并丢失。</li>
+      <li><b>后续（agent 化）</b>：以 B 组为总体方案、C 组为 Skill 规格，推进 —— ① 按 CLI 契约实现 EP CLI；② 把每个 Skill 写成标准 SKILL.md（输入/输出/触发词/异常处理），如 doc6 的 sample-demand-import 评审格式；③ 将 CLI 调用封装为可执行的 py 脚本/Agent 编排。</li>
+    </ul>
+  </div>
+
+  <footer>
+    本报告基于 12 份 mi.feishu.cn 文档（doc1–doc12）梳理生成；所有文档标题、作者、版本与流程信息均来自对应文档内容。画板/流程图为文档内嵌组件，合并时需原样保留。
+  </footer>
+
+</div>
+</body>
+</html>

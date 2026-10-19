@@ -1,0 +1,1791 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>EP 成本库与交叉比价中心 · 功能原型 v0.17</title>
+<link rel="stylesheet" href="https://miaoda.feishu.cn/fonts/css2?family=Noto+Sans+SC:wght@400;500;600;700&display=swap">
+<style>
+  :root{
+    --navy:#1F4E79; --blue:#2E75B6; --sky:#6FA8DC; --pale:#D6E4F0; --pale2:#EBF1F8;
+    --amber:#E8A33D; --amber-soft:#FBEEDC;
+    --bg:#F4F6F9; --card:#FFFFFF; --ink:#1B2430; --muted:#5A6B7E;
+    --line:#E3E8EF; --gray:#B7BCC4; --green:#2E7D5B; --green-soft:#E8F2EC;
+    --orange:#D97B29; --orange-soft:#FCF1E3; --red:#C0504D; --red-soft:#F9ECEB;
+  }
+  *{margin:0;padding:0;box-sizing:border-box;}
+  body{font-family:"Noto Sans SC","PingFang SC","Hiragino Sans GB","Microsoft YaHei",system-ui,sans-serif;
+    background:var(--bg); color:var(--ink); line-height:1.6; font-size:14px;}
+  .wrap{max-width:1280px;margin:0 auto;padding:24px 20px 56px;}
+  .mbar{display:flex;align-items:center;gap:10px;font-size:12px;color:var(--muted);padding:0 2px 10px;flex-wrap:wrap;}
+  .mbar b{color:var(--navy);font-weight:600;}
+  .mbar .sep{color:var(--gray);}
+  .mbar .ver{background:var(--navy);color:#fff;font-size:10.5px;padding:1px 8px;border-radius:999px;}
+  header.hero{
+    background:linear-gradient(135deg,#1F4E79 0%,#2E75B6 80%,#3E7CB1 100%);
+    border-radius:16px;padding:28px 34px 24px;color:#fff;position:relative;overflow:hidden;
+  }
+  header.hero::after{content:"";position:absolute;right:-70px;top:-70px;width:240px;height:240px;border-radius:50%;background:rgba(255,255,255,.07);}
+  .hero .tag{display:inline-block;background:rgba(255,255,255,.16);border:1px solid rgba(255,255,255,.28);
+    color:#fff;font-size:12px;padding:3px 12px;border-radius:999px;letter-spacing:.06em;margin-bottom:12px;}
+  .hero h1{font-size:26px;font-weight:700;letter-spacing:.02em;}
+  .hero .sub{margin-top:8px;font-size:13.5px;color:rgba(255,255,255,.86);max-width:860px;}
+  .dim-bar{margin-top:16px;}
+  .dim-title{font-size:12px;color:rgba(255,255,255,.75);margin-bottom:8px;letter-spacing:.05em;}
+  .dims{display:flex;flex-wrap:wrap;gap:8px;}
+  .dim{
+    background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.22);border-radius:9px;
+    padding:6px 12px;font-size:12px;color:#fff;display:flex;align-items:center;gap:7px;
+  }
+  .dim .k{font-weight:700;color:#FFD9A0;}
+  .dim .v{color:rgba(255,255,255,.9);}
+  .dim.new{background:rgba(255,217,160,.16);border-color:rgba(255,217,160,.5);}
+  .dim.new .k{color:#FFD9A0;}
+  .filter-bar{
+    background:var(--card);border:1px solid var(--line);border-radius:12px;padding:14px 16px;
+    margin-top:16px;display:flex;flex-wrap:wrap;gap:12px;align-items:flex-end;
+    position:sticky;top:0;z-index:20;box-shadow:0 4px 14px rgba(31,78,121,.06);
+  }
+  .f-group{display:flex;flex-direction:column;gap:4px;min-width:140px;flex:1 1 140px;}
+  .f-group label{font-size:11.5px;color:var(--muted);font-weight:600;letter-spacing:.03em;}
+  .f-group input,.f-group select{
+    height:36px;border:1px solid var(--line);border-radius:8px;padding:0 10px;font-size:13px;
+    font-family:inherit;color:var(--ink);background:#fff;width:100%;outline:none;
+    transition:border-color .15s, box-shadow .15s;
+  }
+  .f-group input:focus,.f-group select:focus{border-color:var(--blue);box-shadow:0 0 0 3px rgba(46,117,182,.12);}
+  .f-actions{display:flex;gap:8px;align-items:center;}
+  .btn{height:36px;padding:0 16px;border-radius:8px;border:1px solid var(--line);background:#fff;
+    font-size:13px;font-weight:600;cursor:pointer;color:var(--navy);font-family:inherit;transition:background .15s;}
+  .btn:hover{background:var(--pale2);}
+  .btn.primary{background:var(--navy);color:#fff;border-color:var(--navy);}
+  .btn.primary:hover{background:#274F7A;}
+  .hit{font-size:12.5px;color:var(--muted);white-space:nowrap;}
+  .hit b{color:var(--navy);font-size:16px;}
+  .main-tabs{display:flex;gap:8px;margin-bottom:10px}
+.mtab{font-size:13px;padding:6px 18px;border:1px solid #D6DEE8;border-radius:8px 8px 0 0;background:#EEF2F7;color:#5A6472;cursor:pointer;font-weight:600}
+.mtab.on{background:#1F4E79;border-color:#1F4E79;color:#fff}
+.main-panel{width:100%}
+.main{display:grid;grid-template-columns:1fr;gap:16px;margin-top:16px;align-items:start;}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:14px 14px 12px;}
+  .card h3{font-size:14.5px;font-weight:600;color:var(--ink);margin-bottom:10px;display:flex;align-items:center;gap:8px;flex-wrap:wrap;}
+  .card h3 .hint{font-size:11px;color:var(--muted);font-weight:400;}
+  .q-list{display:flex;flex-direction:column;gap:8px;max-height:680px;overflow:auto;padding-right:2px;}
+  .list-toolbar{display:flex;gap:8px;align-items:center;margin-bottom:8px;flex-wrap:wrap;position:relative;}
+  .list-toolbar .rbtn{border:1px solid var(--line);border-radius:14px;padding:3px 12px;font-size:12px;color:var(--muted);cursor:pointer;}
+  .list-toolbar .rbtn.on{background:var(--brand);border-color:var(--brand);color:#fff;font-weight:600;}
+  .cfg-btn{border:1px solid var(--line);border-radius:14px;padding:3px 12px;font-size:12px;color:var(--muted);cursor:pointer;}
+  .cfg-btn:hover{color:var(--brand);border-color:var(--brand);}
+  .cfg-panel{position:absolute;top:30px;left:0;z-index:8;background:#fff;border:1px solid var(--line);border-radius:10px;box-shadow:0 6px 18px rgba(16,38,60,.12);padding:10px 12px;max-width:420px;}
+  .cfg-panel .cg{display:flex;flex-wrap:wrap;gap:4px 12px;font-size:12px;color:var(--ink);}
+  .cfg-panel label{display:flex;gap:4px;align-items:center;cursor:pointer;}
+  .lt-table{width:100%;border-collapse:collapse;font-size:12px;}
+  .lt-table th{background:#F0F4F9;color:#274F7A;font-weight:600;padding:6px 8px;border-bottom:1px solid var(--line);white-space:nowrap;cursor:pointer;text-align:left;position:sticky;top:0;}
+  .lt-table td{padding:5px 8px;border-bottom:1px solid #EEF1F5;white-space:nowrap;vertical-align:top;}
+  .lt-table tr.checked td{background:#EAF5EF;}
+  .lt-table .na{color:#C3CBD4;}
+  .lt-sort{font-size:9px;color:#8A94A3;margin-left:2px;}
+  .bench-mgr{margin-top:14px;border:1px solid var(--line);border-radius:12px;padding:12px 14px;background:#FBFCFF;}
+  .bm-head{font-weight:600;color:var(--ink);margin-bottom:10px;display:flex;align-items:center;gap:8px;}
+  .bm-count{margin-left:auto;background:#EAF3FB;color:#2E75B6;border-radius:12px;padding:2px 10px;font-size:12px;font-weight:600;}
+  .bm-form{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px;}
+  .bm-form select,.bm-form input{height:32px;border:1px solid #E3E8EF;border-radius:8px;font-size:12px;padding:0 8px;color:var(--ink);}
+  .bm-form input[type=text]{flex:1 1 140px;min-width:140px;}
+  .bench-tbl{width:100%;border-collapse:collapse;font-size:12px;}
+  .bench-tbl th{background:#F0F4F9;color:#274F7A;font-weight:600;padding:5px 8px;border-bottom:1px solid var(--line);text-align:left;white-space:nowrap;}
+  .bench-tbl td{padding:5px 8px;border-bottom:1px solid #EEF1F5;white-space:nowrap;}
+  .bench-tbl .del{color:#C0504D;cursor:pointer;font-size:12px;}
+  .bm-tag{display:inline-block;background:#FFF3E0;color:#B45F06;border-radius:10px;padding:1px 8px;font-size:11px;font-weight:600;margin-left:6px;}
+  .el-dim{font-weight:600;color:var(--ink);margin:10px 0 8px;font-size:13px;}
+  .el-chips{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:10px;}
+  .el-chip{border:1px solid var(--line);border-radius:14px;padding:3px 12px;font-size:12px;color:var(--muted);cursor:pointer;background:#fff;}
+  .el-chip.on{background:var(--brand);border-color:var(--brand);color:#fff;font-weight:600;}
+  .el-wrap{overflow:auto;max-height:460px;border:1px solid var(--line);border-radius:10px;}
+  .el-tbl{width:100%;border-collapse:collapse;font-size:12px;min-width:560px;}
+  .el-tbl th{background:#F0F4F9;color:#274F7A;font-weight:600;padding:6px 10px;border-bottom:1px solid var(--line);white-space:nowrap;text-align:left;}
+  .el-tbl th.g1{background:#E6EEF7;}
+  .el-tbl td{padding:5px 10px;border-bottom:1px solid #EEF1F5;white-space:nowrap;vertical-align:top;}
+  .el-tbl td.r{text-align:right;}
+  .el-tbl .hi{color:#C0504D;font-weight:700;}
+  .el-tbl .lo{color:#2E7D5B;font-weight:700;}
+  .el-tbl .na{color:#C3CBD4;}
+  .el-tbl tr.grp td{background:#F2F6FA;color:#274F7A;font-weight:700;}
+  .sel-bar{display:flex;gap:8px;align-items:center;flex-wrap:wrap;background:#F7FAFD;border:1px solid var(--line);border-radius:10px;padding:7px 12px;margin-bottom:8px;font-size:12px;}
+  .sb-title{font-weight:600;color:var(--ink);white-space:nowrap;}
+  .sb-title b{color:var(--brand);}
+  .sb-items{display:flex;gap:6px;flex-wrap:wrap;flex:1;min-width:120px;}
+  .sb-chip{display:inline-flex;align-items:center;gap:5px;background:#EAF3FB;color:#274F7A;border-radius:12px;padding:2px 4px 2px 10px;font-size:11.5px;white-space:nowrap;}
+  .sb-chip .x{cursor:pointer;color:#8A94A3;padding:0 4px;font-size:13px;line-height:1;}
+  .sb-chip .x:hover{color:#C0504D;}
+  .sb-ops{display:flex;gap:6px;margin-left:auto;}
+  .btn-mini{padding:2px 12px;font-size:12px;border-radius:12px;border:1px solid var(--line);background:#fff;color:var(--muted);cursor:pointer;}
+  .btn-mini:hover{color:var(--brand);border-color:var(--brand);}
+  .btn-pri{background:var(--brand);border-color:var(--brand);color:#fff;font-weight:600;}
+  .btn-pri:hover{color:#fff;}
+  .btn-pri:disabled{background:#C9D6E4;border-color:#C9D6E4;color:#fff;cursor:not-allowed;}
+  .tree{font-size:12.5px;color:var(--ink);}
+  .tree .t-sup{font-weight:700;color:#1F4E79;padding:7px 4px 4px;display:flex;align-items:center;gap:6px;cursor:pointer;border-top:1px dashed #E3E8EF;}
+  .tree .t-sup:first-child{border-top:none;}
+  .tree .t-pkg{font-weight:600;color:#274F7A;padding:5px 4px 3px 26px;display:flex;align-items:center;gap:6px;cursor:pointer;}
+  .tree .t-part{padding:4px 4px 3px 50px;display:flex;align-items:center;gap:6px;cursor:pointer;}
+  .tree .t-part .pn{font-weight:500;}
+  .tree .t-q{display:flex;align-items:center;gap:8px;padding:3px 4px 3px 70px;}
+  .tree .t-q:hover{background:#F4F8FC;}
+  .tree .tw{display:inline-block;width:12px;text-align:center;color:#8A94A3;font-size:10px;}
+  .tree .t-count{font-size:11px;color:#8A94A3;font-weight:400;}
+  .tree input[type=checkbox]{cursor:pointer;accent-color:#1F4E79;}
+  .tree .q-brief{flex:1;display:flex;gap:8px;align-items:center;min-width:0;cursor:pointer;}
+  .tree .q-brief .st2{font-size:10.5px;border-radius:8px;padding:0 6px;}
+  .tree .t-price{margin-left:auto;font-weight:600;color:var(--ink);white-space:nowrap;}
+  .tree .half{color:#D97B29;}
+  .part-hd{display:flex;align-items:center;gap:8px;font-size:12.5px;font-weight:700;color:var(--navy);
+    background:var(--pale2);border-radius:8px;padding:6px 10px;margin-top:6px;}
+  .part-hd:first-child{margin-top:0;}
+  .part-hd .no{font-weight:500;color:var(--muted);font-size:11.5px;}
+  .part-hd .vpps{font-size:10.5px;background:#fff;border:1px solid var(--line);color:var(--muted);padding:1px 7px;border-radius:999px;font-weight:500;}
+  .q-item{border:1px solid var(--line);border-radius:10px;padding:9px 12px;cursor:pointer;position:relative;
+    transition:border-color .15s, background .15s;margin-left:14px;}
+  .q-item:hover{border-color:var(--sky);}
+  .q-item.sel{border-color:var(--navy);background:var(--pale2);}
+  .q-item input[type=checkbox]{position:absolute;top:11px;right:11px;width:15px;height:15px;accent-color:var(--navy);cursor:pointer;}
+  .q-item .row1{display:flex;align-items:center;gap:6px;padding-right:22px;flex-wrap:wrap;}
+  .q-item .id{font-weight:700;color:var(--navy);font-size:12.5px;}
+  .q-item .sup{font-weight:600;font-size:12.5px;}
+  .st{display:inline-block;font-size:10px;padding:1px 7px;border-radius:999px;font-weight:600;}
+  .st-定点{background:var(--green-soft);color:var(--green);}
+  .st-最新{background:var(--pale);color:var(--navy);}
+  .st-在途{background:var(--orange-soft);color:var(--orange);}
+  .st-历史{background:#EEF1F4;color:#7A8694;}
+  .rd{display:inline-block;font-size:10px;background:#fff;border:1px solid var(--line);color:var(--muted);padding:0 6px;border-radius:5px;}
+  .q-item .meta{display:flex;justify-content:space-between;align-items:center;margin-top:5px;font-size:11.5px;color:var(--muted);}
+  .q-item .price{font-weight:700;color:var(--ink);font-size:14px;font-variant-numeric:tabular-nums;}
+  .q-item .price small{font-size:10.5px;color:var(--muted);font-weight:400;}
+  .q-item .tags{display:flex;flex-wrap:wrap;gap:4px;margin-top:5px;}
+  .ptag{font-size:10.5px;background:var(--pale2);color:var(--navy);padding:1px 7px;border-radius:999px;white-space:nowrap;}
+  .ptag.site{background:var(--amber-soft);color:#C77E1E;}
+  .mini-bar{display:flex;height:5px;border-radius:3px;overflow:hidden;margin-top:6px;}
+  .badge{display:inline-block;font-size:10px;padding:1px 7px;border-radius:999px;margin-left:6px;vertical-align:1px;}
+  .badge.demo{background:var(--amber-soft);color:#C77E1E;}
+  .badge.real{background:var(--green-soft);color:var(--green);}
+  .badge.kwh{background:var(--pale);color:var(--navy);}
+  .badge.city{background:#EAF5EF;color:#2E7D5B;border-color:#D4E8DC;}
+  .tabs{display:flex;gap:4px;border-bottom:2px solid var(--line);margin-bottom:12px;flex-wrap:wrap;}
+  .tab{padding:7px 13px;font-size:13px;color:var(--muted);cursor:pointer;border-radius:8px 8px 0 0;
+    border-bottom:2px solid transparent;margin-bottom:-2px;font-weight:500;user-select:none;}
+  .tab:hover{color:var(--navy);}
+  .tab.on{color:var(--navy);font-weight:700;border-bottom-color:var(--navy);background:var(--pale2);}
+  .chart-box{width:100%;height:330px;}
+  .chart-note{font-size:11.5px;color:var(--muted);padding:2px 2px 0;margin-top:6px;}
+  .radio-row{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px;}
+  .rbtn{font-size:12px;padding:4px 12px;border-radius:999px;border:1px solid var(--line);cursor:pointer;
+    background:#fff;color:var(--muted);font-family:inherit;}
+  .rbtn.on{background:var(--navy);border-color:var(--navy);color:#fff;font-weight:600;}
+  .rate-tbl{width:100%;border-collapse:collapse;font-size:12px;min-width:600px;}
+  .rate-tbl th{background:var(--navy);color:#fff;padding:8px 10px;text-align:left;font-weight:600;white-space:nowrap;}
+  .rate-tbl td{padding:7px 10px;border-bottom:1px solid var(--line);white-space:nowrap;}
+  .rate-tbl tr:nth-child(even){background:#F7F9FC;}
+  .rate-tbl td.rate{font-weight:600;color:var(--navy);}
+  .rate-wrap{max-height:420px;overflow:auto;border-radius:8px;border:1px solid var(--line);}
+  .cat{display:inline-block;font-size:10.5px;font-weight:600;padding:1px 8px;border-radius:999px;}
+  .cat-人工{background:var(--green-soft);color:var(--green);}
+  .cat-场地{background:var(--amber-soft);color:#C77E1E;}
+  .cat-能源{background:#EAF1FB;color:var(--blue);}
+  .cat-折旧{background:#EEF0F4;color:#4A5568;}
+  .cat-比率{background:#F6EBF4;color:#8E4A7C;}
+  .cat-产能{background:#EAF6F4;color:#2A7A70;}
+  .cat-包装{background:#F4F0E9;color:#8A6D3B;}
+  .empty{text-align:center;color:var(--muted);padding:34px 0;font-size:13px;}
+  .subcards{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:8px;margin-bottom:8px;}
+  .subcard{border:1px solid var(--line);border-radius:10px;padding:10px 12px;font-size:12px;}
+  .subcard .t{font-weight:700;color:var(--navy);margin-bottom:4px;font-size:12.5px;}
+  .subcard .r{color:var(--muted);font-size:11.5px;margin-top:3px;}
+  .subcard .b{font-size:17px;font-weight:700;color:var(--ink);}
+  .subcard .b small{font-size:11px;color:var(--muted);font-weight:400;}
+  .markline-note{font-size:11px;color:var(--muted);}
+  .doc-table{width:100%;border-collapse:collapse;font-size:12.5px;}
+  .doc-table th{background:var(--navy);color:#fff;padding:9px 12px;text-align:left;font-weight:600;white-space:nowrap;}
+  .doc-table td{padding:8px 12px;border-bottom:1px solid var(--line);vertical-align:top;}
+  .doc-table tr:nth-child(even){background:#F7F9FC;}
+  .doc-table code{background:var(--pale2);color:var(--navy);padding:1px 6px;border-radius:5px;font-size:11.5px;font-family:ui-monospace,Menlo,monospace;}
+  .doc-block{margin-top:26px;}
+  .doc-block h3{font-size:15px;color:var(--navy);margin-bottom:10px;display:flex;align-items:center;gap:10px;}
+  .doc-block h3::before{content:"";width:5px;height:18px;background:var(--amber);border-radius:3px;display:inline-block;}
+  .doc-block p{font-size:12.5px;color:var(--ink);margin-bottom:8px;}
+  .doc-block ul{margin-left:18px;}
+  .doc-block li{font-size:12.5px;margin-bottom:5px;}
+  .value-cards{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-top:12px;}
+  .value-card{background:var(--card);border:1px solid var(--line);border-left:4px solid var(--navy);border-radius:10px;padding:12px 14px;}
+  .value-card .n{font-size:13px;font-weight:700;color:var(--navy);margin-bottom:4px;}
+  .value-card .d{font-size:12px;color:var(--ink);line-height:1.6;}
+  .value-card.w1{border-left-color:#E8A33D;}
+  .value-card.w2{border-left-color:#2E7D5B;}
+  .m-wrap{overflow-x:auto;-webkit-overflow-scrolling:touch;border:1px solid var(--line);border-radius:10px;}
+  .m-tbl{border-collapse:collapse;width:100%;min-width:1320px;font-size:11.5px;}
+  .m-tbl th,.m-tbl td{border:1px solid #E3E8EF;padding:6px 8px;text-align:right;white-space:nowrap;font-variant-numeric:tabular-nums;}
+  .m-tbl th.rown{text-align:left;position:sticky;left:0;background:#F7FAFD;z-index:3;min-width:150px;max-width:200px;}
+  .m-tbl td.rown{text-align:left;position:sticky;left:0;background:#FBFCFE;z-index:2;font-weight:600;color:var(--navy);}
+  .m-tbl .g1{background:#EAF1F8;color:var(--navy);text-align:center;font-size:11px;border-bottom:2px solid var(--line);}
+  .m-tbl .g2{background:#F7FAFD;color:#5A6B7E;text-align:center;font-size:10.5px;cursor:pointer;position:sticky;top:0;z-index:2;}
+  .m-tbl .g2:hover{background:#EAF1F8;color:var(--navy);}
+  .m-tbl tr:nth-child(even) td.rown{background:#F4F8FB;}
+  .m-tbl tr:hover td{background:#EAF3FB;}
+  .m-tbl tr:hover td.rown{background:#EAF3FB;}
+  .m-tbl .hi{color:#C0504D;font-weight:700;background:#FBEDEB;}
+  .m-tbl .lo{color:#2E7D5B;font-weight:700;background:#EAF5EF;}
+  .m-tbl .na{color:#C3CBD4;}
+  .m-tbl .sort{font-size:9px;color:#8A94A3;}
+  .m-grp{background:#F2F6FA;font-weight:700;color:#274F7A;text-align:left!important;}
+  .m-meta{font-size:11.5px;color:var(--muted);margin:6px 0 10px;}
+  footer{margin-top:32px;padding:18px 20px;background:var(--card);border:1px solid var(--line);border-radius:12px;font-size:12px;color:var(--muted);}
+  footer .warn{margin-top:8px;color:#C77E1E;background:var(--amber-soft);border-radius:8px;padding:8px 12px;}
+  @media (max-width:1024px){.main{grid-template-columns:1fr;}.q-list{max-height:460px;}.value-cards{grid-template-columns:1fr;}}
+  @media (max-width:640px){
+    .wrap{padding:14px 12px 40px;}
+    header.hero{padding:20px 16px;border-radius:12px;}
+    .hero h1{font-size:20px;}
+    .filter-bar{position:static;}
+  }
+  @media (prefers-reduced-motion:reduce){*{transition:none!important;}}
+</style>
+<script src="https://cdn.jsdelivr.net/npm/echarts@5.5.0/dist/echarts.min.js"></script>
+<script>window.echarts||document.write('<script src="https://cdnjs.cloudflare.com/ajax/libs/echarts/5.5.0/echarts.min.js"><\/script>');</script>
+</head>
+<body>
+<div class="wrap">
+
+<div class="mbar"><b>EP · 电子采购平台</b><span class="sep">/</span> 报价管理 <span class="sep">/</span> 成本库与交叉比价中心 <span class="sep">/</span> <span class="ver">v0.17 基准维护 · 报价对比 · 要素对比</span></div>
+
+<header class="hero">
+  <div class="hero-row">
+    <h1>成本库与交叉比价中心</h1>
+    <span class="tag">基准价格维护 · 报价数据对比 · 关键要素对比 · 大型成本数据库沉淀（对齐《报价细项 PRD》：出厂价=材料+制造+管理 · 到厂价=出厂价+模具+开发+物流）</span>
+  </div>
+</header>
+
+<!-- ===== 检索栏：零件 / 供应商 / 工艺 / 场地 / VPPS / 品类 / 状态 ===== -->
+<div class="filter-bar">
+  <div class="f-group" style="flex:2 1 200px;">
+    <label>零件检索</label>
+    <input id="fPart" type="text" placeholder="零件名称 / 零件号 / 报价ID，如「饰条」或「P0000」" autocomplete="off">
+  </div>
+  <div class="f-group">
+    <label>供应商检索</label>
+    <select id="fSupplier">
+      <option value="">全部供应商</option>
+      <option>德赛西威（惠州惠南）</option>
+      <option>诺维汽车内饰件</option>
+      <option>爱德夏机电（昆山）</option>
+      <option>演示供应商甲（上海）</option>
+      <option>演示供应商乙（天津）</option>
+      <option>演示供应商丙（北京）</option>
+      <option>未指定</option>
+    </select>
+  </div>
+  <div class="f-group">
+    <label>工艺检索</label>
+    <select id="fProc">
+      <option value="">全部工艺</option>
+      <optgroup label="金属成型工艺">
+        <option>金属成型工艺-冲压</option><option>金属成型工艺-机加工</option><option>金属成型工艺-冷镦</option>
+        <option>金属成型工艺-锻造</option><option>金属成型工艺-铸造</option>
+      </optgroup>
+      <optgroup label="非金属成型工艺">
+        <option>非金属成型工艺-注塑</option><option>非金属成型工艺-挤出</option><option>非金属成型工艺-吹塑</option><option>非金属成型工艺-模压</option>
+      </optgroup>
+      <optgroup label="表面处理与特殊工艺">
+        <option>表面处理与特殊工艺-电镀</option><option>表面处理与特殊工艺-喷漆</option>
+        <option>表面处理与特殊工艺-阳极氧化</option><option>表面处理与特殊工艺-包覆</option><option>表面处理与特殊工艺-电泳</option>
+      </optgroup>
+      <optgroup label="装配组装">
+        <option>装配组装-组装</option><option>装配组装-装配</option><option>装配组装-其他(焊接)</option>
+      </optgroup>
+      <optgroup label="电子加工">
+        <option>电子加工-SMT</option><option>电子加工-其他(涂布/卷绕)</option>
+      </optgroup>
+    </select>
+  </div>
+  <div class="f-group">
+    <label>场地检索</label>
+    <select id="fSite">
+      <option value="">全部场地</option>
+      <option>北京整车工厂(8041)</option>
+      <option>北京小米汽车B1(8042)</option>
+      <option>惠州德赛西威惠南工业园</option>
+      <option>诺维</option>
+      <option>爱德夏机电（昆山）</option>
+      <option>上海青浦(演示)</option>
+      <option>天津武清(演示)</option>
+      <option>北京顺义(演示)</option>
+      <option>电芯产线(示例)</option>
+      <option>待定(示例)</option>
+    </select>
+  </div>
+  <div class="f-group">
+    <label>VPPS / 结构检索</label>
+    <input id="fVpps" type="text" placeholder="VPPS 或结构编码，如 STR-TRIM-201" autocomplete="off">
+  </div>
+  <div class="f-group">
+    <label>采购品类</label>
+    <select id="fCat2">
+      <option value="">全部品类</option>
+      <option>紧固件类(示例)</option>
+      <option>电子-显示屏类(示例)</option>
+      <option>内饰-仪表板类(示例)</option>
+      <option>车身-开闭件类(示例)</option>
+      <option>电池-电芯类(示例)</option>
+      <option>外饰-装饰条类(演示)</option>
+    </select>
+  </div>
+  <div class="f-group" style="min-width:120px;flex:0 1 120px;">
+    <label>报价状态</label>
+    <select id="fStatus">
+      <option value="">全部状态</option>
+      <option>定点</option><option>最新</option><option>在途</option><option>历史</option>
+    </select>
+  </div>
+  <div class="f-group" style="min-width:150px;flex:0 1 150px;">
+    <label>报价包</label>
+    <select id="fPkg">
+      <option value="">全部报价包</option>
+      <option>RFW-2026Q1-519002</option>
+      <option>RFW-2026Q1-46758001</option>
+      <option>RFW-2026Q1-56656001</option>
+      <option>MX11-2027B</option>
+      <option>CELL-2026</option>
+      <option>PKG-TRIM-2026（演示）</option>
+    </select>
+  </div>
+  <div class="f-group" style="min-width:190px;flex:0 1 190px;">
+    <label>检索方案</label>
+    <select id="fScheme">
+      <option value="">选择已保存方案…</option>
+    </select>
+  </div>
+  <div class="f-actions">
+    <button class="btn" id="btnSaveScheme" type="button">保存方案</button>
+    <button class="btn" id="btnReset" type="button">重置</button>
+    <span class="hit">命中 <b id="hitCount">11</b> / 11 条</span>
+  </div>
+</div>
+
+<style>
+  .opt-row{display:flex;gap:14px;align-items:center;flex-wrap:wrap;margin-bottom:10px;font-size:12px;}
+  .opt-g{display:flex;gap:4px;align-items:center;color:var(--muted);}
+  .opt-g .rbtn{border:1px solid var(--line);border-radius:12px;padding:2px 10px;cursor:pointer;color:var(--muted);}
+  .opt-g .rbtn.on{background:var(--brand);border-color:var(--brand);color:#fff;font-weight:600;}
+  .opt-chk label{display:flex;gap:4px;align-items:center;cursor:pointer;color:var(--ink);}
+  .cfg-btn{border:1px solid var(--brand);color:var(--brand);border-radius:12px;padding:2px 12px;background:#fff;cursor:pointer;font-size:12px;}
+  .cfg-btn:hover{background:#EEF4FA;}
+  .cmp-wrap{overflow:auto;max-height:600px;border:1px solid var(--line);border-radius:10px;}
+  .cmp-tbl{border-collapse:collapse;width:100%;font-size:12px;white-space:nowrap;}
+  .cmp-tbl th{position:sticky;top:0;background:#1F4E79;color:#fff;padding:6px 10px;text-align:left;cursor:pointer;z-index:2;font-weight:600;}
+  .cmp-tbl th.dimcol{background:#2E5E8E;}
+  .cmp-tbl th:hover{background:#2A5B8C;}
+  .cmp-tbl th .ar{font-size:10px;color:#BFD3E8;}
+  .cmp-tbl td{padding:5px 10px;border-bottom:1px solid #EDF1F5;color:var(--ink);}
+  .cmp-tbl tr:hover td{background:#F4F8FC;}
+  .cmp-tbl td.grp{background:#F2F6FA;color:#274F7A;font-weight:700;}
+  .cmp-tbl tr.bench td{background:#FFF7E8;color:#8A5A00;font-weight:600;border-top:2px solid #E8A33D;}
+  .cmp-tbl .ab-hi{color:#C0504D;font-weight:700;}
+  .cmp-tbl .ab-lo{color:#2E7D5B;font-weight:700;}
+  .cmp-tbl .nu{text-align:right;font-variant-numeric:tabular-nums;}
+  .cmp-tbl .st2{font-size:10.5px;border-radius:8px;padding:0 6px;color:#fff;display:inline-block;}
+  .cmp-tbl .pos{color:#2E7D5B;}
+  .cmp-tbl .neg{color:#C0504D;}
+  .cmp-tbl .maint{background:#EAF3FB;color:#274F7A;border-radius:8px;padding:0 5px;font-size:10px;}
+  .cfg-panel{border:1px solid var(--line);border-radius:10px;background:#FBFCFE;padding:12px 14px;margin-bottom:10px;}
+  .cfg-sec{margin-bottom:12px;}
+  .cfg-sec .cs-t{font-weight:700;color:#274F7A;font-size:12.5px;margin-bottom:6px;cursor:pointer;display:flex;justify-content:space-between;align-items:center;}
+  .cfg-sec .cs-t .cs-n{font-size:11px;color:#8A94A3;font-weight:400;}
+  .cfg-cols{display:flex;flex-wrap:wrap;gap:6px 18px;}
+  .cfg-cols label{display:flex;gap:4px;align-items:center;font-size:12px;cursor:pointer;color:var(--ink);white-space:nowrap;}
+  .cfg-cols label input{cursor:pointer;accent-color:#1F4E79;}
+  .cfg-mini{display:flex;gap:6px;align-items:center;flex-wrap:wrap;font-size:12px;}
+  .cfg-mini select,.cfg-mini input{border:1px solid var(--line);border-radius:8px;padding:3px 8px;font-size:12px;background:#fff;}
+  .cfg-mini .btn{border:1px solid var(--brand);color:var(--brand);background:#fff;border-radius:10px;padding:3px 12px;cursor:pointer;font-size:12px;}
+  .cfg-mini .btn:hover{background:#EEF4FA;}
+  .cfg-mini .del{cursor:pointer;color:#C0504D;padding:0 4px;}
+  .rate-tbl2{border-collapse:collapse;font-size:11.5px;width:100%;}
+  .rate-tbl2 th{background:#EAF1F8;color:#274F7A;padding:4px 8px;text-align:left;}
+  .rate-tbl2 td{padding:3px 8px;border-bottom:1px solid #EDF1F5;}
+  .cmt-note{font-size:12px;color:var(--muted);margin-top:8px;line-height:1.7;}
+
+/* v0.9 关键要素费率库（默认可见 · 沉淀展示） */
+.rl-head{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:10px;gap:12px}
+.rl-head .rl-tg{font-size:11px;color:#2E75B6;cursor:pointer;border:1px solid #B9CCE4;border-radius:4px;padding:1px 8px;background:#fff;white-space:nowrap}
+.rl-stats{display:flex;gap:16px;flex-wrap:wrap;font-size:12.5px;color:#5A6472;background:#F5F7FA;border:1px solid #E3E8EF;border-radius:8px;padding:8px 12px;margin-bottom:12px}
+.rl-stats b{color:#1F4E79}
+.rl-note{color:#8A94A3;margin-left:auto;font-size:11.5px}
+.rl-cats{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:8px}
+.rl-cat{font-size:12px;padding:2px 10px;border:1px solid #D6DEE8;border-radius:12px;background:#fff;color:#5A6472;cursor:pointer}
+.rl-cat.on{background:#1F4E79;border-color:#1F4E79;color:#fff}
+.rl-table{width:100%;border-collapse:collapse;font-size:12px;background:#fff;border:1px solid #E3E8EF;border-radius:8px;overflow:hidden}
+.rl-table th{background:#F0F4F9;color:#274F7A;font-weight:600;text-align:left;padding:6px 10px;border-bottom:1px solid #DEE6EF;white-space:nowrap}
+.rl-table td{padding:5px 10px;border-bottom:1px solid #F0F2F5;vertical-align:middle}
+.rl-table tr:last-child td{border-bottom:none}
+.rl-table tr:hover td{background:#F8FAFD}
+.rl-n2{font-weight:600;color:#1A2433}
+.rl-v2{color:#1F4E79;font-weight:600}
+.rl-m2{background:#EAF3FB;border:1px solid #CFE1F0;color:#1F4E79;font-size:10.5px;border-radius:8px;padding:0 6px;margin-left:6px}
+.rl-dv{font-size:11px;font-weight:600}
+.rl-dv.up{color:#C0392B}
+.rl-dv.dn{color:#1E8449}
+.rl-s2{color:#8A94A3}
+.rl-gt{display:flex;justify-content:space-between;align-items:center;padding:6px 10px;background:#F0F4FA;font-weight:600;font-size:12.5px;color:#1F4E79;border-bottom:1px solid #E3E8EF}
+.rl-gt span{font-weight:400;color:#8A94A3;font-size:11px}
+.rl-rows{display:flex;flex-direction:column}
+.rl-row{display:flex;align-items:baseline;gap:6px;padding:5px 10px;border-bottom:1px solid #F0F2F5;font-size:12px}
+.rl-row:last-child{border-bottom:none}
+.rl-n{color:#333;flex:1 1 auto;min-width:0}
+.rl-u{color:#9AA3AF;font-size:11px;flex:0 0 auto}
+.rl-v{color:#1F4E79;font-weight:600;flex:0 0 auto;white-space:nowrap}
+.rl-m{background:#FFF3E0;color:#D97B29;font-size:10px;border-radius:3px;padding:0 4px;margin-left:4px;font-weight:600}
+.rl-s{color:#B7BFC9;font-size:10px;flex:0 0 auto;max-width:96px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.rl-real{margin-top:10px;background:#F7FAFD;border:1px dashed #B9CCE4;border-radius:8px;padding:8px 10px}
+.rl-chips{display:flex;gap:10px;flex-wrap:wrap;margin-top:6px}
+.rl-chip{background:#fff;border:1px solid #E3E8EF;border-radius:6px;padding:5px 10px;display:flex;flex-direction:column;gap:1px;min-width:88px}
+.rl-chip .c-n{font-size:11px;color:#5A6472}
+.rl-chip .c-v{font-size:16px;font-weight:700;color:#1F4E79}
+.rl-chip .c-u{font-size:10px;color:#9AA3AF}
+.rl-tip{font-size:11px;color:#8A94A3;margin-top:6px}
+.rl-hide{display:none}
+
+/* v0.10 供应商报价数据源（对齐 CE 核价数据源） */
+.ds-card{background:#fff;border:1px solid #E3E8EF;border-radius:10px;padding:14px 16px}
+.ds-loc{display:flex;gap:8px;flex-wrap:wrap;align-items:center;background:#EEF4FB;border:1px solid #D6E4F5;border-radius:8px;padding:7px 12px;margin:8px 0 12px;font-size:12px;color:#33507A}
+.ds-loc b{color:#1F4E79}
+.ds-loc .arr{color:#8A94A3}
+.ds-sec{margin-top:12px}
+.ds-sec-t{font-weight:600;font-size:13px;color:#1F4E79;margin-bottom:6px;display:flex;align-items:baseline;gap:8px}
+.ds-sec-t span{font-weight:400;font-size:11px;color:#8A94A3}
+.ds-tbl{width:100%;border-collapse:collapse;font-size:12px}
+.ds-tbl th{background:#F0F4FA;color:#33507A;font-weight:600;text-align:left;padding:5px 8px;border:1px solid #E3E8EF;white-space:nowrap}
+.ds-tbl td{padding:4px 8px;border:1px solid #EDF0F4;color:#333;vertical-align:top}
+.ds-tbl td .t{color:#8A94A3;font-size:11px}
+.ds-tbl .ly{background:#F7FAFD;font-weight:600;color:#1F4E79;white-space:nowrap}
+.ds-tbl .ce{color:#2E75B6;font-size:11px;white-space:nowrap;font-family:"SF Mono",Menlo,monospace}
+.ds-tbl .hl{background:#FFF9E8}
+.ds-json{background:#0F2438;color:#D6E9FF;border-radius:8px;padding:10px 12px;font-family:"SF Mono",Menlo,Consolas,monospace;font-size:11.5px;line-height:1.55;overflow-x:auto;white-space:pre;margin-top:4px}
+.ds-tip{font-size:11px;color:#8A94A3;margin-top:6px}
+
+/* v0.11 视觉重构：专业 BI 看板风 */
+body{background:#F3F6FA}
+.card{background:#fff;border:1px solid #E3E8EF;border-radius:12px;padding:16px 18px;box-shadow:0 1px 2px rgba(16,42,67,.04)}
+.card>h3{font-size:14.5px;color:#16324F;margin:0 0 10px;font-weight:700}
+.card>h3 .hint{font-size:11.5px;color:#8A94A3;font-weight:400;margin-left:8px}
+.kpi-card{padding:14px 18px}
+.kpi-grid{display:grid;grid-template-columns:repeat(8,1fr);gap:10px}
+@media (max-width:1100px){.kpi-grid{grid-template-columns:repeat(4,1fr)}}
+@media (max-width:640px){.kpi-grid{grid-template-columns:repeat(2,1fr)}}
+.kpi{background:#F7FAFD;border:1px solid #E3E8EF;border-radius:10px;padding:9px 12px}
+.kpi .k{font-size:11px;color:#8A94A3}
+.kpi .v{font-size:21px;font-weight:800;color:#16324F;margin-top:2px;font-variant-numeric:tabular-nums}
+.kpi .v small{font-size:11px;font-weight:400;color:#9AA3AF}
+.kpi .s{font-size:10.5px;color:#6B7280;margin-top:2px}
+.kpi.hero{background:#1F4E79;border-color:#1F4E79}
+.kpi.hero .k{color:#BFD3EA}
+.kpi.hero .v{color:#fff}
+.kpi.hero .s{color:#BFD3EA}
+.cmp-tbl th{background:#EEF3FA;color:#33507A;font-size:11.5px;padding:6px 8px;border:1px solid #E3E8EF;white-space:nowrap;position:sticky;top:0;z-index:1}
+.cmp-tbl td{font-size:12px;padding:5px 8px;border:1px solid #EDF0F4;color:#333}
+.cmp-tbl tbody tr:hover{background:#F5F9FE}
+.cmp-tbl td.nu{text-align:right;font-variant-numeric:tabular-nums}
+.chk-chips{display:flex;gap:8px;flex-wrap:wrap;margin:6px 0 12px}
+.chk{font-size:12px;color:#5A6472;border:1px solid #D6DEE8;border-radius:20px;padding:4px 12px;cursor:pointer;background:#fff;user-select:none}
+.chk.on{background:#1F4E79;color:#fff;border-color:#1F4E79}
+.chart-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.chart-box{background:#FBFCFE;border:1px solid #E8EDF4;border-radius:10px;padding:8px 10px 6px}
+.chart-box h4{font-size:12.5px;color:#33507A;margin:2px 2px 0;font-weight:600}
+.chart-box h4 small{font-weight:400;color:#9AA3AF}
+.chart-box .cb{width:100%;height:290px}
+.rbtn{font-size:12px;padding:3px 10px;border-radius:20px;border:1px solid #D6DEE8;color:#5A6472;background:#fff;cursor:pointer;user-select:none}
+.rbtn.on{background:#1F4E79;color:#fff;border-color:#1F4E79}
+.opt-row{display:flex;flex-wrap:wrap;gap:10px 18px;align-items:center;margin:4px 0 10px}
+.opt-g{font-size:12px;color:#5A6472;display:flex;align-items:center;gap:6px;flex-wrap:wrap}
+.opt-chk label{font-size:12px;color:#5A6472;display:flex;align-items:center;gap:4px;cursor:pointer}
+.cfg-btn{font-size:12px;color:#1F4E79;border:1px solid #B9CCE4;border-radius:6px;background:#fff;padding:4px 10px;cursor:pointer;font-weight:600}
+.hit{font-size:12px;color:#8A94A3}
+.filter-bar{background:#fff;border:1px solid #E3E8EF;border-radius:12px;padding:10px 14px}
+.filter-bar select,.filter-bar input{border:1px solid #D6DEE8;border-radius:6px;font-size:12px;padding:4px 8px;background:#fff;color:#333}
+@media (max-width:1024px){.chart-grid{grid-template-columns:1fr}}
+
+.hero-row{display:flex;align-items:baseline;gap:14px;flex-wrap:wrap}
+.hero-row h1{margin:0;font-size:20px}
+.hero-row .tag{font-size:12px;color:#5A6472;border:1px solid #D6DEE8;background:#fff;border-radius:6px;padding:2px 10px}
+
+/* ===== v0.17 高级质感 · 三大能力（基准维护 / 报价对比 / 要素对比） ===== */
+body{background:radial-gradient(1100px 320px at 50% -80px,rgba(46,117,182,.12),transparent 60%),linear-gradient(180deg,#EDF2F9 0%,#F4F7FB 340px,#F3F6FA 100%);}
+header.hero{background:linear-gradient(120deg,#0A1F33 0%,#14385E 36%,#1F4E79 66%,#2E75B6 100%);box-shadow:0 12px 34px -8px rgba(10,31,51,.35);}
+header.hero::before{content:"";position:absolute;left:-140px;bottom:-190px;width:480px;height:480px;border-radius:50%;background:radial-gradient(circle,rgba(232,163,61,.30),transparent 66%);}
+header.hero::after{right:-90px;top:-90px;width:300px;height:300px;background:radial-gradient(circle,rgba(255,255,255,.10),transparent 62%);}
+.hero .tag{background:linear-gradient(90deg,rgba(255,255,255,.20),rgba(255,255,255,.08));border-color:rgba(255,255,255,.38);box-shadow:0 0 0 1px rgba(255,255,255,.12) inset;letter-spacing:.01em;}
+.card{box-shadow:0 2px 10px rgba(15,43,70,.05),0 14px 34px -20px rgba(15,43,70,.22);}
+.card h3{display:flex;align-items:center;gap:8px;}
+.card h3::before{content:"";width:4px;height:16px;border-radius:2px;background:linear-gradient(180deg,#2E75B6,#14385E);}
+.kpi{background:linear-gradient(180deg,#FFFFFF,#F6F9FD);border:1px solid #E4EBF4;}
+.kpi .v{background:linear-gradient(120deg,#14385E,#2E75B6);-webkit-background-clip:text;background-clip:text;color:transparent;font-weight:800;}
+.kpi.hero{background:linear-gradient(135deg,#1F4E79,#2E75B6);}
+.kpi.hero .k,.kpi.hero .s{color:rgba(255,255,255,.85);}
+.kpi.hero .v{-webkit-background-clip:border-box;background:none;color:#FFD9A0;font-size:26px;}
+.main-tabs .mtab{border-radius:10px;box-shadow:0 1px 5px rgba(15,43,70,.10);transition:all .18s;border:1px solid #D6DEE8;}
+.main-tabs .mtab.on{background:linear-gradient(135deg,#1F4E79,#2E75B6);border-color:transparent;color:#fff;box-shadow:0 5px 14px -5px rgba(31,78,121,.55);}
+.filter-bar{box-shadow:0 6px 18px -10px rgba(31,78,121,.20);}
+.cmp-wrap th,.rl-table th{background:linear-gradient(180deg,#1F4E79,#16344F);color:#fff;border-color:#16344F;}
+.cmp-wrap tbody tr:hover,.rl-table tbody tr:hover{background:#EFF5FB;}
+.cmp-wrap td,.rl-table td{border-color:#E6EDF5;}
+.chart-box{border:1px solid #E4EBF4;border-radius:12px;box-shadow:0 2px 8px rgba(15,43,70,.04);transition:box-shadow .2s;}
+.chart-box:hover{box-shadow:0 10px 26px -12px rgba(31,78,121,.35);}
+.chart-box h4{border-bottom:1px solid #F0F4F9;padding-bottom:8px;}
+.ec-chips .chk{border-radius:20px;padding:4px 13px;}
+.ec-tbl{width:100%;border-collapse:collapse;font-size:12.5px;}
+.ec-tbl th{background:linear-gradient(180deg,#2E75B6,#1F4E79);color:#fff;padding:8px 10px;text-align:right;white-space:nowrap;border:1px solid rgba(255,255,255,.16);font-weight:600;}
+.ec-tbl th.ec-l{text-align:left;}
+.ec-tbl td{padding:7px 10px;border:1px solid #E6EDF5;text-align:right;white-space:nowrap;}
+.ec-tbl td.ec-l{text-align:left;color:#24364B;font-weight:600;}
+.ec-tbl tr.ec-mean td{background:#F1F7FD;font-weight:700;color:#14385E;}
+.ec-tbl tr:hover td{background:#EFF5FB;}
+.ec-up{color:#C0504D;font-weight:700;}
+.ec-dn{color:#2E7D5B;font-weight:700;}
+.ec-foot{font-size:12px;color:#8A94A3;margin-top:8px;}
+</style>
+<!-- ===== 主体（v0.11：沉淀均值 KPI + 报价沉淀表 + 图表组合 + 费率库） ===== -->
+<div class="main">
+  <div class="main-tabs">
+    <span class="mtab" data-tab="maint">维护基准</span>
+    <span class="mtab on" data-tab="cmp">对比</span>
+  </div>
+  <div id="maintPanel" class="main-panel" style="display:none;"></div>
+  <div id="cmpPanel" class="main-panel">
+  <div class="card kpi-card">
+    <div class="kpi-grid" id="kpiRow"></div>
+  </div>
+<div class="card" id="rateLibCard">
+    <div class="rl-head"><h3>关键要素费率库<span class="hint">沉淀 24 项参考费率 · 默认展开直接查看 · 采购员维护实时联动</span></h3><span class="rl-tg" id="rateTg" onclick="toggleRateLib()">收起</span></div>
+    <div id="rateBody"></div>
+  </div>
+  <div class="card">
+    <h3>报价沉淀表<span class="hint">行分组：报价包 / 供应商 / 零件 / 工厂 · 列＝报价细项（列配置勾选）· 口径 / 异常识别 / 基准行</span></h3>
+    <div class="opt-row">
+      <span class="opt-g">粒度
+        <span class="rbtn on" data-lv="coarse">中粗项</span>
+        <span class="rbtn" data-lv="mat">材料细项</span>
+        <span class="rbtn" data-lv="mfg">制造细项</span>
+      </span>
+      <span class="opt-g">行分组
+        <span class="rbtn" data-g="pkg">报价包</span>
+        <span class="rbtn on" data-g="none">不分组</span>
+        <span class="rbtn" data-g="part">零件</span>
+        <span class="rbtn" data-g="sup">供应商</span>
+        <span class="rbtn" data-g="city">工厂</span>
+      </span>
+      <span class="opt-g">口径
+        <span class="rbtn on" data-m="raw">原值</span>
+        <span class="rbtn" data-m="avg">均值</span>
+        <span class="rbtn" data-m="diff">vs均值</span>
+      </span>
+      <span class="opt-g opt-chk"><label><input type="checkbox" id="optAbn" checked> 异常识别</label></span>
+      <span class="opt-g opt-chk"><label><input type="checkbox" id="optBench"> 基准行</label></span>
+      <button class="cfg-btn" id="btnColCfg" type="button">列配置 <span id="colCount"></span></button>
+      <span class="hit">命中 <b id="hitCount">11</b> / 11 条</span>
+    </div>
+    <div id="cfgPanel" class="cfg-panel" style="display:none;"></div>
+    <div class="cmp-wrap"><table class="cmp-tbl" id="cmpTbl"></table></div>
+    <div class="cmt-note" id="cmpMeta"></div>
+  </div>
+  <div class="card">
+    <h3>关键要素对比<span class="hint">选要素 · 逐报价逐项对比 · 超均值 ±15% 自动标色</span></h3>
+    <div class="ec-chips" id="ecChips"></div>
+    <div class="ec-wrap" id="ecWrap"></div>
+    <div class="ec-foot" id="ecFoot"></div>
+  </div>
+  <div class="card">
+    <h3>图表组合展示<span class="hint">对比视图 · 基准偏差 / 供应商画像 / 价格气泡 · 随检索与口径联动</span></h3>
+    <div class="chk-chips">
+      <span class="chk" data-ch="stack">成本构成堆叠</span>
+      <span class="chk" data-ch="sup">供应商对比</span>
+      <span class="chk" data-ch="city">地域均值</span>
+      <span class="chk" data-ch="elem">制造要素占比</span>
+      <span class="chk" data-ch="trend">轮次趋势</span>
+      <span class="chk" data-ch="bench">基准偏差</span>
+      <span class="chk" data-ch="radar">供应商画像</span>
+      <span class="chk" data-ch="scatter">价格气泡</span>
+    </div>
+    <div class="chart-grid" id="chartGrid"></div>
+  </div>
+  </div>
+</div>
+
+<!-- ===== 设计说明 ===== -->
+<section class="doc-block">
+  <h3>EP 产品功能 · 设计说明（v0.8）</h3>
+  <p><b>模块定位：</b>「成本库与交叉比价中心」挂载在 EP「报价管理」下，定位大型成本数据库。所有报价按 final 模板结构化入库，按 零件 / 供应商 / 工艺 / 场地 / VPPS / 品类 / 状态 / 报价包 任意组合检索。</p>
+  <p><b>v0.17 高级质感 · 三大能力升级：</b>整体视觉升级（深色渐变主视觉 / 卡片层次 / KPI 渐变数字 / 表头深色 / 图表悬浮）。<b>① 基准价格维护</b>：维护 Tab 新增「基准价格总览」——每条已维护基准自动汇总 命中报价数 · 实际均价 · 偏差%（超基准红 / 低于绿）。<b>② 报价数据对比</b>：对比 Tab 沉淀表（报价包/供应商/工厂/轮次/零件/报价详情全字段列配置）。<b>③ 关键要素对比</b>：新增独立卡片——11 项要素（人工费/工时/费率/设备/场地/能耗/模具/开发/物流/管理/样件）可拆选，逐报价逐项对比 + 均值行 + 偏离计数（超均值 ±15% 自动标色）。<b>④ 图表丰富</b>：新增 基准偏差（出厂价 vs 均值 红绿标色+均值线）/ 供应商六要素雷达画像 / 价格×制造费气泡（气泡=模具费），共 8 图勾选组合。</p>
+  <p><b>v0.16 维护基准 / 对比双 Tab：</b>页面拆为「维护基准」与「对比」两个 Tab：维护基准集中 采购员基准维护（分组基准价/上下限）+ 费率维护（24 项费率表格内直接编辑、偏离参考实时算）+ 费率参考库；对比 Tab 为完整报价沉淀与交叉比价（检索/KPI/费率库表格/沉淀表/图表）。沉淀表新增 报价包名称、报价详情（材料/制造/模具/开发/物流/管理 六类构成，悬浮显示全量）等字段，默认列扩至 23 列。</p>
+  <p><b>v0.15 关键要素费率库表格化：</b>关键要素费率库由分组卡片改为表格（类别 / 费率项 / 单位 / 参考值 / 库内维护值 / 偏离参考 / 来源），支持按类别筛选，维护值与参考值同列对比并自动计算偏离百分比（超参考标红、低标绿），库内实测沉淀（直接人工费/年工时/设备投资/OEE/模具单件/样件倍数）保留在表下方随报价入库自动重算。</p>
+  <p><b>v0.14 关键报价要素明细列：</b>中粗项粒度新增「人工明细」（直接/间接人数、直接工时、人工费率）与「设备与场地」（设备投入总额、折旧费、OEE、场地费分摊）两组要素列，管理费用组补 DB/利管费率（=金额÷出厂价），关键要素列（设备/人工/报废/能耗/耗材/场地/工时/费率/管理费）默认展示，一行一报价横向对比，支持列配置勾选、费率维护、基准行与异常识别。</p>
+  <p><b>v0.13 中粗项 + 细项沉淀：</b>沉淀表新增「粒度」切换（中粗项 / 材料细项 / 制造细项），行源、列配置、口径、分组、图表随粒度联动并分别持久化。中粗项列对齐《报价细项列表导出》（48 列：材料费 自制/外购/客户指定/委外、制造费 设备/报废/耗材/能耗/人员、模具/开发 分摊汇总·量·单价、物流 包装/运输/排序/中转、管理 DB/利管/其他、样件 手工/软模/硬模倍数与价格）；材料细项沉淀 BOM 子件（层级/来源/数量/材料/单价/回收单价/原材料/外购件/材料费）；制造细项沉淀工段/线体（CT/OEE/LCR/占地/折旧/能耗/报废/耗材/人员/制造费小计），随真实报价数据入库自动增长。</p>
+  <p><b>v0.12 精简文字 · 字段对齐《报价细项 PRD》：</b>删除顶部价值卡/维度条/大段定位说明，页面直入 检索 → KPI → 沉淀表 → 图表 → 费率库。沉淀表列定义按 PRD 报价细项 8 模块重写：材料费用（材料费=原材料价格+外购件价格）、制造费用（设备/人员/报废/能耗/耗材中粗项）、人工明细（直接/间接/工时/费率）、设备成本、模具费用（总额/数量/单价）、开发费用、物流费用（运输/包装/中转/排序）、管理费用（DB/利管/其他+费率）、样件费用（倍数+计算）、汇总（出厂价=材料+制造+管理；到厂价=出厂价+模具+开发+物流）。列配置默认展示到厂价。</p>
+  <p><b>v0.11 沉淀成本数据库（视觉重构）：</b>整体改为专业 BI 看板风（浅灰底 / 白卡 / KPI 大数字 / 表格 hover / 胶囊选项）。<b>顶部沉淀均值 KPI</b>：沉淀报价 / 报价包·零件 / 平均出厂价 / 平均材料 / 平均制造 / 平均人工 / 平均管理 / 平均模具单件（元/件口径，随报价入库自动重算）；<b>报价沉淀表</b>：行分组 报价包 / 供应商 / 零件 / 工厂，列＝报价细项（38 字段列配置勾选展示/对比，口径原值/均值/vs均值，异常识别，基准行）；<b>图表组合展示</b>：成本构成堆叠 / 供应商对比 / 地域均值 / 制造要素占比 / 轮次趋势，勾选组合、随检索与口径联动（ECharts）。费率库保留默认可见。</p>
+  <p><b>v0.10 供应商报价数据源：</b>参考 CE 核价数据源（est/proc/equip 三层 + 主数据）建立「供应商报价数据源」——报价 Excel 导入即结构化入库，数据模型 6 层（报价头 / 成本构成 / 制造要素 / 工艺卡 / 模具设备 / 费率库），字段逐项对齐 CE 核价输入（quote_id→id、material→mat、mfg→mfg、admin→ga、logistics→logi、tool→tool、quote→quote…），可直接作为 CE 核价的上游数据源；页面新增 Schema 表 + 字段映射矩阵 + 样例数据（RFW-D01 完整结构）。</p>
+  <p><b>v0.9 关键要素费率库：</b>在对比表上方新增「关键要素费率库」面板，<b>默认展开、无需任何选择即可查看</b>——沉淀 24 项参考费率（人工 / 场地 / 能源 / 折旧 / 比率 / 产能 / 包装），按分组卡片展示当前值与来源；顶部统计条展示库内沉淀现状（报价 / 供应商 / 城市 / 参考费率 / 采购员维护数）；「库内实测沉淀」随报价入库自动聚合（直接人工费、年工时、设备投资、OEE、模具单件、样件倍数）。采购员在「列配置 → 费率维护」中改值后，面板与对比表费率列实时联动（带「维护」徽标）；折叠状态本地记忆。</p>
+  <p><b>v0.8 简化收敛：</b>不再拆「选件列表 + 分析 Tab」多模块——所有需要对比的信息统一通过 <b>列配置</b>（勾选对比字段：价格 / 材料分项 / 制造要素 / 人工·工时 / 设备 / 模具 / 开发 / 物流 / 管理 / 样件 / 维度列）和 <b>选项</b>（行分组：不分组 / 按零件 / 按供应商 / 按地域；口径：原值 / 均值 / vs均值；异常识别开关；基准行）在单张对比表内实现。列头点击排序，空值标"—"。</p>
+  <p><b>口径保护：</b>元/件与元/KWh 不混算（均值 / 基准 / 异常仅按元/件口径统计，元/KWh 行单独标注）；演示零件族与演示供应商标注「演示」；VPPS / 品类为示例标注。采购员基准与费率维护存于本机（localStorage），正式版同步 EP 主数据与费率库。</p>
+</section>
+<script>
+var QUOTES=[
+  {id:"RFW-001","pkg":"RFW-2026Q1-519002","pkgName":"弧焊螺柱-2026Q1包",no:"P000000519002",name:"弧焊焊接螺柱",cat:"黑金属",unit:"元/件",flag:"演示",
+   vpps:"STR-FST-001",struct:"STR-FST-001",loc:"—",cat2:"紧固件类(示例)",round:"R1",status:"最新",
+   procs:["金属成型工艺-机加工","装配组装-其他(焊接)"],supplier:"未指定",site:"待定(示例)",siteMi:"—",
+   date:"2026-04-30",price:386,
+   costs:{材料:58,制造:45,模具:1,开发:1,物流:278,管理:3},
+   elems:{设备:0,人工:0,报废:0,能耗:0,耗材:0,场地:0,其他:0}},
+  {id:"RFW-002","pkg":"RFW-2026Q1-46758001","pkgName":"全景显示器-2026Q1包",no:"P000046758001",name:"全景显示器",cat:"电子料",unit:"元/件",flag:"真实",
+   vpps:"STR-DSP-014",struct:"STR-DSP-014",loc:"—",cat2:"电子-显示屏类(示例)",round:"R1",status:"最新",
+   procs:["电子加工-SMT","装配组装-组装"],supplier:"德赛西威（惠州惠南）",site:"惠州德赛西威惠南工业园",siteMi:"北京小米汽车B1(8042)",
+   date:"2026-05-13",price:2551.553,
+   costs:{材料:2178.74,制造:93,模具:5,开发:5.813,物流:28,管理:241},
+   elems:{设备:34,人工:29,报废:5,能耗:8,耗材:17,场地:0,其他:0}},
+  {id:"RFW-003","pkg":"RFW-2026Q1-56656001","pkgName":"仪表板饰板-2026Q1包",no:"P000056656001",name:"仪表板饰板总成",cat:"塑料",unit:"元/件",flag:"真实",
+   vpps:"STR-IP-015-CTR",struct:"STR-IP-015",loc:"CTR",cat2:"内饰-仪表板类(示例)",round:"R1",status:"最新",
+   procs:["非金属成型工艺-注塑","表面处理与特殊工艺-电镀","表面处理与特殊工艺-喷漆","表面处理与特殊工艺-包覆"],
+   supplier:"诺维汽车内饰件",site:"诺维",siteMi:"北京整车工厂(8041)",
+   date:"2026-05-13",price:479.23,
+   costs:{材料:350.571,制造:78.929,模具:6.776,开发:0,物流:25,管理:17.953},
+   elems:{设备:33.157,人工:42.015,报废:3.759,能耗:0,耗材:0,场地:0,其他:0}},
+  {id:"MX11-001","pkg":"MX11-2027B","pkgName":"电撑杆-MX11-27B包",no:"P000056149001",name:"后盖左电撑杆总成",cat:"金属",unit:"元/件",flag:"演示",
+   vpps:"STR-TLS-018-L",struct:"STR-TLS-018",loc:"L",cat2:"车身-开闭件类(示例)",round:"R1",status:"最新",
+   procs:["金属成型工艺-冲压","装配组装-组装"],supplier:"爱德夏机电（昆山）",site:"爱德夏机电（昆山）",siteMi:"—",
+   date:"2026-05-22",price:0.6,
+   costs:{材料:0.6,制造:0,模具:1,开发:0,物流:0,管理:0},
+   elems:{设备:0,人工:0,报废:0,能耗:0,耗材:0,场地:0,其他:0}},
+  {id:"MX11-002","pkg":"MX11-2027B","pkgName":"电撑杆-MX11-27B包",no:"P000056148001",name:"后盖右电撑杆总成",cat:"金属",unit:"元/件",flag:"演示",
+   vpps:"STR-TLS-018-R",struct:"STR-TLS-018",loc:"R",cat2:"车身-开闭件类(示例)",round:"R1",status:"最新",
+   procs:["金属成型工艺-冲压","装配组装-组装"],supplier:"爱德夏机电（昆山）",site:"爱德夏机电（昆山）",siteMi:"—",
+   date:"2026-05-22",price:0.6,
+   costs:{材料:0.6,制造:0,模具:1,开发:0,物流:0,管理:0},
+   elems:{设备:0,人工:0,报废:0,能耗:0,耗材:0,场地:0,其他:0}},
+  {id:"CELL-001","pkg":"CELL-2026","pkgName":"电芯-2026包",no:"电芯（磷酸铁锂）",name:"单颗电芯",cat:"电池原材料",unit:"元/KWh",flag:"真实",
+   vpps:"STR-CELL-001",struct:"STR-CELL-001",loc:"—",cat2:"电池-电芯类(示例)",round:"R1",status:"最新",
+   procs:["装配组装-组装","电子加工-其他(涂布/卷绕)"],supplier:"未指定",site:"电芯产线(示例)",siteMi:"—",
+   date:"—",price:1.29,
+   costs:{材料:1.398,制造:1.633,模具:0,开发:0,物流:0,管理:0},
+   elems:{设备:0.475,人工:0.39,报废:0,能耗:0.425,耗材:0,场地:0.2875,其他:0.055}},
+  {id:"RFW-D01","pkg":"PKG-TRIM-2026（演示）","pkgName":"左后门饰条-TRIM演示包",no:"P000099999001",name:"左后尾门饰条（演示）",cat:"塑料",unit:"元/件",flag:"演示",
+   vpps:"STR-TRIM-201-L",struct:"STR-TRIM-201",loc:"L",cat2:"外饰-装饰条类(演示)",round:"R1",status:"历史",
+   procs:["非金属成型工艺-注塑","表面处理与特殊工艺-电镀"],supplier:"演示供应商甲（上海）",site:"上海青浦(演示)",siteMi:"北京整车工厂(8041)",
+   date:"2026-06-10",price:500,
+   costs:{材料:300,制造:85,模具:8,开发:4,物流:55,管理:48},
+   elems:{设备:34,人工:38,报废:3,能耗:5,耗材:5,场地:3.2,其他:0}},
+  {id:"RFW-D02","pkg":"PKG-TRIM-2026（演示）","pkgName":"左后门饰条-TRIM演示包",no:"P000099999001",name:"左后尾门饰条（演示）",cat:"塑料",unit:"元/件",flag:"演示",
+   vpps:"STR-TRIM-201-L",struct:"STR-TRIM-201",loc:"L",cat2:"外饰-装饰条类(演示)",round:"R2",status:"定点",
+   procs:["非金属成型工艺-注塑","表面处理与特殊工艺-电镀"],supplier:"演示供应商甲（上海）",site:"上海青浦(演示)",siteMi:"北京整车工厂(8041)",
+   date:"2026-07-18",price:475,
+   costs:{材料:285,制造:80,模具:8,开发:4,物流:52,管理:46},
+   elems:{设备:33,人工:34,报废:3,能耗:5,耗材:5,场地:3.0,其他:0}},
+  {id:"RFW-D03","pkg":"PKG-TRIM-2026（演示）","pkgName":"左后门饰条-TRIM演示包",no:"P000099999001",name:"左后尾门饰条（演示）",cat:"塑料",unit:"元/件",flag:"演示",
+   vpps:"STR-TRIM-201-L",struct:"STR-TRIM-201",loc:"L",cat2:"外饰-装饰条类(演示)",round:"R1",status:"在途",
+   procs:["非金属成型工艺-注塑","表面处理与特殊工艺-电镀"],supplier:"演示供应商乙（天津）",site:"天津武清(演示)",siteMi:"北京整车工厂(8041)",
+   date:"2026-06-25",price:520,
+   costs:{材料:310,制造:88,模具:9,开发:4,物流:51,管理:58},
+   elems:{设备:35,人工:40,报废:3,能耗:5,耗材:5,场地:2.8,其他:0}},
+  {id:"RFW-D04","pkg":"PKG-TRIM-2026（演示）","pkgName":"右后门饰条-TRIM演示包",no:"P000099999002",name:"右后尾门饰条（演示）",cat:"塑料",unit:"元/件",flag:"演示",
+   vpps:"STR-TRIM-201-R",struct:"STR-TRIM-201",loc:"R",cat2:"外饰-装饰条类(演示)",round:"R1",status:"最新",
+   procs:["非金属成型工艺-注塑","表面处理与特殊工艺-电镀"],supplier:"演示供应商甲（上海）",site:"上海青浦(演示)",siteMi:"北京整车工厂(8041)",
+   date:"2026-06-10",price:478,
+   costs:{材料:286,制造:82,模具:8,开发:4,物流:52,管理:46},
+   elems:{设备:33,人工:36,报废:3,能耗:5,耗材:5,场地:3.1,其他:0}},
+  {id:"RFW-D05","pkg":"PKG-TRIM-2026（演示）","pkgName":"左后门饰条-TRIM演示包",no:"P000099999001",name:"左后尾门饰条（演示）",cat:"塑料",unit:"元/件",flag:"演示",
+   vpps:"STR-TRIM-201-L",struct:"STR-TRIM-201",loc:"L",cat2:"外饰-装饰条类(演示)",round:"R1",status:"历史",
+   procs:["非金属成型工艺-注塑","表面处理与特殊工艺-电镀"],supplier:"演示供应商丙（北京）",site:"北京顺义(演示)",siteMi:"北京整车工厂(8041)",
+   date:"2026-07-02",price:545,
+   costs:{材料:320,制造:92,模具:10,开发:5,物流:63,管理:55},
+   elems:{设备:38,人工:40,报废:4,能耗:5,耗材:5,场地:2.6,其他:0}}
+];
+/* ===== 要素级明细（v0.4）：材料分项/人工工时/设备/模具/开发/物流分项/管理分项；演示行=D 系列为演示值 ===== */
+var CITY={"RFW-001":"—","RFW-002":"惠州","RFW-003":"—","MX11-001":"昆山","MX11-002":"昆山","CELL-001":"—","RFW-D01":"上海","RFW-D02":"上海","RFW-D03":"天津","RFW-D04":"上海","RFW-D05":"北京"};
+function detOf(q){return DET[q.id]||{};}
+var DET={
+  "RFW-003":{matSelf:109.571,matBuy:241,moldTotal:355754.075,moldQty:52500,moldOnce:6.776},
+  "CELL-001":{eqInv:100000000,eqDep:10,eqOee:75},
+  "RFW-D01":{matSelf:15,matBuy:285,manDir:12,manInd:3,manHrs:2000,manRate:10,eqInv:3200,eqDep:10,eqOee:78,moldTotal:560000,moldQty:70000,moldOnce:8,devOnce:4,lgTrans:35,lgPack:12,lgMid:5,lgSort:3,mgDb:28.8,mgLm:19.2,smMult:1.5},
+  "RFW-D02":{matSelf:15,matBuy:270,manDir:11,manInd:3,manHrs:2000,manRate:10,eqInv:3200,eqDep:10,eqOee:80,moldTotal:560000,moldQty:70000,moldOnce:8,devOnce:4,lgTrans:32,lgPack:12,lgMid:5,lgSort:3,mgDb:27.6,mgLm:18.4,smMult:1.5},
+  "RFW-D03":{matSelf:15,matBuy:295,manDir:13,manInd:3,manHrs:2000,manRate:10,eqInv:2800,eqDep:10,eqOee:75,moldTotal:630000,moldQty:70000,moldOnce:9,devOnce:4,lgTrans:33,lgPack:10,lgMid:5,lgSort:3,mgDb:34.8,mgLm:23.2,smMult:1.5},
+  "RFW-D04":{matSelf:14,matBuy:272,manDir:11,manInd:3,manHrs:2000,manRate:10,eqInv:1500,eqDep:10,eqOee:78,moldTotal:400000,moldQty:50000,moldOnce:8,devOnce:4,lgTrans:32,lgPack:12,lgMid:5,lgSort:3,mgDb:27.6,mgLm:18.4,smMult:1.5},
+  "RFW-D05":{matSelf:15,matBuy:305,manDir:14,manInd:4,manHrs:2000,manRate:10,eqInv:3000,eqDep:10,eqOee:72,moldTotal:700000,moldQty:70000,moldOnce:10,devOnce:5,lgTrans:40,lgPack:10,lgMid:8,lgSort:5,mgDb:33,mgLm:22,smMult:1.5}
+};
+var RATES=[
+  ["人工","直接人工费率(电芯产线)","元/(人·年)","100,000","电芯报价模板.xlsx"],
+  ["人工","间接人工费率(电芯产线)","元/(人·年)","100,000","电芯报价模板.xlsx"],
+  ["人工","开发-岗位职能分类","—","管理人员/测试人员/技术人员/其他","报价细项模版final"],
+  ["人工","制造-直接人员类型","—","操作工/检验人员(专职)/配料员","报价细项模版final"],
+  ["人工","制造-间接人员类型","—","管理人员/点检人员/维修人员/巡检人员","报价细项模版final"],
+  ["场地","厂房单位成本(产线口径)","元/h/㎡","租金×面积÷24÷班次÷工时","模板final-制造费-产线"],
+  ["场地","每年单位基础设施费用(电芯口径)","元/(㎡·年)","23","电芯报价模板.xlsx"],
+  ["场地","厂房折旧年限参考","年","20(参考50)","报价细项模版final"],
+  ["能源","电单价","元/度","0.85","电芯报价模板.xlsx"],
+  ["能源","水单价","元/吨","5","电芯报价模板.xlsx"],
+  ["能源","能耗种类","—","电(度)/可燃气(升)/水(吨)等","报价细项模版final"],
+  ["折旧","设备折旧年限参考","年","5/8/10","报价细项模版final"],
+  ["折旧","产线折旧年限","年","10","电芯报价模板.xlsx"],
+  ["折旧","设备维护费比例参考","%","1%~3%","报价细项模版final"],
+  ["比率","OEE设计值推荐","%","75%","电芯报价模板.xlsx"],
+  ["比率","报废成本占比","%","5%","电芯报价模板.xlsx"],
+  ["比率","期间费用占比","%","3%","电芯报价模板.xlsx"],
+  ["比率","利润占比","%","5%","电芯报价模板.xlsx"],
+  ["比率","DB管理费率(样例)","%","6%","RFW-56656001.xlsx"],
+  ["比率","利管率(样例)","%","4%","RFW-56656001.xlsx"],
+  ["比率","样件倍数(手工/软模/硬模)","倍","1.5","RFW报价细项样例"],
+  ["产能","电芯年设计产能","KWh/年","20,000,000","电芯报价模板.xlsx"],
+  ["产能","产线总投资","元","100,000,000","电芯报价模板.xlsx"],
+  ["包装","包装收容数/循环周期参考","—","见11-包装尺寸库","报价细项模版final"]
+];
+var COST_KEYS=["材料","制造","模具","开发","物流","管理"];
+var COST_COLORS={材料:"#1F4E79",制造:"#2E75B6",模具:"#E8A33D",开发:"#C77E1E",物流:"#7FA8D0",管理:"#B9C4CF"};
+var ELEM_KEYS=["设备","人工","报废","能耗","耗材","场地","其他"];
+var ELEM_COLORS={设备:"#274F7A",人工:"#2E75B6",报废:"#C0504D",能耗:"#E8A33D",耗材:"#8FA3B8",场地:"#C77E1E",其他:"#D0D5DB"};
+var ST_COLOR={定点:"#2E7D5B",最新:"#2E75B6",在途:"#D97B29",历史:"#8A94A3"};/* ===== helpers ===== */
+function fmt(n,d){return Number(n).toLocaleString("zh-CN",{minimumFractionDigits:d||0,maximumFractionDigits:d==null?2:d});}
+function round2(n){return Math.round(n*100)/100;}
+function lsGet(k,d){try{var v=JSON.parse(localStorage.getItem(k));return v==null?d:v;}catch(e){return d;}}
+function lsSet(k,v){try{localStorage.setItem(k,JSON.stringify(v));}catch(e){}}
+function esc(s){return String(s==null?"":s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;");}
+function detOf(q){return DET[q.id]||{};}
+function sumCost(q){var t=0,i;for(i=0;i<COST_KEYS.length;i++){t+=q.costs[COST_KEYS[i]]||0;}return round2(t);}
+
+
+
+/* ===== v0.10 供应商报价数据源（参考 CE 核价数据源结构） ===== */
+var DS_SCHEMA=[
+  ["报价头","quote_id","string","报价ID（供应商×零件×轮次唯一）","est.id"],
+  ["报价头","part_no / part_name","string","零件号 / 零件名","est.part"],
+  ["报价头","project","string","车型 / 项目（多车型共用同零件）","est.model"],
+  ["报价头","supplier","string","供应商（含工厂地域）","est.sup"],
+  ["报价头","plant_city","string","工厂所在城市（同地域对标维度）","—"],
+  ["报价头","vpps","string","结构编码+位置码（MiBOM 同步）","—"],
+  ["报价头","process","string","工艺路线（注塑/冲压/焊接…）","proc.name"],
+  ["报价头","round / status / unit","string","报价轮次 / 状态 / 口径（元/件·元/KWh）","est.round/status"],
+  ["成本构成","material","number","材料费（自制+外购分项）","est.mat"],
+  ["成本构成","mfg","number","制造费（要素明细见下）","est.mfg"],
+  ["成本构成","admin","number","管理费（DB+利管率）","est.ga"],
+  ["成本构成","logistics","number","物流费（运输/包装/中转/排序分项）","est.logi"],
+  ["成本构成","tool","number","模具 / 工装分摊（单件）","est.tool"],
+  ["成本构成","dev","number","开发费","—"],
+  ["成本构成","should / target / quote","number","应核价 / 目标价（采购维护） / 供应商报价","est.should/target/quote"],
+  ["制造要素","labor","number","人工费（直接+间接，含工时&费率）","proc.detail 人工列"],
+  ["制造要素","equipment","number","设备费（投资/折旧年限/OEE）","proc.detail 设备列"],
+  ["制造要素","energy / site","number","能耗费 / 场地费","proc.detail 能耗/场地列"],
+  ["制造要素","scrap / consumable","number","报废 / 耗材","—"],
+  ["工艺卡","steps[]","array","工序：步骤/工时/设备/人工/能耗/场地/合计","proc.detail[]"],
+  ["模具设备","equip[]","array","模具/设备/工装/检具：总投资/年分摊/产量","equip.total/alloc/vol"],
+  ["费率库","rates","object","人工/场地/能耗/折旧/管理参考费率（沉淀校准）","material.base/cur 同思路"]
+];
+var DS_MAP=[
+  ["quote_id","id","报价主键，全库唯一"],
+  ["part_no","part","零件号（接 CE 零件主数据）"],
+  ["project","model","车型/项目编码"],
+  ["supplier","sup","供应商（与 CE 供应商主数据一致）"],
+  ["round","round","报价轮次，多轮比价依据"],
+  ["material","mat","材料费，同口径"],
+  ["mfg","mfg","制造费（供应商按要素拆细，CE 收口为总计）"],
+  ["admin","ga","管理/期间费用，费率可配置"],
+  ["logistics","logi","物流费，同口径"],
+  ["tool","tool","模具/工装单件分摊"],
+  ["should","should","应核价 = 成本构成合计"],
+  ["target","target","目标价（采购员维护基准）"],
+  ["quote","quote","供应商报价（出厂价）"],
+  ["process_steps","proc.detail","工艺卡工序明细（工时/设备/人工/能耗/场地）"],
+  ["equipment","equip","模具/设备投资与分摊"]
+];
+function renderDs(){
+  var el=document.getElementById("dsBody");
+  if(!el)return;
+  var h="";
+  /* Schema */
+  h+='<div class="ds-sec"><div class="ds-sec-t">数据源 Schema<span>6 层 · 供应商报价细项全部结构化入源 · 直接对接 CE 核价字段</span></div>'
+    +'<table class="ds-tbl"><thead><tr><th>层级</th><th>字段</th><th>类型</th><th>说明</th><th>CE 对应</th></tr></thead><tbody>';
+  for(var i=0;i<DS_SCHEMA.length;i++){
+    var r=DS_SCHEMA[i];
+    h+='<tr'+(r[0]==="成本构成"?" class=\"hl\"":"")+'><td class="ly">'+esc(r[0])+'</td><td><b>'+esc(r[1])+'</b></td><td class="t">'+esc(r[2])+'</td><td>'+esc(r[3])+'</td><td class="ce">'+esc(r[4])+'</td></tr>';
+  }
+  h+='</tbody></table></div>';
+  /* 映射矩阵 */
+  h+='<div class="ds-sec"><div class="ds-sec-t">字段映射矩阵<span>供应商报价数据源 → CE 核价数据源（est/proc/equip）</span></div>'
+    +'<table class="ds-tbl"><thead><tr><th>供应商报价数据源</th><th>CE 核价数据源</th><th>口径说明</th></tr></thead><tbody>';
+  for(var j=0;j<DS_MAP.length;j++){
+    var m=DS_MAP[j];
+    h+='<tr><td><b>'+esc(m[0])+'</b></td><td class="ce">'+esc(m[1])+'</td><td>'+esc(m[2])+'</td></tr>';
+  }
+  h+='</tbody></table></div>';
+  /* 样例数据 */
+  var q=null,i2;
+  for(i2=0;i2<QUOTES.length;i2++){if(QUOTES[i2].id==="RFW-D01")q=QUOTES[i2];}
+  var d=DET["RFW-D01"]||{};
+  var sample={
+    quote_id:q.id,part_no:q.no,part_name:q.name,project:"SU7-STD(演示)",
+    supplier:q.supplier,plant_city:CITY[q.id]||"—",vpps:q.vpps,process:q.proc||"注塑",
+    round:q.round,status:q.status,unit:q.unit,
+    cost:{material:q.costs["材料"],mfg:q.costs["制造"],admin:q.costs["管理"],logistics:q.costs["物流"],tool:q.costs["模具"],dev:q.costs["开发"],should:q.price,target:null,quote:q.price},
+    mfg_detail:{labor:{direct:d.manDir,indirect:d.manInd,hrs:d.manHrs,rate:d.manRate},equipment:{inv:d.eqInv,dep:d.eqDep,oee:d.eqOee},logistics:{trans:d.lgTrans,pack:d.lgPack,mid:d.lgMid,sort:d.lgSort},admin:{db:d.mgDb,lm:d.mgLm},mold:{once:d.moldOnce},sample_mult:d.smMult},
+    process_card:[["上料","0.3",40,50,12,10,112],["注塑成型","1.0",180,80,30,20,310],["去飞边","0.3",30,40,8,12,90],["检查包装","0.4",45,45,10,10,110]],
+    equipment:{mold_total:560000,mold_alloc:8,vol:70000,oee:78}
+  };
+  h+='<div class="ds-sec"><div class="ds-sec-t">样例数据<span>RFW-D01 左后尾门饰条 · 按数据源结构完整组织（含演示明细）</span></div>'
+    +'<div class="ds-json">'+esc(JSON.stringify(sample,null,1))+'</div>'
+    +'<div class="ds-tip">真实环境：报价 Excel 导入即生成该结构，自动流入「报价对比表」列配置与 CE 核价（est/proc/equip 输入）。</div></div>';
+  el.innerHTML=h;
+}
+
+/* ===== v0.9 关键要素费率库（默认可见 · 与费率维护联动） ===== */
+var LS_RATEOPEN="ep_rateopen_v09";
+var LS_TAB="ep_tab_v16";
+var rateCat="全部";
+function rateGroups(){
+  var g={},i;
+  for(i=0;i<RATES.length;i++){var r=RATES[i];(g[r[0]]=g[r[0]]||[]).push(r);}
+  return g;
+}
+function renderRateLib(){
+  var el=document.getElementById("rateBody");
+  if(!el)return;
+  var g=rateGroups(),names=Object.keys(g),i,j,rows,html="";
+  var sups={},cits={},qi,c;
+  for(qi=0;qi<QUOTES.length;qi++){sups[QUOTES[qi].supplier]=1;c=CITY[QUOTES[qi].id];if(c&&c!=="—")cits[c]=1;}
+  var mrate=lsGet(LS_RATE,{});
+  html='<div class="rl-stats">'
+    +'<span>沉淀报价 <b>'+QUOTES.length+'</b> 条</span>'
+    +'<span>供应商 <b>'+Object.keys(sups).length+'</b> 家</span>'
+    +'<span>城市 <b>'+Object.keys(cits).length+'</b> 个</span>'
+    +'<span>参考费率 <b>'+RATES.length+'</b> 项</span>'
+    +'<span>采购员维护 <b>'+Object.keys(mrate).length+'</b> 项</span>'
+    +'<span class="rl-note">无需任何选择即可查看 · 维护入口在「列配置」面板 · 改动实时联动对比表</span>'
+    +'</div><div class="rl-cats"><span class="rl-cat'+(rateCat==="全部"?" on":"")+'" onclick="setRateCat(&#39;全部&#39;)">全部</span>';
+  for(i=0;i<names.length;i++){
+    html+='<span class="rl-cat'+(rateCat===names[i]?" on":"")+'" onclick="setRateCat(&#39;'+esc(names[i])+'&#39;)">'+esc(names[i])+'</span>';
+  }
+  html+='</div><table class="rl-table"><thead><tr>'
+    +'<th>类别</th><th>费率项</th><th>单位</th><th>参考值</th><th>库内维护值</th><th>偏离参考</th><th>来源</th>'
+    +'</tr></thead><tbody>';
+  for(i=0;i<names.length;i++){
+    rows=g[names[i]];
+    for(j=0;j<rows.length;j++){
+      var r=rows[j];
+      if(rateCat!=="全部"&&r[0]!==rateCat)continue;
+      var rv=rateVal(r[1]),val,badge,dev;
+      if(rv!=null){val=fmt(rv,2);badge='<span class="rl-m2">维护</span>';dev=devPct(rv,r[3]);
+        dev=dev==null?'<span class="rl-s2">—</span>':(dev>=0?'<span class="rl-dv up">+'+dev+'%</span>':'<span class="rl-dv dn">'+dev+'%</span>');
+      }else{val='<span class="rl-s2">—</span>';badge='';dev='<span class="rl-s2">未维护</span>';}
+      html+='<tr><td>'+esc(r[0])+'</td><td class="rl-n2">'+esc(r[1])+'</td><td>'+esc(r[2])+'</td>'
+        +'<td>'+esc(r[3])+'</td><td class="rl-v2">'+val+badge+'</td><td>'+dev+'</td><td class="rl-s2" title="'+esc(r[4])+'">'+esc(r[4])+'</td></tr>';
+    }
+  }
+  html+='</tbody></table>';
+  /* 库内实测沉淀 */
+  var ds=[],di,x;
+  for(di=0;di<QUOTES.length;di++){var d=DET[QUOTES[di].id];if(d&&d.manDir!=null)ds.push(QUOTES[di].id);}
+  function avg(f){var t=0,n=0,x2;for(x2=0;x2<ds.length;x2++){var v=DET[ds[x2]][f];if(v!=null){t+=v;n++;}}return n?round2(t/n):null;}
+  var chips=[
+    ["直接人工费","元/件",avg("manDir")],
+    ["年工时","h/年",2000],
+    ["设备投资","万元",avg("eqInv")!=null?round2(avg("eqInv")/10000):null],
+    ["设备OEE","%",avg("eqOee")],
+    ["模具单件","元/件",avg("moldOnce")],
+    ["样件倍数","倍",avg("smMult")]
+  ];
+  html+='<div class="rl-real"><div class="rl-gt">库内实测沉淀<span>随报价入库自动重算 · 沉淀为要素基线</span></div><div class="rl-chips">';
+  for(x=0;x<chips.length;x++){
+    html+='<div class="rl-chip"><span class="c-n">'+chips[x][0]+'</span><span class="c-v">'+(chips[x][2]!=null?fmt(chips[x][2]):"—")+'</span><span class="c-u">'+chips[x][1]+'</span></div>';
+  }
+  html+='</div><div class="rl-tip">实测值来自报价细项（演示行明细 · 元/件口径），真实环境随报价导入自动聚合。</div></div>';
+  el.innerHTML=html;
+}
+function toggleRateLib(){
+  var b=document.getElementById("rateBody"),t=document.getElementById("rateTg");
+  var hide=b.classList.toggle("rl-hide");
+  t.textContent=hide?"展开":"收起";
+  lsSet(LS_RATEOPEN,hide?"1":"0");
+}
+
+/* ===== 列定义：所有可对比字段（对比信息全部由列配置决定） ===== */
+var cmpLevel="coarse";
+var COLS_COARSE=[
+  {k:"id",g:"报价",label:"报价ID",dim:true,get:function(q){return q.id;}},
+  {k:"site",g:"报价",label:"小米工厂",dim:true,get:function(q){return q.site||"—";}},
+  {k:"no",g:"报价",label:"零件号",dim:true,get:function(q){return q.no;}},
+  {k:"name",g:"报价",label:"零件名称",dim:true,get:function(q){return q.name;}},
+  {k:"supFac",g:"报价",label:"供应商工厂",dim:true,get:function(q){return q.siteMi||"—";}},
+  {k:"supCode",g:"报价",label:"供应商代码",dim:true,get:function(q){return q.supCode||"—";}},
+  {k:"supplier",g:"报价",label:"供应商名称",dim:true,get:function(q){return q.supplier;}},
+  {k:"currency",g:"报价",label:"报价货币",dim:true,get:function(q){return q.currency||"人民币-元";}},
+  {k:"vpps",g:"报价",label:"VPPS",dim:true,get:function(q){return q.vpps;}},
+  {k:"city",g:"报价",label:"地域",dim:true,get:function(q){return CITY[q.id]||"—";}},
+  {k:"round",g:"报价",label:"轮次",dim:true,get:function(q){return q.round;}},
+  {k:"status",g:"报价",label:"状态",dim:true,get:function(q){return q.status;}},
+  {k:"pkg",g:"报价",label:"报价包",dim:true,get:function(q){return q.pkg;}},
+  {k:"pkgName",g:"报价",label:"报价包名称",dim:true,get:function(q){return q.pkgName||"—";}},
+  {k:"detail",g:"报价",label:"报价详情",dim:true,tip:true,get:function(q){var c=q.costs;return "材料"+fmt(c["材料"],1)+"·制造"+fmt(c["制造"],1)+"·模具"+fmt(c["模具"],1)+"·开发"+fmt(c["开发"],1)+"·物流"+fmt(c["物流"],1)+"·管理"+fmt(c["管理"],1);}},
+  {k:"cat2",g:"报价",label:"品类",dim:true,get:function(q){return q.cat2;}},
+  {k:"unit",g:"报价",label:"口径",dim:true,get:function(q){return q.unit;}},
+  {k:"flag",g:"报价",label:"数据",dim:true,get:function(q){return q.flag;}},
+  {k:"price",g:"汇总",label:"出厂价(元)",num:true,get:function(q){return q.price;}},
+  {k:"arrive",g:"汇总",label:"到厂价(元)",num:true,get:function(q){var d=detOf(q);return (q.price!=null&&d.moldOnce!=null&&d.devOnce!=null&&q.costs["物流"]!=null)?round2(q.price+d.moldOnce+d.devOnce+q.costs["物流"]):null;}},
+  {k:"matTot",g:"材料费用",label:"材料费-总费用",num:true,get:function(q){return q.costs["材料"];}},
+  {k:"matSelf",g:"材料费用",label:"-自制件",num:true,get:function(q){return detOf(q).matSelf;}},
+  {k:"matBuy",g:"材料费用",label:"-外购件",num:true,get:function(q){return detOf(q).matBuy;}},
+  {k:"matCust",g:"材料费用",label:"-客户指定件",num:true,get:function(q){return null;}},
+  {k:"matOut",g:"材料费用",label:"-委外加工件",num:true,get:function(q){return null;}},
+  {k:"mfgTot",g:"制造费用",label:"制造费-总费用",num:true,get:function(q){return q.costs["制造"];}},
+  {k:"elEq",g:"制造费用",label:"-设备费",num:true,get:function(q){return q.elems["设备"];}},
+  {k:"elScrap",g:"制造费用",label:"-报废费",num:true,get:function(q){return q.elems["报废"];}},
+  {k:"elCons",g:"制造费用",label:"-耗材费",num:true,get:function(q){return q.elems["耗材"];}},
+  {k:"elEng",g:"制造费用",label:"-能耗费",num:true,get:function(q){return q.elems["能耗"];}},
+  {k:"elMan",g:"制造费用",label:"-人员费",num:true,get:function(q){return q.elems["人工"];}},
+  {k:"manDir",g:"人工明细",label:"直接人员数(人)",num:true,get:function(q){return detOf(q).manDir;}},
+  {k:"manInd",g:"人工明细",label:"间接人员数(人)",num:true,get:function(q){return detOf(q).manInd;}},
+  {k:"manHrs",g:"人工明细",label:"直接工时(人·h/件)",num:true,get:function(q){return detOf(q).manHrs;}},
+  {k:"manRate",g:"人工明细",label:"人工费率(元/h)",num:true,rate:true,get:function(q){return detOf(q).manRate;}},
+  {k:"eqInv",g:"设备与场地",label:"设备投入总额(元)",num:true,get:function(q){return detOf(q).eqInv;}},
+  {k:"eqDep",g:"设备与场地",label:"设备折旧费(元/件)",num:true,get:function(q){return detOf(q).eqDep;}},
+  {k:"eqOee",g:"设备与场地",label:"OEE设计值(%)",num:true,get:function(q){return detOf(q).eqOee;}},
+  {k:"siteFee",g:"设备与场地",label:"场地费分摊(元/件)",num:true,rate:true,get:function(q){return q.elems["场地"];}},
+  {k:"moldTot",g:"模具费用",label:"分摊汇总(元)",num:true,get:function(q){return detOf(q).moldTotal;}},
+  {k:"moldQty",g:"模具费用",label:"分摊量(件)",num:true,get:function(q){return detOf(q).moldQty;}},
+  {k:"moldOnce",g:"模具费用",label:"单件分摊额(元)",num:true,get:function(q){return detOf(q).moldOnce;}},
+  {k:"devTot",g:"开发费用",label:"分摊汇总(元)",num:true,get:function(q){var d=detOf(q);return (d.devOnce!=null&&d.moldQty!=null)?round2(d.devOnce*d.moldQty):null;}},
+  {k:"devQty",g:"开发费用",label:"分摊量(件)",num:true,get:function(q){return detOf(q).moldQty;}},
+  {k:"devOnce",g:"开发费用",label:"单件分摊额(元)",num:true,get:function(q){return detOf(q).devOnce;}},
+  {k:"lgTot",g:"物流费用",label:"物流费-总费用",num:true,get:function(q){return q.costs["物流"];}},
+  {k:"lgPack",g:"物流费用",label:"-包装费",num:true,get:function(q){return detOf(q).lgPack;}},
+  {k:"lgTrans",g:"物流费用",label:"-运输费",num:true,get:function(q){return detOf(q).lgTrans;}},
+  {k:"lgSort",g:"物流费用",label:"-排序费",num:true,get:function(q){return detOf(q).lgSort;}},
+  {k:"lgMid",g:"物流费用",label:"-中转库费",num:true,get:function(q){return detOf(q).lgMid;}},
+  {k:"mgTot",g:"管理费用",label:"管理费-总费用",num:true,get:function(q){return q.costs["管理"];}},
+  {k:"mgDb",g:"管理费用",label:"-DB管理费",num:true,get:function(q){return detOf(q).mgDb;}},
+  {k:"mgLm",g:"管理费用",label:"-利管费",num:true,get:function(q){return detOf(q).mgLm;}},
+  {k:"mgDbRate",g:"管理费用",label:"DB管理费率(%)",num:true,get:function(q){var d=detOf(q);return (d.mgDb!=null&&q.price)?round2(d.mgDb/q.price*100):null;}},
+  {k:"mgLmRate",g:"管理费用",label:"利管费率(%)",num:true,get:function(q){var d=detOf(q);return (d.mgLm!=null&&q.price)?round2(d.mgLm/q.price*100):null;}},
+  {k:"mgOther",g:"管理费用",label:"-其他管理费",num:true,get:function(q){return null;}},
+  {k:"smHand",g:"样件费用",label:"手工样件(倍)",num:true,rate:true,get:function(q){return detOf(q).smMult;}},
+  {k:"smSoft",g:"样件费用",label:"软模样件(倍)",num:true,rate:true,get:function(q){return null;}},
+  {k:"smHard",g:"样件费用",label:"硬模样件(倍)",num:true,rate:true,get:function(q){return null;}},
+  {k:"smHandP",g:"样件费用",label:"手工样件价格(元)",num:true,get:function(q){var d=detOf(q);return (q.price!=null&&q.costs["物流"]!=null&&d.smMult!=null)?round2((q.price+q.costs["物流"])*d.smMult):null;}},
+  {k:"smSoftP",g:"样件费用",label:"软模样件价格(元)",num:true,get:function(q){return null;}},
+  {k:"smHardP",g:"样件费用",label:"硬模样件价格(元)",num:true,get:function(q){return null;}}
+];
+var COLS_MAT=[
+  {k:"no",g:"材料细项",label:"零件号",dim:true,get:function(q){return q.no;}},
+  {k:"name",g:"材料细项",label:"零件名称",dim:true,get:function(q){return q.name;}},
+  {k:"level",g:"材料细项",label:"层级",dim:true,get:function(q){return q.level;}},
+  {k:"src",g:"材料细项",label:"零件来源",dim:true,get:function(q){return q.src;}},
+  {k:"qty",g:"材料细项",label:"零件数量",num:true,get:function(q){return q.qty;}},
+  {k:"matName",g:"材料细项",label:"材料名称",dim:true,get:function(q){return q.matName;}},
+  {k:"matGrade",g:"材料细项",label:"材料牌号",dim:true,get:function(q){return q.matGrade;}},
+  {k:"matCat",g:"材料细项",label:"材料品类",dim:true,get:function(q){return q.matCat;}},
+  {k:"netW",g:"材料细项",label:"净重(kg)",num:true,get:function(q){return q.netW;}},
+  {k:"grossW",g:"材料细项",label:"毛重(kg)",num:true,get:function(q){return q.grossW;}},
+  {k:"util",g:"材料细项",label:"材料利用率(%)",num:true,get:function(q){return q.util;}},
+  {k:"matPrice",g:"材料细项",label:"材料单价(元)",num:true,get:function(q){return q.matPrice;}},
+  {k:"recycle",g:"材料细项",label:"回收单价(元)",num:true,get:function(q){return q.recycle;}},
+  {k:"rawPrice",g:"材料细项",label:"原材料价格(元)",num:true,get:function(q){return q.rawPrice;}},
+  {k:"buyPrice",g:"材料细项",label:"外购件价格(元)",num:true,get:function(q){return q.buyPrice;}},
+  {k:"matFee",g:"材料细项",label:"材料费(元)",num:true,get:function(q){return q.matFee;}},
+  {k:"supplier",g:"材料细项",label:"供应商",dim:true,get:function(q){return q.supplier;}},
+  {k:"pkg",g:"材料细项",label:"报价包",dim:true,get:function(q){return q.pkg;}}
+];
+var COLS_MFG=[
+  {k:"no",g:"制造细项",label:"零件号",dim:true,get:function(q){return q.no;}},
+  {k:"name",g:"制造细项",label:"零件名称",dim:true,get:function(q){return q.name;}},
+  {k:"line",g:"制造细项",label:"工段/线体编号",dim:true,get:function(q){return q.line;}},
+  {k:"lineName",g:"制造细项",label:"工段/线体名称",dim:true,get:function(q){return q.lineName;}},
+  {k:"ct",g:"制造细项",label:"CT节拍(s)",num:true,get:function(q){return q.ct;}},
+  {k:"qtyPerCt",g:"制造细项",label:"单拍产出(件)",num:true,get:function(q){return q.qtyPerCt;}},
+  {k:"oee",g:"制造细项",label:"OEE设计值(%)",num:true,get:function(q){return q.oee;}},
+  {k:"lcr",g:"制造细项",label:"客户每日产能LCR",num:true,get:function(q){return q.lcr;}},
+  {k:"hrsLcr",g:"制造细项",label:"达到LCR工时(h)",num:true,get:function(q){return q.hrsLcr;}},
+  {k:"siteFee",g:"制造细项",label:"占地费分摊(元/EA)",num:true,get:function(q){return q.siteFee;}},
+  {k:"depFee",g:"制造细项",label:"设备折旧费(元/EA)",num:true,get:function(q){return q.depFee;}},
+  {k:"mfgEq",g:"制造细项",label:"设备制造总费(元/EA)",num:true,get:function(q){return q.mfgEq;}},
+  {k:"engFee",g:"制造细项",label:"能耗费(元/EA)",num:true,get:function(q){return q.engFee;}},
+  {k:"passRate",g:"制造细项",label:"本工段合格率(%)",num:true,get:function(q){return q.passRate;}},
+  {k:"scrapRec",g:"制造细项",label:"报废可回收率(%)",num:true,get:function(q){return q.scrapRec;}},
+  {k:"scrapFee",g:"制造细项",label:"报废费(元/EA)",num:true,get:function(q){return q.scrapFee;}},
+  {k:"consFee",g:"制造细项",label:"耗材均摊(元/EA)",num:true,get:function(q){return q.consFee;}},
+  {k:"manFee",g:"制造细项",label:"直接+间接人员费(元/EA)",num:true,get:function(q){return q.manFee;}},
+  {k:"mfgSum",g:"制造细项",label:"制造费小计(元/EA)",num:true,get:function(q){return q.mfgSum;}},
+  {k:"supplier",g:"制造细项",label:"供应商",dim:true,get:function(q){return q.supplier;}},
+  {k:"pkg",g:"制造细项",label:"报价包",dim:true,get:function(q){return q.pkg;}}
+];
+function getLevelCols(){return cmpLevel==="mat"?COLS_MAT:(cmpLevel==="mfg"?COLS_MFG:COLS_COARSE);}
+/* 细项行源：材料细项（BOM 子件）× 制造细项（工段/线体）——演示数据，维度字段继承父报价 */
+function inheritDim(qid){
+  var q=QUOTES[qid],i,o={};
+  if(!q)return o;
+  var keys=["supplier","pkg","procs","vpps","struct","cat2","site","round","status","unit","flag"];
+  for(i=0;i<keys.length;i++){o[keys[i]]=q[keys[i]];}
+  o.id=qid;return o;
+}
+function matRow(qid,no,name,level,src,qty,matName,matGrade,matCat,netW,grossW,util,matPrice,recycle,rawPrice,buyPrice,matFee){
+  var o=inheritDim(qid);o.no=no;o.name=name;o.level=level;o.src=src;o.qty=qty;o.matName=matName;o.matGrade=matGrade;o.matCat=matCat;o.netW=netW;o.grossW=grossW;o.util=util;o.matPrice=matPrice;o.recycle=recycle;o.rawPrice=rawPrice;o.buyPrice=buyPrice;o.matFee=matFee;return o;
+}
+function mfgRow(qid,no,name,line,lineName,ct,qtyPerCt,oee,lcr,hrsLcr,siteFee,depFee,mfgEq,engFee,passRate,scrapRec,scrapFee,consFee,manFee,mfgSum){
+  var o=inheritDim(qid);o.no=no;o.name=name;o.line=line;o.lineName=lineName;o.ct=ct;o.qtyPerCt=qtyPerCt;o.oee=oee;o.lcr=lcr;o.hrsLcr=hrsLcr;o.siteFee=siteFee;o.depFee=depFee;o.mfgEq=mfgEq;o.engFee=engFee;o.passRate=passRate;o.scrapRec=scrapRec;o.scrapFee=scrapFee;o.consFee=consFee;o.manFee=manFee;o.mfgSum=mfgSum;return o;
+}
+var MATX=[
+  matRow("RFW-003","P000056656001-1.1","饰板蒙皮","1.1","外购件",1,"PVC皮革","PVC-01","包覆材料",0.85,0.92,92.4,38.50,1.20,null,38.50,38.50),
+  matRow("RFW-003","P000056656001-1.2","饰板骨架","1.1","自制件",1,"PP+EPDM","PP-G30","注塑材料",0.62,0.71,87.3,212.40,3.80,212.40,null,212.40),
+  matRow("RFW-003","P000056656001-1.3","发泡缓冲层","1.1","委外加工件",1,"PU发泡","PU-20","发泡材料",0.08,0.09,88.9,99.77,2.00,null,99.77,99.77),
+  matRow("RFW-D01","PKG-TRIM-001-1.1","饰条本体","1.1","自制件",1,"PC+ABS","PC-ABS-01","注塑材料",0.34,0.40,85.0,190.00,4.50,190.00,null,190.00),
+  matRow("RFW-D01","PKG-TRIM-001-1.2","卡扣组件","1.1","外购件",6,"PA66","PA66-01","标准件",0.012,0.012,100,1.20,0,null,7.20,7.20)
+];
+var MFGX=[
+  mfgRow("RFW-003","P000056656001","仪表板饰板总成","OP10","注塑成型",45,1,85,1200,1.18,0.55,0.32,0.87,0.18,98.5,60,0.22,0.15,0.90,1.47),
+  mfgRow("RFW-003","P000056656001","仪表板饰板总成","OP20","包覆装配",62,1,88,1200,1.12,0.48,0.26,0.74,0.12,99.2,55,0.10,0.08,1.20,1.88),
+  mfgRow("MX11-001","MX11-27B","后盖左电撑杆总成","L01","装配测试",38,1,90,2400,0.86,0.12,0.09,0.21,0.06,99.5,70,0.04,0.05,0.35,0.66),
+  mfgRow("RFW-D01","PKG-TRIM-001","左后门饰条（演示）","L01","注塑成型",40,1,82,1500,1.05,0.42,0.28,0.70,0.16,97.8,58,0.30,0.12,1.10,2.22)
+];
+function levelRows(){return cmpLevel==="mat"?MATX:(cmpLevel==="mfg"?MFGX:QUOTES);}
+var DIM_DEFAULT=["id","name","supplier","city","round","status","pkg"];
+var NUM_DEFAULT=["price","arrive","matTot","mfgTot","lgTot","mgTot"];
+var LS_COLS_BASE="ep_cols_v08",LS_OPT="ep_opt_v08",LS_BENCH="ep_bench_v08",LS_RATE="ep_rate_v08",LS_SCHEMES="ep_schemes_v08";
+var cols=null,cmpGrp="none",cmpMode="raw",optAbn=true,optBench=false,sortKey=null,sortDir=1;
+
+function lsColsKey(){return LS_COLS_BASE+"_"+cmpLevel;}
+function getCols(){
+  if(!cols){var s=lsGet(lsColsKey(),null);cols=(s&&s.length)?s:levelDefaultCols();}
+  return cols;
+}
+function levelDefaultCols(){
+  if(cmpLevel==="mat")return ["no","name","level","src","qty","matPrice","rawPrice","buyPrice","matFee"];
+  if(cmpLevel==="mfg")return ["no","name","line","lineName","ct","oee","lcr","mfgEq","manFee","mfgSum"];
+  return ["id","pkgName","name","supplier","site","round","status","pkg","detail","price","arrive","matTot","mfgTot","elEq","elMan","elScrap","elEng","elCons","siteFee","manHrs","manRate","mgTot","lgTot"];
+}
+function colVis(k){return getCols().indexOf(k)>=0;}
+function colObj(k){var cs=getLevelCols(),i;for(i=0;i<cs.length;i++){if(cs[i].k===k){return cs[i];}}return null;}
+function setCol(k,on){
+  var c=getCols(),i=c.indexOf(k);
+  if(on&&i<0){c.push(k);}
+  if(!on&&i>=0){c.splice(i,1);}
+  lsSet(lsColsKey(),c);renderCmp();renderColCount();
+}
+
+/* ===== 过滤与检索 ===== */
+var filtered=[];
+function getFilters(){
+  return {part:document.getElementById("fPart").value.trim(),supplier:document.getElementById("fSupplier").value,
+    proc:document.getElementById("fProc").value,site:document.getElementById("fSite").value,
+    vpps:document.getElementById("fVpps").value.trim(),cat2:document.getElementById("fCat2").value,
+    status:document.getElementById("fStatus").value,pkg:document.getElementById("fPkg").value};
+}
+function matchQ(q,f){
+  if(f.part){var t=f.part.toLowerCase();if(q.name.toLowerCase().indexOf(t)<0&&String(q.no).toLowerCase().indexOf(t)<0&&q.id.toLowerCase().indexOf(t)<0){return false;}}
+  if(f.supplier&&q.supplier!==f.supplier){return false;}
+  if(f.proc&&q.procs.indexOf(f.proc)<0){return false;}
+  if(f.site&&q.site!==f.site){return false;}
+  if(f.vpps){var v=f.vpps.toLowerCase();if(String(q.vpps).toLowerCase().indexOf(v)<0&&String(q.struct).toLowerCase().indexOf(v)<0){return false;}}
+  if(f.cat2&&q.cat2!==f.cat2){return false;}
+  if(f.status&&q.status!==f.status){return false;}
+  if(f.pkg&&q.pkg!==f.pkg){return false;}
+  return true;
+}
+function applyFilters(){
+  var f=getFilters(),i,src=levelRows(),out=[];
+  for(i=0;i<src.length;i++){if(matchQ(src[i],f)){out.push(src[i]);}}
+  filtered=out;
+  document.getElementById("hitCount").textContent=filtered.length;
+  renderCmp();
+  renderElemCmp();
+}
+function clearFilters(){
+  document.getElementById("fPart").value="";document.getElementById("fSupplier").value="";
+  document.getElementById("fProc").value="";document.getElementById("fSite").value="";
+  document.getElementById("fVpps").value="";document.getElementById("fCat2").value="";
+  document.getElementById("fStatus").value="";document.getElementById("fPkg").value="";
+  applyFilters();
+}
+/* 检索方案 */
+function fillSchemeSel(){
+  var el=document.getElementById("fScheme"),schemes=lsGet(LS_SCHEMES,{}),k,html='<option value="">选择已保存方案…</option>';
+  for(k in schemes){if(schemes.hasOwnProperty(k)){html+='<option value="'+esc(k)+'">'+esc(k)+'</option>';}}
+  el.innerHTML=html;
+}
+function saveScheme(){
+  var name=prompt("方案名称（如：饰条-上海-2026Q2）");if(!name){return;}
+  var schemes=lsGet(LS_SCHEMES,{});
+  schemes[name]=getFilters();
+  lsSet(LS_SCHEMES,schemes);fillSchemeSel();
+}
+function loadScheme(){
+  var el=document.getElementById("fScheme"),name=el.value,sc=lsGet(LS_SCHEMES,{})[name];
+  if(!sc){return;}
+  document.getElementById("fPart").value=sc.part||"";document.getElementById("fSupplier").value=sc.supplier||"";
+  document.getElementById("fProc").value=sc.proc||"";document.getElementById("fSite").value=sc.site||"";
+  document.getElementById("fVpps").value=sc.vpps||"";document.getElementById("fCat2").value=sc.cat2||"";
+  document.getElementById("fStatus").value=sc.status||"";document.getElementById("fPkg").value=sc.pkg||"";
+  applyFilters();
+}
+
+/* ===== 对比表渲染（单模块：行=报价或分组，列=列配置勾选字段） ===== */
+function cmpRows(){
+  var i,q,rows=[];
+  if(cmpGrp==="none"){for(i=0;i<filtered.length;i++){q=filtered[i];rows.push({label:q.id,sub:"",qs:[q]});}return rows;}
+  var map={},order=[];
+  for(i=0;i<filtered.length;i++){
+    q=filtered[i];
+    var key=cmpGrp==="part"?q.no:(cmpGrp==="sup"?(q.supplier||"未指定"):(cmpGrp==="city"?(CITY[q.id]||"—"):(q.pkg||"未指定包")));
+    var lbl=cmpGrp==="part"?q.name:key;
+    if(!map[key]){map[key]={label:lbl,key:key,qs:[]};order.push(key);}
+    map[key].qs.push(q);
+  }
+  for(i=0;i<order.length;i++){rows.push(map[order[i]]);}
+  return rows;
+}
+function rowVal(col,row){
+  if(row.qs.length===1){return col.get(row.qs[0]);}
+  var s=0,n=0,i,v;
+  for(i=0;i<row.qs.length;i++){v=col.get(row.qs[i]);if(col.num&&v!=null&&isFinite(v)){s+=v;n++;}}
+  if(col.num&&n){return round2(s/n);}
+  return col.get(row.qs[0]);
+}
+function pct(arr,p){
+  if(!arr.length){return null;}
+  var s=arr.slice().sort(function(a,b){return a-b;}),i=Math.floor((s.length-1)*p);
+  return s[i];
+}
+function renderCmp(){
+  var el=document.getElementById("cmpTbl"),rows=cmpRows(),cols2=getCols(),vis=[],i,j,k,c,html;
+  for(i=0;i<cols2.length;i++){c=colObj(cols2[i]);if(c){vis.push(c);}}
+  if(!filtered.length){el.innerHTML='<div style="padding:20px;color:#8A94A3;">无匹配报价，请调整检索条件</div>';renderMeta(rows,vis);return;}
+  /* 各列视图均值（口径=vs均值用） */
+  var means={};
+  for(i=0;i<vis.length;i++){c=vis[i];if(c.num){var s=0,n=0;for(j=0;j<rows.length;j++){var v=rowVal(c,rows[j]);if(v!=null&&isFinite(v)){s+=v;n++;}}means[c.k]=n?round2(s/n):null;}}
+  /* 各列 P25/P75（异常识别） */
+  var p25={},p75={};
+  if(optAbn){
+    for(i=0;i<vis.length;i++){c=vis[i];if(!c.num){continue;}
+      var arr=[];for(j=0;j<rows.length;j++){var v2=rowVal(c,rows[j]);if(v2!=null&&isFinite(v2)){arr.push(v2);}}
+      p25[c.k]=pct(arr,0.25);p75[c.k]=pct(arr,0.75);
+    }
+  }
+  /* 排序 */
+  if(sortKey){
+    var sc=colObj(sortKey);
+    if(sc){
+      rows.sort(function(a,b){
+        var va=rowVal(sc,a),vb=rowVal(sc,b),r;
+        if(sc.num&&va!=null&&vb!=null&&isFinite(va)&&isFinite(vb)){r=va-vb;}
+        else{r=String(va==null?"":va).localeCompare(String(vb==null?"":vb),"zh");}
+        return r*sortDir;
+      });
+    }
+  }
+  /* 基准行（出厂价列 P50；有采购员基准时用基准价） */
+  var bench=getBenchFor(rows);
+  html='<thead><tr>';
+  for(i=0;i<vis.length;i++){
+    c=vis[i];
+    var ar=sortKey===c.k?(sortDir===1?"▲":"▼"):"";
+    html+='<th data-k="'+c.k+'"'+(c.dim?' class="dimcol"':"")+'>'+esc(c.label)+(cmpMode==="diff"&&c.num?"<span class=\"ar\"> Δ</span>":"")+'<span class="ar"> '+ar+'</span></th>';
+  }
+  html+='</tr></thead><tbody>';
+  if(optBench){
+    html+='<tr class="bench"><td style="font-weight:700;">基准行</td>';
+    for(i=1;i<vis.length;i++){
+      c=vis[i];
+      if(c.num&&means[c.k]!=null){
+        var bv=c.k==="price"&&bench?bench.target:means[c.k];
+        html+='<td class="nu">'+fmt(bv,2)+'</td>';
+      }else{html+='<td>—</td>';}
+    }
+    html+='</tr>';
+  }
+  for(j=0;j<rows.length;j++){
+    var r=rows[j],multi=r.qs.length>1;
+    html+='<tr>';
+    for(i=0;i<vis.length;i++){
+      c=vis[i];var v=rowVal(c,r),td="";
+      if(c.dim){
+        var txt=c.label==="状态"&&r.qs.length===1?"<span class=\"st2\" style=\"background:"+(ST_COLOR[r.qs[0].status]||"#8A94A3")+"\">"+esc(v)+"</span>":esc(v);
+        td='<td'+(i===0&&multi?' class="grp"':"")+(c.tip?' title="'+esc(String(v))+'">':'>')+txt+'</td>';
+      }else if(c.num){
+        if(v==null||v===""||!isFinite(v)){td='<td class="nu">—</td>';}
+        else{
+          var disp,cls="";
+          if(cmpMode==="diff"&&means[c.k]!=null){disp=v-means[c.k];cls=disp>0?" pos":" neg";td='<td class="nu'+cls+'">'+(disp>0?"+":"")+fmt(disp,2)+'</td>';}
+          else{
+            disp=round2(v);
+            if(optAbn&&p75[c.k]!=null&&p25[c.k]!=null){
+              if(disp>p75[c.k]){cls=" ab-hi";}else if(disp<p25[c.k]){cls=" ab-lo";}
+            }
+            var maint="";
+            if(c.rate&&rateVal(c.k)!=null){maint=' <span class="maint">维护</span>';}
+            td='<td class="nu'+cls+'">'+fmt(disp,2)+maint+'</td>';
+          }
+        }
+      }else{td='<td>'+esc(v)+'</td>';}
+      html+=td;
+    }
+    html+='</tr>';
+  }
+  html+='</tbody>';
+  el.innerHTML=html;
+  renderMeta(rows,vis);
+  renderColCount();
+  renderCharts();
+}
+function renderMeta(rows,vis){
+  var unitNote=0,i,q;
+  for(i=0;i<filtered.length;i++){if(filtered[i].unit==="元/KWh"){unitNote++;}}
+  var el=document.getElementById("cmpMeta");
+  el.innerHTML='当前视图：'+(cmpLevel==="mat"?"材料细项("+filtered.length+"行)":(cmpLevel==="mfg"?"制造细项("+filtered.length+"行)":"报价明细"))+(cmpGrp==="none"?"":"按"+(cmpGrp==="pkg"?"报价包":cmpGrp==="part"?"零件":cmpGrp==="sup"?"供应商":"工厂")+"分组")+' · '+rows.length+' 行 × '+vis.length+' 列（列配置勾选）；列内异常识别'+(optAbn?'（高于P75红 / 低于P25绿）':"关")+'；空值标"—"；'+(unitNote?'含 '+unitNote+' 条元/KWh 口径报价（均值/基准/异常不混算）。':'全部为元/件口径。')+'演示行要素明细为演示值。';
+}
+
+/* ===== v0.11 沉淀均值 KPI + 图表组合展示 ===== */
+var LS_CHARTS="ep_charts_v11";
+function kpiBase(){
+  var qs=[],i,q,d;
+  for(i=0;i<QUOTES.length;i++){q=QUOTES[i];if(q.unit!=="元/KWh")qs.push(q);}
+  function avg(key){
+    var t=0,n=0,x;for(x=0;x<qs.length;x++){var v=qs[x].costs?qs[x].costs[key]:null;if(v!=null){t+=v;n++;}}
+    return n?round2(t/n):null;
+  }
+  function detAvg(f){
+    var t=0,n=0,x;for(x=0;x<qs.length;x++){var d=DET[qs[x].id];if(d&&d[f]!=null){t+=d[f];n++;}}
+    return n?round2(t/n):null;
+  }
+  var sups={},parts={},cits={},pkgs={},x;
+  for(x=0;x<QUOTES.length;x++){q=QUOTES[x];sups[q.supplier]=1;parts[q.no]=1;pkgs[q.pkg]=1;var c=CITY[q.id];if(c&&c!=="—")cits[c]=1;}
+  return {qs:qs,avgP:avg,detAvg:detAvg,nSup:Object.keys(sups).length,nPart:Object.keys(parts).length,nCity:Object.keys(cits).length,nPkg:Object.keys(pkgs).length};
+}
+function renderKpi(){
+  var el=document.getElementById("kpiRow");
+  if(!el)return;
+  var b=kpiBase();
+  var kpis=[
+    {k:"沉淀报价",v:b.qs.length+" 条",s:"元/件口径 · 另含 1 条元/KWh",hero:true},
+    {k:"报价包 / 零件",v:b.nPkg+" / "+b.nPart,s:"供应商 "+b.nSup+" 家 · 工厂 "+b.nCity+" 个"},
+    {k:"平均出厂价",v:fmt(b.avgP("材料")!=null?avgQuote():0),s:"=材料+制造+管理"},
+    {k:"平均到厂价",v:fmt(b.avgP("材料")!=null?avgArrive():0),s:"=出厂价+模具+开发+物流"},
+    {k:"平均材料费",v:b.avgP("材料")!=null?fmt(b.avgP("材料")):"—",s:"原材料+外购件"},
+    {k:"平均制造费",v:b.avgP("制造")!=null?fmt(b.avgP("制造")):"—",s:"设备/人员/报废/能耗/耗材"},
+    {k:"平均人工费",v:b.detAvg("manDir")!=null?fmt(b.detAvg("manDir")):"—",s:"直接人员（演示明细）"},
+    {k:"平均管理费",v:b.avgP("管理")!=null?fmt(b.avgP("管理")):"—",s:"DB+利管+其他"},
+    {k:"平均模具单件",v:b.detAvg("moldOnce")!=null?fmt(b.detAvg("moldOnce")):"—",s:"模具分摊单价（演示）"}
+  ];
+  var h="",i;
+  for(i=0;i<kpis.length;i++){
+    var k=kpis[i];
+    h+='<div class="kpi'+(k.hero?" hero":"")+'"><div class="k">'+k.k+'</div><div class="v">'+k.v+'</div><div class="s">'+k.s+'</div></div>';
+  }
+  el.innerHTML=h;
+}
+function avgQuote(){
+  var b=kpiBase(),t=0,n=0,x;
+  for(x=0;x<b.qs.length;x++){var v=b.qs[x].price;if(v!=null){t+=v;n++;}}
+  return n?round2(t/n):0;
+}
+function avgArrive(){
+  var b=kpiBase(),t=0,n=0,x,d;
+  for(x=0;x<b.qs.length;x++){var q=b.qs[x];d=DET[q.id];if(q.price!=null&&d&&d.moldOnce!=null&&d.devOnce!=null&&q.costs["物流"]!=null){t+=q.price+d.moldOnce+d.devOnce+q.costs["物流"];n++;}}
+  return n?round2(t/n):0;
+}
+function chartSel(){var v=lsGet(LS_CHARTS,null);if(!v)return ["stack","bench","sup","radar"];return v;}
+function toggleChart(key){
+  var sel=chartSel(),i=sel.indexOf(key);
+  if(i>=0){sel.splice(i,1);}else{sel.push(key);}
+  lsSet(LS_CHARTS,sel);
+  var els=document.querySelectorAll(".chk-chips .chk"),j;
+  for(j=0;j<els.length;j++){els[j].className="chk"+(sel.indexOf(els[j].getAttribute("data-ch"))>=0?" on":"");}
+  renderCharts();
+}
+function chartQ(){
+  var qs=[],i,q;
+  for(i=0;i<QUOTES.length;i++){q=QUOTES[i];if(q.unit!=="元/KWh")qs.push(q);}
+  return qs;
+}
+function renderCharts(){
+  var grid=document.getElementById("chartGrid");
+  if(!grid)return;
+  var sel=chartSel(),html="",i,k;
+  for(i=0;i<sel.length;i++){
+    k=sel[i];
+    var t={stack:"成本构成堆叠",sup:"供应商出厂价对比",city:"地域均值对比",elem:"制造要素占比",trend:"轮次趋势",bench:"基准偏差（出厂价 vs 均值）",radar:"供应商六要素画像",scatter:"价格×制造费 气泡"}[k]||k;
+    html+='<div class="chart-box" id="ch-'+k+'"><h4>'+t+'<small> · 随检索与口径联动 · 元/件</small></h4><div class="cb" id="cb-'+k+'"></div></div>';
+  }
+  grid.innerHTML=html;
+  if(typeof echarts==="undefined"){
+    grid.insertAdjacentHTML("beforeend",'<div style="grid-column:1/-1;padding:14px;color:#8A94A3;font-size:12px;">图表库加载失败（离线环境），表格数据不受影响。</div>');
+    return;
+  }
+  for(i=0;i<sel.length;i++){drawChart(sel[i]);}
+}
+function drawChart(k){
+  var el=document.getElementById("cb-"+k);
+  if(!el)return;
+  var ch=echarts.init(el);
+  ch.setOption(chartOption(k));
+  window.addEventListener("resize",function(){ch.resize();});
+}
+function chartOption(k){
+  var qs=chartQ(),i,x,names,cities;
+  if(k==="stack"){
+    /* 按零件分组：材料/制造/管理/物流/模具/开发 堆叠 */
+    var map={},order=[],keys=["材料","制造","管理","物流","模具","开发"];
+    for(i=0;i<qs.length;i++){var q=qs[i],nm=q.name;if(!map[nm]){map[nm]={name:nm,vals:{}};order.push(nm);}for(x=0;x<keys.length;x++){map[nm].vals[keys[x]]=(map[nm].vals[keys[x]]||0)+(q.costs[keys[x]]||0);}}
+    var series=[],colors={材料:"#1F4E79",制造:"#2E75B6",管理:"#7FA8D0",物流:"#B9C4CF",模具:"#E8A33D",开发:"#C77E1E"};
+    for(x=0;x<keys.length;x++){
+      (function(kk){
+        series.push({name:kk,type:"bar",stack:"t",itemStyle:{color:colors[kk]},data:order.map(function(nm){return round2(map[nm].vals[kk]||0);})});
+      })(keys[x]);
+    }
+    return {backgroundColor:"transparent",tooltip:{trigger:"axis",triggerOn:"click",renderMode:"richText",confine:true},legend:{top:0,type:"scroll",itemWidth:12,itemHeight:8,textStyle:{fontSize:10}},grid:{left:44,right:12,top:34,bottom:26,containLabel:true},xAxis:{type:"category",data:order,axisLabel:{fontSize:10,interval:0,rotate:order.length>4?20:0}},yAxis:{type:"value",axisLabel:{fontSize:10}},series:series};
+  }
+  if(k==="sup"){
+    /* 供应商出厂价均值 横向 */
+    var map2={},order2=[];
+    for(i=0;i<qs.length;i++){var q2=qs[i],sn=q2.supplier||"未指定";if(!map2[sn]){map2[sn]={t:0,n:0};order2.push(sn);}map2[sn].t+=q2.price||0;map2[sn].n++;}
+    var data2=order2.map(function(sn){return {name:sn,value:round2(map2[sn].t/map2[sn].n)};}).sort(function(a,b){return b.value-a.value;});
+    return {backgroundColor:"transparent",tooltip:{trigger:"item",triggerOn:"click",renderMode:"richText",confine:true},grid:{left:110,right:30,top:10,bottom:24,containLabel:true},xAxis:{type:"value",axisLabel:{fontSize:10}},yAxis:{type:"category",data:data2.map(function(d){return d.name;}),axisLabel:{fontSize:10}},series:[{type:"bar",data:data2,itemStyle:{color:"#2E75B6"},label:{show:true,position:"right",fontSize:10}}]};
+  }
+  if(k==="city"){
+    /* 地域均值：出厂价 + 人工费 */
+    var map3={},order3=[];
+    for(i=0;i<qs.length;i++){var q3=qs[i],c=CITY[q3.id]||"—";if(c==="—")continue;if(!map3[c]){map3[c]={p:0,n:0,l:0,ln:0};order3.push(c);}map3[c].p+=q3.price||0;map3[c].n++;var d3=DET[q3.id];if(d3&&d3.manDir!=null){map3[c].l+=d3.manDir;map3[c].ln++;}}
+    return {backgroundColor:"transparent",tooltip:{trigger:"axis",triggerOn:"click",renderMode:"richText",confine:true},legend:{top:0,itemWidth:12,itemHeight:8,textStyle:{fontSize:10}},grid:{left:44,right:12,top:32,bottom:26,containLabel:true},xAxis:{type:"category",data:order3,axisLabel:{fontSize:10}},yAxis:{type:"value",axisLabel:{fontSize:10}},series:[{name:"出厂价(元)",type:"bar",data:order3.map(function(c){return round2(map3[c].p/map3[c].n);}),itemStyle:{color:"#1F4E79"}},{name:"直接人工(元/件)",type:"bar",data:order3.map(function(c){return map3[c].ln?round2(map3[c].l/map3[c].ln):null;}),itemStyle:{color:"#E8A33D"}}]};
+  }
+  if(k==="elem"){
+    /* 制造要素占比（演示明细聚合） */
+    var m={人工:{v:0,n:0},设备:{v:0,n:0},能耗:{v:0,n:0},场地:{v:0,n:0}};
+    for(i=0;i<qs.length;i++){var d=DET[qs[i].id];if(!d)continue;if(d.manDir!=null){m["人工"].v+=d.manDir+m.manInd||0;m["人工"].n++;}if(d.eqInv!=null){m["设备"].v+=d.eqInv/10000;m["设备"].n++;}}
+    var data=[];
+    if(m["人工"].n)data.push({name:"人工费(演示)",value:round2(m["人工"].v/m["人工"].n)});
+    if(m["设备"].n)data.push({name:"设备投资(万元,演示)",value:round2(m["设备"].v/m["设备"].n)});
+    if(!data.length)data=[{name:"暂无演示明细",value:1}];
+    return {backgroundColor:"transparent",tooltip:{trigger:"item",triggerOn:"click",renderMode:"richText",confine:true},legend:{bottom:0,type:"scroll",itemWidth:12,itemHeight:8,textStyle:{fontSize:10}},series:[{type:"pie",radius:["38%","62%"],center:["50%","46%"],label:{fontSize:10},data:data}]};
+  }
+  if(k==="trend"){
+    /* 轮次趋势：左后尾门饰条 供应商×轮次 */
+    var target=["RFW-D01","RFW-D02","RFW-D03","RFW-D05"];
+    var pts=[],supp;
+    for(i=0;i<qs.length;i++){if(target.indexOf(qs[i].id)>=0){pts.push(qs[i]);}}
+    var sMap={};
+    for(i=0;i<pts.length;i++){supp=pts[i].supplier;if(!sMap[supp])sMap[supp]=[];sMap[supp].push({r:pts[i].round,id:pts[i].id,p:pts[i].price||0});}
+    var names=Object.keys(sMap),series2=[],palette=["#1F4E79","#2E75B6","#E8A33D"];
+    for(i=0;i<names.length;i++){
+      (function(sn,idx){
+        var d=sMap[sn].slice().sort(function(a,b){return a.r<b.r?-1:1;});
+        series2.push({name:sn,type:"line",smooth:true,symbolSize:7,itemStyle:{color:palette[idx]},lineStyle:{color:palette[idx],width:2},data:d.map(function(p){return {name:p.id+"("+p.r+")",value:p.p};})});
+      })(names[i],i);
+    }
+    return {backgroundColor:"transparent",tooltip:{trigger:"axis",triggerOn:"click",renderMode:"richText",confine:true},legend:{top:0,type:"scroll",itemWidth:12,itemHeight:8,textStyle:{fontSize:10}},grid:{left:44,right:12,top:32,bottom:26,containLabel:true},xAxis:{type:"category",axisLabel:{fontSize:10}},yAxis:{type:"value",name:"元/件",axisLabel:{fontSize:10}},series:series2};
+  }
+
+  if(k==="bench"){
+    /* 基准偏差：每条报价出厂价 vs 均值，超 ±5% 红/绿，均值虚线 */
+    var qb=chartQ(),tt=0,nn=0,i2;
+    for(i2=0;i2<qb.length;i2++){tt+=qb[i2].price||0;nn++;}
+    var avgAll=nn?tt/nn:0;
+    var dataB=qb.slice().sort(function(a,b){return (a.price||0)-(b.price||0);}).map(function(q){
+      var p=q.price||0;
+      return {name:q.id,value:round2(p),itemStyle:{color:p>avgAll*1.05?"#C0504D":(p<avgAll*0.95?"#2E7D5B":"#2E75B6")}};
+    });
+    return {backgroundColor:"transparent",tooltip:{trigger:"axis",triggerOn:"click",renderMode:"richText",confine:true},
+      grid:{left:56,right:16,top:14,bottom:26,containLabel:true},
+      xAxis:{type:"category",data:dataB.map(function(d){return d.name;}),axisLabel:{fontSize:10,interval:0,rotate:dataB.length>8?35:0}},
+      yAxis:{type:"value",name:"元/件",axisLabel:{fontSize:10}},
+      series:[{type:"bar",data:dataB,label:{show:true,position:"top",fontSize:9,color:"#5A6472"},
+        markLine:{silent:true,symbol:"none",lineStyle:{color:"#1F4E79",type:"dashed",width:1.5},
+          label:{formatter:"均值 "+round2(avgAll),fontSize:10,color:"#1F4E79"},data:[{yAxis:avgAll}]}}]};
+  }
+  if(k==="radar"){
+    /* 供应商六要素画像（材料/制造/模具/开发/物流/管理 归一化 0-100） */
+    var dims=["材料","制造","模具","开发","物流","管理"],sMap={},ord=[],x2;
+    for(i=0;i<qs.length;i++){var q4=qs[i],sn=q4.supplier||"未指定";if(!sMap[sn]){sMap[sn]={n:0,vals:{}};ord.push(sn);}sMap[sn].n++;for(x2=0;x2<dims.length;x2++){sMap[sn].vals[dims[x2]]=(sMap[sn].vals[dims[x2]]||0)+(q4.costs[dims[x2]]||0);}}
+    var maxs={};for(x2=0;x2<dims.length;x2++){var mx=0;for(i=0;i<ord.length;i++){var av=sMap[ord[i]].vals[dims[x2]]/sMap[ord[i]].n;if(av>mx)mx=av;}maxs[dims[x2]]=mx||1;}
+    var ser=[],pal2=["#1F4E79","#2E75B6","#E8A33D","#7FA8D0","#C77E1E"];
+    for(i=0;i<Math.min(ord.length,5);i++){(function(sn,idx){
+      ser.push({name:sn,type:"radar",symbolSize:3,itemStyle:{color:pal2[idx]},lineStyle:{color:pal2[idx],width:2},
+        areaStyle:{opacity:.08},
+        data:[{value:dims.map(function(dm){return round2(sMap[sn].vals[dm]/sMap[sn].n/maxs[dm]*100);})}]});
+    })(ord[i],i);}
+    return {backgroundColor:"transparent",tooltip:{trigger:"item",triggerOn:"click",renderMode:"richText",confine:true},
+      legend:{top:0,type:"scroll",itemWidth:12,itemHeight:8,textStyle:{fontSize:10}},
+      radar:{indicator:dims.map(function(dm){return {name:dm,max:100};}),radius:"62%",
+        splitArea:{areaStyle:{color:["rgba(46,117,182,.04)","rgba(46,117,182,.09)"]}},axisName:{fontSize:10}},
+      series:ser};
+  }
+  if(k==="scatter"){
+    /* 价格×制造费 气泡：x=制造费 y=出厂价 气泡=模具费 色=供应商 */
+    var scl={},ord3=[],i3;
+    for(i3=0;i3<qs.length;i3++){var q5=qs[i3],sn5=q5.supplier||"未指定",mfg=q5.costs["制造"],pr5=q5.price||0,d5=DET[q5.id],md=d5&&d5.moldOnce!=null?d5.moldOnce:1;
+      if(mfg==null)continue;
+      if(!scl[sn5]){scl[sn5]={name:sn5,data:[]};ord3.push(sn5);}
+      scl[sn5].data.push([round2(mfg),round2(pr5),round2(md),q5.id]);}
+    var serS=ord3.map(function(sn,idx){var col=["#1F4E79","#2E75B6","#E8A33D","#7FA8D0","#C77E1E"][idx%5];
+      return {name:sn,type:"scatter",symbolSize:function(v){return Math.max(10,Math.min(34,Math.sqrt(v[2]||1)*4));},
+        itemStyle:{color:col,opacity:.75},
+        emphasis:{label:{show:true,formatter:function(p){return p.data[3];},fontSize:10}},
+        data:scl[sn].data};});
+    return {backgroundColor:"transparent",tooltip:{trigger:"item",triggerOn:"click",renderMode:"richText",confine:true,
+        formatter:function(p){return p.seriesName+"<br/>"+p.data[3]+"<br/>制造费 "+p.data[0]+" 元 · 出厂价 "+p.data[1]+" 元 · 模具 "+p.data[2]+" 元";}},
+      legend:{top:0,type:"scroll",itemWidth:12,itemHeight:8,textStyle:{fontSize:10}},
+      grid:{left:52,right:18,top:32,bottom:30,containLabel:true},
+      xAxis:{type:"value",name:"制造费(元/件)",axisLabel:{fontSize:10}},
+      yAxis:{type:"value",name:"出厂价(元/件)",axisLabel:{fontSize:10}},
+      series:serS};
+  }
+  return {};
+}
+
+
+/* ===== v0.17 关键要素对比（要素可拆选 · 逐报价对比 · 超均值±15%标色） ===== */
+var ECMP_DEF=["manCost","manHrs","siteFee","moldOnce","smMult"];
+var LS_ECMP="ep_ecmp_v17";
+var EKCMP=[
+  {key:"manCost",label:"人工费",get:function(q){var d=DET[q.id];return d?(d.manDir||0)+(d.manInd||0):null;}},
+  {key:"manHrs",label:"直接工时",get:function(q){var d=DET[q.id];return d&&d.manHrs!=null?d.manHrs:null;}},
+  {key:"manRate",label:"人工费率",get:function(q){var d=DET[q.id];return d&&d.manRate!=null?d.manRate:null;}},
+  {key:"eqCost",label:"设备投资",get:function(q){var d=DET[q.id];return d&&d.eqInv!=null?d.eqInv/10000:null;}},
+  {key:"siteFee",label:"场地费",get:function(q){return q.elems?q.elems["场地"]:null;}},
+  {key:"energy",label:"能耗费",get:function(q){return q.elems?q.elems["能耗"]:null;}},
+  {key:"moldOnce",label:"模具单件",get:function(q){var d=DET[q.id];return d&&d.moldOnce!=null?d.moldOnce:null;}},
+  {key:"devOnce",label:"开发单件",get:function(q){var d=DET[q.id];return d&&d.devOnce!=null?d.devOnce:null;}},
+  {key:"lgCost",label:"物流费",get:function(q){return q.costs?q.costs["物流"]:null;}},
+  {key:"mgCost",label:"管理费",get:function(q){return q.costs?q.costs["管理"]:null;}},
+  {key:"smMult",label:"样件倍数",get:function(q){var d=DET[q.id];return d&&d.smMult!=null?d.smMult:null;}}
+];
+function elemSel(){var v=lsGet(LS_ECMP,null);return v?v:ECMP_DEF.slice();}
+function toggleElemCmp(k){
+  var sel=elemSel(),i=sel.indexOf(k);
+  if(i>=0){sel.splice(i,1);}else{sel.push(k);}
+  lsSet(LS_ECMP,sel);
+  var els=document.querySelectorAll("#ecChips .chk"),j;
+  for(j=0;j<els.length;j++){els[j].className="chk"+(sel.indexOf(els[j].getAttribute("data-ek"))>=0?" on":"");}
+  renderElemCmp();
+}
+function renderElemCmp(){
+  var wrap=document.getElementById("ecWrap");if(!wrap)return;
+  var sel=elemSel(),rows=filtered||[],i,x,j,k,html,ch;
+  var chips="";
+  for(i=0;i<EKCMP.length;i++){k=EKCMP[i];chips+='<span class="chk'+(sel.indexOf(k.key)>=0?" on":"")+'" data-ek="'+k.key+'">'+k.label+'</span>';}
+  document.getElementById("ecChips").innerHTML=chips;
+  ch=document.querySelectorAll("#ecChips .chk");
+  for(j=0;j<ch.length;j++){ch[j].onclick=function(){toggleElemCmp(this.getAttribute("data-ek"));};}
+  if(!rows.length){wrap.innerHTML='<div style="padding:14px;font-size:12.5px;color:#8A94A3;">检索无命中报价，调整筛选条件后重试。</div>';document.getElementById("ecFoot").innerHTML="";return;}
+  var sum={},cnt={},means={};
+  for(x=0;x<sel.length;x++){sum[sel[x]]=0;cnt[sel[x]]=0;}
+  for(i=0;i<rows.length;i++){
+    var q=rows[i];
+    for(x=0;x<sel.length;x++){
+      var v=null;for(j=0;j<EKCMP.length;j++){if(EKCMP[j].key===sel[x]){v=EKCMP[j].get(q);break;}}
+      if(v!=null){sum[sel[x]]+=v;cnt[sel[x]]++;}
+    }
+  }
+  for(x=0;x<sel.length;x++){means[sel[x]]=cnt[sel[x]]?sum[sel[x]]/cnt[sel[x]]:null;}
+  html='<table class="ec-tbl"><thead><tr><th class="ec-l">报价</th><th class="ec-l">零件 · 供应商 · 轮次</th>';
+  for(x=0;x<sel.length;x++){html+='<th>'+sel[x]+'</th>';}
+  html+='</tr></thead><tbody>';
+  for(i=0;i<rows.length;i++){
+    var q2=rows[i];
+    html+='<tr><td class="ec-l">'+esc(q2.id)+'</td><td class="ec-l">'+esc(q2.name)+' · '+esc(q2.supplier)+' · '+esc(q2.round||"R1")+'</td>';
+    for(x=0;x<sel.length;x++){
+      var v2=null;for(j=0;j<EKCMP.length;j++){if(EKCMP[j].key===sel[x]){v2=EKCMP[j].get(q2);break;}}
+      var cls="";
+      if(v2!=null&&means[sel[x]]){
+        var dd=(v2-means[sel[x]])/means[sel[x]]*100;
+        if(dd>15)cls=' class="ec-up"';else if(dd<-15)cls=' class="ec-dn"';
+      }
+      html+='<td'+cls+'>'+(v2!=null?fmt(v2,2):"—")+'</td>';
+    }
+    html+='</tr>';
+  }
+  html+='<tr class="ec-mean"><td class="ec-l">均值</td><td class="ec-l">'+rows.length+' 条报价</td>';
+  for(x=0;x<sel.length;x++){html+='<td>'+(means[sel[x]]!=null?fmt(means[sel[x]],2):"—")+'</td>';}
+  html+='</tr><tr class="ec-mean"><td class="ec-l">偏离计数</td><td class="ec-l">超均值 ±15%</td>';
+  for(x=0;x<sel.length;x++){
+    var m=means[sel[x]],hi=0,dn=0;
+    for(i=0;i<rows.length;i++){
+      var q3=rows[i],v3=null;for(j=0;j<EKCMP.length;j++){if(EKCMP[j].key===sel[x]){v3=EKCMP[j].get(q3);break;}}
+      if(v3!=null&&m){var d3=(v3-m)/m*100;if(d3>15)hi++;else if(d3<-15)dn++;}
+    }
+    html+='<td><span class="ec-up">'+hi+'↑</span> / <span class="ec-dn">'+dn+'↓</span></td>';
+  }
+  html+='</tr></tbody></table>';
+  wrap.innerHTML=html;
+  document.getElementById("ecFoot").innerHTML='口径：当前检索 '+rows.length+' 条报价 × 所选 '+sel.length+' 项要素；均值=算数平均；红↑=超均值 +15% 以上，绿↓=低于 -15%（自动识别偏离报价）。';
+}
+
+function renderColCount(){
+  document.getElementById("colCount").textContent=getCols().length+" 列";
+}
+
+/* ===== 列配置面板：列勾选 + 基准维护 + 费率维护 + 费率参考 ===== */
+var RATE_OPTS=null;
+function rateCols(){var cs=getLevelCols(),i,out=[];for(i=0;i<cs.length;i++){if(cs[i].rate){out.push(cs[i]);}}return out;}
+function rateVal(k){var r=lsGet(LS_RATE,{});return r[k]!=null?r[k]:null;}
+function renderCfgPanel(){
+  var el=document.getElementById("cfgPanel"),g={},order=[],i,j,c,html;
+  var csc=getLevelCols();for(i=0;i<csc.length;i++){c=csc[i];if(!g[c.g]){g[c.g]=[];order.push(c.g);}g[c.g].push(c);}
+  html='<div class="cfg-sec"><div class="cs-t">对比列配置<span class="cs-n">勾选要对比的字段（维度列固定显示）</span></div>';
+  for(i=0;i<order.length;i++){
+    var grp=order[i];
+    html+='<div style="margin-bottom:8px;"><b style="font-size:12px;color:#274F7A;">'+grp+'</b><div class="cfg-cols">';
+    for(j=0;j<g[grp].length;j++){
+      c=g[grp][j];
+      var on=colVis(c.k),dis=c.k==="id";
+      html+='<label><input type="checkbox" data-c="'+c.k+'"'+(on?" checked":"")+(dis?" disabled":"")+'>'+esc(c.label)+'</label>';
+    }
+    html+='</div></div>';
+  }
+  html+='</div>';
+  el.innerHTML=html;
+  bindCfgPanel();
+}
+function renderMaintPanel(){
+  var el=document.getElementById("maintPanel"),html="",i,c,m=lsGet(LS_RATE,{});
+  html='<div class="card"><h3>采购员基准维护<span class="hint">分组视图基准行：有维护用维护值，否则用列 P50 · 保存即联动对比表</span></h3>'
+    +'<div class="cfg-mini"><select id="bScope"><option value="struct">同 VPPS 结构族</option><option value="cat2">同采购品类</option><option value="site">同地点</option></select>'
+    +'<select id="bGroup"></select><input id="bTarget" type="number" step="0.01" placeholder="基准价" style="width:90px;">'
+    +'<input id="bLo" type="number" step="0.01" placeholder="下限" style="width:70px;"><input id="bHi" type="number" step="0.01" placeholder="上限" style="width:70px;">'
+    +'<button class="btn" id="btnBAdd" type="button">保存基准</button></div>'
+    +'<div style="margin-top:8px;font-size:12px;" id="benchList"></div></div>';
+  html+='<div class="card"><h3>费率维护<span class="hint">覆盖 人工费率 / 场地费 / 样件倍数 等「率·单价」类要素 · 与参考值同表对比 · 表格内直接改</span></h3>'
+    +'<table class="rl-table"><thead><tr><th>类别</th><th>费率项</th><th>单位</th><th>参考值</th><th style="width:130px;">维护值</th><th>偏离参考</th><th>来源</th></tr></thead><tbody>';
+  for(i=0;i<RATES.length;i++){
+    c=RATES[i];
+    var rv=m[c[1]],dev;
+    dev=rv!=null?(devPct(rv,c[3])==null?"—":(devPct(rv,c[3])>=0?'<span class="rl-dv up">+'+devPct(rv,c[3])+'%</span>':'<span class="rl-dv dn">'+devPct(rv,c[3])+'%</span>')):'<span class="rl-s2">未维护</span>';
+    html+='<tr><td>'+esc(c[0])+'</td><td class="rl-n2">'+esc(c[1])+'</td><td>'+esc(c[2])+'</td><td>'+esc(c[3])+'</td>'
+      +'<td><input type="number" step="0.01" class="rt-in" data-rk="'+esc(c[1])+'" value="'+(rv!=null?rv:"")+'" placeholder="未维护"></td>'
+      +'<td>'+dev+'</td><td class="rl-s2">'+esc(c[4])+'</td></tr>';
+  }
+  html+='</tbody></table><div class="rl-tip">改动即时保存到本机（localStorage）并联动对比表「维护」值与费率库表格。</div></div>';
+  html+='<div class="card"><h3>费率参考库<span class="hint">来自 8 份源报价模板 · 沉淀 24 项参考费率</span></h3>'
+    +'<table class="rl-table"><thead><tr><th>分类</th><th>要素</th><th>单位</th><th>参考值/费率</th><th>来源</th></tr></thead><tbody>';
+  for(i=0;i<RATES.length;i++){
+    c=RATES[i];
+    html+='<tr><td>'+esc(c[0])+'</td><td class="rl-n2">'+esc(c[1])+'</td><td>'+esc(c[2])+'</td><td>'+esc(c[3])+'</td><td class="rl-s2">'+esc(c[4])+'</td></tr>';
+  }
+  html+='</tbody></table></div>';
+  html+='<div class="card"><h3>基准价格总览<span class="hint">已维护基准 · 命中报价与偏差反馈</span></h3><div id="benchOv"></div></div>';
+  el.innerHTML=html;
+  renderBenchForm();
+  bindMaintPanel();
+  renderBenchOverview();
+}
+function renderBenchOverview(){
+  var el=document.getElementById("benchOv");if(!el)return;
+  var b=lsGet(LS_BENCH,[]);
+  if(!b.length){el.innerHTML='<div style="padding:12px 2px;font-size:12.5px;color:#8A94A3;">尚未维护基准：在「采购员基准维护」选择 结构族 / 品类 / 地点 并保存基准价后，这里将汇总 命中报价数 · 实际均价 · 偏差反馈。</div>';return;}
+  var scopeName={struct:"同 VPPS 结构族",cat2:"同采购品类",site:"同地点"};
+  var h='<table class="ec-tbl"><thead><tr><th class="ec-l">范围</th><th class="ec-l">分组</th><th>基准价</th><th>下限-上限</th><th>命中报价</th><th>实际均价</th><th>偏差%</th></tr></thead><tbody>',i,x;
+  for(i=0;i<b.length;i++){
+    var bb=b[i],n=0,t=0;
+    for(x=0;x<QUOTES.length;x++){var q=QUOTES[x];if(q.unit==="元/KWh")continue;var mk=q[bb.scope];if(mk!=null&&String(mk)===String(bb.group)){n++;t+=q.price||0;}}
+    var avg=n?t/n:null,dev=avg!=null&&bb.target?round2((avg-bb.target)/bb.target*100):null;
+    h+='<tr><td class="ec-l">'+(scopeName[bb.scope]||esc(bb.scope))+'</td><td class="ec-l">'+esc(bb.group)+'</td><td>'+fmt(bb.target,2)+'</td><td>'+fmt(bb.lo,2)+' ~ '+fmt(bb.hi,2)+'</td><td>'+n+' 条</td><td>'+(avg!=null?fmt(avg,2):"—")+'</td><td>'+(dev!=null?(dev>=0?'<span class="ec-up">+'+dev+'%</span>':'<span class="ec-dn">'+dev+'%</span>'):"—")+'</td></tr>';
+  }
+  h+='</tbody></table>';
+  el.innerHTML=h;
+}
+function bindMaintPanel(){
+  var els=document.querySelectorAll("#maintPanel input.rt-in"),i;
+  for(i=0;i<els.length;i++){
+    els[i].onchange=function(){
+      var r=lsGet(LS_RATE,{}),v=parseFloat(this.value);
+      if(isNaN(v)){delete r[this.getAttribute("data-rk")];}else{r[this.getAttribute("data-rk")]=v;}
+      lsSet(LS_RATE,r);renderRateLib();renderCmp();renderMaintPanel();
+    };
+  }
+  var bs=document.getElementById("bScope");
+  if(bs){
+    bs.onchange=renderBenchForm;
+    document.getElementById("btnBAdd").onclick=function(){
+      var b=lsGet(LS_BENCH,[]),scope=bs.value,group=document.getElementById("bGroup").value;
+      var t=parseFloat(document.getElementById("bTarget").value),lo=parseFloat(document.getElementById("bLo").value),hi=parseFloat(document.getElementById("bHi").value);
+      if(!group||isNaN(t)){alert("请选择组并填写基准价");return;}
+      if(isNaN(lo)){lo=t;}if(isNaN(hi)){hi=t;}
+      b.push({scope:scope,group:group,target:t,lo:lo,hi:hi});
+      lsSet(LS_BENCH,b);renderBenchList();renderRateLib();renderCmp();
+    };
+    document.getElementById("benchList").onclick=function(e){
+      var t=e.target;
+      if(t.classList.contains("del")){var b=lsGet(LS_BENCH,[]);b.splice(parseInt(t.getAttribute("data-i"),10),1);lsSet(LS_BENCH,b);renderBenchList();renderRateLib();renderCmp();}
+    };
+  }
+}
+function groupOptions(scope){
+  var set={},order=[],i,q,key;
+  for(i=0;i<QUOTES.length;i++){
+    q=QUOTES[i];
+    key=scope==="struct"?q.struct:(scope==="cat2"?q.cat2:(q.site||"—"));
+    if(!set[key]){set[key]=1;order.push(key);}
+  }
+  return order;
+}
+function renderBenchForm(){
+  var scope=document.getElementById("bScope").value,sel=document.getElementById("bGroup");
+  var opts=groupOptions(scope),html="";
+  for(var i=0;i<opts.length;i++){html+='<option value="'+esc(opts[i])+'">'+esc(opts[i])+'</option>';}
+  sel.innerHTML=html||"<option>（无）</option>";
+  renderBenchList();
+}
+function renderBenchList(){
+  var b=lsGet(LS_BENCH,[]),html="",i,r;
+  if(!b.length){html='<span style="color:#8A94A3;">尚未维护基准。分组视图开启「基准行」后，匹配到的基准价会显示在出厂价列。</span>';}
+  for(i=0;i<b.length;i++){
+    r=b[i];
+    html+='<span style="display:inline-flex;gap:6px;align-items:center;background:#FFF7E8;border:1px solid #F0DFB8;border-radius:10px;padding:2px 8px;margin:2px 6px 2px 0;">'+esc(r.scope==="struct"?"结构":r.scope==="cat2"?"品类":"地点")+' · '+esc(r.group)+' · 基准 '+fmt(r.target,2)+'（'+fmt(r.lo,2)+'~'+fmt(r.hi,2)+'）<span class="del" data-i="'+i+'">×</span></span>';
+  }
+  document.getElementById("benchList").innerHTML=html;
+}
+function getBenchFor(rows){
+  var b=lsGet(LS_BENCH,[]),i,r,key;
+  if(!rows.length){return null;}
+  for(i=0;i<b.length;i++){
+    r=b[i];
+    key=r.scope==="struct"?rows[0].qs[0].struct:(r.scope==="cat2"?rows[0].qs[0].cat2:(rows[0].qs[0].site||"—"));
+    if(r.group===key){return r;}
+  }
+  return null;
+}
+function renderRateForm(){
+  var sel=document.getElementById("rRate"),cols=rateCols(),html="",i;
+  for(i=0;i<cols.length;i++){html+='<option value="'+cols[i].k+'">'+esc(cols[i].label)+'</option>';}
+  sel.innerHTML=html;
+  renderRateList();
+}
+function renderRateList(){
+  var r=lsGet(LS_RATE,{}),html="",i,c;
+  var any=false;
+  var csr=getLevelCols();
+  for(i=0;i<csr.length;i++){
+    c=csr[i];
+    if(c.rate&&rateVal(c.k)!=null){
+      any=true;
+      html+='<span style="display:inline-flex;gap:6px;align-items:center;background:#EAF3FB;border:1px solid #CFE1F0;border-radius:10px;padding:2px 8px;margin:2px 6px 2px 0;">'+esc(c.label)+' = '+fmt(rateVal(c.k),2)+'<span class="del" data-r="'+c.k+'">×</span></span>';
+    }
+  }
+  if(!any){html='<span style="color:#8A94A3;">尚未维护费率。维护后对应要素列显示「维护」值。</span>';}
+  document.getElementById("rateList").innerHTML=html;
+}
+function bindCfgPanel(){
+  var i,els=document.querySelectorAll("#cfgPanel input[data-c]");
+  for(i=0;i<els.length;i++){
+    els[i].onchange=function(){setCol(this.getAttribute("data-c"),this.checked);};
+  }
+
+  document.getElementById("btnBAdd").onclick=function(){
+    var b=lsGet(LS_BENCH,[]),scope=document.getElementById("bScope").value,group=document.getElementById("bGroup").value;
+    var t=parseFloat(document.getElementById("bTarget").value),lo=parseFloat(document.getElementById("bLo").value),hi=parseFloat(document.getElementById("bHi").value);
+    if(!group||isNaN(t)){alert("请选择组并填写基准价");return;}
+    if(isNaN(lo)){lo=t;}if(isNaN(hi)){hi=t;}
+    b.push({scope:scope,group:group,target:t,lo:lo,hi:hi});
+    lsSet(LS_BENCH,b);renderBenchList();renderRateLib();
+  };
+  document.getElementById("benchList").onclick=function(e){
+    var t=e.target;
+    if(t.classList.contains("del")){var b=lsGet(LS_BENCH,[]);b.splice(parseInt(t.getAttribute("data-i"),10),1);lsSet(LS_BENCH,b);renderBenchList();renderRateLib();renderCmp();}
+  };
+  document.getElementById("btnRAdd").onclick=function(){
+    var k=document.getElementById("rRate").value,v=parseFloat(document.getElementById("rVal").value);
+    if(isNaN(v)){alert("请填写费率值");return;}
+    var r=lsGet(LS_RATE,{});r[k]=v;lsSet(LS_RATE,r);renderRateList();renderRateLib();renderCmp();
+  };
+  document.getElementById("rateList").onclick=function(e){
+    var t=e.target;
+    if(t.classList.contains("del")){var r=lsGet(LS_RATE,{});delete r[t.getAttribute("data-r")];lsSet(LS_RATE,r);renderRateList();renderRateLib();renderCmp();}
+  };
+}
+
+/* ===== 初始化 ===== */
+function init(){
+  renderMaintPanel();
+  var i,fPart=document.getElementById("fPart");
+  fPart.addEventListener("input",applyFilters);
+  document.getElementById("fVpps").addEventListener("input",applyFilters);
+  document.getElementById("fSupplier").addEventListener("change",applyFilters);
+  document.getElementById("fProc").addEventListener("change",applyFilters);
+  document.getElementById("fSite").addEventListener("change",applyFilters);
+  document.getElementById("fCat2").addEventListener("change",applyFilters);
+  document.getElementById("fStatus").addEventListener("change",applyFilters);
+  document.getElementById("fPkg").addEventListener("change",applyFilters);
+  document.getElementById("btnReset").onclick=clearFilters;
+  document.getElementById("btnSaveScheme").onclick=saveScheme;
+  document.getElementById("fScheme").onchange=loadScheme;
+  /* 选项：分组 / 口径 */
+  var binds=[{cls:"opt-g [data-g]",set:function(v){cmpGrp=v;}},{cls:"opt-g [data-m]",set:function(v){cmpMode=v;}},{cls:"opt-g [data-lv]",set:function(v){cmpLevel=v;cols=null;}}],b,j;
+  for(b=0;b<binds.length;b++){
+    var els=document.querySelectorAll(binds[b].cls);
+    for(j=0;j<els.length;j++){
+      els[j].onclick=(function(el,set){return function(){
+        var all=el.parentNode.querySelectorAll(".rbtn"),x;
+        for(x=0;x<all.length;x++){all[x].className="rbtn";}
+        el.className="rbtn on";set(el.getAttribute("data-g")||el.getAttribute("data-m"));
+        renderCmp();
+      };})(els[j],binds[b].set);
+    }
+  }
+  /* 恢复选项 */
+  var o=lsGet(LS_OPT,{});
+  if(o.lv){cmpLevel=o.lv;}if(o.g){cmpGrp=o.g;}if(o.m){cmpMode=o.m;}if(o.abn!=null){optAbn=o.abn;}if(o.bench!=null){optBench=o.bench;}
+  (function(){
+    var elsLv=document.querySelectorAll(".opt-g [data-lv]"),j;
+    for(j=0;j<elsLv.length;j++){elsLv[j].className="rbtn"+(elsLv[j].getAttribute("data-lv")===cmpLevel?" on":"");}
+    var els=document.querySelectorAll(".opt-g [data-g]"),j;
+    for(j=0;j<els.length;j++){els[j].className="rbtn"+(els[j].getAttribute("data-g")===cmpGrp?" on":"");}
+    var els2=document.querySelectorAll(".opt-g [data-m]");
+    for(j=0;j<els2.length;j++){els2[j].className="rbtn"+(els2[j].getAttribute("data-m")===cmpMode?" on":"");}
+  })();
+  document.getElementById("optAbn").checked=optAbn;
+  document.getElementById("optBench").checked=optBench;
+  document.getElementById("optAbn").onchange=function(){optAbn=this.checked;saveOpt();renderCmp();};
+  document.getElementById("optBench").onchange=function(){optBench=this.checked;saveOpt();renderCmp();};
+  /* 列配置面板 */
+  function setTab(tab){
+    var on=document.getElementById("maintPanel"),oc=document.getElementById("cmpPanel"),mt=document.querySelectorAll(".mtab"),i;
+    on.style.display=tab==="maint"?"block":"none";
+    oc.style.display=tab==="cmp"?"block":"none";
+    for(i=0;i<mt.length;i++){mt[i].className="mtab"+(mt[i].getAttribute("data-tab")===tab?" on":"");}
+    lsSet(LS_TAB,tab);
+    if(tab==="maint"){renderMaintPanel();}
+  }
+  var mtabEls=document.querySelectorAll(".mtab"),ti;
+  for(ti=0;ti<mtabEls.length;ti++){
+    mtabEls[ti].onclick=function(){setTab(this.getAttribute("data-tab"));};
+  }
+  if(lsGet(LS_TAB,"cmp")==="maint"){setTab("maint");}
+  document.getElementById("btnColCfg").onclick=function(){
+    var p=document.getElementById("cfgPanel"),shown=p.style.display==="block";
+    p.style.display=shown?"none":"block";
+    if(!shown){renderCfgPanel();}
+  };
+  document.addEventListener("click",function(e){
+    var p=document.getElementById("cfgPanel");
+    if(p.style.display==="block"&&e.target!==document.getElementById("btnColCfg")&&!p.contains(e.target)){p.style.display="none";}
+  });
+  /* 表头排序 */
+  document.getElementById("cmpTbl").addEventListener("click",function(e){
+    var th=e.target.closest?e.target.closest("th"):null;
+    if(!th||!th.hasAttribute("data-k")){return;}
+    var k=th.getAttribute("data-k");
+    if(sortKey===k){sortDir=-sortDir;}else{sortKey=k;sortDir=1;}
+    renderCmp();
+  });
+  renderKpi();
+  renderRateLib();
+  if(lsGet(LS_RATEOPEN,"0")==="1")toggleRateLib();
+  /* 图表 chips */
+  (function(){
+    var sel=chartSel(),els=document.querySelectorAll(".chk-chips .chk"),j;
+    for(j=0;j<els.length;j++){els[j].className="chk"+(sel.indexOf(els[j].getAttribute("data-ch"))>=0?" on":"");els[j].onclick=function(){toggleChart(this.getAttribute("data-ch"));};}
+  })();
+  renderCharts();
+  fillSchemeSel();
+  applyFilters();
+  renderColCount();
+}
+function saveOpt(){lsSet(LS_OPT,{lv:cmpLevel,g:cmpGrp,m:cmpMode,abn:optAbn,bench:optBench});}
+if(document.readyState==="loading"){document.addEventListener("DOMContentLoaded",init);}else{init();}
+
+</script>
+</body>
+</html>

@@ -1,0 +1,809 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>模具分摊单价 · 业务模型与计算原型</title>
+<style>
+  :root{
+    --ink:#1a1a1a; --ink2:#475569; --ink3:#64748b; --line:#e5e7eb; --bg:#f6f7f8;
+    --card:#ffffff; --accent:#ff6900; --accent-soft:#fff3ea;
+    --blue:#2563eb; --green:#16a34a; --red:#b91c1c; --orange:#c2410c;
+  }
+  *{box-sizing:border-box; margin:0; padding:0;}
+  html{scroll-behavior:smooth;}
+  body{font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Helvetica Neue","Microsoft YaHei",sans-serif;
+       color:var(--ink); background:var(--bg); font-size:16px; line-height:1.75;}
+  .wrap{max-width:1080px; margin:0 auto; padding:0 28px;}
+
+  /* ---------- top nav ---------- */
+  .topnav{position:sticky; top:0; z-index:50; background:rgba(255,255,255,.94); border-bottom:1px solid var(--line);}
+  .topnav .wrap{display:flex; align-items:center; gap:28px; height:52px;}
+  .topnav .brand{font-weight:700; font-size:15px; letter-spacing:.5px;}
+  .topnav .brand i{font-style:normal; color:var(--accent);}
+  .topnav a{color:var(--ink2); text-decoration:none; font-size:14px;}
+  .topnav a:hover{color:var(--accent);}
+
+  /* ---------- hero ---------- */
+  .hero{padding:72px 0 56px; border-bottom:1px solid var(--line); background:var(--card);}
+  .kicker{color:var(--accent); font-weight:700; font-size:14px; letter-spacing:2px; margin-bottom:18px;}
+  .hero h1{font-size:42px; line-height:1.3; font-weight:800; letter-spacing:1px;}
+  .hero .lead{margin-top:22px; font-size:17px; color:var(--ink2); max-width:860px;}
+  .hero .lead b{color:var(--ink);}
+  .ask{margin-top:30px; display:flex; flex-wrap:wrap; gap:10px; align-items:center;}
+  .ask .ask-t{font-weight:700; font-size:15px; color:var(--ink);}
+  .ask .ask-i{border:1px solid var(--line); background:var(--bg); border-radius:999px; padding:5px 14px; font-size:14px; color:var(--ink2);}
+
+  /* ---------- sections ---------- */
+  section{padding:64px 0 8px;}
+  .sec-k{color:var(--accent); font-weight:800; font-size:14px; letter-spacing:2px;}
+  section h2{font-size:27px; font-weight:800; margin:8px 0 6px; letter-spacing:.5px;}
+  .sec-sub{color:var(--ink3); font-size:15px; margin-bottom:28px; max-width:860px;}
+
+  .card{background:var(--card); border:1px solid var(--line); border-radius:12px; padding:26px 28px; margin-bottom:20px;}
+  .note{color:var(--ink3); font-size:14px;}
+
+  /* tables */
+  table{width:100%; border-collapse:collapse; font-size:15px;}
+  th{background:#f1f3f5; text-align:left; font-weight:700; padding:11px 14px; border:1px solid var(--line); white-space:nowrap;}
+  td{padding:11px 14px; border:1px solid var(--line); vertical-align:top;}
+  td b{color:var(--accent);}
+  .tbl-card{background:var(--card); border:1px solid var(--line); border-radius:12px; padding:8px; margin-bottom:20px; overflow-x:auto;}
+  .tbl-card table{margin:0;}
+  .tbl-card th{border-radius:0;}
+
+  /* formula & example boxes */
+  .formula{font-family:ui-monospace,SFMono-Regular,Menlo,monospace; font-size:15.5px;
+    background:#f8fafc; border-left:3px solid var(--accent); padding:12px 16px; border-radius:0 8px 8px 0; margin:14px 0;}
+  .example{background:var(--accent-soft); border-radius:8px; padding:12px 16px; font-size:15px; margin-top:12px;}
+  .example b{color:var(--orange);}
+
+  /* rule cards */
+  .grid2{display:grid; grid-template-columns:1fr 1fr; gap:20px; margin-bottom:20px;}
+  .rule{background:var(--card); border:1px solid var(--line); border-radius:12px; padding:24px 26px;}
+  .rule .tag{display:inline-block; background:var(--ink); color:#fff; font-size:12.5px; font-weight:700;
+    border-radius:6px; padding:2px 10px; letter-spacing:1px; margin-bottom:12px;}
+  .rule h3{font-size:18.5px; margin-bottom:8px;}
+  .rule .rt{color:var(--ink2); font-size:15px; margin-bottom:4px;}
+  .formula .v{color:var(--orange); font-weight:700;}
+
+  /* price bar */
+  .pbar{display:flex; height:44px; border-radius:8px; overflow:hidden; margin:16px 0 10px; border:1px solid var(--line);}
+  .pbar div{display:flex; align-items:center; justify-content:center; color:#fff; font-size:13.5px; font-weight:700; white-space:nowrap; overflow:hidden;}
+  .legend{display:flex; flex-wrap:wrap; gap:18px; font-size:14px; color:var(--ink2);}
+  .legend i{display:inline-block; width:11px; height:11px; border-radius:3px; margin-right:6px;}
+
+  /* TCO cards */
+  .tco{display:grid; grid-template-columns:1fr 1fr 1fr; gap:20px; margin:18px 0;}
+  .tco .t{border:1px solid var(--line); border-radius:12px; padding:20px; background:var(--card);}
+  .tco .t h4{font-size:16.5px; margin-bottom:10px;}
+  .tco .t .big{font-size:30px; font-weight:800; color:var(--accent);}
+  .tco .t ul{list-style:none; margin-top:10px; font-size:14px; color:var(--ink2);}
+  .tco .t li{padding:5px 0; border-top:1px dashed var(--line);}
+  .concl{background:var(--ink); color:#fff; border-radius:12px; padding:20px 26px; font-size:16.5px; line-height:1.8;}
+  .concl b{color:#ffb27d;}
+
+  /* warn chips */
+  .chip{display:block; border-radius:10px; padding:12px 16px; font-size:15px; margin-bottom:10px; line-height:1.6;}
+  .chip b{font-weight:800;}
+  .chip.red{background:#fef2f2; border:1px solid #fecaca; color:var(--red);}
+  .chip.orange{background:#fff7ed; border:1px solid #fed7aa; color:var(--orange);}
+  .chip.green{background:#f0fdf4; border:1px solid #bbf7d0; color:#15803d;}
+  .chip.gray{background:#f8fafc; border:1px solid #e2e8f0; color:var(--ink2);}
+
+  /* ---------- prototype ---------- */
+  .proto{background:var(--card); border:1px solid var(--line); border-radius:14px; overflow:hidden; margin-bottom:20px;}
+  .tabs{display:flex; border-bottom:1px solid var(--line); background:#fafafa;}
+  .tab-btn{flex:1; padding:15px 10px; background:none; border:none; border-bottom:3px solid transparent;
+    font-size:15.5px; font-weight:700; color:var(--ink3); cursor:pointer; font-family:inherit;}
+  .tab-btn.on{color:var(--accent); border-bottom-color:var(--accent); background:#fff;}
+  .tab-panel{display:none; padding:30px 34px 34px;}
+  .tab-panel.show{display:block;}
+
+  .ctl-grid{display:grid; grid-template-columns:repeat(4,1fr); gap:22px; margin-bottom:8px;}
+  .ctl label{font-size:13.5px; color:var(--ink2); font-weight:600; display:flex; justify-content:space-between;}
+  .ctl label output{color:var(--accent); font-weight:800; font-size:14.5px;}
+  .ctl input[type=range]{width:100%; accent-color:var(--accent); margin-top:8px;}
+  .seg{display:inline-flex; border:1px solid var(--line); border-radius:9px; overflow:hidden;}
+  .seg button{border:none; background:#fff; padding:7px 18px; font-size:14px; font-weight:600; color:var(--ink3); cursor:pointer; font-family:inherit;}
+  .seg button.on{background:var(--ink); color:#fff;}
+
+  .out-grid{display:grid; grid-template-columns:300px 1fr; gap:30px; margin-top:26px;}
+  .kpi{background:var(--accent-soft); border-radius:12px; padding:22px 24px; text-align:center;}
+  .kpi .n{font-size:44px; font-weight:800; color:var(--accent); line-height:1.2;}
+  .kpi .l{font-size:14px; color:var(--ink2); margin-top:4px;}
+  .kpi2{margin-top:14px; display:grid; grid-template-columns:1fr 1fr; gap:12px;}
+  .kpi2 .s{background:#fff; border:1px solid var(--line); border-radius:10px; padding:12px 10px; text-align:center;}
+  .kpi2 .s .n{font-size:21px; font-weight:800; color:var(--ink);}
+  .kpi2 .s .l{font-size:12.5px; color:var(--ink3); margin-top:2px;}
+  .prog{margin-top:16px;}
+  .prog .pt{font-size:13.5px; color:var(--ink2); display:flex; justify-content:space-between; margin-bottom:6px;}
+  .track{height:12px; background:#eee; border-radius:999px; overflow:hidden;}
+  .fill{height:100%; background:var(--accent); border-radius:999px; transition:width .2s;}
+  .fill.full{background:var(--green);}
+
+  .opt2{display:grid; grid-template-columns:1fr 1fr; gap:14px; margin-top:12px;}
+  .opt2 .o{border:1px solid var(--line); border-radius:10px; padding:14px 16px; font-size:14.5px; background:#fff;}
+  .opt2 .o .oh{font-weight:800; font-size:15px; margin-bottom:4px;}
+
+  .mini-note{font-size:13.5px; color:var(--ink3); margin-top:10px;}
+
+  /* split settlement card */
+  .split-card{background:var(--card); border:1px solid var(--line); border-radius:12px; padding:22px 26px; margin-top:22px;}
+  .split-grid{display:grid; grid-template-columns:1fr 1fr 1fr; gap:16px; margin-top:14px;}
+  .split-grid .s{border:1px solid var(--line); border-radius:10px; padding:14px 16px; background:#fafafa;}
+  .split-grid .s .sn{font-size:13px; color:var(--ink3); font-weight:600;}
+  .split-grid .s .sv{font-size:22px; font-weight:800; color:var(--ink); margin-top:2px;}
+  .split-grid .s .sd{font-size:12.5px; color:var(--ink3); margin-top:3px;}
+  .split-grid .s.hl{background:var(--accent-soft);}
+  .split-grid .s.hl .sv{color:var(--accent);}
+
+  /* tab2 chart */
+  .chart-cap{font-size:14px; color:var(--ink3); margin:6px 0 18px;}
+  svg text{font-family:inherit;}
+
+  /* tab3 editable table */
+  .etd input{width:90px; border:1px solid var(--line); border-radius:7px; padding:6px 10px; font-size:15px;
+    font-family:inherit; text-align:right; accent-color:var(--accent);}
+  .etd td{vertical-align:middle;}
+  .sum-line{font-size:15.5px; margin-top:14px; color:var(--ink2);}
+  .sum-line b{color:var(--green); font-size:17px;}
+
+  /* decisions */
+  .dec{background:var(--card); border:1px solid var(--line); border-radius:12px; padding:24px 28px; margin-bottom:18px;}
+  .dec h3{font-size:17.5px; margin-bottom:10px;}
+  .dec h3 .dn{color:var(--accent); margin-right:8px;}
+  .dec .opts{display:grid; grid-template-columns:1fr 1fr; gap:12px; margin:10px 0;}
+  .dec .o{border:1px solid var(--line); border-radius:10px; padding:12px 16px; font-size:14.5px; color:var(--ink2);}
+  .dec .o b{display:block; color:var(--ink); font-size:15px; margin-bottom:3px;}
+  .dec .rec{font-size:14.5px; color:var(--orange); background:var(--accent-soft); border-radius:8px; padding:9px 14px; display:inline-block;}
+
+  footer{padding:40px 0 56px; color:var(--ink3); font-size:13.5px; text-align:center;}
+
+  @media (max-width:900px){
+    .grid2,.tco,.ctl-grid,.out-grid,.opt2,.dec .opts{grid-template-columns:1fr;}
+    .hero h1{font-size:32px;}
+    .kpi2{grid-template-columns:1fr 1fr;}
+  }
+</style>
+</head>
+<body>
+
+<div class="topnav">
+  <div class="wrap">
+    <span class="brand">模具分摊单价<i> · 业务模型与计算原型</i></span>
+    <a href="#s1">三种走法</a>
+    <a href="#s2">计算方式</a>
+    <a href="#s3">异常预警</a>
+    <a href="#s4">交互原型</a>
+    <a href="#s5">待确认</a>
+  </div>
+</div>
+
+<header class="hero">
+  <div class="wrap">
+    <div class="kicker">采购数字化 · Q4 立项前业务模型定稿</div>
+    <h1>把件价里的模具钱，<br>算成明白账</h1>
+    <p class="lead">一副专用模具的钱，不管走哪种口径，最后付出去的<b>总额是一样的</b>。差别只在三件事：钱什么时候流出去、产量变了怎么调、哪里容易扯皮。本方案把三种口径算透，定一条主线口径和四条联动规则，作为 AI Skill「模具分摊自动核算与异常预警」的规则基线。</p>
+    <div class="ask">
+      <span class="ask-t">提请决策</span>
+      <span class="ask-i">① 主线口径的适用边界</span>
+      <span class="ask-i">② 产量不足时的结算立场</span>
+      <span class="ask-i">③ 修模跳价的复核阈值</span>
+      <span class="ask-i">④ 比价是否强制拆分</span>
+    </div>
+  </div>
+</header>
+
+<main class="wrap">
+
+<!-- ============ 01 三种走法 ============ -->
+<section id="s1">
+  <div class="sec-k">01</div>
+  <h2>供应商收回模具钱，只有三种走法</h2>
+  <p class="sec-sub">模具开出来是供应商垫的钱。这笔钱怎么收回来，决定了单件价格长什么样、产量风险落在谁头上。三种走法在供应商报价里都真实存在，口径不统一，比价就不可比，结算就会吵。</p>
+
+  <div class="tbl-card">
+    <table>
+      <tr><th style="width:110px">走法</th><th>模具费怎么收</th><th>单件价格</th><th>产量风险谁担</th><th>现金流</th><th>容易吵的点</th><th>适合谁用</th></tr>
+      <tr>
+        <td><b>产量摊销</b><br><span class="note">主线口径</span></td>
+        <td>摊进件价，按预估产量慢慢收</td>
+        <td>件价 = 不含模具价 + 单件摊销</td>
+        <td>双方共担：产量不足供应商摊不满，超额供应商不得多收</td>
+        <td>随产量自然流入，无前期占用</td>
+        <td>产量不足时的余额结算</td>
+        <td>本项目专用模具（主流做法）</td>
+      </tr>
+      <tr>
+        <td><b>寿命摊销</b></td>
+        <td>按模具物理寿命（模次 × 穴数）摊到全部可产零件上，谁用谁摊</td>
+        <td>件价 = 不含模具价 + 寿命摊销（比产量摊销低）</td>
+        <td>采购方担：车型提前停产，剩余摊销没处归</td>
+        <td>随产量流入，单价更低、周期更长</td>
+        <td>停产时剩余余额的归属</td>
+        <td>一副模服务多个项目、多个客户</td>
+      </tr>
+      <tr>
+        <td><b>买断</b></td>
+        <td>定点后按节点一次付清，模具产权归采购方</td>
+        <td>件价干净，不含模具钱</td>
+        <td>采购方独担：钱先付，产量不达也无法追索</td>
+        <td>前期一次性大额流出</td>
+        <td>模具存放、报废处置的资产责任</td>
+        <td>战略件、需要拿走模具产权的场景</td>
+      </tr>
+    </table>
+  </div>
+
+  <div class="card">
+    <h3 style="font-size:18px; margin-bottom:6px;">同一副模具，三种走法的总付出一模一样</h3>
+    <p class="note" style="margin-bottom:6px;">算例：模具费 120 万元，项目预估需求 24 万件，不含模具件价 18.00 元/件，三口径税率等条件相同。</p>
+    <div class="tco">
+      <div class="t">
+        <h4>产量摊销</h4>
+        <div class="big">552 万</div>
+        <ul>
+          <li>开模时：0</li>
+          <li>件价付出：23.00 × 24万 = 552 万</li>
+          <li>停产结算：0（恰好摊满）</li>
+        </ul>
+      </div>
+      <div class="t">
+        <h4>寿命摊销</h4>
+        <div class="big">552 万</div>
+        <ul>
+          <li>开模时：0</li>
+          <li>件价付出：19.50 × 24万 = 468 万</li>
+          <li>停产结算：未摊余额 84 万</li>
+        </ul>
+      </div>
+      <div class="t">
+        <h4>买断</h4>
+        <div class="big">552 万</div>
+        <ul>
+          <li>开模时：一次性 120 万</li>
+          <li>件价付出：18.00 × 24万 = 432 万</li>
+          <li>停产结算：0</li>
+        </ul>
+      </div>
+    </div>
+    <div class="concl">总额恒定，说明一件事：<b>方案要定的不是"收多少钱"，而是钱怎么流、产量变了怎么调、异常了谁先知道。</b>这正是 AI Skill 能替人盯着的三件事。</div>
+  </div>
+
+  <div class="card">
+    <h3 style="font-size:18px; margin-bottom:8px;">主线口径怎么选</h3>
+    <table>
+      <tr><th style="width:200px">模具性质</th><th>建议口径</th><th>一句话理由</th></tr>
+      <tr><td>本项目专用模</td><td><b>产量摊销（主线）</b></td><td>模具价值的回收和实际产量绑在一起，结算自动联动，异常可预警，争议点最少</td></tr>
+      <tr><td>跨项目共用模 / 供应商多客户模</td><td>寿命摊销</td><td>模具寿命里本项目只占一部分，按模次谁用谁摊才公平，但必须配报废余额结算兜底</td></tr>
+      <tr><td>战略件 / 需要产权与转移</td><td>买断</td><td>件价干净、年降只谈增值部分，代价是前期资金占用和产量风险自担</td></tr>
+    </table>
+  </div>
+
+  <div class="card">
+    <h3 style="font-size:18px; margin-bottom:8px;">分摊和分期不是一个维度的选择：先定口径，再定付款</h3>
+    <p style="font-size:15.5px; color:var(--ink2); margin-bottom:12px;"><b style="color:var(--ink)">分摊回答"模具钱从哪个价格里收回来"，是价格口径；分期回答"一笔钱分几次付"，是付款安排。</b>产量摊销天生跟着产量走——每结一批零件付一批的钱，没有独立的付款节点，不需要分期；只有买断需要分期：模具钱不进单价，按节点直接付，典型打法是开模启动（T0）付 30%（覆盖设计与材料投入）、首件合格付 60%、量产稳定爬坡后付 10% 尾款，产权随付款进度转移。</p>
+    <table>
+      <tr><th style="width:240px">什么时候选"买断＋分期"</th><th>为什么</th></tr>
+      <tr><td>产量预测很不稳</td><td>把产量风险从价格里整个剥出去，免得停产时为未摊余额扯皮；钱按节点付完，价格里干干净净</td></tr>
+      <tr><td>供应商不愿或无力垫资</td><td>大额模具、新供应商、小厂——摊销等于让供应商押一笔两年才收得回的钱</td></tr>
+      <tr><td>需要模具产权</td><td>模具要转移、多处存放、报废处置自己说了算的场景</td></tr>
+      <tr><td>开发周期长的大模</td><td>按节点分期和供应商的成本发生节奏匹配：他买材料时你付钱，不让任何一方垫太久</td></tr>
+    </table>
+    <p class="note" style="margin-top:12px;">代价要认：前期一次性资金占用，产量不达标钱已付、追索难——所以买断通常配预付款担保与产权随付款转移条款。实务里还有混合口径（模具费一半按节点分期付、一半摊进单价）：风险减半，但账要拆两笔记，自动核算复杂度翻倍，AI Skill 第一版不放开。</p>
+  </div>
+</section>
+
+<!-- ============ 02 计算方式 ============ -->
+<section id="s2">
+  <div class="sec-k">02</div>
+  <h2>主线口径的计算方式：产量摊销</h2>
+  <p class="sec-sub">一条基础公式 + 三条基础量，撑起全部计算。四个联动场景的规则都从这条公式推出来，没有一个额外的口径。</p>
+
+  <div class="card">
+    <h3 style="font-size:18px; margin-bottom:10px;">基础公式与件价拆解</h3>
+    <div class="formula">单件模具摊销 a = 模具费 T ÷ 预估摊销产量 Q₀　　（万元 ÷ 万件 = 元/件）</div>
+    <div class="formula">件价 p = 材料费 + 加工费 + 制造费用 + 管理利润 + a</div>
+    <div class="formula">累计已摊 = a × min(Q, Q₀)　　未摊余额 R = T − a × min(Q, Q₀)　　达量停摊价 = p − a</div>
+
+    <div class="pbar" id="staticBar">
+      <div style="width:34.8%; background:#2563eb;">材料 8.00</div>
+      <div style="width:28.3%; background:#0891b2;">加工 6.50</div>
+      <div style="width:8.7%; background:#64748b;">2.00</div>
+      <div style="width:6.5%; background:#94a3b8;">1.50</div>
+      <div style="width:21.7%; background:#ff6900;">模具摊销 5.00</div>
+    </div>
+    <div class="legend">
+      <span><i style="background:#2563eb"></i>材料费</span>
+      <span><i style="background:#0891b2"></i>加工费</span>
+      <span><i style="background:#64748b"></i>制造费用</span>
+      <span><i style="background:#94a3b8"></i>管理利润</span>
+      <span><i style="background:#ff6900"></i>模具摊销</span>
+      <span class="note">算例：T = 120 万，Q₀ = 24 万件 → a = 5.00 元/件，件价 23.00 元</span>
+    </div>
+  </div>
+
+  <div class="grid2">
+    <div class="rule">
+      <span class="tag">联动 S1</span>
+      <h3>产量说话：做到自动停，没做到停产算清</h3>
+      <p class="rt">累计产量达到预估产量，摊销部分当件归零，件价自动下调；达不到，停产时把没摊完的一次结清，两种结算方式二选一并写进协议。</p>
+      <div class="formula">EOP 追补 R = T − a × Q　　或　　追溯重算 a′ = T ÷ Q</div>
+      <div class="example">
+        <b>没做到：</b>预估 24 万件实做 18 万件 → 已摊 90 万、未摊 30 万 → 追补 30 万（价格不追溯）；或追溯重算至 6.67 元/件，每件补差 1.67 元。<br>
+        <b>做超了：</b>实做 30 万件 → 第 24 万件起停摊；若漏停仍按 23 元结算，多收 5 × 6 万 = 30 万，系统预警追回。<br>
+        <b>月内停摊：</b>停摊切累计件数，不切月份。上月末累计 23.2 万件、本月交 1.5 万件 → 0.8 万件 × 23.00 = 18.4 万 + 0.7 万件 × 18.00 = 12.6 万，本月应付 31 万，一张结算单拆两个行项目（税率相同、单价不同）。
+      </div>
+    </div>
+
+    <div class="rule">
+      <span class="tag">联动 S2</span>
+      <h3>修模只往剩余产量里摊，报废按余额结清</h3>
+      <p class="rt">设变修模的追加费用，摊进剩余预估产量，不动已产零件的价格；模具提前报废，没摊完的余额按报废补偿结清，同步厂外资产处置。</p>
+      <div class="formula">修模新摊销 a′ = (T + ΔT − 已摊) ÷ (Q₀ − Q)　　报废补偿 = 未摊余额（可扣残值）</div>
+      <div class="example">
+        <b>修模：</b>生产到 12 万件时修模追加 18 万 → 已摊 60 万，剩余 12 万件 → a′ = (120+18−60)÷12 = 6.50 元/件，较原 5.00 跳升 30%，触发商务复核。<br>
+        <b>报废：</b>同一时点直接报废 → 未摊余额 60 万（占模具费 50%），走模具报废补偿与资产处置流程。
+      </div>
+    </div>
+
+    <div class="rule">
+      <span class="tag">联动 S3</span>
+      <h3>一模多件：按穴数切钱，按产量摊价</h3>
+      <p class="rt">一副模出几个件，先按型腔数把模具费切成几份，每个件再按自己的预估产量摊。谁产量低，谁单价里摊得多。</p>
+      <div class="formula">该件分得模具费 Tᵢ = T × (穴ᵢ ÷ Σ穴)　　单件摊销 aᵢ = Tᵢ ÷ Qᵢ</div>
+      <div class="example">
+        <b>算例：</b>120 万模具出三个件，穴数 2 : 1 : 1 → 分得 60 / 30 / 30 万；预估产量 16 / 4 / 8 万件 → 单件摊销 3.75 / 7.50 / 3.75 元。三件合计收回 120 万，分文不差。谈任何一个件的价格，都要把它兄弟件的产量一起看。
+      </div>
+    </div>
+
+    <div class="rule">
+      <span class="tag">联动 S4</span>
+      <h3>比价先拆价：单价会骗人，总盘不会</h3>
+      <p class="rt">每家报价拆成「不含模具件价 + 摊销」两截，再按项目需求量算定点总盘。摊销口径不同的两家报价，直接比单价一定比错。</p>
+      <div class="formula">定点总盘 = 不含模具件价 × 项目需求量 + 模具费（专用模全额）</div>
+      <div class="example">
+        <b>算例：</b>甲报 23.00 元（18.00 + 摊销 5.00，产量摊销）；乙报 21.20 元（20.00 + 寿命摊销 1.20）。单价乙便宜 1.80 元，24 万件"省"43 万；算总盘：甲 552 万，乙 576 万（21.20×24 万 + 未摊余额 67.2 万）——<b>乙实际贵 24 万</b>。乙的真身是制造贵 2 元，靠摊销口径把单价做低。
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ 03 异常预警 ============ -->
+<section id="s3">
+  <div class="sec-k">03</div>
+  <h2>六条异常预警：AI Skill 的活</h2>
+  <p class="sec-sub">规则定清楚之后，剩下的就是让机器替人盯着。每条预警都有明确的触发口径和现成的数据来源，不需要新增录入。</p>
+
+  <div class="tbl-card">
+    <table>
+      <tr><th style="width:150px">预警</th><th>触发口径</th><th style="width:270px">算什么</th><th>数据从哪来</th></tr>
+      <tr><td><b>W1 超额摊销</b></td><td>实际产量已超预估，仍按含摊销单价结算</td><td>应追回 a × (Q − Q₀)</td><td>结算累计产量 + 价格协议摊销参数</td></tr>
+      <tr><td><b>W2 摊销滞后</b></td><td>消耗率落后时间进度超过阈值（如 20 个百分点）</td><td>Q ÷ Q₀ 对比时间进度</td><td>结算累计产量 + 项目量产节点</td></tr>
+      <tr><td><b>W3 修模跳价</b></td><td>修模后剩余产量摊销较原摊销跳升超阈值（如 30%）</td><td>a′ ÷ a − 1</td><td>设变/EWO 修模追加费 + 协议摊销参数</td></tr>
+      <tr><td><b>W4 报废余额大</b></td><td>模具报废时未摊余额占模具费超阈值（如 40%）</td><td>R ÷ T</td><td>报价模具清单·验定状态（使用中/报废）+ 分摊金额</td></tr>
+      <tr><td><b>W5 摊销假设偏离</b></td><td>报价预估产量与车型销量预测偏差超 30%</td><td>Q₀ 对比销量预测</td><td>报价模具清单（型腔数/寿命/预估产量）+ 销量预测</td></tr>
+      <tr><td><b>W6 报价未拆分</b></td><td>报价缺模具摊销拆解，无法进比价</td><td>结构化字段完整性校验</td><td>报价模具清单明细表（2026 年 3 月已建）</td></tr>
+    </table>
+  </div>
+
+  <div class="card" style="border-left:4px solid var(--accent);">
+    <p style="font-size:15.5px;">六条预警的计算输入，<b>报价（模具清单）、协议（摊销参数）、结算（累计产量）三处现成字段已经覆盖</b>：报价侧有模具清单明细表（模具名称、制造商、验定状态、型腔数、使用寿命、分摊金额），协议侧零件价格协议以模具为必备主题、模具/开发费变更与报废补偿各有专属协议类型，结算侧有累计产量。AI Skill 只做规则计算、异常判定与推送，不动任何现有录入。</p>
+  </div>
+</section>
+
+<!-- ============ 04 交互原型 ============ -->
+<section id="s4">
+  <div class="sec-k">04</div>
+  <h2>交互原型：拖一拖，看见每一条规则</h2>
+  <p class="sec-sub">三个视图对应方案的三个核心动作：算单件、比口径、拆一模多件。所有数字与上文算例同源，改参数即重算。</p>
+
+  <div class="proto">
+    <div class="tabs">
+      <button class="tab-btn on" data-tab="tab-calc">① 单件摊销计算器</button>
+      <button class="tab-btn" data-tab="tab-cal">② 三口径价格曲线</button>
+      <button class="tab-btn" data-tab="tab-multi">③ 一模多件分摊</button>
+    </div>
+
+    <!-- ===== tab1 ===== -->
+    <div class="tab-panel show" id="tab-calc">
+      <div class="ctl-grid">
+        <div class="ctl">
+          <label>模具费 T（万元）<output id="oT">120</output></label>
+          <input type="range" id="iT" min="20" max="400" step="5" value="120">
+        </div>
+        <div class="ctl">
+          <label>预估摊销产量 Q₀（万件）<output id="oQ0">24</output></label>
+          <input type="range" id="iQ0" min="5" max="100" step="1" value="24">
+        </div>
+        <div class="ctl">
+          <label>实际累计产量 Q（万件）<output id="oQ">24.7</output></label>
+          <input type="range" id="iQ" min="0" max="60" step="0.1" value="24.7">
+        </div>
+        <div class="ctl">
+          <label>修模追加 ΔT（万元）<output id="oD">0</output></label>
+          <input type="range" id="iD" min="0" max="100" step="5" value="0">
+        </div>
+      </div>
+      <div style="margin:6px 0 0;">
+        <span style="font-size:13.5px; color:var(--ink2); font-weight:600; margin-right:10px;">项目状态</span>
+        <span class="seg" id="segMode">
+          <button class="on" data-m="prod">量产中</button>
+          <button data-m="eop">停产结算</button>
+        </span>
+        <span class="mini-note" style="display:inline-block; margin-left:14px;">件价拆解按主线算例固定：材料 8.00 + 加工 6.50 + 制造 2.00 + 管理利润 1.50</span>
+      </div>
+
+      <div class="out-grid">
+        <div>
+          <div class="kpi">
+            <div class="n" id="kA">5.00</div>
+            <div class="l">单件模具摊销（元/件）</div>
+            <div class="kpi2">
+              <div class="s"><div class="n" id="kPaid">120</div><div class="l">已摊（万元）</div></div>
+              <div class="s"><div class="n" id="kR">0</div><div class="l">未摊余额（万元）</div></div>
+            </div>
+            <div class="prog">
+              <div class="pt"><span>摊销进度</span><span id="kPct">100%</span></div>
+              <div class="track"><div class="fill full" id="kFill" style="width:100%"></div></div>
+            </div>
+          </div>
+        </div>
+        <div>
+          <div style="font-size:14.5px; font-weight:700; color:var(--ink2);">件价拆解（元/件，按原口径）</div>
+          <div class="pbar" id="liveBar"></div>
+          <div class="legend" id="liveLegend"></div>
+          <div id="a2Line" class="mini-note" style="display:none; margin-top:10px;"></div>
+          <div style="margin-top:20px;" id="warnBox"></div>
+        </div>
+      </div>
+
+      <div class="split-card">
+        <div class="ctl" style="max-width:430px;">
+          <label>上月末累计已结算（万件）<output id="oQp">23.2</output></label>
+          <input type="range" id="iQp" min="0" max="40" step="0.1" value="23.2">
+        </div>
+        <div class="split-grid">
+          <div class="s"><div class="sn">段 1 · 达量前（含摊销）</div><div class="sv" id="sN1">—</div><div class="sd" id="sN1d"></div></div>
+          <div class="s"><div class="sn">段 2 · 达量后（已停摊）</div><div class="sv" id="sN2">—</div><div class="sd" id="sN2d"></div></div>
+          <div class="s hl"><div class="sn">当月应付合计</div><div class="sv" id="sSum">—</div><div class="sd" id="sSumd"></div></div>
+        </div>
+        <div class="mini-note" id="splitNote"></div>
+      </div>
+    </div>
+
+    <!-- ===== tab2 ===== -->
+    <div class="tab-panel" id="tab-cal">
+      <div class="chart-cap">同一副模具（120 万），三种走法下"单件结算价"随累计产量的变化。产量摊销在 24 万件处断崖下降——那就是停摊；买断与寿命摊销是平线；寿命摊销的 19.50 一直收到模具寿命为止，本项目停产时余额另结。</div>
+      <svg viewBox="0 0 720 330" style="width:100%; display:block;">
+        <!-- grid -->
+        <g stroke="#e5e7eb" stroke-width="1">
+          <line x1="70" y1="270" x2="690" y2="270"/><line x1="70" y1="216" x2="690" y2="216"/>
+          <line x1="70" y1="162" x2="690" y2="162"/><line x1="70" y1="108" x2="690" y2="108"/>
+          <line x1="70" y1="54"  x2="690" y2="54"/>
+        </g>
+        <g font-size="12" fill="#64748b">
+          <text x="62" y="274" text-anchor="end">16</text>
+          <text x="62" y="220" text-anchor="end">18</text>
+          <text x="62" y="166" text-anchor="end">20</text>
+          <text x="62" y="112" text-anchor="end">22</text>
+          <text x="62" y="58"  text-anchor="end">24</text>
+          <text x="70"  y="292" text-anchor="middle">0</text>
+          <text x="176" y="292" text-anchor="middle">6</text>
+          <text x="282" y="292" text-anchor="middle">12</text>
+          <text x="388" y="292" text-anchor="middle">18</text>
+          <text x="494" y="292" text-anchor="middle">24</text>
+          <text x="600" y="292" text-anchor="middle">30</text>
+          <text x="380" y="318" text-anchor="middle">累计产量（万件）</text>
+          <text x="20" y="160" transform="rotate(-90 20 160)" text-anchor="middle">单件结算价（元）</text>
+        </g>
+        <!-- 停摊点 -->
+        <line x1="494" y1="54" x2="494" y2="270" stroke="#ff6900" stroke-width="1.5" stroke-dasharray="5 4"/>
+        <text x="500" y="66" font-size="12.5" fill="#c2410c" font-weight="700">达量停摊 24 万件</text>
+        <!-- 买断 18 -->
+        <polyline points="70,216 690,216" fill="none" stroke="#2563eb" stroke-width="2.5"/>
+        <text x="78" y="210" font-size="12.5" fill="#2563eb" font-weight="700">买断 18.00</text>
+        <!-- 寿命 19.5 -->
+        <polyline points="70,176 690,176" fill="none" stroke="#16a34a" stroke-width="2.5"/>
+        <text x="78" y="170" font-size="12.5" fill="#16a34a" font-weight="700">寿命摊销 19.50</text>
+        <!-- 产量摊销 23 -> 18 -->
+        <polyline points="70,81 494,81 494,216 690,216" fill="none" stroke="#ff6900" stroke-width="3"/>
+        <circle cx="70" cy="81" r="4" fill="#ff6900"/>
+        <text x="76" y="72" font-size="13" fill="#c2410c" font-weight="800">产量摊销 23.00</text>
+        <circle cx="494" cy="216" r="4" fill="#ff6900"/>
+      </svg>
+
+      <div class="tbl-card" style="margin-top:18px;">
+        <table>
+          <tr><th>走法</th><th>开模时</th><th>件价付出（24 万件）</th><th>停产结算</th><th>总付出</th></tr>
+          <tr><td>产量摊销</td><td>0</td><td>23.00 × 24万 = 552 万</td><td>0</td><td><b>552 万</b></td></tr>
+          <tr><td>寿命摊销</td><td>0</td><td>19.50 × 24万 = 468 万</td><td>84 万</td><td><b>552 万</b></td></tr>
+          <tr><td>买断</td><td>120 万</td><td>18.00 × 24万 = 432 万</td><td>0</td><td><b>552 万</b></td></tr>
+        </table>
+      </div>
+      <p class="note">三条线形状不同，围出的面积相同——总额恒定。产量摊销的断崖就是"达量停摊"，是三种走法里唯一能被系统自动执行的价格动作，也是主线口径的核心理由。</p>
+    </div>
+
+    <!-- ===== tab3 ===== -->
+    <div class="tab-panel" id="tab-multi">
+      <div class="chart-cap">120 万模具出三个件：先按穴数切钱，再按各自预估产量摊价。改穴数或产量，看单价怎么变。</div>
+      <div class="tbl-card etd">
+        <table id="multiTable">
+          <tr><th>零件</th><th>型腔数（穴）</th><th>预估产量（万件）</th><th>分得模具费（万元）</th><th>单件摊销（元/件）</th></tr>
+          <tr>
+            <td>件 A</td>
+            <td><input type="number" min="1" max="8" value="2" data-i="0" data-f="c"></td>
+            <td><input type="number" min="1" max="60" value="16" data-i="0" data-f="q"></td>
+            <td class="vTi">60.0</td><td class="vAi">3.75</td>
+          </tr>
+          <tr>
+            <td>件 B</td>
+            <td><input type="number" min="1" max="8" value="1" data-i="1" data-f="c"></td>
+            <td><input type="number" min="1" max="60" value="4" data-i="1" data-f="q"></td>
+            <td class="vTi">30.0</td><td class="vAi">7.50</td>
+          </tr>
+          <tr>
+            <td>件 C</td>
+            <td><input type="number" min="1" max="8" value="1" data-i="2" data-f="c"></td>
+            <td><input type="number" min="1" max="60" value="8" data-i="2" data-f="q"></td>
+            <td class="vTi">30.0</td><td class="vAi">3.75</td>
+          </tr>
+        </table>
+      </div>
+      <div class="sum-line" id="multiSum"></div>
+      <p class="note">同一副模，谁产量低谁单价里摊得多：件 B 产量只有件 A 的四分之一，摊销却是两倍。谈任何一个件的价格，兄弟件的产量假设必须一起核。</p>
+    </div>
+  </div>
+</section>
+
+<!-- ============ 05 待确认 ============ -->
+<section id="s5">
+  <div class="sec-k">05</div>
+  <h2>待确认：四个决策点</h2>
+  <p class="sec-sub">规则确认后即可固化为 AI Skill 的核算引擎，四个问题各给建议如下。</p>
+
+  <div class="dec">
+    <h3><span class="dn">①</span>主线口径的适用边界</h3>
+    <div class="opts">
+      <div class="o"><b>建议：专用模一律产量摊销，共用模按寿命摊销</b>写进价格协议模板，按模具性质自动适用</div>
+      <div class="o"><b>按品类逐一定</b>每个品类单独约定口径，灵活但规则碎片化，核算引擎要做例外表</div>
+    </div>
+    <span class="rec">建议前者：规则简单，才能全自动核算</span>
+  </div>
+
+  <div class="dec">
+    <h3><span class="dn">②</span>产量不足时的结算立场</h3>
+    <div class="opts">
+      <div class="o"><b>A · 价格不追溯 + 一次性结算未摊余额</b>历史价格不动，EOP 时补一笔，操作简单</div>
+      <div class="o"><b>B · 追溯重算单价</b>全周期单价对齐实际产量，对供应商公平，但要调历史账</div>
+    </div>
+    <span class="rec">建议：先与财务定 A/B 的口径，同一供应商同一零件全周期只允许一种，写进协议</span>
+  </div>
+
+  <div class="dec">
+    <h3><span class="dn">③</span>修模跳价的复核阈值</h3>
+    <div class="opts">
+      <div class="o"><b>建议：跳升 30% 触发商务复核</b>修模追加摊进剩余产量后，单件摊销较原值上涨超 30% 即预警</div>
+      <div class="o"><b>不设阈值</b>修模费用据实结算，风险是修模变相涨价无人拦</div>
+    </div>
+    <span class="rec">建议设 30%，阈值可配，先跑起来再调</span>
+  </div>
+
+  <div class="dec">
+    <h3><span class="dn">④</span>比价是否强制拆分</h3>
+    <div class="opts">
+      <div class="o"><b>建议：强制</b>RFQ 报价必须拆「不含模具件价 + 摊销」才允许进入比价，报价模具清单字段已具备</div>
+      <div class="o"><b>自愿填写</b>靠采购员自觉，拆不齐时比价回到不可比状态</div>
+    </div>
+    <span class="rec">建议强制：这是"比价口径统一"的最低成本实现</span>
+  </div>
+</section>
+
+</main>
+
+<footer>
+  模具分摊单价 · 业务模型与计算原型 &nbsp;|&nbsp; 2026-10-14 &nbsp;|&nbsp; 算例与原型同源，数字可复算
+</footer>
+
+<script>
+(function(){
+  'use strict';
+
+  /* ========== tab switching ========== */
+  var btns = document.querySelectorAll('.tab-btn');
+  btns.forEach(function(btn){
+    btn.addEventListener('click', function(){
+      btns.forEach(function(b){ b.classList.remove('on'); });
+      document.querySelectorAll('.tab-panel').forEach(function(p){ p.classList.remove('show'); });
+      btn.classList.add('on');
+      document.getElementById(btn.dataset.tab).classList.add('show');
+    });
+  });
+
+  /* ========== shared helpers ========== */
+  var P0_PARTS = [
+    {k:'材料费', v:8.00, c:'#2563eb'},
+    {k:'加工费', v:6.50, c:'#0891b2'},
+    {k:'制造费用', v:2.00, c:'#64748b'},
+    {k:'管理利润', v:1.50, c:'#94a3b8'}
+  ];
+  var ACCENT = '#ff6900';
+  function fmt(n, d){ if(d===undefined){ d=2; } return Number(n).toFixed(d); }
+  function wan(n, d){ if(d===undefined){ d=2; } var s = Number(n).toFixed(d); return s; }
+
+  /* ========== tab1 calculator ========== */
+  var iT = document.getElementById('iT');
+  var iQ0 = document.getElementById('iQ0');
+  var iQ = document.getElementById('iQ');
+  var iD = document.getElementById('iD');
+  var iQp = document.getElementById('iQp');
+  var mode = 'prod';
+
+  function chipHTML(cls, html){ return '<div class="chip ' + cls + '">' + html + '</div>'; }
+
+  function renderCalc(){
+    var T = parseFloat(iT.value);
+    var Q0 = parseFloat(iQ0.value);
+    var Q = parseFloat(iQ.value);
+    var dT = parseFloat(iD.value);
+
+    document.getElementById('oT').textContent = T;
+    document.getElementById('oQ0').textContent = Q0;
+    document.getElementById('oQ').textContent = Q;
+    document.getElementById('oD').textContent = dT;
+
+    var a0 = T / Q0;                       // 元/件
+    var capped = Math.min(Q, Q0);
+    var paid = a0 * capped;                // 万元
+    var R = T - paid;                      // 万元（原口径未摊余额，不含修模）
+    var pct = Math.min(Q / Q0, 1);
+
+    document.getElementById('kA').textContent = fmt(a0);
+    document.getElementById('kPaid').textContent = wan(paid, 1);
+    document.getElementById('kR').textContent = wan(Math.max(R, 0), 1);
+    document.getElementById('kPct').textContent = Math.round(pct * 100) + '%';
+    var fill = document.getElementById('kFill');
+    fill.style.width = (pct * 100) + '%';
+    if (pct >= 1) { fill.classList.add('full'); } else { fill.classList.remove('full'); }
+
+    /* price bar */
+    var bar = document.getElementById('liveBar');
+    var leg = document.getElementById('liveLegend');
+    var total = 18 + a0;
+    var html = '';
+    P0_PARTS.forEach(function(p){
+      var share = p.v / total;
+      var lbl = share < 0.12 ? fmt(p.v) : (p.k + ' ' + fmt(p.v));
+      html += '<div style="width:' + (share * 100).toFixed(2) + '%; background:' + p.c + ';">' + lbl + '</div>';
+    });
+    html += '<div style="width:' + (a0 / total * 100).toFixed(2) + '%; background:' + ACCENT + ';">摊销 ' + fmt(a0) + '</div>';
+    bar.innerHTML = html;
+    var lh = '';
+    P0_PARTS.forEach(function(p){
+      lh += '<span><i style="background:' + p.c + '"></i>' + p.k + ' ' + fmt(p.v) + '</span>';
+    });
+    lh += '<span><i style="background:' + ACCENT + '"></i>模具摊销 ' + fmt(a0) + '</span>';
+    lh += '<span class="note">件价合计 ' + fmt(18 + a0) + ' 元（不含税）</span>';
+    leg.innerHTML = lh;
+
+    /* 修模后剩余产量摊销 */
+    var a2 = null;
+    var a2Line = document.getElementById('a2Line');
+    if (dT > 0 && Q < Q0) {
+      a2 = (T + dT - paid) / (Q0 - Q);
+      a2Line.style.display = 'block';
+      a2Line.innerHTML = '修模追加 ' + wan(dT,0) + ' 万摊进剩余 ' + wan(Q0 - Q,1) + ' 万件 → <b style="color:var(--orange)">剩余产量适用摊销 ' + fmt(a2) + ' 元/件</b>（件价 ' + fmt(18 + a2) + ' 元）';
+    } else if (dT > 0 && Q >= Q0) {
+      a2Line.style.display = 'block';
+      a2Line.innerHTML = '已达预估产量，修模追加费用不再摊入件价，需另行商务处理';
+    } else {
+      a2Line.style.display = 'none';
+      a2Line.innerHTML = '';
+    }
+
+    /* warnings */
+    var w = [];
+    if (Q > Q0) {
+      var over = a0 * (Q - Q0);
+      w.push(chipHTML('red', '<b>W1 超额摊销：</b>产量已达 ' + wan(Q,1) + ' 万件（超出预估 ' + wan(Q - Q0,1) + ' 万件），若仍按 ' + fmt(a0) + ' 元/件结算将多收 <b>' + wan(over,1) + ' 万元</b>，应自第 ' + wan(Q0,0) + ' 万件起停摊并追回。'));
+    }
+    if (mode === 'eop') {
+      if (Q < Q0) {
+        var Rall = T + dT - paid;
+        var dTxt = dT > 0 ? '（含修模追加）' : '';
+        w.push(chipHTML('red', '<b>停产未摊余额 ' + wan(Rall,1) + ' 万元</b>' + dTxt + '，按协议二选一：'));
+        w.push('<div class="opt2">' +
+          '<div class="o"><div class="oh">方案 A · 价格不追溯</div>历史件价不动，停产时一次性结算 ' + wan(Rall,1) + ' 万元</div>' +
+          '<div class="o"><div class="oh">方案 B · 追溯重算</div>单价追溯至 ' + fmt((T + dT) / Q) + ' 元/件，每件补差 ' + fmt((T + dT) / Q - a0) + ' 元</div>' +
+          '</div>');
+      } else {
+        w.push(chipHTML('green', '<b>摊销收齐：</b>累计产量达到预估 ' + wan(Q0,0) + ' 万件，模具费（含修模）已全额收回，无余额结算。'));
+      }
+    }
+    if (a2 !== null && (a2 / a0 - 1) > 0.3) {
+      w.push(chipHTML('orange', '<b>W3 修模跳价：</b>剩余产量摊销 ' + fmt(a2) + ' 元/件，较原 ' + fmt(a0) + ' 跳升 <b>' + Math.round((a2 / a0 - 1) * 100) + '%</b>（阈值 30%），建议商务复核。'));
+    }
+    if (mode === 'prod' && Q < Q0 && (Q / Q0) < 0.6) {
+      w.push(chipHTML('gray', '<b>摊销进度偏低：</b>当前 ' + Math.round(Q / Q0 * 100) + '%，纳入年度审视；若持续落后于时间进度（W2），提前介入谈量。'));
+    }
+    if (w.length === 0) {
+      w.push(chipHTML('green', '<b>状态正常：</b>产量 ' + wan(Q,1) + ' 万件 / 预估 ' + wan(Q0,0) + ' 万件，按 ' + fmt(a0) + ' 元/件正常摊销。'));
+    }
+    document.getElementById('warnBox').innerHTML = w.join('');
+
+    /* 当月结算拆段（跨停摊点月份） */
+    var Qp = parseFloat(iQp.value);
+    document.getElementById('oQp').textContent = Qp;
+    var n1 = Math.max(0, Math.min(Q, Q0) - Qp);
+    var n2 = Math.max(0, Q - Math.max(Qp, Q0));
+    var p1 = 18 + a0;
+    var p2 = 18;
+    var s1 = n1 * p1;
+    var s2 = n2 * p2;
+    document.getElementById('sN1').textContent = wan(s1, 1) + ' 万';
+    document.getElementById('sN1d').textContent = wan(n1, 2) + ' 万件 × ' + fmt(p1) + ' 元';
+    document.getElementById('sN2').textContent = wan(s2, 1) + ' 万';
+    document.getElementById('sN2d').textContent = wan(n2, 2) + ' 万件 × ' + fmt(p2) + ' 元';
+    document.getElementById('sSum').textContent = wan(s1 + s2, 1) + ' 万';
+    document.getElementById('sSumd').textContent = '累计 ' + wan(Q, 1) + ' 万件';
+    var noteEl = document.getElementById('splitNote');
+    if (Qp > Q) {
+      noteEl.textContent = '上月末累计已大于本月末累计，拖动「实际累计产量」查看当月拆段。';
+    } else if (n1 > 0 && n2 > 0) {
+      noteEl.textContent = '停摊点落在本月：一张结算单拆两个行项目（税率相同、单价不同）；停摊切累计件数，不切月份。修模过的模，段内单价按修模后剩余产量适用摊销，切法不变。';
+    } else if (n2 > 0) {
+      noteEl.textContent = '上月末已过停摊点：本月整月按 ' + fmt(p2) + ' 元（停摊价）结算，无需拆段。';
+    } else if (n1 > 0) {
+      noteEl.textContent = '本月未达停摊点：整月按 ' + fmt(p1) + ' 元结算，模具费已累计收回 ' + wan(paid, 1) + ' 万元。';
+    } else {
+      noteEl.textContent = '本月无新增交付。';
+    }
+  }
+
+  [iT, iQ0, iQ, iD, iQp].forEach(function(el){ el.addEventListener('input', renderCalc); });
+  document.querySelectorAll('#segMode button').forEach(function(b){
+    b.addEventListener('click', function(){
+      document.querySelectorAll('#segMode button').forEach(function(x){ x.classList.remove('on'); });
+      b.classList.add('on');
+      mode = b.dataset.m;
+      renderCalc();
+    });
+  });
+  renderCalc();
+
+  /* ========== tab3 multi-part ========== */
+  var MOLD_T = 120; // 万元
+  var rows = [
+    {c:2, q:16},
+    {c:1, q:4},
+    {c:1, q:8}
+  ];
+  function renderMulti(){
+    var cSum = rows.reduce(function(s, r){ return s + r.c; }, 0);
+    var totalCheck = 0;
+    var trs = document.querySelectorAll('#multiTable tr');
+    rows.forEach(function(r, i){
+      var Ti = MOLD_T * r.c / cSum;
+      var ai = Ti / r.q;
+      totalCheck += ai * r.q;
+      trs[i + 1].querySelector('.vTi').textContent = fmt(Ti, 1);
+      trs[i + 1].querySelector('.vAi').textContent = fmt(ai);
+    });
+    var ok = Math.abs(totalCheck - MOLD_T) < 0.01;
+    document.getElementById('multiSum').innerHTML = '闭合校验：Σ(单件摊销 × 产量) = ' + fmt(totalCheck) + ' 万元 = 模具费 120 万 ' + (ok ? '<b>✓ 分文不差</b>' : '<b style="color:var(--red)">✗ 不闭合</b>');
+  }
+  document.querySelectorAll('#multiTable input').forEach(function(inp){
+    inp.addEventListener('input', function(){
+      var i = parseInt(inp.dataset.i, 10);
+      var v = parseFloat(inp.value);
+      if (isNaN(v) || v < 1) { v = 1; }
+      rows[i][inp.dataset.f] = v;
+      renderMulti();
+    });
+  });
+  renderMulti();
+})();
+</script>
+</body>
+</html>

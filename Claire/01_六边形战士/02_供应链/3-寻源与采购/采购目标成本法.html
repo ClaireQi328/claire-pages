@@ -1,0 +1,1097 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>采购目标成本法 — 拆供应商成本结构</title>
+<style>
+:root {
+  --primary: #1e40af;
+  --primary-light: #3b82f6;
+  --primary-bg: #eff6ff;
+  --accent: #0ea5e9;
+  --text: #1e293b;
+  --text-secondary: #64748b;
+  --border: #e2e8f0;
+  --bg: #f8fafc;
+  --card-bg: #ffffff;
+  --success: #059669;
+  --warning: #d97706;
+  --danger: #dc2626;
+}
+
+* { margin: 0; padding: 0; box-sizing: border-box; }
+
+body {
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", sans-serif;
+  color: var(--text);
+  background: var(--bg);
+  line-height: 1.7;
+  font-size: 15px;
+}
+
+/* ===== 顶部导航 ===== */
+.header {
+  background: linear-gradient(135deg, #1e3a8a 0%, #1e40af 50%, #2563eb 100%);
+  color: white;
+  padding: 40px 0 30px;
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  box-shadow: 0 4px 20px rgba(30, 64, 175, 0.3);
+}
+
+.header-inner {
+  max-width: 1400px;
+  margin: 0 auto;
+  padding: 0 40px;
+}
+
+.header h1 {
+  font-size: 28px;
+  font-weight: 700;
+  margin-bottom: 8px;
+  letter-spacing: 0.5px;
+}
+
+.header .subtitle {
+  font-size: 14px;
+  opacity: 0.85;
+  font-weight: 300;
+}
+
+.header .meta {
+  margin-top: 12px;
+  font-size: 12px;
+  opacity: 0.7;
+  display: flex;
+  gap: 20px;
+}
+
+/* ===== 核心指标条 ===== */
+.metrics-bar {
+  background: white;
+  border-bottom: 1px solid var(--border);
+  padding: 20px 0;
+  position: sticky;
+  top: 110px;
+  z-index: 90;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.04);
+}
+
+.metrics-inner {
+  max-width: 1400px;
+  margin: 0 auto;
+  padding: 0 40px;
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 24px;
+}
+
+.metric-item {
+  text-align: center;
+  padding: 8px 0;
+}
+
+.metric-item .value {
+  font-size: 24px;
+  font-weight: 700;
+  color: var(--primary);
+  margin-bottom: 4px;
+}
+
+.metric-item .value.danger { color: var(--danger); }
+.metric-item .value.warning { color: var(--warning); }
+.metric-item .value.success { color: var(--success); }
+
+.metric-item .label {
+  font-size: 12px;
+  color: var(--text-secondary);
+}
+
+/* ===== 主体布局 ===== */
+.container {
+  max-width: 1400px;
+  margin: 0 auto;
+  padding: 30px 40px 60px;
+  display: grid;
+  grid-template-columns: 240px 1fr;
+  gap: 40px;
+}
+
+/* ===== 侧边目录 ===== */
+.sidebar {
+  position: sticky;
+  top: 200px;
+  align-self: start;
+  max-height: calc(100vh - 220px);
+  overflow-y: auto;
+}
+
+.sidebar h3 {
+  font-size: 13px;
+  color: var(--text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  margin-bottom: 16px;
+  padding-bottom: 8px;
+  border-bottom: 2px solid var(--primary);
+  display: inline-block;
+}
+
+.toc-list {
+  list-style: none;
+}
+
+.toc-list li {
+  margin-bottom: 2px;
+}
+
+.toc-list a {
+  display: block;
+  padding: 8px 12px;
+  color: var(--text-secondary);
+  text-decoration: none;
+  font-size: 13px;
+  border-radius: 6px;
+  transition: all 0.2s;
+  border-left: 3px solid transparent;
+}
+
+.toc-list a:hover,
+.toc-list a.active {
+  background: var(--primary-bg);
+  color: var(--primary);
+  border-left-color: var(--primary);
+}
+
+/* ===== 内容区 ===== */
+.content {
+  min-width: 0;
+}
+
+.section {
+  background: var(--card-bg);
+  border-radius: 12px;
+  padding: 32px;
+  margin-bottom: 24px;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+  border: 1px solid var(--border);
+}
+
+.section h2 {
+  font-size: 20px;
+  font-weight: 700;
+  color: var(--primary);
+  margin-bottom: 20px;
+  padding-bottom: 12px;
+  border-bottom: 2px solid var(--primary-bg);
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.section h2 .num {
+  background: var(--primary);
+  color: white;
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 14px;
+  flex-shrink: 0;
+}
+
+.section h3 {
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--text);
+  margin: 24px 0 12px;
+  padding-left: 12px;
+  border-left: 4px solid var(--primary-light);
+}
+
+.section p {
+  margin-bottom: 12px;
+  color: var(--text);
+}
+
+.section ul, .section ol {
+  margin: 12px 0;
+  padding-left: 24px;
+}
+
+.section li {
+  margin-bottom: 6px;
+}
+
+/* ===== 表格 ===== */
+table {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 16px 0;
+  font-size: 13px;
+  border-radius: 8px;
+  overflow: hidden;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+}
+
+thead {
+  background: linear-gradient(135deg, var(--primary) 0%, var(--primary-light) 100%);
+  color: white;
+}
+
+th {
+  padding: 12px 14px;
+  text-align: left;
+  font-weight: 600;
+  font-size: 13px;
+  white-space: nowrap;
+}
+
+td {
+  padding: 10px 14px;
+  border-bottom: 1px solid var(--border);
+}
+
+tbody tr:nth-child(even) {
+  background: #f8fafc;
+}
+
+tbody tr:hover {
+  background: var(--primary-bg);
+}
+
+/* ===== PPT图片 ===== */
+.ppt-image {
+  margin: 24px 0;
+  border-radius: 10px;
+  overflow: hidden;
+  box-shadow: 0 4px 20px rgba(0,0,0,0.12);
+  border: 1px solid var(--border);
+  transition: transform 0.3s, box-shadow 0.3s;
+}
+
+.ppt-image:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 30px rgba(0,0,0,0.18);
+}
+
+.ppt-image img {
+  width: 100%;
+  display: block;
+  cursor: pointer;
+}
+
+.ppt-caption {
+  background: #f1f5f9;
+  padding: 10px 16px;
+  font-size: 12px;
+  color: var(--text-secondary);
+  text-align: center;
+  border-top: 1px solid var(--border);
+}
+
+/* ===== 高亮框 ===== */
+.highlight-box {
+  background: linear-gradient(135deg, var(--primary-bg) 0%, #dbeafe 100%);
+  border-left: 4px solid var(--primary);
+  padding: 16px 20px;
+  border-radius: 0 8px 8px 0;
+  margin: 16px 0;
+  font-weight: 500;
+}
+
+.highlight-box.warning {
+  background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%);
+  border-left-color: var(--warning);
+}
+
+.highlight-box.success {
+  background: linear-gradient(135deg, #d1fae5 0%, #a7f3d0 100%);
+  border-left-color: var(--success);
+}
+
+/* ===== 标签 ===== */
+.tag {
+  display: inline-block;
+  padding: 2px 10px;
+  border-radius: 12px;
+  font-size: 11px;
+  font-weight: 500;
+  margin-right: 6px;
+}
+
+.tag.primary { background: var(--primary-bg); color: var(--primary); }
+.tag.success { background: #d1fae5; color: var(--success); }
+.tag.warning { background: #fef3c7; color: var(--warning); }
+.tag.danger { background: #fee2e2; color: var(--danger); }
+
+/* ===== 方法论卡片 ===== */
+.method-cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 16px;
+  margin: 20px 0;
+}
+
+.method-card {
+  background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 18px;
+  text-align: center;
+  transition: all 0.3s;
+}
+
+.method-card:hover {
+  border-color: var(--primary-light);
+  transform: translateY(-3px);
+  box-shadow: 0 6px 20px rgba(59, 130, 246, 0.15);
+}
+
+.method-card .icon {
+  font-size: 20px;
+  font-weight: 700;
+  color: var(--primary);
+  background: var(--primary-bg);
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 10px;
+}
+
+.method-card .title {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--primary);
+  margin-bottom: 6px;
+}
+
+.method-card .desc {
+  font-size: 12px;
+  color: var(--text-secondary);
+  line-height: 1.5;
+}
+
+/* ===== 图片灯箱 ===== */
+.lightbox {
+  display: none;
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0,0,0,0.9);
+  z-index: 1000;
+  justify-content: center;
+  align-items: center;
+  cursor: zoom-out;
+}
+
+.lightbox.active {
+  display: flex;
+}
+
+.lightbox img {
+  max-width: 95%;
+  max-height: 95%;
+  border-radius: 8px;
+  box-shadow: 0 0 40px rgba(255,255,255,0.2);
+}
+
+/* ===== 响应式 ===== */
+@media (max-width: 1024px) {
+  .container {
+    grid-template-columns: 1fr;
+    padding: 20px;
+  }
+  .sidebar { display: none; }
+  .metrics-inner { grid-template-columns: repeat(2, 1fr); }
+  .header-inner { padding: 0 20px; }
+  .section { padding: 20px; }
+}
+
+@media (max-width: 640px) {
+  .metrics-inner { grid-template-columns: 1fr 1fr; gap: 12px; }
+  .metric-item .value { font-size: 18px; }
+  .header h1 { font-size: 20px; }
+}
+
+/* ===== 滚动条 ===== */
+::-webkit-scrollbar { width: 8px; height: 8px; }
+::-webkit-scrollbar-track { background: #f1f5f9; }
+::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
+::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+</style>
+</head>
+<body>
+
+<!-- ===== 顶部导航 ===== -->
+<header class="header">
+  <div class="header-inner">
+    <h1>采购目标成本法：拆供应商成本结构</h1>
+    <div class="subtitle">从压价格到拆结构 — 目标成本法落地全流程</div>
+    <div class="meta">
+      <span>来源：标杆领航</span>
+      <span>2026年9月10日</span>
+      <span>17张PPT原图</span>
+    </div>
+  </div>
+</header>
+
+<!-- ===== 核心指标 ===== -->
+<div class="metrics-bar">
+  <div class="metrics-inner">
+    <div class="metric-item">
+      <div class="value">12%</div>
+      <div class="label">年度降本目标</div>
+    </div>
+    <div class="metric-item">
+      <div class="value warning">59.5%</div>
+      <div class="label">降本任务完成率</div>
+    </div>
+    <div class="metric-item">
+      <div class="value danger">4860万</div>
+      <div class="label">降本缺口</div>
+    </div>
+    <div class="metric-item">
+      <div class="value">8-15%</div>
+      <div class="label">目标成本法降本空间</div>
+    </div>
+  </div>
+</div>
+
+<!-- ===== 主体 ===== -->
+<div class="container">
+
+  <!-- 侧边目录 -->
+  <aside class="sidebar">
+    <h3>目录导航</h3>
+    <ul class="toc-list">
+      <li><a href="#s1" class="active">一、年度降本现状</a></li>
+      <li><a href="#s2">二、成本根因拆解</a></li>
+      <li><a href="#s3">三、四季度落地路径</a></li>
+      <li><a href="#s4">四、目标成本法框架</a></li>
+      <li><a href="#s5">五、关键物料缺口</a></li>
+      <li><a href="#s6">六、成本结构拆解</a></li>
+      <li><a href="#s7">七、材料成本拆解</a></li>
+      <li><a href="#s8">八、人工成本拆解</a></li>
+      <li><a href="#s9">九、制造费用复核</a></li>
+      <li><a href="#s10">十、供应商利润匹配</a></li>
+      <li><a href="#s11">十一、行业对标矩阵</a></li>
+      <li><a href="#s12">十二、Should-cost模型</a></li>
+      <li><a href="#s13">十三、谈判机制</a></li>
+      <li><a href="#s14">十四、设计优化降本</a></li>
+      <li><a href="#s15">十五、量价联动</a></li>
+      <li><a href="#s16">十六、指数联动机制</a></li>
+      <li><a href="#s17">十七、跨部门协同</a></li>
+      <li><a href="#s18">十八、10月行动计划</a></li>
+      <li><a href="#s19">十九、核心结论</a></li>
+    </ul>
+  </aside>
+
+  <!-- 内容区 -->
+  <main class="content">
+
+    <!-- ===== 一、年度降本现状 ===== -->
+    <section class="section" id="s1">
+      <h2><span class="num">01</span>年度降本现状与核心缺口</h2>
+      <p>做了这么多年采购管理，最深的体会是：<strong>压价从来不是靠谈判桌硬碰硬砍，是把供应商成本结构拆透，才能找到真实的降本空间。</strong></p>
+      <div class="highlight-box">
+        年度降本目标12%，目前仅完成59.5%，落地7140万元，还有近4860万元缺口没补上。
+      </div>
+      <h3>核心指标</h3>
+      <table>
+        <thead><tr><th>核心指标</th><th>目标值</th><th>实际值</th><th>偏差</th></tr></thead>
+        <tbody>
+          <tr><td>年度降本率</td><td>12.0%</td><td>7.1%</td><td><span class="tag danger">-4.9pp</span></td></tr>
+          <tr><td>降本任务完成率</td><td>100%</td><td>59.5%</td><td><span class="tag danger">-40.5pp</span></td></tr>
+          <tr><td>综合单价较行业中位</td><td>持平</td><td>+15.5%</td><td><span class="tag danger">+15.5pp</span></td></tr>
+          <tr><td>关键物料平均价差</td><td>≤5%</td><td>22.1%</td><td><span class="tag danger">+17.1pp</span></td></tr>
+        </tbody>
+      </table>
+      <div class="ppt-image">
+        <img src="a-采购目标成本法/PPT原图/PPT_01.jpg" alt="年度降本现状与核心缺口" onclick="openLightbox(this.src)">
+        <div class="ppt-caption">图1：年度降本现状与核心缺口</div>
+      </div>
+    </section>
+
+    <!-- ===== 二、成本根因拆解 ===== -->
+    <section class="section" id="s2">
+      <h2><span class="num">02</span>成本偏高核心根因拆解</h2>
+      <table>
+        <thead><tr><th>成本维度</th><th>当前占比</th><th>较行业差异</th><th>核心问题</th></tr></thead>
+        <tbody>
+          <tr><td><strong>直接材料</strong></td><td>61.2%</td><td><span class="tag danger">+6.4pp</span></td><td>牌号冗余，集采不足</td></tr>
+          <tr><td><strong>直接人工</strong></td><td>14.3%</td><td><span class="tag warning">+2.2pp</span></td><td>工时虚高，效率偏低</td></tr>
+          <tr><td><strong>制造费用</strong></td><td>10.1%</td><td><span class="tag danger">+2.5pp</span></td><td>产能分摊高，低负荷加价</td></tr>
+          <tr><td><strong>物流包装</strong></td><td>6.2%</td><td><span class="tag warning">+1.5pp</span></td><td>线路冗余，包装非标</td></tr>
+        </tbody>
+      </table>
+      <div class="ppt-image">
+        <img src="a-采购目标成本法/PPT原图/PPT_02.jpg" alt="成本偏高核心根因拆解" onclick="openLightbox(this.src)">
+        <div class="ppt-caption">图2：成本偏高核心根因拆解</div>
+      </div>
+    </section>
+
+    <!-- ===== 三、四季度落地路径 ===== -->
+    <section class="section" id="s3">
+      <h2><span class="num">03</span>四季度压价落地路径</h2>
+      <div class="method-cards">
+        <div class="method-card">
+          <div class="icon">01</div>
+          <div class="title">底数摸排</div>
+          <div class="desc">十大物料拆解+行业对标<br>完成全品类成本画像</div>
+        </div>
+        <div class="method-card">
+          <div class="icon">02</div>
+          <div class="title">方法落地</div>
+          <div class="desc">目标成本法+分层定价<br>降本完成率≥85%</div>
+        </div>
+        <div class="method-card">
+          <div class="icon">03</div>
+          <div class="title">机制固化</div>
+          <div class="desc">量价联动+指数调价<br>结构性降本占比≥80%</div>
+        </div>
+      </div>
+      <div class="ppt-image">
+        <img src="a-采购目标成本法/PPT原图/PPT_03.jpg" alt="四季度压价落地路径" onclick="openLightbox(this.src)">
+        <div class="ppt-caption">图3：四季度压价落地路径</div>
+      </div>
+    </section>
+
+    <!-- ===== 四、目标成本法框架 ===== -->
+    <section class="section" id="s4">
+      <h2><span class="num">04</span>目标成本法整体框架</h2>
+      <p><strong>以目标成本为准，透明结构、共识差异、锁定方案、持续优化。</strong>目标成本法把压价从博弈变成对成本结构的共同拆解。</p>
+      <h3>核心结论</h3>
+      <div class="method-cards">
+        <div class="method-card">
+          <div class="icon">01</div>
+          <div class="title">定位要变</div>
+          <div class="desc">从"压价格"转向"拆结构"，识别真实降本空间</div>
+        </div>
+        <div class="method-card">
+          <div class="icon">02</div>
+          <div class="title">降本本质</div>
+          <div class="desc">降本不是压缩供应商利润，是消除全链条浪费</div>
+        </div>
+        <div class="method-card">
+          <div class="icon">03</div>
+          <div class="title">可持续</div>
+          <div class="desc">目标成本法是可复制的方法论，不是一次性运动</div>
+        </div>
+        <div class="method-card">
+          <div class="icon">04</div>
+          <div class="title">共赢是目的</div>
+          <div class="desc">降本要与供应商共赢，建立长期稳定合作</div>
+        </div>
+      </div>
+      <h3>降本举措与关键抓手</h3>
+      <table>
+        <thead><tr><th>序号</th><th>关键举措</th><th>关键抓手</th><th>降本金额（万元）</th><th>占比</th><th>实施周期</th></tr></thead>
+        <tbody>
+          <tr><td>1</td><td>工艺优化设计</td><td>工艺优化、结构简化、参数优化</td><td>324.0</td><td>26.7%</td><td>1-3月</td></tr>
+          <tr><td>2</td><td>材料替代与国产化</td><td>材料替代、牌号优化、国产替代</td><td>283.0</td><td>23.3%</td><td>3-6月</td></tr>
+          <tr><td>3</td><td>规模集采与议价</td><td>集中采购、规模议价、账期优化</td><td>210.0</td><td>17.3%</td><td>3-6月</td></tr>
+          <tr><td>4</td><td>物流包装优化</td><td>线路优化、包装标准化、循环包装</td><td>185.0</td><td>15.2%</td><td>5-9月</td></tr>
+          <tr><td>5</td><td>产能利用与效率提升</td><td>产能平衡、效率提升、良率改善</td><td>142.0</td><td>11.7%</td><td>6-9月</td></tr>
+          <tr><td>6</td><td>质量成本降低</td><td>不良降低、索赔减少、检验优化</td><td>72.0</td><td>5.9%</td><td>持续</td></tr>
+          <tr style="font-weight:600;background:#eff6ff"><td colspan="3">合计</td><td>1216.0</td><td>100%</td><td></td></tr>
+        </tbody>
+      </table>
+      <div class="ppt-image">
+        <img src="a-采购目标成本法/PPT原图/PPT_04.jpg" alt="目标成本法整体框架" onclick="openLightbox(this.src)">
+        <div class="ppt-caption">图4：目标成本法整体框架与降本举措</div>
+      </div>
+    </section>
+
+    <!-- ===== 五、关键物料缺口 ===== -->
+    <section class="section" id="s5">
+      <h2><span class="num">05</span>三类关键物料为缺口主要来源</h2>
+      <div class="highlight-box warning">
+        当前报价与目标成本之间的缺口，主要集中在三类关键物料，合计占总缺口的49.7%。
+      </div>
+      <h3>三类关键物料缺口分析</h3>
+      <table>
+        <thead><tr><th>物料类别</th><th>缺口金额</th><th>占总缺口</th><th>降本率</th><th>优先级</th></tr></thead>
+        <tbody>
+          <tr><td><strong>金属材料</strong></td><td>846万元</td><td>21.3%</td><td>19.9%</td><td><span class="tag primary">金额最大</span></td></tr>
+          <tr><td><strong>电子元器件</strong></td><td>900万元</td><td>22.6%</td><td>24.7%</td><td><span class="tag danger">机会最大</span></td></tr>
+          <tr><td><strong>塑胶结构件</strong></td><td>232万元</td><td>5.8%</td><td>21.6%</td><td><span class="tag success">标准化高</span></td></tr>
+          <tr style="font-weight:600;background:#eff6ff"><td>三类合计</td><td>1,978万元</td><td>49.7%</td><td>22.1%</td><td></td></tr>
+        </tbody>
+      </table>
+      <div class="ppt-image">
+        <img src="a-采购目标成本法/PPT原图/PPT_05.jpg" alt="三类关键物料缺口分析" onclick="openLightbox(this.src)">
+        <div class="ppt-caption">图5：三类关键物料缺口分析</div>
+      </div>
+    </section>
+
+    <!-- ===== 六、成本结构拆解 ===== -->
+    <section class="section" id="s6">
+      <h2><span class="num">06</span>先拆材料、人工、制造费用和利润</h2>
+      <p><strong>只有先把材料、人工、制造费用和利润逐层拆透，才能找到真正的降本杠杆，形成可落地的压价方案与持续降本能力。</strong></p>
+      <h3>降本空间拆解（按维度）</h3>
+      <table>
+        <thead><tr><th>成本维度</th><th>当前成本</th><th>目标成本</th><th>降本空间</th><th>降本率</th></tr></thead>
+        <tbody>
+          <tr><td>直接材料</td><td>61.2%</td><td>54.8%</td><td>-6.4pp</td><td>10.5%</td></tr>
+          <tr><td>直接人工</td><td>14.3%</td><td>12.1%</td><td>-2.2pp</td><td>15.4%</td></tr>
+          <tr><td>制造费用</td><td>10.1%</td><td>7.6%</td><td>-2.5pp</td><td>24.8%</td></tr>
+          <tr><td>物流包装</td><td>6.2%</td><td>4.7%</td><td>-1.5pp</td><td>24.2%</td></tr>
+          <tr><td>管理费用</td><td>4.5%</td><td>3.8%</td><td>-0.7pp</td><td>15.6%</td></tr>
+          <tr><td>利润</td><td>3.7%</td><td>3.0%</td><td>-0.7pp</td><td>18.9%</td></tr>
+          <tr style="font-weight:600;background:#eff6ff"><td>合计</td><td>100%</td><td>86.0%</td><td>-14.0pp</td><td>14.0%</td></tr>
+        </tbody>
+      </table>
+      <div class="ppt-image">
+        <img src="a-采购目标成本法/PPT原图/PPT_06.jpg" alt="成本结构拆解" onclick="openLightbox(this.src)">
+        <div class="ppt-caption">图6：成本结构拆解 — 材料/人工/制造费用/利润</div>
+      </div>
+    </section>
+
+    <!-- ===== 七、材料成本拆解 ===== -->
+    <section class="section" id="s7">
+      <h2><span class="num">07</span>材料成本不是黑箱</h2>
+      <p><strong>牌号、用量和采购节奏必须逐项验证。</strong>本月验证可降成本¥286.7万，占材料采购金额8.4%。</p>
+      <h3>降本机会分析</h3>
+      <ul>
+        <li><strong>牌号替代与优化</strong>：¥112.5万</li>
+        <li><strong>用量优化与损耗控制</strong>：¥79.0万</li>
+        <li><strong>采购节奏与集采</strong>：¥62.0万</li>
+        <li><strong>供应商寻源优化</strong>：¥30.5万</li>
+      </ul>
+      <h3>重点材料降本机会（Top 6）</h3>
+      <table>
+        <thead><tr><th>物料名称</th><th>采购金额（万元）</th><th>降本空间（万元）</th><th>降本率</th><th>实施周期</th><th>风险等级</th></tr></thead>
+        <tbody>
+          <tr><td>冷轧钢板SPCC 1.0mm</td><td>420</td><td>58.8</td><td>14.0%</td><td>1-2月</td><td><span class="tag success">低</span></td></tr>
+          <tr><td>6061-T6铝型材</td><td>380</td><td>45.6</td><td>12.0%</td><td>2-3月</td><td><span class="tag success">低</span></td></tr>
+          <tr><td>电解铜箔18μm</td><td>320</td><td>51.2</td><td>16.0%</td><td>1-2月</td><td><span class="tag warning">中</span></td></tr>
+          <tr><td>ABS树脂HI-121H</td><td>280</td><td>33.6</td><td>12.0%</td><td>2-3月</td><td><span class="tag success">低</span></td></tr>
+          <tr><td>MOS管IRF540N</td><td>250</td><td>37.5</td><td>15.0%</td><td>3-4月</td><td><span class="tag warning">中</span></td></tr>
+          <tr><td>包装纸箱KK-001</td><td>180</td><td>18.0</td><td>10.0%</td><td>1-2月</td><td><span class="tag success">低</span></td></tr>
+        </tbody>
+      </table>
+      <div class="ppt-image">
+        <img src="a-采购目标成本法/PPT原图/PPT_07.jpg" alt="材料成本拆解" onclick="openLightbox(this.src)">
+        <div class="ppt-caption">图7：材料成本拆解 — 牌号/用量/采购节奏</div>
+      </div>
+    </section>
+
+    <!-- ===== 八、人工成本拆解 ===== -->
+    <section class="section" id="s8">
+      <h2><span class="num">08</span>人工单价之外，更要看工时定额与产线效率</h2>
+      <p><strong>拆解人工成本=订单工时×人工单价，识别工时虚高与效率损失，聚焦真实降本空间。</strong>直接采保空间¥1,986,300（15.93%）。</p>
+      <h3>核心指标</h3>
+      <div class="method-cards">
+        <div class="method-card">
+          <div class="title">订单人工成本</div>
+          <div class="desc">¥12,458,820</div>
+        </div>
+        <div class="method-card">
+          <div class="title">人工单价</div>
+          <div class="desc">¥27.65/小时</div>
+        </div>
+        <div class="method-card">
+          <div class="title">工时定额达标率</div>
+          <div class="desc">92.35%</div>
+        </div>
+        <div class="method-card">
+          <div class="title">产线效率</div>
+          <div class="desc">78.41%</div>
+        </div>
+      </div>
+      <h3>行动建议</h3>
+      <ol>
+        <li><strong>修订工时定额</strong> — 针对工时达标率低于90%的工序，重新测定标准工时</li>
+        <li><strong>压缩异常工时</strong> — 聚焦设备故障与等待，建立TOP3异常根因分析</li>
+        <li><strong>提升产线效率</strong> — 针对OEE低于75%的产线，优化节拍与换线</li>
+        <li><strong>优化排产与物料</strong> — 减少等待与换线损失，提升物料齐套率</li>
+        <li><strong>加强过程管控</strong> — 建立异常工时预警机制，实时监控与干预</li>
+      </ol>
+      <div class="ppt-image">
+        <img src="a-采购目标成本法/PPT原图/PPT_08.jpg" alt="人工成本拆解" onclick="openLightbox(this.src)">
+        <div class="ppt-caption">图8：人工成本拆解 — 工时定额与产线效率</div>
+      </div>
+    </section>
+
+    <!-- ===== 九、制造费用复核 ===== -->
+    <section class="section" id="s9">
+      <h2><span class="num">09</span>制造费用要按产能利用率复核</h2>
+      <div class="highlight-box warning">
+        <strong>低负荷不能成为长期加价理由。</strong>制造费用与产能利用率强相关，通过分层复核与动态调价，预计可降本¥2,280万元。
+      </div>
+      <h3>产能利用率分层分析</h3>
+      <table>
+        <thead><tr><th>产能利用率</th><th>供应商数</th><th>制造费用率</th><th>单件制造费</th><th>可优化空间</th><th>建议动作</th></tr></thead>
+        <tbody>
+          <tr><td>>85%</td><td>16</td><td>14.5%</td><td>12.0元</td><td>-</td><td><span class="tag success">维持</span></td></tr>
+          <tr><td>70%-85%</td><td>22</td><td>15.1%</td><td>15.0元</td><td>10.4元</td><td><span class="tag primary">提产15%</span></td></tr>
+          <tr><td>50%-70%</td><td>18</td><td>19.6%</td><td>18.0元</td><td>19.8元</td><td><span class="tag warning">提产30%</span></td></tr>
+          <tr><td><50%</td><td>11</td><td>24.0%</td><td>24.0元</td><td>38.4元</td><td><span class="tag danger">重分配</span></td></tr>
+        </tbody>
+      </table>
+      <h3>行动建议</h3>
+      <ul>
+        <li><strong>建议设定</strong>：以产能利用率70%为基准，>85%区间单位制造费≤13.5元/件；<50%原则上上浮30-50%</li>
+        <li><strong>梯度调整</strong>：产能利用率每提升10%，单位制造费下降8-12%</li>
+        <li><strong>结算机制</strong>：按实际利用率季度结算，避免低负荷长期固化</li>
+        <li><strong>约束机制</strong>：连续两月利用率<50%且无改善计划，暂停新订单或要求降本承诺</li>
+      </ul>
+      <div class="ppt-image">
+        <img src="a-采购目标成本法/PPT原图/PPT_09.jpg" alt="制造费用分析" onclick="openLightbox(this.src)">
+        <div class="ppt-caption">图9：制造费用分析 — 产能利用率分层复核</div>
+      </div>
+    </section>
+
+    <!-- ===== 十、供应商利润匹配 ===== -->
+    <section class="section" id="s10">
+      <h2><span class="num">10</span>供应商合理利润应与投入风险匹配</h2>
+      <p><strong>而不是沿用历史惯例。</strong>建立风险-利润匹配度评估模型，实现差异化定价。</p>
+      <h3>风险等级与利润匹配区间</h3>
+      <table>
+        <thead><tr><th>风险等级</th><th>综合评分</th><th>合理利润率</th><th>典型特征</th></tr></thead>
+        <tbody>
+          <tr><td><span class="tag success">低风险</span></td><td><40分</td><td>3-6%</td><td>标准化产品、充分竞争、短交期</td></tr>
+          <tr><td><span class="tag warning">中风险</span></td><td>40-70分</td><td>6-12%</td><td>半定制、有限竞争、中交期</td></tr>
+          <tr><td><span class="tag danger">高风险</span></td><td>>70分</td><td>12-20%</td><td>定制化、稀缺、长交期、高研发投入</td></tr>
+        </tbody>
+      </table>
+      <h3>风险维度与评分标准</h3>
+      <ul>
+        <li><strong>技术壁垒（30%）</strong>：低壁垒/中壁垒/高壁垒</li>
+        <li><strong>资金占用（25%）</strong>：低占用/中占用/高占用</li>
+        <li><strong>供应稀缺性（20%）</strong>：充分竞争/有限竞争/稀缺</li>
+        <li><strong>质量风险（15%）</strong>：低风险/中风险/高风险</li>
+        <li><strong>交付周期（10%）</strong>：短周期/中周期/长周期</li>
+      </ul>
+      <div class="ppt-image">
+        <img src="a-采购目标成本法/PPT原图/PPT_10.jpg" alt="供应商利润分析" onclick="openLightbox(this.src)">
+        <div class="ppt-caption">图10：供应商合理利润与投入风险匹配</div>
+      </div>
+    </section>
+
+    <!-- ===== 十一、行业对标矩阵 ===== -->
+    <section class="section" id="s11">
+      <h2><span class="num">11</span>横向比价只能发现异常，结构拆解才能解释异常</h2>
+      <div class="highlight-box">
+        <strong>我们的根本差距不在于单价高，而在于成本结构（材料、人工、制造费用）全面偏离行业最优。</strong>必须从结构拆解入手，逐项验证、逐项优化，才能实现可持续降本。
+      </div>
+      <h3>行业对标总览</h3>
+      <table>
+        <thead><tr><th>标杆维度</th><th>本公司</th><th>行业中位</th><th>行业最优</th><th>差距（vs中位）</th></tr></thead>
+        <tbody>
+          <tr><td>综合单价指数</td><td>115.5</td><td>100</td><td>84.6</td><td><span class="tag danger">+15.5%</span></td></tr>
+          <tr><td>直接材料占比</td><td>61.2%</td><td>54.8%</td><td>52.1%</td><td><span class="tag danger">+6.4pp</span></td></tr>
+          <tr><td>直接人工占比</td><td>14.3%</td><td>12.1%</td><td>10.5%</td><td><span class="tag warning">+2.2pp</span></td></tr>
+          <tr><td>制造费用占比</td><td>10.1%</td><td>7.6%</td><td>6.2%</td><td><span class="tag danger">+2.5pp</span></td></tr>
+          <tr><td>物流包装占比</td><td>6.2%</td><td>4.7%</td><td>3.8%</td><td><span class="tag warning">+1.5pp</span></td></tr>
+          <tr><td>供应商集中度CR5</td><td>62%</td><td>70%</td><td>85%</td><td><span class="tag warning">-8pp</span></td></tr>
+        </tbody>
+      </table>
+      <div class="ppt-image">
+        <img src="a-采购目标成本法/PPT原图/PPT_11.jpg" alt="行业对标与成本矩阵" onclick="openLightbox(this.src)">
+        <div class="ppt-caption">图11：行业对标与成本矩阵</div>
+      </div>
+    </section>
+
+    <!-- ===== 十二、Should-cost模型 ===== -->
+    <section class="section" id="s12">
+      <h2><span class="num">12</span>应有成本模型给出谈判底线</h2>
+      <p><strong>让采购有数据也有筹码。</strong>Should-cost模型构建7步法：需求定义→数据收集→成本分解→价格建模→计算汇总→差异分析→持续优化。</p>
+      <h3>模型构建7步法</h3>
+      <div class="method-cards">
+        <div class="method-card"><div class="title">1.需求定义</div><div class="desc">明确物料范围、精度要求、时间周期</div></div>
+        <div class="method-card"><div class="title">2.数据收集</div><div class="desc">BOM清单、工艺路线、产能数据、行业基准</div></div>
+        <div class="method-card"><div class="title">3.成本分解</div><div class="desc">材料、人工、制造费用、管理费用、利润</div></div>
+        <div class="method-card"><div class="title">4.价格建模</div><div class="desc">材料价格指数、工时定额、费用分摊率</div></div>
+        <div class="method-card"><div class="title">5.计算汇总</div><div class="desc">逐项计算、汇总验证</div></div>
+        <div class="method-card"><div class="title">6.差异分析</div><div class="desc">与实际报价对比、识别差异原因</div></div>
+        <div class="method-card"><div class="title">7.持续优化</div><div class="desc">动态更新、模型迭代、知识库沉淀</div></div>
+      </div>
+      <h3>目标达成率</h3>
+      <ul>
+        <li>目标降本率：<strong>8-15%</strong></li>
+        <li>覆盖品类：<strong>80%+</strong></li>
+        <li>数据来源：<strong>2,300万+</strong></li>
+        <li>模型准确率：<strong>85%+</strong></li>
+      </ul>
+      <div class="ppt-image">
+        <img src="a-采购目标成本法/PPT原图/PPT_12.jpg" alt="应有成本模型" onclick="openLightbox(this.src)">
+        <div class="ppt-caption">图12：应有成本（Should-cost）模型构建7步法</div>
+      </div>
+    </section>
+
+    <!-- ===== 十三、谈判机制 ===== -->
+    <section class="section" id="s13">
+      <h2><span class="num">13</span>谈判不以砍价开场</h2>
+      <p><strong>而以共同识别可执行的降本空间开场。</strong>以可验证的数据与结构化对话，找到可落地的降本机会，建立互信，形成共赢方案。</p>
+      <h3>供应商沟通机制：从识别到落地的闭环</h3>
+      <ol>
+        <li><strong>数据准备</strong> — 成本拆解、对标分析、差异识别</li>
+        <li><strong>共识差异</strong> — 与供应商对齐数据，共识问题</li>
+        <li><strong>共创方案</strong> — 共同制定降本方案</li>
+        <li><strong>方案验证</strong> — 试点验证，效果评估</li>
+        <li><strong>达成共识</strong> — 锁定方案，签订协议</li>
+        <li><strong>落地执行</strong> — 按计划推进，持续追踪</li>
+      </ol>
+      <h3>沟通原则</h3>
+      <div class="method-cards">
+        <div class="method-card"><div class="title">共赢原则</div><div class="desc">不是零和博弈，是共同降本</div></div>
+        <div class="method-card"><div class="title">透明原则</div><div class="desc">数据共享，方法透明</div></div>
+        <div class="method-card"><div class="title">数据驱动</div><div class="desc">用数据说话，不靠感觉</div></div>
+        <div class="method-card"><div class="title">长期视角</div><div class="desc">建立长期稳定合作关系</div></div>
+      </div>
+      <div class="ppt-image">
+        <img src="a-采购目标成本法/PPT原图/PPT_13.jpg" alt="谈判机制" onclick="openLightbox(this.src)">
+        <div class="ppt-caption">图13：谈判机制 — 共同识别可执行的降本空间</div>
+      </div>
+    </section>
+
+    <!-- ===== 十四、设计优化降本 ===== -->
+    <section class="section" id="s14">
+      <h2><span class="num">14</span>设计优化是降本的上游杠杆</h2>
+      <div class="highlight-box">
+        <strong>采购必须前置参与规格评审。</strong>设计阶段决定70-80%的产品成本，采购前置介入设计，是降本空间最大、投入产出比最高的环节。
+      </div>
+      <h3>设计降本影响分解</h3>
+      <ul>
+        <li>材料选型：<strong>-15%</strong></li>
+        <li>工艺优化：<strong>-10%</strong></li>
+        <li>结构简化：<strong>-8%</strong></li>
+        <li>标准化：<strong>-5%</strong></li>
+        <li>合计降本约<strong>30%</strong>，越早介入，受益面越广，降本效果越显著</li>
+      </ul>
+      <h3>采购前置参与的评审清单</h3>
+      <table>
+        <thead><tr><th>评审项</th><th>评审内容</th><th>评审标准</th></tr></thead>
+        <tbody>
+          <tr><td>材料选型</td><td>牌号、规格、供应商</td><td>是否有更优替代、是否标准化</td></tr>
+          <tr><td>工艺选择</td><td>加工工艺、表面处理</td><td>是否最优工艺、是否可简化</td></tr>
+          <tr><td>结构设计</td><td>复杂度、公差、装配</td><td>是否可简化、是否可标准化</td></tr>
+          <tr><td>包装设计</td><td>包装方式、材料、尺寸</td><td>是否标准化、是否可循环</td></tr>
+          <tr><td>成本目标</td><td>目标成本、BOM成本</td><td>是否达成目标、差距分析</td></tr>
+        </tbody>
+      </table>
+      <div class="ppt-image">
+        <img src="a-采购目标成本法/PPT原图/PPT_14.jpg" alt="设计优化降本" onclick="openLightbox(this.src)">
+        <div class="ppt-caption">图14：设计优化降本 — 采购前置参与规格评审</div>
+      </div>
+    </section>
+
+    <!-- ===== 十五、量价联动 ===== -->
+    <section class="section" id="s15">
+      <h2><span class="num">15</span>规模承诺可换取价格改善</h2>
+      <p><strong>但必须绑定交期与质量责任。</strong>量价联动方案总览：以确定性换取成本改善，风险共担、价值共赢。</p>
+      <h3>核心指标</h3>
+      <div class="method-cards">
+        <div class="method-card"><div class="title">目标降本金额</div><div class="desc">¥36.0M（年化）</div></div>
+        <div class="method-card"><div class="title">目标降本幅度</div><div class="desc">8.0%</div></div>
+        <div class="method-card"><div class="title">覆盖采购金额</div><div class="desc">¥450.0M</div></div>
+        <div class="method-card"><div class="title">核心供应商</div><div class="desc">28家（占72%）</div></div>
+      </div>
+      <h3>阶梯定价与降价机制</h3>
+      <table>
+        <thead><tr><th>年采购量区间</th><th>价格降幅</th><th>交期要求（OTD）</th><th>质量要求（PPM）</th></tr></thead>
+        <tbody>
+          <tr><td><1000万</td><td>1.0%</td><td>≥95%</td><td>≤800</td></tr>
+          <tr><td>1000万-3000万</td><td>2.0%</td><td>≥96%</td><td>≤600</td></tr>
+          <tr><td>3000万-5000万</td><td>3.5%</td><td>≥97%</td><td>≤500</td></tr>
+          <tr><td>>5000万</td><td>5.0%</td><td>≥98%</td><td>≤400</td></tr>
+        </tbody>
+      </table>
+      <div class="ppt-image">
+        <img src="a-采购目标成本法/PPT原图/PPT_15.jpg" alt="规模承诺量价联动" onclick="openLightbox(this.src)">
+        <div class="ppt-caption">图15：规模承诺量价联动机制</div>
+      </div>
+    </section>
+
+    <!-- ===== 十六、指数联动机制 ===== -->
+    <section class="section" id="s16">
+      <h2><span class="num">16</span>价格条款应从一次性议价改为材料指数联动</h2>
+      <p><strong>建立透明、可控、可回顾的价格机制，降低成本波动风险，实现供应商与企业的长期共赢。</strong></p>
+      <h3>现状痛点：一次性议价的三大问题</h3>
+      <ol>
+        <li><strong>价格与市场脱节</strong> — 原材料波动时，价格不能及时调整</li>
+        <li><strong>风险转嫁严重</strong> — 供应商承担全部波动风险，影响合作稳定性</li>
+        <li><strong>合作关系脆弱</strong> — 每次议价都是博弈，缺乏长期信任</li>
+      </ol>
+      <h3>新机制：材料指数联动 + 年度回顾</h3>
+      <div class="highlight-box">
+        <strong>价格联动公式：</strong> P<sub>t</sub> = P<sub>0</sub> × [α × (I<sub>t</sub>/I<sub>0</sub>) + (1-α)] ± ΔS<br>
+        其中 α = 材料成本占比，I = 材料指数，ΔS = 协商调整项（人工、效率等）
+      </div>
+      <h3>机制对比</h3>
+      <table>
+        <thead><tr><th>维度</th><th>一次性议价</th><th>指数联动+年度回顾</th></tr></thead>
+        <tbody>
+          <tr><td>价格调整频率</td><td>年度/半年度</td><td>季度/月度（自动）</td></tr>
+          <tr><td>市场响应速度</td><td>慢（3-6月滞后）</td><td>快（1-2月）</td></tr>
+          <tr><td>风险分担</td><td>供应商独担</td><td>双方共担</td></tr>
+          <tr><td>谈判成本</td><td>高（每次博弈）</td><td>低（公式化）</td></tr>
+          <tr><td>合作稳定性</td><td>低（博弈关系）</td><td>高（共赢关系）</td></tr>
+          <tr><td>降本可持续性</td><td>难（一次性）</td><td>易（持续优化）</td></tr>
+        </tbody>
+      </table>
+      <div class="ppt-image">
+        <img src="a-采购目标成本法/PPT原图/PPT_16.jpg" alt="材料指数联动价格条款" onclick="openLightbox(this.src)">
+        <div class="ppt-caption">图16：材料指数联动价格条款机制</div>
+      </div>
+    </section>
+
+    <!-- ===== 十七、跨部门协同 ===== -->
+    <section class="section" id="s17">
+      <h2><span class="num">17</span>目标成本需要采购、研发与财务共同确认</h2>
+      <div class="highlight-box success">
+        <strong>避免单点失真。</strong>目标成本不是采购独有的，检验采购、研发与财务在全链路建立的协同机制，形成统一口径与共识的成本测算能力。
+      </div>
+      <h3>协同治理责任矩阵（RACI）</h3>
+      <table>
+        <thead><tr><th>阶段</th><th>关键活动</th><th>采购</th><th>研发</th><th>财务</th><th>协同产出</th></tr></thead>
+        <tbody>
+          <tr><td>01</td><td>目标成本定义</td><td>R</td><td>A</td><td>C</td><td>目标成本框架与分解规则</td></tr>
+          <tr><td>02</td><td>方案设计与评估</td><td>R</td><td>A/R</td><td>C</td><td>多方案成本与价值评估</td></tr>
+          <tr><td>03</td><td>供应商成本分析</td><td>A</td><td>R</td><td>C</td><td>供应商成本拆解与对标</td></tr>
+          <tr><td>04</td><td>目标成本分解</td><td>R</td><td>R</td><td>A</td><td>零件级目标成本分解</td></tr>
+          <tr><td>05</td><td>供应商协同降本</td><td>A/R</td><td>R</td><td>R</td><td>降本方案与承诺</td></tr>
+          <tr><td>06</td><td>成本达成监控</td><td>R</td><td>R</td><td>A</td><td>成本达成报告（月度）</td></tr>
+          <tr><td>07</td><td>目标成本复盘</td><td>R</td><td>R</td><td>A/R</td><td>成本复盘报告与改进计划</td></tr>
+        </tbody>
+      </table>
+      <p style="font-size:12px;color:var(--text-secondary)">R=负责执行，A=最终决策，C=咨询参与</p>
+    </section>
+
+    <!-- ===== 十八、10月行动计划 ===== -->
+    <section class="section" id="s18">
+      <h2><span class="num">18</span>10月先完成十大物料拆解</h2>
+      <p><strong>并锁定三项可兑现降本项目。</strong></p>
+      <h3>行动目标</h3>
+      <ul>
+        <li>10月完成十大物料拆解</li>
+        <li>锁定三项可兑现降本项目并启动实施</li>
+      </ul>
+      <h3>十大物料范围（示例）</h3>
+      <p>钢材、铝材、铜材、电子元器件、塑胶材料、包装材料、标准件、电机、传感器、线束</p>
+      <h3>分析维度</h3>
+      <ul>
+        <li><strong>成本结构拆解</strong>：直接材料、直接人工、制造费用、物流包装</li>
+        <li><strong>关键指标对标</strong>：价格、用量、损耗、费率、利用率</li>
+        <li><strong>关键影响</strong>：标、综合、费用、替代、供应集中度</li>
+      </ul>
+      <h3>预期成果（10月底）</h3>
+      <ul>
+        <li>完成十大物料成本结构拆解与差异分析</li>
+        <li>形成成本机会清单（含降本空间、负责人、时间线）</li>
+        <li>锁定三项可兑现降本项目并启动实施</li>
+        <li>为11月起的降本执行奠定基础</li>
+      </ul>
+    </section>
+
+    <!-- ===== 十九、核心结论 ===== -->
+    <section class="section" id="s19">
+      <h2><span class="num">19</span>真正的降本不是压缩供应商利润</h2>
+      <p><strong>而是消除整个链条的浪费。</strong></p>
+      <div class="ppt-image">
+        <img src="a-采购目标成本法/PPT原图/PPT_17.jpg" alt="真正的降本是消除整个链条的浪费" onclick="openLightbox(this.src)">
+        <div class="ppt-caption">图17：核心结论 — 真正的降本是消除整个链条的浪费</div>
+      </div>
+      <h3>六大核心结论</h3>
+      <div class="method-cards">
+        <div class="method-card">
+          <div class="title">降本空间明确</div>
+          <div class="desc">8-15%，系统性技术空间，可复制</div>
+        </div>
+        <div class="method-card">
+          <div class="title">成本结构可优化</div>
+          <div class="desc">30-60%，空间来自非必要成本</div>
+        </div>
+        <div class="method-card">
+          <div class="title">结构拆解是关键</div>
+          <div class="desc">100%，拆解到位才能找到真实杠杆</div>
+        </div>
+        <div class="method-card">
+          <div class="title">长期价值</div>
+          <div class="desc">供应链更稳定，供应商健康发展</div>
+        </div>
+        <div class="method-card">
+          <div class="title">全链路治理</div>
+          <div class="desc">数据一致、过程透明、跨部门协同</div>
+        </div>
+        <div class="method-card">
+          <div class="title">当期见效</div>
+          <div class="desc">10月快速执行，形成持续降本能力</div>
+        </div>
+      </div>
+      <h3>长期机制</h3>
+      <ul>
+        <li>建立供应商成本数据库与对标体系</li>
+        <li>形成可复制的压价方法与工具包</li>
+        <li>完善绩效与激励机制，驱动持续改进</li>
+        <li>风险预警与动态调整，保障供应链稳定</li>
+      </ul>
+    </section>
+
+  </main>
+</div>
+
+<!-- ===== 图片灯箱 ===== -->
+<div class="lightbox" id="lightbox" onclick="closeLightbox()">
+  <img id="lightbox-img" src="" alt="放大查看">
+</div>
+
+<script>
+// 图片灯箱
+function openLightbox(src) {
+  document.getElementById('lightbox-img').src = src;
+  document.getElementById('lightbox').classList.add('active');
+  document.body.style.overflow = 'hidden';
+}
+function closeLightbox() {
+  document.getElementById('lightbox').classList.remove('active');
+  document.body.style.overflow = '';
+}
+
+// 目录高亮
+const sections = document.querySelectorAll('.section');
+const tocLinks = document.querySelectorAll('.toc-list a');
+
+function updateToc() {
+  let current = '';
+  sections.forEach(section => {
+    const rect = section.getBoundingClientRect();
+    if (rect.top <= 150) {
+      current = section.id;
+    }
+  });
+  tocLinks.forEach(link => {
+    link.classList.remove('active');
+    if (link.getAttribute('href') === '#' + current) {
+      link.classList.add('active');
+    }
+  });
+}
+
+window.addEventListener('scroll', updateToc);
+
+// 平滑滚动
+tocLinks.forEach(link => {
+  link.addEventListener('click', function(e) {
+    e.preventDefault();
+    const target = document.querySelector(this.getAttribute('href'));
+    if (target) {
+      target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+  });
+});
+</script>
+
+</body>
+</html>

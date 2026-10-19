@@ -1,0 +1,169 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>三套方案审查报告 · 0917</title>
+<style>
+  :root{--bg:#F6F5F2;--card:#FFFFFF;--ink:#3A3A38;--ink2:#6B6A66;--line:#E3E0DA;
+    --rose:#C0807E;--tea:#8FA398;--sand:#C4B091;--slate:#8C93A0;
+    --p0:#B4636B;--p1:#C08A5E;--p2:#7E8A6B;}
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--ink);
+    font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Helvetica Neue",Arial,sans-serif;
+    line-height:1.75;font-size:15px}
+  .wrap{max-width:1080px;margin:0 auto;padding:48px 28px 80px}
+  header{border-bottom:2px solid var(--line);padding-bottom:24px;margin-bottom:30px}
+  h1{font-size:27px;margin:0 0 8px}
+  .sub{color:var(--ink2);font-size:14px}
+  h2{font-size:20px;margin:42px 0 14px;padding-left:12px;border-left:5px solid var(--tea)}
+  h3{font-size:16px;margin:24px 0 8px}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:20px 22px;margin:16px 0}
+  .verdict{background:#FBF7F2;border-left:6px solid var(--rose);padding:18px 22px;border-radius:8px}
+  .verdict b{color:var(--p0)}
+  table{width:100%;border-collapse:collapse;margin:14px 0;font-size:14px;background:var(--card)}
+  th{background:#EFEDE8;text-align:left;padding:10px 12px;border:1px solid var(--line);font-weight:600}
+  td{padding:10px 12px;border:1px solid var(--line);vertical-align:top}
+  td.c,th.c{text-align:center}
+  code{background:#F0EEE9;padding:1px 5px;border-radius:4px;font-size:12.5px;
+    font-family:"SF Mono",Menlo,Consolas,monospace;color:#5C5346}
+  .tag{display:inline-block;padding:2px 8px;border-radius:20px;font-size:12px;font-weight:600;color:#fff;white-space:nowrap}
+  .t-p0{background:var(--p0)}.t-p1{background:var(--p1)}.t-p2{background:var(--p2)}
+  .t-ok{background:var(--tea)}.t-na{background:var(--slate)}
+  .bad{background:#FBF1F1}.warn{background:#FBF6EC}.good{background:#F1F5F1}
+  ul,ol{margin:8px 0 8px 20px;padding:0} li{margin:5px 0}
+  .kpi{display:flex;gap:14px;flex-wrap:wrap;margin:18px 0}
+  .kpi div{flex:1;min-width:160px;background:var(--card);border:1px solid var(--line);border-radius:10px;padding:14px 16px}
+  .kpi .n{font-size:26px;font-weight:700;display:block}
+  .kpi .l{font-size:12.5px;color:var(--ink2)}
+  .q{border-left:3px solid var(--sand);padding-left:12px;margin:12px 0;color:var(--ink2)}
+  footer{margin-top:46px;padding-top:18px;border-top:1px solid var(--line);color:var(--ink2);font-size:13px}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<header>
+  <h1>🧭 三套方案（agentspace / dexin / feishu）审查 · 0917</h1>
+  <div class="sub">审查范围：output-final-0917 下 8 个 zip（3 套方案 × env-check / 查询 / 下单 / 日报）+ test-results-0917.md　·　方法：全量编译 + 模块一致性比对 + 真实数据离线复现 + 契约逐条走查　·　2026-09-17</div>
+</header>
+
+<div class="card verdict">
+  <b>结论：三套都不能直接上线，但方向对了。</b> 相比 0916，最致命的「假选择」被彻底拿掉（不再有供应商选择，多供应商组直接整组剔除），状态落地、日报字段映射、密钥外置都做了修复。<br>
+  但<b>新的风险更隐蔽</b>：三套方案的默认配置都是<b>真实下单</b>（<code>create_order_dry_run: false</code>、<code>import.dry_run: false</code>），12 份 SKILL.md 里<b>零处提及 dry-run、幂等、重复下单</b>；而「多供应商整组剔除」这条新规则，在你的真实数据上会静默吃掉 <b>71% 的需求</b>（7 条 → 只下单 2 条）。
+</div>
+
+<div class="kpi">
+  <div><span class="n" style="color:var(--p0)">5</span><span class="l">P0 阻断缺陷</span></div>
+  <div><span class="n" style="color:var(--p1)">9</span><span class="l">P1 严重缺陷</span></div>
+  <div><span class="n" style="color:var(--p2)">7</span><span class="l">P2 一致性问题</span></div>
+  <div><span class="n" style="color:var(--tea)">71%</span><span class="l">真实数据被剔除比例</span></div>
+</div>
+
+<h2>一、先说测试报告：12/12 全绿不等于稳定</h2>
+<div class="card warn">
+<b>test-results-0917.md 记为「成功」的 12 条，没有一条真正执行了下单。</b><br>
+· 方案1/3 跑的是 <code>query</code>（只查不下单）和 <code>preview</code>（只预览不导入）；<br>
+· 方案2 的 auto-order 那条耗时 <b>0.10 秒</b>、备注「无输入文件，正确返回错误信息」——也就是<b>失败了还被记成 ✅</b>；<br>
+· 唯一的写操作是 daily-report 写日志，且日报是否真的取到数据没有被断言。<br>
+<b>换句话说：这条链路的「写」路径（create-order / import）在生产上一行都没跑过。</b>测试报告作为冒烟证据可用，作为稳定性证据不足。
+</div>
+
+<h2>二、我用你的真实数据离线复现了分组规则</h2>
+<div class="card">
+从 <code>dexin-query-ready-0917/output/ReadyOrders_20260917_143808.json</code>（7 条真实需求）按方案2/方案1 的逻辑离线跑一遍：<br>
+<code>7 条需求 → originType 分组：散件 7 条 → 四条件分组：2 组 → 有效 1 组（2 条）｜剔除 1 组（5 条，因组内 2 个供应商）</code><br><br>
+<b>含义：5/7 = 71% 的需求在当前规则下不会下单，而且只会在 stdout 打一行「剔除」，不写日志、不发卡片（方案1）、不进入日报统计。</b><br>
+业务上你必须确认两件事：<br>
+① 「一价多供就整组不下单」是不是你要的规则？如果是，那这 5 条要不要有人工兜底通道（现在没有）；<br>
+② 剔除依据的 <code>supplierOptions[].supplierId</code> 唯一性——示例数据里同一零件挂了 2 个 supplierId，是真的一价多供，还是同一供应商的两个价格档位？后者会导致误剔除。
+</div>
+
+<h2>三、P0 阻断缺陷</h2>
+<table>
+  <tr><th class="c">#</th><th>方案</th><th>问题</th><th>证据</th><th>后果</th></tr>
+  <tr><td class="c">1</td><td>① agentspace</td><td><b>zip 里打包了历史 state 文件，且 create 无新鲜度校验</b></td><td>包内 <code>state/query_ready_ORD20260917143641.json</code>、<code>…150817.json</code>；<code>_latest_state_file()</code> 只按文件名倒序取最新（<code>query_and_order.py:472-479</code>）</td><td>新环境解包后直接 <code>create</code>，会用 <b>9/17 15:08 的旧快照</b>对已下单的需求再下一单。同时真实需求数据（预算号/项目/人员 ID）随包分发</td></tr>
+  <tr><td class="c">2</td><td>② dexin</td><td><b>query-ready 根本没分页</b></td><td><code>query_ready.py:147-161</code> 只调用一次 <code>--page-size 100</code>；config 里 <code>max_pages: 20</code> 定义了却从未使用</td><td>需求 &gt;100 条时静默截断 → 漏单，且总数统计仍显示正常</td></tr>
+  <tr><td class="c">3</td><td>② dexin</td><td><b>包内同样带了 ReadyOrders_*.json，auto_order 默认取最新</b></td><td><code>dexin-query-ready-0917/output/ReadyOrders_20260917_143808.json</code>；<code>auto_order.py:113-125</code> 按 mtime 取最新</td><td>同 P0-1：解包即用陈旧真实数据下单；无 TTL、无批次绑定</td></tr>
+  <tr><td class="c">4</td><td>③ feishu</td><td><b>没有 state 落地，create 会绕过确认重新拉全量</b></td><td>全脚本无 state 目录；<code>create()</code> → <code>self._group_result or self.group_orders()</code> → 无状态则 <code>self.query()</code>（<code>:358-361</code>、<code>:265</code>）</td><td>0916 的 P0-2 原样复现：单独执行 <code>create</code> = 对当前全部可下单需求直接下单，人工确认被跳过</td></tr>
+  <tr><td class="c">5</td><td>③ feishu</td><td><b><code>--company-id</code> 取值来源在配置里不存在</b></td><td><code>query_and_order.py:363</code> 取 <code>cli.company_id</code>；而 <code>feishu-…/config.json</code> 的 cli 段只有 command/…/dry_run，<b>无 company_id</b></td><td>下单时传空 company-id → 创建失败或落到错误主体。方案1/2 用的是数据里的 <code>companyEntityId</code>（有值），只有方案3 走配置</td></tr>
+</table>
+
+<h2>四、P1 严重缺陷（共性为主）</h2>
+<table>
+  <tr><th class="c">#</th><th>范围</th><th>问题</th><th>证据</th></tr>
+  <tr><td class="c">6</td><td>三套</td><td><b>默认真实下单，无任何防护</b></td><td><code>create_order_dry_run: false</code>（三份 config）；import <code>dry_run: false</code>。12 份 SKILL.md 中 dry-run/幂等/重复 <b>提及次数为 0</b></td></tr>
+  <tr><td class="c">7</td><td>①②</td><td><b>订单成功判定靠抓 32 位十六进制和中文「提交成功」</b></td><td>agentspace <code>:401-408</code>；dexin <code>:245-274</code>。都不看 returncode/JSON，只看正则与文本</td></tr>
+  <tr><td class="c">8</td><td>②</td><td><b>全 Partial 时返回 SUCCESS</b></td><td><code>auto_order.py:377-378</code>：<code>failed_n==0</code> 即 SUCCESS，而 Partial（建单未提交）不计 failed 也不计 success → success=0 仍判 SUCCESS</td></tr>
+  <tr><td class="c">9</td><td>三套</td><td><b>无幂等、无去重、无回滚</b></td><td>三份 create 都直接遍历分组调用 CLI；无「已下单」标记，无 pr_ids 去重表</td></tr>
+  <tr><td class="c">10</td><td>①②</td><td><b>分页若被 CLI 忽略会重复累加</b></td><td>agentspace <code>:152-185</code> 循环 20 页，只在 <code>len(items)&lt;page_size</code> 时退出；无按 id 去重 → 若 CLI 不支持 <code>--page-index</code>，同一页会被累计 20 次</td></tr>
+  <tr><td class="c">11</td><td>②</td><td><b>筛选口径与其他两套不一致</b></td><td>dexin 用 <code>months_back(2)</code>（如 2026-07-17）；agentspace/feishu 用 <code>60 天</code>（2026-07-19）。同一批数据结果不同</td></tr>
+  <tr><td class="c">12</td><td>③ vs ①②</td><td><b><code>--pr-ids</code> 传的字段不一致</b></td><td>方案1/2 用 <code>item["id"]</code> 去掉末尾 <code>|</code>（如 <code>79290c87…fcd3</code>）；方案3 用 <code>prItemNo</code>（如 <code>EP20260911000004</code>）。同一份数据两种取值，必有一个是错的</td></tr>
+  <tr><td class="c">13</td><td>①②</td><td><b>剔除组不落日志、不进日报</b></td><td>agentspace <code>:373-374</code> 只 print；dexin 只写本地 OrderLog。执行日志表里查不到剔除记录</td></tr>
+  <tr><td class="c">14</td><td>三套</td><td><b>env_check 的 <code>next_action</code> 传中文句子</b></td><td><code>env_check.py:291</code> <code>next_action=next_action</code>（值为「环境检查通过…」），与 NextAction 枚举契约冲突；且 <code>shell=True</code> + 单引号拼 JSON（<code>:197</code>）在含引号内容时会破裂</td></tr>
+</table>
+
+<h2>五、P2 与一致性问题</h2>
+<table>
+  <tr><th class="c">#</th><th>问题</th><th>说明</th></tr>
+  <tr><td class="c">15</td><td>方案2 链路不完整</td><td>dexin 只有 query-ready + auto-order，<b>没有 demand-import</b>；方案1/3 都有。三套能力不对等，不能简单「选一套」</td></tr>
+  <tr><td class="c">16</td><td>日报时间字段类型仍有断裂风险</td><td>写入是毫秒 int（<code>bitable_logger.py:193</code>），过滤却按 <code>isinstance(str) and startswith(date)</code>（<code>:344-347</code>），注释写「格式 YYYY-MM-DD HH:MM:SS」与实现矛盾。若飞书日期字段回读为数字 → <b>日报仍为 0 条</b>（高概率，需一条实机数据验证）</td></tr>
+  <tr><td class="c">17</td><td>方案3 耗时计算错 1000 倍</td><td><code>:422</code> <code>(time.time()-start)/1000</code>，本就是秒再除 1000</td></tr>
+  <tr><td class="c">18</td><td>CLI 版本漂移被 warning 掩盖</td><td>config 要求 <code>1.0.3-beta.3</code>，测试环境实为 <code>1.0.7</code>；env_check 只给 warning（<code>:88-93</code>），测试报告记 ✅</td></tr>
+  <tr><td class="c">19</td><td>方案2 日志字段错</td><td><code>_log_order</code> 把 <code>brLineNumber</code> 写进「零件号」字段（<code>:426</code>）</td></tr>
+  <tr><td class="c">20</td><td>文档厚度不均</td><td>方案1 SKILL.md 114–157 行；方案3 仅 42–57 行，未写任何风险项</td></tr>
+  <tr><td class="c">21</td><td>每次写日志都冷启动 npx</td><td>未改：方案2 每下一单写一次（<code>_log_order</code>），方案1/3 每阶段一次；MCP 握手开销仍在</td></tr>
+</table>
+
+<h2>六、三套方案对比矩阵</h2>
+<table>
+  <tr><th>维度</th><th class="c">① agentspace</th><th class="c">② dexin</th><th class="c">③ feishu</th></tr>
+  <tr><td>能力覆盖</td><td class="c">导入+查询+下单+日报</td><td class="c">查询+下单+日报（<b>无导入</b>）</td><td class="c">导入+查询+下单+日报</td></tr>
+  <tr><td>跨命令状态落地</td><td class="c good">state/ 文件 ✅</td><td class="c good">output/ JSON ✅</td><td class="c bad">内存 ❌</td></tr>
+  <tr><td>状态新鲜度校验</td><td class="c bad">无 TTL ❌</td><td class="c bad">无 TTL ❌</td><td class="c bad">—</td></tr>
+  <tr><td>分页完整性</td><td class="c good">有（有重复风险）</td><td class="c bad">❌ 只有 1 页</td><td class="c good">有（有重复风险）</td></tr>
+  <tr><td>company-id 取值</td><td class="c good">数据字段 ✅</td><td class="c good">数据字段 ✅</td><td class="c bad">配置缺失 ❌</td></tr>
+  <tr><td>成功判定</td><td class="c warn">正则抓 ID</td><td class="c warn">正则抓 ID</td><td class="c good">returncode + JSON</td></tr>
+  <tr><td>密钥外置</td><td class="c"><span class="tag t-na">无卡片</span></td><td class="c"><span class="tag t-na">无卡片</span></td><td class="c good">环境变量 ✅</td></tr>
+  <tr><td>dry-run 默认</td><td class="c bad">false</td><td class="c bad">false</td><td class="c bad">false</td></tr>
+  <tr><td>综合判断</td><td class="c good"><b>最接近可用</b></td><td class="c warn">业务规则可参考</td><td class="c bad">当前不可用</td></tr>
+</table>
+
+<h2>七、相对 0916 已修好的（值得肯定）</h2>
+<table>
+  <tr><th>0916 缺陷</th><th class="c">0917 状态</th><th>说明</th></tr>
+  <tr><td>人工选供应商不生效</td><td class="c"><span class="tag t-ok">消除</span></td><td>不再有选择逻辑，多供应商组整组剔除——不是「修好」，是「取消」，需业务确认</td></tr>
+  <tr><td>跨命令状态不落地</td><td class="c"><span class="tag t-ok">部分修</span></td><td>方案1/2 已落地；方案3 未修</td></tr>
+  <tr><td>轮询缩进错误 / batch_id 失效</td><td class="c"><span class="tag t-ok">消除</span></td><td>随选择逻辑一并删除</td></tr>
+  <tr><td>日报字段结构与中文映射</td><td class="c"><span class="tag t-ok">已修</span></td><td>FIELD_MAP + STATUS_MAP + _flatten_log</td></tr>
+  <tr><td>app_secret 明文</td><td class="c"><span class="tag t-ok">已修</span></td><td>方案3 改 <code>${FEISHU_APP_SECRET}</code> 并做环境变量展开</td></tr>
+  <tr><td>登录态死代码</td><td class="c"><span class="tag t-ok">已清</span></td><td>三套均无 _auto_login 之类残留</td></tr>
+  <tr><td>导入不回写状态</td><td class="c"><span class="tag t-p0">未修</span></td><td>demand-import 仍无 update_record → 重复导入风险依旧</td></tr>
+</table>
+
+<h2>八、最小可上线路径（按此顺序）</h2>
+<ol>
+  <li><b>先别合三为一，先定内核。</b>建议：<b>以方案2 的 dexin 分组/剔除/日志规则为内核</b>（它来自已跑通的 PowerShell 版本，业务规则最可信），套上<b>方案1 的 state 落地</b>，卡片作为可选外挂（方案3 的 card_sender + 环境变量密钥）。</li>
+  <li><b>清空并 ignore 运行产物</b>：state/、output/ 加入打包排除；state 文件名加机器/环境标识，create 时校验「本环境生成 + 24 小时内」，否则拒绝执行。</li>
+  <li><b>把 dry-run 翻成 true 作为默认</b>，并在 SKILL.md 里写明开关含义；只在人工确认后由 Agent 显式传入 <code>--no-dry-run</code>。</li>
+  <li><b>订单结果判定改为 returncode + JSON 字段优先</b>，正则只作兜底；区分成功/草稿/失败三态，Partial 不得计入 SUCCESS。</li>
+  <li><b>补幂等</b>：以 pr_ids 集合为单位记录「已下单」到本地 ledger 或多维表格，create 前先过滤。</li>
+  <li><b>剔除组必须可追溯</b>：写入执行日志 + 日报 + 卡片，并给一条人工兜底命令（导出被剔除组清单）。</li>
+  <li><b>统一口径</b>：--pr-ids 用哪个字段、筛选用 60 天还是 2 个月、company-id 从数据还是配置取——三处必须写死成一条规则并加断言。</li>
+  <li><b>补一次真实链路测试</b>：用 1 条真实需求走通 preview→push→query→create(dry-run)→日报，并对日报断言「记录条数 &gt; 0」。</li>
+</ol>
+
+<div class="q">
+留给你两个问题：<br>
+① 71% 的需求被「多供应商整组剔除」静默吃掉——这是你想要的规则，还是因为「上次选择功能不可靠」而采取的临时回避？如果是后者，那这 5 条需求现在由谁、用什么方式处理？<br>
+② 三套方案并存的目的是 A/B 选型，还是给不同团队用？如果是选型，建议今天就砍到一套；三套同时维护，等于把「口径不一致」（pr-ids 字段、筛选天数、company-id 来源）变成常态。
+</div>
+
+<footer>
+审查人：Claudian 🧭　·　方法：8 个 zip 全量解包 → py_compile → 共享模块 md5 比对 → 真实数据离线复现分组 → 契约逐条走查<br>
+未执行：任何会触发真实导入/下单/发卡片的命令（避免对 EP 与飞书群产生副作用）。
+</footer>
+
+</div>
+</body>
+</html>

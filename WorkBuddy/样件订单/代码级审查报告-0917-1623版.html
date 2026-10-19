@@ -1,0 +1,243 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>最新 Skill 代码级审查 · 0917 16:23 版</title>
+<style>
+  :root{
+    --bg:#F7F5F2; --card:#FFFFFF; --ink:#3A3532; --ink2:#6B635C; --line:#E4DED6;
+    --sage:#8FA396; --clay:#C08B72; --rose:#B98A8A; --blue:#7E93A8;
+    --ok:#6E8B6B; --warn:#C79A4B; --bad:#B4655E;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;padding:32px 20px 64px;background:var(--bg);color:var(--ink);
+    font-family:-apple-system,"PingFang SC","Helvetica Neue",Arial,sans-serif;
+    font-size:15px;line-height:1.75;-webkit-font-smoothing:antialiased}
+  .wrap{max-width:1100px;margin:0 auto}
+  header{border-bottom:2px solid var(--line);padding-bottom:20px;margin-bottom:30px}
+  h1{font-size:26px;margin:0 0 8px;letter-spacing:.5px}
+  .sub{color:var(--ink2);font-size:13.5px}
+  h2{font-size:19px;margin:38px 0 14px;padding-left:12px;border-left:4px solid var(--sage)}
+  h3{font-size:16px;margin:24px 0 10px}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:20px 22px;margin:16px 0;
+    box-shadow:0 1px 3px rgba(58,53,50,.04)}
+  table{width:100%;border-collapse:collapse;margin:12px 0;font-size:13.5px;background:var(--card)}
+  th,td{border:1px solid var(--line);padding:9px 11px;text-align:left;vertical-align:top}
+  th{background:#EFEAE3;font-weight:600;white-space:nowrap}
+  td.code{font-family:"SF Mono",Menlo,Consolas,monospace;font-size:12.5px;color:#5A5049;word-break:break-all}
+  tr:nth-child(even) td{background:#FBFAF8}
+  .tag{display:inline-block;padding:2px 9px;border-radius:20px;font-size:12px;font-weight:600;white-space:nowrap}
+  .t-ok{background:#E4EDE2;color:var(--ok)}
+  .t-part{background:#F5E9D2;color:var(--warn)}
+  .t-bad{background:#F3E1DF;color:var(--bad)}
+  .t-info{background:#E3E9EF;color:var(--blue)}
+  .t-new{background:#EFE4F0;color:#7A5A80}
+  .hl{background:linear-gradient(transparent 62%, #F0E4C8 62%);padding:0 2px;font-weight:600}
+  .box{border-left:4px solid var(--clay);background:#FBF7F3;padding:14px 18px;margin:18px 0;border-radius:0 8px 8px 0}
+  .box.q{border-left-color:var(--blue);background:#F4F7FA}
+  .box.g{border-left-color:var(--sage);background:#F4F8F4}
+  .box.r{border-left-color:var(--bad);background:#FBF0EF}
+  ul{margin:8px 0;padding-left:22px} li{margin:5px 0}
+  code{background:#EFEAE3;padding:1px 5px;border-radius:4px;font-size:12.5px;
+    font-family:"SF Mono",Menlo,Consolas,monospace}
+  .small{font-size:12.5px;color:var(--ink2)}
+  .grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:12px;margin:16px 0}
+  .stat{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:14px 16px}
+  .stat .n{font-size:23px;font-weight:700}
+  .stat .l{font-size:12.5px;color:var(--ink2);margin-top:2px}
+  pre{background:#F5F2EE;border:1px solid var(--line);border-radius:8px;padding:12px 14px;
+    font-size:12.5px;overflow-x:auto;font-family:"SF Mono",Menlo,Consolas,monospace;margin:10px 0}
+  footer{margin-top:48px;padding-top:18px;border-top:1px solid var(--line);font-size:12.5px;color:var(--ink2)}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<header>
+  <h1>最新 Skill 代码级审查报告</h1>
+  <div class="sub">审查对象：<code>output-final-0917/</code> 13 个 zip（16:23 重新打包）　|　对比基线：同目录 15:11 版　|　审查时间：2026-09-17 16:55</div>
+</header>
+
+<div class="box r">
+  <h3 style="margin-top:0">🔴 一句话结论</h3>
+  <p style="margin:6px 0 0">工程防护层<span class="hl">大幅改善</span>（dry-run 全开、分页补齐、状态落地、幂等 ledger、密钥外置、打包污染清除），
+  但<span class="hl">两套方案的端到端链路跑不通</span>：agentspace 与 dexin 都卡在「确认」这一步，<code>create</code> 必然失败——我用构造真实 state 实机复现了。
+  同时，<code>demand_import.py</code> 三个字节都没改，上一轮的全部导入侧缺陷原样保留。</p>
+</div>
+
+<div class="grid">
+  <div class="stat"><div class="n" style="color:var(--ok)">11 项</div><div class="l">相对 15:11 版已修复</div></div>
+  <div class="stat"><div class="n" style="color:var(--bad)">2 套</div><div class="l">端到端死锁（agentspace / dexin）</div></div>
+  <div class="stat"><div class="n" style="color:var(--bad)">8 项</div><div class="l">导入侧缺陷原封不动（字节未改）</div></div>
+  <div class="stat"><div class="n" style="color:var(--warn)">1 套</div><div class="l">链路完整可用：feishu</div></div>
+</div>
+
+<h2>一、先看：这一版到底改了什么</h2>
+<p>用 MD5 逐个比对 15:11 版与 16:23 版，改动边界非常清晰——<span class="hl">改的全是「下单链路」，「导入链路」没碰</span>。</p>
+
+<table>
+  <tr><th style="width:22%">文件</th><th style="width:16%">15:11 版</th><th style="width:16%">16:23 版</th><th>判断</th></tr>
+  <tr><td class="code">demand_import.py（agentspace / feishu）</td><td class="code">0968d71b / 6e1350be</td><td class="code">0968d71b / 6e1350be</td><td><span class="tag t-bad">字节未变</span> 全部导入缺陷原样</td></tr>
+  <tr><td class="code">query_and_order.py（agentspace）</td><td class="code">4a3e7578 · 625 行</td><td class="code">621bc523 · 773 行</td><td><span class="tag t-info">+148 行</span> 大改</td></tr>
+  <tr><td class="code">query_and_order.py（feishu）</td><td class="code">341e5135 · 491 行</td><td class="code">3a86f5d2 · 649 行</td><td><span class="tag t-info">+158 行</span> 大改</td></tr>
+  <tr><td class="code">auto_order.py（dexin）</td><td class="code">91b65fe3 · 452 行</td><td class="code">ef40998f · 576 行</td><td><span class="tag t-info">+124 行</span> 大改</td></tr>
+  <tr><td class="code">query_ready.py（dexin）</td><td class="code">fd22d38e · 375 行</td><td class="code">31e45595 · 431 行</td><td><span class="tag t-ok">分页补齐</span></td></tr>
+  <tr><td class="code">daily_report.py（三套）</td><td class="code">742 / 744 行</td><td class="code">749 / 749 / 751 行</td><td><span class="tag t-info">微调</span></td></tr>
+  <tr><td class="code">workflow_schema.py</td><td class="code">245 / 189 行</td><td class="code">245 / 189 行</td><td><span class="tag t-bad">未统一</span> 仍是三套两样</td></tr>
+  <tr><td class="code">dexin-demand-import（新增）</td><td>—</td><td class="code">0968d71b · 952 行</td><td><span class="tag t-part">agentspace 的字节副本</span> 仅 SKILL.md 不同</td></tr>
+</table>
+
+<h2>二、✅ 已经修好的（值得肯定）</h2>
+<table>
+  <tr><th style="width:26%">修复项</th><th style="width:30%">证据</th><th>说明</th></tr>
+  <tr><td><b>保护默认关闭</b></td><td class="code">create_order_dry_run=true<br>import.dry_run=true</td><td>三套全部从「默认真下单」翻转为默认 dry-run。这是上一轮我标红的第 1 条，已解决。</td></tr>
+  <tr><td><b>分页缺失（原 P0）</b></td><td class="code">query_ready.py:156<br>query_and_order.py:153</td><td>dexin 原来只取 100 条、<code>max_pages</code> 定义了没用；现在两处都实现了循环翻页，并能识别最后一页提前退出。</td></tr>
+  <tr><td><b>状态跨命令落地</b></td><td class="code">state/query_ready_*.json</td><td>替代了原先的内存变量，跨进程调用不再丢。</td></tr>
+  <tr><td><b>陈旧数据保护（24h TTL）</b></td><td class="code">agentspace :344-354<br>dexin :345-354</td><td>超过 24 小时的 state 禁止使用。</td></tr>
+  <tr><td><b>幂等 ledger</b></td><td class="code">agentspace :548-573<br>dexin :429-441 / feishu :547-573</td><td>按 <code>供应商|预算|行号|采购员|需求IDs</code> 去重，且 dry-run 不写入（设计正确）。</td></tr>
+  <tr><td><b>成功判定</b></td><td class="code">:535 returncode==0 and order_id</td><td>从「正则抓 32 位 hex + 中文成功字样」改为 JSON 优先、returncode 为准。</td></tr>
+  <tr><td><b>剔除组有留痕</b></td><td class="code">agentspace :596-617<br>feishu :334-347</td><td>多供应商被剔除的组现在进执行日志，不再是「只 print 一行」。</td></tr>
+  <tr><td><b>打包污染</b></td><td class="code">zip 内已无 state/ 与 output/</td><td>上一轮最危险的「解包即用陈旧真实数据」已清除。</td></tr>
+  <tr><td><b>密钥外置</b></td><td class="code">${FEISHU_APP_SECRET}</td><td>明文 app_secret 已全部改为环境变量占位。</td></tr>
+  <tr><td><b>日期口径统一</b></td><td class="code">60 天（三套一致）</td><td>原先「60 天 / 2 个月」打架的问题消失。</td></tr>
+  <tr><td><b>日报时间恒为 0</b></td><td class="code">bitable_logger :345-361</td><td>新版兼容毫秒时间戳 / 字符串 / 列表三种格式，修掉了「统计恒为 0」的根因。</td></tr>
+</table>
+
+<h2>三、🔴 新增的两个致命问题（端到端跑不通）</h2>
+
+<h3>3.1 agentspace：confirm 方法存在，但没有注册成命令</h3>
+<div class="box r">
+  <p><b>证据链：</b></p>
+  <ul>
+    <li><code>confirm()</code> 方法确实存在，在 <code>query_and_order.py:283</code>，负责写入 <code>confirmed=True</code>（:301）</li>
+    <li>但 <code>main()</code> 的 choices 是 <code>["query", "create", "run"]</code>（:738）——<span class="hl">confirm 不在其中</span></li>
+    <li><code>query()</code> 写 state 时的字段是 batch_id / operator / queried_at / cutoff_date / total_fetched / excluded_by_date / items（:204-212）——<span class="hl">没有 confirmed 键</span></li>
+    <li><code>create()</code> 在 :358 校验 <code>confirmed</code>，为假则直接 FAILED</li>
+    <li><code>run(auto_confirm=True)</code>（:632-651）直接调 <code>create()</code>，中间也不补 confirmed</li>
+  </ul>
+  <p><b>实机复现</b>（构造与 query() 完全一致的 state 后执行 create）：</p>
+<pre>{
+  "stage": "order_create",
+  "status": "failed",
+  "errors": [ "state文件未经过人工确认，禁止直接下单。请先运行 analyze 确认分组结果。" ]
+}</pre>
+  <p class="small">注意这个报错本身也是错的：<code>analyze</code> 这个命令在整个文件里<span class="hl">既没有方法也没有子命令</span>（方法清单：query / confirm / create / _latest_state_file / run）。是上一版遗留的名字。</p>
+  <p style="margin-bottom:0"><b>结论：</b>无论走 <code>query → create</code>、<code>run</code> 还是 <code>run --auto-confirm</code>，create 都必然失败。<span class="hl">方案1 的自动下单链路是断的。</span></p>
+</div>
+
+<h3>3.2 dexin：全链路没有任何地方写 confirmed=true</h3>
+<div class="box r">
+  <p><code>auto_order.py:361</code> 要求 <code>indata["confirmed"] == True</code>，但：</p>
+  <ul>
+    <li><code>query_ready.py:332-335</code> 输出的 payload 只有 <code>queryTime / filterCondition / totalCount / data</code>——无 confirmed</li>
+    <li>整个 <code>dexin-*/</code> 目录 grep <code>confirmed</code>，<span class="hl">除 auto_order 的读取外没有任何写入点</span></li>
+    <li><code>auto_order</code> 的子命令只有 <code>["order"]</code>，没有 confirm 类命令或 <code>--confirm</code> 参数</li>
+    <li>dexin 的 SKILL.md <span class="hl">完全没有提到确认这一步</span>（对比 feishu 的 SKILL.md 明确写了「create 必须在 confirm 之后执行」）</li>
+  </ul>
+  <p style="margin-bottom:0"><b>结论：</b>除非 Agent 手工编辑 JSON 手写 <code>confirmed: true</code>，否则 <code>auto_order</code> 必然失败。而这一点文档没写、也没在流程里体现。</p>
+</div>
+
+<h3>3.3 对照：feishu 是唯一链路完整的一套</h3>
+<table>
+  <tr><th style="width:16%">套</th><th style="width:26%">state 含 confirmed 初值</th><th style="width:24%">confirm 入口</th><th>端到端</th></tr>
+  <tr><td>agentspace</td><td>❌ 未写入该键</td><td>❌ 未注册子命令</td><td><span class="tag t-bad">死锁</span></td></tr>
+  <tr><td>dexin</td><td>❌ 输入文件无该键</td><td>❌ 无命令/参数</td><td><span class="tag t-bad">死锁</span></td></tr>
+  <tr><td>feishu</td><td>✅ <code>:359 confirmed: False</code></td><td>✅ <code>choices 含 confirm</code>，:395 置 True</td><td><span class="tag t-ok">完整</span></td></tr>
+</table>
+
+<h2>四、🟠 P1：成功判定的正则兜底会把失败判成成功，并污染幂等 ledger</h2>
+<p>成功判定主体改对了（returncode + JSON），但 <code>:526-531</code> 的正则兜底留了个口子：</p>
+<pre>if not json_parsed or not order_id:
+    m_oid = re.search(r"([a-f0-9]{32})", raw)      # 任意 32 位十六进制
+    order_id = m_oid.group(1) if m_oid else order_id
+...
+if returncode == 0 and order_id:                   # :535
+    status = "Success"                             # → 写入 ledger :548-556</pre>
+<p>我用真实数据结构演示了一次失败响应（returncode=0、JSON 里有 requestId、没有 orderId）：</p>
+<pre>模拟返回: {"code":0,"msg":"参数校验失败: 预算已冻结",
+          "requestId":"a1b2c3d4e5f6a7b8c9d0e1f2a3b4c5d6", ...}
+JSON 解析成功=True   取到 orderId=''
+正则兜底后 orderId   = 'a1b2c3d4e5f6a7b8c9d0e1f2a3b4c5d6'   ← 抓的是 requestId
+最终判定 status      = Success</pre>
+<div class="box">
+  <p style="margin:0"><b>危害是二段的，而且第二段不可逆：</b>① 失败被记为成功；② 假的 order_id 写进 <code>ordered_pr_ids.json</code>；
+  ③ <span class="hl">下次同一组再跑，会被判定为「幂等跳过」，从此再也不会下单</span>。
+  建议：正则兜底只允许从明确字段提取（如 <code>orderId</code> / <code>orderNo</code> 键名匹配），抓不到就判 Failed，绝不写 ledger。</p>
+</div>
+
+<h2>五、❌ 未修复清单（沿用上一轮编号）</h2>
+<p><code>demand_import.py</code> 的 MD5 与上一版完全一致，因此导入侧<span class="hl">一个字节都没改</span>，以下缺陷全部原样：</p>
+<table>
+  <tr><th style="width:6%">编号</th><th style="width:30%">缺陷</th><th style="width:14%">位置</th><th>状态</th></tr>
+  <tr><td>B1</td><td>按 900 字符切批，不看包号边界 → 行号断裂</td><td class="code">:764 / :772</td><td><span class="tag t-bad">未修</span></td></tr>
+  <tr><td>B2</td><td>无 import-item(xlsx) 兜底</td><td class="code">全文件 0 命中</td><td><span class="tag t-bad">未修</span></td></tr>
+  <tr><td>C1</td><td>公式字段 → <code>float(dict)</code> TypeError</td><td class="code">:312 / :327 / :672</td><td><span class="tag t-bad">未修</span></td></tr>
+  <tr><td>C2</td><td>试制项目编码恒空</td><td class="code">:691 / :336-338</td><td><span class="tag t-bad">未修</span></td></tr>
+  <tr><td>C3</td><td>包号只按申请人分组，忽略预算一致性</td><td class="code">:625-637</td><td><span class="tag t-bad">未修</span></td></tr>
+  <tr><td>N1</td><td>每批最多 2 条 → 200 行 = 100 次串行调用</td><td class="code">实测 424-428 字符/条</td><td><span class="tag t-bad">未修</span></td></tr>
+  <tr><td>N2</td><td>导入后不回写状态 → 重复导入</td><td class="code">无 update_record</td><td><span class="tag t-bad">未修</span></td></tr>
+  <tr><td>N3</td><td>解析失败即算成功（假绿）</td><td class="code">:827-828</td><td><span class="tag t-bad">未修</span></td></tr>
+  <tr><td>B3</td><td>feishu <code>--buyer-id</code> 传姓名而非 buyerId</td><td class="code">:277 / :522</td><td><span class="tag t-bad">未修</span> B4 已修</td></tr>
+  <tr><td>C4</td><td>日报仍读执行日志，未换 submit-list</td><td class="code">三套 :147/:147/:149</td><td><span class="tag t-bad">未修</span></td></tr>
+  <tr><td>C5</td><td>workflow_schema 三套两样</td><td class="code">245 行 vs 189 行</td><td><span class="tag t-bad">未修</span></td></tr>
+  <tr><td>C6</td><td>SKILL.md 仍写 <code>--json</code>（代码是 <code>--records</code>）</td><td class="code">SKILL.md:149</td><td><span class="tag t-bad">未修</span></td></tr>
+</table>
+<p class="small">其中 B4（feishu <code>--pr-ids</code>）已修：<code>:295</code> 改为取 <code>id</code> 并去掉末尾 <code>|</code>。<br>
+附带发现：feishu 的幂等键用了 <code>g.get('buyer_id','')</code>（:506），但这个文件里 <code>buyer_id</code> <b>从未被赋值</b>——幂等键的采购员维度恒为空，与 B3 同源。</p>
+
+<h2>六、🟡 一致性与工程卫生</h2>
+<table>
+  <tr><th style="width:6%">#</th><th style="width:26%">问题</th><th>证据与影响</th></tr>
+  <tr><td>M1</td><td>bitable_logger 两个版本并存</td><td>daily-report 三个包用新版 <code>38131b2923</code>（375 行），其余 10 个包仍是旧版 <code>77ba83ef</code>（365 行）。<b>测试报告写的「12 个 MD5 完全一致」现在已失效。</b></td></tr>
+  <tr><td>M2</td><td>dexin-demand-import 是字节副本</td><td><code>diff</code> 显示与 agentspace 版仅 SKILL.md 不同。同一份代码两份拷贝，未来修 bug 要改两次——而 workflow_schema 的三套两样已经证明这种复制会漂移。</td></tr>
+  <tr><td>M3</td><td>测试报告与交付物不同步</td><td><code>test-results-0917.md</code> 是 15:24，zip 是 16:23。<b>它描述的是上一版代码</b>，且仍写着「12 个 skill」（现为 13 个）、把 dexin auto-order 的「0.10 秒无输入文件返回错误」记为 ✅。</td></tr>
+  <tr><td>M4</td><td>feishu 两个 .bak 仍在包里</td><td><code>daily_report.py.bak</code> / <code>env_check.py.bak</code> 随 zip 分发。</td></tr>
+</table>
+
+<h2>七、三套可用性判定</h2>
+<table>
+  <tr><th style="width:18%">套</th><th style="width:14%">env-check</th><th style="width:14%">import</th><th style="width:16%">query / order</th><th style="width:12%">daily</th><th>能否端到端跑通</th></tr>
+  <tr><td><b>agentspace</b></td><td><span class="tag t-ok">可</span></td><td><span class="tag t-bad">B1/N1/N2</span></td><td><span class="tag t-bad">confirm 死锁</span></td><td><span class="tag t-part">数据源偏</span></td><td><span class="tag t-bad">否</span> 卡在确认步，且 create 报错指向不存在的 analyze</td></tr>
+  <tr><td><b>dexin</b></td><td><span class="tag t-ok">可</span></td><td><span class="tag t-part">新增·副本</span></td><td><span class="tag t-bad">confirmed 无写入点</span></td><td><span class="tag t-part">数据源偏</span></td><td><span class="tag t-bad">否</span> auto_order 必然走到 FAILED</td></tr>
+  <tr><td><b>feishu</b></td><td><span class="tag t-ok">可</span></td><td><span class="tag t-bad">B1/N1/N2</span></td><td><span class="tag t-part">B3 未修</span></td><td><span class="tag t-part">数据源偏</span></td><td><span class="tag t-part">链路通但有错参</span> 唯一 confirm 完整的一套；但 --buyer-id 传姓名会下单失败或错挂采购员</td></tr>
+</table>
+
+<h2>八、修复优先级</h2>
+<table>
+  <tr><th style="width:6%">顺序</th><th style="width:28%">动作</th><th style="width:12%">级别</th><th>要点</th></tr>
+  <tr><td>1</td><td>注册 agentspace 的 confirm 子命令</td><td><span class="tag t-bad">P0</span></td><td><code>choices</code> 加 <code>"confirm"</code>；<code>run(auto_confirm=True)</code> 改为先 <code>self.confirm()</code> 再 <code>create()</code>；顺手修掉报错里的 <code>analyze</code> 字样。</td></tr>
+  <tr><td>2</td><td>给 dexin 补确认入口</td><td><span class="tag t-bad">P0</span></td><td>query_ready 输出加 <code>"confirmed": false</code>，auto_order 加 <code>confirm</code> 子命令；SKILL.md 补写这一步。</td></tr>
+  <tr><td>3</td><td>收紧成功判定兜底</td><td><span class="tag t-bad">P0</span></td><td>正则仅限键名匹配；抓不到 orderId 一律 Failed；<b>且 Failed 绝不写 ledger</b>。</td></tr>
+  <tr><td>4</td><td>import 改走 xlsx</td><td><span class="tag t-bad">P0</span></td><td>回抄旧版 <code>import-item --file-path</code>；一次性解决字符限制 / 行号断裂 / 100 次调用三件事。</td></tr>
+  <tr><td>5</td><td>feishu 补 buyerId</td><td><span class="tag t-bad">P0</span></td><td>normalize 保留 <code>buyerId</code>，<code>--buyer-id</code> 与其幂等键同步改用。</td></tr>
+  <tr><td>6</td><td>导入后回写状态</td><td><span class="tag t-bad">P0</span></td><td>push 成功后批量更新「样件导入状态」。</td></tr>
+  <tr><td>7</td><td>统一 bitable_logger / schema / 文档</td><td><span class="tag t-part">P1</span></td><td>13 份 logger 归一；workflow_schema 归一；SKILL.md 的 <code>--json</code> 改 <code>--records</code>；打包排除 <code>*.bak</code>。</td></tr>
+  <tr><td>8</td><td>消灭 dexin-demand-import 副本</td><td><span class="tag t-part">P1</span></td><td>若确属同一份代码，改为共享引用而非复制打包。</td></tr>
+</table>
+
+<h2>九、本次审查的环境说明（避免误判）</h2>
+<div class="box q">
+  <ul style="margin:0">
+    <li>本机<b>无 dx-ep CLI</b>，所有涉及真实下单/导入的行为只能做静态分析与离线复现。</li>
+    <li><code>_get_operator()</code>（:73-99）会读取 <code>~/.dx-garagehub/credentials.json</code>。在<b>本机</b>该文件被系统级保护，读取调用会阻塞——导致任何子命令在初始化阶段停住。
+      我用同一台机器读其他家目录文件正常、单独读该文件仍阻塞，因此判断为<b>本机环境特性，不是代码缺陷</b>，但暴露了一个真问题：<span class="hl">该读取没有超时保护，异常时整个 skill 会挂起而非 fail-fast</span>。建议加 <code>timeout</code> 与 fail-open。</li>
+    <li>两个死锁结论<b>均已实机复现</b>（绕过 <code>__init__</code> 构造对象并传入真实 state 结构），不是纯静态推断。</li>
+  </ul>
+</div>
+
+<div class="box g">
+  <p style="margin:0"><b>留给你的两个判断：</b><br>
+  ① 「确认」这一步到底<b>由谁执行</b>？如果是 AgentSpace 里 Agent 手工改 JSON，那 agentspace/dexin 就不算 bug，但必须写进 SKILL.md 并给 Agent 一条明确指令——现在两边都没做。<br>
+  ② 三套现在<span class="hl">只有 feishu 链路完整</span>，而 feishu 恰好是上一轮判定「逻辑最旧」的那套。合三为一的时候，是拿 <b>feishu 的流程骨架 + dexin 的分组规则 + agentspace 的账表/日志</b>吗？先定这个，上面 8 条修复就不再互相打架。</p>
+</div>
+
+<footer>
+  审查人：Claudian　|　方法：MD5 版本追踪 + 静态代码比对 + 真实数据离线复现 + 受控实机调用<br>
+  对照基线：同目录 15:11 版 zip（<code>_review2/</code>）　|　工作副本：<code>_review3/</code><br>
+  未执行任何会真实下单 / 真实导入 / 发送卡片的命令
+</footer>
+
+</div>
+</body>
+</html>

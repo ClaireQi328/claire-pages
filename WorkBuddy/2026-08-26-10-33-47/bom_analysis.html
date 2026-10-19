@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1"/>
+<title>供应商 BOM 提交分析看板</title>
+<script src="https://cdn.jsdelivr.net/npm/echarts@5.5.0/dist/echarts.min.js"></script>
+<style>
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{font-family:-apple-system,"PingFang SC","Microsoft YaHei",sans-serif;background:#f5f6f8;color:#1f2733;padding:24px}
+  .wrap{max-width:1180px;margin:0 auto}
+  h1{font-size:22px;font-weight:700;margin-bottom:4px}
+  .sub{color:#8a93a0;font-size:13px;margin-bottom:20px}
+  .kpis{display:grid;grid-template-columns:repeat(6,1fr);gap:12px;margin-bottom:20px}
+  .kpi{background:#fff;border-radius:12px;padding:16px;box-shadow:0 1px 3px rgba(0,0,0,.06)}
+  .kpi .v{font-size:24px;font-weight:700;color:#2b6cb0}
+  .kpi .l{font-size:12px;color:#8a93a0;margin-top:4px}
+  .kpi.warn .v{color:#c0392b}
+  .kpi.good .v{color:#2f855a}
+  .grid{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px}
+  .card{background:#fff;border-radius:12px;padding:16px 18px;box-shadow:0 1px 3px rgba(0,0,0,.06)}
+  .card h3{font-size:15px;margin-bottom:10px;font-weight:600}
+  .card.full{grid-column:1/3}
+  .insight{background:#fff;border-radius:12px;padding:18px 22px;box-shadow:0 1px 3px rgba(0,0,0,.06)}
+  .insight h3{font-size:15px;margin-bottom:12px}
+  .insight ul{list-style:none}
+  .insight li{padding:8px 0;border-bottom:1px dashed #eef0f3;font-size:13.5px;line-height:1.6}
+  .insight li:last-child{border:none}
+  .tag{display:inline-block;background:#eef4fb;color:#2b6cb0;border-radius:4px;padding:1px 7px;font-size:12px;margin-right:6px}
+  .tag.r{background:#fdecea;color:#c0392b}
+  .tag.g{background:#e9f7ef;color:#2f855a}
+  table{width:100%;border-collapse:collapse;font-size:12.5px}
+  th,td{padding:7px 8px;text-align:left;border-bottom:1px solid #eef0f3}
+  th{color:#8a93a0;font-weight:600}
+  td.num{text-align:right;font-variant-numeric:tabular-nums}
+  .rank{color:#c0392b;font-weight:700}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>供应商 BOM 提交分析看板</h1>
+  <div class="sub">数据源：test.xlsx（2793 家供应商 · 提交 BOM 数口径）｜ 生成时间 2026-08-26</div>
+
+  <div class="kpis">
+    <div class="kpi"><div class="v">2,793</div><div class="l">供应商总数</div></div>
+    <div class="kpi warn"><div class="v">2,627</div><div class="l">0 提交 (94.1%)</div></div>
+    <div class="kpi good"><div class="v">166</div><div class="l">有提交 (5.9%)</div></div>
+    <div class="kpi"><div class="v">10,053</div><div class="l">BOM 提交总量</div></div>
+    <div class="kpi"><div class="v">60.6</div><div class="l">活跃均值(人均)</div></div>
+    <div class="kpi"><div class="v">9.5%</div><div class="l">Top1 占比</div></div>
+  </div>
+
+  <div class="card full" style="margin-bottom:16px">
+    <h3>🔍 去重口径校验（供应商 / 零件）</h3>
+    <ul style="list-style:none;font-size:13px;line-height:1.8;margin:0;padding:0">
+      <li><span class="tag">供应商去重</span>以 <b>company_code</b> 为唯一键：2793 行全部唯一，无需合并。按 company_name 再聚合仅 1 组重复（「上海迈创智慧供应链管理有限公司」code 166487 与 SUPT01296），两行提交均为 0，<b>合并后总 BOM 不变（仍为 10,053）</b>。</li>
+      <li><span class="tag">零件去重</span>bom_submitted 已按 <b>(company_code, part_number)</b> 去重计数——同一零件多版本/多行只计 1 次，天然零件去重。</li>
+      <li><span class="tag r">排除规则</span>统计已按 <code>NOT LIKE 'SUPT%'</code> 排除内部/支持类供应商（如 SUPT01296）。</li>
+    </ul>
+  </div>
+
+  <div class="grid">
+    <div class="card"><h3>提交量分布（含 0 提交）</h3><div id="c1" style="height:320px"></div></div>
+    <div class="card"><h3>Top 20 供应商（按提交量）</h3><div id="c2" style="height:320px"></div></div>
+    <div class="card full"><h3>集中度帕累托曲线（活跃供应商排序）</h3><div id="c3" style="height:300px"></div></div>
+  </div>
+
+  <div class="insight">
+    <h3>🔑 关键洞察</h3>
+    <ul>
+      <li><span class="tag r">长尾</span><b>94.1%</b> 的供应商（2,627 / 2,793）提交数为 <b>0</b>，BOM 提交极度稀疏；仅有 166 家（5.9%）实际有提交。</li>
+      <li><span class="tag">集中</span>在有提交的 166 家中，基尼系数 0.6595（全量 0.9798），分布高度不均：人均 60.6 个，中位仅 24。</li>
+      <li><span class="tag">头部</span>单家最高 <b>954</b> 个（东莞市勤领汽车电子），<b>Top1 即占全量 BOM 的 9.5%</b>。</li>
+      <li><span class="tag">帕累托</span>达到全量 BOM 的 50% 仅需活跃供应商的 <b>Top 10.8%</b>；80% → Top 30.7%；90% → Top 43.4%。资源应优先聚焦头部。</li>
+      <li><span class="tag r">数据质量</span>存在同名供应商「上海迈创智慧供应链管理有限公司」两条记录（supplier_id 100342 与 SUPT01296），其中 <b>SUPT01296 为 SUPT 前缀内部供应商</b>（此前 SQL 已按 <code>NOT LIKE 'SUPT%'</code> 排除）。建议核对主数据去重与口径一致性。</li>
+    </ul>
+  </div>
+
+  <div class="card full" style="margin-top:16px">
+    <h3>Top 20 明细</h3>
+    <table><thead><tr><th>#</th><th>供应商名称</th><th>company_code</th><th class="num">提交 BOM 数</th></tr></thead><tbody>
+    <tr><td class='rank'>1</td><td>东莞市勤领汽车电子有限公司</td><td>176572</td><td class='num'>954</td></tr><tr><td class='rank'>2</td><td>瑞声光电科技（常州）有限公司</td><td>100262</td><td class='num'>709</td></tr><tr><td class='rank'>3</td><td>江苏新泉汽车饰件股份有限公司常州分公司</td><td>154579</td><td class='num'>338</td></tr><tr><td class='rank'>4</td><td>东风佛吉亚汽车内饰有限公司</td><td>176064</td><td class='num'>328</td></tr><tr><td class='rank'>5</td><td>黄山市瑞兴汽车电子有限公司</td><td>176265</td><td class='num'>248</td></tr><tr><td class='rank'>6</td><td>武汉振华恒升祥汽车零部件有限公司</td><td>176031</td><td class='num'>225</td></tr><tr><td class='rank'>7</td><td>同致电子科技（厦门）有限公司</td><td>149965</td><td class='num'>224</td></tr><tr><td class='rank'>8</td><td>湖南中车时代电驱科技有限公司</td><td>166763</td><td class='num'>214</td></tr><tr><td class='rank'>9</td><td>深圳欣锐科技股份有限公司</td><td>168851</td><td class='num'>210</td></tr><tr><td class='rank'>10</td><td>浙江戈尔德智能悬架股份有限公司</td><td>162700</td><td class='num'>205</td></tr><tr><td class='rank'>11</td><td>沈阳安费诺三浦汽车电子有限公司</td><td>147536</td><td class='num'>201</td></tr><tr><td class='rank'>12</td><td>本特勒汽车零部件（天津）有限公司</td><td>152557</td><td class='num'>201</td></tr><tr><td class='rank'>13</td><td>武汉市东亚合成汽车部件有限公司</td><td>173976</td><td class='num'>190</td></tr><tr><td class='rank'>14</td><td>广州丰达电机有限公司</td><td>176386</td><td class='num'>174</td></tr><tr><td class='rank'>15</td><td>温州市尖端标准件有限公司</td><td>147708</td><td class='num'>167</td></tr><tr><td class='rank'>16</td><td>北京海纳川汽车部件股份有限公司北京分公司</td><td>151131</td><td class='num'>166</td></tr><tr><td class='rank'>17</td><td>哈尔滨东安汽车动力股份有限公司</td><td>169310</td><td class='num'>160</td></tr><tr><td class='rank'>18</td><td>深圳光峰科技股份有限公司</td><td>113837</td><td class='num'>153</td></tr><tr><td class='rank'>19</td><td>中创新航科技集团股份有限公司</td><td>171683</td><td class='num'>152</td></tr><tr><td class='rank'>20</td><td>苏州中成新能源科技股份有限公司</td><td>169756</td><td class='num'>148</td></tr>
+    </tbody></table>
+  </div>
+</div>
+
+<script>
+const D={"N": 2793, "total": 10053, "zero": 2627, "zero_pct": 94.1, "active": 166, "active_pct": 5.9, "active_mean": 60.6, "active_median": 24.0, "active_max": 954, "dist_labels": ["0", "1", "2-5", "6-10", "11-25", "26-50", "51-100", "101-250", "251-500", "501-1000", ">1000"], "dist_vals": [2627, 9, 27, 16, 33, 22, 32, 23, 2, 2, 0], "dist_pct": [94.1, 0.3, 1.0, 0.6, 1.2, 0.8, 1.1, 0.8, 0.1, 0.1, 0.0], "gini_all": 0.9798, "gini_active": 0.6595, "share50": 10.8, "share80": 30.7, "share90": 43.4, "top1_pct": 9.5, "top": [{"company_name": "东莞市勤领汽车电子有限公司", "company_code": 176572, "bom_submitted": 954}, {"company_name": "瑞声光电科技（常州）有限公司", "company_code": 100262, "bom_submitted": 709}, {"company_name": "江苏新泉汽车饰件股份有限公司常州分公司", "company_code": 154579, "bom_submitted": 338}, {"company_name": "东风佛吉亚汽车内饰有限公司", "company_code": 176064, "bom_submitted": 328}, {"company_name": "黄山市瑞兴汽车电子有限公司", "company_code": 176265, "bom_submitted": 248}, {"company_name": "武汉振华恒升祥汽车零部件有限公司", "company_code": 176031, "bom_submitted": 225}, {"company_name": "同致电子科技（厦门）有限公司", "company_code": 149965, "bom_submitted": 224}, {"company_name": "湖南中车时代电驱科技有限公司", "company_code": 166763, "bom_submitted": 214}, {"company_name": "深圳欣锐科技股份有限公司", "company_code": 168851, "bom_submitted": 210}, {"company_name": "浙江戈尔德智能悬架股份有限公司", "company_code": 162700, "bom_submitted": 205}, {"company_name": "沈阳安费诺三浦汽车电子有限公司", "company_code": 147536, "bom_submitted": 201}, {"company_name": "本特勒汽车零部件（天津）有限公司", "company_code": 152557, "bom_submitted": 201}, {"company_name": "武汉市东亚合成汽车部件有限公司", "company_code": 173976, "bom_submitted": 190}, {"company_name": "广州丰达电机有限公司", "company_code": 176386, "bom_submitted": 174}, {"company_name": "温州市尖端标准件有限公司", "company_code": 147708, "bom_submitted": 167}, {"company_name": "北京海纳川汽车部件股份有限公司北京分公司", "company_code": 151131, "bom_submitted": 166}, {"company_name": "哈尔滨东安汽车动力股份有限公司", "company_code": 169310, "bom_submitted": 160}, {"company_name": "深圳光峰科技股份有限公司", "company_code": 113837, "bom_submitted": 153}, {"company_name": "中创新航科技集团股份有限公司", "company_code": 171683, "bom_submitted": 152}, {"company_name": "苏州中成新能源科技股份有限公司", "company_code": 169756, "bom_submitted": 148}], "pareto": [{"rank": 1, "cum_pct": 9.49, "rank_pct": 0.6}, {"rank": 2, "cum_pct": 16.54, "rank_pct": 1.2}, {"rank": 3, "cum_pct": 19.9, "rank_pct": 1.81}, {"rank": 4, "cum_pct": 23.17, "rank_pct": 2.41}, {"rank": 5, "cum_pct": 25.63, "rank_pct": 3.01}, {"rank": 6, "cum_pct": 27.87, "rank_pct": 3.61}, {"rank": 7, "cum_pct": 30.1, "rank_pct": 4.22}, {"rank": 8, "cum_pct": 32.23, "rank_pct": 4.82}, {"rank": 9, "cum_pct": 34.32, "rank_pct": 5.42}, {"rank": 10, "cum_pct": 36.36, "rank_pct": 6.02}, {"rank": 11, "cum_pct": 38.36, "rank_pct": 6.63}, {"rank": 12, "cum_pct": 40.36, "rank_pct": 7.23}, {"rank": 13, "cum_pct": 42.25, "rank_pct": 7.83}, {"rank": 14, "cum_pct": 43.98, "rank_pct": 8.43}, {"rank": 15, "cum_pct": 45.64, "rank_pct": 9.04}, {"rank": 16, "cum_pct": 47.29, "rank_pct": 9.64}, {"rank": 17, "cum_pct": 48.88, "rank_pct": 10.24}, {"rank": 18, "cum_pct": 50.4, "rank_pct": 10.84}, {"rank": 19, "cum_pct": 51.91, "rank_pct": 11.45}, {"rank": 20, "cum_pct": 53.39, "rank_pct": 12.05}, {"rank": 21, "cum_pct": 54.86, "rank_pct": 12.65}, {"rank": 22, "cum_pct": 56.31, "rank_pct": 13.25}, {"rank": 23, "cum_pct": 57.56, "rank_pct": 13.86}, {"rank": 24, "cum_pct": 58.8, "rank_pct": 14.46}, {"rank": 25, "cum_pct": 59.97, "rank_pct": 15.06}, {"rank": 26, "cum_pct": 61.06, "rank_pct": 15.66}, {"rank": 27, "cum_pct": 62.1, "rank_pct": 16.27}, {"rank": 28, "cum_pct": 63.09, "rank_pct": 16.87}, {"rank": 29, "cum_pct": 64.06, "rank_pct": 17.47}, {"rank": 30, "cum_pct": 64.96, "rank_pct": 18.07}, {"rank": 31, "cum_pct": 65.83, "rank_pct": 18.67}, {"rank": 32, "cum_pct": 66.71, "rank_pct": 19.28}, {"rank": 33, "cum_pct": 67.55, "rank_pct": 19.88}, {"rank": 34, "cum_pct": 68.39, "rank_pct": 20.48}, {"rank": 35, "cum_pct": 69.22, "rank_pct": 21.08}, {"rank": 36, "cum_pct": 70.06, "rank_pct": 21.69}, {"rank": 37, "cum_pct": 70.87, "rank_pct": 22.29}, {"rank": 38, "cum_pct": 71.66, "rank_pct": 22.89}, {"rank": 39, "cum_pct": 72.44, "rank_pct": 23.49}, {"rank": 40, "cum_pct": 73.16, "rank_pct": 24.1}, {"rank": 41, "cum_pct": 73.88, "rank_pct": 24.7}, {"rank": 42, "cum_pct": 74.58, "rank_pct": 25.3}, {"rank": 43, "cum_pct": 75.28, "rank_pct": 25.9}, {"rank": 44, "cum_pct": 75.97, "rank_pct": 26.51}, {"rank": 45, "cum_pct": 76.64, "rank_pct": 27.11}, {"rank": 46, "cum_pct": 77.31, "rank_pct": 27.71}, {"rank": 47, "cum_pct": 77.98, "rank_pct": 28.31}, {"rank": 48, "cum_pct": 78.64, "rank_pct": 28.92}, {"rank": 49, "cum_pct": 79.29, "rank_pct": 29.52}, {"rank": 50, "cum_pct": 79.94, "rank_pct": 30.12}, {"rank": 51, "cum_pct": 80.56, "rank_pct": 30.72}, {"rank": 52, "cum_pct": 81.17, "rank_pct": 31.33}, {"rank": 53, "cum_pct": 81.78, "rank_pct": 31.93}, {"rank": 54, "cum_pct": 82.37, "rank_pct": 32.53}, {"rank": 55, "cum_pct": 82.95, "rank_pct": 33.13}, {"rank": 56, "cum_pct": 83.52, "rank_pct": 33.73}, {"rank": 57, "cum_pct": 84.06, "rank_pct": 34.34}, {"rank": 58, "cum_pct": 84.59, "rank_pct": 34.94}, {"rank": 59, "cum_pct": 85.1, "rank_pct": 35.54}, {"rank": 60, "cum_pct": 85.59, "rank_pct": 36.14}, {"rank": 61, "cum_pct": 86.05, "rank_pct": 36.75}, {"rank": 62, "cum_pct": 86.49, "rank_pct": 37.35}, {"rank": 63, "cum_pct": 86.91, "rank_pct": 37.95}, {"rank": 64, "cum_pct": 87.32, "rank_pct": 38.55}, {"rank": 65, "cum_pct": 87.72, "rank_pct": 39.16}, {"rank": 66, "cum_pct": 88.09, "rank_pct": 39.76}, {"rank": 67, "cum_pct": 88.46, "rank_pct": 40.36}, {"rank": 68, "cum_pct": 88.82, "rank_pct": 40.96}, {"rank": 69, "cum_pct": 89.17, "rank_pct": 41.57}, {"rank": 70, "cum_pct": 89.52, "rank_pct": 42.17}, {"rank": 71, "cum_pct": 89.85, "rank_pct": 42.77}, {"rank": 72, "cum_pct": 90.17, "rank_pct": 43.37}, {"rank": 73, "cum_pct": 90.48, "rank_pct": 43.98}, {"rank": 74, "cum_pct": 90.76, "rank_pct": 44.58}, {"rank": 75, "cum_pct": 91.03, "rank_pct": 45.18}, {"rank": 76, "cum_pct": 91.3, "rank_pct": 45.78}, {"rank": 77, "cum_pct": 91.56, "rank_pct": 46.39}, {"rank": 78, "cum_pct": 91.83, "rank_pct": 46.99}, {"rank": 79, "cum_pct": 92.09, "rank_pct": 47.59}, {"rank": 80, "cum_pct": 92.35, "rank_pct": 48.19}, {"rank": 81, "cum_pct": 92.61, "rank_pct": 48.8}, {"rank": 82, "cum_pct": 92.86, "rank_pct": 49.4}, {"rank": 83, "cum_pct": 93.11, "rank_pct": 50.0}, {"rank": 84, "cum_pct": 93.34, "rank_pct": 50.6}, {"rank": 85, "cum_pct": 93.56, "rank_pct": 51.2}, {"rank": 86, "cum_pct": 93.78, "rank_pct": 51.81}, {"rank": 87, "cum_pct": 93.99, "rank_pct": 52.41}, {"rank": 88, "cum_pct": 94.19, "rank_pct": 53.01}, {"rank": 89, "cum_pct": 94.39, "rank_pct": 53.61}, {"rank": 90, "cum_pct": 94.59, "rank_pct": 54.22}, {"rank": 91, "cum_pct": 94.78, "rank_pct": 54.82}, {"rank": 92, "cum_pct": 94.96, "rank_pct": 55.42}, {"rank": 93, "cum_pct": 95.13, "rank_pct": 56.02}, {"rank": 94, "cum_pct": 95.29, "rank_pct": 56.63}, {"rank": 95, "cum_pct": 95.45, "rank_pct": 57.23}, {"rank": 96, "cum_pct": 95.6, "rank_pct": 57.83}, {"rank": 97, "cum_pct": 95.75, "rank_pct": 58.43}, {"rank": 98, "cum_pct": 95.9, "rank_pct": 59.04}, {"rank": 99, "cum_pct": 96.04, "rank_pct": 59.64}, {"rank": 100, "cum_pct": 96.18, "rank_pct": 60.24}, {"rank": 101, "cum_pct": 96.31, "rank_pct": 60.84}, {"rank": 102, "cum_pct": 96.44, "rank_pct": 61.45}, {"rank": 103, "cum_pct": 96.57, "rank_pct": 62.05}, {"rank": 104, "cum_pct": 96.7, "rank_pct": 62.65}, {"rank": 105, "cum_pct": 96.83, "rank_pct": 63.25}, {"rank": 106, "cum_pct": 96.96, "rank_pct": 63.86}, {"rank": 107, "cum_pct": 97.09, "rank_pct": 64.46}, {"rank": 108, "cum_pct": 97.2, "rank_pct": 65.06}, {"rank": 109, "cum_pct": 97.32, "rank_pct": 65.66}, {"rank": 110, "cum_pct": 97.44, "rank_pct": 66.27}, {"rank": 111, "cum_pct": 97.55, "rank_pct": 66.87}, {"rank": 112, "cum_pct": 97.66, "rank_pct": 67.47}, {"rank": 113, "cum_pct": 97.77, "rank_pct": 68.07}, {"rank": 114, "cum_pct": 97.88, "rank_pct": 68.67}, {"rank": 115, "cum_pct": 97.98, "rank_pct": 69.28}, {"rank": 116, "cum_pct": 98.08, "rank_pct": 69.88}, {"rank": 117, "cum_pct": 98.17, "rank_pct": 70.48}, {"rank": 118, "cum_pct": 98.26, "rank_pct": 71.08}, {"rank": 119, "cum_pct": 98.34, "rank_pct": 71.69}, {"rank": 120, "cum_pct": 98.41, "rank_pct": 72.29}, {"rank": 121, "cum_pct": 98.48, "rank_pct": 72.89}, {"rank": 122, "cum_pct": 98.55, "rank_pct": 73.49}, {"rank": 123, "cum_pct": 98.62, "rank_pct": 74.1}, {"rank": 124, "cum_pct": 98.69, "rank_pct": 74.7}, {"rank": 125, "cum_pct": 98.75, "rank_pct": 75.3}, {"rank": 126, "cum_pct": 98.81, "rank_pct": 75.9}, {"rank": 127, "cum_pct": 98.87, "rank_pct": 76.51}, {"rank": 128, "cum_pct": 98.93, "rank_pct": 77.11}, {"rank": 129, "cum_pct": 98.99, "rank_pct": 77.71}, {"rank": 130, "cum_pct": 99.05, "rank_pct": 78.31}, {"rank": 131, "cum_pct": 99.09, "rank_pct": 78.92}, {"rank": 132, "cum_pct": 99.14, "rank_pct": 79.52}, {"rank": 133, "cum_pct": 99.19, "rank_pct": 80.12}, {"rank": 134, "cum_pct": 99.23, "rank_pct": 80.72}, {"rank": 135, "cum_pct": 99.27, "rank_pct": 81.33}, {"rank": 136, "cum_pct": 99.31, "rank_pct": 81.93}, {"rank": 137, "cum_pct": 99.35, "rank_pct": 82.53}, {"rank": 138, "cum_pct": 99.39, "rank_pct": 83.13}, {"rank": 139, "cum_pct": 99.43, "rank_pct": 83.73}, {"rank": 140, "cum_pct": 99.47, "rank_pct": 84.34}, {"rank": 141, "cum_pct": 99.51, "rank_pct": 84.94}, {"rank": 142, "cum_pct": 99.54, "rank_pct": 85.54}, {"rank": 143, "cum_pct": 99.57, "rank_pct": 86.14}, {"rank": 144, "cum_pct": 99.6, "rank_pct": 86.75}, {"rank": 145, "cum_pct": 99.63, "rank_pct": 87.35}, {"rank": 146, "cum_pct": 99.66, "rank_pct": 87.95}, {"rank": 147, "cum_pct": 99.69, "rank_pct": 88.55}, {"rank": 148, "cum_pct": 99.72, "rank_pct": 89.16}, {"rank": 149, "cum_pct": 99.75, "rank_pct": 89.76}, {"rank": 150, "cum_pct": 99.77, "rank_pct": 90.36}, {"rank": 151, "cum_pct": 99.79, "rank_pct": 90.96}, {"rank": 152, "cum_pct": 99.81, "rank_pct": 91.57}, {"rank": 153, "cum_pct": 99.83, "rank_pct": 92.17}, {"rank": 154, "cum_pct": 99.85, "rank_pct": 92.77}, {"rank": 155, "cum_pct": 99.87, "rank_pct": 93.37}, {"rank": 156, "cum_pct": 99.89, "rank_pct": 93.98}, {"rank": 157, "cum_pct": 99.91, "rank_pct": 94.58}, {"rank": 158, "cum_pct": 99.92, "rank_pct": 95.18}, {"rank": 159, "cum_pct": 99.93, "rank_pct": 95.78}, {"rank": 160, "cum_pct": 99.94, "rank_pct": 96.39}, {"rank": 161, "cum_pct": 99.95, "rank_pct": 96.99}, {"rank": 162, "cum_pct": 99.96, "rank_pct": 97.59}, {"rank": 163, "cum_pct": 99.97, "rank_pct": 98.19}, {"rank": 164, "cum_pct": 99.98, "rank_pct": 98.8}, {"rank": 165, "cum_pct": 99.99, "rank_pct": 99.4}, {"rank": 166, "cum_pct": 100.0, "rank_pct": 100.0}]};
+const palette=['#2b6cb0','#38a169','#d69e2e','#e07b39','#9f7aea','#319795'];
+// c1 distribution
+echarts.init(document.getElementById('c1')).setOption({
+  tooltip:{trigger:'axis',axisPointer:{type:'shadow'}},
+  grid:{left:50,right:20,top:20,bottom:40},
+  xAxis:{type:'category',data:D.dist_labels,axisLabel:{fontSize:11}},
+  yAxis:{type:'value',name:'供应商数'},
+  series:[{type:'bar',data:D.dist_vals.map((v,i)=>({value:v,itemStyle:{color:i===0?'#cbd5e0':'#2b6cb0'}})),barWidth:'60%'}]
+});
+// c2 top20
+const top=D.top.slice().reverse();
+echarts.init(document.getElementById('c2')).setOption({
+  tooltip:{trigger:'axis',axisPointer:{type:'shadow'}},
+  grid:{left:160,right:40,top:10,bottom:20},
+  xAxis:{type:'value'},
+  yAxis:{type:'category',data:top.map(r=>r.company_name),axisLabel:{fontSize:10,width:150,overflow:'truncate'}},
+  series:[{type:'bar',data:top.map(r=>r.bom_submitted),barWidth:'65%',
+    itemStyle:{color:new echarts.graphic.LinearGradient(0,0,1,0,[{offset:0,color:'#90cdf4'},{offset:1,color:'#2b6cb0'}])},
+    label:{show:true,position:'right',fontSize:10}}]
+});
+// c3 pareto
+echarts.init(document.getElementById('c3')).setOption({
+  tooltip:{trigger:'axis'},
+  legend:{data:['累计BOM占比','供应商Rank%'],top:0},
+  grid:{left:50,right:50,top:36,bottom:36},
+  xAxis:{type:'value',name:'供应商Rank(%)',max:100},
+  yAxis:[{type:'value',name:'累计BOM%',max:100},{type:'value',name:'Rank%',max:100,show:false}],
+  series:[
+    {name:'累计BOM占比',type:'line',smooth:true,showSymbol:false,data:D.pareto.map(p=>[p.rank_pct,p.cum_pct]),
+      lineStyle:{color:'#c0392b',width:2},areaStyle:{color:'rgba(192,57,43,.08)'}},
+    {name:'供应商Rank%',type:'line',smooth:true,showSymbol:false,yAxisIndex:1,data:D.pareto.map(p=>[p.rank_pct,p.rank_pct]),
+      lineStyle:{color:'#2b6cb0',type:'dashed'}},
+    {name:'80%线',type:'line',markLine:{silent:true,symbol:'none',data:[{yAxis:80,label:{formatter:'80%',color:'#c0392b'}}],lineStyle:{color:'#c0392b'}}}
+  ]
+});
+window.addEventListener('resize',()=>{['c1','c2','c3'].forEach(id=>echarts.getInstanceByDom(document.getElementById(id)).resize());});
+</script>
+</body></html>

@@ -1,0 +1,1587 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Agent 化智能采购平台 · 架构全景</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: 'PingFang SC', 'Microsoft YaHei', 'Helvetica Neue', Arial, sans-serif;
+    background: #F0F2F5; color: #1A202C; line-height: 1.45;
+    padding: 24px 16px;
+  }
+  .container { max-width: 1240px; margin: 0 auto; }
+
+  /* ===== 头部 ===== */
+  .header {
+    background: linear-gradient(135deg, #1A2744 0%, #1E3A5F 60%, #2C5282 100%);
+    color: #fff; border-radius: 8px; padding: 28px 32px; margin-bottom: 18px;
+    position: relative; overflow: hidden;
+  }
+  .header::after {
+    content: ''; position: absolute; right: -80px; top: -80px;
+    width: 280px; height: 280px; border-radius: 50%;
+    background: radial-gradient(circle, rgba(212,168,67,0.15), transparent 70%);
+  }
+  .header .tag-row { display: flex; gap: 8px; margin-bottom: 10px; position: relative; }
+  .header .tag {
+    font-size: 10px; padding: 2px 10px; border-radius: 3px;
+    background: rgba(212,168,67,0.2); color: #E8C97A; border: 1px solid rgba(212,168,67,0.3);
+    letter-spacing: 1px;
+  }
+  .header h1 { font-size: 24px; font-weight: 700; margin-bottom: 6px; letter-spacing: 1px; position: relative; }
+  .header .subtitle { font-size: 12px; opacity: 0.7; margin-bottom: 16px; position: relative; letter-spacing: 0.5px; }
+  .header .value-prop {
+    font-size: 13px; line-height: 1.7; background: rgba(255,255,255,0.06);
+    border-left: 3px solid #D4A843; padding: 10px 16px; border-radius: 0 4px 4px 0;
+    margin-bottom: 16px; position: relative;
+  }
+  .header .value-prop strong { color: #E8C97A; font-weight: 600; }
+  .kpi-row { display: flex; gap: 10px; flex-wrap: wrap; position: relative; }
+  .kpi-card {
+    background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.12);
+    border-radius: 4px; padding: 10px 18px; text-align: center; min-width: 92px;
+  }
+  .kpi-card .num { font-size: 26px; font-weight: 700; color: #E8C97A; line-height: 1.1; font-family: 'Georgia', serif; }
+  .kpi-card .label { font-size: 10px; opacity: 0.75; margin-top: 3px; letter-spacing: 0.5px; }
+
+  /* ===== 通用 Section ===== */
+  .section { background: #fff; border-radius: 6px; padding: 24px 28px; margin-bottom: 16px; box-shadow: 0 1px 3px rgba(0,0,0,0.06); border: 1px solid #E2E8F0; }
+  .section-title {
+    font-size: 16px; font-weight: 700; color: #1A2744; margin-bottom: 4px;
+    display: flex; align-items: center; gap: 10px;
+    padding-bottom: 10px; border-bottom: 2px solid #1A2744;
+  }
+  .section-title .sec-num {
+    display: inline-flex; align-items: center; justify-content: center;
+    width: 28px; height: 28px; background: #1A2744; color: #E8C97A;
+    border-radius: 4px; font-size: 13px; font-weight: 700; font-family: 'Georgia', serif;
+  }
+  .section-title .sec-en { font-size: 11px; color: #A0AEC0; font-weight: 400; letter-spacing: 1px; margin-left: auto; }
+  .section-desc { font-size: 11px; color: #718096; margin: 12px 0 18px; line-height: 1.6; }
+
+  /* ===== 分层架构图 ===== */
+  .arch-layers { border: 1px solid #CBD5E0; border-radius: 6px; overflow: hidden; }
+  .arch-layer {
+    display: flex; border-bottom: 1px solid #E2E8F0; min-height: 60px;
+  }
+  .arch-layer:last-child { border-bottom: none; }
+  .arch-layer .layer-left {
+    width: 110px; flex-shrink: 0; background: #1A2744; color: #fff;
+    display: flex; flex-direction: column; justify-content: center; align-items: center;
+    padding: 10px 8px; text-align: center;
+  }
+  .arch-layer .layer-num {
+    font-size: 20px; font-weight: 700; color: #E8C97A; font-family: 'Georgia', serif;
+    line-height: 1; margin-bottom: 4px;
+  }
+  .arch-layer .layer-cat { font-size: 10.5px; font-weight: 600; letter-spacing: 0.5px; line-height: 1.3; }
+  .arch-layer .layer-cat-en { font-size: 8.5px; opacity: 0.5; margin-top: 2px; letter-spacing: 0.5px; }
+  .arch-layer .layer-mid {
+    width: 150px; flex-shrink: 0; background: #F7FAFC; border-right: 1px solid #E2E8F0;
+    display: flex; flex-direction: column; justify-content: center; padding: 10px 14px;
+  }
+  .arch-layer .layer-name { font-size: 12.5px; font-weight: 700; color: #1A2744; margin-bottom: 2px; }
+  .arch-layer .layer-name-en { font-size: 9px; color: #A0AEC0; letter-spacing: 0.5px; }
+  .arch-layer .layer-right {
+    flex: 1; padding: 10px 16px; display: flex; flex-direction: column; justify-content: center;
+  }
+  .arch-layer .layer-meta {
+    font-size: 9.5px; color: #A0AEC0; margin-bottom: 5px; display: flex; gap: 12px; flex-wrap: wrap;
+  }
+  .arch-layer .layer-meta strong { color: #2C5282; font-weight: 600; }
+
+  /* 层状态色 */
+  .arch-layer.live .layer-left { background: linear-gradient(135deg, #1A2744, #2C5282); }
+  .arch-layer.live .layer-mid { background: #F0FFF4; }
+  .arch-layer.pilot .layer-left { background: linear-gradient(135deg, #1A365D, #2B6CB0); }
+  .arch-layer.pilot .layer-mid { background: #EBF8FF; }
+  .arch-layer.design .layer-left { background: #2D3748; }
+  .arch-layer.todo .layer-left { background: #744210; }
+  .arch-layer.todo .layer-mid { background: #FFFAF0; }
+
+  /* 组件标签 */
+  .comp-row { display: flex; flex-wrap: wrap; gap: 5px; }
+  .comp-tag {
+    display: inline-block; padding: 3px 9px; border-radius: 3px;
+    font-size: 10px; background: #EDF2F7; color: #2D3748; border: 1px solid #E2E8F0;
+  }
+  .comp-tag.live { background: #C6F6D5; border-color: #9AE6B4; color: #22543D; font-weight: 500; }
+  .comp-tag.plan { background: #FEFCBF; border-color: #FAF089; color: #744210; }
+  .comp-tag.todo { background: #FED7D7; border-color: #FEB2B2; color: #742A2A; }
+  .comp-tag.mock { background: #FEEBC8; border-color: #FBD38D; color: #7B341E; }
+
+  /* Agent 卡片网格 */
+  .agent-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 5px; }
+  .agent-layer-stack { display: flex; flex-direction: column; gap: 0; }
+  .agent-level { border-radius: 4px; padding: 8px 10px; position: relative; margin-bottom: 2px; }
+  .agent-level.l4 { background: linear-gradient(135deg, #1A2744, #2D4A6B); border: 1px solid #E8C97A; padding: 10px 14px; }
+  .agent-level.l3 { background: linear-gradient(180deg, #EBF8FF, #fff); border: 1px solid #90CDF4; border-left: 4px solid #2B6CB0; }
+  .agent-level.l2 { background: linear-gradient(180deg, #F0FFF4, #fff); border: 1px solid #9AE6B4; border-left: 4px solid #38A169; }
+  .agent-level.l1 { background: linear-gradient(180deg, #F7FAFC, #EDF2F7); border: 1px solid #CBD5E0; border-left: 4px solid #718096; }
+  .agent-level-header { display: flex; align-items: center; gap: 8px; margin-bottom: 7px; padding-bottom: 5px; border-bottom: 1px solid rgba(0,0,0,0.06); }
+  .agent-level-badge { font-size: 10px; font-weight: 700; padding: 2px 8px; border-radius: 3px; letter-spacing: 0.5px; }
+  .l4 .agent-level-badge { background: #E8C97A; color: #1A2744; }
+  .l3 .agent-level-badge { background: #2B6CB0; color: #fff; }
+  .l2 .agent-level-badge { background: #38A169; color: #fff; }
+  .l1 .agent-level-badge { background: #718096; color: #fff; }
+  .agent-level-title { font-size: 11.5px; font-weight: 700; }
+  .l4 .agent-level-title { color: #E8C97A; }
+  .l3 .agent-level-title { color: #1A2744; }
+  .l2 .agent-level-title { color: #22543D; }
+  .l1 .agent-level-title { color: #2D3748; }
+  .agent-level-en { font-size: 8.5px; color: #A0AEC0; letter-spacing: 0.5px; font-weight: 600; }
+  .l4 .agent-level-en { color: rgba(232,201,122,0.6); }
+  .agent-level-desc { font-size: 8.5px; color: #718096; margin-left: auto; text-align: right; }
+  .l4 .agent-level-desc { color: #A0AEC0; }
+  .level-arrow { text-align: center; color: #CBD5E0; font-size: 12px; line-height: 1; padding: 1px 0; letter-spacing: 2px; }
+  .level-arrow span { font-size: 8px; color: #A0AEC0; margin-left: 4px; letter-spacing: 0; }
+  /* L4 协调层大卡片 */
+  .coord-card { background: rgba(255,255,255,0.08); border: 1px solid rgba(232,201,122,0.3); border-radius: 4px; padding: 10px 16px; max-width: 60%; margin: 0 auto; }
+  .coord-card .ac-head { margin-bottom: 4px; }
+  .coord-card .ac-id { background: rgba(232,201,122,0.2) !important; color: #E8C97A !important; }
+  .coord-card .ac-name { color: #E8C97A !important; font-size: 13px !important; }
+  .coord-card .ac-role { color: #E2E8F0 !important; font-size: 10px !important; }
+  .coord-card .ac-cli span { background: rgba(232,201,122,0.15) !important; color: #E8C97A !important; font-size: 9px !important; }
+  /* L1 底座卡片更紧凑 */
+  .l1 .agent-card { padding: 5px 8px; }
+  .l1 .agent-card .ac-name { font-size: 10px; }
+  .l1 .agent-card .ac-role { font-size: 8.5px; }
+  .l1 .agent-card .ac-cli span { font-size: 7.5px; }
+  .agent-card {
+    border-radius: 4px; padding: 6px 8px; border: 1px solid; background: #fff;
+  }
+  .agent-card.live { border-color: #9AE6B4; background: #F0FFF4; }
+  .agent-card.pilot { border-color: #90CDF4; background: #EBF8FF; }
+  .agent-card.design { border-color: #CBD5E0; background: #F7FAFC; }
+  .agent-card.concept { border-color: #FBD38D; background: #FFFAF0; }
+  .agent-card.plan { border-color: #E2E8F0; background: #FAFAFA; }
+  .agent-card .ac-head { display: flex; align-items: center; gap: 4px; margin-bottom: 2px; }
+  .agent-card .ac-id { font-size: 9px; font-weight: 700; color: #2B6CB0; background: #BEE3F8; padding: 0 5px; border-radius: 2px; }
+  .agent-card .ac-name { font-size: 10.5px; font-weight: 600; color: #1A202C; }
+  .agent-card .ac-star { color: #D69E2E; font-size: 10px; }
+  .agent-card .ac-mat {
+    margin-left: auto; font-size: 8px; font-weight: 600; padding: 0 4px; border-radius: 2px;
+  }
+  .m-l5 { background: #C6F6D5; color: #22543D; }
+  .m-l4 { background: #BEE3F8; color: #2A4365; }
+  .m-l3 { background: #E2E8F0; color: #4A5568; }
+  .m-l2 { background: #FEFCBF; color: #744210; }
+  .m-l1 { background: #F7FAFC; color: #A0AEC0; }
+  .agent-card .ac-role { font-size: 9px; color: #4A5568; margin-bottom: 3px; line-height: 1.35; }
+  .agent-card .ac-cli { font-size: 8.5px; color: #718096; display: flex; flex-wrap: wrap; gap: 2px; }
+  .agent-card .ac-cli span { background: #EDF2F7; padding: 0 4px; border-radius: 2px; font-size: 8px; }
+
+  /* CLI 模块卡片 */
+  .cli-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 5px; }
+  .cli-card {
+    background: #fff; border-radius: 4px; padding: 6px 9px; border: 1px solid #E2E8F0;
+  }
+  .cli-card.live { border-color: #9AE6B4; background: #F0FFF4; }
+  .cli-card.todo { border-color: #FEB2B2; background: #FFF5F5; }
+  .cli-card.mock { border-color: #FBD38D; background: #FFFAF0; }
+  .cli-card.ext { border-style: dashed; background: #F7FAFC; }
+  .cli-card .cc-head { display: flex; justify-content: space-between; align-items: center; margin-bottom: 3px; }
+  .cli-card .cc-mod { font-size: 10.5px; font-weight: 700; color: #1A2744; }
+  .cli-card .cc-cnt { font-size: 10px; font-weight: 700; }
+  .cli-card.live .cc-cnt { color: #276749; }
+  .cli-card.todo .cc-cnt { color: #C53030; }
+  .cli-card.mock .cc-cnt { color: #C05621; }
+  .cli-card .cc-list { font-size: 8.5px; color: #4A5568; line-height: 1.6; font-family: 'SF Mono', 'Consolas', monospace; }
+  .cli-card .cc-list .fn { color: #A0AEC0; font-size: 8px; font-family: 'PingFang SC', sans-serif; }
+
+  /* 地基 */
+  .arch-foundation {
+    display: flex; border-top: 2px solid #1A2744;
+  }
+  .found-col { flex: 1; padding: 12px 16px; }
+  .found-col:first-child { background: linear-gradient(135deg, #FFFFF0, #FFFAEB); border-right: 1px solid #E2E8F0; }
+  .found-col:last-child { background: linear-gradient(135deg, #FAF5FF, #F5F0FF); }
+  .found-title { font-size: 11px; font-weight: 700; margin-bottom: 5px; display: flex; align-items: center; gap: 6px; }
+  .found-title::before { content: ''; width: 3px; height: 12px; background: #D4A843; border-radius: 2px; }
+  .found-col:first-child .found-title { color: #744210; }
+  .found-col:last-child .found-title { color: #553C9A; }
+  .found-items { font-size: 9.5px; color: #4A5568; line-height: 1.6; }
+  .found-items b { color: #1A2744; font-weight: 600; }
+
+  /* 横切关注点 */
+  .crosscut {
+    background: linear-gradient(135deg, #1A2744, #1E3A5F); color: #fff;
+    border-radius: 6px; padding: 14px 20px; margin-top: 14px;
+  }
+  .crosscut-title { font-size: 11px; font-weight: 700; margin-bottom: 8px; color: #E8C97A; letter-spacing: 0.5px; }
+  .crosscut-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); gap: 6px; }
+  .crosscut-item {
+    background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.1);
+    border-radius: 4px; padding: 6px 10px;
+  }
+  .crosscut-item .cc-name { font-size: 10px; font-weight: 600; margin-bottom: 1px; color: #E8C97A; }
+  .crosscut-item .cc-desc { font-size: 8.5px; opacity: 0.7; line-height: 1.4; }
+
+  /* ===== Skill 地图 ===== */
+  .skill-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 6px; }
+  .skill-card {
+    border-radius: 4px; padding: 8px 10px; border: 1px solid;
+  }
+  .skill-card.live { background: #F0FFF4; border-color: #9AE6B4; }
+  .skill-card.plan { background: #FFFFF0; border-color: #FAF089; }
+  .skill-card .skill-domain { font-size: 10.5px; font-weight: 700; margin-bottom: 3px; display: flex; justify-content: space-between; align-items: center; }
+  .skill-card.live .skill-domain { color: #22543D; }
+  .skill-card.plan .skill-domain { color: #744210; }
+  .skill-card .skill-count { font-size: 14px; font-weight: 700; font-family: 'Georgia', serif; }
+  .skill-card.live .skill-count { color: #38A169; }
+  .skill-card.plan .skill-count { color: #D69E2E; }
+  .skill-card .skill-list { font-size: 8.5px; color: #4A5568; line-height: 1.55; font-family: 'SF Mono', Consolas, monospace; }
+  .skill-card .skill-list .s-fn { color: #A0AEC0; font-size: 8px; display: block; padding-left: 4px; font-family: 'PingFang SC', sans-serif; }
+
+  /* ===== 价值流 ===== */
+  .flow-container { overflow-x: auto; }
+  .flow-table { width: 100%; border-collapse: collapse; font-size: 9px; min-width: 940px; }
+  .flow-table th {
+    background: #1A2744; color: #fff; padding: 7px 6px; text-align: center;
+    font-weight: 600; font-size: 9.5px; letter-spacing: 0.3px;
+  }
+  .flow-table td { padding: 5px 6px; border: 1px solid #E2E8F0; vertical-align: top; }
+  .flow-table .stage-label {
+    background: #2D3748; color: #E8C97A; font-weight: 700; text-align: center;
+    width: 56px; vertical-align: middle; font-size: 9.5px; line-height: 1.3;
+  }
+  .flow-cell .agent-tag {
+    display: inline-block; background: #BEE3F8; color: #2A4365; padding: 0 5px;
+    border-radius: 2px; font-size: 8.5px; font-weight: 600; margin-bottom: 2px;
+  }
+  .flow-cell .skill-tag {
+    display: inline-block; background: #C6F6D5; color: #22543D; padding: 0 4px;
+    border-radius: 2px; font-size: 8px; margin: 1px 1px 1px 0; font-family: monospace;
+  }
+  .flow-cell .cli-tag {
+    display: inline-block; background: #FEEBC8; color: #7B341E; padding: 0 4px;
+    border-radius: 2px; font-size: 8px; margin: 1px 1px 1px 0; font-family: monospace;
+  }
+  .flow-cell .io { font-size: 8px; color: #718096; margin-top: 2px; font-style: italic; line-height: 1.35; }
+  .flow-cell .decision { font-size: 8px; color: #6B46C1; margin-top: 2px; font-weight: 500; }
+  .flow-cell .decision::before { content: '◆ '; color: #D4A843; }
+
+  /* ===== 演进路线 ===== */
+  .roadmap { display: flex; gap: 0; border-radius: 6px; overflow: hidden; border: 1px solid #CBD5E0; }
+  .phase { flex: 1; padding: 14px 14px; }
+  .phase:not(:last-child) { border-right: 1px solid #E2E8F0; }
+  .phase.p1 { background: linear-gradient(180deg, #F0FFF4, #fff); }
+  .phase.p2 { background: linear-gradient(180deg, #EBF8FF, #fff); }
+  .phase.p3 { background: linear-gradient(180deg, #FFFFF0, #fff); }
+  .phase.p4 { background: linear-gradient(180deg, #FFF5F5, #fff); }
+  .phase-header { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; padding-bottom: 6px; border-bottom: 1px solid #E2E8F0; }
+  .phase-badge {
+    width: 24px; height: 24px; line-height: 24px; text-align: center;
+    border-radius: 4px; color: #fff; font-size: 11px; font-weight: 700; font-family: 'Georgia', serif;
+  }
+  .phase.p1 .phase-badge { background: #38A169; }
+  .phase.p2 .phase-badge { background: #3182CE; }
+  .phase.p3 .phase-badge { background: #D69E2E; }
+  .phase.p4 .phase-badge { background: #E53E3E; }
+  .phase-name { font-size: 11.5px; font-weight: 700; color: #1A202C; }
+  .phase-time { font-size: 8.5px; color: #A0AEC0; }
+  .phase-goal { font-size: 9.5px; color: #2D3748; margin-bottom: 5px; font-weight: 600; line-height: 1.4; }
+  .phase-deliver { font-size: 8.5px; color: #4A5568; line-height: 1.55; }
+  .phase-deliver li { margin-left: 12px; margin-bottom: 0; }
+  .phase-tech { font-size: 8px; color: #718096; margin-top: 6px; padding-top: 5px; border-top: 1px dashed #CBD5E0; }
+  .phase-tech b { color: #1A2744; }
+  .phase-metric { font-size: 8px; color: #718096; margin-top: 3px; }
+  .phase-metric strong { color: #1A2744; }
+
+  .footer { text-align: center; font-size: 9.5px; color: #A0AEC0; margin-top: 14px; padding: 8px; letter-spacing: 0.5px; }
+  /* Tab 导航 */
+  .tabbar { display: flex; gap: 0; background: #F7FAFC; border: 1px solid #E2E8F0; border-radius: 6px; overflow: hidden; margin: 0 20px 14px; }
+  .tab { padding: 8px 14px; font-size: 10.5px; font-weight: 600; color: #718096; cursor: pointer; border-right: 1px solid #E2E8F0; transition: all 0.2s; white-space: nowrap; }
+  .tab:last-child { border-right: none; }
+  .tab:hover { background: #EBF8FF; color: #2B6CB0; }
+  .tab.on { background: #1A2744; color: #E8C97A; font-weight: 700; }
+  .tab .tn { display: inline-block; width: 16px; height: 16px; line-height: 16px; text-align: center; background: rgba(255,255,255,0.15); border-radius: 3px; font-size: 9px; margin-right: 5px; }
+  .tab.on .tn { background: rgba(232,201,122,0.25); color: #E8C97A; }
+  /* B点风格架构布局 */
+  .arch-wrap { display: grid; grid-template-columns: 56px 1fr; gap: 10px; }
+  .arch-rail { border-radius: 8px; padding: 10px 4px; display: flex; flex-direction: column; align-items: center; gap: 6px; background: linear-gradient(180deg, #EBF8FF, #F0FFF4); border: 1px solid #BEE3F8; }
+  .arch-rail .ar-dir { font-size: 12px; color: #2B6CB0; font-weight: 800; }
+  .arch-rail .ar-title { writing-mode: vertical-rl; font-size: 10px; font-weight: 800; color: #1A2744; letter-spacing: 2px; margin: 4px 0; }
+  .arch-rail .ar-node { writing-mode: vertical-rl; font-size: 9px; padding: 10px 4px; border-radius: 6px; font-weight: 700; background: #fff; color: #2B6CB0; border: 1px solid #BEE3F8; text-align: center; }
+  .arch-rail .ar-node.l1 { color: #2C7A7B; border-color: #81E6D9; }
+  .arch-rail .ar-node.l2 { color: #2F855A; border-color: #9AE6B4; }
+  .arch-rail .ar-node.l3 { color: #B7791F; border-color: #F6E05E; }
+  .arch-rail .ar-node.l4 { color: #553C9A; border-color: #D6BCFA; }
+  .arch-rail .ar-sub { writing-mode: vertical-rl; font-size: 7.5px; color: #718096; margin-top: 2px; }
+  /* B点风格层头 */
+  .va-layer { border-radius: 8px; border: 1.5px solid #E2E8F0; overflow: hidden; margin-bottom: 6px; }
+  .va-lh { display: flex; align-items: center; gap: 10px; padding: 8px 14px; color: #fff; font-weight: 800; }
+  .va-lh .va-ln { font-size: 14px; font-weight: 800; background: rgba(255,255,255,0.2); padding: 2px 8px; border-radius: 4px; }
+  .va-lh .va-lt { font-size: 13px; }
+  .va-lh .va-slo { font-size: 9px; font-weight: 600; background: rgba(255,255,255,0.18); padding: 1px 7px; border-radius: 4px; margin-left: 4px; }
+  .va-lh .va-lq { margin-left: auto; font-size: 10px; font-weight: 600; opacity: 0.95; }
+  .va-lb { padding: 10px 12px; background: #fff; }
+  .va-layer.l4 .va-lh { background: linear-gradient(135deg, #553C9A, #6B46C1); }
+  .va-layer.l3 .va-lh { background: linear-gradient(135deg, #B7791F, #D69E2E); }
+  .va-layer.l2 .va-lh { background: linear-gradient(135deg, #2B6CB0, #3182CE); }
+  .va-layer.l1 .va-lh { background: linear-gradient(135deg, #2C7A7B, #319795); }
+  .va-flow { text-align: center; font-size: 9.5px; color: #718096; padding: 2px 0; font-weight: 600; }
+  .va-flow .vf-a { color: #2B6CB0; font-weight: 800; margin: 0 4px; }
+  /* 业务域 panel */
+  .domain-panels { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; }
+  .domain-panel { border: 1.4px solid #E2E8F0; border-radius: 8px; overflow: hidden; background: #fff; }
+  .domain-panel .dp-h { padding: 6px 10px; font-weight: 800; font-size: 11px; color: #fff; display: flex; align-items: center; gap: 6px; }
+  .domain-panel.sourcing .dp-h { background: linear-gradient(135deg, #2B6CB0, #3182CE); }
+  .domain-panel.execution .dp-h { background: linear-gradient(135deg, #2F855A, #38A169); }
+  .domain-panel.resource .dp-h { background: linear-gradient(135deg, #B7791F, #D69E2E); }
+  .domain-panel.general .dp-h { background: linear-gradient(135deg, #718096, #A0AEC0); }
+  .domain-panel .dp-h .dp-code { font-size: 8.5px; background: rgba(255,255,255,0.25); padding: 1px 5px; border-radius: 3px; }
+  .domain-panel .dp-b { padding: 7px 8px; }
+  .domain-panel .pcard { background: #F7FAFC; border: 1px solid #E2E8F0; border-left: 3px solid; border-radius: 5px; padding: 5px 7px; margin-bottom: 5px; }
+  .domain-panel.sourcing .pcard { border-left-color: #3182CE; }
+  .domain-panel.execution .pcard { border-left-color: #38A169; }
+  .domain-panel.resource .pcard { border-left-color: #D69E2E; }
+  .domain-panel.general .pcard { border-left-color: #A0AEC0; }
+  .domain-panel .pcard .pc-t { font-weight: 800; font-size: 10px; color: #1A202C; display: flex; align-items: center; gap: 4px; }
+  .domain-panel .pcard .pc-t .pc-id { font-size: 8px; color: #fff; background: #4A5568; padding: 0 4px; border-radius: 2px; font-weight: 700; }
+  .domain-panel .pcard .pc-d { font-size: 8.5px; color: #4A5568; margin-top: 2px; line-height: 1.4; }
+  .domain-panel .pcard .pc-dep { font-size: 7.5px; color: #718096; margin-top: 3px; background: #EDF2F7; padding: 2px 5px; border-radius: 3px; }
+  .domain-panel .pcard .pc-dep b { color: #2B6CB0; }
+  /* 架构对比 */
+  .compare-table { width: 100%; border-collapse: collapse; font-size: 9.5px; margin-bottom: 12px; }
+  .compare-table th { background: #1A2744; color: #fff; padding: 7px 10px; text-align: left; font-weight: 600; font-size: 10px; }
+  .compare-table th:first-child { width: 14%; border-radius: 3px 0 0 0; }
+  .compare-table th:nth-child(2) { width: 43%; background: #4A5568; }
+  .compare-table th:nth-child(3) { width: 43%; border-radius: 0 3px 0 0; }
+  .compare-table td { padding: 7px 10px; border-bottom: 1px solid #E2E8F0; vertical-align: top; line-height: 1.5; }
+  .compare-table td:first-child { font-weight: 700; color: #1A2744; background: #F7FAFC; }
+  .compare-table td:nth-child(2) { color: #4A5568; background: #FAFAFA; }
+  .compare-table td:nth-child(3) { color: #2D3748; }
+  .compare-table tr:last-child td:first-child { border-radius: 0 0 0 3px; }
+  .compare-table tr:last-child td:last-child { border-radius: 0 0 3px 0; }
+  .gain-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 6px; margin-bottom: 10px; }
+  .gain-card { border: 1px solid #E2E8F0; border-radius: 4px; padding: 8px 10px; background: #fff; border-top: 3px solid #D4A843; }
+  .gain-card .gain-num { font-size: 16px; font-weight: 700; color: #1A2744; font-family: Georgia, serif; }
+  .gain-card .gain-title { font-size: 10px; font-weight: 700; color: #1A2744; margin: 2px 0 4px; }
+  .gain-card .gain-desc { font-size: 8.5px; color: #4A5568; line-height: 1.5; }
+  .compare-summary { background: linear-gradient(135deg, #1A2744, #2D4A6B); color: #fff; border-radius: 4px; padding: 12px 16px; margin-top: 8px; }
+  .compare-summary .cs-label { font-size: 9px; color: #E8C97A; font-weight: 600; letter-spacing: 1px; margin-bottom: 4px; }
+  .compare-summary .cs-text { font-size: 11px; line-height: 1.7; color: #E2E8F0; }
+  .compare-summary .cs-text strong { color: #E8C97A; }
+  /* 挑战与解决方案 */
+  .challenge-block { border: 1px solid #E2E8F0; border-radius: 4px; margin-bottom: 10px; overflow: hidden; }
+  .challenge-header { background: linear-gradient(135deg, #1A2744, #2D4A6B); color: #fff; padding: 8px 14px; display: flex; align-items: center; gap: 10px; }
+  .challenge-header .ch-num { font-size: 18px; font-weight: 700; color: #E8C97A; font-family: Georgia, serif; }
+  .challenge-header .ch-title { font-size: 12px; font-weight: 700; }
+  .challenge-header .ch-en { font-size: 9px; color: #A0AEC0; letter-spacing: 0.5px; margin-left: auto; }
+  .challenge-body { display: grid; grid-template-columns: 1fr 1.5fr; gap: 0; }
+  .challenge-problem { background: #FFF5F5; border-right: 1px solid #FED7D7; padding: 10px 14px; }
+  .challenge-problem .cp-label { font-size: 9px; font-weight: 700; color: #C53030; letter-spacing: 0.5px; margin-bottom: 5px; }
+  .challenge-problem .cp-text { font-size: 9.5px; color: #4A5568; line-height: 1.6; }
+  .challenge-problem .cp-text ul { margin: 4px 0; padding-left: 14px; }
+  .challenge-problem .cp-text li { margin-bottom: 2px; }
+  .challenge-solution { background: #F0FFF4; padding: 10px 14px; }
+  .challenge-solution .cs-label { font-size: 9px; font-weight: 700; color: #22543D; letter-spacing: 0.5px; margin-bottom: 5px; }
+  .challenge-solution .cs-list { font-size: 9.5px; color: #2D3748; line-height: 1.6; }
+  .challenge-solution .cs-list .cs-item { margin-bottom: 5px; padding-left: 14px; position: relative; }
+  .challenge-solution .cs-list .cs-item::before { content: '▸'; position: absolute; left: 0; color: #38A169; font-weight: 700; }
+  .challenge-solution .cs-list .cs-item strong { color: #22543D; }
+  .gap-matrix { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; margin-top: 8px; }
+  .gap-cell { border: 1px solid #E2E8F0; border-radius: 4px; padding: 8px 10px; background: #fff; }
+  .gap-cell.done { border-left: 3px solid #38A169; background: #F0FFF4; }
+  .gap-cell.doing { border-left: 3px solid #3182CE; background: #EBF8FF; }
+  .gap-cell.todo { border-left: 3px solid #D69E2E; background: #FFFFF0; }
+  .gap-cell.deep { border-left: 3px solid #805AD5; background: #FAF5FF; }
+  .gap-cell .gc-status { font-size: 8px; font-weight: 700; padding: 1px 5px; border-radius: 2px; display: inline-block; margin-bottom: 3px; }
+  .gap-cell.done .gc-status { background: #C6F6D5; color: #22543D; }
+  .gap-cell.doing .gc-status { background: #BEE3F8; color: #2A4365; }
+  .gap-cell.todo .gc-status { background: #FEFCBF; color: #744210; }
+  .gap-cell.deep .gc-status { background: #E9D8FD; color: #553C9A; }
+  .gap-cell .gc-title { font-size: 10px; font-weight: 700; color: #1A2744; margin-bottom: 3px; }
+  .gap-cell .gc-desc { font-size: 8.5px; color: #4A5568; line-height: 1.5; }
+  .nav-guide { background: linear-gradient(135deg, #F7FAFC, #EDF2F7); border: 1px solid #E2E8F0; border-radius: 4px; padding: 10px 14px; margin-bottom: 14px; }
+  .nav-guide .ng-title { font-size: 10px; font-weight: 700; color: #1A2744; margin-bottom: 5px; }
+  .nav-guide .ng-list { display: flex; flex-wrap: wrap; gap: 6px; font-size: 9px; color: #4A5568; }
+  .nav-guide .ng-item { background: #fff; border: 1px solid #E2E8F0; border-radius: 3px; padding: 3px 8px; }
+  .nav-guide .ng-item strong { color: #2B6CB0; }
+
+  @media (max-width: 768px) {
+    .agent-grid { grid-template-columns: repeat(2, 1fr); }
+    .roadmap { flex-direction: column; }
+    .phase:not(:last-child) { border-right: none; border-bottom: 1px solid #E2E8F0; }
+    .arch-layer { flex-direction: column; }
+    .arch-layer .layer-left, .arch-layer .layer-mid { width: 100%; }
+  }
+
+  /* 采购阶段Agent面板 */
+  .stage-panel { background:#fff;border:1px solid #E2E8F0;border-radius:6px;overflow:hidden; }
+  .stage-h { padding:5px 8px;font-weight:800;font-size:10.5px;color:#fff;display:flex;align-items:center;gap:5px; }
+  .stage-h .stage-code { font-size:8.5px;background:rgba(255,255,255,0.25);padding:1px 5px;border-radius:3px;font-weight:800; }
+  .stage-b { padding:5px 6px; }
+  .ag-card { background:#F7FAFC;border:1px solid #E2E8F0;border-left:3px solid #4A5568;border-radius:4px;padding:4px 6px;margin-bottom:4px; }
+  .ag-card:last-child { margin-bottom:0; }
+  .ag-card.live { border-left-color:#38A169;background:#F0FFF4; }
+  .ag-card.pilot { border-left-color:#3182CE;background:#EBF8FF; }
+  .ag-card.design { border-left-color:#D69E2E;background:#FFFFF0; }
+  .ag-card.concept { border-left-color:#805AD5;background:#FAF5FF; }
+  .ag-card.plan { border-left-color:#A0AEC0;background:#FAFAFA; }
+  .ag-t { font-weight:700;font-size:9.5px;color:#1A202C;display:flex;align-items:center;gap:4px; }
+  .ag-t .ag-id { font-size:7.5px;color:#fff;background:#4A5568;padding:0 4px;border-radius:2px;font-weight:700; }
+  .ag-card.live .ag-t .ag-id { background:#38A169; }
+  .ag-card.pilot .ag-t .ag-id { background:#3182CE; }
+  .ag-card.design .ag-t .ag-id { background:#D69E2E; }
+  .ag-card.concept .ag-t .ag-id { background:#805AD5; }
+  .ag-d { font-size:8px;color:#4A5568;margin-top:2px;line-height:1.4; }
+  .ag-cli { font-size:7px;color:#718096;margin-top:2px;background:#EDF2F7;padding:1px 4px;border-radius:2px;display:inline-block; }
+
+  /* 域智能体卡片 */
+  .domain-agent { background:#fff;border:1px solid #E2E8F0;border-radius:6px;overflow:hidden;display:flex;flex-direction:column; }
+  .da-head { padding:5px 6px;font-weight:800;font-size:9.5px;color:#fff;display:flex;align-items:center;gap:3px;background:#4A5568; }
+  .da-head .da-code { font-size:7.5px;background:rgba(255,255,255,0.25);padding:1px 4px;border-radius:2px;font-weight:800; }
+  .da-head .da-name { font-size:9px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis; }
+  .da-body { padding:5px 6px;flex:1; }
+  .da-agent-name { font-size:10px;font-weight:800;color:#1A202C;margin-bottom:3px; }
+  .da-desc { font-size:7.5px;color:#4A5568;line-height:1.4;margin-bottom:4px; }
+  .da-meta { display:flex;gap:3px;align-items:center; }
+  .da-skill { font-size:7px;color:#718096;background:#EDF2F7;padding:1px 4px;border-radius:2px; }
+  .da-status { font-size:6.5px;padding:1px 4px;border-radius:2px;font-weight:700; }
+  .da-status.live { background:#C6F6D5;color:#276749; }
+  .da-status.pilot { background:#BEE3F8;color:#2B6CB0; }
+  .da-status.design { background:#FEFCBF;color:#975A16; }
+  .da-status.concept { background:#E9D8FD;color:#553C9A; }
+  .da-status.plan { background:#E2E8F0;color:#4A5568; }
+  /* 协同机制卡片 */
+  .collab-card { background:#F7FAFC;border:1px solid #E2E8F0;border-radius:5px;padding:6px 8px;text-align:center; }
+  .cc-icon { font-size:14px;margin-bottom:2px; }
+  .cc-title { font-size:9.5px;font-weight:800;color:#1A202C;margin-bottom:2px; }
+  .cc-desc { font-size:7.5px;color:#4A5568;line-height:1.4; }
+</style>
+</head>
+<body>
+<div class="container">
+
+  <!-- ===== 头部 ===== -->
+  <div class="header">
+    <div class="tag-row">
+      <span class="tag">ARCHITECTURE</span>
+      <span class="tag">AI-NATIVE</span>
+      <span class="tag">PROCUREMENT</span>
+    </div>
+    <h1>Agent 化智能采购平台 · 架构全景</h1>
+    <div class="subtitle">Intelligent Procurement Platform Architecture Overview · 基于 SRM 四层架构演进 · 自底向上能力聚合</div>
+    <div class="value-prop">
+      以 <strong>39 个 EP CLI 原子能力</strong>为执行底座，经 <strong>59 个 Skill 场景化封装</strong>与<strong>编排层</strong>流程组合，由 <strong>16 个采购领域 Agent</strong> 智能决策与多 Agent 协同，最终通过<strong>多模态交互层</strong>实现自然语言驱动的全链路智能采购——采购人从"操作系统"升级为"指挥系统"。
+    </div>
+    <div class="kpi-row">
+      <div class="kpi-card"><div class="num">7</div><div class="label">架构分层</div></div>
+      <div class="kpi-card"><div class="num">16</div><div class="label">领域 Agent</div></div>
+      <div class="kpi-card"><div class="num">59</div><div class="label">规划 Skill</div></div>
+      <div class="kpi-card"><div class="num">8</div><div class="label">已落地 Skill</div></div>
+      <div class="kpi-card"><div class="num">39</div><div class="label">EP CLI</div></div>
+      <div class="kpi-card"><div class="num">6</div><div class="label">横切关注点</div></div>
+    </div>
+    <div class="nav-guide">
+      <div class="ng-title">文档导航 · DOCUMENT NAVIGATION</div>
+      <div class="ng-list">
+        <span class="ng-item"><strong>① 架构全景</strong> 七层分层 + Agent内三层</span>
+        <span class="ng-item"><strong>② Skill地图</strong> 14域59 Skill</span>
+        <span class="ng-item"><strong>③ 价值流</strong> 6阶段端到端</span>
+        <span class="ng-item"><strong>④ 建设路径</strong> L1-L5五层递进</span>
+        <span class="ng-item"><strong>⑤ 演进路线</strong> 四阶段自动化</span>
+        <span class="ng-item"><strong>⑥ 架构对比</strong> vs传统B端SaaS</span>
+        <span class="ng-item"><strong>⑦ 挑战与方案</strong> 交互/权限/深水区</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Tab 导航 -->
+  <div class="tabbar">
+    <div class="tab on" onclick="document.getElementById('sec-arch').scrollIntoView({behavior:'smooth'})"><span class="tn">1</span>架构全景</div>
+    <div class="tab" onclick="document.getElementById('sec-flow').scrollIntoView({behavior:'smooth'})"><span class="tn">2</span>价值流</div>
+    <div class="tab" onclick="document.getElementById('sec-path').scrollIntoView({behavior:'smooth'})"><span class="tn">3</span>建设路径</div>
+    <div class="tab" onclick="document.getElementById('sec-evo').scrollIntoView({behavior:'smooth'})"><span class="tn">4</span>演进路线</div>
+    <div class="tab" onclick="document.getElementById('sec-compare').scrollIntoView({behavior:'smooth'})"><span class="tn">5</span>架构对比</div>
+    <div class="tab" onclick="document.getElementById('sec-challenge').scrollIntoView({behavior:'smooth'})"><span class="tn">6</span>挑战与方案</div>
+  </div>
+  <div class="section" id="sec-arch">
+    <div class="section-title">
+      <span class="sec-num">1</span>七层架构全景 · 分层能力聚合
+      <span class="sec-en">SEVEN-LAYER ARCHITECTURE · BOTTOM-UP AGGREGATION</span>
+    </div>
+    <div class="section-desc">自底向上：数据底座 → CLI 原子执行 → Skill 场景封装 → 编排流程组合 → Agent 智能决策 → 多模态交互；每层左侧标注层级类别，中间为层名称，右侧为具体能力组件；Agent 层展开为 16 个领域 Agent 能力矩阵</div>
+
+    <div class="arch-layers">
+
+      <!-- L1 交互层 -->
+      <div class="arch-layer live">
+        <div class="layer-left">
+          <div class="layer-num">01</div>
+          <div class="layer-cat">交互入口</div>
+          <div class="layer-cat-en">INTERACTION</div>
+        </div>
+        <div class="layer-mid">
+          <div class="layer-name">多模态交互层</div>
+          <div class="layer-name-en">MULTI-MODAL UI</div>
+        </div>
+        <div class="layer-right">
+          <div class="layer-meta"><span><strong>1</strong> 已落地 · <strong>3</strong> 规划中</span><span>自然语言驱动全采购操作</span></div>
+          <div class="comp-row">
+            <span class="comp-tag live">对话 AI 助手（EP内嵌）★</span>
+            <span class="comp-tag plan">飞书 Bot</span>
+            <span class="comp-tag plan">独立 Web 管理台</span>
+            <span class="comp-tag plan">数据仪表盘</span>
+          </div>
+          <div style="margin-top:4px;font-size:8.5px;color:#A0AEC0;">★ 当前唯一已落地交互入口；语音助手/企业微信/移动端APP因技术路线与投入产出比暂不纳入</div>
+        </div>
+      </div>
+
+      <!-- L2 Agent 层（一域一智能体 + 协同机制） -->
+      <div class="arch-layer pilot">
+        <div class="layer-left">
+          <div class="layer-num">02</div>
+          <div class="layer-cat">智能决策</div>
+          <div class="layer-cat-en">INTELLIGENCE</div>
+        </div>
+        <div class="layer-mid">
+          <div class="layer-name">Agent 智能体层</div>
+          <div class="layer-name-en">AGENT LAYER</div>
+        </div>
+        <div class="layer-right">
+          <div class="layer-meta">
+            <span><strong>7</strong> 域智能体 · 一域一智能体</span>
+            <span><strong>1</strong> 协调 Supervisor</span>
+            <span>事件驱动 · 数据共享 · 人工介入 · 异常兜底</span>
+          </div>
+
+          <!-- 协调 Supervisor（顶部居中） -->
+          <div style="background:linear-gradient(135deg,#1A2744,#2D4A6B);border:1.5px solid #E8C97A;border-radius:8px;padding:10px 16px;margin-bottom:8px;position:relative;">
+            <div style="display:flex;align-items:center;gap:12px;">
+              <span style="font-size:11px;font-weight:800;background:#E8C97A;color:#1A2744;padding:3px 10px;border-radius:4px;">COORD</span>
+              <div>
+                <div style="font-size:13px;font-weight:800;color:#E8C97A;">协调 Supervisor Agent · 跨域调度中枢</div>
+                <div style="font-size:9.5px;color:#A0AEC0;margin-top:2px;">接收用户意图 → 任务分解 → 路由到域智能体 → 结果聚合 → 异常兜底/人工介入</div>
+              </div>
+              <div style="margin-left:auto;display:flex;gap:6px;">
+                <span style="font-size:8.5px;background:rgba(232,201,122,0.2);color:#E8C97A;padding:2px 6px;border-radius:3px;">规划器</span>
+                <span style="font-size:8.5px;background:rgba(232,201,122,0.2);color:#E8C97A;padding:2px 6px;border-radius:3px;">记忆</span>
+                <span style="font-size:8.5px;background:rgba(232,201,122,0.2);color:#E8C97A;padding:2px 6px;border-radius:3px;">反思</span>
+              </div>
+            </div>
+            <!-- 向下箭头 -->
+            <div style="text-align:center;color:#E8C97A;font-size:14px;margin-top:4px;position:absolute;bottom:-12px;left:50%;transform:translateX(-50%);">▼</div>
+          </div>
+
+          <!-- 7个域智能体（横向流程条） -->
+          <div style="display:grid;grid-template-columns:repeat(7,1fr);gap:4px;margin:12px 0 6px;align-items:stretch;">
+
+            <!-- P1 需求与计划 -->
+            <div class="domain-agent" style="border-top:3px solid #5B4A8A;">
+              <div class="da-head"><span class="da-code">P1</span><span class="da-name">需求与计划</span></div>
+              <div class="da-body">
+                <div class="da-agent-name">需求计划 Agent</div>
+                <div class="da-desc">采购需求解析、SOR生成、计划协同与缺口分析</div>
+                <div class="da-meta"><span class="da-skill">Skill×7</span><span class="da-status plan">L1规划</span></div>
+              </div>
+            </div>
+
+            <!-- P2 供应商管理 -->
+            <div class="domain-agent" style="border-top:3px solid #0F8B8D;">
+              <div class="da-head"><span class="da-code">P2</span><span class="da-name">供应商管理</span></div>
+              <div class="da-body">
+                <div class="da-agent-name">供应商 Agent</div>
+                <div class="da-desc">准入/绩效/风险全生命周期管理与资源池维护</div>
+                <div class="da-meta"><span class="da-skill">Skill×5</span><span class="da-status design">L2概念</span></div>
+              </div>
+            </div>
+
+            <!-- P3 寻源与定点 -->
+            <div class="domain-agent" style="border-top:3px solid #1677FF;">
+              <div class="da-head"><span class="da-code">P3</span><span class="da-name">寻源与定点</span></div>
+              <div class="da-body">
+                <div class="da-agent-name">寻源定点 Agent</div>
+                <div class="da-desc">SOR→RFQ→比价→定点全流程，候选生成与决策支持</div>
+                <div class="da-meta"><span class="da-skill">Skill×15</span><span class="da-status design">L2概念</span></div>
+              </div>
+            </div>
+
+            <!-- P4 合同与价格 -->
+            <div class="domain-agent" style="border-top:3px solid #B96A19;">
+              <div class="da-head"><span class="da-code">P4</span><span class="da-name">合同与价格</span></div>
+              <div class="da-body">
+                <div class="da-agent-name">合同价格 Agent</div>
+                <div class="da-desc">合同起草审查、暂作价/正式价管理、成本分析与审批</div>
+                <div class="da-meta"><span class="da-skill">Skill×11</span><span class="da-status pilot">L3设计</span></div>
+              </div>
+            </div>
+
+            <!-- P5 订单与履约 -->
+            <div class="domain-agent" style="border-top:3px solid #3D7A3F;border:1.5px solid #38A169;box-shadow:0 0 8px rgba(56,161,105,0.2);">
+              <div class="da-head" style="background:linear-gradient(135deg,#3D7A3F,#38A169);"><span class="da-code">P5</span><span class="da-name">订单与履约 ★</span></div>
+              <div class="da-body" style="background:#F0FFF4;">
+                <div class="da-agent-name" style="color:#276749;">订单履约 Agent</div>
+                <div class="da-desc">样件订单全流程自动化：导入→校验→可下单→下单→提交</div>
+                <div class="da-meta"><span class="da-skill">Skill×5</span><span class="da-status live">L5生产</span></div>
+              </div>
+            </div>
+
+            <!-- P6 变更与质量 -->
+            <div class="domain-agent" style="border-top:3px solid #C0392B;">
+              <div class="da-head"><span class="da-code">P6</span><span class="da-name">变更与质量</span></div>
+              <div class="da-body">
+                <div class="da-agent-name">变更质量 Agent</div>
+                <div class="da-desc">EWO/CWO变更评估、质量异常处理、8D根因分析与闭环</div>
+                <div class="da-meta"><span class="da-skill">Skill×7</span><span class="da-status concept">L2概念</span></div>
+              </div>
+            </div>
+
+            <!-- P7 分析与决策 -->
+            <div class="domain-agent" style="border-top:3px solid #5A6B7F;">
+              <div class="da-head"><span class="da-code">P7</span><span class="da-name">分析与决策</span></div>
+              <div class="da-body">
+                <div class="da-agent-name">分析决策 Agent</div>
+                <div class="da-desc">支出分析、风险监控、决策建议与洞察报告生成</div>
+                <div class="da-meta"><span class="da-skill">Skill×9</span><span class="da-status plan">L1规划</span></div>
+              </div>
+            </div>
+
+          </div>
+
+          <!-- 协同箭头（上下游流转） -->
+          <div style="display:flex;align-items:center;justify-content:center;gap:4px;margin:2px 0 8px;">
+            <span style="font-size:9px;color:#718096;font-weight:600;">上下游数据流转 → 事件驱动协同 → 共享上下文状态 → 关键节点人工确认</span>
+          </div>
+
+          <!-- 协同机制说明 -->
+          <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin-bottom:8px;">
+            <div class="collab-card">
+              <div class="cc-icon">⚡</div>
+              <div class="cc-title">事件驱动</div>
+              <div class="cc-desc">上游完成自动触发下游，如定点完成→合同起草</div>
+            </div>
+            <div class="collab-card">
+              <div class="cc-icon">🔄</div>
+              <div class="cc-title">数据共享</div>
+              <div class="cc-desc">共享主数据与上下文，跨域信息无缝传递</div>
+            </div>
+            <div class="collab-card">
+              <div class="cc-icon">👤</div>
+              <div class="cc-title">人工介入</div>
+              <div class="cc-desc">关键决策点暂停等待人工确认，确保可控</div>
+            </div>
+            <div class="collab-card">
+              <div class="cc-icon">🛡️</div>
+              <div class="cc-title">异常兜底</div>
+              <div class="cc-desc">Supervisor监控异常，自动降级或请求人工</div>
+            </div>
+          </div>
+
+          <!-- 主数据底座 -->
+          <div style="background:linear-gradient(180deg,#F7FAFC,#EDF2F7);border:1px solid #CBD5E0;border-radius:6px;padding:8px 14px;">
+            <div style="display:flex;align-items:center;gap:10px;margin-bottom:6px;">
+              <span style="font-size:10px;font-weight:800;background:#718096;color:#fff;padding:2px 8px;border-radius:3px;">DATA</span>
+              <span style="font-size:12px;font-weight:800;color:#2D3748;">主数据底座 · 为全流程域智能体提供基础数据支撑</span>
+            </div>
+            <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:6px;">
+              <div style="background:#fff;border:1px solid #E2E8F0;border-left:3px solid #718096;border-radius:4px;padding:5px 8px;">
+                <div style="font-size:10px;font-weight:700;color:#2D3748;">M1 供应商主数据</div>
+                <div style="font-size:8.5px;color:#4A5568;margin-top:2px;">供应商信息、变更追踪、数据同步与清洗</div>
+              </div>
+              <div style="background:#fff;border:1px solid #E2E8F0;border-left:3px solid #718096;border-radius:4px;padding:5px 8px;">
+                <div style="font-size:10px;font-weight:700;color:#2D3748;">M2 品类主数据</div>
+                <div style="font-size:8.5px;color:#4A5568;margin-top:2px;">VPPS查询、BOM解析、材料成本核算、数据同步</div>
+              </div>
+              <div style="background:#fff;border:1px solid #E2E8F0;border-left:3px solid #718096;border-radius:4px;padding:5px 8px;">
+                <div style="font-size:10px;font-weight:700;color:#2D3748;">M3 通用/用户</div>
+                <div style="font-size:8.5px;color:#4A5568;margin-top:2px;">用户信息、权限上下文、通用查询与帮助引导</div>
+              </div>
+            </div>
+          </div>
+
+        </div>
+      </div>
+
+<!-- L3 编排层 -->
+      <div class="arch-layer design">
+        <div class="layer-left">
+          <div class="layer-num">03</div>
+          <div class="layer-cat">流程编排</div>
+          <div class="layer-cat-en">ORCHESTRATION</div>
+        </div>
+        <div class="layer-mid">
+          <div class="layer-name">编排与调度层</div>
+          <div class="layer-name-en">ORCHESTRATOR</div>
+        </div>
+        <div class="layer-right">
+          <div class="layer-meta"><span>跨Agent/跨系统流程控制</span><span>样件订单五环节已验证闭环</span></div>
+          <div class="comp-row">
+            <span class="comp-tag">可视化工作流引擎</span>
+            <span class="comp-tag">事件驱动总线</span>
+            <span class="comp-tag">定时任务调度（每日9:00）</span>
+            <span class="comp-tag">人机协同审批 HITL</span>
+            <span class="comp-tag">个性化编排</span>
+            <span class="comp-tag">跨系统事务补偿 Saga</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- L4 Skill 层 -->
+      <div class="arch-layer live">
+        <div class="layer-left">
+          <div class="layer-num">04</div>
+          <div class="layer-cat">能力封装</div>
+          <div class="layer-cat-en">CAPABILITY</div>
+        </div>
+        <div class="layer-mid">
+          <div class="layer-name">Skill 能力层</div>
+          <div class="layer-name-en">SKILL LAYER</div>
+        </div>
+        <div class="layer-right">
+          <div class="layer-meta">
+            <span><strong>8</strong> 已落地</span><span><strong>51</strong> 规划中</span>
+            <span><strong>14</strong> 业务域 · 可组合 · 可版本 · 可灰度 · 可评估</span>
+          </div>
+          <div class="skill-grid" style="margin-top:6px;">
+            <div class="skill-card live">
+              <div class="skill-domain"><span>样件订单</span><span class="skill-count">5</span></div>
+              <div class="skill-list">
+                demand-import<span class="s-fn">多维表格→records JSON</span>
+                demand-check<span class="s-fn">本地校验PASS/WARN/FAIL</span>
+                demand-query-ready<span class="s-fn">查询可下单需求</span>
+                demand-order-create<span class="s-fn">EP内部价格判断+提交</span>
+                demand-interact<span class="s-fn">人工确认节点写入Base</span>
+              </div>
+            </div>
+            <div class="skill-card live">
+              <div class="skill-domain"><span>合同审查</span><span class="skill-count">3</span></div>
+              <div class="skill-list">
+                contract-risk-clause<span class="s-fn">违约上限/续约/IP风险识别</span>
+                contract-semantic-check<span class="s-fn">签署版vs业务表单7字段校验</span>
+                contract-legal-audit<span class="s-fn">通用合同审查+模板对标</span>
+              </div>
+            </div>
+            <div class="skill-card plan">
+              <div class="skill-domain"><span>寻源</span><span class="skill-count">5</span></div>
+              <div class="skill-list">
+                sourcing-requirement-parse<span class="s-fn">SOR需求结构化解析</span>
+                sourcing-supplier-match<span class="s-fn">供应商智能匹配评分</span>
+                sourcing-strategy-gen<span class="s-fn">寻源策略生成</span>
+                sourcing-candidate-gen<span class="s-fn">候选供应商清单生成</span>
+                sourcing-market-research<span class="s-fn">市场调研与情报</span>
+              </div>
+            </div>
+            <div class="skill-card plan">
+              <div class="skill-domain"><span>报价/RFQ</span><span class="skill-count">6</span></div>
+              <div class="skill-list">
+                rfq-create<span class="s-fn">RFQ创建与发布</span>
+                rfq-quote-collect<span class="s-fn">报价自动收集</span>
+                rfq-price-compare<span class="s-fn">多供应商比价分析</span>
+                rfq-logistics-calc<span class="s-fn">物流费用核算</span>
+                rfq-supplier-check<span class="s-fn">供应商前提校验</span>
+                rfq-quote-analyze<span class="s-fn">报价合理性分析</span>
+              </div>
+            </div>
+            <div class="skill-card plan">
+              <div class="skill-domain"><span>定点</span><span class="skill-count">4</span></div>
+              <div class="skill-list">
+                nomi-analysis<span class="s-fn">定点决策分析</span>
+                nomi-af-create<span class="s-fn">Award Form创建</span>
+                nomi-strategy<span class="s-fn">定点策略推荐</span>
+                nomi-history-lookup<span class="s-fn">历史定点回溯</span>
+              </div>
+            </div>
+            <div class="skill-card plan">
+              <div class="skill-domain"><span>合同（新增）</span><span class="skill-count">3</span></div>
+              <div class="skill-list">
+                contract-drafting<span class="s-fn">合同起草生成</span>
+                contract-esign<span class="s-fn">电子签署流程</span>
+                contract-performance<span class="s-fn">履约监控与提醒</span>
+              </div>
+            </div>
+            <div class="skill-card plan">
+              <div class="skill-domain"><span>价格</span><span class="skill-count">5</span></div>
+              <div class="skill-list">
+                price-record-manage<span class="s-fn">价格台账管理</span>
+                price-temp-manage<span class="s-fn">暂作价管理</span>
+                price-formal-manage<span class="s-fn">正式价管理</span>
+                price-approval<span class="s-fn">价格审批流</span>
+                price-expiry-monitor<span class="s-fn">有效期监控预警</span>
+              </div>
+            </div>
+            <div class="skill-card plan">
+              <div class="skill-domain"><span>变更</span><span class="skill-count">4</span></div>
+              <div class="skill-list">
+                change-impact-analyze<span class="s-fn">变更影响分析</span>
+                change-ewo-process<span class="s-fn">EWO工程变更流程</span>
+                change-cwo-process<span class="s-fn">CWO商务变更流程</span>
+                change-tracking<span class="s-fn">变更进度追踪</span>
+              </div>
+            </div>
+            <div class="skill-card plan">
+              <div class="skill-domain"><span>供应商</span><span class="skill-count">5</span></div>
+              <div class="skill-list">
+                supplier-info-manage<span class="s-fn">供应商信息管理</span>
+                supplier-change-track<span class="s-fn">变更追踪</span>
+                supplier-compare<span class="s-fn">多供应商对比</span>
+                supplier-performance<span class="s-fn">绩效评分</span>
+                supplier-risk-eval<span class="s-fn">风险评估</span>
+              </div>
+            </div>
+            <div class="skill-card plan">
+              <div class="skill-domain"><span>品类</span><span class="skill-count">4</span></div>
+              <div class="skill-list">
+                category-info-manage<span class="s-fn">品类信息管理</span>
+                category-vpps-manage<span class="s-fn">VPPS管理</span>
+                category-bom-parse<span class="s-fn">BOM解析</span>
+                category-sync<span class="s-fn">品类数据同步</span>
+              </div>
+            </div>
+            <div class="skill-card plan">
+              <div class="skill-domain"><span>物流</span><span class="skill-count">3</span></div>
+              <div class="skill-list">
+                logistics-fee-query<span class="s-fn">物流费查询</span>
+                logistics-delivery-track<span class="s-fn">交付追踪</span>
+                logistics-plan-optimize<span class="s-fn">运输方案优化</span>
+              </div>
+            </div>
+            <div class="skill-card plan">
+              <div class="skill-domain"><span>质量</span><span class="skill-count">3</span></div>
+              <div class="skill-list">
+                quality-data-query<span class="s-fn">质量数据查询</span>
+                quality-8d-manage<span class="s-fn">8D报告管理</span>
+                quality-ppap-track<span class="s-fn">PPAP追踪</span>
+              </div>
+            </div>
+            <div class="skill-card plan">
+              <div class="skill-domain"><span>分析</span><span class="skill-count">5</span></div>
+              <div class="skill-list">
+                spend-analysis<span class="s-fn">支出分析</span>
+                supplier-scorecard<span class="s-fn">供应商记分卡</span>
+                procurement-efficiency<span class="s-fn">采购效率分析</span>
+                custom-report<span class="s-fn">自定义报表</span>
+                trend-forecast<span class="s-fn">趋势预测</span>
+              </div>
+            </div>
+            <div class="skill-card plan">
+              <div class="skill-domain"><span>风险</span><span class="skill-count">4</span></div>
+              <div class="skill-list">
+                risk-identify<span class="s-fn">风险识别</span>
+                risk-monitor<span class="s-fn">实时监控</span>
+                risk-alert<span class="s-fn">风险预警</span>
+                risk-report<span class="s-fn">风险报告</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+<!-- L5 CLI 层 -->
+      <div class="arch-layer live">
+        <div class="layer-left">
+          <div class="layer-num">05</div>
+          <div class="layer-cat">原子执行</div>
+          <div class="layer-cat-en">ATOMIC</div>
+        </div>
+        <div class="layer-mid">
+          <div class="layer-name">工具与连接器层</div>
+          <div class="layer-name-en">CLI &amp; CONNECTOR</div>
+        </div>
+        <div class="layer-right">
+          <div class="layer-meta">
+            <span><strong>31</strong> 已实现</span><span><strong>6</strong> 模拟◎</span><span><strong>2</strong> 模拟◆</span>
+            <span>11 个业务模块 + 外部系统 API</span>
+          </div>
+          <div class="cli-grid">
+            <div class="cli-card live">
+              <div class="cc-head"><span class="cc-mod">样件订单</span><span class="cc-cnt">4</span></div>
+              <div class="cc-list">
+                sapo order import-json <span class="fn">需求批量导入</span><br>
+                sapo order query-ready <span class="fn">可下单查询</span><br>
+                sapo order create-order <span class="fn">创建订单</span><br>
+                sapo order submit-list <span class="fn">提交订单列表</span>
+              </div>
+            </div>
+            <div class="cli-card live">
+              <div class="cc-head"><span class="cc-mod">供应商</span><span class="cc-cnt">4</span></div>
+              <div class="cc-list">
+                supplier info query <span class="fn">详情查询</span><br>
+                supplier info list <span class="fn">列表查询</span><br>
+                supplier change list <span class="fn">变更记录</span><br>
+                supplier changecompare detail <span class="fn">变更对比</span>
+              </div>
+            </div>
+            <div class="cli-card live">
+              <div class="cc-head"><span class="cc-mod">SOR</span><span class="cc-cnt">4</span></div>
+              <div class="cc-list">
+                sor info list <span class="fn">SOR列表</span><br>
+                sor vehicle query <span class="fn">车型查询</span><br>
+                sor part list <span class="fn">零件清单</span><br>
+                sor process-history query <span class="fn">流程历史</span>
+              </div>
+            </div>
+            <div class="cli-card live">
+              <div class="cc-head"><span class="cc-mod">通用</span><span class="cc-cnt">1</span></div>
+              <div class="cc-list">user info query <span class="fn">用户信息查询</span></div>
+            </div>
+            <div class="cli-card live">
+              <div class="cc-head"><span class="cc-mod">RFQ</span><span class="cc-cnt">6</span></div>
+              <div class="cc-list">
+                rfq info list <span class="fn">RFQ列表</span><br>
+                rfq quote list <span class="fn">报价列表</span><br>
+                rfq quotesupplier query <span class="fn">报价供应商</span><br>
+                rfq logistics list <span class="fn">物流费列表</span><br>
+                rfq supplier list <span class="fn">供应商列表</span><br>
+                rfq supplier-premiss query <span class="fn">前提校验</span>
+              </div>
+            </div>
+            <div class="cli-card live">
+              <div class="cc-head"><span class="cc-mod">预选</span><span class="cc-cnt">2</span></div>
+              <div class="cc-list">
+                sor bidderaf query <span class="fn">投标人查询</span><br>
+                sor bidderaf list <span class="fn">投标人列表</span>
+              </div>
+            </div>
+            <div class="cli-card live">
+              <div class="cc-head"><span class="cc-mod">定点</span><span class="cc-cnt">2</span></div>
+              <div class="cc-list">
+                nomi af list <span class="fn">AF列表</span><br>
+                nomi af create <span class="fn">创建AF</span>
+              </div>
+            </div>
+            <div class="cli-card live">
+              <div class="cc-head"><span class="cc-mod">品类</span><span class="cc-cnt">8</span></div>
+              <div class="cc-list">
+                category info list <span class="fn">品类列表</span><br>
+                category info detail <span class="fn">品类详情</span><br>
+                category vpps list <span class="fn">VPPS列表</span><br>
+                category change list <span class="fn">变更记录</span><br>
+                category material-cost query <span class="fn">材料成本</span><br>
+                category bom query <span class="fn">BOM查询</span><br>
+                category parse <span class="fn">品类解析</span><br>
+                category sync <span class="fn">品类同步</span>
+              </div>
+            </div>
+            <div class="cli-card todo">
+              <div class="cc-head"><span class="cc-mod">价格 ◎</span><span class="cc-cnt">3</span></div>
+              <div class="cc-list">
+                price record list <span class="fn">价格台账列表</span><br>
+                price record query <span class="fn">单条价格查询</span><br>
+                price record history <span class="fn">价格历史追溯</span>
+              </div>
+            </div>
+            <div class="cli-card todo">
+              <div class="cc-head"><span class="cc-mod">合同 ◎</span><span class="cc-cnt">3</span></div>
+              <div class="cc-list">
+                contract info list <span class="fn">合同列表</span><br>
+                contract info detail <span class="fn">合同详情</span><br>
+                contract progress <span class="fn">合同进度</span>
+              </div>
+            </div>
+            <div class="cli-card mock">
+              <div class="cc-head"><span class="cc-mod">变更 ◆</span><span class="cc-cnt">2</span></div>
+              <div class="cc-list">
+                change query <span class="fn">13对象变更查询</span><br>
+                change process <span class="fn">16动作流程处理</span>
+              </div>
+            </div>
+            <div class="cli-card ext">
+              <div class="cc-head"><span class="cc-mod">外部系统 API</span><span class="cc-cnt">+</span></div>
+              <div class="cc-list">
+                SRM · ERP · MES · WMS<br>
+                财务系统 · 企查查<br>
+                RAG检索 · 文档解析<br>
+                邮件/消息 · 计算工具
+              </div>
+            </div>
+          </div>
+          <div style="margin-top:5px;font-size:8.5px;color:#A0AEC0;">◎ 还未实现（模拟定义，基于价格中心暂作价/正式价/有效期/审批流）&nbsp;&nbsp;◆ 基于代码仓模拟定义（EWO/CWO聚合）&nbsp;&nbsp;★ 最成熟 Agent（样件订单五环节已生产验证）</div>
+        </div>
+      </div>
+
+      <!-- 地基 L6+L7 -->
+      <div class="arch-foundation">
+        <div class="found-col">
+          <div class="found-title">06 · 数据与知识层 · Data &amp; Knowledge</div>
+          <div class="found-items">
+            <b>采购知识库</b>：合同库 · 价格库 · 供应商库 · 品类知识 · SOP库 · 历史案例库 · 政策法规库<br>
+            <b>向量数据库</b>：知识向量化 · 语义检索 · 多模态 · 权限隔离<br>
+            <b>知识图谱</b>：供应商-零件-价格-合同-项目-品类关系图谱<br>
+            <b>业务数据湖</b>：采购域 · 供应商域 · 物流域 · 质量域 · 财务域 · 项目域 · 库存域
+          </div>
+        </div>
+        <div class="found-col">
+          <div class="found-title">07 · 技术底座 · Platform Foundation</div>
+          <div class="found-items">
+            <b>多模型路由</b>：LLM Gateway · 智能路由 · 降级策略 · 成本优化 · 缓存<br>
+            <b>Agent 框架</b>：规划器 · 记忆(短期/长期) · 工具调用 · 反思 · 多Agent协作 · HITL<br>
+            <b>RAG 引擎</b>：文档解析 · 分块 · 向量化 · 混合检索 · 重排序 · 引用溯源<br>
+            <b>权限与审计</b>：SSO · RBAC · 数据权限 · 操作审计 · 审批流 · 敏感数据脱敏<br>
+            <b>可观测性</b>：Tracing · Metrics · Logging · 告警 · 业务监控 &nbsp; <b>安全合规</b>：数据安全 · 模型安全
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 横切关注点 -->
+    <div class="crosscut">
+      <div class="crosscut-title">横切关注点 · CROSS-CUTTING CONCERNS（贯穿全部 7 层）</div>
+      <div class="crosscut-grid">
+        <div class="crosscut-item"><div class="cc-name">统一身份与权限</div><div class="cc-desc">SSO + RBAC + 数据级权限，Agent 操作继承用户权限边界</div></div>
+        <div class="crosscut-item"><div class="cc-name">全链路审计</div><div class="cc-desc">每次 Agent 决策、Skill 调用、CLI 执行均可追溯、可回放</div></div>
+        <div class="crosscut-item"><div class="cc-name">人机协同 HITL</div><div class="cc-desc">高风险操作自动触发人工审批，低风险操作全自动执行</div></div>
+        <div class="crosscut-item"><div class="cc-name">可观测性</div><div class="cc-desc">Trace ID 贯穿交互→Agent→Skill→CLI，业务指标实时监控</div></div>
+        <div class="crosscut-item"><div class="cc-name">安全与合规</div><div class="cc-desc">敏感数据脱敏、模型输出合规筛查、操作留痕、数据备份</div></div>
+        <div class="crosscut-item"><div class="cc-name">灰度与回滚</div><div class="cc-desc">Skill/Agent 版本化管理，支持灰度发布、A/B 测试、一键回滚</div></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== 三、端到端价值流 ===== -->
+  <div class="section" id="sec-flow">
+    <div class="section-title">
+      <span class="sec-num">2</span>端到端价值流 · 新品寻源 → 定点 → 合同 → 订单
+      <span class="sec-en">END-TO-END VALUE FLOW</span>
+    </div>
+    <div class="section-desc">以新品采购全生命周期为例，6 个阶段展示每阶段的主导 Agent、调用 Skill、执行 CLI、输入输出与关键决策点；当前仅订单阶段（阶段6）已实现 L5 全自动化</div>
+
+    <div class="flow-container">
+    <table class="flow-table">
+      <thead>
+        <tr>
+          <th style="width:56px;">维度</th>
+          <th>① 需求解析</th>
+          <th>② 寻源匹配</th>
+          <th>③ 询价报价</th>
+          <th>④ 定点决策</th>
+          <th>⑤ 合同签署</th>
+          <th>⑥ 订单执行 ★</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td class="stage-label">主导<br>Agent</td>
+          <td class="flow-cell"><span class="agent-tag">A1 寻源</span></td>
+          <td class="flow-cell"><span class="agent-tag">A1 寻源</span><br><span class="agent-tag">A8 供应商</span></td>
+          <td class="flow-cell"><span class="agent-tag">A2 RFQ</span></td>
+          <td class="flow-cell"><span class="agent-tag">A3 定点</span></td>
+          <td class="flow-cell"><span class="agent-tag">A4 合同</span></td>
+          <td class="flow-cell"><span class="agent-tag">A6 订单</span></td>
+        </tr>
+        <tr>
+          <td class="stage-label">调用<br>Skill</td>
+          <td class="flow-cell"><span class="skill-tag">sourcing-requirement-parse</span></td>
+          <td class="flow-cell"><span class="skill-tag">sourcing-supplier-match</span><br><span class="skill-tag">sourcing-candidate-gen</span></td>
+          <td class="flow-cell"><span class="skill-tag">rfq-create</span><br><span class="skill-tag">rfq-quote-collect</span><br><span class="skill-tag">rfq-price-compare</span></td>
+          <td class="flow-cell"><span class="skill-tag">nomi-analysis</span><br><span class="skill-tag">nomi-af-create</span></td>
+          <td class="flow-cell"><span class="skill-tag">contract-drafting</span><br><span class="skill-tag">contract-risk-clause</span><br><span class="skill-tag">contract-semantic-check</span><br><span class="skill-tag">contract-legal-audit</span></td>
+          <td class="flow-cell"><span class="skill-tag">demand-import</span><br><span class="skill-tag">demand-check</span><br><span class="skill-tag">demand-query-ready</span><br><span class="skill-tag">demand-order-create</span><br><span class="skill-tag">demand-interact</span></td>
+        </tr>
+        <tr>
+          <td class="stage-label">执行<br>CLI</td>
+          <td class="flow-cell">
+            <span class="cli-tag">sor info list</span><br>
+            <span class="cli-tag">sor vehicle query</span><br>
+            <span class="cli-tag">sor part list</span>
+          </td>
+          <td class="flow-cell">
+            <span class="cli-tag">supplier info list</span><br>
+            <span class="cli-tag">supplier info query</span><br>
+            <span class="cli-tag">sor bidderaf query</span>
+          </td>
+          <td class="flow-cell">
+            <span class="cli-tag">rfq info list</span><br>
+            <span class="cli-tag">rfq quote list</span><br>
+            <span class="cli-tag">rfq quotesupplier query</span><br>
+            <span class="cli-tag">rfq logistics list</span><br>
+            <span class="cli-tag">rfq supplier-premiss query</span>
+          </td>
+          <td class="flow-cell">
+            <span class="cli-tag">nomi af list</span><br>
+            <span class="cli-tag">nomi af create</span><br>
+            <span class="cli-tag">rfq supplier list</span>
+          </td>
+          <td class="flow-cell">
+            <span class="cli-tag">contract info list ◎</span><br>
+            <span class="cli-tag">contract info detail ◎</span><br>
+            <span class="cli-tag">contract progress ◎</span>
+          </td>
+          <td class="flow-cell">
+            <span class="cli-tag">sapo order import-json</span><br>
+            <span class="cli-tag">sapo order query-ready</span><br>
+            <span class="cli-tag">sapo order create-order</span><br>
+            <span class="cli-tag">sapo order submit-list</span>
+          </td>
+        </tr>
+        <tr>
+          <td class="stage-label">输入</td>
+          <td class="flow-cell"><div class="io">SOR文档 · 车型项目 · 零件清单</div></td>
+          <td class="flow-cell"><div class="io">零件需求 · 品类策略 · 供应商库</div></td>
+          <td class="flow-cell"><div class="io">候选供应商 · 询价规格 · 数量</div></td>
+          <td class="flow-cell"><div class="io">报价对比 · 技术评分 · 商务条件</div></td>
+          <td class="flow-cell"><div class="io">定点结果 · 合同模板 · 商务条款</div></td>
+          <td class="flow-cell"><div class="io">多维表格需求 · 预算 · 交付日期</div></td>
+        </tr>
+        <tr>
+          <td class="stage-label">输出</td>
+          <td class="flow-cell"><div class="io">结构化需求 · 寻源策略建议</div></td>
+          <td class="flow-cell"><div class="io">候选供应商清单 · 匹配度评分</div></td>
+          <td class="flow-cell"><div class="io">比价报告 · 推荐供应商 · 物流费</div></td>
+          <td class="flow-cell"><div class="io">定点AF · 定点决策报告</div></td>
+          <td class="flow-cell"><div class="io">合同草案 · 风险报告 · 签署合同</div></td>
+          <td class="flow-cell"><div class="io">已提交订单 · 订单号 · 确认回执</div></td>
+        </tr>
+        <tr>
+          <td class="stage-label">关键<br>决策点</td>
+          <td class="flow-cell"><div class="decision">需求完整性确认</div></td>
+          <td class="flow-cell"><div class="decision">候选供应商入围审批</div></td>
+          <td class="flow-cell"><div class="decision">报价合理性判定</div></td>
+          <td class="flow-cell"><div class="decision">定点供应商最终审批</div></td>
+          <td class="flow-cell"><div class="decision">合同条款风险确认</div></td>
+          <td class="flow-cell"><div class="decision">价格校验（最新且最低价）</div></td>
+        </tr>
+        <tr>
+          <td class="stage-label">成熟度</td>
+          <td class="flow-cell"><span class="m-l2" style="display:inline-block;padding:0 5px;border-radius:2px;font-size:8.5px;font-weight:600;">L2</span></td>
+          <td class="flow-cell"><span class="m-l2" style="display:inline-block;padding:0 5px;border-radius:2px;font-size:8.5px;font-weight:600;">L2</span></td>
+          <td class="flow-cell"><span class="m-l2" style="display:inline-block;padding:0 5px;border-radius:2px;font-size:8.5px;font-weight:600;">L2</span></td>
+          <td class="flow-cell"><span class="m-l2" style="display:inline-block;padding:0 5px;border-radius:2px;font-size:8.5px;font-weight:600;">L2</span></td>
+          <td class="flow-cell"><span class="m-l4" style="display:inline-block;padding:0 5px;border-radius:2px;font-size:8.5px;font-weight:600;">L4 试点</span></td>
+          <td class="flow-cell"><span class="m-l5" style="display:inline-block;padding:0 5px;border-radius:2px;font-size:8.5px;font-weight:600;">L5 生产 ★</span></td>
+        </tr>
+      </tbody>
+    </table>
+    </div>
+  </div>
+
+  <!-- ===== 四、Agent 建设路径 ===== -->
+  <div class="section" id="sec-path">
+    <div class="section-title">
+      <span class="sec-num">3</span>Agent 建设路径 · L1-L5 五层递进
+      <span class="sec-en">AGENT BUILDING ROADMAP</span>
+    </div>
+    <div class="section-desc">基于 B 点项目实践，核心原则：<strong>Skill 先行、Agent 后置、LangGraph 编排、五域渐进</strong>——先让每个 Skill 独立跑通，再用 Agent 把它们串成链；AI 平台不替换 EP 系统，通过 MCP/CLI "寄生"在 EP 之上增强能力</div>
+
+    <!-- 五层递进 -->
+    <div style="display:grid;grid-template-columns:repeat(5,1fr);gap:6px;margin-bottom:14px;">
+      <div style="background:linear-gradient(180deg,#F0FFF4,#fff);border:1px solid #9AE6B4;border-radius:4px;padding:8px 10px;">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;">
+          <span style="font-size:11px;font-weight:700;color:#22543D;">L1 知识问答</span>
+          <span style="font-size:8px;background:#C6F6D5;color:#22543D;padding:1px 5px;border-radius:2px;font-weight:600;">已启动</span>
+        </div>
+        <div style="font-size:8.5px;color:#4A5568;line-height:1.5;margin-bottom:4px;">让 AI 听懂采购语言，基于知识库的自然语言问答</div>
+        <div style="font-size:8px;color:#718096;line-height:1.5;">
+          <b>基础：</b>Ontology 七大域建模完成<br>
+          <b>技术：</b>知识图谱 + RAG 混合检索<br>
+          <b>产出：</b>跨模块精准答案 + 引用溯源
+        </div>
+      </div>
+      <div style="background:linear-gradient(180deg,#EBF8FF,#fff);border:1px solid #90CDF4;border-radius:4px;padding:8px 10px;">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;">
+          <span style="font-size:11px;font-weight:700;color:#2A4365;">L2 单域操作</span>
+          <span style="font-size:8px;background:#BEE3F8;color:#2A4365;padding:1px 5px;border-radius:2px;font-weight:600;">已启动</span>
+        </div>
+        <div style="font-size:8.5px;color:#4A5568;line-height:1.5;margin-bottom:4px;">单模块 CLI 调用 + NL2CLI，原子能力可执行</div>
+        <div style="font-size:8px;color:#718096;line-height:1.5;">
+          <b>基础：</b>39 个 EP CLI 定义（31 已实现）<br>
+          <b>技术：</b>CLI 指令集 + API 网关 + NL2CLI<br>
+          <b>产出：</b>自然语言→CLI→系统操作
+        </div>
+      </div>
+      <div style="background:linear-gradient(180deg,#FFFFF0,#fff);border:1px solid #FAF089;border-radius:4px;padding:8px 10px;">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;">
+          <span style="font-size:11px;font-weight:700;color:#744210;">L3 跨域协同</span>
+          <span style="font-size:8px;background:#FEFCBF;color:#744210;padding:1px 5px;border-radius:2px;font-weight:600;">待启动</span>
+        </div>
+        <div style="font-size:8.5px;color:#4A5568;line-height:1.5;margin-bottom:4px;">跨模块数据串联，多步自动化流程编排</div>
+        <div style="font-size:8px;color:#718096;line-height:1.5;">
+          <b>基础：</b>场景识别框架 + 击穿场景设计<br>
+          <b>技术：</b>LangGraph StateGraph + 条件路由 + HITL<br>
+          <b>产出：</b>样件订单五环节全自动化（已验证）
+        </div>
+      </div>
+      <div style="background:linear-gradient(180deg,#FAF5FF,#fff);border:1px solid #D6BCFA;border-radius:4px;padding:8px 10px;">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;">
+          <span style="font-size:11px;font-weight:700;color:#553C9A;">L4 智能分析</span>
+          <span style="font-size:8px;background:#E9D8FD;color:#553C9A;padding:1px 5px;border-radius:2px;font-weight:600;">规划中</span>
+        </div>
+        <div style="font-size:8.5px;color:#4A5568;line-height:1.5;margin-bottom:4px;">Agent 层引入，全链路数据洞察与预警</div>
+        <div style="font-size:8px;color:#718096;line-height:1.5;">
+          <b>基础：</b>Agent 架构设计完成 + 多Agent协同方案<br>
+          <b>技术：</b>Router/Reviewer/Monitor 三Agent + 数据湖<br>
+          <b>产出：</b>16 领域 Agent + 风险监控 + 采购分析
+        </div>
+      </div>
+      <div style="background:linear-gradient(180deg,#FFF5F5,#fff);border:1px solid #FEB2B2;border-radius:4px;padding:8px 10px;">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;">
+          <span style="font-size:11px;font-weight:700;color:#742A2A;">L5 智能推荐</span>
+          <span style="font-size:8px;background:#FED7D7;color:#742A2A;padding:1px 5px;border-radius:2px;font-weight:600;">远期</span>
+        </div>
+        <div style="font-size:8.5px;color:#4A5568;line-height:1.5;margin-bottom:4px;">主动推送决策建议，从"问答"到"建议"</div>
+        <div style="font-size:8px;color:#718096;line-height:1.5;">
+          <b>基础：</b>岗位虾矩阵参考模型 + 反馈闭环<br>
+          <b>技术：</b>决策引擎 + 强化学习 + 数字孪生<br>
+          <b>产出：</b>主动降本建议 + 风险预警 + 策略推荐
+        </div>
+      </div>
+    </div>
+
+    <!-- 五域渐进 + Phase -->
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+      <div style="border:1px solid #E2E8F0;border-radius:4px;padding:10px 12px;">
+        <div style="font-size:11px;font-weight:700;color:#1A2744;margin-bottom:6px;">五域渐进顺序（按覆盖率与价值排序）</div>
+        <div style="font-size:9px;color:#4A5568;line-height:1.7;">
+          <div style="display:flex;justify-content:space-between;padding:2px 0;border-bottom:1px solid #EDF2F7;"><span>① 供应商管理</span><span style="color:#38A169;font-weight:600;">73% · 15节点/11Skill</span></div>
+          <div style="display:flex;justify-content:space-between;padding:2px 0;border-bottom:1px solid #EDF2F7;"><span>② 寻源定点</span><span style="color:#38A169;font-weight:600;">71% · 14节点/10Skill</span></div>
+          <div style="display:flex;justify-content:space-between;padding:2px 0;border-bottom:1px solid #EDF2F7;"><span>③ 履约执行</span><span style="color:#D69E2E;font-weight:600;">62% · 13节点/8Skill</span></div>
+          <div style="display:flex;justify-content:space-between;padding:2px 0;border-bottom:1px solid #EDF2F7;"><span>④ 品类资源池</span><span style="color:#D69E2E;font-weight:600;">60% · 5节点/3Skill</span></div>
+          <div style="display:flex;justify-content:space-between;padding:2px 0;"><span>⑤ 变更管理</span><span style="color:#E53E3E;font-weight:600;">33% · 6节点/2Skill</span></div>
+        </div>
+      </div>
+      <div style="border:1px solid #E2E8F0;border-radius:4px;padding:10px 12px;">
+        <div style="font-size:11px;font-weight:700;color:#1A2744;margin-bottom:6px;">Phase 划分（Skill先行 → Agent后置）</div>
+        <div style="font-size:9px;color:#4A5568;line-height:1.7;">
+          <div style="padding:2px 0;border-bottom:1px solid #EDF2F7;"><b style="color:#22543D;">Phase 1（当前）</b>：8 个高频 Skill 独立跑通<br><span style="color:#718096;font-size:8.5px;">智能比价 · SOR自动生成 · 材料预审 · 上会材料 · 合同生成 · 合同审核 · 绩效计算 · 样件订单（已验证）</span></div>
+          <div style="padding:2px 0;border-bottom:1px solid #EDF2F7;margin-top:3px;"><b style="color:#2B6CB0;">Phase 2（下一）</b>：LangGraph 编排 + 跨域协同<br><span style="color:#718096;font-size:8.5px;">多 Skill 串联成链 · 9 条全自动链路 · 人工断点 HITL</span></div>
+          <div style="padding:2px 0;margin-top:3px;"><b style="color:#805AD5;">Phase 3（中期）</b>：Agent 层引入 + 智能分析<br><span style="color:#718096;font-size:8.5px;">Router/Reviewer/Monitor 三Agent · 16 领域 Agent · 风险监控</span></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== 五、演进路线 ===== -->
+  <div class="section" id="sec-evo">
+    <div class="section-title">
+      <span class="sec-num">4</span>演进路线 · 四阶段从自动化到自主化
+      <span class="sec-en">EVOLUTION ROADMAP</span>
+    </div>
+    <div class="section-desc">从单点 CLI 自动化起步，逐步构建 Skill 能力层、Agent 智能体层，最终实现全链路自主决策；每阶段标注核心目标、关键交付、技术栈与成熟度指标</div>
+
+    <div class="roadmap">
+      <div class="phase p1">
+        <div class="phase-header">
+          <div class="phase-badge">1</div>
+          <div><div class="phase-name">CLI 原子化</div><div class="phase-time">当前阶段</div></div>
+        </div>
+        <div class="phase-goal">EP 系统能力 CLI 化，为上层提供原子操作接口</div>
+        <div class="phase-deliver">
+          <ul>
+            <li>39 个 EP CLI 定义与实现（31 已实现）</li>
+            <li>CLI 输入输出契约标准化</li>
+            <li>权限控制点与审计日志</li>
+            <li>CLI 调用 SDK 与文档</li>
+          </ul>
+        </div>
+        <div class="phase-tech"><b>技术栈：</b>EP CLI · Shell/Python · 权限RBAC · 审计日志</div>
+        <div class="phase-metric">指标：<strong>CLI 覆盖率 ≥ 80%</strong> · 调用成功率 ≥ 99%</div>
+      </div>
+
+      <div class="phase p2">
+        <div class="phase-header">
+          <div class="phase-badge">2</div>
+          <div><div class="phase-name">Skill 场景化</div><div class="phase-time">下一阶段</div></div>
+        </div>
+        <div class="phase-goal">高频场景 Skill 封装，实现可复用的场景化能力</div>
+        <div class="phase-deliver">
+          <ul>
+            <li>59 个 Skill 规划落地（优先订单/合同）</li>
+            <li>Skill 编排引擎（串行/并行/条件）</li>
+            <li>Skill 版本管理与灰度发布</li>
+            <li>人机协同审批（HITL）机制</li>
+            <li>样件订单五环节全自动化（已验证）</li>
+          </ul>
+        </div>
+        <div class="phase-tech"><b>技术栈：</b>Skill框架 · 工作流引擎 · 事件总线 · HITL · 飞书Base</div>
+        <div class="phase-metric">指标：<strong>已落地 Skill ≥ 20</strong> · 自动化率 ≥ 50%</div>
+      </div>
+
+      <div class="phase p3">
+        <div class="phase-header">
+          <div class="phase-badge">3</div>
+          <div><div class="phase-name">Agent 智能化</div><div class="phase-time">中期目标</div></div>
+        </div>
+        <div class="phase-goal">领域 Agent 上线，实现自然语言驱动的智能采购</div>
+        <div class="phase-deliver">
+          <ul>
+            <li>16 个采购领域 Agent 开发上线</li>
+            <li>Supervisor 多Agent协调与路由</li>
+            <li>Agent 记忆体系（短期/长期/领域知识）</li>
+            <li>RAG 知识检索与引用溯源</li>
+            <li>多模态交互（对话/语音/飞书机器人）</li>
+            <li>Agent 反思与自我纠错机制</li>
+          </ul>
+        </div>
+        <div class="phase-tech"><b>技术栈：</b>LLM Gateway · Agent框架 · RAG引擎 · 向量DB · 知识图谱 · 多模态</div>
+        <div class="phase-metric">指标：<strong>Agent 覆盖率 ≥ 12</strong> · 任务自主完成率 ≥ 70%</div>
+      </div>
+
+      <div class="phase p4">
+        <div class="phase-header">
+          <div class="phase-badge">4</div>
+          <div><div class="phase-name">平台自主化</div><div class="phase-time">长期愿景</div></div>
+        </div>
+        <div class="phase-goal">全链路自主决策，采购人从"操作系统"变为"指挥系统"</div>
+        <div class="phase-deliver">
+          <ul>
+            <li>风险监控 Agent 实时预警与自动应对</li>
+            <li>采购分析 Agent 自动洞察与策略建议</li>
+            <li>成本分析 Agent Should-Cost 与降本推荐</li>
+            <li>知识图谱驱动的智能决策</li>
+            <li>跨系统自主协同（SRM/ERP/MES/WMS）</li>
+            <li>采购数字孪生与仿真决策</li>
+          </ul>
+        </div>
+        <div class="phase-tech"><b>技术栈：</b>多Agent协作 · 知识图谱 · 数字孪生 · 强化学习 · 自主决策 · 跨系统集成</div>
+        <div class="phase-metric">指标：<strong>全链路自动化 ≥ 85%</strong> · 决策建议采纳率 ≥ 60%</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== 六、架构对比与业务价值 ===== -->
+  <div class="section" id="sec-compare">
+    <div class="section-title">
+      <span class="sec-num">5</span>架构对比 · Agent 化 vs 传统 B 端 SaaS
+      <span class="sec-en">ARCHITECTURE COMPARISON</span>
+    </div>
+    <div class="section-desc">从交互范式、系统关系、能力扩展、数据处理、决策方式、流程刚性六个维度对比；Agent 化架构的核心是"替人干活的系统"而非"给人用的工具"，采购人从"操作系统"升级为"指挥系统"</div>
+
+    <!-- 六维对比表 -->
+    <table class="compare-table">
+      <thead>
+        <tr>
+          <th>对比维度</th>
+          <th>传统 B 端 SaaS</th>
+          <th>Agent 化智能采购平台</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>交互范式</td>
+          <td>表单驱动：用户在固定页面填字段、点按钮，系统按预设流程走</td>
+          <td><strong>自然语言驱动</strong>：用户说"帮我查这个零件的最新价格并发起 RFQ"，Agent 自动拆解意图、串联多步操作</td>
+        </tr>
+        <tr>
+          <td>系统关系</td>
+          <td>替换式：新系统上线意味着旧系统下线，数据迁移成本高</td>
+          <td><strong>寄生式</strong>：通过 MCP/CLI "寄生"在 EP 系统之上，不替换、不迁移，读写现有数据增强能力</td>
+        </tr>
+        <tr>
+          <td>能力扩展</td>
+          <td>功能开发式：新增能力 = 新需求 → PRD → 开发 → 测试 → 上线，周期以月计</td>
+          <td><strong>Skill 拼装式</strong>：新增能力 = 写一个 Python 函数（Skill）+ 定义 CLI，周期以周计；Agent 自动发现并编排新 Skill</td>
+        </tr>
+        <tr>
+          <td>数据处理</td>
+          <td>单系统结构化：数据在各自系统内，跨系统靠人工导出 Excel 再导入</td>
+          <td><strong>跨域聚合</strong>：Agent 自动从 EP/成本库/天眼查/行情等多源拉取数据，统一视图，无需人工搬运</td>
+        </tr>
+        <tr>
+          <td>决策方式</td>
+          <td>人工决策：系统提供数据，人做判断；经验在个人脑中，人员流动即流失</td>
+          <td><strong>人机协同</strong>：L4-A 全自动（Agent 独立完成）/ L4-B 半自动（Agent 执行+人确认）/ L4-C 人工主导（Agent 辅助分析）；决策逻辑沉淀为可复用规则</td>
+        </tr>
+        <tr>
+          <td>流程刚性</td>
+          <td>固定流程：流程在系统中写死，变更需要改代码</td>
+          <td><strong>动态编排</strong>：LangGraph 状态机 + 条件路由，流程可配置、可断点、可人工介入；同一意图可根据数据状态走不同路径</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <!-- 五大业务增益 -->
+    <div style="font-size:11px;font-weight:700;color:#1A2744;margin-bottom:6px;">五大业务增益 · BUSINESS VALUE</div>
+    <div class="gain-grid">
+      <div class="gain-card">
+        <div class="gain-num">01</div>
+        <div class="gain-title">效率提升</div>
+        <div class="gain-desc">从"人找系统"到"系统找人"：自然语言发起，Agent 自动跨系统拉取数据、生成报告，单流程从天级压缩到小时级</div>
+      </div>
+      <div class="gain-card">
+        <div class="gain-num">02</div>
+        <div class="gain-title">决策质量</div>
+        <div class="gain-desc">从"经验驱动"到"数据驱动"：16 个领域 Agent 持续监控（价格异常/供应商风险/合同到期），主动预警，决策依据可溯源可审计</div>
+      </div>
+      <div class="gain-card">
+        <div class="gain-num">03</div>
+        <div class="gain-title">知识沉淀</div>
+        <div class="gain-desc">从"个人资产"到"组织资产"：Ontology 七大域知识图谱 + RAG 检索，新人直接问 AI 获得跨模块精准答案，经验不随人员流动流失</div>
+      </div>
+      <div class="gain-card">
+        <div class="gain-num">04</div>
+        <div class="gain-title">扩展速度</div>
+        <div class="gain-desc">从"项目制"到"生态制"：39 个 CLI 原子能力可自由组合，新增场景 = 编排已有 CLI + 写少量 Skill，平台越用越强，能力复利增长</div>
+      </div>
+      <div class="gain-card">
+        <div class="gain-num">05</div>
+        <div class="gain-title">链路韧性</div>
+        <div class="gain-desc">从"系统断点"到"链路自愈"：LangGraph checkpoint + 人工断点，流程可暂停、可恢复、可回滚；9 条全自动链路已设计，断点自动预警</div>
+      </div>
+    </div>
+
+    <!-- 一句话总结 -->
+    <div class="compare-summary">
+      <div class="cs-label">CORE INSIGHT · 核心洞察</div>
+      <div class="cs-text">
+        传统 B 端 SaaS 是<strong>"给人用的工具"</strong>——人适应系统，在固定流程里操作；
+        Agent 化架构是<strong>"替人干活的系统"</strong>——系统适应人，用自然语言理解意图、自动编排能力、跨系统协同执行，
+        把采购工程师从重复劳动中解放出来，聚焦在真正需要判断和决策的高价值环节。
+        这也是 B 点项目"Skill 先行、Agent 后置"原则的底层逻辑——先把每个原子能力做扎实，再用 Agent 串成能自主干活的智能体。
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== 七、关键挑战与解决方案 ===== -->
+  <div class="section" id="sec-challenge">
+    <div class="section-title">
+      <span class="sec-num">6</span>关键挑战与解决方案 · 开放问题与落地路径
+      <span class="sec-en">CHALLENGES &amp; SOLUTIONS</span>
+    </div>
+    <div class="section-desc">客观看待当前阶段（L2 单域操作期）的三大核心挑战：多入口交互体验、数据与权限控制、Agent 深水区差距；每个挑战给出可落地的解决方案，不画大饼、不回避问题</div>
+
+    <!-- 挑战1：交互体验 -->
+    <div class="challenge-block">
+      <div class="challenge-header">
+        <span class="ch-num">01</span>
+        <span class="ch-title">多入口交互体验 · 三入口并存不是混乱，而是分层接入</span>
+        <span class="ch-en">MULTI-ENTRY INTERACTION</span>
+      </div>
+      <div class="challenge-body">
+        <div class="challenge-problem">
+          <div class="cp-label">现状与痛点 · PROBLEM</div>
+          <div class="cp-text">
+            开放阶段存在三种交互入口并存：
+            <ul>
+              <li><b>AI 助手</b>（EP 内嵌对话）—— 面向采购工程师，自然语言交互</li>
+              <li><b>本地 Agent</b>（CLI/Skill 直接调用）—— 面向开发者/自动化脚本，命令行交互</li>
+              <li><b>系统调用</b>（API/MCP）—— 面向系统集成，程序化调用</li>
+            </ul>
+            痛点：用户不知道该用哪个入口；不同入口体验不一致、状态不同步；人机协同断点多（Agent 执行到一半需要人确认时，切换成本高）。
+          </div>
+        </div>
+        <div class="challenge-solution">
+          <div class="cs-label">解决方案 · SOLUTION</div>
+          <div class="cs-list">
+            <div class="cs-item"><strong>统一编排引擎 + 状态同步：</strong>三入口共享同一套 LangGraph 编排引擎和状态管理（checkpoint），无论从哪个入口发起，任务进度、审批状态、执行结果实时同步；用户在 AI 助手发起的任务，可以在本地 CLI 查看进度，在系统 API 中获取结果。</div>
+            <div class="cs-item"><strong>入口分层定位：</strong>AI 助手 = "面向人"的自然语言交互（解释、追问、确认）；本地 Agent = "面向开发者"的脚本化调用（批量、定时、自动化）；系统调用 = "面向系统"的 API 集成（EP/ERP/SRM 系统间打通）。三入口不是竞争关系，而是覆盖不同使用场景。</div>
+            <div class="cs-item"><strong>人机协同丝滑化（HITL）：</strong>Agent 执行到需要人工确认的节点时，自动通过飞书卡片推送审批请求（含上下文摘要+可选操作按钮），用户在飞书内一键确认/驳回/修改，Agent 自动续跑；支持断点续跑（checkpoint 持久化）和操作回滚（每次 Agent 操作记录可追溯）。</div>
+            <div class="cs-item"><strong>渐进式自动化等级：</strong>用户可按场景选择自动化等级——L4-C 人工主导（Agent 只给建议，人执行）、L4-B 半自动（Agent 执行+人确认）、L4-A 全自动（Agent 独立完成，事后审计）；低风险/高频场景逐步从 C→B→A 升级，高风险场景始终保持人工确认。</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 挑战2：数据与权限控制 -->
+    <div class="challenge-block">
+      <div class="challenge-header">
+        <span class="ch-num">02</span>
+        <span class="ch-title">数据与权限控制 · Agent 时代的安全底线</span>
+        <span class="ch-en">DATA &amp; PERMISSION CONTROL</span>
+      </div>
+      <div class="challenge-body">
+        <div class="challenge-problem">
+          <div class="cp-label">现状与痛点 · PROBLEM</div>
+          <div class="cp-text">
+            39 个 CLI 已定义权限控制点，但 Agent 化后权限复杂度指数级上升：
+            <ul>
+              <li>Agent 跨模块调用时，权限如何传递和约束？</li>
+              <li>Supervisor 调度多个子 Agent 时，是否会越权访问？</li>
+              <li>Agent 输出中可能包含敏感数据（价格、成本、供应商信息），如何脱敏？</li>
+              <li>Agent 的自主决策操作，如何审计和追责？</li>
+              <li>跨系统数据（EP/成本库/天眼查）如何隔离？</li>
+            </ul>
+          </div>
+        </div>
+        <div class="challenge-solution">
+          <div class="cs-label">解决方案 · SOLUTION</div>
+          <div class="cs-list">
+            <div class="cs-item"><strong>统一权限网关：</strong>所有 CLI/API 调用必须经过统一权限网关，采用 RBAC（角色权限）+ ABAC（属性权限）混合模型；用户身份→角色→权限→CLI 调用范围，Agent 继承发起用户的权限上下文，不可越权。</div>
+            <div class="cs-item"><strong>Agent 最小权限集：</strong>每个领域 Agent 定义独立身份和最小权限集（如订单 Agent 只能调用订单相关 4 个 CLI，不能调用价格/合同 CLI）；Supervisor 只做调度不直接执行业务，子 Agent 按任务分配临时权限令牌（JWT），任务结束自动回收。</div>
+            <div class="cs-item"><strong>数据分级与脱敏：</strong>按数据敏感度分四级——公开（可对外）/内部（全员可见）/机密（部门可见）/绝密（指定人可见）；Agent 输出自动按查看者权限脱敏（如采购工程师看不到成本明细，只能看到价格）；RAG 检索结果按权限过滤。</div>
+            <div class="cs-item"><strong>全链路审计日志：</strong>每次 Agent 调用记录——调用者身份、Agent 身份、输入参数、输出结果、决策依据（引用了哪些数据/规则）、人工确认记录、时间戳；审计日志不可篡改，支持按用户/Agent/时间/操作类型追溯。</div>
+            <div class="cs-item"><strong>跨系统数据隔离：</strong>外部系统数据通过 MCP Server 隔离接入，Agent 不可直接访问底层数据库；每个 MCP Server 独立鉴权，数据在内存中处理不落盘；敏感数据（如成本库）仅限指定 Agent 在指定场景下访问。</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 挑战3：Agent发展差距 -->
+    <div class="challenge-block">
+      <div class="challenge-header">
+        <span class="ch-num">03</span>
+        <span class="ch-title">Agent 发展差距 · 客观看待深水区，不画大饼</span>
+        <span class="ch-en">AGENT MATURITY GAP</span>
+      </div>
+      <div class="challenge-body">
+        <div class="challenge-problem">
+          <div class="cp-label">现状与差距 · CURRENT STATE</div>
+          <div class="cp-text">
+            当前处于 <b>L2 单域操作期</b>（CLI 原子能力 + 单模块 Skill），Agent 层刚起步。行业深水区尚未触碰：
+            <ul>
+              <li><b>评测体系</b>：如何量化评估 Agent 的任务完成率、准确率、幻觉率、安全性？</li>
+              <li><b>记忆体系</b>：短期记忆（会话内）、长期记忆（跨会话）、领域知识、程序性记忆如何分层？</li>
+              <li><b>自主决策</b>：从"人确认"到"Agent 自主决策"的信任如何建立？边界如何设定？</li>
+              <li><b>多 Agent 协同</b>：Agent 间通信协议、冲突解决、任务分解与聚合如何设计？</li>
+            </ul>
+            客观定位：我们在"应用编织和探索期"，距离"平台自主化"还有 2-3 年的路要走。
+          </div>
+        </div>
+        <div class="challenge-solution">
+          <div class="cs-label">分阶段攻克路线 · ROADMAP</div>
+          <div class="cs-list">
+            <div class="cs-item"><strong>评测体系先行（Phase 2 启动）：</strong>建立采购场景金标准评测集（覆盖 5 大域 53 个节点的典型任务），自动化评测流水线（每次 Skill/Agent 更新自动跑评测），指标包括任务完成率、CLI 调用准确率、幻觉率（输出与事实一致性）、响应时间、人工干预率；引入红蓝对抗测试（红队构造恶意输入测试 Agent 安全性）。</div>
+            <div class="cs-item"><strong>记忆体系分层（Phase 2-3）：</strong>短期记忆 = LangGraph checkpoint（会话内状态，任务结束归档）；长期记忆 = 用户偏好/历史决策/经验教训（向量 DB 存储，按用户/部门隔离）；领域知识 = Ontology 七大域 + RAG 检索（结构化知识图谱 + 非结构化文档）；程序性记忆 = 可复用工作流模板（成功执行的流程自动沉淀为模板，下次相似任务直接调用）。</div>
+            <div class="cs-item"><strong>自主决策边界（Phase 3）：</strong>定义 Agent 可自主决策的场景白名单（如样件订单自动下单、合同风险自动标记），设定金额阈值和风险等级（低风险+低金额=全自动，高风险或高金额=强制人工确认）；建立 Agent 决策的"可解释性"要求——每次自主决策必须输出决策依据（引用了哪些数据/规则/历史案例），支持事后审计和人工纠错。</div>
+            <div class="cs-item"><strong>多 Agent 协同（Phase 3-4）：</strong>Agent 间通信采用标准化协议（任务描述+输入输出契约+状态回调），Supervisor 负责任务分解和结果聚合，子 Agent 间通过共享状态（而非直接调用）协作；冲突解决采用"优先级+投票"机制（高优先级 Agent 决策优先，同级 Agent 冲突时 Supervisor 仲裁）；从 2-3 个 Agent 协同起步（如订单+合同+价格），逐步扩展到全域协同。</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 能力成熟度矩阵 -->
+    <div style="font-size:11px;font-weight:700;color:#1A2744;margin:12px 0 6px;">能力成熟度矩阵 · MATURITY MATRIX</div>
+    <div class="gap-matrix">
+      <div class="gap-cell done">
+        <span class="gc-status">已落地 DONE</span>
+        <div class="gc-title">CLI 原子能力</div>
+        <div class="gc-desc">39 个 EP CLI 定义（31 已实现），输入输出契约标准化，权限控制点全覆盖</div>
+      </div>
+      <div class="gap-cell done">
+        <span class="gc-status">已落地 DONE</span>
+        <div class="gc-title">样件订单全自动化</div>
+        <div class="gc-desc">五环节（导入→校验→可下单→下单→提交）全链路验证，L5 生产级</div>
+      </div>
+      <div class="gap-cell doing">
+        <span class="gc-status">进行中 DOING</span>
+        <div class="gc-title">Skill 场景化封装</div>
+        <div class="gc-desc">8 个高频 Skill 已落地（订单5+合同3），59 个 Skill 规划中，Phase 2 目标 20+</div>
+      </div>
+      <div class="gap-cell doing">
+        <span class="gc-status">进行中 DOING</span>
+        <div class="gc-title">合同 AI 审查</div>
+        <div class="gc-desc">风险条款识别+字段校验+法律审查三 Skill 已落地，L4 试点级</div>
+      </div>
+      <div class="gap-cell todo">
+        <span class="gc-status">待启动 TODO</span>
+        <div class="gc-title">LangGraph 编排引擎</div>
+        <div class="gc-desc">跨域多 Skill 串联，9 条全自动链路设计中，HITL 人工断点机制</div>
+      </div>
+      <div class="gap-cell todo">
+        <span class="gc-status">待启动 TODO</span>
+        <div class="gc-title">Agent 评测体系</div>
+        <div class="gc-desc">采购场景金标准评测集，自动化评测流水线，红蓝对抗测试</div>
+      </div>
+      <div class="gap-cell deep">
+        <span class="gc-status">深水区 DEEP</span>
+        <div class="gc-title">Agent 记忆体系</div>
+        <div class="gc-desc">短期/长期/领域/程序性四层记忆，跨会话经验沉淀与复用</div>
+      </div>
+      <div class="gap-cell deep">
+        <span class="gc-status">深水区 DEEP</span>
+        <div class="gc-title">自主决策与多Agent协同</div>
+        <div class="gc-desc">决策边界设定、可解释性、Agent间通信协议、冲突解决机制</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="footer">
+    Agent 化智能采购平台架构全景 · 基于 SRM 四层架构演进 · 39 CLI → 59 Skill → 16 Agent → 智能决策 · 自底向上能力聚合
+  </div>
+
+</div>
+</body>
+</html>

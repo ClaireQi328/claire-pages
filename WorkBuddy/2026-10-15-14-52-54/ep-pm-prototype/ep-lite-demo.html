@@ -1,0 +1,237 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>EP 采购助手 · 轻量化方案（统计 + 文档上传）</title>
+<style>
+  :root{
+    --bg:#F5F3EF; --panel:#FFFFFF; --panel2:#FAF8F4; --ink:#3A3A38; --sub:#8A8780;
+    --border:#E6E1D8; --taupe:#9C8E7E; --sage:#8FA39C; --blue:#8FA8C0; --rose:#C89B9B;
+    --ok:#7E9B86; --warn:#C2A26B; --bad:#C08A8A; --lock:#C9C4BB;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;font-family:-apple-system,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif;
+    background:var(--bg);color:var(--ink);font-size:14px;line-height:1.6}
+  header{background:linear-gradient(120deg,#F0ECE3,#E7E0D4);padding:22px 32px;border-bottom:1px solid var(--border)}
+  header h1{margin:0;font-size:20px;letter-spacing:.5px}
+  header p{margin:6px 0 0;color:var(--sub);font-size:13px}
+  .wrap{max-width:1080px;margin:0 auto;padding:24px 32px 60px}
+  /* 能力分层条 */
+  .layers{display:flex;gap:8px;flex-wrap:wrap;margin:18px 0 26px}
+  .layer{padding:8px 14px;border-radius:20px;font-size:12.5px;border:1px solid var(--border);background:var(--panel);display:flex;align-items:center;gap:6px}
+  .layer.on{border-color:var(--sage);background:#EEF3F0;color:#3F5A4E}
+  .layer.lock{color:var(--lock);background:#F1EFEA}
+  .dot{width:8px;height:8px;border-radius:50%}
+  .dot.on{background:var(--sage)} .dot.lock{background:var(--lock)}
+  .section{background:var(--panel);border:1px solid var(--border);border-radius:14px;padding:22px 24px;margin-bottom:22px;box-shadow:0 1px 3px rgba(60,50,40,.04)}
+  .section h2{margin:0 0 4px;font-size:16px;display:flex;align-items:center;gap:8px}
+  .section .tag{font-size:11px;color:#fff;background:var(--sage);padding:2px 8px;border-radius:10px;font-weight:400}
+  .section .desc{color:var(--sub);font-size:12.5px;margin:0 0 16px}
+  .kpis{display:grid;grid-template-columns:repeat(4,1fr);gap:14px}
+  .kpi{background:var(--panel2);border:1px solid var(--border);border-radius:12px;padding:14px 16px}
+  .kpi .n{font-size:26px;font-weight:600;color:var(--taupe)}
+  .kpi .l{font-size:12px;color:var(--sub);margin-top:2px}
+  .kpi .s{font-size:11px;color:var(--ok);margin-top:4px}
+  .chart-wrap{margin-top:18px}
+  .bar{display:flex;align-items:flex-end;gap:24px;height:170px;padding:10px 8px 0}
+  .col{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:flex-end;height:100%}
+  .col .v{font-size:13px;font-weight:600;margin-bottom:6px;color:var(--ink)}
+  .col .b{width:64%;border-radius:6px 6px 0 0;background:linear-gradient(180deg,#A7B5AC,#8FA39C)}
+  .col .x{font-size:11.5px;color:var(--sub);margin-top:8px;text-align:center}
+  table{width:100%;border-collapse:collapse;margin-top:16px;font-size:12.5px}
+  th,td{text-align:left;padding:9px 10px;border-bottom:1px solid var(--border)}
+  th{color:var(--sub);font-weight:500;background:var(--panel2)}
+  .pill{font-size:11px;padding:1px 8px;border-radius:10px;border:1px solid var(--border)}
+  .pill.feishu{background:#EAF1F8;color:#3C6AA0;border-color:#C9DCEF}
+  .pill.lock{background:#F2EDE4;color:#8A6F4E;border-color:#E2D3BB}
+  .pill.draft{background:#F0F0EE;color:#7A766E;border-color:#DCD9D2}
+  /* 文档上传 */
+  .row{display:flex;gap:12px;flex-wrap:wrap;align-items:center}
+  .row.two > *{flex:1;min-width:220px}
+  input,select{font:inherit;padding:9px 11px;border:1px solid var(--border);border-radius:9px;background:var(--panel2);color:var(--ink);width:100%}
+  input:focus,select:focus{outline:none;border-color:var(--sage)}
+  label{display:block;font-size:12px;color:var(--sub);margin-bottom:5px}
+  button{font:inherit;cursor:pointer;border:1px solid var(--sage);background:var(--sage);color:#fff;padding:9px 18px;border-radius:9px;font-size:13px;transition:.15s}
+  button:hover{filter:brightness(1.05)}
+  button.ghost{background:var(--panel);color:var(--taupe);border-color:var(--border)}
+  button:disabled{background:var(--lock);border-color:var(--lock);cursor:not-allowed}
+  .meta{background:var(--panel2);border:1px dashed var(--border);border-radius:10px;padding:12px 14px;margin-top:12px;font-size:12.5px;display:none}
+  .meta.show{display:block}
+  .meta b{color:var(--ink)}
+  .path{background:#EEF3F0;border:1px solid #CFE0D7;border-radius:9px;padding:11px 14px;margin-top:14px;font-family:"SF Mono",Menlo,monospace;font-size:12.5px;color:#3F5A4E;word-break:break-all}
+  .hint{font-size:11.5px;color:var(--sub);margin-top:8px}
+  .up-card{display:flex;align-items:center;gap:12px;background:var(--panel2);border:1px solid var(--border);border-radius:10px;padding:11px 14px;margin-top:10px}
+  .up-card .nm{flex:1;font-size:13px}
+  .up-card .st{font-size:11px;padding:2px 9px;border-radius:10px}
+  .st.lock{background:#F2EDE4;color:#8A6F4E}
+  .st.draft{background:#F0F0EE;color:#7A766E}
+  .st.change{background:#EFE7EE;color:#8A5E7E}
+  footer{text-align:center;color:var(--sub);font-size:12px;padding:20px}
+  .grid2{display:grid;grid-template-columns:1fr 1fr;gap:18px}
+  @media(max-width:760px){.kpis{grid-template-columns:repeat(2,1fr)}.grid2{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+<header>
+  <h1>EP 采购助手 · 轻量化方案</h1>
+  <p>定位：只做「统计」与「文档上传」两块核心能力 · 单文件 HTML 原型 · 数据均为演示 mock</p>
+</header>
+
+<div class="wrap">
+  <!-- 能力分层 -->
+  <div class="layers">
+    <div class="layer on"><span class="dot on"></span>L1 统计看板 · 已具备</div>
+    <div class="layer on"><span class="dot on"></span>L2 文档协同 · 已具备</div>
+    <div class="layer lock"><span class="dot lock"></span>L3 流程联动 · 未含</div>
+    <div class="layer lock"><span class="dot lock"></span>L4 智能 Agent · 未含</div>
+    <div class="layer lock"><span class="dot lock"></span>L5 CLI/API · 未含</div>
+  </div>
+
+  <!-- 统计 -->
+  <div class="section">
+    <h2>📊 统计看板 <span class="tag">L1</span></h2>
+    <p class="desc">轻量化仅保留采购 PM 最关心的 4 个指标 + 交付物来源分布，不做跨模块钻取。</p>
+    <div class="kpis">
+      <div class="kpi"><div class="n">8</div><div class="l">在管采购项目</div><div class="s">▲ 本月 +1</div></div>
+      <div class="kpi"><div class="n">142</div><div class="l">交付物总数</div><div class="s">▲ 本周 +9</div></div>
+      <div class="kpi"><div class="n">12</div><div class="l">我的待办</div><div class="s">⚠ 3 项逾期</div></div>
+      <div class="kpi"><div class="n">3</div><div class="l">风险预警</div><div class="s">供应商交期</div></div>
+    </div>
+    <div class="chart-wrap">
+      <div style="font-size:12.5px;color:var(--sub);margin-bottom:4px">交付物按来源分布</div>
+      <div class="bar">
+        <div class="col"><div class="v">61</div><div class="b" style="height:42%"></div><div class="x">手动上传</div></div>
+        <div class="col"><div class="v">38</div><div class="b" style="height:27%"></div><div class="x">上会关联</div></div>
+        <div class="col"><div class="v">27</div><div class="b" style="height:19%"></div><div class="x">合同签署</div></div>
+        <div class="col"><div class="v">16</div><div class="b" style="height:12%"></div><div class="x">策略文档</div></div>
+      </div>
+    </div>
+    <table>
+      <thead><tr><th>交付物</th><th>项目</th><th>来源</th><th>状态</th></tr></thead>
+      <tbody>
+        <tr><td>MS11 BCP 定点价格协议</td><td>Modena-L</td><td><span class="pill feishu">上会关联</span></td><td><span class="pill lock">已锁版</span></td></tr>
+        <tr><td>CDC 减振器 SOR 包</td><td>KunLun10云创</td><td><span class="pill feishu">手动上传</span></td><td><span class="pill lock">已锁版</span></td></tr>
+        <tr><td>座椅总成策略文档</td><td>Modena</td><td><span class="pill feishu">策略文档</span></td><td><span class="pill draft">草稿</span></td></tr>
+        <tr><td>焊接包框架协议</td><td>KunLun10云创</td><td><span class="pill feishu">合同签署</span></td><td><span class="pill lock">已锁版</span></td></tr>
+        <tr><td>被动减振器 RFQ</td><td>Modena-L</td><td><span class="pill feishu">手动上传</span></td><td><span class="pill draft">草稿</span></td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <!-- 文档上传 -->
+  <div class="section">
+    <h2>📁 文档上传（飞书为主） <span class="tag">L2</span></h2>
+    <p class="desc">核心能力：粘贴飞书链接 → 拉取元数据 → 规范路径归档 → 锁版约束。轻量化不含跨模块自动联动。</p>
+    <div class="grid2">
+      <div>
+        <label>飞书文档链接</label>
+        <div class="row">
+          <input id="feishuUrl" placeholder="https://docs.feishu.cn/docx/xxxx" value="https://docs.feishu.cn/docx/MS11BCP2026"/>
+          <button onclick="fetchMeta()">拉取元数据</button>
+        </div>
+        <div class="meta" id="metaBox">
+          <div>标题：<b id="mTitle">—</b></div>
+          <div>所有者：<b id="mOwner">—</b></div>
+          <div>DocID：<b id="mId">—</b></div>
+          <div class="hint">* 演示环境为模拟拉取，真实环境经飞书 MCP doc_read 直连。</div>
+        </div>
+      </div>
+      <div>
+        <label>文档类型</label>
+        <select id="docType">
+          <option>定点价格协议</option><option>会议纪要</option><option>SOR 包</option>
+          <option>策略文档</option><option>合同/框架协议</option>
+        </select>
+        <label style="margin-top:12px">来源</label>
+        <select id="docSrc">
+          <option>手动上传</option><option>上会关联</option><option>合同签署</option><option>策略文档</option>
+        </select>
+      </div>
+    </div>
+
+    <div class="grid2" style="margin-top:14px">
+      <div><label>项目</label><input id="pProject" value="Modena-L"/></div>
+      <div><label>车型平台</label><input id="pPlatform" value="Modena平台"/></div>
+      <div><label>节点</label><input id="pNode" value="M2"/></div>
+      <div><label>工作项</label><input id="pWork" value="定点价格协议"/></div>
+    </div>
+    <div class="grid2" style="margin-top:14px">
+      <div><label>文档名</label><input id="pName" value="MS11 BCP 定点价格协议（博世苏州）"/></div>
+      <div><label>版本 / 状态</label>
+        <div class="row">
+          <input id="pVer" value="V1.1" style="max-width:120px"/>
+          <select id="pStatus" style="max-width:140px"><option>草稿</option><option>评审中</option><option>已锁版</option></select>
+        </div>
+      </div>
+    </div>
+
+    <label style="margin-top:14px">规范路径（自动生成 · 锁版后冻结）</label>
+    <div class="path" id="pathView">EP交付物/—/—/—/—/—</div>
+
+    <div class="row" style="margin-top:16px">
+      <button onclick="upload()">入库归档</button>
+      <button class="ghost" onclick="resetForm()">清空</button>
+      <span class="hint" id="upHint">提示：已锁版文档禁止改名/改路径/重传，仅可「发起变更」。</span>
+    </div>
+
+    <label style="margin-top:22px">已归档交付物</label>
+    <div id="upList"></div>
+  </div>
+
+  <footer>轻量化方案 Demo · 仅统计 + 文档上传 · 能力分层 L1–L2 · mock 数据</footer>
+</div>
+
+<script>
+const TYPE_EXT={'定点价格协议':'pdf','会议纪要':'docx','SOR 包':'pdf','策略文档':'pdf','合同/框架协议':'pdf'};
+function fetchMeta(){
+  const url=document.getElementById('feishuUrl').value.trim();
+  if(!url){alert('请先填写飞书链接');return;}
+  // 模拟拉取
+  document.getElementById('mTitle').textContent='MS11 BCP 定点价格协议（博世苏州）';
+  document.getElementById('mOwner').textContent='齐岳';
+  document.getElementById('mId').textContent='docx_'+(url.split('/').pop()||'MS11BCP2026');
+  document.getElementById('metaBox').classList.add('show');
+  renderPath();
+}
+function renderPath(){
+  const p=document.getElementById('pProject').value.trim()||'—';
+  const pf=document.getElementById('pPlatform').value.trim()||'—';
+  const n=document.getElementById('pNode').value.trim()||'—';
+  const w=document.getElementById('pWork').value.trim()||'—';
+  const nm=document.getElementById('pName').value.trim()||'—';
+  const v=document.getElementById('pVer').value.trim()||'V1.0';
+  const st=document.getElementById('pStatus').value;
+  const ext=TYPE_EXT[document.getElementById('docType').value]||'pdf';
+  document.getElementById('pathView').textContent=
+    `EP交付物/${p}/${pf}/${n}/${w}/${nm}_${v}_${st}.${ext}`;
+}
+['pProject','pPlatform','pNode','pWork','pName','pVer','pStatus','docType'].forEach(id=>{
+  document.getElementById(id).addEventListener('input',renderPath);
+  document.getElementById(id).addEventListener('change',renderPath);
+});
+function upload(){
+  const st=document.getElementById('pStatus').value;
+  if(st==='已锁版' && !document.getElementById('metaBox').classList.contains('show')){
+    alert('锁版文档需先关联飞书链接');return;
+  }
+  const name=document.getElementById('pName').value.trim()||'未命名文档';
+  const path=document.getElementById('pathView').textContent;
+  const stClass=st==='已锁版'?'lock':(st==='草稿'?'draft':'draft');
+  const item=document.createElement('div');
+  item.className='up-card';
+  item.innerHTML=`<div class="nm"><b>${name}</b><div class="hint" style="margin:2px 0 0">${path}</div></div>`+
+    `<span class="st ${stClass}">${st}</span>`+
+    (st==='已锁版'?'<button class="ghost" disabled>发起变更</button>':'<button class="ghost" onclick="this.parentElement.remove()">撤销</button>');
+  document.getElementById('upList').prepend(item);
+  document.getElementById('upHint').textContent='✓ 已归档至规范路径（演示）。';
+}
+function resetForm(){
+  ['pProject','pPlatform','pNode','pWork','pName','pVer'].forEach(id=>document.getElementById(id).value='');
+  document.getElementById('metaBox').classList.remove('show');
+  renderPath();
+}
+renderPath();
+</script>
+</body>
+</html>

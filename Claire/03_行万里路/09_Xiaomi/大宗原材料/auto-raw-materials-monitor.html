@@ -1,0 +1,1113 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>汽车行业原材料监控看板</title>
+<script id="data-block">
+/* ============================================================
+ * DATA_ALL — 汽车行业核心原材料数据块（8 品种）
+ * 全局总览 + 分品种 Tab；页面内「✎ 编辑」可改，导出固化
+ * 数据日期：LME 8/24 收盘；国内现货/期货 8/24 收盘，部分 8/25 早盘快照
+ * ============================================================ */
+window.DATA_ALL = {
+  meta: {
+    dataDate: '2026-08-24',
+    note: 'LME 为 8/24 收盘；国内为 8/24 收盘（个别标注 8/25 早盘）；涨跌幅为近 5/20 交易日估算'
+  },
+  overview: {
+    groups: [
+      { key: 'tight', title: '🔴 紧缺 / 上涨（宜锁价）', tone: 'danger', list: ['zinc', 'aluminum', 'lithium', 'copper'] },
+      { key: 'mix',   title: '🟡 分化 / 震荡（按需）',  tone: 'warn',  list: ['nickel', 'hrc'] },
+      { key: 'loose', title: '🟢 宽松 / 下行（可谈）',  tone: 'safe',  list: ['iron', 'cobalt'] }
+    ],
+    insights: [
+      { t: '有色链', tone: 'danger', d: '锌创四年新高（3M $3,835、现货升水年内最大），铜注销仓单占比骤升至 50.5%，铝 LME 库存 36 年低位 + 沪铝周去库 1.8 万吨 → 外盘紧缺未解，继续锁价' },
+      { t: '电池链', tone: 'danger', d: '锂钴剪刀差扩大：碳酸锂月内反弹 ~17% 突破 16 万关口 vs 电解钴周跌 6%（月跌 13%）→ 铁锂成本上行、三元钴成本下行，分别对待' },
+      { t: '黑色链', tone: 'warn',   d: '8/24 黑色系全线反弹（焦炭 +2.9%、热卷 +1.5%、铁矿 +1.3%），但钢厂盈利率仅 32% → 反弹持续性存疑，按需采购为主' },
+      { t: '风险提示', tone: 'warn', d: '铜注销仓单 +73%、锂仓单 4.1 万手、锌挤仓反复、镍印尼配额、钴过剩 → 突变诱因密集，阈值预警需常开' }
+    ],
+    method: [
+      { t: '① 定目的', d: '锁价 / 成本预警 / 谈判 / 套保——目的决定分析重点', tone: 'info' },
+      { t: '② 数据四件套', d: '价格（现货+期货）· 库存 · 价差结构 · 供需基本面，每周必看', tone: 'info' },
+      { t: '③ 价差是先行指标', d: 'Backwardation = 现货紧缺，Contango = 供应宽松，比价格更早给信号', tone: 'warn' },
+      { t: '④ 落为动作', d: '「LME 月均 + 升贴水 + 加工费」三段定价；锁价 / 按需 / 可谈三档；阈值触发三级响应', tone: 'danger' }
+    ],
+    watchGlobal: [
+      { t: '锌', d: '现货升水是否收敛、四年新高后的挤仓风险、SHFE 库存翻倍的内外分化' },
+      { t: '铝', d: 'Q4 冲高兑现度、沪铝周库存去化持续性（40.4 万吨）、氧化铝成本' },
+      { t: '锂', d: '16 万关口突破有效性、仓单 4.1→5 万手套保压制、9 月下旬旺季验证' },
+      { t: '铜', d: '注销仓单占比 50.5%（挤仓反复）、COMEX-LME 价差与美关税' },
+      { t: '镍', d: '印尼配额政策、LME 26.8 万吨库存累库是否重启' },
+      { t: '钴', d: '周跌 6% 后的刚果金配额执行、印尼产能投放（月跌 12%+）' },
+      { t: '黑色系', d: '8/24 反弹持续性、金九银十需求、钢厂盈利率（32%）' }
+    ],
+    sop: [
+      { freq: '每日', tone: 'info', items: ['抓 Cash / 3M / 库存 / 价差 4 数，更新对应品种快照', '阈值触发即时响应：超上阈 → 锁价评估；破下阈 → 锁量窗口'] },
+      { freq: '每周', tone: 'warn', items: ['刷新近 5/20 日涨跌与风险等级', '核对库存关口事件，更新全局信号分组', '检查价差结构：Backwardation / Contango 翻转是强信号'] },
+      { freq: '每月', tone: 'danger', items: ['TC/RC 加工费与供需平衡表', '机构观点对比（SMM / Mysteel / 投行）', '锁价 / 套保决策评审'] },
+      { freq: '阈值触发', tone: 'safe', items: ['现货价 ≥ 上阈：锁价 / 套保评估', '现货价 ≤ 下阈：锁量窗口', '现货升水超阈：现货紧张预警，谈判以 LME 月均 + 升贴水为锚'] }
+    ]
+  },
+  metals: {
+    copper: {
+      key:'copper', name:'铜', unit:'$/t', color:'#FA8C16',
+      spot: {v:14330,  label:'LME Cash', note:'8/24 · 3M+升水估算'},
+      spotD:{v:108170, label:'长江 1# 现货', note:'元/吨 · 8/24 · 升水310'},
+      future:{v:14273, label:'LME 3M', note:'8/24 收盘 +0.4%'},
+      futureD:{v:107750, label:'SHFE 主力', note:'元/吨 · 8/24 收盘 · 8/25 早盘 108,190'},
+      chg5d:0.4, chg20d:4.8,
+      stock:{v:240250, label:'LME 库存', note:'8/24 +1,675 · 注销占比 50.5%'},
+      stock30d:-4.0,
+      spread:'Backwardation，注销仓单单日 +73% 至 12.1 万吨，挤仓风险反复',
+      risk:'mid',
+      riskNote:'高位波动，注销仓单骤升',
+      pointsUnit:'LME 3M $/t',
+      points:[["2026-03-02",13287.5],["2026-03-09",12801.0],["2026-03-16",12841.0],["2026-03-31",12235.0],["2026-04-08",12652.5],["2026-04-16",13237.5],["2026-04-30",13087.5],["2026-05-08",13497.5],["2026-05-15",13597.5],["2026-05-29",13656.0],["2026-06-05",13762.5],["2026-06-17",13805.5],["2026-06-30",13365.0],["2026-07-10",13453.5],["2026-07-24",13616.0],["2026-07-31",13799.0],["2026-08-10",14151.0],["2026-08-21",14234.0],["2026-08-24",14273.0]],
+      drivers:['8/24 LME 3M 收 $14,273（+0.4%），注销仓单激增 73% 引发买盘，注册仓单降 29%','COMEX 库存创纪录 74.3 万短吨，美关税不确定性推大国间价差','MMG 拉斯班巴斯 8/21 复产（约占全球矿铜 2%），矿端紧张边际缓解'],
+      app:'线束、电机绕组、连接器、动力电池铜箔',
+      suggest:'高位震荡 + 注销仓单骤升：按需采购，逢回调分批锁价，避免追高',
+      alert:{upper:15100, lower:13880},
+      sources:["smm.cn 8/24 LME收盘","quheqihuo.com","cls.cn","metalsmarket.org","ccmn.cn"],
+      watch:["注销仓单占比 50.5% 是否持续（挤仓反复的信号）","COMEX-LME 价差与美关税进展","拉斯班巴斯复产后的矿端供给节奏"],
+      alertUnit:'USD',
+      srcDetail:[{f:'期货主力 LME 3M',v:'$14,273',s:'smm.cn/cls.cn 8/24收盘',d:'8/24'},{f:'国内现货 长江1#',v:'¥108,170·升水310',s:'ccmn.cn/金投',d:'8/24'},{f:'国内期货 SHFE主力',v:'¥107,750',s:'quheqihuo/金投',d:'8/24'},{f:'库存 LME仓单',v:'240.25K mt·+1,675',s:'smm.cn 8/24收盘',d:'8/24'},{f:'注销仓单',v:'121,375 mt·+73.45%',s:'smm.cn 8/24收盘',d:'8/24'},{f:'现货价 LME Cash',v:'~$14,330（估算）',s:'3M+升水推算',d:'8/24'}]
+    },
+    aluminum: {
+      key:'aluminum', name:'铝', unit:'$/t', color:'#8C8C8C',
+      spot: {v:3211,   label:'LME Cash', note:'8/24 · Contango −$17 估算'},
+      spotD:{v:23800,  label:'长江 A00 现货', note:'元/吨 · 8/24 · 升水5'},
+      future:{v:3229,  label:'LME 3M', note:'8/24 收盘 −0.8%'},
+      futureD:{v:23765, label:'SHFE 主力', note:'元/吨 · 8/24 收盘 +0.61%'},
+      chg5d:-1.3, chg20d:1.4,
+      stock:{v:246925, label:'LME 库存', note:'8/24 持平 · 36 年低位'},
+      stock30d:-10.8,
+      spread:'轻微 Contango（Cash−3M ≈ −$17）',
+      risk:'mid',
+      riskNote:'LME 库存极低，沪铝去库延续',
+      pointsUnit:'LME 3M $/t',
+      points:[["2026-03-03",3260.25],["2026-03-10",3389.0],["2026-03-17",3412.5],["2026-03-31",3505.5],["2026-04-07",3508.0],["2026-04-16",3636.25],["2026-04-30",3481.0],["2026-05-08",3511.25],["2026-05-14",3665.75],["2026-05-29",3684.75],["2026-06-05",3669.25],["2026-06-16",3389.0],["2026-06-30",3111.0],["2026-07-10",3152.75],["2026-07-22",3184.0],["2026-07-31",3178.75],["2026-08-10",3320.25],["2026-08-21",3243.0],["2026-08-24",3228.5]],
+      drivers:['LME 库存 36 年低位持平；沪铝周库存 40.4 万吨，周降 1.83 万吨，去化延续','国内 4500 万吨产能天花板 + 氧化铝成本 2,740 元/吨支撑','美元走弱 + 海外降息预期升温，机构维持 Q4 冲高预期'],
+      app:'车身轻量化结构件、电池壳体/托盘、热交换器',
+      suggest:'LME 低库存 + 沪铝去库：提前锁价/锁量，长协优先，关注 Q4 冲高风险',
+      alert:{upper:3410, lower:3069},
+      sources:["cdgtw.net 铝日报","quheqihuo.com","metalsmarket.org","mysteel.com 电解铝库存"],
+      watch:["Q4 冲高机构预期是否兑现","沪铝周库存去化持续性（40.4 万吨）","氧化铝成本（2,740 元/吨）与下游旺季补库节奏"],
+      alertUnit:'USD',
+      srcDetail:[{f:'期货主力 LME 3M',v:'$3,228.5',s:'metalsmarket/网易官方收盘',d:'8/24'},{f:'国内现货 长江A00',v:'¥23,800·升水5',s:'cdgtw.net/金投',d:'8/24'},{f:'国内期货 SHFE主力',v:'¥23,765·+0.61%',s:'cdgtw.net 铝日报',d:'8/24'},{f:'库存 LME仓单',v:'246.9K mt·持平',s:'quheqihuo 8/24',d:'8/24'},{f:'库存 沪铝周库存',v:'403,797 吨·−18,300',s:'mysteel.com',d:'8/21周'},{f:'现货价 LME Cash',v:'~$3,211（估算）',s:'3M−17 Contango 推算',d:'8/24'}]
+    },
+    zinc: {
+      key:'zinc', name:'锌', unit:'$/t', color:'#1677FF',
+      spot: {v:3970,   label:'LME Cash', note:'8/24 · 3M+升水估算'},
+      spotD:{v:25910,  label:'长江 0# 现货', note:'元/吨 · 8/24 · 涨230'},
+      future:{v:3835,  label:'LME 3M', note:'8/24 收盘 +0.31%'},
+      futureD:{v:26100, label:'SHFE 主力', note:'元/吨 · 8/25 早盘 +0.56%'},
+      chg5d:5.4, chg20d:7.7,
+      stock:{v:93250, label:'LME 库存', note:'8/24 +125 · 6 月中旬以来 −25%'},
+      stock30d:-11.0,
+      spread:'Backwardation，现货升水 ~$130-156，8/21 创年内最大',
+      risk:'high',
+      riskNote:'四年新高 · 升水年内最大',
+      pointsUnit:'LME Cash $/t',
+      points:[["2026-03-02",3354],["2026-03-10",3334],["2026-03-17",3189],["2026-03-24",3037],["2026-03-31",3184.5],["2026-04-02",3235],["2026-04-09",3256],["2026-04-15",3362],["2026-04-22",3468],["2026-04-30",3363],["2026-05-06",3402],["2026-05-14",3596],["2026-05-22",3544.5],["2026-05-29",3549],["2026-06-03",3624.5],["2026-06-12",3557],["2026-06-19",3584.5],["2026-06-30",3565.5],["2026-07-01",3528.5],["2026-07-02",3474.5],["2026-07-03",3545],["2026-07-06",3598],["2026-07-07",3559],["2026-07-08",3528],["2026-07-09",3621],["2026-07-10",3601.5],["2026-07-13",3570.75],["2026-07-14",3589.25],["2026-07-15",3553.25],["2026-07-16",3590],["2026-07-17",3548.5],["2026-07-20",3574.5],["2026-07-21",3590.5],["2026-07-22",3613.5],["2026-07-23",3652.5],["2026-07-24",3632],["2026-07-27",3685.25],["2026-07-28",3631.25],["2026-07-29",3638.75],["2026-07-30",3661.5],["2026-07-31",3710.25],["2026-08-10",3786],["2026-08-19",3749.75],["2026-08-20",3865.25],["2026-08-21",3980],["2026-08-24",3970]],
+      drivers:['8/24 LME 锌 3M 收 $3,835，盘中 $3,851.5 创 2022 年 6 月以来（四年）新高','现货升水扩至年内最大，供需双萎缩致市场看似更紧；SHFE 锌库存年内翻倍，国内宽松 vs 海外紧缺分化','国内地产/基建需求疲弱形成上方约束，但中国以外供应短缺担忧主导'],
+      app:'镀锌钢板（车身防腐）、压铸锌合金（门把手/锁块）',
+      suggest:'四年新高 + 升水年内最大：尽快锁量锁价，谈判以 LME 月均 + 升贴水为锚',
+      alert:{upper:4100, lower:3600},
+      sources:["smm.cn 8/24 LME收盘","jrj.com.cn 升水报道","quheqihuo.com","metalsmarket.org","ccmn.cn/金投 长江现货"],
+      watch:["现货升水是否收敛（收敛 = 紧缺缓解信号）","LME 库存去化（6 月中旬以来 −25%）是否延续","SHFE 锌库存年内翻倍后的内外分化走势"],
+      alertUnit:'USD',
+      srcDetail:[{f:'期货主力 LME 3M',v:'$3,835·+0.31%',s:'smm.cn 8/24收盘',d:'8/24'},{f:'现货价 LME Cash',v:'~$3,970（估算）',s:'3M+升水 ~$135 推算',d:'8/24'},{f:'国内现货 长江0#',v:'¥25,910·+230',s:'ccmn.cn/金投',d:'8/24'},{f:'国内期货 SHFE主力',v:'¥26,100',s:'metalsmarket 8/25早盘',d:'8/25'},{f:'库存 LME仓单',v:'93.25K mt·+125',s:'smm.cn 8/24收盘',d:'8/24'},{f:'价差结构',v:'Backwardation·升水年内最大',s:'jrj.com.cn/smm.cn',d:'8/21-24'}]
+    },
+    nickel: {
+      key:'nickel', name:'镍', unit:'$/t', color:'#722ED1',
+      spot: {v:16850,  label:'LME Cash', note:'8/24 · Contango 估算'},
+      spotD:{v:131150, label:'长江 1# 现货', note:'元/吨 · 8/24 · 涨1,400'},
+      future:{v:17015, label:'LME 3M', note:'8/24 收盘 −0.25%'},
+      futureD:{v:129400, label:'SHFE 主力', note:'元/吨 · 8/25 早盘 −0.58%'},
+      chg5d:1.0, chg20d:-0.8,
+      stock:{v:268500, label:'LME 库存', note:'8/24 持平 · 累库放缓'},
+      stock30d:0.43,
+      spread:'Contango（3M 较 Cash +$165）',
+      risk:'mid',
+      riskNote:'区间震荡',
+      pointsUnit:'LME 3M $/t',
+      points:[["2026-03-02",17560],["2026-03-10",17505],["2026-03-19",16475],["2026-03-31",17090],["2026-04-07",17050],["2026-04-15",18350],["2026-04-22",18380],["2026-04-30",19475],["2026-05-07",19040],["2026-05-14",19075],["2026-05-22",18760],["2026-05-29",19125],["2026-06-03",19010],["2026-06-10",17600],["2026-06-18",17970],["2026-06-26",16740],["2026-06-30",16405],["2026-07-07",16350],["2026-07-14",16775],["2026-07-22",17145],["2026-07-30",17315],["2026-07-31",17335],["2026-08-06",16720],["2026-08-10",16980],["2026-08-13",16760],["2026-08-21",17045],["2026-08-24",17015]],
+      drivers:['印尼镍矿配额收紧信号延续，高盛/麦格理上调 2026 镍价预测','LME 库存 268.5K mt 高位持平，累库放缓；8/24 长江 1# 镍 +1,400 元','不锈钢淡季需求疲软，沪镍区间震荡（机构参考 12.6–13.5 万）'],
+      app:'三元电池正极（NCM/NCA）、不锈钢/合金钢',
+      suggest:'Contango + 库存高位：按需采购，现货宽松可议价，关注印尼配额政策',
+      alert:{upper:18500, lower:15500},
+      sources:["smm.cn/quheqihuo 8/24 LME收盘","metalsmarket.org","ccmn.cn/金投 长江现货","cngold.org"],
+      watch:["印尼镍矿配额收紧政策落地","LME 库存累库是否重启","三元电池需求 vs 不锈钢淡季"],
+      alertUnit:'USD',
+      srcDetail:[{f:'期货主力 LME 3M',v:'$17,015·−0.25%',s:'网易/官方收盘',d:'8/24'},{f:'现货价 LME Cash',v:'~$16,850（估算）',s:'3M−165 Contango 推算',d:'8/24'},{f:'国内现货 长江1#',v:'¥131,150·+1,400',s:'ccmn.cn/金投',d:'8/24'},{f:'国内期货 SHFE主力',v:'¥129,400',s:'metalsmarket 8/25早盘',d:'8/25'},{f:'库存 LME仓单',v:'268.5K mt·持平',s:'quheqihuo 8/24',d:'8/24'}]
+    },
+    lithium: {
+      key:'lithium', name:'碳酸锂', unit:'元/吨', color:'#52C41A',
+      spot: {v:158050, label:'电池级现货', note:'Mysteel 晚盘 · 8/24 · 较上周五 +4,550'},
+      spotD:{v:155050, label:'工业级现货', note:'Mysteel 晚盘 · 8/24'},
+      future:{v:161160, label:'GFEX 主力 LC2701', note:'元/吨 · 8/24 · 突破16万关口'},
+      futureD:{v:null, label:'—', note:''},
+      chg5d:3.7, chg20d:12.4,
+      stock:{v:70180, label:'总库存', note:'吨 · 周去化 6,320（锂盐厂 −4,100）'},
+      stock30d:null,
+      spread:'现货贴水收窄（现货单日跟涨 5%），月差 Back 结构',
+      risk:'high',
+      riskNote:'月内反弹 ~17% · 突破 16 万',
+      pointsUnit:'GFEX 元/吨',
+      points:[["2026-03-03",157500],["2026-03-24",154000],["2026-03-31",158620],["2026-04-13",163600],["2026-04-29",183880],["2026-05-12",205300],["2026-05-25",184460],["2026-06-16",169980],["2026-06-25",151680],["2026-07-09",152140],["2026-07-22",143300],["2026-08-03",143484],["2026-08-12",149700],["2026-08-14",155240],["2026-08-18",155400],["2026-08-20",152160],["2026-08-21",158000],["2026-08-24",161160]],
+      drivers:['8/24 现货单日大涨 5%（早盘），期货主力突破 16 万关口、月内反弹 ~17%','本周总库存去化 6,320 吨（锂盐厂 −4,100），江西矿山复产不及预期 + 月底备库','广期所仓单增至 4.13 万手、月底或达 5 万手，高仓单 + 套保意愿增强压制向上弹性'],
+      app:'动力电池核心原料（磷酸铁锂/三元正极锂源）',
+      suggest:'强势突破 16 万：关注回调锁价窗口，电池级采购可分批建仓，警惕高仓单压制冲高回落',
+      alert:{upper:170000, lower:140000},
+      sources:["10jqka.com.cn Mysteel周复盘","smm.cn 日评","cngold.org","china-mcc.com","cngold/金投"],
+      watch:["仓单 4.1 万手 → 5 万手（月底套保压制）","枧下窝复产与海外矿发运增量","9 月中下旬旺季验证（机构看 9 月下旬起涨）"],
+      alertUnit:'CNY',
+      srcDetail:[{f:'现货价 电池级',v:'¥158,050·周+4,550',s:'Mysteel/10jqka 晚盘',d:'8/24'},{f:'现货价 工业级',v:'¥155,050',s:'Mysteel/10jqka 晚盘',d:'8/24'},{f:'期货主力 GFEX LC2701',v:'¥161,160·突破16万',s:'cngold.org',d:'8/24'},{f:'库存 总库存',v:'周去化 6,320 吨',s:'Mysteel 周复盘',d:'8/24周'},{f:'仓单',v:'41,290 手→月底或5万',s:'Mysteel 周复盘',d:'8/24'},{f:'锂辉石精矿',v:'$2,325/t CIF',s:'Mysteel 周复盘',d:'8/24周'}]
+    },
+    hrc: {
+      key:'hrc', name:'热轧卷板', unit:'元/吨', color:'#FA541C',
+      spot: {v:3340,  label:'上海 Q235B 现货', note:'8/24'},
+      spotD:{v:null, label:'—', note:''},
+      future:{v:3340, label:'SHFE 主力', note:'8/24 收盘 +1.49%'},
+      futureD:{v:null, label:'—', note:''},
+      chg5d:1.8, chg20d:2.3,
+      stock:{v:481.35, label:'55 城社库', note:'万吨 · 月 +14.15'},
+      stock30d:14.15,
+      spread:'—',
+      risk:'low',
+      riskNote:'低位反弹，持续性待验证',
+      pointsUnit:'SHFE 元/吨',
+      points:[["2026-03-30",3308],["2026-03-31",3294],["2026-04-01",3287],["2026-04-24",3385],["2026-04-30",3407],["2026-05-20",3428],["2026-05-26",3432],["2026-06-10",3361],["2026-06-16",3382],["2026-06-24",3327],["2026-07-09",3300],["2026-07-16",3327],["2026-07-20",3318],["2026-07-23",3291],["2026-07-31",3240],["2026-08-05",3201],["2026-08-11",3235],["2026-08-14",3260],["2026-08-21",3295],["2026-08-24",3340]],
+      drivers:['8/24 黑色系全线收涨：热卷 +1.49%、螺纹 +0.92%、焦炭 +2.92%，黑链指数 +1.59%','钢厂利润微薄、复产受限，供给维持低位','高温淡季结束在即，金九银十旺季预期升温，但社库仍偏高'],
+      app:'车身外板/结构件用钢',
+      suggest:'低位反弹：按需采购为主，若旺季需求验证（社库见顶回落）再锁量，避免追涨',
+      alert:{upper:3600, lower:3100},
+      sources:["tiegu.net 8/24收盘","jiage.cngold.org 现货","sina.com.cn","mysteel.com"],
+      watch:["金九银十旺季需求是否兑现","55 城社库（月 +14%）何时见顶","钢厂盈利率（32%）与复产节奏"],
+      alertUnit:'CNY',
+      srcDetail:[{f:'现货价 上海Q235B',v:'¥3,340',s:'金投/热轧板卷',d:'8/24'},{f:'期货主力 SHFE',v:'¥3,340·+1.49%',s:'tiegu.net 8/24收盘',d:'8/24'},{f:'现货价 各地',v:'天津3,300/广州3,350/北京3,370',s:'金投/热轧板卷',d:'8/24'},{f:'库存 55城社库',v:'481.35 万吨',s:'mysteel.com',d:'8/7周'}]
+    },
+    iron: {
+      key:'iron', name:'铁矿石', unit:'元/吨', color:'#531DAB',
+      spot: {v:96.05, label:'普氏 61%', note:'$/t · 8/18 · 待更新', unit:'$/t'},
+      spotD:{v:697,   label:'青岛港 PB 粉', note:'元/湿吨 · 8/24'},
+      future:{v:716,  label:'DCE 主力', note:'8/24 收盘 +1.27%', unit:'元/吨'},
+      futureD:{v:null, label:'—', note:''},
+      chg5d:0.7, chg20d:-3.9,
+      stock:{v:16618, label:'45 港库存', note:'万吨 · 周 −81.5'},
+      stock30d:null,
+      spread:'—',
+      risk:'low',
+      riskNote:'低位反弹，上行阻力仍大',
+      pointsUnit:'DCE 元/吨',
+      points:[["2026-03-05",752],["2026-03-13",800],["2026-04-09",766],["2026-05-06",796],["2026-05-25",792],["2026-06-12",764],["2026-07-01",752],["2026-07-30",739],["2026-07-31",700],["2026-08-07",715],["2026-08-09",716.5],["2026-08-13",705],["2026-08-18",714],["2026-08-24",716]],
+      drivers:['8/24 铁矿收涨 +1.27%，随黑色系整体反弹','到港量大幅回落，低位反弹后预计震荡运行','钢厂盈利率仅 32%、日均铁水高位，下半年供应过剩预期未改'],
+      app:'钢铁产业链最上游原料（间接影响车身用钢成本）',
+      suggest:'低位反弹：观望为主；对钢材供应商报价仍可适度压价，等旺季信号确认',
+      alert:{upper:108, lower:87},
+      sources:["tiegu.net 8/24收盘","quheqihuo.com 现货","10jqka.com.cn","hibor.com.cn"],
+      watch:["到港量回落后的港口库存变化","日均铁水 vs 钢厂盈利（复产持续性）","下半年过剩预期下的 90 美元支撑"],
+      alertUnit:'USD',
+      srcDetail:[{f:'期货主力 DCE',v:'¥716·+1.27%',s:'tiegu.net 8/24收盘',d:'8/24'},{f:'国内现货 青岛港PB粉',v:'¥697/湿吨',s:'quheqihuo.com',d:'8/24'},{f:'现货价 普氏61%',v:'$96.05',s:'10jqka.com.cn',d:'8/18'},{f:'库存 45港',v:'16,618 万吨',s:'hibor.com.cn/华泰',d:'8/16周'}]
+    },
+    cobalt: {
+      key:'cobalt', name:'钴', unit:'元/吨', color:'#13C2C2',
+      spot: {v:305000, label:'电解钴均价', note:'8/24 · 周跌 6.15%'},
+      spotD:{v:null, label:'—', note:''},
+      future:{v:null, label:'无主力期货', note:'现货口径'},
+      futureD:{v:null, label:'—', note:''},
+      chg5d:-6.15, chg20d:-12.86,
+      stock:{v:null, label:'库存未获取', note:''},
+      stock30d:null,
+      spread:'—',
+      risk:'low',
+      riskNote:'下行承压 · 周跌加速',
+      pointsUnit:'现货 元/吨',
+      points:[["2026-03-20",428409],["2026-04-01",420614],["2026-04-21",417000],["2026-05-09",428250],["2026-05-14",429250],["2026-06-03",427750],["2026-07-02",387750],["2026-07-09",386750],["2026-07-13",387750],["2026-07-31",336000],["2026-08-06",340000],["2026-08-12",330750],["2026-08-14",335000],["2026-08-18",322000],["2026-08-21",309150],["2026-08-24",305000]],
+      drivers:['周内钴价加速下跌：上海钴 −7.83%、电解钴 −6.15%、月跌 12%+','刚果金出口配额管制 vs 印尼新增产能 + 到港集中，过剩压力主导','锂钴剪刀差：碳酸锂月涨 10%+ vs 钴月跌 12%+，电池链成本分化'],
+      app:'三元电池正极材料（钴酸锂/三元 NCM）',
+      suggest:'下行加速：延迟采购/按需小量，关注刚果金配额执行与印尼供给，仍有下探空间',
+      alert:{upper:380000, lower:280000},
+      sources:["10jqka.com.cn 行业追踪(8/18-8/24)","smm.cn"],
+      watch:["刚果金出口配额管制执行","印尼新增产能投放节奏","三元电池装车量增速"],
+      alertUnit:'CNY',
+      srcDetail:[{f:'现货价 电解钴均价',v:'¥305,000·周−6.15%',s:'10jqka 行业追踪',d:'8/24'},{f:'现货价 上海钴99.8%',v:'¥300,000·周−7.83%',s:'10jqka 行业追踪',d:'8/24'},{f:'月度涨跌',v:'月 −12.86%',s:'10jqka 行业追踪',d:'8/24'},{f:'期货',v:'无主力期货·现货口径',s:'—',d:'—'}]
+    }
+  }
+};
+</script>
+<style>
+:root{
+  --primary:#1677FF; --primary-bg:#E6F4FF;
+  --success:#52C41A; --success-bg:#F6FFED;
+  --warning:#FAAD14; --warning-bg:#FFFBE6;
+  --danger:#FF4D4F; --danger-bg:#FFF1F0;
+  --text-1:#1F2329; --text-2:#646A73; --text-3:#8C8C8C;
+  --border:#EBEDF0; --bg:#F5F6F7; --card:#FFFFFF;
+  --radius-sm:6px; --radius-md:8px; --radius-lg:10px;
+  --font:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{background:var(--bg);color:var(--text-1);font-family:var(--font);font-size:14px}
+body{padding-bottom:48px}
+/* 顶栏 */
+.topbar{height:44px;background:var(--card);border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;padding:0 16px;position:sticky;top:0;z-index:20}
+.topbar .title{font-size:14px;font-weight:600;display:flex;align-items:center;gap:8px}
+.topbar .title .dot{width:8px;height:8px;border-radius:50%;background:var(--primary)}
+.topbar .right{display:flex;align-items:center;gap:8px}
+.meta-date{font-size:12px;color:var(--text-3)}
+/* 按钮 */
+.btn{height:28px;padding:0 12px;border-radius:var(--radius-sm);border:1px solid var(--border);background:var(--card);color:var(--text-1);font-size:12px;cursor:pointer;display:inline-flex;align-items:center;gap:4px;transition:all .15s}
+.btn:hover{border-color:var(--primary);color:var(--primary)}
+.btn.primary{background:var(--primary);border-color:var(--primary);color:#fff}
+.btn.primary:hover{background:#4096FF;color:#fff}
+/* Tab */
+.tabbar{max-width:1240px;margin:12px auto 0;padding:0 16px;display:flex;gap:6px;flex-wrap:wrap}
+.tab{height:32px;padding:0 16px;border-radius:var(--radius-sm);border:1px solid var(--border);background:var(--card);color:var(--text-2);font-size:13px;cursor:pointer;display:inline-flex;align-items:center;gap:6px;transition:all .15s}
+.tab:hover{color:var(--primary);border-color:var(--primary)}
+.tab.active{background:var(--primary);border-color:var(--primary);color:#fff}
+.tab .tdot{width:6px;height:6px;border-radius:50%}
+/* 布局 */
+.page{max-width:1240px;margin:12px auto 0;padding:0 16px;display:none}
+.page.show{display:grid;grid-template-columns:repeat(12,1fr);gap:12px}
+.card{background:var(--card);border:1px solid var(--border);border-radius:var(--radius-md);padding:12px}
+.card .card-title{font-size:13px;font-weight:600;margin-bottom:8px;display:flex;align-items:center;justify-content:space-between;gap:8px}
+.card .card-title .sub{font-size:11px;font-weight:400;color:var(--text-3)}
+.col-12{grid-column:span 12}.col-8{grid-column:span 8}.col-4{grid-column:span 4}.col-6{grid-column:span 6}
+@media(max-width:960px){.col-8,.col-4,.col-6{grid-column:span 12}}
+/* KPI */
+.kpi-row{display:grid;grid-template-columns:repeat(6,1fr);gap:12px;grid-column:span 12}
+@media(max-width:960px){.kpi-row{grid-template-columns:repeat(2,1fr)}}
+.kpi{background:var(--card);border:1px solid var(--border);border-radius:var(--radius-md);padding:10px 12px;position:relative;overflow:hidden}
+.kpi .label{font-size:11px;color:var(--text-3);display:flex;align-items:center;gap:4px}
+.kpi .value{font-size:22px;font-weight:600;line-height:1.3;margin-top:2px;letter-spacing:-.5px;word-break:break-all}
+.kpi .value .unit{font-size:11px;font-weight:400;color:var(--text-2);margin-left:2px}
+.kpi .note{font-size:11px;color:var(--text-3);margin-top:2px}
+.kpi .flag{position:absolute;top:10px;right:10px;font-size:10px;padding:1px 6px;border-radius:4px;line-height:16px}
+.up{color:var(--danger)}.down{color:var(--success)}
+.flag.warn{background:var(--warning-bg);color:var(--warning)}
+.flag.danger{background:var(--danger-bg);color:var(--danger)}
+.flag.safe{background:var(--success-bg);color:var(--success)}
+.flag.info{background:var(--primary-bg);color:var(--primary)}
+/* 表格 */
+table{width:100%;border-collapse:collapse;font-size:12px}
+th{background:var(--bg);color:var(--text-2);font-weight:500;text-align:left;padding:6px 8px;border-bottom:1px solid var(--border);white-space:nowrap}
+td{padding:6px 8px;border-bottom:1px solid var(--border);color:var(--text-1)}
+tr:last-child td{border-bottom:none}
+td.num{font-variant-numeric:tabular-nums}
+.tag{display:inline-block;padding:1px 6px;border-radius:4px;font-size:11px;line-height:16px;white-space:nowrap}
+.tag.warn{background:var(--warning-bg);color:var(--warning)}
+.tag.danger{background:var(--danger-bg);color:var(--danger)}
+.tag.safe{background:var(--success-bg);color:var(--success)}
+.tag.info{background:var(--primary-bg);color:var(--primary)}
+/* 信号分组 */
+.group-row{display:flex;gap:12px;grid-column:span 12;flex-wrap:wrap}
+.group-card{flex:1;min-width:280px;border:1px solid var(--border);border-radius:var(--radius-md);padding:10px 12px;background:var(--card)}
+.group-card .gt{font-size:12px;font-weight:600;margin-bottom:8px}
+.group-card .gi{font-size:12px;color:var(--text-2);line-height:1.8}
+.group-card .gi b{color:var(--text-1)}
+/* 洞察 */
+.insight-item{display:flex;gap:10px;align-items:flex-start;padding:8px 10px;border:1px solid var(--border);border-radius:var(--radius-sm);margin-bottom:8px;font-size:12px;line-height:1.7;color:var(--text-1)}
+.insight-item:last-child{margin-bottom:0}
+.insight-item .it{flex-shrink:0;font-weight:600;padding:0 8px;border-radius:4px;height:22px;line-height:22px;font-size:11px;margin-top:1px}
+/* SOP */
+.sop-row{display:grid;grid-template-columns:repeat(4,1fr);gap:12px}
+@media(max-width:960px){.sop-row{grid-template-columns:repeat(2,1fr)}}
+.sop-col{border:1px solid var(--border);border-radius:var(--radius-sm);padding:10px}
+.sop-col .sf{font-size:12px;font-weight:600;margin-bottom:6px;display:flex;align-items:center;gap:6px}
+.sop-col ul{padding-left:16px;margin:0}
+.sop-col li{font-size:11px;color:var(--text-2);line-height:1.7}
+/* 时间窗口切换 */
+.range-group{display:flex;gap:6px;margin-bottom:8px;flex-wrap:wrap}
+.range-btn{height:24px;padding:0 10px;border-radius:4px;border:1px solid var(--border);background:var(--card);color:var(--text-2);font-size:11px;cursor:pointer;transition:all .15s}
+.range-btn:hover{border-color:var(--primary);color:var(--primary)}
+.range-btn.active{background:var(--primary);border-color:var(--primary);color:#fff}
+/* 关注项 */
+.watch-list{margin:0;padding-left:16px;font-size:12px;line-height:1.9;color:var(--text-1)}
+.watch-list li::marker{color:var(--primary)}
+/* 供需/建议 */
+.drivers{margin:0;padding-left:18px;font-size:12px;color:var(--text-1);line-height:1.9}
+.suggest{font-size:12px;line-height:1.7;padding:8px 10px;background:var(--primary-bg);border-radius:var(--radius-sm);margin-top:8px}
+.src-note{margin-top:8px;font-size:11px;color:var(--text-3);line-height:1.6;border-top:1px dashed var(--border);padding-top:8px;word-break:break-all}
+/* 阈值 */
+.th-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:8px}
+@media(max-width:960px){.th-grid{grid-template-columns:repeat(2,1fr)}}
+.th-item{border:1px solid var(--border);border-radius:var(--radius-sm);padding:6px 8px;display:flex;align-items:center;gap:6px;font-size:12px}
+.th-item .nm{font-weight:600;min-width:52px}
+.th-item input{width:70px;height:22px;border:1px solid var(--border);border-radius:4px;padding:0 5px;font-size:11px;text-align:right}
+.alert-msg{margin-top:8px;font-size:12px;padding:8px 10px;border-radius:var(--radius-sm);display:none}
+.alert-msg.show{display:block}
+.alert-msg.warn{background:var(--warning-bg);color:#AD6800}
+.alert-msg.danger{background:var(--danger-bg);color:#CF1322}
+.alert-msg.safe{background:var(--success-bg);color:#389E0D}
+/* 图表 */
+.chart{width:100%;height:280px}
+/* 编辑抽屉 */
+.drawer-mask{position:fixed;inset:0;background:rgba(0,0,0,.35);z-index:100;display:none}
+.drawer-mask.show{display:block}
+.drawer{position:fixed;top:0;right:-460px;width:460px;height:100%;background:var(--card);z-index:101;box-shadow:-4px 0 16px rgba(0,0,0,.08);transition:right .25s ease;display:flex;flex-direction:column}
+.drawer.show{right:0}
+.drawer .head{height:44px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;padding:0 14px;font-size:13px;font-weight:600}
+.drawer .body{flex:1;overflow-y:auto;padding:12px 14px}
+.drawer .foot{height:48px;border-top:1px solid var(--border);display:flex;align-items:center;justify-content:flex-end;gap:8px;padding:0 14px}
+.field{margin-bottom:10px}
+.field label{display:block;font-size:11px;color:var(--text-3);margin-bottom:4px}
+.field input{width:100%;height:28px;border:1px solid var(--border);border-radius:var(--radius-sm);padding:0 8px;font-size:12px}
+.field input:focus{outline:none;border-color:var(--primary)}
+.field textarea{width:100%;min-height:56px;border:1px solid var(--border);border-radius:var(--radius-sm);padding:6px 8px;font-size:11px;resize:vertical;font-family:Consolas,Menlo,monospace}
+.note{font-size:11px;color:var(--text-3);margin-top:4px;line-height:1.5}
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <div class="title"><span class="dot"></span>汽车行业原材料监控看板 <span class="meta-date" id="metaDate"></span><span class="flag info" id="freshBadge" style="display:none"></span></div>
+  <div class="right">
+    <button class="btn" id="btnFetch">↻ 检测更新</button>
+    <button class="btn" id="btnEdit">✎ 编辑数据</button>
+    <button class="btn" id="btnExport">导出 HTML 固化</button>
+  </div>
+</div>
+
+<div class="tabbar" id="tabbar"></div>
+
+<!-- 全局总览页 -->
+<div class="page" id="page-overview">
+  <div class="group-row" id="groupCards"></div>
+  <div class="card col-12">
+    <div class="card-title">全品种总览 <span class="sub">价格为主口径 · 涨跌幅近 5/20 交易日 · 触发阈值的品种标红</span></div>
+    <div style="overflow-x:auto"><table>
+      <thead><tr>
+        <th>品种</th><th>现货价</th><th>期货主力</th><th>LME 3M</th><th>近5日</th><th>近20日</th>
+        <th>库存（30d）</th><th>价差 / 结构</th><th>风险</th><th>采购动作</th>
+      </tr></thead>
+      <tbody id="ovBody"></tbody>
+    </table></div>
+    <div class="card-title" style="margin-top:12px">近 20 日涨跌幅对比 <span class="sub">正=红涨 负=绿跌</span></div>
+    <div class="chart" id="chgChart"></div>
+  </div>
+
+  <div class="card col-12">
+    <div class="card-title">归一化走势对比 <span class="sub">各品种主价格口径最近 6 个数据点以首点为 100 · 跨品种强弱一目了然</span></div>
+    <div class="chart" id="normChart"></div>
+  </div>
+
+  <div class="card col-12">
+    <div class="card-title">分析方法 <span class="sub">四步方法论 · 先定目的后看数据 · 价差是先行指标</span></div>
+    <div id="methodBox"></div>
+  </div>
+
+  <div class="card col-12">
+    <div class="card-title">市场洞察 <span class="sub">全局结构性判断 · 与品种 Tab 内采购建议联动</span></div>
+    <div id="insightBox"></div>
+    <div class="card-title" style="margin-top:12px">关注项（全局） <span class="sub">价格突变敏感点 · 每周核对</span></div>
+    <div id="watchGlobalBox"></div>
+  </div>
+
+  <div class="card col-12">
+    <div class="card-title">监控 SOP <span class="sub">按频率执行 · 保证看板数据保鲜与动作落地</span></div>
+    <div id="sopBox"></div>
+  </div>
+
+  <div class="card col-12">
+    <div class="card-title">预警阈值设置 <span class="sub">现货价超上阈/破下阈 → 总览与详情页亮色提示 · localStorage 保存</span></div>
+    <div class="th-grid" id="thGrid"></div>
+    <div style="margin-top:8px"><button class="btn primary" id="btnThSave">保存阈值</button> <button class="btn" id="btnThReset">恢复默认</button></div>
+    <div class="alert-msg" id="alertMsg"></div>
+  </div>
+</div>
+
+<!-- 品种详情页容器（JS 生成） -->
+<div class="page" id="page-detail">
+  <div class="kpi-row" id="dkpi"></div>
+  <div class="card col-8">
+    <div class="card-title" id="dchartTitle">价格趋势</div>
+    <div class="range-group" id="rangeBtns"></div>
+    <div class="chart" id="detailChart"></div>
+  </div>
+  <div class="card col-4">
+    <div class="card-title">供需要点 <span class="sub">当前市场关键逻辑</span></div>
+    <ul class="drivers" id="dDrivers"></ul>
+    <div class="card-title" style="margin-top:12px">关注项 <span class="sub">价格突变敏感点</span></div>
+    <ul class="watch-list" id="dWatch"></ul>
+    <div class="card-title" style="margin-top:12px">汽车应用</div>
+    <div style="font-size:12px;line-height:1.7" id="dApp"></div>
+    <div class="card-title" style="margin-top:12px">采购建议</div>
+    <div class="suggest" id="dSuggest"></div>
+    <div class="src-note" id="dSrc"></div>
+  </div>
+</div>
+
+<!-- 编辑抽屉 -->
+<div class="drawer-mask" id="drawerMask"></div>
+<div class="drawer" id="drawer">
+  <div class="head">✎ 编辑数据 <span style="font-size:11px;color:var(--text-3)" id="drawerName"></span></div>
+  <div class="body">
+    <div id="globalEdit" style="display:none">
+      <div class="field"><label>数据日期</label><input id="eDate"></div>
+      <div class="field"><label>市场洞察（JSON：[{t, tone, d}, ...]）</label><textarea id="eInsights" spellcheck="false" style="height:130px"></textarea></div>
+      <div class="field"><label>监控 SOP（JSON：[{freq, tone, items:[...]}, ...]）</label><textarea id="eSop" spellcheck="false" style="height:110px"></textarea></div>
+    </div>
+    <div id="metalEdit">
+      <div class="field"><label>品种名</label><input id="eName"></div>
+      <div class="field"><label>现货价（主口径）</label><input id="eSpot" type="number"></div>
+      <div class="field"><label>期货主力价</label><input id="eFuture" type="number"></div>
+      <div class="field"><label>近 5 日涨跌（%）</label><input id="eChg5" type="number" step="0.01"></div>
+      <div class="field"><label>近 20 日涨跌（%）</label><input id="eChg20" type="number" step="0.01"></div>
+      <div class="field"><label>库存值</label><input id="eStock" type="number"></div>
+      <div class="field"><label>库存 30 日变化（%）</label><input id="eStock30" type="number" step="0.1"></div>
+      <div class="field"><label>供需要点（每行一条）</label><textarea id="eDrivers" spellcheck="false"></textarea></div>
+      <div class="field"><label>采购建议</label><textarea id="eSuggest" spellcheck="false"></textarea></div>
+      <div class="field"><label>历史序列（JSON：[[date,value],...]）</label><textarea class="series-edit" id="ePoints" spellcheck="false" style="height:80px"></textarea></div>
+    </div>
+    <div class="note">保存后写入 localStorage；「导出 HTML 固化」生成内嵌最新数据的独立文件。</div>
+  </div>
+  <div class="foot">
+    <button class="btn" id="btnCancel">取消</button>
+    <button class="btn primary" id="btnSave">保存</button>
+  </div>
+</div>
+
+<script>
+/* ECharts 多源回退加载（国内优先） */
+(function(){
+  var srcs = [
+    'https://registry.npmmirror.com/echarts/5.5.1/files/dist/echarts.min.js',
+    'https://cdn.bootcdn.net/ajax/libs/echarts/5.5.1/echarts.min.js',
+    'https://cdnjs.cloudflare.com/ajax/libs/echarts/5.5.1/echarts.min.js'
+  ];
+  function tryLoad(i){
+    if(i >= srcs.length){ if(window.__echartsFail) window.__echartsFail(); return; }
+    var s = document.createElement('script');
+    s.src = srcs[i];
+    s.onload = function(){ window.echartsLoaded = true; if(window.__afterEcharts) window.__afterEcharts(); };
+    s.onerror = function(){ tryLoad(i+1); };
+    document.head.appendChild(s);
+  }
+  tryLoad(0);
+})();
+</script>
+<script>
+(function(){
+'use strict';
+var LS_KEY = 'autoMatMonitorV1';
+var DATA = loadData();
+var METAL_ORDER = ['copper','aluminum','zinc','nickel','lithium','hrc','iron','cobalt'];
+var curKey = 'overview';
+
+/* ---------- 持久化 ---------- */
+function loadData(){
+  if(document.body && document.body.getAttribute('data-frozen')){
+    return JSON.parse(JSON.stringify(window.DATA_ALL));
+  }
+  try{
+    var raw = localStorage.getItem(LS_KEY);
+    if(raw){ var d = JSON.parse(raw); if(d && d.metals) return d; }
+  }catch(e){}
+  return JSON.parse(JSON.stringify(window.DATA_ALL));
+}
+function persist(){ try{ localStorage.setItem(LS_KEY, JSON.stringify(DATA)); }catch(e){} }
+
+/* ---------- 工具 ---------- */
+function fmt(n, d){
+  if(n === null || n === undefined || isNaN(n)) return '—';
+  return Number(n).toLocaleString('en-US', {maximumFractionDigits:(d===undefined?0:d)});
+}
+function pct(n){
+  if(n === null || n === undefined || isNaN(n)) return '—';
+  return (n>0?'+':'') + Number(n).toFixed(1) + '%';
+}
+function toneForRisk(r){
+  return {high:'danger', mid:'warn', low:'safe'}[r] || 'info';
+}
+function riskText(r){
+  return {high:'🔴 高', mid:'🟡 中', low:'🟢 低'}[r] || '—';
+}
+function actionFor(m){
+  var g = DATA.overview.groups.filter(function(x){ return x.list.indexOf(m.key) >= 0; })[0];
+  if(!g) return {t:'—', c:'info'};
+  if(g.key === 'tight') return {t:'🔴 锁价', c:'danger'};
+  if(g.key === 'mix') return {t:'🟡 按需', c:'warn'};
+  return {t:'🟢 可谈', c:'safe'};
+}
+/* 预警判断：现货价超上阈/破下阈 */
+function alertState(m){
+  var a = m.alert || {};
+  var v = m.spot && m.spot.v;
+  if(v === null || v === undefined) return null;
+  if(a.upper && v >= a.upper) return 'up';
+  if(a.lower && v <= a.lower) return 'down';
+  return null;
+}
+
+/* ---------- Tab ---------- */
+function renderTabs(){
+  var bar = document.getElementById('tabbar');
+  bar.innerHTML = '';
+  var tabs = [{key:'overview', name:'📊 全局总览', color:''}];
+  METAL_ORDER.forEach(function(k){
+    var m = DATA.metals[k];
+    tabs.push({key:k, name:m.name, color:m.color});
+  });
+  tabs.forEach(function(t){
+    var b = document.createElement('button');
+    b.className = 'tab' + (t.key === curKey ? ' active' : '');
+    b.dataset.key = t.key;
+    if(t.color){ b.innerHTML = '<span class="tdot" style="background:' + t.color + '"></span>' + t.name; }
+    else { b.textContent = t.name; }
+    b.onclick = function(){ switchTab(t.key); };
+    bar.appendChild(b);
+  });
+}
+function switchTab(key){
+  curKey = key;
+  renderTabs();
+  document.getElementById('page-overview').classList.toggle('show', key === 'overview');
+  document.getElementById('page-detail').classList.toggle('show', key !== 'overview');
+  if(key === 'overview'){ renderOverview(); renderChgChart(); }
+  else { renderDetail(key); renderDetailChart(key); }
+}
+
+/* ---------- 全局总览 ---------- */
+function renderGroups(){
+  var box = document.getElementById('groupCards');
+  box.innerHTML = '';
+  DATA.overview.groups.forEach(function(g){
+    var card = document.createElement('div');
+    card.className = 'group-card';
+    var names = g.list.map(function(k){ return '<b>' + DATA.metals[k].name + '</b>'; }).join(' · ');
+    card.innerHTML = '<div class="gt" style="color:' + ({danger:'var(--danger)',warn:'var(--warning)',safe:'var(--success)'}[g.tone]) + '">' + g.title + '</div><div class="gi">' + names + '</div>';
+    box.appendChild(card);
+  });
+}
+function toneColor(t){ return {danger:'var(--danger)',warn:'var(--warning)',safe:'var(--success)',info:'var(--primary)'}[t] || 'var(--text-2)'; }
+function renderInsights(){
+  var box = document.getElementById('insightBox');
+  box.innerHTML = '';
+  (DATA.overview.insights || []).forEach(function(ins){
+    var item = document.createElement('div');
+    item.className = 'insight-item';
+    item.innerHTML = '<span class="it" style="background:var(--primary-bg);color:' + toneColor(ins.tone) + '">' + ins.t + '</span><span>' + ins.d + '</span>';
+    box.appendChild(item);
+  });
+}
+/* 分析方法卡 */
+function renderMethod(){
+  var box = document.getElementById('methodBox');
+  box.innerHTML = '';
+  (DATA.overview.method || []).forEach(function(mth){
+    var item = document.createElement('div');
+    item.className = 'insight-item';
+    item.innerHTML = '<span class="it" style="background:var(--primary-bg);color:' + toneColor(mth.tone) + '">' + mth.t + '</span><span>' + mth.d + '</span>';
+    box.appendChild(item);
+  });
+}
+/* 全局关注项 */
+function renderWatchGlobal(){
+  var box = document.getElementById('watchGlobalBox');
+  box.innerHTML = '';
+  var NAME2KEY = {};
+  METAL_ORDER.forEach(function(k){ NAME2KEY[DATA.metals[k].name] = k; });
+  var table = document.createElement('table');
+  var thead = '<thead><tr><th style="width:70px">品种</th><th>关注项</th></tr></thead>';
+  var tbody = '<tbody>' + (DATA.overview.watchGlobal || []).map(function(w){
+    var color = NAME2KEY[w.t] ? DATA.metals[NAME2KEY[w.t]].color : '#1677FF';
+    return '<tr><td><span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:' + color + ';margin-right:6px"></span><b>' + w.t + '</b></td><td>' + w.d + '</td></tr>';
+  }).join('') + '</tbody>';
+  table.innerHTML = thead + tbody;
+  box.appendChild(table);
+}
+/* 品种关注项 */
+function renderWatch(key){
+  var m = DATA.metals[key];
+  document.getElementById('dWatch').innerHTML = (m.watch || []).map(function(w){ return '<li>' + w + '</li>'; }).join('');
+}
+function renderSOP(){
+  var box = document.getElementById('sopBox');
+  box.innerHTML = '';
+  var row = document.createElement('div');
+  row.className = 'sop-row';
+  (DATA.overview.sop || []).forEach(function(s){
+    var col = document.createElement('div');
+    col.className = 'sop-col';
+    col.innerHTML = '<div class="sf"><span class="tag ' + ({danger:'danger',warn:'warn',safe:'safe',info:'info'}[s.tone]||'info') + '">' + s.freq + '</span></div><ul>' + s.items.map(function(i){ return '<li>' + i + '</li>'; }).join('') + '</ul>';
+    row.appendChild(col);
+  });
+  box.appendChild(row);
+}
+/* 数据新鲜度：dataDate 距今 >3 天标黄，>7 天标红 */
+function calcFreshness(){
+  var badge = document.getElementById('freshBadge');
+  var d = DATA.meta.dataDate;
+  if(!d){ badge.style.display = 'none'; return; }
+  var m = d.match(/^(\d{4})-(\d{2})-(\d{2})/);
+  if(!m){ badge.style.display = 'none'; return; }
+  var dt = new Date(+m[1], +m[2]-1, +m[3]);
+  var days = Math.floor((new Date() - dt) / 86400000);
+  if(days <= 3){ badge.style.display = 'none'; return; }
+  badge.style.display = 'inline-block';
+  if(days <= 7){ badge.className = 'flag warn'; badge.textContent = '⚠ 数据距今 ' + days + ' 天，可能过期'; }
+  else { badge.className = 'flag danger'; badge.textContent = '⛔ 数据距今 ' + days + ' 天，请更新'; }
+}
+/* 检测更新：探测数据源可达性 + 给出更新指引 */
+function bindFetch(){
+  document.getElementById('btnFetch').onclick = function(){
+    var btn = document.getElementById('btnFetch');
+    btn.textContent = '↻ 检测中…';
+    var src = 'https://thevaultreport.com/lme/zinc';
+    fetch(src, {mode:'cors'}).then(function(res){
+      btn.textContent = '↻ 检测更新';
+      if(res.ok){
+        flash('✅ 数据源可达。自动抓取受数据源反爬限制，推荐使用「AI 定时更新」（每天自动抓数并写入本文件）');
+      } else {
+        flash('数据源返回 ' + res.status + '，无法自动更新。推荐使用「AI 定时更新」任务');
+      }
+    }).catch(function(){
+      btn.textContent = '↻ 检测更新';
+      flash('⚠ 数据源有反爬/跨域限制，浏览器无法直接抓取。三种更新方式：① 手动编辑（✎）② 让 AI 助手抓数后写入 ③ 配置每日定时任务自动更新');
+    });
+  };
+}
+function renderOverview(){
+  renderGroups();
+  renderInsights();
+  renderMethod();
+  renderWatchGlobal();
+  renderSOP();
+  calcFreshness();
+  renderNormChart();
+  var tb = document.getElementById('ovBody');
+  tb.innerHTML = '';
+  METAL_ORDER.forEach(function(k){
+    var m = DATA.metals[k];
+    var act = actionFor(m);
+    var rt = riskText(m.risk);
+    var st = alertState(m);
+    var spotCell = m.spot.v !== null && m.spot.v !== undefined ? fmt(m.spot.v) : '—';
+    if(st === 'up'){ spotCell = '<b style="color:var(--danger)">' + spotCell + ' ▲</b>'; }
+    else if(st === 'down'){ spotCell = '<b style="color:var(--success)">' + spotCell + ' ▼</b>'; }
+    /* LME 3M 列：仅 LME 品种（期货主力口径为 LME 3M）有值，国内盘品种显示 — */
+    var isLME = m.future && m.future.label && m.future.label.indexOf('LME 3M') >= 0;
+    var lme3mCell = isLME && m.future.v !== null && m.future.v !== undefined ? fmt(m.future.v) : '—';
+    var tr = document.createElement('tr');
+    tr.innerHTML =
+      '<td><span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:' + m.color + ';margin-right:6px"></span><b>' + m.name + '</b></td>' +
+      '<td class="num">' + spotCell + ' <span style="color:var(--text-3)">' + ((m.spot && m.spot.unit) || m.unit || '') + '</span></td>' +
+      '<td class="num">' + fmt(m.future.v) + (m.future && m.future.unit ? ' <span style="color:var(--text-3)">' + m.future.unit + '</span>' : '') + '</td>' +
+      '<td class="num">' + lme3mCell + '</td>' +
+      '<td class="num ' + (m.chg5d>0?'up':m.chg5d<0?'down':'') + '">' + pct(m.chg5d) + '</td>' +
+      '<td class="num ' + (m.chg20d>0?'up':m.chg20d<0?'down':'') + '">' + pct(m.chg20d) + '</td>' +
+      '<td class="num">' + fmt(m.stock.v) + ' <span style="color:var(--text-3)">' + (m.stock30d!==null&&m.stock30d!==undefined ? pct(m.stock30d) : '') + '</span></td>' +
+      '<td style="max-width:170px">' + (m.spread && m.spread !== '—' ? m.spread : '—') + '</td>' +
+      '<td><span class="tag ' + toneForRisk(m.risk) + '">' + rt + '</span></td>' +
+      '<td><span class="tag ' + act.c + '">' + act.t + '</span></td>';
+    tb.appendChild(tr);
+  });
+}
+function renderChgChart(){
+  if(!window.echarts) return;
+  var el = document.getElementById('chgChart');
+  var chart = echarts.getInstanceByDom(el) || echarts.init(el);
+  var names = [], vals = [], colors = [];
+  METAL_ORDER.forEach(function(k){
+    var m = DATA.metals[k];
+    names.push(m.name);
+    var v = (m.chg20d === null || m.chg20d === undefined) ? 0 : m.chg20d;
+    vals.push(v);
+    colors.push(v >= 0 ? '#FF4D4F' : '#52C41A');
+  });
+  chart.setOption({
+    tooltip: { trigger:'axis', formatter: function(ps){ var p = ps[0]; return p.name + '：' + p.value + '%'; } },
+    grid: { left:60, right:30, top:10, bottom:24 },
+    xAxis: { type:'value', axisLabel:{fontSize:10, color:'#8C8C8C', formatter:'{value}%'}, splitLine:{lineStyle:{color:'#F0F1F3'}} },
+    yAxis: { type:'category', data:names.reverse(), axisLabel:{fontSize:11, color:'#1F2329'} },
+    series: [{ type:'bar', barWidth:14, data: vals.slice().reverse().map(function(v,i){ return {value:v, itemStyle:{color:colors[vals.length-1-i]}}; }), label:{show:true, position:'right', fontSize:10, formatter:'{c}%'} }]
+  });
+}
+
+/* ---------- 品种详情 ---------- */
+function renderDetail(key){
+  var m = DATA.metals[key];
+  var kpiRow = document.getElementById('dkpi');
+  kpiRow.innerHTML = '';
+  var st = alertState(m);
+  var items = [
+    { label:'现货价', v: m.spot.v !== null ? fmt(m.spot.v) + (m.unit?'':'') : '—', unit:m.unit, note:m.spot.label + ' · ' + m.spot.note, flag: m.spot.v!==null ? (st==='up'?'danger':(st==='down'?'safe':'info')) : 'info', flagTxt: st==='up'?'超上阈':(st==='down'?'破下阈':'') },
+    { label:'期货主力', v: m.future.v !== null ? fmt(m.future.v) : '—', unit:m.unit, note:m.future.label + ' · ' + m.future.note },
+    { label:'近 5 日', v: pct(m.chg5d), unit:'', note:'近 5 交易日涨跌', cls: m.chg5d>0?'up':m.chg5d<0?'down':'' },
+    { label:'近 20 日', v: pct(m.chg20d), unit:'', note:'近 20 交易日涨跌', cls: m.chg20d>0?'up':m.chg20d<0?'down':'' },
+    { label:'库存', v: m.stock.v !== null ? fmt(m.stock.v) : '—', unit:'', note:m.stock.label + (m.stock30d!==null ? ' · ' + pct(m.stock30d) : ''), cls: m.stock30d<0?'up':(m.stock30d>0?'down':'') },
+    { label:'风险等级', v: riskText(m.risk), unit:'', note:m.riskNote, cls:'', flag:'flag ' + toneForRisk(m.risk) }
+  ];
+  items.forEach(function(it){
+    var kpi = document.createElement('div');
+    kpi.className = 'kpi';
+    var flagHtml = it.flag && it.flagTxt ? '<span class="flag ' + it.flag + '">' + it.flagTxt + '</span>' : '';
+    kpi.innerHTML = '<div class="label">' + it.label + flagHtml + '</div>' +
+      '<div class="value' + (it.cls ? ' ' + it.cls : '') + '">' + it.v + (it.unit ? '<span class="unit">' + it.unit + '</span>' : '') + '</div>' +
+      '<div class="note">' + it.note + '</div>';
+    kpiRow.appendChild(kpi);
+  });
+  document.getElementById('dchartTitle').innerHTML = m.name + ' 价格趋势 <span class="sub">' + (m.pointsUnit||'') + ' · ' + (m.points.length>0 ? m.points[0][0] + ' 至 ' + m.points[m.points.length-1][0] : '') + '</span>';
+  document.getElementById('dDrivers').innerHTML = m.drivers.map(function(d){ return '<li>' + d + '</li>'; }).join('');
+  renderWatch(key);
+  document.getElementById('dApp').textContent = m.app || '—';
+  document.getElementById('dSuggest').textContent = m.suggest || '—';
+  /* 数据来源明细：字段级来源 + 全部来源 */
+  var rows = (m.srcDetail || []).map(function(r){
+    return '<tr><td style="white-space:nowrap">' + r.f + '</td><td class="num" style="white-space:nowrap">' + r.v + '</td><td>' + r.s + '</td><td style="white-space:nowrap">' + r.d + '</td></tr>';
+  }).join('');
+  document.getElementById('dSrc').innerHTML =
+    '<table style="font-size:11px"><thead><tr><th>字段</th><th>值</th><th>来源</th><th>日期</th></tr></thead><tbody>' + rows + '</tbody></table>' +
+    '<div style="margin-top:6px">📚 全部来源：' + (m.sources || []).join(' · ') + '</div>';
+}
+function calcMA(arr, n){
+  return arr.map(function(_, i){
+    if(i < n - 1) return null;
+    var s = 0; for(var j = i - n + 1; j <= i; j++){ s += arr[j]; }
+    return +(s / n).toFixed(1);
+  });
+}
+/* 预警阈值是否与趋势图主序列同口径（同口径才画阈值线，避免美元/人民币错位） */
+function alertMatchesPoints(m){
+  var pu = m.pointsUnit || '';
+  var au = m.alertUnit || 'CNY';
+  if(au === 'USD') return pu.indexOf('$') >= 0;
+  return pu.indexOf('元') >= 0;
+}
+/* 时间窗口（视角切换） */
+var RANGES = [
+  {k:'1M', l:'近1月', d:31},
+  {k:'3M', l:'近3月', d:93},
+  {k:'6M', l:'近半年', d:186}
+];
+var curRange = '6M';
+function rangeSlice(m){
+  var pts = (m.points || []).slice();
+  if(pts.length < 3) return pts;
+  var r = null;
+  for(var i = 0; i < RANGES.length; i++){ if(RANGES[i].k === curRange){ r = RANGES[i]; break; } }
+  if(!r) return pts;
+  var ref = new Date();
+  var mm = (DATA.meta.dataDate || '').match(/^(\d{4})-(\d{2})-(\d{2})/);
+  if(mm){ ref = new Date(+mm[1], +mm[2]-1, +mm[3]); }
+  var out = [];
+  for(var j = pts.length - 1; j >= 0; j--){
+    var dm = pts[j][0].match(/^(\d{4})-(\d{2})-(\d{2})/);
+    if(!dm){ out.unshift(pts[j]); continue; }
+    var dt = new Date(+dm[1], +dm[2]-1, +dm[3]);
+    if((ref - dt) / 86400000 > r.d){ break; }
+    out.unshift(pts[j]);
+  }
+  return out.length >= 2 ? out : pts;
+}
+function renderRangeBtns(){
+  var box = document.getElementById('rangeBtns');
+  box.innerHTML = '';
+  RANGES.forEach(function(r){
+    var b = document.createElement('button');
+    b.className = 'range-btn' + (r.k === curRange ? ' active' : '');
+    b.textContent = r.l;
+    b.dataset.k = r.k;
+    b.onclick = function(){
+      curRange = r.k;
+      renderRangeBtns();
+      if(curKey !== 'overview'){ renderDetailChart(curKey); }
+    };
+    box.appendChild(b);
+  });
+}
+function renderDetailChart(key){
+  if(!window.echarts) return;
+  var m = DATA.metals[key];
+  var el = document.getElementById('detailChart');
+  var chart = echarts.getInstanceByDom(el) || echarts.init(el);
+  var pts = rangeSlice(m);
+  var dates = pts.map(function(p){ return p[0]; });
+  var vals = pts.map(function(p){ return p[1]; });
+  var n = vals.length;
+  document.getElementById('dchartTitle').innerHTML = m.name + ' 价格趋势 <span class="sub">' + (m.pointsUnit||'') + ' · ' + (dates.length ? dates[0] + ' 至 ' + dates[dates.length-1] : '') + ' · 窗口：' + (RANGES.filter(function(r){ return r.k===curRange; })[0] || {l:''}).l + '</span>';
+  var ma5 = calcMA(vals, 5), ma10 = calcMA(vals, 10);
+  /* 高低点 + 预警阈值 markLine（阈值需与主序列同口径） */
+  var hi = Math.max.apply(null, vals), lo = Math.min.apply(null, vals);
+  var markLines = [
+    { yAxis: hi, name:'高点', lineStyle:{color:'#FF4D4F',type:'dashed'}, label:{formatter:'高点 ' + fmt(hi), position:'insideEndTop', fontSize:10, color:'#FF4D4F'} },
+    { yAxis: lo, name:'低点', lineStyle:{color:'#52C41A',type:'dashed'}, label:{formatter:'低点 ' + fmt(lo), position:'insideEndBottom', fontSize:10, color:'#52C41A'} }
+  ];
+  if(alertMatchesPoints(m) && m.alert){
+    if(m.alert.upper){ markLines.push({ yAxis:m.alert.upper, name:'上阈', lineStyle:{color:'#FAAD14',type:'solid'}, label:{formatter:'上阈 ' + fmt(m.alert.upper), position:'insideEndTop', fontSize:10, color:'#AD6800'} }); }
+    if(m.alert.lower){ markLines.push({ yAxis:m.alert.lower, name:'下阈', lineStyle:{color:'#1677FF',type:'solid'}, label:{formatter:'下阈 ' + fmt(m.alert.lower), position:'insideEndBottom', fontSize:10, color:'#0958D9'} }); }
+  }
+  var hasMA = n >= 8;
+  chart.setOption({
+    tooltip: { trigger:'axis', formatter: function(ps){
+      var p = ps[0]; var i = p.dataIndex;
+      var v = vals[i];
+      var chg = i > 0 ? (v - vals[i-1]) / vals[i-1] * 100 : null;
+      var dev = (ma5 && ma5[i]) ? (v - ma5[i]) / ma5[i] * 100 : null;
+      var s = '<b>' + dates[i] + '</b><br/>' + p.marker + m.name + '：<b>' + fmt(v) + '</b> ' + (m.pointsUnit||'');
+      if(chg !== null) s += '<br/>较前值：' + (chg >= 0 ? '<span style="color:#FF4D4F">+' : '<span style="color:#52C41A">') + chg.toFixed(2) + '%</span>';
+      if(dev !== null) s += '<br/>偏离 MA5：' + (dev >= 0 ? '<span style="color:#FF4D4F">+' : '<span style="color:#52C41A">') + dev.toFixed(1) + '%</span>';
+      return s;
+    } },
+    legend: { data: hasMA ? [m.name, 'MA5', 'MA10'] : [m.name], top:0, textStyle:{fontSize:11} },
+    grid: { left:64, right:16, top:28, bottom:24 },
+    xAxis: { type:'category', data:dates, boundaryGap:false, axisLabel:{fontSize:10, color:'#8C8C8C'}, axisLine:{lineStyle:{color:'#EBEDF0'}} },
+    yAxis: { type:'value', scale:true, axisLabel:{fontSize:10, color:'#8C8C8C'}, splitLine:{lineStyle:{color:'#F0F1F3'}} },
+    series: [{
+      name: m.name, type:'line', data:vals, smooth:true, showSymbol:n<=10, symbolSize:5,
+      lineStyle:{ width:2, color:m.color }, itemStyle:{color:m.color},
+      label: n <= 10 ? { show:true, position:'top', fontSize:9, color:'#646A73', formatter:function(p){ return fmt(p.value); } } : { show:false },
+      areaStyle:{ color: new echarts.graphic.LinearGradient(0,0,0,1,[{offset:0,color:m.color+'29'},{offset:1,color:m.color+'00'}]) },
+      markLine:{ silent:true, symbol:'none', data:markLines }
+    }].concat(hasMA ? [
+      { name:'MA5', type:'line', data:ma5, smooth:true, showSymbol:false, lineStyle:{width:1.5,color:'#FAAD14'}, itemStyle:{color:'#FAAD14'} },
+      { name:'MA10', type:'line', data:ma10, smooth:true, showSymbol:false, lineStyle:{width:1.5,color:'#722ED1'}, itemStyle:{color:'#722ED1'} }
+    ] : [])
+  });
+}
+/* 归一化走势对比：各品种最近 6 个点以首点为 100，右对齐 */
+function renderNormChart(){
+  if(!window.echarts) return;
+  var el = document.getElementById('normChart');
+  var chart = echarts.getInstanceByDom(el) || echarts.init(el);
+  var MAX = 6, series = [], legend = [], xlbl = [];
+  for(var i = 0; i < MAX; i++){ xlbl.unshift(i === MAX-1 ? 'T' : 'T-' + (MAX-1-i)); }
+  METAL_ORDER.forEach(function(k){
+    var m = DATA.metals[k];
+    var pts = (m.points || []).slice(-MAX);
+    if(pts.length < 4) return;
+    var base = pts[0][1];
+    var vals = pts.map(function(p){ return +(p[1] / base * 100).toFixed(1); });
+    while(vals.length < MAX){ vals.unshift(null); }
+    legend.push(m.name);
+    series.push({ name:m.name, type:'line', data:vals, smooth:true, showSymbol:true, symbolSize:4,
+      lineStyle:{width:1.5,color:m.color}, itemStyle:{color:m.color} });
+  });
+  chart.setOption({
+    tooltip: { trigger:'axis', valueFormatter: function(v){ return v === null ? '—' : (v - 100).toFixed(1) + '%'; } },
+    legend: { top:0, textStyle:{fontSize:10} },
+    grid: { left:44, right:16, top:28, bottom:24 },
+    xAxis: { type:'category', data:xlbl, axisLabel:{fontSize:10,color:'#8C8C8C'}, axisLine:{lineStyle:{color:'#EBEDF0'}} },
+    yAxis: { type:'value', scale:true, axisLabel:{fontSize:10,color:'#8C8C8C', formatter:'{value}'}, splitLine:{lineStyle:{color:'#F0F1F3'}} },
+    series: series
+  });
+}
+
+/* ---------- 阈值 ---------- */
+function renderThGrid(){
+  var box = document.getElementById('thGrid');
+  box.innerHTML = '';
+  METAL_ORDER.forEach(function(k){
+    var m = DATA.metals[k];
+    var a = m.alert || {};
+    var item = document.createElement('div');
+    item.className = 'th-item';
+    item.innerHTML = '<span class="nm" style="color:' + m.color + '">' + m.name + '</span>' +
+      '<span style="color:var(--text-3)">上</span><input type="number" id="thU_' + k + '" value="' + (a.upper||'') + '">' +
+      '<span style="color:var(--text-3)">下</span><input type="number" id="thL_' + k + '" value="' + (a.lower||'') + '">';
+    box.appendChild(item);
+  });
+}
+function saveThresholds(){
+  METAL_ORDER.forEach(function(k){
+    var m = DATA.metals[k];
+    m.alert = m.alert || {};
+    var u = parseFloat(document.getElementById('thU_' + k).value);
+    var l = parseFloat(document.getElementById('thL_' + k).value);
+    m.alert.upper = isNaN(u) ? null : u;
+    m.alert.lower = isNaN(l) ? null : l;
+  });
+  persist();
+  renderOverview();
+  if(curKey !== 'overview') renderDetail(curKey);
+  flash('阈值已保存');
+}
+function resetThresholds(){
+  METAL_ORDER.forEach(function(k){
+    DATA.metals[k].alert = JSON.parse(JSON.stringify(window.DATA_ALL.metals[k].alert));
+  });
+  renderThGrid(); persist(); renderOverview();
+  flash('已恢复默认阈值');
+}
+function flash(msg){
+  var el = document.getElementById('alertMsg');
+  el.className = 'alert-msg show warn';
+  el.innerHTML = '💾 ' + msg;
+  setTimeout(function(){ el.className = 'alert-msg'; el.innerHTML = ''; }, 1800);
+}
+
+/* ---------- 编辑抽屉 ---------- */
+function openDrawer(){
+  var isGlobal = curKey === 'overview';
+  document.getElementById('drawerName').textContent = isGlobal ? '· 全局内容' : '· ' + DATA.metals[curKey].name;
+  document.getElementById('globalEdit').style.display = isGlobal ? 'block' : 'none';
+  document.getElementById('metalEdit').style.display = isGlobal ? 'none' : 'block';
+  if(isGlobal){
+    document.getElementById('eDate').value = DATA.meta.dataDate || '';
+    document.getElementById('eInsights').value = JSON.stringify(DATA.overview.insights || []);
+    document.getElementById('eSop').value = JSON.stringify(DATA.overview.sop || []);
+  } else {
+    var m = DATA.metals[curKey];
+    document.getElementById('eName').value = m.name;
+    document.getElementById('eSpot').value = m.spot.v;
+    document.getElementById('eFuture').value = m.future.v;
+    document.getElementById('eChg5').value = m.chg5d;
+    document.getElementById('eChg20').value = m.chg20d;
+    document.getElementById('eStock').value = m.stock.v;
+    document.getElementById('eStock30').value = m.stock30d;
+    document.getElementById('eDrivers').value = m.drivers.join('\n');
+    document.getElementById('eSuggest').value = m.suggest;
+    document.getElementById('ePoints').value = JSON.stringify(m.points);
+  }
+  document.getElementById('drawerMask').classList.add('show');
+  document.getElementById('drawer').classList.add('show');
+}
+function closeDrawer(){
+  document.getElementById('drawerMask').classList.remove('show');
+  document.getElementById('drawer').classList.remove('show');
+}
+function saveDrawer(){
+  if(curKey === 'overview'){
+    DATA.meta.dataDate = document.getElementById('eDate').value || DATA.meta.dataDate;
+    try{
+      var ins = JSON.parse(document.getElementById('eInsights').value);
+      if(Array.isArray(ins)) DATA.overview.insights = ins;
+    }catch(e){ flash('洞察 JSON 格式错误，未更新'); return; }
+    try{
+      var sop = JSON.parse(document.getElementById('eSop').value);
+      if(Array.isArray(sop)) DATA.overview.sop = sop;
+    }catch(e){ flash('SOP JSON 格式错误，未更新'); return; }
+    persist(); closeDrawer();
+    renderInsights(); renderSOP(); calcFreshness();
+    renderTabs();
+    return;
+  }
+  var m = DATA.metals[curKey];
+  m.name = document.getElementById('eName').value || m.name;
+  m.spot.v = parseFloat(document.getElementById('eSpot').value) || m.spot.v;
+  m.future.v = document.getElementById('eFuture').value === '' ? null : (parseFloat(document.getElementById('eFuture').value) || m.future.v);
+  m.chg5d = document.getElementById('eChg5').value === '' ? null : parseFloat(document.getElementById('eChg5').value);
+  m.chg20d = document.getElementById('eChg20').value === '' ? null : parseFloat(document.getElementById('eChg20').value);
+  m.stock.v = document.getElementById('eStock').value === '' ? null : (parseFloat(document.getElementById('eStock').value) || m.stock.v);
+  m.stock30d = document.getElementById('eStock30').value === '' ? null : parseFloat(document.getElementById('eStock30').value);
+  m.drivers = document.getElementById('eDrivers').value.split('\n').filter(function(s){ return s.trim(); });
+  m.suggest = document.getElementById('eSuggest').value || m.suggest;
+  try{
+    var arr = JSON.parse(document.getElementById('ePoints').value);
+    if(Array.isArray(arr) && arr.length) m.points = arr;
+  }catch(e){ flash('序列 JSON 格式错误，未更新'); return; }
+  persist(); closeDrawer(); renderTabs();
+  renderDetail(curKey); renderDetailChart(curKey);
+  renderOverview();
+}
+
+/* ---------- 导出 ---------- */
+function bindExport(){
+  document.getElementById('btnExport').onclick = function(){
+    var dataScript = document.getElementById('data-block');
+    dataScript.textContent = '\n/* DATA_ALL — 导出时固化的最新数据 */\nwindow.DATA_ALL = ' + JSON.stringify(DATA, null, 2) + ';';
+    document.body.setAttribute('data-frozen', '1');
+    var html = '<!DOCTYPE html>\n' + document.documentElement.outerHTML;
+    var blob = new Blob([html], {type:'text/html;charset=utf-8'});
+    var a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = 'auto-raw-materials-monitor.html';
+    document.body.appendChild(a); a.click();
+    setTimeout(function(){ URL.revokeObjectURL(a.href); a.remove(); }, 400);
+  };
+}
+
+/* ---------- selftest ---------- */
+function selfTest(){
+  var pass = 0, fail = 0;
+  function ok(c, m){ if(c){ pass++; } else { fail++; console.log('❌ ' + m); } }
+  ok(METAL_ORDER.length === 8, '8 品种');
+  METAL_ORDER.forEach(function(k){
+    var m = DATA.metals[k];
+    ok(m && m.name && m.points && m.drivers && m.suggest, k + ' 字段完整');
+  });
+  ok(DATA.metals.zinc.points.length >= 40, '锌半年数据 ≥40 点（' + DATA.metals.zinc.points.length + '）');
+  ok(METAL_ORDER.every(function(k){ return DATA.metals[k].points && DATA.metals[k].points[0][0] < '2026-04-01'; }), '8 品种均覆盖至 2026 Q1（半年线）');
+  ok(DATA.metals.copper.chg20d > 0, '铜 chg20d>0');
+  ok(DATA.metals.lithium.chg20d > 10, '锂 chg20d 强势');
+  ok(DATA.metals.cobalt.chg5d === null, '钴缺数据以 null 表示');
+  ok(DATA.metals.copper.srcDetail && DATA.metals.copper.srcDetail.length >= 5, '铜 srcDetail 字段级来源');
+  ok(DATA.metals.copper.alertUnit === 'USD', '铜阈值口径 USD');
+  ok(DATA.metals.lithium.alertUnit === 'CNY', '锂阈值口径 CNY');
+  ok(document.getElementById('ovBody').children.length === 8, '总览表 8 行');
+  ok(document.querySelectorAll('#page-overview thead th')[3].textContent === 'LME 3M', '表头含 LME 3M 列');
+  ok(document.querySelectorAll('#ovBody tr')[0].children[3].textContent.indexOf('14,042') >= 0, '铜行 LME 3M 有值');
+  ok(document.querySelectorAll('#ovBody tr')[6].children[3].textContent === '—', '铁矿行 LME 3M 为空');
+  ok(document.querySelectorAll('#ovBody tr')[7].children[3].textContent === '—', '钴行 LME 3M 为空');
+  ok(document.getElementById('groupCards').children.length === 3, '信号分组 3 组');
+  ok(document.getElementById('insightBox').children.length === 4, '市场洞察 4 条');
+  ok(document.getElementById('methodBox').children.length === 4, '分析方法 4 步');
+  ok(document.getElementById('watchGlobalBox').querySelectorAll('tbody tr').length >= 6, '全局关注项 ≥6 行');
+  ok(document.getElementById('sopBox').querySelectorAll('.sop-col').length === 4, '监控 SOP 4 列');
+  ok(document.getElementById('thGrid').children.length === 8, '阈值 8 品种');
+  ok(document.getElementById('tabbar').children.length === 9, 'Tab 9 个（总览+8 品种）');
+  ok(document.getElementById('metaDate').textContent.indexOf('2026') >= 0, 'metaDate 渲染');
+  ok(document.getElementById('freshBadge').style.display === 'none', '数据 3 天内不显示过期标');
+  ok(typeof DATA.overview.insights !== 'undefined' && DATA.overview.insights.length > 0, '数据块含洞察');
+  ok(DATA.metals.zinc.watch && DATA.metals.zinc.watch.length === 3, '锌关注项 3 条');
+  ok(document.querySelectorAll('#rangeBtns .range-btn').length === 3, '时间窗口 3 档');
+  // 切换 tab 断言
+  switchTab('zinc');
+  ok(document.getElementById('page-detail').classList.contains('show'), '详情页显示');
+  ok(document.getElementById('dkpi').children.length === 6, '详情 KPI 6 张');
+  ok(document.getElementById('dSuggest').textContent.length > 5, '采购建议渲染');
+  ok(document.getElementById('dSrc').querySelector('table') !== null, '详情数据来源明细表');
+  ok(document.getElementById('dWatch').children.length === 3, '详情关注项 3 条');
+  ok(alertMatchesPoints(DATA.metals.zinc) === true, '锌阈值与主序列同口径');
+  ok(alertMatchesPoints(DATA.metals.copper) === true, '铜阈值与 LME 序列同口径（画阈值线）');
+  // 窗口切换断言：1M 应比 6M 点数少
+  var n6 = rangeSlice(DATA.metals.zinc).length;
+  curRange = '1M';
+  var n1 = rangeSlice(DATA.metals.zinc).length;
+  ok(n1 < n6, '1M 窗口点数少于 6M（' + n1 + ' < ' + n6 + '）');
+  curRange = '6M';
+  switchTab('overview');
+  ok(document.getElementById('page-overview').classList.contains('show'), '总览页显示');
+  if(window.echarts){
+    ok(echarts.getInstanceByDom(document.getElementById('chgChart')) !== null, '涨跌对比图实例存在');
+    ok(echarts.getInstanceByDom(document.getElementById('normChart')) !== null, '归一化对比图实例存在');
+  } else { ok(true, '离线跳过图表断言'); }
+  document.title = 'selftest ' + pass + '/' + (pass+fail) + ' PASS' + (fail ? ' · ' + fail + ' FAIL' : '');
+  console.log('PASS ' + pass + '/' + (pass+fail));
+}
+
+/* ---------- init ---------- */
+function init(){
+  document.getElementById('metaDate').textContent = '数据日期 ' + (DATA.meta.dataDate || '');
+  renderTabs();
+  renderThGrid();
+  renderRangeBtns();
+  document.getElementById('btnThSave').onclick = saveThresholds;
+  document.getElementById('btnThReset').onclick = resetThresholds;
+  document.getElementById('btnEdit').onclick = openDrawer;
+  document.getElementById('btnCancel').onclick = closeDrawer;
+  document.getElementById('drawerMask').onclick = closeDrawer;
+  document.getElementById('btnSave').onclick = saveDrawer;
+  bindFetch();
+  bindExport();
+  window.__afterEcharts = function(){
+    if(curKey === 'overview'){ renderChgChart(); renderNormChart(); } else { renderDetailChart(curKey); }
+  };
+  window.__echartsFail = function(){
+    ['chgChart','detailChart'].forEach(function(id){
+      var el = document.getElementById(id);
+      if(el){ el.innerHTML = '<div style="color:#8C8C8C;font-size:12px;padding:40px 0;text-align:center">图表组件加载失败（网络受限）</div>'; }
+    });
+  };
+  switchTab('overview');
+  if(location.search.indexOf('selftest=1') >= 0){
+    setTimeout(selfTest, 1800);
+  }
+}
+if(document.readyState === 'loading'){ document.addEventListener('DOMContentLoaded', init); } else { init(); }
+})();
+</script>
+</body>
+</html>

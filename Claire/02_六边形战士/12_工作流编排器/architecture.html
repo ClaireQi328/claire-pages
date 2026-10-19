@@ -1,0 +1,712 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>工作流编排器 · 架构设计方案</title>
+<script src="https://cdn.jsdelivr.net/npm/echarts@5.4.3/dist/echarts.min.js"></script>
+<link rel="stylesheet" href="https://miaoda.feishu.cn/fonts/css2?family=Noto+Sans+SC:wght@300;400;500;700;900&display=swap">
+<style>
+:root{
+  --bg:#0f1117;--bg2:#161a24;--bg3:#1e2330;--line:#2a3040;
+  --fg:#e8ecf4;--fg2:#9aa4b8;--fg3:#6b7388;
+  --accent:#4f8cff;--accent2:#36d399;--warn:#f5a524;--danger:#f87272;
+  --card:#181c28;--radius:12px;
+}
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:'Noto Sans SC',-apple-system,BlinkMacSystemFont,sans-serif;background:var(--bg);color:var(--fg);line-height:1.7}
+.container{max-width:1200px;margin:0 auto;padding:0 32px}
+
+/* Hero */
+.hero{padding:80px 0 60px;border-bottom:1px solid var(--line);background:radial-gradient(ellipse at 20% 0%,rgba(79,140,255,.12),transparent 60%)}
+.hero .tag{display:inline-block;padding:4px 14px;border:1px solid var(--accent);color:var(--accent);border-radius:20px;font-size:13px;margin-bottom:20px}
+.hero h1{font-size:42px;font-weight:900;letter-spacing:-1px;margin-bottom:16px}
+.hero h1 span{background:linear-gradient(135deg,var(--accent),var(--accent2));-webkit-background-clip:text;-webkit-text-fill-color:transparent}
+.hero p{font-size:17px;color:var(--fg2);max-width:720px}
+.hero .meta{display:flex;gap:32px;margin-top:32px;flex-wrap:wrap}
+.hero .meta div{font-size:14px;color:var(--fg3)}
+.hero .meta div b{color:var(--fg);font-weight:500}
+
+/* Section */
+section{padding:56px 0;border-bottom:1px solid var(--line)}
+.section-head{margin-bottom:36px}
+.section-head .num{font-size:13px;color:var(--accent);font-weight:700;letter-spacing:2px;margin-bottom:8px}
+.section-head h2{font-size:28px;font-weight:700;margin-bottom:10px}
+.section-head p{color:var(--fg2);font-size:15px;max-width:680px}
+
+/* Cards */
+.card-grid{display:grid;gap:16px}
+.card-grid.cols-2{grid-template-columns:repeat(2,1fr)}
+.card-grid.cols-3{grid-template-columns:repeat(3,1fr)}
+.card-grid.cols-4{grid-template-columns:repeat(4,1fr)}
+.card{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);padding:24px;transition:border-color .2s}
+.card:hover{border-color:var(--accent)}
+.card .icon{width:40px;height:40px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:20px;margin-bottom:14px;background:rgba(79,140,255,.12)}
+.card h3{font-size:16px;font-weight:600;margin-bottom:8px}
+.card p{font-size:13.5px;color:var(--fg2);line-height:1.65}
+.card .badge{display:inline-block;padding:2px 8px;border-radius:4px;font-size:11px;font-weight:600;margin-top:10px}
+.badge.core{background:rgba(79,140,255,.15);color:var(--accent)}
+.badge.ext{background:rgba(54,211,153,.15);color:var(--accent2)}
+.badge.ops{background:rgba(245,165,36,.15);color:var(--warn)}
+
+/* Chart */
+.chart-box{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);padding:24px;margin-bottom:20px}
+.chart-box h4{font-size:15px;font-weight:600;margin-bottom:16px;color:var(--fg)}
+.chart{width:100%;height:420px}
+.chart.tall{height:520px}
+
+/* Table */
+.table-wrap{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);overflow:hidden}
+table{width:100%;border-collapse:collapse;font-size:13.5px}
+th{background:var(--bg3);padding:14px 18px;text-align:left;font-weight:600;color:var(--fg);border-bottom:1px solid var(--line);font-size:13px}
+td{padding:13px 18px;border-bottom:1px solid var(--line);color:var(--fg2)}
+tr:last-child td{border-bottom:none}
+tr:hover td{background:rgba(79,140,255,.04)}
+td .pill{display:inline-block;padding:2px 10px;border-radius:10px;font-size:12px;font-weight:500}
+.pill.blue{background:rgba(79,140,255,.15);color:var(--accent)}
+.pill.green{background:rgba(54,211,153,.15);color:var(--accent2)}
+.pill.orange{background:rgba(245,165,36,.15);color:var(--warn)}
+.pill.red{background:rgba(248,114,114,.15);color:var(--danger)}
+
+/* Flow steps */
+.steps{display:flex;gap:0;align-items:stretch;flex-wrap:wrap}
+.step{flex:1;min-width:160px;background:var(--card);border:1px solid var(--line);padding:20px;position:relative}
+.step:first-child{border-radius:var(--radius) 0 0 var(--radius)}
+.step:last-child{border-radius:0 var(--radius) var(--radius) 0}
+.step:not(:last-child)::after{content:'';position:absolute;right:-8px;top:50%;transform:translateY(-50%);width:0;height:0;border-left:8px solid var(--line);border-top:8px solid transparent;border-bottom:8px solid transparent;z-index:2}
+.step .s-num{font-size:12px;color:var(--accent);font-weight:700;margin-bottom:6px}
+.step h4{font-size:14px;font-weight:600;margin-bottom:6px}
+.step p{font-size:12px;color:var(--fg3);line-height:1.5}
+
+/* Code block */
+.code-block{background:#0d0f15;border:1px solid var(--line);border-radius:8px;padding:18px;font-family:'SF Mono',Menlo,Consolas,monospace;font-size:12.5px;line-height:1.7;color:#c9d1d9;overflow-x:auto}
+.code-block .k{color:#ff7b72}
+.code-block .s{color:#a5d6ff}
+.code-block .c{color:#8b949e;font-style:italic}
+.code-block .n{color:#79c0ff}
+
+/* Footer */
+footer{padding:40px 0;text-align:center;color:var(--fg3);font-size:13px}
+
+@media(max-width:768px){
+  .hero h1{font-size:30px}
+  .card-grid.cols-2,.card-grid.cols-3,.card-grid.cols-4{grid-template-columns:1fr}
+  .steps{flex-direction:column}
+  .step{border-radius:var(--radius)!important}
+  .step:not(:last-child)::after{display:none}
+  .container{padding:0 20px}
+}
+</style>
+</head>
+<body>
+
+<!-- ============ HERO ============ -->
+<div class="hero">
+  <div class="container">
+    <div class="tag">架构设计 v1.0</div>
+    <h1>工作流编排器 <span>Workflow Orchestrator</span></h1>
+    <p>面向供应链B点四层架构的可视化工作流编排平台，支持多源输入、DAG 流程定义、条件分支、人工审批、异常重试与可观测执行，实现业务流程的低代码配置与自动化运转。</p>
+    <div class="meta">
+      <div>文档版本 <b>v1.0</b></div>
+      <div>适用场景 <b>供应链 / 审批 / 数据同步 / 事件驱动</b></div>
+      <div>设计日期 <b>2026-09</b></div>
+    </div>
+  </div>
+</div>
+
+<div class="container">
+
+<!-- ============ 1. 设计目标 ============ -->
+<section>
+  <div class="section-head">
+    <div class="num">01 / DESIGN GOALS</div>
+    <h2>设计目标与核心原则</h2>
+    <p>解决业务流程配置成本高、跨系统串联难、执行状态不可视、异常处理缺失等问题，提供一套可扩展、可观测、可回滚的编排引擎。</p>
+  </div>
+  <div class="card-grid cols-4">
+    <div class="card">
+      <div class="icon" style="background:rgba(79,140,255,.12)">⚙</div>
+      <h3>低代码编排</h3>
+      <p>可视化拖拽画布，节点即组件，连线即依赖，业务人员可独立配置流程，无需写代码。</p>
+      <span class="badge core">核心</span>
+    </div>
+    <div class="card">
+      <div class="icon" style="background:rgba(54,211,153,.12)">🔗</div>
+      <h3>多系统串联</h3>
+      <p>内置 HTTP / 数据库 / 消息队列 / 文件 / 人工审批等连接器，打通四层架构各层系统。</p>
+      <span class="badge core">核心</span>
+    </div>
+    <div class="card">
+      <div class="icon" style="background:rgba(245,165,36,.12)">📊</div>
+      <h3>全链路可观测</h3>
+      <p>每次执行记录节点级耗时、输入输出、状态变更，支持实时追踪与历史回溯。</p>
+      <span class="badge ops">运维</span>
+    </div>
+    <div class="card">
+      <div class="icon" style="background:rgba(248,114,114,.12)">🛡</div>
+      <h3>健壮容错</h3>
+      <p>节点级超时、重试、降级、补偿回滚，人工干预入口，确保流程不中断、数据不丢失。</p>
+      <span class="badge core">核心</span>
+    </div>
+  </div>
+</section>
+
+<!-- ============ 2. 整体架构 ============ -->
+<section>
+  <div class="section-head">
+    <div class="num">02 / ARCHITECTURE</div>
+    <h2>整体架构</h2>
+    <p>采用「接入层 → 编排层 → 执行层 → 基础设施层」四层结构，与供应链B点四层架构对齐，各层职责清晰、可独立扩展。</p>
+  </div>
+  <div class="chart-box">
+    <h4>系统分层架构图</h4>
+    <div id="archChart" class="chart tall"></div>
+  </div>
+  <div class="card-grid cols-2">
+    <div class="card">
+      <h3>接入层（Access Layer）</h3>
+      <p>提供可视化编排画布、流程管理控制台、OpenAPI、Webhook 接入端。负责流程定义的 CRUD、版本管理、触发入口与人工任务处理。</p>
+    </div>
+    <div class="card">
+      <h3>编排层（Orchestration Layer）</h3>
+      <p>核心引擎，包含 DAG 解析器、调度器、状态机、上下文管理器。负责将流程定义编译为可执行计划，驱动节点按依赖关系执行。</p>
+    </div>
+    <div class="card">
+      <h3>执行层（Execution Layer）</h3>
+      <p>节点执行器池，每种节点类型对应一个执行器。支持同步/异步执行、脚本沙箱、连接器调用、人工任务等待与回调。</p>
+    </div>
+    <div class="card">
+      <h3>基础设施层（Infra Layer）</h3>
+      <p>持久化（流程定义/实例/日志）、消息队列（任务分发/事件通知）、缓存（上下文/锁）、对象存储（大文件/产物）、监控告警。</p>
+    </div>
+  </div>
+</section>
+
+<!-- ============ 3. 核心模块 ============ -->
+<section>
+  <div class="section-head">
+    <div class="num">03 / CORE MODULES</div>
+    <h2>核心模块详解</h2>
+    <p>六大核心模块协同工作，覆盖从流程定义到执行监控的完整生命周期。</p>
+  </div>
+  <div class="card-grid cols-3">
+    <div class="card">
+      <div class="icon" style="background:rgba(79,140,255,.12)">📐</div>
+      <h3>流程定义模块</h3>
+      <p>将画布操作序列化为标准 JSON 流程定义（Workflow Definition），包含节点列表、连线关系、节点配置、全局变量。支持版本管理与灰度发布。</p>
+    </div>
+    <div class="card">
+      <div class="icon" style="background:rgba(79,140,255,.12)">🧩</div>
+      <h3>DAG 解析与调度</h3>
+      <p>解析流程定义为有向无环图，拓扑排序确定执行顺序，识别可并行节点。调度器按依赖关系分发任务，支持并行、串行、分支、循环模式。</p>
+    </div>
+    <div class="card">
+      <div class="icon" style="background:rgba(79,140,255,.12)">🔄</div>
+      <h3>状态机引擎</h3>
+      <p>管理流程实例与节点实例的生命周期状态：PENDING → RUNNING → SUCCESS / FAILED / SKIPPED / CANCELLED。状态变更触发事件与回调。</p>
+    </div>
+    <div class="card">
+      <div class="icon" style="background:rgba(54,211,153,.12)">📦</div>
+      <h3>上下文管理器</h3>
+      <p>维护执行上下文（Execution Context），存储全局变量、节点输出、环境变量。支持节点间数据传递、变量引用（${node.output.field}）与表达式求值。</p>
+    </div>
+    <div class="card">
+      <div class="icon" style="background:rgba(54,211,153,.12)">🔌</div>
+      <h3>连接器框架</h3>
+      <p>标准化连接器接口（Connector SPI），内置 HTTP、数据库、MQ、Redis、文件、飞书、邮件等连接器。第三方系统可通过插件方式扩展。</p>
+    </div>
+    <div class="card">
+      <div class="icon" style="background:rgba(245,165,36,.12)">👁</div>
+      <h3>可观测模块</h3>
+      <p>节点级执行日志、耗时统计、输入输出快照。集成 Prometheus 指标、ELK 日志、链路追踪（TraceID 贯穿全流程）。</p>
+    </div>
+  </div>
+</section>
+
+<!-- ============ 4. 节点模型 ============ -->
+<section>
+  <div class="section-head">
+    <div class="num">04 / NODE MODEL</div>
+    <h2>节点模型定义</h2>
+    <p>节点是工作流的最小执行单元，采用统一的数据模型描述，支持自定义扩展。每个节点包含元信息、输入端口、输出端口、配置参数与执行逻辑。</p>
+  </div>
+  <div class="card-grid cols-2">
+    <div class="card">
+      <h3>节点数据结构（WorkflowNode）</h3>
+      <div class="code-block" style="margin-top:12px">
+<span class="c">// 流程定义中的节点描述</span>
+{
+  <span class="k">"id"</span>: <span class="s">"node_001"</span>,
+  <span class="k">"type"</span>: <span class="s">"http_request"</span>,        <span class="c">// 节点类型</span>
+  <span class="k">"name"</span>: <span class="s">"调用订单接口"</span>,
+  <span class="k">"position"</span>: {<span class="k">"x"</span>:200,<span class="k">"y"</span>:100},  <span class="c">// 画布坐标</span>
+  <span class="k">"inputs"</span>: [<span class="s">"prev_node.output"</span>],  <span class="c">// 输入引用</span>
+  <span class="k">"config"</span>: {
+    <span class="k">"method"</span>: <span class="s">"POST"</span>,
+    <span class="k">"url"</span>: <span class="s">"${env.api_base}/orders"</span>,
+    <span class="k">"headers"</span>: {<span class="k">"Authorization"</span>:<span class="s">"${env.token}"</span>},
+    <span class="k">"body"</span>: <span class="s">"${node_001.output.data}"</span>
+  },
+  <span class="k">"retry"</span>: {<span class="k">"max"</span>:3,<span class="k">"interval"</span>:5000},
+  <span class="k">"timeout"</span>: 30000
+}
+      </div>
+    </div>
+    <div class="card">
+      <h3>节点类型分类</h3>
+      <div class="table-wrap" style="margin-top:12px">
+        <table>
+          <tr><th>类别</th><th>节点类型</th><th>说明</th></tr>
+          <tr><td><span class="pill blue">触发</span></td><td>定时 / Webhook / 事件 / 手动</td><td>流程启动入口</td></tr>
+          <tr><td><span class="pill blue">逻辑</span></td><td>条件分支 / 开关 / 循环 / 并行</td><td>流程控制</td></tr>
+          <tr><td><span class="pill green">数据</span></td><td>HTTP / DB查询 / 数据转换 / 过滤</td><td>数据获取与处理</td></tr>
+          <tr><td><span class="pill green">动作</span></td><td>发消息 / 写DB / 调接口 / 生成文件</td><td>执行具体操作</td></tr>
+          <tr><td><span class="pill orange">人工</span></td><td>审批 / 表单收集 / 人工确认</td><td>人机交互</td></tr>
+          <tr><td><span class="pill red">异常</span></td><td>超时 / 重试 / 降级 / 补偿</td><td>容错处理</td></tr>
+        </table>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ 5. 输入输出体系 ============ -->
+<section>
+  <div class="section-head">
+    <div class="num">05 / IO TAXONOMY</div>
+    <h2>输入输出类型体系</h2>
+    <p>标准化的输入输出描述，确保节点间数据可传递、可校验、可转换。支持强类型 Schema 与动态引用。</p>
+  </div>
+  <div class="table-wrap">
+    <table>
+      <tr><th>维度</th><th>输入类型</th><th>输出类型</th><th>传递方式</th></tr>
+      <tr>
+        <td><b>触发类</b></td>
+        <td>定时(Cron)、Webhook Payload、事件订阅、消息队列消息、API调用、手动触发</td>
+        <td>触发事件对象（含触发时间、来源、原始数据）</td>
+        <td>作为全局变量注入上下文</td>
+      </tr>
+      <tr>
+        <td><b>数据类</b></td>
+        <td>JSON / XML / CSV、数据库结果集、API响应体、文件内容、表单数据</td>
+        <td>结构化JSON、二进制文件引用、数据库写入结果、API响应</td>
+        <td>节点输出端口 → 下游节点输入端口引用</td>
+      </tr>
+      <tr>
+        <td><b>上下文类</b></td>
+        <td>全局变量、环境变量、前序节点输出、流程实例元数据、用户身份</td>
+        <td>更新后的上下文变量、新定义的变量</td>
+        <td>Execution Context 共享存储</td>
+      </tr>
+      <tr>
+        <td><b>人工类</b></td>
+        <td>审批决策（同意/拒绝）、表单字段、上传附件、评论批注</td>
+        <td>审批任务、待办事项、通知消息、表单链接</td>
+        <td>人工任务中心回调 + 上下文写入</td>
+      </tr>
+      <tr>
+        <td><b>控制类</b></td>
+        <td>条件表达式结果、循环计数器、分支选择信号</td>
+        <td>分支路由决策、循环终止信号、跳过标记</td>
+        <td>调度器内部状态，不暴露为数据</td>
+      </tr>
+      <tr>
+        <td><b>文件类</b></td>
+        <td>文件上传、对象存储文件、远程URL、Base64内容</td>
+        <td>生成的文件（PDF/Excel/图片）、文件存储URL、文件元数据</td>
+        <td>对象存储引用（URL + Key），不直接传二进制</td>
+      </tr>
+    </table>
+  </div>
+  <div style="margin-top:20px" class="card">
+    <h3>变量引用语法</h3>
+    <p style="margin-top:8px">节点配置中支持 <code style="color:var(--accent)">${变量路径}</code> 语法，执行时由上下文管理器解析替换。支持嵌套路径、数组索引、函数调用。</p>
+    <div class="code-block" style="margin-top:12px">
+${env.api_base}                    <span class="c">// 环境变量</span>
+${trigger.payload.order_id}        <span class="c">// 触发事件数据</span>
+${node_001.output.data.items[0].id} <span class="c">// 前序节点输出</span>
+${vars.user_name}                  <span class="c">// 自定义全局变量</span>
+${date.now('yyyy-MM-dd')}          <span class="c">// 内置函数</span>
+    </div>
+  </div>
+</section>
+
+<!-- ============ 6. 执行引擎 ============ -->
+<section>
+  <div class="section-head">
+    <div class="num">06 / EXECUTION ENGINE</div>
+    <h2>执行引擎设计</h2>
+    <p>基于 DAG 拓扑排序的调度引擎，支持并行执行、条件分支、循环迭代、人工等待与异步回调。</p>
+  </div>
+  <div class="steps" style="margin-bottom:24px">
+    <div class="step"><div class="s-num">STEP 1</div><h4>触发接收</h4><p>触发器接收事件，创建流程实例，初始化上下文</p></div>
+    <div class="step"><div class="s-num">STEP 2</div><h4>DAG 编译</h4><p>解析流程定义，拓扑排序，识别入度为0的起始节点</p></div>
+    <div class="step"><div class="s-num">STEP 3</div><h4>节点调度</h4><p>就绪节点分发到执行器池，支持并行分发</p></div>
+    <div class="step"><div class="s-num">STEP 4</div><h4>执行与回调</h4><p>执行器调用连接器/脚本，完成后回写输出与状态</p></div>
+    <div class="step"><div class="s-num">STEP 5</div><h4>依赖更新</h4><p>更新下游节点入度，入度归零则加入就绪队列</p></div>
+    <div class="step"><div class="s-num">STEP 6</div><h4>完成判定</h4><p>所有节点终态后流程结束，输出最终结果</p></div>
+  </div>
+  <div class="card-grid cols-3">
+    <div class="card">
+      <h3>并行执行</h3>
+      <p>无依赖关系的节点自动并行调度，通过线程池/协程池控制并发度。聚合节点（Join）等待所有前置分支完成后继续。</p>
+    </div>
+    <div class="card">
+      <h3>条件分支</h3>
+      <p>Switch 节点根据表达式求值结果选择一条或多条分支执行。未选中的分支标记为 SKIPPED，不占用执行资源。</p>
+    </div>
+    <div class="card">
+      <h3>循环迭代</h3>
+      <p>ForEach 节点遍历数组/集合，为每个元素创建子执行上下文，支持串行/并行循环，可配置最大并发数。</p>
+    </div>
+    <div class="card">
+      <h3>人工等待</h3>
+      <p>审批节点进入 WAITING 状态，流程实例挂起，等待人工回调。回调超时可配置自动通过/拒绝/升级。</p>
+    </div>
+    <div class="card">
+      <h3>异步执行</h3>
+      <p>长耗时任务（如大数据处理、视频转码）提交后立即返回，执行器注册回调端点，任务完成后通过回调恢复流程。</p>
+    </div>
+    <div class="card">
+      <h3>子流程调用</h3>
+      <p>支持嵌套调用其他流程定义，子流程有独立的实例ID与上下文，完成后将结果回传给父流程。</p>
+    </div>
+  </div>
+</section>
+
+<!-- ============ 7. 状态机 ============ -->
+<section>
+  <div class="section-head">
+    <div class="num">07 / STATE MACHINE</div>
+    <h2>状态机与生命周期</h2>
+    <p>流程实例与节点实例均采用有限状态机管理，状态变更严格受控，确保执行可追溯、可恢复。</p>
+  </div>
+  <div class="chart-box">
+    <h4>节点状态流转图</h4>
+    <div id="stateChart" class="chart"></div>
+  </div>
+  <div class="card-grid cols-2">
+    <div class="card">
+      <h3>流程实例状态</h3>
+      <div class="table-wrap" style="margin-top:12px">
+        <table>
+          <tr><th>状态</th><th>含义</th></tr>
+          <tr><td><span class="pill blue">RUNNING</span></td><td>执行中，至少一个节点在运行</td></tr>
+          <tr><td><span class="pill green">SUCCESS</span></td><td>所有节点成功完成</td></tr>
+          <tr><td><span class="pill red">FAILED</span></td><td>存在节点失败且未被容错处理</td></tr>
+          <tr><td><span class="pill orange">WAITING</span></td><td>等待人工审批或异步回调</td></tr>
+          <tr><td><span class="pill orange">PAUSED</span></td><td>人工暂停，可恢复</td></tr>
+          <tr><td><span class="pill red">CANCELLED</span></td><td>人工取消，执行终止</td></tr>
+        </table>
+      </div>
+    </div>
+    <div class="card">
+      <h3>节点实例状态</h3>
+      <div class="table-wrap" style="margin-top:12px">
+        <table>
+          <tr><th>状态</th><th>含义</th></tr>
+          <tr><td><span class="pill blue">PENDING</span></td><td>等待前置节点完成</td></tr>
+          <tr><td><span class="pill blue">READY</span></td><td>前置完成，等待调度</td></tr>
+          <tr><td><span class="pill blue">RUNNING</span></td><td>正在执行</td></tr>
+          <tr><td><span class="pill green">SUCCESS</span></td><td>执行成功</td></tr>
+          <tr><td><span class="pill red">FAILED</span></td><td>执行失败（可重试）</td></tr>
+          <tr><td><span class="pill orange">SKIPPED</span></td><td>条件未满足，被跳过</td></tr>
+        </table>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ 8. 异常处理 ============ -->
+<section>
+  <div class="section-head">
+    <div class="num">08 / FAULT TOLERANCE</div>
+    <h2>异常处理与容错机制</h2>
+    <p>多层级容错设计，从节点级到流程级，确保异常场景下流程可恢复、数据可补偿、问题可定位。</p>
+  </div>
+  <div class="card-grid cols-4">
+    <div class="card">
+      <div class="icon" style="background:rgba(79,140,255,.12)">⏱</div>
+      <h3>超时控制</h3>
+      <p>每个节点可配置超时时间，超时后触发重试或标记失败。全局默认超时 60s，可按节点覆盖。</p>
+    </div>
+    <div class="card">
+      <div class="icon" style="background:rgba(79,140,255,.12)">🔁</div>
+      <h3>自动重试</h3>
+      <p>支持固定间隔/指数退避重试，可配置最大重试次数与重试条件（如仅网络错误重试）。</p>
+    </div>
+    <div class="card">
+      <div class="icon" style="background:rgba(245,165,36,.12)">⬇</div>
+      <h3>降级策略</h3>
+      <p>节点失败后可配置降级输出（默认值/兜底数据），流程继续执行，不阻塞主链路。</p>
+    </div>
+    <div class="card">
+      <div class="icon" style="background:rgba(248,114,114,.12)">↩</div>
+      <h3>补偿回滚</h3>
+      <p>关键节点可配置补偿动作（Compensation），流程失败时按逆序执行已完成节点的补偿逻辑。</p>
+    </div>
+    <div class="card">
+      <div class="icon" style="background:rgba(54,211,153,.12)">👤</div>
+      <h3>人工干预</h3>
+      <p>失败节点支持人工重试、跳过、修改输入后重跑。流程实例支持暂停、恢复、取消操作。</p>
+    </div>
+    <div class="card">
+      <div class="icon" style="background:rgba(54,211,153,.12)">📝</div>
+      <h3>死信队列</h3>
+      <p>超过最大重试次数的任务进入死信队列，保留完整上下文，支持人工排查后重新投递。</p>
+    </div>
+    <div class="card">
+      <div class="icon" style="background:rgba(245,165,36,.12)">🔒</div>
+      <h3>幂等保障</h3>
+      <p>节点执行支持幂等键（Idempotency Key），重试时不会产生重复副作用，确保数据一致性。</p>
+    </div>
+    <div class="card">
+      <div class="icon" style="background:rgba(245,165,36,.12)">🔔</div>
+      <h3>告警通知</h3>
+      <p>流程失败、超时、人工待办等事件触发告警，支持飞书/邮件/短信/Webhook 多渠道通知。</p>
+    </div>
+  </div>
+</section>
+
+<!-- ============ 9. 扩展机制 ============ -->
+<section>
+  <div class="section-head">
+    <div class="num">09 / EXTENSIBILITY</div>
+    <h2>扩展机制与连接器框架</h2>
+    <p>采用 SPI（Service Provider Interface）模式，节点类型与连接器均可通过插件方式扩展，无需修改核心引擎。</p>
+  </div>
+  <div class="card-grid cols-2">
+    <div class="card">
+      <h3>连接器 SPI 接口</h3>
+      <div class="code-block" style="margin-top:12px">
+<span class="k">public interface</span> <span class="n">Connector</span> {
+  <span class="n">String</span> <span class="n">getType</span>();           <span class="c">// 连接器类型标识</span>
+  <span class="n">ConnectorMeta</span> <span class="n">getMeta</span>();    <span class="c">// 元信息（名称/图标/配置Schema）</span>
+  <span class="n">ConnectorResult</span> <span class="n">execute</span>(     <span class="c">// 执行逻辑</span>
+    <span class="n">ConnectorContext</span> ctx,
+    <span class="n">Map</span>&lt;<span class="n">String</span>,<span class="n">Object</span>&gt; config
+  );
+}
+      </div>
+      <p style="margin-top:12px;font-size:13px;color:var(--fg2)">实现接口后打包为 JAR 放入插件目录，引擎启动时自动发现并注册。配置 Schema 用于前端动态渲染配置表单。</p>
+    </div>
+    <div class="card">
+      <h3>内置连接器清单</h3>
+      <div class="table-wrap" style="margin-top:12px">
+        <table>
+          <tr><th>连接器</th><th>能力</th><th>类别</th></tr>
+          <tr><td>HTTP</td><td>REST API 调用、文件下载</td><td><span class="pill blue">通用</span></td></tr>
+          <tr><td>MySQL / PG</td><td>SQL 查询、写入、事务</td><td><span class="pill blue">数据</span></td></tr>
+          <tr><td>Kafka / RocketMQ</td><td>消息发送、消费触发</td><td><span class="pill blue">消息</span></td></tr>
+          <tr><td>Redis</td><td>缓存读写、分布式锁</td><td><span class="pill blue">数据</span></td></tr>
+          <tr><td>飞书</td><td>发消息、建审批、操作文档</td><td><span class="pill green">协作</span></td></tr>
+          <tr><td>邮件 / 短信</td><td>通知发送</td><td><span class="pill green">通知</span></td></tr>
+          <tr><td>对象存储</td><td>文件上传下载</td><td><span class="pill orange">存储</span></td></tr>
+          <tr><td>脚本</td><td>Python / JS / Shell 沙箱执行</td><td><span class="pill orange">自定义</span></td></tr>
+        </table>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ 10. 技术选型 ============ -->
+<section>
+  <div class="section-head">
+    <div class="num">10 / TECH STACK</div>
+    <h2>技术选型</h2>
+    <p>基于成熟开源组件构建，兼顾性能、可维护性与团队技术栈适配。</p>
+  </div>
+  <div class="table-wrap">
+    <table>
+      <tr><th>层级</th><th>组件</th><th>选型</th><th>选型理由</th></tr>
+      <tr><td><b>前端画布</b></td><td>流程编辑器</td><td>React Flow + React + TypeScript</td><td>成熟的节点图库，支持拖拽/连线/缩放，生态完善</td></tr>
+      <tr><td><b>前端UI</b></td><td>组件库</td><td>Ant Design / Arco Design</td><td>企业级组件库，表单/表格/弹窗开箱即用</td></tr>
+      <tr><td><b>后端核心</b></td><td>编排引擎</td><td>Java (Spring Boot) 或 Go</td><td>Java 生态成熟适合企业集成；Go 适合高并发轻量场景</td></tr>
+      <tr><td><b>任务调度</b></td><td>分布式调度</td><td>Quartz / XXL-Job / 自研</td><td>定时触发与任务分发，支持集群部署</td></tr>
+      <tr><td><b>消息队列</b></td><td>异步解耦</td><td>Kafka / RocketMQ</td><td>高吞吐、持久化、支持重试与死信</td></tr>
+      <tr><td><b>持久化</b></td><td>流程定义/实例</td><td>MySQL 8.0</td><td>事务保障，JSON 字段存储灵活配置</td></tr>
+      <tr><td><b>缓存</b></td><td>上下文/锁</td><td>Redis Cluster</td><td>高性能 KV，支持分布式锁与发布订阅</td></tr>
+      <tr><td><b>脚本执行</b></td><td>自定义逻辑</td><td>GraalVM / Docker 沙箱</td><td>多语言支持，资源隔离，防止恶意代码</td></tr>
+      <tr><td><b>可观测</b></td><td>监控/日志/追踪</td><td>Prometheus + Grafana + ELK + Jaeger</td><td>指标/日志/链路三件套，业界标准</td></tr>
+      <tr><td><b>部署</b></td><td>容器化</td><td>Docker + Kubernetes</td><td>弹性伸缩，滚动更新，环境一致性</td></tr>
+    </table>
+  </div>
+</section>
+
+<!-- ============ 11. 部署架构 ============ -->
+<section>
+  <div class="section-head">
+    <div class="num">11 / DEPLOYMENT</div>
+    <h2>部署架构与高可用</h2>
+    <p>无状态服务 + 有状态中间件分离部署，支持水平扩展与灾备。</p>
+  </div>
+  <div class="chart-box">
+    <h4>部署拓扑图</h4>
+    <div id="deployChart" class="chart"></div>
+  </div>
+  <div class="card-grid cols-3">
+    <div class="card">
+      <h3>无状态服务</h3>
+      <p>API 服务、调度器、执行器均为无状态设计，通过 Redis 共享状态，可任意水平扩展。K8s HPA 根据 CPU/队列长度自动扩缩容。</p>
+    </div>
+    <div class="card">
+      <h3>数据高可用</h3>
+      <p>MySQL 主从复制 + 半同步，Redis Cluster 三主三从，Kafka 多副本。关键数据每日备份，支持时间点恢复（PITR）。</p>
+    </div>
+    <div class="card">
+      <h3>灰度与回滚</h3>
+      <p>流程定义支持版本管理，新版本可灰度（按比例/按租户）发布。执行异常可一键回滚到上一稳定版本。</p>
+    </div>
+  </div>
+</section>
+
+</div>
+
+<footer>
+  <div class="container">
+    工作流编排器架构设计方案 v1.0 · 面向供应链B点四层架构 · 2026-09
+  </div>
+</footer>
+
+<script>
+// 架构图
+const archChart = echarts.init(document.getElementById('archChart'));
+archChart.setOption({
+  backgroundColor:'transparent',
+  tooltip:{trigger:'item',formatter:p=>p.name},
+  series:[{
+    type:'graph',layout:'none',roam:false,
+    label:{show:true,color:'#e8ecf4',fontSize:12,fontWeight:500},
+    edgeSymbol:['none','arrow'],edgeSymbolSize:8,
+    lineStyle:{color:'#4f8cff',width:1.5,opacity:.5,curveness:0},
+    data:[
+      // 接入层
+      {name:'可视化编排画布',x:100,y:40,itemStyle:{color:'#4f8cff'},symbolSize:50},
+      {name:'流程管理控制台',x:300,y:40,itemStyle:{color:'#4f8cff'},symbolSize:50},
+      {name:'OpenAPI / Webhook',x:500,y:40,itemStyle:{color:'#4f8cff'},symbolSize:50},
+      {name:'人工任务中心',x:700,y:40,itemStyle:{color:'#4f8cff'},symbolSize:50},
+      // 编排层
+      {name:'DAG 解析器',x:150,y:160,itemStyle:{color:'#36d399'},symbolSize:55},
+      {name:'调度器',x:350,y:160,itemStyle:{color:'#36d399'},symbolSize:55},
+      {name:'状态机引擎',x:550,y:160,itemStyle:{color:'#36d399'},symbolSize:55},
+      {name:'上下文管理器',x:750,y:160,itemStyle:{color:'#36d399'},symbolSize:55},
+      // 执行层
+      {name:'HTTP 执行器',x:100,y:280,itemStyle:{color:'#f5a524'},symbolSize:45},
+      {name:'DB 执行器',x:250,y:280,itemStyle:{color:'#f5a524'},symbolSize:45},
+      {name:'脚本执行器',x:400,y:280,itemStyle:{color:'#f5a524'},symbolSize:45},
+      {name:'人工审批执行器',x:550,y:280,itemStyle:{color:'#f5a524'},symbolSize:45},
+      {name:'MQ 执行器',x:700,y:280,itemStyle:{color:'#f5a524'},symbolSize:45},
+      {name:'文件执行器',x:850,y:280,itemStyle:{color:'#f5a524'},symbolSize:45},
+      // 基础设施层
+      {name:'MySQL 持久化',x:150,y:400,itemStyle:{color:'#f87272'},symbolSize:50},
+      {name:'Redis 缓存',x:350,y:400,itemStyle:{color:'#f87272'},symbolSize:50},
+      {name:'Kafka 消息队列',x:550,y:400,itemStyle:{color:'#f87272'},symbolSize:50},
+      {name:'对象存储 / 监控',x:750,y:400,itemStyle:{color:'#f87272'},symbolSize:50},
+    ],
+    links:[
+      // 接入→编排
+      {source:'可视化编排画布',target:'DAG 解析器'},{source:'流程管理控制台',target:'调度器'},
+      {source:'OpenAPI / Webhook',target:'调度器'},{source:'人工任务中心',target:'状态机引擎'},
+      // 编排内部
+      {source:'DAG 解析器',target:'调度器'},{source:'调度器',target:'状态机引擎'},
+      {source:'状态机引擎',target:'上下文管理器'},
+      // 编排→执行
+      {source:'调度器',target:'HTTP 执行器'},{source:'调度器',target:'DB 执行器'},
+      {source:'调度器',target:'脚本执行器'},{source:'调度器',target:'人工审批执行器'},
+      {source:'调度器',target:'MQ 执行器'},{source:'调度器',target:'文件执行器'},
+      // 执行→基础设施
+      {source:'HTTP 执行器',target:'MySQL 持久化'},{source:'DB 执行器',target:'Redis 缓存'},
+      {source:'脚本执行器',target:'Kafka 消息队列'},{source:'人工审批执行器',target:'对象存储 / 监控'},
+    ]
+  }],
+  graphic:[
+    {type:'text',left:20,top:10,style:{text:'接入层',fill:'#4f8cff',fontSize:13,fontWeight:700}},
+    {type:'text',left:20,top:130,style:{text:'编排层',fill:'#36d399',fontSize:13,fontWeight:700}},
+    {type:'text',left:20,top:250,style:{text:'执行层',fill:'#f5a524',fontSize:13,fontWeight:700}},
+    {type:'text',left:20,top:370,style:{text:'基础设施层',fill:'#f87272',fontSize:13,fontWeight:700}},
+  ]
+});
+window.addEventListener('resize',()=>archChart.resize());
+
+// 状态流转图
+const stateChart = echarts.init(document.getElementById('stateChart'));
+stateChart.setOption({
+  backgroundColor:'transparent',
+  tooltip:{trigger:'item'},
+  series:[{
+    type:'graph',layout:'none',roam:false,
+    label:{show:true,color:'#e8ecf4',fontSize:12,fontWeight:600},
+    edgeSymbol:['none','arrow'],edgeSymbolSize:10,
+    lineStyle:{color:'#4f8cff',width:1.5,opacity:.6},
+    data:[
+      {name:'PENDING',x:80,y:200,itemStyle:{color:'#2a3040'},symbolSize:55},
+      {name:'READY',x:250,y:200,itemStyle:{color:'#4f8cff'},symbolSize:55},
+      {name:'RUNNING',x:430,y:200,itemStyle:{color:'#f5a524'},symbolSize:60},
+      {name:'SUCCESS',x:640,y:100,itemStyle:{color:'#36d399'},symbolSize:55},
+      {name:'FAILED',x:640,y:300,itemStyle:{color:'#f87272'},symbolSize:55},
+      {name:'SKIPPED',x:250,y:340,itemStyle:{color:'#6b7388'},symbolSize:50},
+      {name:'WAITING',x:430,y:60,itemStyle:{color:'#a78bfa'},symbolSize:55},
+    ],
+    links:[
+      {source:'PENDING',target:'READY',label:{show:true,formatter:'前置完成',fontSize:10,color:'#9aa4b8'}},
+      {source:'READY',target:'RUNNING',label:{show:true,formatter:'调度',fontSize:10,color:'#9aa4b8'}},
+      {source:'RUNNING',target:'SUCCESS',label:{show:true,formatter:'成功',fontSize:10,color:'#9aa4b8'}},
+      {source:'RUNNING',target:'FAILED',label:{show:true,formatter:'失败',fontSize:10,color:'#9aa4b8'}},
+      {source:'RUNNING',target:'WAITING',label:{show:true,formatter:'需人工',fontSize:10,color:'#9aa4b8'}},
+      {source:'WAITING',target:'RUNNING',label:{show:true,formatter:'回调',fontSize:10,color:'#9aa4b8'}},
+      {source:'FAILED',target:'RUNNING',label:{show:true,formatter:'重试',fontSize:10,color:'#9aa4b8'}},
+      {source:'PENDING',target:'SKIPPED',label:{show:true,formatter:'条件不满足',fontSize:10,color:'#9aa4b8'}},
+    ]
+  }]
+});
+window.addEventListener('resize',()=>stateChart.resize());
+
+// 部署拓扑图
+const deployChart = echarts.init(document.getElementById('deployChart'));
+deployChart.setOption({
+  backgroundColor:'transparent',
+  tooltip:{trigger:'item'},
+  series:[{
+    type:'graph',layout:'none',roam:false,
+    label:{show:true,color:'#e8ecf4',fontSize:11,fontWeight:500},
+    edgeSymbol:['none','arrow'],edgeSymbolSize:8,
+    lineStyle:{color:'#4f8cff',width:1.2,opacity:.4},
+    data:[
+      // 接入层
+      {name:'Nginx / SLB',x:450,y:30,itemStyle:{color:'#4f8cff'},symbolSize:50},
+      // 应用层
+      {name:'API服务 Pod-1',x:200,y:130,itemStyle:{color:'#36d399'},symbolSize:45},
+      {name:'API服务 Pod-2',x:380,y:130,itemStyle:{color:'#36d399'},symbolSize:45},
+      {name:'调度器 Pod-1',x:560,y:130,itemStyle:{color:'#36d399'},symbolSize:45},
+      {name:'调度器 Pod-2',x:740,y:130,itemStyle:{color:'#36d399'},symbolSize:45},
+      {name:'执行器 Pod-1',x:200,y:240,itemStyle:{color:'#f5a524'},symbolSize:45},
+      {name:'执行器 Pod-2',x:380,y:240,itemStyle:{color:'#f5a524'},symbolSize:45},
+      {name:'执行器 Pod-3',x:560,y:240,itemStyle:{color:'#f5a524'},symbolSize:45},
+      {name:'执行器 Pod-N',x:740,y:240,itemStyle:{color:'#f5a524'},symbolSize:45},
+      // 中间件层
+      {name:'MySQL 主从',x:180,y:360,itemStyle:{color:'#f87272'},symbolSize:50},
+      {name:'Redis Cluster',x:380,y:360,itemStyle:{color:'#f87272'},symbolSize:50},
+      {name:'Kafka 集群',x:580,y:360,itemStyle:{color:'#f87272'},symbolSize:50},
+      {name:'对象存储',x:770,y:360,itemStyle:{color:'#f87272'},symbolSize:50},
+    ],
+    links:[
+      {source:'Nginx / SLB',target:'API服务 Pod-1'},{source:'Nginx / SLB',target:'API服务 Pod-2'},
+      {source:'API服务 Pod-1',target:'调度器 Pod-1'},{source:'API服务 Pod-2',target:'调度器 Pod-2'},
+      {source:'调度器 Pod-1',target:'执行器 Pod-1'},{source:'调度器 Pod-1',target:'执行器 Pod-2'},
+      {source:'调度器 Pod-2',target:'执行器 Pod-3'},{source:'调度器 Pod-2',target:'执行器 Pod-N'},
+      {source:'执行器 Pod-1',target:'MySQL 主从'},{source:'执行器 Pod-1',target:'Redis Cluster'},
+      {source:'执行器 Pod-2',target:'Kafka 集群'},{source:'执行器 Pod-2',target:'对象存储'},
+    ]
+  }],
+  graphic:[
+    {type:'rect',left:80,top:90,shape:{width:740,height:70},style:{fill:'rgba(54,211,153,.05)',stroke:'rgba(54,211,153,.2)',lineWidth:1,radius:8}},
+    {type:'text',left:90,top:95,style:{text:'K8s 应用层（无状态，HPA自动扩缩）',fill:'#36d399',fontSize:11}},
+    {type:'rect',left:80,top:200,shape:{width:740,height:80},style:{fill:'rgba(245,165,36,.05)',stroke:'rgba(245,165,36,.2)',lineWidth:1,radius:8}},
+    {type:'text',left:90,top:205,style:{text:'K8s 执行层（无状态，按队列长度扩缩）',fill:'#f5a524',fontSize:11}},
+    {type:'rect',left:80,top:320,shape:{width:740,height:80},style:{fill:'rgba(248,114,114,.05)',stroke:'rgba(248,114,114,.2)',lineWidth:1,radius:8}},
+    {type:'text',left:90,top:325,style:{text:'中间件层（有状态，主从/集群高可用）',fill:'#f87272',fontSize:11}},
+  ]
+});
+window.addEventListener('resize',()=>deployChart.resize());
+</script>
+</body>
+</html>

@@ -1,0 +1,1201 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>合同管理模块优化 Demo — EP 唯一入口（评审版）</title>
+<style>
+:root{
+  --primary:#1890FF; --primary-hover:#40A9FF; --primary-active:#096DD9;
+  --primary-bg:#E6F7FF; --text:#262626; --text-2:#595959; --text-3:#8C8C8C;
+  --border:#F0F0F0; --bg:#F5F5F5; --card:#FFFFFF;
+  --green:#52C41A; --orange:#FAAD14; --blue:#1890FF; --red:#FF4D4F;
+  --purple:#722ED1; --cyan:#13C2C2; --gray:#BFBFBF;
+}
+*{margin:0;padding:0;box-sizing:border-box;}
+body{font-family:-apple-system,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif;font-size:14px;color:var(--text);background:var(--bg);min-width:1320px;overflow-x:auto;}
+a{color:var(--primary);text-decoration:none;cursor:pointer;}
+a:hover{color:var(--primary-hover);}
+::-webkit-scrollbar{width:8px;height:8px;}
+::-webkit-scrollbar-thumb{background:#C1C1C1;border-radius:4px;}
+::-webkit-scrollbar-track{background:transparent;}
+
+/* ===== 顶部导航 ===== */
+.topbar{height:56px;background:#fff;border-bottom:1px solid var(--border);display:flex;align-items:center;padding:0 16px;position:sticky;top:0;z-index:100;}
+.logo{display:flex;align-items:center;gap:8px;padding-right:24px;flex-shrink:0;}
+.logo-box{width:28px;height:28px;background:#FF6900;border-radius:6px;color:#fff;font-weight:700;font-size:15px;display:flex;align-items:center;justify-content:center;}
+.logo-text{font-size:16px;font-weight:600;}
+.nav-tabs{display:flex;align-items:center;height:100%;overflow-x:auto;flex:1;white-space:nowrap;}
+.nav-tab{height:56px;line-height:56px;padding:0 16px;font-size:14px;color:var(--text-2);cursor:pointer;position:relative;border-bottom:2px solid transparent;flex-shrink:0;}
+.nav-tab:hover{color:var(--primary);}
+.nav-tab.active{color:var(--primary);font-weight:500;border-bottom-color:var(--primary);}
+.top-user{display:flex;align-items:center;gap:8px;margin-left:16px;flex-shrink:0;cursor:pointer;}
+.avatar{width:28px;height:28px;border-radius:50%;background:var(--primary);color:#fff;display:flex;align-items:center;justify-content:center;font-size:12px;}
+
+/* ===== 布局 ===== */
+.layout{display:flex;align-items:flex-start;}
+.sidebar{width:200px;background:#fff;border-right:1px solid var(--border);min-height:calc(100vh - 56px);padding:12px 0;flex-shrink:0;}
+.side-item{height:40px;line-height:40px;padding:0 16px;font-size:14px;color:var(--text-2);cursor:pointer;position:relative;border-left:3px solid transparent;}
+.side-item:hover{color:var(--primary);background:#F5F5F5;}
+.side-item.active{color:var(--primary);background:var(--primary-bg);border-left-color:var(--primary);font-weight:500;}
+.side-num{color:var(--text-3);font-size:12px;margin-left:4px;}
+.main{flex:1;padding:16px 24px 40px;min-width:0;}
+.page{display:none;}
+.page.active{display:block;}
+
+/* ===== 子Tab ===== */
+.page-tabs{display:flex;gap:32px;border-bottom:1px solid var(--border);margin-bottom:16px;}
+.page-tab{height:40px;line-height:40px;font-size:15px;color:var(--text-2);cursor:pointer;border-bottom:2px solid transparent;}
+.page-tab:hover{color:var(--primary);}
+.page-tab.active{color:var(--primary);font-weight:500;border-bottom-color:var(--primary);}
+
+/* ===== KPI统计卡 ===== */
+.kpi-row{display:flex;gap:16px;margin-bottom:16px;}
+.kpi-card{flex:1;background:#fff;border:1px solid var(--border);border-radius:4px;padding:16px 20px;}
+.kpi-label{font-size:13px;color:var(--text-3);margin-bottom:6px;}
+.kpi-value{font-size:26px;font-weight:600;line-height:1.2;}
+.kpi-value .unit{font-size:13px;font-weight:400;color:var(--text-3);margin-left:4px;}
+.kpi-sub{font-size:12px;color:var(--text-3);margin-top:4px;}
+.kpi-sub .up{color:var(--red);}
+.kpi-sub .down{color:var(--green);}
+
+/* ===== 筛选/工具条 ===== */
+.toolbar{display:flex;align-items:center;gap:16px;margin-bottom:12px;flex-wrap:wrap;}
+.status-tabs{display:flex;gap:8px;}
+.status-tab{font-size:14px;color:var(--text-2);cursor:pointer;padding:4px 0;border-bottom:2px solid transparent;}
+.status-tab:hover{color:var(--primary);}
+.status-tab.active{color:var(--primary);border-bottom-color:var(--primary);}
+.status-tab .cnt{color:var(--text-3);font-size:12px;margin-left:2px;}
+.toolbar-right{margin-left:auto;display:flex;align-items:center;gap:12px;}
+.search-box{display:flex;align-items:center;border:1px solid #D9D9D9;border-radius:4px;background:#fff;height:32px;overflow:hidden;}
+.search-box input{border:none;outline:none;padding:0 10px;font-size:13px;width:180px;height:100%;}
+.search-box .icon{width:32px;height:32px;background:#fff;border-left:1px solid #D9D9D9;display:flex;align-items:center;justify-content:center;cursor:pointer;color:var(--text-3);}
+.search-box .icon:hover{color:var(--primary);}
+.link-adv{font-size:13px;color:var(--primary);cursor:pointer;}
+.btn{height:32px;padding:0 16px;border-radius:4px;font-size:14px;cursor:pointer;border:1px solid #D9D9D9;background:#fff;color:var(--text);display:inline-flex;align-items:center;justify-content:center;gap:4px;}
+.btn:hover{border-color:var(--primary);color:var(--primary);}
+.btn-primary{background:var(--primary);border-color:var(--primary);color:#fff;}
+.btn-primary:hover{background:var(--primary-hover);border-color:var(--primary-hover);color:#fff;}
+.btn-sm{height:26px;padding:0 10px;font-size:12px;}
+.btn:disabled{background:#F5F5F5;border-color:#D9D9D9;color:rgba(0,0,0,0.25);cursor:not-allowed;}
+.btn:disabled:hover{color:rgba(0,0,0,0.25);border-color:#D9D9D9;}
+
+/* ===== 表格 ===== */
+.table-wrap{background:#fff;border:1px solid var(--border);border-radius:4px;overflow:auto;}
+table.ep{width:100%;border-collapse:collapse;min-width:100%;}
+table.ep th{background:#FAFAFA;font-weight:600;font-size:13px;color:var(--text);text-align:left;padding:10px 12px;border-bottom:1px solid var(--border);white-space:nowrap;position:sticky;top:0;z-index:1;}
+table.ep td{padding:9px 12px;border-bottom:1px solid var(--border);font-size:13px;color:var(--text);vertical-align:middle;white-space:nowrap;}
+table.ep tbody tr:hover td{background:var(--primary-bg);}
+table.ep tbody tr:last-child td{border-bottom:none;}
+.th-sort{display:inline-flex;flex-direction:column;margin-left:4px;vertical-align:middle;}
+.th-sort i{font-size:0;width:0;height:0;border-left:4px solid transparent;border-right:4px solid transparent;cursor:pointer;}
+.th-sort .up{border-bottom:5px solid #BFBFBF;margin-bottom:1px;}
+.th-sort .down{border-top:5px solid #BFBFBF;}
+.th-sort:hover .up{border-bottom-color:#8C8C8C;}
+.th-sort:hover .down{border-top-color:#8C8C8C;}
+.ser{color:var(--text-3);}
+
+/* ===== 状态点 ===== */
+.st{display:inline-flex;align-items:center;gap:6px;}
+.st .dot{width:8px;height:8px;border-radius:50%;display:inline-block;}
+.st-draft .dot{background:var(--gray);}
+.st-pending .dot{background:var(--orange);}
+.st-progress .dot{background:var(--blue);}
+.st-done .dot{background:var(--green);}
+.st-archiving .dot{background:var(--cyan);}
+.st-terminated .dot{background:var(--red);}
+.st-gray{color:var(--text-2);}
+.chip{display:inline-block;padding:1px 8px;border-radius:10px;font-size:12px;line-height:18px;}
+.chip-blue{background:#E6F7FF;color:#1890FF;}
+.chip-purple{background:#F9F0FF;color:#722ED1;}
+.chip-cyan{background:#E6FFFB;color:#13C2C2;}
+.chip-green{background:#F6FFED;color:#52C41A;}
+.chip-orange{background:#FFF7E6;color:#FA8C16;}
+.chip-gray{background:#FAFAFA;color:#8C8C8C;}
+.chip-red{background:#FFF1F0;color:#FF4D4F;}
+
+/* ===== 分页 ===== */
+.pagination{display:flex;align-items:center;justify-content:flex-end;gap:8px;padding:14px 16px;font-size:13px;color:var(--text-2);}
+.page-btn{width:28px;height:28px;border:1px solid #D9D9D9;border-radius:4px;background:#fff;display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:12px;color:var(--text-2);}
+.page-btn:hover{border-color:var(--primary);color:var(--primary);}
+.page-btn.active{background:var(--primary);border-color:var(--primary);color:#fff;}
+.page-btn.disabled{color:#D9D9D9;cursor:not-allowed;}
+.page-size{display:flex;align-items:center;gap:4px;}
+.select-mini{border:1px solid #D9D9D9;border-radius:4px;height:28px;padding:0 6px;font-size:13px;background:#fff;color:var(--text-2);}
+.jump-input{width:46px;height:28px;border:1px solid #D9D9D9;border-radius:4px;padding:0 6px;font-size:13px;text-align:center;}
+
+/* ===== 弹窗 ===== */
+.mask{position:fixed;inset:0;background:rgba(0,0,0,0.45);z-index:900;display:none;align-items:flex-start;justify-content:center;padding-top:12vh;}
+.mask.show{display:flex;}
+.modal{background:#fff;border-radius:6px;width:520px;max-height:80vh;overflow:auto;box-shadow:0 6px 16px rgba(0,0,0,0.12);}
+.modal-head{padding:16px 24px;border-bottom:1px solid var(--border);font-size:16px;font-weight:600;display:flex;justify-content:space-between;align-items:center;}
+.modal-body{padding:20px 24px;}
+.modal-foot{padding:12px 24px;border-top:1px solid var(--border);display:flex;justify-content:flex-end;gap:8px;}
+.modal-close{cursor:pointer;color:var(--text-3);font-size:18px;line-height:1;}
+.modal-close:hover{color:var(--text);}
+
+/* ===== 创建方式卡片 ===== */
+.create-ways{display:flex;gap:16px;}
+.way-card{flex:1;border:1px solid #D9D9D9;border-radius:6px;padding:20px 16px;cursor:pointer;text-align:center;transition:all .2s;}
+.way-card:hover{border-color:var(--primary);box-shadow:0 2px 8px rgba(24,144,255,0.15);}
+.way-icon{width:44px;height:44px;border-radius:50%;background:var(--primary-bg);color:var(--primary);display:flex;align-items:center;justify-content:center;margin:0 auto 12px;font-size:20px;font-weight:700;}
+.way-title{font-size:14px;font-weight:600;margin-bottom:6px;}
+.way-desc{font-size:12px;color:var(--text-3);line-height:1.6;}
+
+/* ===== 创建向导 ===== */
+.steps{display:flex;align-items:center;margin-bottom:24px;background:#fff;border:1px solid var(--border);border-radius:4px;padding:16px 24px;}
+.step{display:flex;align-items:center;gap:8px;flex:1;position:relative;}
+.step .snum{width:28px;height:28px;border-radius:50%;background:#fff;border:1px solid #D9D9D9;color:var(--text-3);display:flex;align-items:center;justify-content:center;font-size:13px;flex-shrink:0;}
+.step .stext{font-size:13px;color:var(--text-2);white-space:nowrap;}
+.step.done .snum{background:var(--primary);border-color:var(--primary);color:#fff;}
+.step.done .stext{color:var(--primary);}
+.step.active .snum{background:var(--primary);border-color:var(--primary);color:#fff;box-shadow:0 0 0 4px rgba(24,144,255,0.2);}
+.step.active .stext{color:var(--primary);font-weight:500;}
+.step .sline{flex:1;height:1px;background:#E8E8E8;margin:0 16px;}
+.step.done .sline{background:var(--primary);}
+.wizard-card{background:#fff;border:1px solid var(--border);border-radius:4px;padding:24px;margin-bottom:16px;}
+.wizard-title{font-size:15px;font-weight:600;margin-bottom:16px;}
+.wizard-sub{font-size:13px;color:var(--text-3);margin-bottom:12px;}
+.step-actions{display:flex;justify-content:flex-end;gap:8px;margin-top:8px;}
+
+/* ===== 表单 ===== */
+.form-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:16px 24px;}
+.form-item label{display:block;font-size:13px;color:var(--text-2);margin-bottom:6px;}
+.form-item label .req{color:var(--red);margin-right:2px;}
+.input,.select{height:32px;border:1px solid #D9D9D9;border-radius:4px;padding:0 10px;font-size:13px;width:100%;background:#fff;color:var(--text);outline:none;}
+.input:focus,.select:focus{border-color:var(--primary);box-shadow:0 0 0 2px rgba(24,144,255,0.2);}
+.input[readonly]{background:#FAFAFA;color:var(--text-3);}
+.select{appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M0 0l5 6 5-6z' fill='%238C8C8C'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 10px center;padding-right:28px;cursor:pointer;}
+.switch{display:inline-block;width:44px;height:22px;background:#ccc;border-radius:22px;position:relative;cursor:pointer;transition:background .2s;flex-shrink:0;}
+.switch::after{content:"";position:absolute;width:18px;height:18px;background:#fff;border-radius:50%;top:2px;left:2px;transition:left .2s;box-shadow:0 1px 2px rgba(0,0,0,0.2);}
+.switch.on{background:var(--primary);}
+.switch.on::after{left:24px;}
+.switch-item{display:flex;align-items:center;gap:8px;}
+.switch-item .slabel{font-size:13px;color:var(--text-2);}
+.form-note{font-size:12px;color:var(--text-3);margin-top:4px;}
+
+/* ===== 合同包推荐 ===== */
+.pack-row{display:flex;align-items:center;gap:12px;padding:14px 16px;border:1px solid var(--border);border-radius:4px;margin-bottom:12px;transition:all .2s;}
+.pack-row.selected{border-color:var(--primary);background:var(--primary-bg);}
+.pack-check{width:16px;height:16px;accent-color:var(--primary);cursor:pointer;flex-shrink:0;}
+.pack-main{flex:1;}
+.pack-name{font-size:14px;font-weight:600;margin-bottom:4px;}
+.pack-name .rec{display:inline-block;background:var(--red);color:#fff;font-size:11px;line-height:16px;padding:0 6px;border-radius:8px;margin-left:8px;vertical-align:2px;}
+.pack-meta{font-size:12px;color:var(--text-3);display:flex;gap:16px;flex-wrap:wrap;}
+.pack-meta b{color:var(--text-2);font-weight:500;}
+
+/* ===== 模板库 ===== */
+.tpl-cats{display:flex;gap:8px;margin-bottom:16px;flex-wrap:wrap;}
+.tpl-cat{padding:5px 16px;border:1px solid #D9D9D9;border-radius:16px;font-size:13px;color:var(--text-2);cursor:pointer;background:#fff;}
+.tpl-cat:hover{border-color:var(--primary);color:var(--primary);}
+.tpl-cat.active{background:var(--primary);border-color:var(--primary);color:#fff;}
+.op-link{color:var(--primary);cursor:pointer;font-size:13px;}
+.op-link:hover{color:var(--primary-hover);}
+.op-split{color:#E8E8E8;margin:0 6px;}
+/* 合同类型树 */
+.tt-cat{margin:4px 0;}
+.tt-cat-head{display:flex;align-items:center;gap:6px;font-size:13px;font-weight:600;color:var(--text);padding:6px 4px;cursor:pointer;border-radius:4px;}
+.tt-cat-head:hover{background:#F5F5F5;}
+.tt-arrow{display:inline-block;width:14px;color:var(--text-3);font-size:12px;}
+.tt-cat-body{padding-left:4px;}
+.tt-stage{font-size:12px;color:var(--text-3);margin:8px 0 2px;}
+.tt-items{display:grid;grid-template-columns:repeat(2,1fr);gap:4px 16px;margin-left:10px;}
+.tt-item{display:flex;align-items:center;gap:6px;font-size:13px;cursor:pointer;padding:2px 0;}
+.tt-item:hover{color:var(--primary);}
+.tt-check{width:14px;height:14px;accent-color:var(--primary);cursor:pointer;flex-shrink:0;}
+.tt-check:disabled{cursor:not-allowed;}
+.tt-added{color:var(--text-3);font-size:12px;}
+
+/* ===== 统计 ===== */
+.stats-grid{display:grid;grid-template-columns:2fr 1fr;gap:16px;}
+.stat-card{background:#fff;border:1px solid var(--border);border-radius:4px;padding:16px 20px;}
+.stat-title{font-size:14px;font-weight:600;margin-bottom:16px;display:flex;justify-content:space-between;align-items:center;}
+.stat-title .sub{font-size:12px;color:var(--text-3);font-weight:400;}
+.bar-chart{display:flex;align-items:flex-end;gap:10px;height:200px;padding-top:10px;}
+.bar-col{flex:1;display:flex;flex-direction:column;align-items:center;gap:6px;height:100%;justify-content:flex-end;}
+.bar{width:100%;max-width:36px;background:var(--primary);border-radius:2px 2px 0 0;position:relative;transition:height .3s;}
+.bar:hover{background:var(--primary-hover);}
+.bar-val{font-size:11px;color:var(--text-2);}
+.bar-label{font-size:11px;color:var(--text-3);}
+.hbar-row{display:flex;align-items:center;gap:10px;margin-bottom:12px;}
+.hbar-label{width:150px;font-size:13px;color:var(--text-2);text-align:right;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.hbar-track{flex:1;background:#F5F5F5;border-radius:2px;height:14px;overflow:hidden;}
+.hbar-fill{height:100%;background:var(--primary);border-radius:2px;}
+.hbar-val{width:44px;font-size:13px;color:var(--text-2);}
+.progress-row{display:flex;align-items:center;gap:10px;margin-bottom:12px;}
+.progress-name{width:160px;font-size:13px;color:var(--text-2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.progress-track{flex:1;background:#F5F5F5;border-radius:2px;height:14px;overflow:hidden;}
+.progress-fill{height:100%;background:linear-gradient(90deg,#69C0FF,#1890FF);border-radius:2px;}
+.progress-val{width:56px;font-size:13px;color:var(--text-2);text-align:right;}
+.legend{display:flex;gap:16px;flex-wrap:wrap;margin-top:12px;}
+.legend-item{display:flex;align-items:center;gap:6px;font-size:12px;color:var(--text-2);}
+.legend-dot{width:10px;height:10px;border-radius:2px;}
+
+/* ===== 水印 ===== */
+.watermark{position:fixed;inset:0;pointer-events:none;z-index:999;display:flex;flex-wrap:wrap;overflow:hidden;align-content:flex-start;}
+.wm-item{font-size:13px;color:#000;opacity:0.04;white-space:nowrap;transform:rotate(-24deg);margin:36px 8px;user-select:none;}
+
+/* ===== 浮动按钮 ===== */
+.float-btn{position:fixed;right:28px;bottom:32px;width:48px;height:48px;border-radius:50%;background:#EB2F96;color:#fff;font-size:24px;display:flex;align-items:center;justify-content:center;box-shadow:0 4px 12px rgba(235,47,150,0.4);cursor:pointer;z-index:200;}
+.float-btn:hover{transform:scale(1.05);}
+
+/* ===== Toast ===== */
+.toast{position:fixed;top:76px;left:50%;transform:translateX(-50%);background:#fff;border:1px solid var(--border);box-shadow:0 4px 12px rgba(0,0,0,0.12);border-radius:4px;padding:10px 20px;font-size:14px;z-index:1200;display:none;align-items:center;gap:8px;}
+.toast.show{display:flex;animation:toastIn .25s ease;}
+@keyframes toastIn{from{opacity:0;transform:translate(-50%,-8px);}to{opacity:1;transform:translate(-50%,0);}}
+.toast .ok{color:var(--green);font-weight:700;}
+
+/* 概要卡（step4确认） */
+.summary-block{margin-bottom:16px;}
+.summary-block h4{font-size:13px;color:var(--text-3);margin-bottom:10px;font-weight:500;}
+.summary-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px 24px;background:#FAFAFA;border-radius:4px;padding:14px 16px;}
+.summary-grid .sg{font-size:13px;}
+.summary-grid .sg .k{color:var(--text-3);margin-right:8px;}
+.summary-list{border:1px solid var(--border);border-radius:4px;}
+.summary-list .sl-row{display:flex;align-items:center;gap:12px;padding:10px 16px;border-bottom:1px solid var(--border);font-size:13px;}
+.summary-list .sl-row:last-child{border-bottom:none;}
+.empty-tip{padding:60px 0;text-align:center;color:var(--text-3);font-size:13px;}
+</style>
+</head>
+<body>
+
+<!-- 顶部导航 -->
+<header class="topbar">
+  <div class="logo">
+    <div class="logo-box">mi</div>
+    <span class="logo-text">小米汽车</span>
+  </div>
+  <nav class="nav-tabs" id="navTabs">
+    <span class="nav-tab" data-name="首页">首页</span>
+    <span class="nav-tab" data-name="个人中心">个人中心</span>
+    <span class="nav-tab" data-name="供应商管理">供应商管理</span>
+    <span class="nav-tab" data-name="采购项目管理">采购项目管理</span>
+    <span class="nav-tab" data-name="SOR管理">SOR管理</span>
+    <span class="nav-tab" data-name="售后需求管理">售后需求管理</span>
+    <span class="nav-tab" data-name="采购任务管理">采购任务管理</span>
+    <span class="nav-tab" data-name="询报价与定点">询报价与定点</span>
+    <span class="nav-tab" data-name="价格中心">价格中心</span>
+    <span class="nav-tab" data-name="履约管理">履约管理</span>
+    <span class="nav-tab active" data-name="合同管理">合同管理</span>
+    <span class="nav-tab" data-name="物流相关">物流相关</span>
+    <span class="nav-tab" data-name="订单管理">订单管理</span>
+    <span class="nav-tab" data-name="预算管理">预算管理</span>
+  </nav>
+  <div class="top-user" title="齐岳">
+    <div class="avatar">齐</div>
+    <span style="font-size:13px;color:var(--text-2);">齐岳</span>
+    <span style="color:var(--text-3);">⋯</span>
+  </div>
+</header>
+
+<div class="layout">
+  <!-- 左侧栏 -->
+  <aside class="sidebar">
+    <div class="side-item active" data-view="all" onclick="setView('all')">全部申请单<span class="side-num">(708)</span></div>
+    <div class="side-item" data-view="mine" onclick="setView('mine')">我的申请单<span class="side-num">(4)</span></div>
+  </aside>
+
+  <main class="main">
+    <!-- 子Tab -->
+    <div class="page-tabs" id="pageTabs">
+      <span class="page-tab active" data-page="list" onclick="showPage('list')">合同申请单列表</span>
+      <span class="page-tab" data-page="ledger" onclick="showPage('ledger')">合同清单</span>
+      <span class="page-tab" data-page="tpl" onclick="showPage('tpl')">合同模板库</span>
+      <span class="page-tab" data-page="stats" onclick="showPage('stats')">合同统计</span>
+    </div>
+
+    <!-- ========== 页面1：合同申请单列表（增强） ========== -->
+    <section class="page active" id="page-list">
+      <div class="kpi-row">
+        <div class="kpi-card"><div class="kpi-label">合同申请单总数</div><div class="kpi-value">708<span class="unit">份</span></div><div class="kpi-sub">较上月 <span class="up">+5.2%</span></div></div>
+        <div class="kpi-card"><div class="kpi-label">签署中（进行中）</div><div class="kpi-value">46<span class="unit">份</span></div><div class="kpi-sub">审批中 31 / 待盖章 15</div></div>
+        <div class="kpi-card"><div class="kpi-label">待归档</div><div class="kpi-value">12<span class="unit">份</span></div><div class="kpi-sub">已盖章待归档</div></div>
+        <div class="kpi-card"><div class="kpi-label">本月新增</div><div class="kpi-value">32<span class="unit">份</span></div><div class="kpi-sub">其中从定点发起 21</div></div>
+      </div>
+      <div class="toolbar">
+        <div class="status-tabs" id="statusTabs">
+          <span class="status-tab active" data-st="all" onclick="filterByStatus('all')">全部<span class="cnt">99+</span></span>
+          <span class="status-tab" data-st="draft" onclick="filterByStatus('draft')">草稿<span class="cnt">99+</span></span>
+          <span class="status-tab" data-st="pending" onclick="filterByStatus('pending')">待确认<span class="cnt">72</span></span>
+          <span class="status-tab" data-st="progress" onclick="filterByStatus('progress')">进行中<span class="cnt">99+</span></span>
+          <span class="status-tab" data-st="done" onclick="filterByStatus('done')">完成<span class="cnt">99+</span></span>
+        </div>
+        <div class="toolbar-right">
+          <div class="search-box">
+            <input id="searchInput" placeholder="申请单编号" oninput="renderList()">
+            <span class="icon" onclick="renderList()">🔍</span>
+          </div>
+          <span class="link-adv">高级查询 ▾</span>
+          <button class="btn btn-primary" onclick="openUnified()">＋ 创建合同申请单</button>
+        </div>
+      </div>
+      <div class="table-wrap">
+        <table class="ep" id="listTable">
+          <thead><tr>
+            <th>序号<span class="ser">(11)</span></th>
+            <th>合同申请单编号<span class="th-sort"><i class="up"></i><i class="down"></i></span></th>
+            <th>合同申请单名称</th>
+            <th>状态</th>
+            <th>合同类型/模板</th>
+            <th>签署维度</th>
+            <th>关联定点申请单编码</th>
+            <th>供应商名称</th>
+            <th>采购工程师</th>
+            <th>提起时间</th>
+            <th>签署完成时间</th>
+            <th>签署状态<span class="ser">(集团)</span></th>
+            <th>操作</th>
+          </tr></thead>
+          <tbody id="listBody"></tbody>
+        </table>
+      </div>
+      <div class="pagination">
+        <span id="pageInfo">第 1 - 25 条，共 708 条</span>
+        <div class="page-btn disabled">‹</div>
+        <div class="page-btn active">1</div>
+        <div class="page-btn">2</div>
+        <div class="page-btn">3</div>
+        <div class="page-btn disabled">…</div>
+        <div class="page-btn">8</div>
+        <div class="page-btn">›</div>
+        <div class="page-size">
+          <select class="select-mini"><option>100 条/页</option><option>50 条/页</option><option>25 条/页</option></select>
+        </div>
+        <span>跳至 <input class="jump-input" value="1"> 页</span>
+      </div>
+    </section>
+
+    <!-- ========== 页面2：合同清单（签署全景台账） ========== -->
+    <section class="page" id="page-ledger">
+      <div class="toolbar">
+        <div class="status-tabs" id="ledgerViewTabs">
+          <span class="status-tab active" data-v="supplier" onclick="setLedgerView('supplier')">按供应商</span>
+          <span class="status-tab" data-v="project" onclick="setLedgerView('project')">按项目</span>
+          <span class="status-tab" data-v="part" onclick="setLedgerView('part')">按零件</span>
+        </div>
+        <div class="toolbar-right">
+          <div class="search-box"><input id="ledgerSearch" placeholder="关键词搜索" style="width:200px;" oninput="renderLedger()"></div>
+          <span class="link-adv">导出 ▾</span>
+        </div>
+      </div>
+      <div id="ledgerContainer"></div>
+      <div class="pagination" id="ledgerPager"></div>
+    </section>
+
+    <!-- ========== 页面3：合同模板库 ========== -->
+    <section class="page" id="page-tpl">
+      <div class="tpl-cats" id="tplCats">
+        <span class="tpl-cat active" data-cat="all" onclick="filterTpl('all')">全部模板</span>
+        <span class="tpl-cat" data-cat="production" onclick="filterTpl('production')">生产件/样件</span>
+        <span class="tpl-cat" data-cat="after" onclick="filterTpl('after')">售后配件</span>
+        <span class="tpl-cat" data-cat="change" onclick="filterTpl('change')">主体变更</span>
+        <span class="tpl-cat" data-cat="reference" onclick="filterTpl('reference')">参考模板库</span>
+      </div>
+      <div class="toolbar">
+        <div class="status-tabs" id="tplDimTabs">
+          <span class="status-tab active" data-dim="all" onclick="filterTplDim('all')">全部签署维度</span>
+          <span class="status-tab" data-dim="supplier" onclick="filterTplDim('supplier')">by供应商</span>
+          <span class="status-tab" data-dim="part" onclick="filterTplDim('part')">by零件</span>
+          <span class="status-tab" data-dim="ondemand" onclick="filterTplDim('ondemand')">按需</span>
+        </div>
+        <div class="toolbar-right">
+          <div class="search-box"><input id="tplSearch" placeholder="协议名称 / 关键词" oninput="renderTpl()" style="width:200px;"></div>
+          <span class="ser" style="font-size:12px;">模板来源：法务清单同步 · 文件本体链接最新版，禁止创建副本</span>
+        </div>
+      </div>
+      <div class="table-wrap">
+        <table class="ep" id="tplTable">
+          <thead><tr>
+            <th>编号</th><th>协议名称</th><th>所属分类</th><th>适用场景</th><th>签署维度</th>
+            <th>版本</th><th>双语</th><th>更新时间</th><th>调用次数</th><th>操作</th>
+          </tr></thead>
+          <tbody id="tplBody"></tbody>
+        </table>
+      </div>
+      <div class="pagination"><span>第 1 - 40 条，共 40 条</span></div>
+    </section>
+
+    <!-- ========== 页面4：合同统计分析 ========== -->
+    <section class="page" id="page-stats">
+      <div class="kpi-row">
+        <div class="kpi-card"><div class="kpi-label">合同申请单总数</div><div class="kpi-value">708<span class="unit">份</span></div><div class="kpi-sub">存量+新增</div></div>
+        <div class="kpi-card"><div class="kpi-label">本月新增</div><div class="kpi-value">32<span class="unit">份</span></div><div class="kpi-sub"><span class="up">↑ 5.2%</span> 环比</div></div>
+        <div class="kpi-card"><div class="kpi-label">标准模板覆盖率</div><div class="kpi-value">86.4<span class="unit">%</span></div><div class="kpi-sub">标准模板发起 / 合同总数</div></div>
+        <div class="kpi-card"><div class="kpi-label">平均签署周期</div><div class="kpi-value">7.3<span class="unit">天</span></div><div class="kpi-sub"><span class="down">↓ 1.2天</span> 较上季度</div></div>
+      </div>
+      <div class="stats-grid">
+        <div class="stat-card">
+          <div class="stat-title">合同创建趋势（近 12 个月）<span class="sub">按合同申请单提起时间</span></div>
+          <div class="bar-chart" id="trendChart"></div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-title">合同类型分布</div>
+          <div id="typeBars"></div>
+        </div>
+      </div>
+      <div style="height:16px;"></div>
+      <div class="stats-grid">
+        <div class="stat-card">
+          <div class="stat-title">模板调用 TOP 6<span class="sub">按发起次数</span></div>
+          <div id="tplTop"></div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-title">项目管理统计 · 项目合同签署进度<span class="sub">应签合同覆盖率</span></div>
+          <div id="projectProgress"></div>
+        </div>
+      </div>
+      <div style="height:16px;"></div>
+      <div class="stat-card">
+        <div class="stat-title">供应商签署全景<span class="sub">直采合同按供应商聚合（Top 8）</span></div>
+        <table class="ep" id="supplierMatrix"><thead><tr>
+          <th>供应商</th><th>应签合同</th><th>已签署</th><th>签署中</th><th>待归档</th><th>未签缺口</th><th>签署率</th><th>缺口合同</th>
+        </tr></thead><tbody id="supplierMatrixBody"></tbody></table>
+      </div>
+    </section>
+  </main>
+</div>
+
+<!-- 水印 -->
+<div class="watermark" id="watermark"></div>
+<!-- 浮动按钮 -->
+<div class="float-btn" title="智能助手" onclick="toast('智能助手：演示环境仅展示静态交互')">＋</div>
+<!-- Toast -->
+<div class="toast" id="toast"></div>
+
+<script>
+/* ========== 数据 ========== */
+const STATUS_MAP = {
+  draft:{t:'草稿',c:'st-draft'}, pending:{t:'待确认',c:'st-pending'},
+  progress:{t:'进行中',c:'st-progress'}, done:{t:'完成',c:'st-done'}
+};
+const GROUP_ST = {approval:'审批中',seal:'待盖章',signed:'已盖章',archiving:'待归档',archived:'已归档',terminated:'已终止'};
+
+const CONTRACTS = [];
+(function(){
+  const seeds = [
+    ['CT-20260821-0001','小米汽车-宁波华翔-零件价格协议','draft','SCM-20260818-0032','宁波华翔电子股份有限公司','王敏','2026-08-21','','价格协议/零件价格协议','by零件',''],
+    ['CT-20260821-0002','小米汽车-宁德时代-技术支持服务协议','draft','SCM-20260816-0028','宁德时代新能源科技股份有限公司','张伟','2026-08-21','','技术支持服务协议','by零件',''],
+    ['CT-20260820-0003','小米汽车-福耀玻璃-采购通则','pending','SCM-20260715-0016','福耀玻璃工业集团股份有限公司','李娜','2026-08-20','','采购通则','by供应商',''],
+    ['CT-20260820-0004','小米汽车-均胜电子-质量目标协议','progress','SCM-20260810-0025','均胜电子股份有限公司','王敏','2026-08-20','','质量目标协议','by零件','approval'],
+    ['CT-20260819-0005','小米汽车-汇川技术-三方协议（DB件）','progress','SCM-20260805-0021','苏州汇川技术有限公司','张伟','2026-08-19','','三方协议（DB件）','按需','seal'],
+    ['CT-20260819-0006','小米汽车-拓普集团-售后配件价格协议','pending','SCM-20260811-0026','拓普集团股份有限公司','刘洋','2026-08-19','','售后配件价格协议','by零件',''],
+    ['CT-20260818-0007','小米汽车-立讯精密-返利协议','progress','SCM-20260801-0018','立讯精密工业股份有限公司','陈静','2026-08-18','','返利协议','按需','approval'],
+    ['CT-20260818-0008','小米汽车-德赛西威-采购通则','draft','SCM-20260722-0019','德赛西威汽车电子股份有限公司','刘洋','2026-08-18','','采购通则','by供应商',''],
+    ['CT-20260817-0009','小米汽车-华阳集团-技术支持服务协议','progress','SCM-20260802-0020','惠州市华阳集团股份有限公司','赵磊','2026-08-17','','技术支持服务协议','by零件','seal'],
+    ['CT-20260817-0010','小米汽车-三花智控-零件价格协议','progress','SCM-20260730-0017','三花智能控制股份有限公司','李娜','2026-08-17','','价格协议/零件价格协议','by零件','approval'],
+    ['CT-20260816-0011','小米汽车-比亚迪-保密协议（双向）','done','SCM-20260710-0012','比亚迪股份有限公司','陈静','2026-08-16','2026-08-20','保密协议-双向','by供应商','archived'],
+    ['CT-20260816-0012','小米汽车-中鼎股份-协商解除协议','progress','SCM-20260628-0009','安徽中鼎密封件股份有限公司','赵磊','2026-08-16','','协商解除协议','按需','approval'],
+    ['CT-20260815-0013','小米汽车-银轮股份-委托加工合作协议','done','SCM-20260718-0014','浙江银轮机械股份有限公司','王敏','2026-08-15','2026-08-19','委托加工合作协议','按需','archived'],
+    ['CT-20260815-0014','小米汽车-联创电子-质量目标协议','pending','SCM-20260803-0022','江西联创电子科技股份有限公司','张伟','2026-08-15','','质量目标协议','by零件',''],
+    ['CT-20260814-0015','小米汽车-水晶光电-供应商主体变更','progress','SCM-20260725-0015','水晶光电科技股份有限公司','刘洋','2026-08-14','','主体变更三方协议（连带）','按需','seal'],
+    ['CT-20260814-0016','小米汽车-经纬恒润-样件采购合同','progress','SCM-20260720-0013','北京经纬恒润科技股份有限公司','陈静','2026-08-14','','样件采购合同','by零件','approval'],
+    ['CT-20260813-0017','小米汽车-欣旺达-零件价格协议','done','SCM-20260615-0006','欣旺达电子股份有限公司','李娜','2026-08-13','2026-08-17','价格协议/零件价格协议','by零件','archived'],
+    ['CT-20260813-0018','小米汽车-保隆科技-设备借用合同','draft','SCM-20260708-0011','上海保隆汽车科技股份有限公司','赵磊','2026-08-13','','设备借用合同','按需',''],
+    ['CT-20260812-0019','小米汽车-伯特利-采购通则（纯软件）','progress','SCM-20260712-0010','芜湖伯特利汽车安全系统股份有限公司','王敏','2026-08-12','','采购通则（纯软件）','by供应商','approval'],
+    ['CT-20260812-0020','小米汽车-天准科技-返利协议','pending','SCM-20260730-0017','苏州天准科技股份有限公司','张伟','2026-08-12','','返利协议','按需',''],
+    ['CT-20260811-0021','小米汽车-中科创达-技术支持服务协议（纯软件）','done','SCM-20260620-0007','中科创达软件股份有限公司','刘洋','2026-08-11','2026-08-15','技术支持服务协议（纯软件）','by零件','archived'],
+    ['CT-20260811-0022','小米汽车-星宇股份-质量目标协议','progress','SCM-20260715-0016','常州星宇车灯股份有限公司','陈静','2026-08-11','','质量目标协议','by零件','archiving'],
+    ['CT-20260810-0023','小米汽车-精锻科技-协商变更补充协议','progress','SCM-20260625-0008','江苏太平洋精锻科技股份有限公司','赵磊','2026-08-10','','合同补充协议（协商变更）','按需','seal'],
+    ['CT-20260810-0024','小米汽车-沪光股份-采购通则','draft','SCM-20260804-0023','昆山沪光汽车电器股份有限公司','李娜','2026-08-10','','采购通则','by供应商',''],
+    ['CT-20260809-0025','小米汽车-光庭信息-平台信息交互承诺函','done','SCM-20260610-0005','武汉光庭信息技术股份有限公司','王敏','2026-08-09','2026-08-12','平台信息交互承诺函','by供应商','archived']
+  ];
+  seeds.forEach(function(r,i){
+    CONTRACTS.push({idx:i+1,no:r[0],name:r[1],st:r[2],pointNo:r[3],supplier:r[4],eng:r[5],raise:r[6],signDone:r[7],type:r[8],dim:r[9],groupSt:r[10]});
+  });
+})();
+
+const POINTS = [
+  ['SCM-20260818-0032','宁德时代-M3E电池包定点','宁德时代新能源科技股份有限公司','M3E平台','3','1,280万','定点后1个月内'],
+  ['SCM-20260816-0028','福耀玻璃-天幕玻璃定点','福耀玻璃工业集团股份有限公司','B02平台','5','960万','定点后1个月内'],
+  ['SCM-20260815-0027','汇川技术-电驱动总成定点','苏州汇川技术有限公司','C01平台','2','2,150万','定点后1个月内'],
+  ['SCM-20260811-0026','拓普集团-底盘轻量化定点','拓普集团股份有限公司','M3E平台','4','1,530万','定点后1个月内'],
+  ['SCM-20260810-0025','均胜电子-安全气囊定点','均胜电子股份有限公司','B02平台','2','880万','定点后1个月内'],
+  ['SCM-20260805-0021','立讯精密-线束总成定点','立讯精密工业股份有限公司','M3E平台','6','1,720万','定点后1个月内']
+];
+
+const TEMPLATES = [];
+(function(){
+  const t = function(no,name,cat,scene,dim,ver,bil,date,calls){TEMPLATES.push({no:no,name:name,cat:cat,scene:scene,dim:dim,ver:ver,bil:bil,date:date,calls:calls});};
+  /* 生产件/样件 */
+  t('2.1-1','采购通则','production','通用（除纯软件外）的供应商准入','supplier','V7-2-20241226','是','2026-07-01',186);
+  t('2.1-2','采购通则（纯软件）','production','纯软件直采通用条款','supplier','V2-20240328','否','2026-07-01',32);
+  t('1.1','保密协议-双向','production','初次交流前防泄密','supplier','V10-2-20251202','是','2026-07-01',420);
+  t('1.2','保密承诺书-单向','production','快速开启合作（谨慎使用）','ondemand','V5-240507','是','2026-07-01',55);
+  t('2.2','平台信息交互承诺函','production','确保EP等系统平台行为有效','supplier','V1.1-20251202','否','2026-07-01',128);
+  t('2.3','定点承诺函','production','定点前供应商承诺事项','ondemand','V0.1-241209','否','2026-07-01',9);
+  t('3.1','感谢信（未定点通知）','production','定点结果通知/未入选感谢','part','V2-20220701','是','2026-07-01',23);
+  t('4.1.1','技术支持服务协议','production','定点后约束开发/模具/样件责任','part','V5-20240605','是','2026-07-01',268);
+  t('4.1.2','技术支持服务协议（纯软件）','production','纯软件专有条款','part','V2-20240605','否','2026-07-01',41);
+  t('4.2-1','零件价格协议','production','首次定点定价（量产/模具/开发/样件）','part','V1.2-20260417','是','2026-07-01',302);
+  t('4.2-2','定点价格协议（纯软件）','production','纯软件一次性开发费+按量许可','part','V3-20240125','否','2026-07-01',35);
+  t('4.3','质量目标协议','production','约定PPM/IPTV/质保期','part','V3-20241031','是','2026-07-01',198);
+  t('4.4','委托加工合作协议','production','自研/代工项目委托生产','ondemand','V2-20240328','否','2026-07-01',64);
+  t('6.1','样件采购合同','production','研发阶段样件采购','part','V2-20220713','否','2026-07-01',77);
+  t('6.2','技术服务合同（ESI）','production','ESI早期供应商参与','ondemand','V1-20250120','否','2026-07-01',12);
+  t('7.1-1','三方协议（DB件）','production','DB件交易结构','ondemand','V1-20230315','否','2026-07-01',46);
+  t('7.1-2','三方协议（委外件）','production','委外件交易结构','ondemand','V1-20230320','否','2026-07-01',28);
+  t('7.1-4','三方协议（双经销）','production','双经销交易结构','ondemand','V2-20240328','否','2026-07-01',19);
+  t('7.2-1','返利协议（T1返利）','production','T1周期性返还金额','ondemand','V1.1-20250206','否','2026-07-01',33);
+  t('7.2-2','市场开发服务协议（T2返利）','production','T2返利/降本','ondemand','V1-20250402','否','2026-07-01',8);
+  t('7.3-1','价格协议-价格授权','production','小米与T2定价后授权T1执行','ondemand','V1.1-241206','否','2026-07-01',21);
+  t('7.4','零件价格协议补充协议（模具/开发费变更）','production','设变导致模具/开发费变动','ondemand','V2.1-20251110','否','2026-07-01',58);
+  t('8.1','协商解除协议','production','合作终止等情形','ondemand','V2-20230720','否','2026-07-01',15);
+  t('8.2','合同补充协议（协商变更）','production','关键条款变更/错别字修正','ondemand','V2-20230720','否','2026-07-01',17);
+  t('8.3','呆滞物料补偿','production','项目变更致物料呆滞补偿','ondemand','20240926','否','2026-07-01',6);
+  t('8.4','模具报废补偿','production','设变致模具报废补偿','ondemand','V1.1-20241112','否','2026-07-01',4);
+  t('8.6','设备借用合同','production','出借设备/软件给供应商','ondemand','20220817','否','2026-07-01',3);
+  /* 售后配件 */
+  t('S-1','采购通则（售后配件）','after','售后专用件供应商准入','supplier','V1-20230915','否','2026-07-01',38);
+  t('S-2','售后配件供货保障协议','after','替代生产件物流管理协议','supplier','V1-231227','否','2026-07-01',52);
+  t('S-3','售后配件价格协议','after','售后配件定价结算','part','V2-240117','否','2026-07-01',61);
+  t('S-4','质量目标协议（售后配件）','after','售后件质量目标','part','V2-231117','否','2026-07-01',33);
+  t('S-5','委托加工协议（涂装件）','after','售后钣金委外涂装/电泳','ondemand','V1-230809','否','2026-07-01',11);
+  t('S-6','三方协议（钣金+涂装，双经销）','after','涂装+钣金双经销','ondemand','V1-20230912','否','2026-07-01',7);
+  t('S-7','年度框架采购合同（售后自制件）','after','工厂自制件内部销售','ondemand','V1-230915','否','2026-07-01',2);
+  /* 主体变更 */
+  t('C-1','主体变更三方协议（原主体连带责任）','change','供应商主体变更（推荐）','ondemand','V1-20250711','否','2026-07-01',14);
+  t('C-2','主体变更三方协议（原主体无连带责任）','change','供应商主体变更（不推荐）','ondemand','V1-20250728','否','2026-07-01',1);
+  /* 参考模板库 */
+  t('R-1','零件供应商产能承诺书','reference','定点价格协议附件-产能承诺','ondemand','2024版','否','2026-07-01',25);
+  t('R-2','物流索赔确认书','reference','补充物流索赔规则','ondemand','V2-20241031','否','2026-07-01',9);
+  t('R-3','一次性扣款协议','reference','千万级一次性扣款','ondemand','V1-20240710','否','2026-07-01',5);
+  t('R-4','扣款确认函','reference','各类扣款（模具费超额分摊等）','ondemand','V1.1-20251125','否','2026-07-01',13);
+  t('R-5','原材料补差协议','reference','原材料价格波动补差','ondemand','V1.1-20241105','否','2026-07-01',7);
+  t('R-6','紧急空运服务协议','reference','海外二级件紧急空运','ondemand','V0.3-240930','否','2026-07-01',2);
+  t('R-7','授权委托书','reference','确认签字人授权','ondemand','20241016','否','2026-07-01',22);
+  t('R-8','定点价格协议-预付款结算条款','reference','发货前100%预付场景','ondemand','20241218','否','2026-07-01',11);
+})();
+
+const SUPPLIER_STATS = [
+  ['宁德时代新能源科技股份有限公司',12,10,1,0,1,'83.3%','样件采购合同'],
+  ['福耀玻璃工业集团股份有限公司',9,8,1,0,0,'88.9%','—'],
+  ['立讯精密工业股份有限公司',15,12,2,0,1,'80.0%','质量目标协议'],
+  ['均胜电子股份有限公司',8,7,1,0,0,'87.5%','—'],
+  ['汇川技术有限公司',7,5,1,1,0,'71.4%','售后配件价格协议'],
+  ['拓普集团股份有限公司',10,8,1,0,1,'80.0%','采购通则'],
+  ['三花智能控制股份有限公司',6,5,1,0,0,'83.3%','—'],
+  ['德赛西威汽车电子股份有限公司',11,9,1,0,1,'81.8%','技术支持服务协议']
+];
+
+/* ========== 渲染 ========== */
+function stDot(st){return '<span class="st '+STATUS_MAP[st].c+'"><i class="dot"></i>'+STATUS_MAP[st].t+'</span>';}
+function groupChip(g){
+  if(!g) return '<span class="ser">—</span>';
+  var map={'approval':['chip-blue','审批中'],'seal':['chip-purple','待盖章'],'signed':['chip-cyan','已盖章'],'archiving':['chip-orange','待归档'],'archived':['chip-green','已归档'],'terminated':['chip-red','已终止']};
+  var m=map[g];return '<span class="chip '+m[0]+'">'+m[1]+'</span>';
+}
+function dimChip(d){
+  var map={'by供应商':['chip-purple','by供应商'],'supplier':['chip-purple','by供应商'],'by零件':['chip-blue','by零件'],'part':['chip-blue','by零件'],'按需':['chip-gray','按需'],'ondemand':['chip-gray','按需']};
+  var x=map[d]||map['ondemand'];return '<span class="chip '+x[0]+'">'+x[1]+'</span>';
+}
+
+let listFilter = {st:'all', view:'all', kw:''};
+function setView(v){
+  listFilter.view = v;
+  document.querySelectorAll('.side-item').forEach(function(el){el.classList.toggle('active', el.dataset.view===v);});
+  renderList();
+}
+function filterByStatus(s){
+  listFilter.st = s;
+  document.querySelectorAll('#statusTabs .status-tab').forEach(function(el){el.classList.toggle('active', el.dataset.st===s);});
+  renderList();
+}
+function renderList(){
+  listFilter.kw = document.getElementById('searchInput').value.trim().toLowerCase();
+  var rows = CONTRACTS.filter(function(c){
+    if(listFilter.st!=='all' && c.st!==listFilter.st) return false;
+    if(listFilter.view==='mine' && c.eng!=='王敏') return false;
+    if(listFilter.kw && c.no.toLowerCase().indexOf(listFilter.kw)===-1) return false;
+    return true;
+  });
+  var html = rows.map(function(c){
+    return '<tr>'+
+      '<td>'+c.idx+'</td>'+
+      '<td><a>'+c.no+'</a></td>'+
+      '<td><a>'+c.name+'</a></td>'+
+      '<td>'+stDot(c.st)+'</td>'+
+      '<td>'+c.type+'</td>'+
+      '<td>'+dimChip(c.dim)+'</td>'+
+      '<td><a>'+c.pointNo+'</a></td>'+
+      '<td><a>'+c.supplier+'</a></td>'+
+      '<td>'+c.eng+'</td>'+
+      '<td>'+c.raise+'</td>'+
+      '<td>'+((c.signDone)?c.signDone:'<span class="ser">—</span>')+'</td>'+
+      '<td>'+groupChip(c.groupSt)+'</td>'+
+      '<td><a>删除</a></td>'+
+    '</tr>';
+  }).join('');
+  document.getElementById('listBody').innerHTML = html || '<tr><td colspan="13" class="empty-tip">无匹配数据</td></tr>';
+  document.getElementById('pageInfo').textContent = '第 1 - '+rows.length+' 条，共 708 条';
+}
+
+const LEDGER_SUPPLIER = [
+  ['福耀玻璃工业集团股份有限公司','HT-20260820-0001','采购通则-HT-福耀玻璃','采购通则','M3E平台','by供应商','archived','2026-08-18'],
+  ['福耀玻璃工业集团股份有限公司','HT-20260820-0002','技术支持服务协议-天幕玻璃','技术支持服务协议','B02平台','by零件','signed',''],
+  ['宁德时代新能源科技股份有限公司','HT-20260818-0001','技术支持服务协议-M3E电池包','技术支持服务协议','M3E平台','by零件','seal',''],
+  ['宁德时代新能源科技股份有限公司','HT-20260818-0002','零件价格协议-M3E电池包','价格协议/零件价格协议','M3E平台','by零件','approval',''],
+  ['均胜电子股份有限公司','HT-20260815-0001','质量目标协议-安全气囊','质量目标协议','B02平台','by零件','signed',''],
+  ['汇川技术有限公司','HT-20260812-0001','三方协议（DB件）-电驱动总成','三方协议（DB件）','C01平台','按需','seal',''],
+  ['拓普集团股份有限公司','HT-20260811-0001','售后配件价格协议-底盘件','售后配件价格协议','M3E平台','by零件','signed',''],
+  ['立讯精密工业股份有限公司','HT-20260809-0001','返利协议-线束总成','返利协议','M3E平台','按需','approval','']
+];
+const LEDGER_PROJECT = [
+  {name:'M3E平台', platform:'M3E', suppliers:14, parts:32, total:46, done:42, progress:3, gap:1, rate:91},
+  {name:'B02平台', platform:'B02', suppliers:9, parts:18, total:27, done:21, progress:4, gap:2, rate:78},
+  {name:'C01平台', platform:'C01', suppliers:7, parts:12, total:17, done:11, progress:4, gap:2, rate:65},
+  {name:'A04平台', platform:'A04', suppliers:6, parts:9, total:12, done:7, progress:3, gap:2, rate:58},
+  {name:'D1平台（出海）', platform:'D1', suppliers:5, parts:7, total:10, done:4, progress:3, gap:3, rate:41}
+];
+const PROJECT_PART_DETAIL = {
+  'M3E平台': [
+    {part:'P-23051002', name:'电池包模组', supplier:'宁德时代', tech:'已归档', price:'已签署', quality:'已签署'},
+    {part:'P-23051006', name:'低压线束总成', supplier:'立讯精密', tech:'已签署', price:'已签署', quality:'签署中'},
+    {part:'P-23051009', name:'底盘轻量化件', supplier:'拓普集团', tech:'已签署', price:'签署中', quality:'未签'},
+    {part:'P-23051012', name:'高压连接器', supplier:'中航光电', tech:'未签', price:'未签', quality:'未签'}
+  ],
+  'B02平台': [
+    {part:'P-23051015', name:'天幕玻璃', supplier:'福耀玻璃', tech:'已签署', price:'已签署', quality:'待归档'},
+    {part:'P-23051018', name:'安全气囊', supplier:'均胜电子', tech:'已归档', price:'已签署', quality:'已签署'}
+  ],
+  'C01平台': [
+    {part:'P-23051103', name:'电驱动总成', supplier:'汇川技术', tech:'签署中', price:'未签', quality:'未签'},
+    {part:'P-23051107', name:'车载屏幕总成', supplier:'京东方精电', tech:'已签署', price:'签署中', quality:'未签'}
+  ],
+  'A04平台': [
+    {part:'P-23051201', name:'智能驾驶域控', supplier:'德赛西威', tech:'未签', price:'未签', quality:'未签'}
+  ],
+  'D1平台（出海）': [
+    {part:'P-23051301', name:'海外法规件-尾灯', supplier:'华域视觉', tech:'未签', price:'未签', quality:'未签'},
+    {part:'P-23051302', name:'海外专用线束', supplier:'莱尼线束', tech:'未签', price:'签署中', quality:'未签'}
+  ]
+};
+const LEDGER_PART = [
+  {part:'P-23051002', name:'电池包模组', project:'M3E平台', supplier:'宁德时代', tech:'已归档', price:'已签署', quality:'签署中'},
+  {part:'P-23051006', name:'低压线束总成', project:'M3E平台', supplier:'立讯精密', tech:'已签署', price:'已签署', quality:'签署中'},
+  {part:'P-23051009', name:'底盘轻量化件', project:'M3E平台', supplier:'拓普集团', tech:'已签署', price:'签署中', quality:'未签'},
+  {part:'P-23051012', name:'高压连接器', project:'M3E平台', supplier:'中航光电', tech:'未签', price:'未签', quality:'未签'},
+  {part:'P-23051015', name:'天幕玻璃', project:'B02平台', supplier:'福耀玻璃', tech:'已签署', price:'已签署', quality:'待归档'},
+  {part:'P-23051018', name:'安全气囊', project:'B02平台', supplier:'均胜电子', tech:'已归档', price:'已签署', quality:'已签署'},
+  {part:'P-23051103', name:'电驱动总成', project:'C01平台', supplier:'汇川技术', tech:'签署中', price:'未签', quality:'未签'},
+  {part:'P-23051107', name:'车载屏幕总成', project:'C01平台', supplier:'京东方精电', tech:'已签署', price:'签署中', quality:'未签'},
+  {part:'P-23051201', name:'智能驾驶域控', project:'A04平台', supplier:'德赛西威', tech:'未签', price:'未签', quality:'未签'}
+];
+function stZhChip(s){
+  var m={'已归档':['chip-green','已归档'],'已签署':['chip-cyan','已签署'],'签署中':['chip-blue','签署中'],'待归档':['chip-orange','待归档'],'未签':['chip-red','未签']};
+  var x=m[s]||['chip-gray',s];
+  return '<span class="chip '+x[0]+'">'+x[1]+'</span>';
+}
+let ledgerView = 'supplier';
+function setLedgerView(v){
+  ledgerView = v;
+  document.querySelectorAll('#ledgerViewTabs .status-tab').forEach(function(el){el.classList.toggle('active', el.dataset.v===v);});
+  renderLedger();
+}
+function renderLedger(){
+  var kw = (document.getElementById('ledgerSearch').value||'').trim().toLowerCase();
+  var box = document.getElementById('ledgerContainer');
+  if(ledgerView==='supplier'){
+    var rows = LEDGER_SUPPLIER.filter(function(r){return !kw || r[2].toLowerCase().indexOf(kw)>-1 || r[0].toLowerCase().indexOf(kw)>-1;});
+    box.innerHTML = '<div class="table-wrap"><table class="ep"><thead><tr>'+
+      '<th>供应商名称</th><th>合同编号</th><th>合同名称</th><th>合同类型</th><th>关联项目</th><th>签署维度</th><th>集团状态</th><th>归档日期</th><th>操作</th>'+
+      '</tr></thead><tbody>'+rows.map(function(r){
+        return '<tr><td><a>'+r[0]+'</a></td><td>'+r[1]+'</td><td><a>'+r[2]+'</a></td><td>'+r[3]+'</td><td>'+r[4]+'</td><td>'+dimChip(r[5])+'</td><td>'+groupChip(r[6])+'</td><td>'+((r[7])?r[7]:'<span class="ser">—</span>')+'</td><td><a>详情</a></td></tr>';
+      }).join('')+'</tbody></table></div>';
+    document.getElementById('ledgerPager').innerHTML = '<span>第 1 - '+rows.length+' 条</span><div class="page-btn active">1</div>';
+  }
+  if(ledgerView==='project'){
+    var pr = LEDGER_PROJECT.filter(function(p){return !kw || p.name.toLowerCase().indexOf(kw)>-1;});
+    box.innerHTML = '<div class="table-wrap"><table class="ep"><thead><tr>'+
+      '<th>项目名称</th><th>平台</th><th>供应商数</th><th>定点零件数</th><th>应签合同</th><th>已签</th><th>签署中</th><th>未签缺口</th><th>签署覆盖率</th><th>操作</th>'+
+      '</tr></thead><tbody>'+pr.map(function(p,i){
+        return '<tr style="cursor:pointer;" onclick="toggleProjectDetail('+i+')"><td><a>'+p.name+'</a></td><td>'+p.platform+'</td><td>'+p.suppliers+'</td><td>'+p.parts+'</td><td>'+p.total+'</td><td>'+p.done+'</td><td>'+p.progress+'</td>'+
+          '<td style="color:'+(p.gap>0?'#FF4D4F':'#8C8C8C')+';">'+p.gap+'</td>'+
+          '<td><div style="display:flex;align-items:center;gap:8px;"><span>'+p.rate+'%</span><div style="width:80px;background:#F5F5F5;height:8px;border-radius:4px;overflow:hidden;"><div style="height:100%;width:'+p.rate+'%;background:'+(p.rate>=85?'#52C41A':(p.rate>=70?'#FAAD14':'#FF4D4F'))+';"></div></div></div></td>'+
+          '<td><a>零件矩阵 ▾</a></td></tr>'+
+          '<tr id="projDetail'+i+'" style="display:none;"><td colspan="10" style="background:#FAFAFA;padding:0;">'+projectDetailHtml(p.name)+'</td></tr>';
+      }).join('')+'</tbody></table></div>';
+    document.getElementById('ledgerPager').innerHTML = '<span>第 1 - '+pr.length+' 条</span><div class="page-btn active">1</div>';
+  }
+  if(ledgerView==='part'){
+    var pt = LEDGER_PART.filter(function(pd){return !kw || pd.name.toLowerCase().indexOf(kw)>-1 || pd.part.toLowerCase().indexOf(kw)>-1 || pd.project.toLowerCase().indexOf(kw)>-1;});
+    box.innerHTML = '<div class="table-wrap"><table class="ep"><thead><tr>'+
+      '<th>零件号</th><th>零件名称</th><th>所属项目</th><th>供应商</th><th>技术支持服务协议</th><th>零件价格协议</th><th>质量目标协议</th><th>签署缺口</th><th>操作</th>'+
+      '</tr></thead><tbody>'+pt.map(function(pd,i){
+        var gaps = (pd.tech==='未签'?1:0)+(pd.price==='未签'?1:0)+(pd.quality==='未签'?1:0);
+        return '<tr><td>'+pd.part+'</td><td><a>'+pd.name+'</a></td><td>'+pd.project+'</td><td>'+pd.supplier+'</td>'+
+          '<td>'+stZhChip(pd.tech)+'</td><td>'+stZhChip(pd.price)+'</td><td>'+stZhChip(pd.quality)+'</td>'+
+          '<td>'+(gaps?('<span style="color:#FF4D4F;font-size:12px;">'+gaps+' 项未签</span>'):'<span class="ser">—</span>')+'</td>'+
+          '<td><a class="op-link" onclick="togglePartDetail('+i+')">应签清单 ▾</a></td></tr>'+
+          '<tr id="partDetail'+i+'" style="display:none;"><td colspan="9" style="background:#FAFAFA;padding:0;">'+partDetailHtml(pd)+'</td></tr>';
+      }).join('')+'</tbody></table></div>';
+    document.getElementById('ledgerPager').innerHTML = '<span>第 1 - '+pt.length+' 条</span><div class="page-btn active">1</div>';
+  }
+}
+function projectDetailHtml(projName){
+  var parts = PROJECT_PART_DETAIL[projName]||[];
+  var kk = ['tech','price','quality'];
+  var names = ['技术支持服务协议','零件价格协议','质量目标协议'];
+  return '<div style="padding:12px 16px;"><div style="font-size:13px;color:var(--text-3);margin-bottom:8px;">项目「'+projName+'」定点零件应签协议矩阵（by零件，点击行可下钻）</div>'+
+    '<table class="ep" style="min-width:880px;"><thead><tr><th>零件号</th><th>零件名称</th><th>供应商</th><th>技术支持服务协议</th><th>零件价格协议</th><th>质量目标协议</th><th>缺口提示</th></tr></thead><tbody>'+
+    parts.map(function(pd){
+      var gapNames = names.filter(function(n,k){return pd[kk[k]]==='未签';});
+      return '<tr><td>'+pd.part+'</td><td>'+pd.name+'</td><td>'+pd.supplier+'</td>'+
+        '<td>'+stZhChip(pd.tech)+'</td><td>'+stZhChip(pd.price)+'</td><td>'+stZhChip(pd.quality)+'</td>'+
+        '<td>'+(gapNames.length?('<span style="color:#FF4D4F;font-size:12px;">'+gapNames.join('、')+' 未签</span>'):'<span class="ser">—</span>')+'</td></tr>';
+    }).join('')+'</tbody></table></div>';
+}
+function toggleProjectDetail(i){
+  var tr = document.getElementById('projDetail'+i);
+  tr.style.display = (tr.style.display==='none') ? '' : 'none';
+}
+function partDetailHtml(pd){
+  var rows = [
+    ['采购通则（by供应商）','已签署','一签覆盖该供应商全部业务'],
+    ['技术支持服务协议',pd.tech,'定点后 1 个月内'],
+    ['零件价格协议',pd.price,'定点价格'],
+    ['质量目标协议',pd.quality,'一年一签，滚动更新']
+  ];
+  return '<div style="padding:12px 16px;"><div style="font-size:13px;color:var(--text-3);margin-bottom:8px;">零件「'+pd.name+'（'+pd.part+'）」应签合同清单 · 供应商：'+pd.supplier+' · 所属项目：'+pd.project+'</div>'+
+    '<table class="ep" style="min-width:680px;"><thead><tr><th>应签合同</th><th>签署状态</th><th>说明</th></tr></thead><tbody>'+
+    rows.map(function(r){return '<tr><td>'+r[0]+'</td><td>'+stZhChip(r[1])+'</td><td>'+r[2]+'</td></tr>';}).join('')+'</tbody></table></div>';
+}
+function togglePartDetail(i){
+  var tr = document.getElementById('partDetail'+i);
+  tr.style.display = (tr.style.display==='none') ? '' : 'none';
+}
+
+let tplFilter = {cat:'all', dim:'all', kw:''};
+function filterTpl(cat){
+  tplFilter.cat = cat;
+  document.querySelectorAll('#tplCats .tpl-cat').forEach(function(el){el.classList.toggle('active', el.dataset.cat===cat);});
+  renderTpl();
+}
+function filterTplDim(dim){
+  tplFilter.dim = dim;
+  document.querySelectorAll('#tplDimTabs .status-tab').forEach(function(el){el.classList.toggle('active', el.dataset.dim===dim);});
+  renderTpl();
+}
+function renderTpl(){
+  tplFilter.kw = document.getElementById('tplSearch').value.trim().toLowerCase();
+  var rows = TEMPLATES.filter(function(t){
+    if(tplFilter.cat!=='all' && t.cat!==tplFilter.cat) return false;
+    if(tplFilter.dim!=='all' && t.dim!==tplFilter.dim) return false;
+    if(tplFilter.kw && t.name.toLowerCase().indexOf(tplFilter.kw)===-1 && t.scene.toLowerCase().indexOf(tplFilter.kw)===-1) return false;
+    return true;
+  });
+  var catName={'production':'生产件/样件','after':'售后配件','change':'主体变更','reference':'参考模板库'};
+  document.getElementById('tplBody').innerHTML = rows.map(function(t){
+    return '<tr>'+
+      '<td>'+t.no+'</td>'+
+      '<td><a>'+t.name+'</a></td>'+
+      '<td>'+catName[t.cat]+'</td>'+
+      '<td style="max-width:280px;white-space:normal;">'+t.scene+'</td>'+
+      '<td>'+dimChip(t.dim)+'</td>'+
+      '<td>'+t.ver+'</td>'+
+      '<td>'+((t.bil==='是')?'<span class="chip chip-green">双语</span>':'<span class="ser">—</span>')+'</td>'+
+      '<td>'+t.date+'</td>'+
+      '<td>'+t.calls+'</td>'+
+      '<td><a class="op-link" onclick="toast(\'已从法务最新版链接下载「'+t.name+'」（演示）\')">下载</a><span class="op-split">|</span><a class="op-link" onclick="goWizardFromTpl(\''+t.name+'\')">发起合同</a></td>'+
+    '</tr>';
+  }).join('') || '<tr><td colspan="10" class="empty-tip">无匹配模板</td></tr>';
+}
+
+function renderStats(){
+  /* 趋势：近12月 */
+  var months=[['25-09',18],['25-10',22],['25-11',25],['25-12',28],['26-01',21],['26-02',19],['26-03',26],['26-04',30],['26-05',27],['26-06',33],['26-07',30],['26-08',32]];
+  var maxV=36;
+  document.getElementById('trendChart').innerHTML = months.map(function(m){
+    var h=Math.round(m[1]/maxV*170);
+    return '<div class="bar-col"><div class="bar-val">'+m[1]+'</div><div class="bar" style="height:'+h+'px;" title="'+m[0]+'：'+m[1]+'份"></div><div class="bar-label">'+m[0]+'</div></div>';
+  }).join('');
+  /* 类型分布 */
+  var types=[['价格类',302,'#1890FF'],['技术服务类',198,'#69C0FF'],['质量类',128,'#722ED1'],['采购通则类',86,'#FAAD14'],['三方协议类',52,'#13C2C2'],['其他',86,'#BFBFBF']];
+  var total=708;
+  document.getElementById('typeBars').innerHTML = types.map(function(tp){
+    var pct=Math.round(tp[1]/total*100);
+    return '<div class="hbar-row"><span class="hbar-label">'+tp[0]+'</span><div class="hbar-track"><div class="hbar-fill" style="width:'+pct+'%;background:'+tp[2]+';"></div></div><span class="hbar-val">'+tp[1]+' ('+pct+'%)</span></div>';
+  }).join('');
+  /* 模板TOP */
+  var tops=[['零件价格协议',302],['技术支持服务协议',268],['保密协议-双向',420],['质量目标协议',198],['采购通则',186],['售后配件价格协议',61]];
+  tops.sort(function(a,b){return a[1]-b[1];}).reverse();
+  var maxC=tops[0][1];
+  document.getElementById('tplTop').innerHTML = tops.map(function(tp){
+    var pct=Math.round(tp[1]/maxC*100);
+    return '<div class="hbar-row"><span class="hbar-label">'+tp[0]+'</span><div class="hbar-track"><div class="hbar-fill" style="width:'+pct+'%;"></div></div><span class="hbar-val">'+tp[1]+'</span></div>';
+  }).join('');
+  /* 项目进度 */
+  var projs=[['M3E平台',92],['B02平台',78],['C01平台',65],['A04平台',58],['D1平台（出海）',41]];
+  document.getElementById('projectProgress').innerHTML = projs.map(function(p){
+    return '<div class="progress-row"><span class="progress-name">'+p[0]+'</span><div class="progress-track"><div class="progress-fill" style="width:'+p[1]+'%;"></div></div><span class="progress-val">'+p[1]+'%</span></div>';
+  }).join('');
+  /* 供应商矩阵 */
+  document.getElementById('supplierMatrixBody').innerHTML = SUPPLIER_STATS.map(function(s){
+    var rate=parseInt(s[6]);
+    var barColor = rate>=85?'#52C41A':(rate>=70?'#FAAD14':'#FF4D4F');
+    return '<tr><td><a>'+s[0]+'</a></td><td>'+s[1]+'</td><td>'+s[2]+'</td><td>'+s[3]+'</td><td>'+s[4]+'</td><td style="color:'+(s[5]>0?'#FF4D4F':'#8C8C8C')+';">'+s[5]+'</td><td><div style="display:flex;align-items:center;gap:8px;"><span>'+s[6]+'</span><div style="width:70px;background:#F5F5F5;height:8px;border-radius:4px;overflow:hidden;"><div style="height:100%;width:'+rate+'%;background:'+barColor+';"></div></div></div></td><td>'+s[7]+'</td></tr>';
+  }).join('');
+}
+
+/* ========== 页面切换 ========== */
+function showPage(p){
+  document.querySelectorAll('.page').forEach(function(el){el.classList.remove('active');});
+  document.getElementById('page-'+p).classList.add('active');
+  document.querySelectorAll('#pageTabs .page-tab').forEach(function(el){el.classList.toggle('active', el.dataset.page===p);});
+  if(p==='list') renderList();
+  if(p==='ledger') renderLedger();
+  if(p==='tpl') renderTpl();
+  if(p==='stats') renderStats();
+}
+
+/* ========== 统一发起表单 ========== */
+const FEE_MAP = {'技术支持服务协议':'固定金额','零件价格协议':'固定金额','定点价格协议（纯软件）':'固定金额','质量目标协议':'固定金额','样件采购合同':'固定金额','返利协议':'固定金额','售后配件价格协议':'固定金额','三方协议（DB件）':'固定金额','呆滞物料补偿':'固定金额','模具报废补偿':'固定金额','采购通则':'无金额','采购通则（纯软件）':'无金额','保密协议-双向':'无金额','保密承诺书-单向':'无金额','平台信息交互承诺函':'无金额','协商解除协议':'无金额','授权委托书':'无金额','主体变更三方协议（原主体连带责任）':'无金额','主体变更三方协议（原主体无连带责任）':'无金额'};
+const DIM_MAP = {'保密协议-双向':'by供应商','保密承诺书-单向':'按需','采购通则':'by供应商','采购通则（纯软件）':'by供应商','平台信息交互承诺函':'by供应商','技术支持服务协议':'by零件','技术支持服务协议（纯软件）':'by零件','零件价格协议':'by零件','定点价格协议（纯软件）':'by零件','质量目标协议':'by零件','质量目标协议（售后配件）':'by零件','售后配件价格协议':'by零件','样件采购合同':'by零件','委托加工合作协议':'按需','三方协议（DB件）':'按需','三方协议（委外件）':'按需','三方协议（双经销）':'按需','返利协议':'按需','协商解除协议':'按需','合同补充协议（协商变更）':'按需','主体变更三方协议（原主体连带责任）':'按需','主体变更三方协议（原主体无连带责任）':'按需'};
+const TYPE_VER = {'技术支持服务协议':'V5-20240605','零件价格协议':'V1.2-20260417','质量目标协议':'V3-20241031','采购通则':'V7-2-20241226','保密协议-双向':'V10-2-20251202','样件采购合同':'V2-20220713','返利协议':'V1.1-20250206','售后配件价格协议':'V2-240117','采购通则（售后配件）':'V1-20230915','售后配件供货保障协议':'V1-231227','质量目标协议（售后配件）':'V2-231117','三方协议（DB件）':'V1-20230315','协商解除协议':'V2-20230720','合同补充协议（协商变更）':'V2-20230720','主体变更三方协议（原主体连带责任）':'V1-20250711','主体变更三方协议（原主体无连带责任）':'V1-20250728','采购通则（纯软件）':'V2-20240328','技术支持服务协议（纯软件）':'V2-20240605','定点价格协议（纯软件）':'V3-20240125','委托加工合作协议':'V2-20240328','平台信息交互承诺函':'V1.1-20251202','定点承诺函':'V0.1-241209'};
+let unified = {pointIdx:-1, rows:[]};
+
+function shortSupplier(){
+  if(unified.pointIdx>=0){ return POINTS[unified.pointIdx][2].split('-')[0]; }
+  var v = (document.getElementById('uSupplier').value||'').trim();
+  return v ? v : '待定供应商';
+}
+function autoContractName(t){
+  return t + '-' + shortSupplier() + '-20260821';
+}
+function openUnified(preType){
+  unified = {pointIdx:-1, rows:[]};
+  document.getElementById('unifiedMask').classList.add('show');
+  document.getElementById('uName').value='小米汽车-合同申请单-20260821';
+  document.getElementById('uSupplier').value='';
+  document.getElementById('uSupplierContact').value='';
+  document.getElementById('uSupplierTel').value='';
+  document.getElementById('uSupplierAddr').value='';
+  renderContractRows([]);
+  if(preType){ unified.rows=[preType]; renderContractRows(unified.rows); }
+}
+function closeUnified(){ document.getElementById('unifiedMask').classList.remove('show'); }
+function supplierOptions(){
+  return '<option value="">— 选择供应商 —</option>'+
+    '<option>宁德时代新能源科技股份有限公司</option><option>福耀玻璃工业集团股份有限公司</option>'+
+    '<option>立讯精密工业股份有限公司</option><option>均胜电子股份有限公司</option>'+
+    '<option>苏州汇川技术有限公司</option><option>拓普集团股份有限公司</option>';
+}
+function pointOptionsHtml(){
+  return '<option value="">— 选择定点申请单（带出项目/零件/价格）—</option>' + POINTS.map(function(p,i){
+    return '<option value="'+i+'">'+p[0]+' · '+p[1]+'</option>';
+  }).join('');
+}
+function renderContractRows(types){
+  unified.rows = types||[];
+  var box = document.getElementById('uContractBox');
+  if(!unified.rows.length){ box.innerHTML='<div class="empty-tip" style="padding:24px 0;">尚未添加合同明细：请通过「＋ 从模板库添加」选择协议类型（可一次勾选多份）</div>'; return; }
+  box.innerHTML = unified.rows.map(function(t,i){return contractRowHtml(t,i);}).join('');
+}
+function contractRowHtml(t,i){
+  var fee = FEE_MAP[t]||'按协议';
+  var dim = DIM_MAP[t]||'按需';
+  var ver = TYPE_VER[t]||'最新版';
+  var cname = autoContractName(t);
+  var dimNote = (dim==='by供应商') ? '供应商级合同：只与供应商相关，无需关联定点申请单' :
+                (dim==='by零件') ? '零件级合同：关联定点申请单后带出项目/零件/价格' :
+                '按需合同：可关联供应商与定点申请单（可选）';
+  var extra = '';
+  if(dim==='by供应商'){
+    extra = '<div class="form-grid" style="grid-template-columns:repeat(6,1fr);gap:10px;margin-top:10px;">'+
+      '<div class="form-item" style="grid-column:span 2;"><label><span class="req">*</span>供应商（by供应商）</label><select class="select">'+supplierOptions()+'</select></div>'+
+      '<div class="form-item"><label>供应商联系人</label><input class="input" value="张张"></div>'+
+      '<div class="form-item"><label>联系人电话</label><input class="input" value="18516211397"></div>'+
+      '<div class="form-item"><label>供应商地址</label><input class="input" value="中国北京北京市朝阳区"></div>'+
+    '</div>';
+  } else if(dim==='by零件'){
+    extra = '<div class="form-grid" style="grid-template-columns:repeat(6,1fr);gap:10px;margin-top:10px;">'+
+      '<div class="form-item" style="grid-column:span 2;"><label><span class="req">*</span>关联定点申请单</label><select class="select" id="rowPoint'+i+'" onchange="rowPointChange('+i+',this.value)">'+pointOptionsHtml()+'</select></div>'+
+      '<div class="form-item"><label>项目名称</label><input class="input" readonly id="rowProject'+i+'" placeholder="定点带入"></div>'+
+      '<div class="form-item"><label>关联零件</label><input class="input" readonly id="rowParts'+i+'" placeholder="定点带入"></div>'+
+      '<div class="form-item"><label>供应商</label><input class="input" readonly id="rowSup'+i+'" placeholder="定点带入"></div>'+
+    '</div>';
+  } else {
+    extra = '<div class="form-grid" style="grid-template-columns:repeat(6,1fr);gap:10px;margin-top:10px;">'+
+      '<div class="form-item" style="grid-column:span 2;"><label>供应商（可选）</label><select class="select">'+supplierOptions()+'</select></div>'+
+      '<div class="form-item" style="grid-column:span 2;"><label>关联定点申请单（可选）</label><select class="select" onchange="rowPointChange('+i+',this.value)">'+pointOptionsHtml()+'</select></div>'+
+    '</div>';
+  }
+  return '<div class="pack-row selected" id="urow'+i+'" data-synced="0" data-file="0"><div style="flex:1;">'+
+    '<div style="display:flex;gap:12px;align-items:center;flex-wrap:wrap;margin-bottom:10px;">'+
+      '<span class="chip chip-blue" style="font-size:12px;">'+dim+'</span>'+
+      '<span style="font-size:14px;font-weight:600;" id="rowName'+i+'">'+t+'</span>'+
+      '<span class="form-note" id="rowVer'+i+'">模板版本：'+ver+'</span>'+
+      '<span class="chip chip-orange" id="syncChip'+i+'" style="font-size:12px;">模板：未同步</span>'+
+      '<span class="chip chip-gray" id="fileChip'+i+'" style="font-size:12px;">签署版：未上传</span>'+
+      '<span style="margin-left:auto;font-size:12px;color:var(--text-3);" id="rowFee'+i+'">'+fee+'</span>'+
+    '</div>'+
+    '<div class="form-note" style="margin-bottom:10px;">'+dimNote+'</div>'+
+    '<div class="form-grid" style="grid-template-columns:repeat(6,1fr);gap:10px;">'+
+      '<div class="form-item" style="grid-column:span 2;"><label><span class="req">*</span>合同名称</label><input class="input" value="'+cname+'"></div>'+
+      '<div class="form-item"><label>费用类型</label><select class="select"><option>'+fee+'</option><option>无金额</option><option>固定金额</option><option>按原合同</option></select></div>'+
+      '<div class="form-item"><label>收付款</label><select class="select"><option>付款</option><option>收款</option><option>收付并存</option></select></div>'+
+      '<div class="form-item"><label>币种</label><select class="select"><option>人民币-元</option><option>美元-USD</option><option>欧元-EUR</option></select></div>'+
+      '<div class="form-item"><label>是否有金额</label><div class="switch-item" style="margin-top:6px;"><span class="switch '+(fee==='固定金额'?'on':'')+'" onclick="this.classList.toggle(\'on\')"></span></div></div>'+
+    '</div>'+
+    '<div class="form-grid" style="grid-template-columns:repeat(6,1fr);gap:10px;margin-top:10px;">'+
+      '<div class="form-item"><label>金额（元）</label><input class="input" id="amt'+i+'" value=""></div>'+
+      '<div class="form-item"><label>是否存在有效期</label><div class="switch-item" style="margin-top:6px;"><span class="switch on" onclick="this.classList.toggle(\'on\')"></span></div></div>'+
+      '<div class="form-item"><label>合同有效期</label><input class="input" value="2026-08-21 ~ 2027-08-20"></div>'+
+      '<div class="form-item"><label>是否电子签</label><div class="switch-item" style="margin-top:6px;"><span class="switch on" onclick="this.classList.toggle(\'on\')"></span></div></div>'+
+      '<div class="form-item"><label>同步合同模板</label><button class="btn btn-sm btn-primary" onclick="syncTpl('+i+')">从集团平台同步</button></div>'+
+      '<div class="form-item"><label>下载模板</label><button class="btn btn-sm" onclick="toast(\'演示：下载已同步模板 '+t+'_'+ver+'.docx 到本地填写\')">下载</button></div>'+
+    '</div>'+
+    extra+
+    '<div class="form-grid" style="grid-template-columns:repeat(6,1fr);gap:10px;margin-top:10px;">'+
+      '<div class="form-item"><label>上传签署版（填写后）</label><button class="btn btn-sm" onclick="markUploaded('+i+')">上传文件</button></div>'+
+      '<div class="form-item"><label>上传签署说明</label><button class="btn btn-sm" onclick="toast(\'演示：上传签署/公允性说明附件\')">上传</button></div>'+
+      '<div class="form-item"><label>AI 条款检查</label><button class="btn btn-sm" onclick="aiCheck('+i+')">智能检查</button></div>'+
+      '<div class="form-item"><label>操作</label><a class="op-link" onclick="removeContractRow('+i+')">删除</a></div>'+
+    '</div>'+
+  '</div></div>';
+}
+function rowPointChange(i,val){
+  var idx = parseInt(val||'-1');
+  if(idx>=0){
+    var p = POINTS[idx];
+    var proj = document.getElementById('rowProject'+i);
+    var parts = document.getElementById('rowParts'+i);
+    var sup = document.getElementById('rowSup'+i);
+    var amt = document.getElementById('amt'+i);
+    if(proj){ proj.value = p[3]; }
+    if(parts){ parts.value = p[4]+' 个零件（'+p[1].split('-')[0]+'）'; }
+    if(sup){ sup.value = p[2]; }
+    if(amt){ amt.value = p[5]; }
+    toast('已按定点申请单带入项目/零件/供应商/价格');
+  }
+}
+function syncTpl(i){
+  var row = document.getElementById('urow'+i);
+  row.setAttribute('data-synced','1');
+  var sc = document.getElementById('syncChip'+i);
+  sc.className = 'chip chip-green'; sc.textContent = '模板：已同步';
+  toast('已从集团合同平台同步最新模板（模拟）');
+}
+function markUploaded(i){
+  var row = document.getElementById('urow'+i);
+  row.setAttribute('data-file','1');
+  var fc = document.getElementById('fileChip'+i);
+  fc.className = 'chip chip-green'; fc.textContent = '签署版：已上传';
+  toast('演示：签署版合同文件已上传');
+}
+function aiCheck(i){
+  toast('AI 条款检查（模拟）：签约主体一致性 ✓ / 公司名称前后一致 ✓ / 文件完整性 ✓');
+}
+function runCheck(){
+  var issues=[];
+  if(!unified.rows.length){ issues.push('未添加任何合同明细，请通过「＋新增合同」添加'); }
+  unified.rows.forEach(function(t,i){
+    var row = document.getElementById('urow'+i);
+    if(!row) return;
+    if(row.getAttribute('data-synced')!=='1') issues.push('合同「'+t+'」未从集团合同平台同步模板，请点击「从集团平台同步」');
+    if(row.getAttribute('data-file')!=='1') issues.push('合同「'+t+'」未上传签署版合同文件（需先下载模板填写）');
+  });
+  var box = document.getElementById('uCheckResult');
+  if(issues.length){
+    box.innerHTML = '<div style="border:1px solid #FFA39E;background:#FFF1F0;border-radius:4px;padding:12px 16px;margin-bottom:12px;">'+
+      '<div style="font-weight:600;color:#CF1322;margin-bottom:6px;">⚠ 智能检查发现 '+issues.length+' 个问题</div>'+
+      '<ul style="margin:0;padding-left:18px;font-size:13px;color:#A8071A;">'+issues.map(function(x){return '<li>'+x+'</li>';}).join('')+'</ul>'+
+      '<div style="font-size:12px;color:#CF1322;margin-top:6px;">检查范围：明细完整性 / 模板同步 / 签署附件；AI 条款检查（签约主体一致性、公司名称前后一致、文件完整性）在文件上传后自动执行</div></div>';
+    toast('智能检查未通过：'+issues.length+' 个问题');
+    return false;
+  }
+  box.innerHTML = '<div style="border:1px solid #B7EB8F;background:#F6FFED;border-radius:4px;padding:12px 16px;margin-bottom:12px;color:#389E0D;font-size:13px;">✓ 智能检查全部通过：合同明细完整 / 模板已同步（最新版）/ 签署附件已上传 / AI 条款检查通过（签约主体一致、名称前后一致、无缺页空白）</div>';
+  return true;
+}
+function removeContractRow(i){
+  var rows = unified.rows.slice();
+  rows.splice(i,1);
+  renderContractRows(rows);
+}
+/* 模板库选择浮层（复用模板库能力：分类/搜索/勾选多选，唯一模板选择入口） */
+let pkFilter = {cat:'all', kw:''};
+function openTplPicker(){
+  document.getElementById('tplPickerMask').classList.add('show');
+  pkFilter = {cat:'all', kw:''};
+  document.getElementById('pkSearch').value='';
+  document.querySelectorAll('#pkCats .tpl-cat').forEach(function(el){el.classList.toggle('active', el.dataset.cat==='all');});
+  pkRender();
+}
+function closeTplPicker(){ document.getElementById('tplPickerMask').classList.remove('show'); }
+function pkFilterCat(cat){
+  pkFilter.cat = cat;
+  document.querySelectorAll('#pkCats .tpl-cat').forEach(function(el){el.classList.toggle('active', el.dataset.cat===cat);});
+  pkRender();
+}
+function pkRender(){
+  var kw = (document.getElementById('pkSearch').value||'').trim().toLowerCase();
+  var rows = TEMPLATES.filter(function(t){
+    if(pkFilter.cat!=='all' && t.cat!==pkFilter.cat) return false;
+    if(kw && t.name.toLowerCase().indexOf(kw)===-1 && t.scene.toLowerCase().indexOf(kw)===-1) return false;
+    return true;
+  });
+  var catName = {'production':'生产件/样件','after':'售后配件','change':'主体变更','reference':'参考模板库'};
+  document.getElementById('pkBody').innerHTML = rows.map(function(t){
+    var isAdded = unified.rows.indexOf(t.name)>-1;
+    return '<tr><td><input type="checkbox" class="tt-check" value="'+t.name+'" onchange="pkCount()"'+(isAdded?' checked disabled':'')+'></td>'+
+      '<td>'+t.no+'</td><td>'+t.name+(isAdded?'<span class="tt-added" style="margin-left:6px;">(已添加)</span>':'')+'</td>'+
+      '<td>'+catName[t.cat]+'</td><td>'+dimChip(t.dim)+'</td><td>'+t.ver+'</td>'+
+      '<td>'+((t.bil==='是')?'<span class="chip chip-green">双语</span>':'<span class="ser">—</span>')+'</td></tr>';
+  }).join('') || '<tr><td colspan="7" class="empty-tip">无匹配模板</td></tr>';
+  pkCount();
+}
+function pkCount(){
+  var n = document.querySelectorAll('#pkBody .tt-check:checked:not(:disabled)').length;
+  document.getElementById('pkCount').textContent = n;
+  document.getElementById('pkAddBtn').textContent = '添加选中（'+n+'）';
+}
+function pkAdd(){
+  var checks = document.querySelectorAll('#pkBody .tt-check:checked:not(:disabled)');
+  var types = [];
+  checks.forEach(function(c){ types.push(c.value); });
+  if(!types.length){ toast('请先勾选要添加的合同模板'); return; }
+  var rows = unified.rows.slice().concat(types);
+  renderContractRows(rows);
+  closeTplPicker();
+  toast('已从模板库添加 '+types.length+' 份合同：'+types.join('、'));
+}
+function submitUnified(){
+  if(!runCheck()) return;
+  var n = unified.rows.length;
+  toast('统一发起成功：EP 创建合同申请单，集团侧按 '+n+' 份合同明细发起（演示）');
+  setTimeout(closeUnified, 900);
+}
+function goWizardFromTpl(name){
+  openUnified(name);
+}
+
+/* ========== 通用 ========== */
+let toastTimer;
+function toast(msg){
+  var el=document.getElementById('toast');
+  el.innerHTML='<span class="ok">✓</span>'+msg;
+  el.classList.add('show');
+  clearTimeout(toastTimer);
+  toastTimer=setTimeout(function(){el.classList.remove('show');},2600);
+}
+
+function buildWatermark(){
+  var wm=document.getElementById('watermark');
+  var html='';
+  for(var i=0;i<36;i++) html+='<span class="wm-item">ep&nbsp;&nbsp;qiyue&nbsp;&nbsp;26/08/21 11:54</span>';
+  wm.innerHTML=html;
+}
+
+/* ========== 导航（演示） ========== */
+document.getElementById('navTabs').addEventListener('click',function(e){
+  var t=e.target.closest('.nav-tab');
+  if(!t) return;
+  if(t.dataset.name!=='合同管理'){toast('演示原型：仅「合同管理」模块可交互');return;}
+  document.querySelectorAll('.nav-tab').forEach(function(x){x.classList.toggle('active',x===t);});
+});
+
+/* ========== 初始化 ========== */
+function init(){
+  buildWatermark();
+  renderList();
+  var h = location.hash.replace('#','');
+  if(['list','ledger','tpl','stats'].indexOf(h)>-1) showPage(h);
+  if(h==='ledger-project'){ showPage('ledger'); setLedgerView('project'); }
+  if(h==='ledger-part'){ showPage('ledger'); setLedgerView('part'); }
+  if(h==='form1'){ openUnified(); }
+  if(h==='form2'){ openUnified(); unified.rows=['零件价格协议']; renderContractRows(unified.rows); rowPointChange(0,'0'); }
+  if(h==='form3'){ openUnified(); unified.rows=['保密协议-双向','零件价格协议']; renderContractRows(unified.rows); runCheck(); }
+  if(h==='form4'){ openUnified(); unified.rows=['保密协议-双向','零件价格协议']; renderContractRows(unified.rows); rowPointChange(1,'0'); syncTpl(0); markUploaded(0); syncTpl(1); markUploaded(1); runCheck(); }
+  if(h==='form5'){ openUnified(); openTplPicker(); }
+}
+document.addEventListener('DOMContentLoaded',function(){
+  init();
+});
+window.addEventListener('hashchange',function(){
+  var h=location.hash.replace('#','');
+  if(h==='list'||h==='ledger'||h==='tpl'||h==='stats') showPage(h);
+  if(h==='ledger-project'){ showPage('ledger'); setLedgerView('project'); }
+  if(h==='ledger-part'){ showPage('ledger'); setLedgerView('part'); }
+  if(h==='form1'){ openUnified(); }
+  if(h==='form2'){ openUnified(); unified.rows=['零件价格协议']; renderContractRows(unified.rows); rowPointChange(0,'0'); }
+  if(h==='form3'){ openUnified(); unified.rows=['保密协议-双向','零件价格协议']; renderContractRows(unified.rows); runCheck(); }
+  if(h==='form4'){ openUnified(); unified.rows=['保密协议-双向','零件价格协议']; renderContractRows(unified.rows); rowPointChange(1,'0'); syncTpl(0); markUploaded(0); syncTpl(1); markUploaded(1); runCheck(); }
+  if(h==='form5'){ openUnified(); openTplPicker(); }
+});
+</script>
+
+<!-- 统一发起表单浮层 -->
+<div class="mask" id="unifiedMask">
+  <div class="modal" style="width:1000px;">
+    <div class="modal-head">创建合同申请单<span class="modal-close" onclick="closeUnified()">✕</span></div>
+    <div class="modal-body">
+      <div class="wizard-card">
+        <div class="wizard-title">① 基本信息</div>
+        <div class="wizard-sub">仅包含所有合同类型通用的字段；按供应商/按零件的专属字段在合同明细行内逐级展开</div>
+        <div class="form-grid" style="grid-template-columns:repeat(3,1fr);">
+          <div class="form-item"><label><span class="req">*</span>合同申请单名称</label><input class="input" id="uName"></div>
+          <div class="form-item"><label><span class="req">*</span>我方主体名称</label><select class="select"><option>小米汽车科技有限公司</option><option>北京小米机器人技术有限公司</option><option>Xiaomi H.K. Limited</option><option>珠海小米通讯技术有限公司</option></select></div>
+          <div class="form-item"><label>合同申请人</label><input class="input" readonly value="齐岳"></div>
+          <div class="form-item"><label>创建时间</label><input class="input" readonly value="2026-08-21"></div>
+        </div>
+        <div class="form-note">项目名称、关联定点申请单等字段仅在添加「by零件」类合同时出现（明细行内）；「by供应商」类合同（NDA/采购通则等）只与供应商相关</div>
+      </div>
+
+      <div class="wizard-card">
+        <div class="wizard-title">② 供应商</div>
+        <div class="wizard-sub">关联定点申请单后自动带出；也可手动搜索选择。联系人/电话/地址从供应商主数据带出</div>
+        <div class="table-wrap"><table class="ep"><thead><tr><th style="width:36px;"></th><th>供应商名称</th><th>是否主供应商</th><th>供应商联系人</th><th>联系人电话</th><th>供应商地址</th><th>操作</th></tr></thead><tbody><tr>
+          <td>1</td>
+          <td><input class="input" id="uSupplier" placeholder="关联定点后带入 / 手动搜索选择" style="width:220px;"></td>
+          <td><div class="switch-item"><span class="switch on" onclick="this.classList.toggle('on')"></span><span class="slabel">主</span></div></td>
+          <td><input class="input" id="uSupplierContact" style="width:110px;"></td>
+          <td><input class="input" id="uSupplierTel" style="width:130px;"></td>
+          <td><input class="input" id="uSupplierAddr" style="width:220px;"></td>
+          <td><a class="op-link" onclick="toast('演示：供应商来自定点/主数据，行内可编辑')">编辑</a></td>
+        </tr></tbody></table></div>
+      </div>
+
+      <div class="wizard-card">
+        <div class="wizard-title" style="display:flex;justify-content:space-between;align-items:center;">③ 合同明细<span><button class="btn btn-sm" onclick="openTplPicker()">＋ 从模板库添加</button></span></div>
+        <div class="wizard-sub">协议类型从模板库选择（唯一入口）；每份合同流程：从集团合同平台同步模板 → 下载填写 → 上传签署版文件。可一次勾选添加多份合同，合同名称自动生成可修改</div>
+        <div id="uCheckResult"></div>
+        <div id="uContractBox"></div>
+      </div>
+    </div>
+    <div class="modal-foot">
+      <button class="btn" onclick="closeUnified()">取消</button>
+      <button class="btn" onclick="runCheck()">智能检查</button>
+      <button class="btn btn-primary" onclick="submitUnified()">统一发起</button>
+    </div>
+  </div>
+</div>
+
+<!-- 模板库选择浮层（复用模板库能力：分类/搜索/勾选多选） -->
+<div class="mask" id="tplPickerMask">
+  <div class="modal" style="width:880px;">
+    <div class="modal-head">从模板库添加合同<span class="modal-close" onclick="closeTplPicker()">✕</span></div>
+    <div class="modal-body">
+      <div class="tpl-cats" id="pkCats">
+        <span class="tpl-cat active" data-cat="all" onclick="pkFilterCat('all')">全部模板</span>
+        <span class="tpl-cat" data-cat="production" onclick="pkFilterCat('production')">生产件/样件</span>
+        <span class="tpl-cat" data-cat="after" onclick="pkFilterCat('after')">售后配件</span>
+        <span class="tpl-cat" data-cat="change" onclick="pkFilterCat('change')">主体变更</span>
+        <span class="tpl-cat" data-cat="reference" onclick="pkFilterCat('reference')">参考模板库</span>
+      </div>
+      <div class="toolbar" style="margin-top:12px;">
+        <div class="search-box"><input id="pkSearch" placeholder="协议名称 / 关键词" oninput="pkRender()" style="width:220px;"></div>
+        <span class="ser" style="font-size:12px;">已勾选 <b id="pkCount">0</b> 项 · 勾选后一次添加多份</span>
+      </div>
+      <div class="table-wrap" style="max-height:360px;">
+        <table class="ep"><thead><tr><th style="width:36px;"></th><th>编号</th><th>协议名称</th><th>所属分类</th><th>签署维度</th><th>版本</th><th>双语</th></tr></thead>
+        <tbody id="pkBody"></tbody></table>
+      </div>
+    </div>
+    <div class="modal-foot">
+      <button class="btn" onclick="closeTplPicker()">取消</button>
+      <button class="btn btn-primary" id="pkAddBtn" onclick="pkAdd()">添加选中（0）</button>
+    </div>
+  </div>
+</div>
+
+</body>
+</html>

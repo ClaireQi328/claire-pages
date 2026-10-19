@@ -1,0 +1,1354 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>小米汽车EP - 供应商管理（4功能点整合）</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/echarts/5.4.3/echarts.min.js"></script>
+<style>
+:root{--p:#1677ff;--ph:#4096ff;--pl:#e6f4ff;--s:#52c41a;--sl:#f6ffed;--w:#faad14;--wl:#fffbe6;--d:#ff4d4f;--dl:#fff2f0;--g50:#fafafa;--g100:#f5f5f5;--g200:#e8e8e8;--g300:#d9d9d9;--g400:#bfbfbf;--g500:#8c8c8c;--g600:#595959;--g700:#434343;--g800:#262626;--g900:#1f1f1f;--r:6px;--nav:#001529;--mi:#ff6700;--purple:#722ed1;--cyan:#13c2c2}
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif;background:#f0f2f5;color:var(--g800);line-height:1.5;font-size:13px;min-height:100vh;overflow:hidden}
+.ep-top{background:var(--nav);height:40px;display:flex;align-items:center;padding:0 16px;position:fixed;top:0;left:0;right:0;z-index:1000}
+.ep-logo{display:flex;align-items:center;gap:6px;margin-right:24px}
+.ep-logo .mi{width:20px;height:20px;background:linear-gradient(135deg,#ff6700,#ff4d00);border-radius:4px;display:flex;align-items:center;justify-content:center;color:#fff;font-size:9px;font-weight:700}
+.ep-logo span{color:#fff;font-size:13px;font-weight:600}
+.ep-topmenu{display:flex;gap:0}
+.ep-topitem{padding:0 14px;height:40px;display:flex;align-items:center;color:rgba(255,255,255,.65);font-size:12px;cursor:pointer}
+.ep-topitem:hover{color:#fff;background:rgba(255,255,255,.08)}
+.ep-topitem.active{color:#fff;background:rgba(255,255,255,.12)}
+.ep-topright{margin-left:auto;display:flex;align-items:center;gap:12px;color:rgba(255,255,255,.65);font-size:12px}
+.ep-avatar{width:22px;height:22px;border-radius:50%;background:linear-gradient(135deg,var(--p),#4096ff);display:flex;align-items:center;justify-content:center;color:#fff;font-size:10px;font-weight:600}
+.ep-layout{display:flex;height:calc(100vh - 40px);margin-top:40px}
+.ep-sidebar{width:180px;background:#fff;border-right:1px solid var(--g200);overflow-y:auto;flex-shrink:0}
+.ep-sb-group{padding:8px 0 4px}
+.ep-sb-gtitle{padding:4px 16px;font-size:10px;color:var(--g400);font-weight:600;letter-spacing:.5px}
+.ep-sb-item{display:flex;align-items:center;padding:7px 16px;font-size:12px;color:var(--g600);cursor:pointer;transition:all .15s;border-left:3px solid transparent}
+.ep-sb-item:hover{color:var(--p);background:var(--pl)}
+.ep-sb-item.active{color:var(--p);background:var(--pl);font-weight:600;border-left-color:var(--p)}
+.ep-sb-item .dot{width:5px;height:5px;border-radius:50%;background:var(--g300);margin-right:8px;flex-shrink:0}
+.ep-sb-item.active .dot{background:var(--p)}
+.ep-sb-item.new{position:relative}
+.ep-sb-item.new::after{content:'NEW';position:absolute;right:12px;top:50%;transform:translateY(-50%);font-size:8px;background:var(--d);color:#fff;padding:1px 4px;border-radius:3px;font-weight:700}
+.ep-main{flex:1;overflow-y:auto}
+.ep-breadcrumb{padding:8px 20px;font-size:11px;color:var(--g500);background:#fff;border-bottom:1px solid var(--g100)}
+.ep-breadcrumb span{color:var(--g800);font-weight:500}
+.ep-content{padding:12px 20px}
+.page-hdr{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px}
+.page-title{font-size:15px;font-weight:700;color:var(--g900)}
+.page-actions{display:flex;gap:6px}
+.etabs{display:flex;gap:0;border-bottom:1px solid var(--g200);margin-bottom:12px;background:#fff;padding:0 12px;border-radius:6px 6px 0 0}
+.etab{padding:9px 16px;font-size:12px;color:var(--g600);cursor:pointer;border-bottom:2px solid transparent;font-weight:500}
+.etab:hover{color:var(--p)}
+.etab.active{color:var(--p);font-weight:600;border-bottom-color:var(--p)}
+.epanel{display:none}
+.epanel.active{display:block}
+.card{background:#fff;border-radius:var(--r);box-shadow:0 1px 2px rgba(0,0,0,.03);border:1px solid rgba(0,0,0,.04);margin-bottom:10px;overflow:hidden}
+.card-h{display:flex;align-items:center;justify-content:space-between;padding:9px 14px;border-bottom:1px solid var(--g100)}
+.card-t{font-size:12px;font-weight:600;color:var(--g800)}
+.card-b{padding:12px 14px}
+.dt{width:100%;border-collapse:collapse}
+.dt th{background:linear-gradient(180deg,#fafafa,#f5f5f5);color:var(--g700);font-size:11px;font-weight:600;padding:7px 10px;text-align:left;border-bottom:1px solid var(--g200);white-space:nowrap}
+.dt td{padding:7px 10px;border-bottom:1px solid var(--g100);font-size:12px;vertical-align:middle}
+.dt tbody tr:hover td{background:#f0f7ff}
+.dt .link{color:var(--p);cursor:pointer;font-weight:500}
+.dt .link:hover{text-decoration:underline}
+.btn{border:none;padding:5px 12px;border-radius:4px;font-size:12px;font-weight:500;cursor:pointer;display:inline-flex;align-items:center;gap:4px;white-space:nowrap;transition:all .15s}
+.btn-p{background:var(--p);color:#fff}
+.btn-p:hover{background:var(--ph)}
+.btn-o{background:#fff;color:var(--g700);border:1px solid var(--g300)}
+.btn-o:hover{color:var(--p);border-color:var(--p)}
+.btn-s{padding:2px 8px;font-size:11px;border-radius:3px}
+.btn-d{background:none;color:var(--d);border:none;padding:2px 4px;font-size:11px;cursor:pointer}
+.btn-d:hover{text-decoration:underline}
+.tag{display:inline-block;font-size:10px;padding:1px 6px;border-radius:3px;font-weight:500;white-space:nowrap}
+.tag-p{background:var(--pl);color:var(--p)}
+.tag-s{background:var(--sl);color:var(--s)}
+.tag-w{background:var(--wl);color:#d46b08}
+.tag-d{background:var(--dl);color:var(--d)}
+.tag-g{background:var(--g100);color:var(--g600)}
+.tag-purple{background:#f9f0ff;color:var(--purple)}
+.tag-cyan{background:#e6fffb;color:var(--cyan)}
+.kpi-row{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:10px}
+.kpi{background:#fff;border-radius:var(--r);padding:10px 14px;border:1px solid rgba(0,0,0,.04)}
+.kpi .lbl{font-size:11px;color:var(--g500);margin-bottom:2px}
+.kpi .val{font-size:20px;font-weight:700}
+.kpi .val.b{color:var(--p)}.kpi .val.g{color:var(--s)}.kpi .val.o{color:var(--w)}.kpi .val.r{color:var(--d)}
+.kpi .sub{font-size:10px;color:var(--g500)}
+.sbar{display:flex;align-items:center;gap:5px}
+.sbar .bar{flex:1;height:4px;background:var(--g100);border-radius:2px;overflow:hidden;min-width:24px}
+.sbar .fill{height:100%;border-radius:2px}
+.sbar .fill.h{background:var(--s)}.sbar .fill.m{background:var(--w)}.sbar .fill.l{background:var(--d)}
+.sbar .sv{font-size:11px;font-weight:600;min-width:22px;text-align:right}
+.filterbar{display:flex;gap:8px;align-items:center;margin-bottom:10px;flex-wrap:wrap}
+.input{padding:4px 10px;border:1px solid var(--g300);border-radius:4px;font-size:12px}
+.input:focus{outline:none;border-color:var(--p);box-shadow:0 0 0 2px rgba(22,119,255,.1)}
+.select{padding:4px 22px 4px 8px;border:1px solid var(--g300);border-radius:4px;font-size:12px;background:#fff url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='8' height='5'%3E%3Cpath d='M0 0l4 5 4-5z' fill='%238c8c8c'/%3E%3C/svg%3E") no-repeat right 7px center;appearance:none;cursor:pointer}
+.alert{padding:8px 12px;border-radius:6px;font-size:11px;line-height:1.5;margin-bottom:10px;display:flex;gap:8px;align-items:flex-start}
+.alert.info{background:linear-gradient(135deg,#e6f4ff,#f0f5ff);border:1px solid #91caff;color:#0958d9}
+.alert.warn{background:linear-gradient(135deg,#fff7e6,#fffbe6);border:1px solid #ffd591;color:#ad6800}
+.chart{width:100%;height:200px}
+.chart-sm{width:100%;height:150px}
+.pagination{display:flex;align-items:center;justify-content:flex-end;gap:5px;padding:8px 14px;background:#fff;border-top:1px solid var(--g100);font-size:11px;color:var(--g600)}
+.pg{width:22px;height:22px;border:1px solid var(--g300);border-radius:3px;display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:11px}
+.pg:hover{color:var(--p);border-color:var(--p)}
+.pg.active{background:var(--p);color:#fff;border-color:var(--p)}
+
+/* OnePage header */
+.op-header{background:linear-gradient(135deg,#001529,#003a70);border-radius:8px;padding:14px 20px;color:#fff;margin-bottom:10px;display:flex;justify-content:space-between;align-items:flex-start}
+.op-header h2{font-size:16px;font-weight:700;margin-bottom:3px}
+.op-header .meta{font-size:11px;color:rgba(255,255,255,.7)}
+.op-tags{display:flex;gap:5px;flex-wrap:wrap}
+.op-tags .tag{background:rgba(255,255,255,.15);color:#fff;border:1px solid rgba(255,255,255,.2)}
+.op-grid{display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:10px;margin-bottom:10px}
+.op-card{background:#fff;border-radius:6px;padding:10px 12px;border:1px solid rgba(0,0,0,.04)}
+.op-card h3{font-size:11px;font-weight:600;color:var(--g700);margin-bottom:6px;padding-bottom:5px;border-bottom:1px solid var(--g100)}
+.op-kv{display:grid;grid-template-columns:60px 1fr;gap:2px 8px;font-size:11px;line-height:1.7}
+.op-kv .k{color:var(--g500)}
+
+/* Detail tabs */
+.dtabs{display:flex;gap:0;background:#fff;border-radius:6px 6px 0 0;border-bottom:1px solid var(--g200);padding:0 12px}
+.dtab{padding:8px 14px;font-size:12px;color:var(--g600);cursor:pointer;border-bottom:2px solid transparent;font-weight:500}
+.dtab:hover{color:var(--p)}
+.dtab.active{color:var(--p);font-weight:600;border-bottom-color:var(--p)}
+
+/* 9-grid */
+.g9-wrap{display:flex;gap:10px}
+.g9-chart{flex:1;background:#fff;border-radius:6px;padding:10px}
+.g9-side{width:180px;background:#fff;border-radius:6px;padding:10px}
+.g9-side h4{font-size:11px;font-weight:600;margin-bottom:6px}
+.g9-legend-item{display:flex;align-items:center;gap:5px;padding:3px 0;font-size:10px;color:var(--g600);border-bottom:1px solid var(--g100)}
+.g9-dot{width:7px;height:7px;border-radius:50%;flex-shrink:0}
+
+/* Modal */
+.modal-mask{display:none;position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,.45);z-index:2000;align-items:center;justify-content:center}
+.modal-mask.show{display:flex}
+.modal{background:#fff;border-radius:8px;width:480px;max-height:80vh;overflow-y:auto}
+.modal-h{padding:12px 16px;border-bottom:1px solid var(--g100);display:flex;justify-content:space-between;align-items:center}
+.modal-h h3{font-size:14px;font-weight:700}
+.modal-b{padding:16px}
+.modal-f{padding:10px 16px;border-top:1px solid var(--g100);display:flex;justify-content:flex-end;gap:8px}
+.form-row{margin-bottom:10px}
+.form-row label{display:block;font-size:11px;color:var(--g600);margin-bottom:3px;font-weight:500}
+.form-row .input,.form-row .select{width:100%}
+
+/* Solution */
+.sol-hero{background:linear-gradient(135deg,#001529,#003a70);border-radius:8px;padding:16px 20px;color:#fff;margin-bottom:12px}
+.sol-hero h1{font-size:16px;font-weight:700;margin-bottom:4px}
+.sol-hero p{font-size:12px;color:rgba(255,255,255,.75);max-width:750px;line-height:1.7}
+.sol-sec{margin-bottom:12px}
+.sol-st{font-size:13px;font-weight:700;color:var(--g900);margin-bottom:8px;display:flex;align-items:center;gap:8px;padding-left:10px;border-left:3px solid var(--p)}
+.sol-st .num{width:18px;height:18px;border-radius:4px;background:var(--p);color:#fff;font-size:10px;display:flex;align-items:center;justify-content:center;font-weight:700}
+.sol-card{background:#fff;border-radius:6px;padding:12px;border:1px solid rgba(0,0,0,.04)}
+.sol-card h3{font-size:12px;font-weight:700;color:var(--g900);margin-bottom:5px}
+.sol-card p{font-size:11px;color:var(--g600);line-height:1.7}
+.grid-2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.grid-3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px}
+.cmp{width:100%;border-collapse:collapse;font-size:11px}
+.cmp th{background:linear-gradient(180deg,#fafafa,#f5f5f5);padding:6px 8px;text-align:left;font-weight:600;color:var(--g700);border:1px solid var(--g200);font-size:10px}
+.cmp td{padding:6px 8px;border:1px solid var(--g200);color:var(--g600);vertical-align:top}
+.cmp tr:hover td{background:var(--pl)}
+.flow{display:flex;gap:0;margin-bottom:10px;overflow-x:auto}
+.flow-step{flex:1;min-width:90px;background:#fff;border-radius:6px;padding:9px 10px;border:1px solid rgba(0,0,0,.04);position:relative;margin-right:14px}
+.flow-step:last-child{margin-right:0}
+.flow-step::after{content:'';position:absolute;right:-11px;top:50%;transform:translateY(-50%);border-left:6px solid var(--g300);border-top:4px solid transparent;border-bottom:4px solid transparent}
+.flow-step:last-child::after{display:none}
+.flow-step .sn{width:16px;height:16px;border-radius:50%;background:var(--p);color:#fff;font-size:9px;font-weight:700;display:flex;align-items:center;justify-content:center;margin-bottom:4px}
+.flow-step h4{font-size:11px;font-weight:700;color:var(--g900)}
+.flow-step p{font-size:10px;color:var(--g500);line-height:1.4;margin-top:2px}
+@media(max-width:1200px){.kpi-row{grid-template-columns:repeat(2,1fr)}.grid-2,.grid-3,.op-grid{grid-template-columns:1fr 1fr}}
+</style>
+</head>
+<body>
+
+<nav class="ep-top">
+  <div class="ep-logo"><div class="mi">MI</div><span>小米汽车</span></div>
+  <div class="ep-topmenu">
+    <div class="ep-topitem">首页</div>
+    <div class="ep-topitem">个人中心</div>
+    <div class="ep-topitem active">供应商管理</div>
+    <div class="ep-topitem">采购项目管理</div>
+    <div class="ep-topitem">···</div>
+  </div>
+  <div class="ep-topright"><span style="cursor:pointer">🔔</span><span>齐岳</span><div class="ep-avatar">齐</div></div>
+</nav>
+
+<div class="ep-layout">
+  <aside class="ep-sidebar">
+    <div class="ep-sb-group">
+      <div class="ep-sb-gtitle">最近浏览</div>
+      <div class="ep-sb-item" onclick="go(this,'list')"><div class="dot"></div>供应商清单</div>
+    </div>
+    <div class="ep-sb-group">
+      <div class="ep-sb-gtitle">供应商管理</div>
+      <div class="ep-sb-item active" onclick="go(this,'list')"><div class="dot"></div>供应商清单</div>
+      <div class="ep-sb-item new" onclick="go(this,'perf')"><div class="dot"></div>绩效评估</div>
+      <div class="ep-sb-item"><div class="dot"></div>供应商信息变更</div>
+      <div class="ep-sb-item"><div class="dot"></div>供应商邮件通知</div>
+      <div class="ep-sb-item"><div class="dot"></div>供应商公告</div>
+    </div>
+    <div class="ep-sb-group">
+      <div class="ep-sb-gtitle">询报价与定点</div>
+      <div class="ep-sb-item new" onclick="go(this,'pool')"><div class="dot"></div>供应商资源池</div>
+      <div class="ep-sb-item"><div class="dot"></div>RFQ预选(BDL)</div>
+      <div class="ep-sb-item"><div class="dot"></div>询报价</div>
+      <div class="ep-sb-item"><div class="dot"></div>定点申请</div>
+    </div>
+    <div class="ep-sb-group">
+      <div class="ep-sb-gtitle">基础数据管理</div>
+      <div class="ep-sb-item"><div class="dot"></div>品类管理</div>
+      <div class="ep-sb-item"><div class="dot"></div>工厂</div>
+      <div class="ep-sb-item"><div class="dot"></div>零部件信息</div>
+    </div>
+    <div class="ep-sb-group">
+      <div class="ep-sb-gtitle">其他</div>
+      <div class="ep-sb-item"><div class="dot"></div>采购任务管理</div>
+      <div class="ep-sb-item"><div class="dot"></div>合同管理</div>
+      <div class="ep-sb-item"><div class="dot"></div>订单管理</div>
+    </div>
+  </aside>
+
+  <main class="ep-main">
+    <div class="ep-breadcrumb">供应商管理 / <span id="bc-current">供应商清单</span></div>
+    <div class="ep-content">
+      <div style="display:flex;gap:0;margin-bottom:10px">
+        <div class="etab active" onclick="tab(this,'tab-p')" style="background:#fff;border-radius:6px 6px 0 0">📐 系统原型</div>
+        <div class="etab" onclick="tab(this,'tab-s')" style="background:#fff;border-radius:6px 6px 0 0">📋 整体方案</div>
+      </div>
+
+      <div class="epanel active" id="tab-p">
+
+      <!-- ===== 供应商清单（现有，增加绩效/资源池列） ===== -->
+      <div id="pg-list">
+        <div class="page-hdr">
+          <div class="page-title">正式供应商列表 <span style="font-size:11px;font-weight:400;color:var(--g500)">共666家</span></div>
+          <div class="page-actions"><button class="btn btn-o">导出</button><button class="btn btn-o">转派</button></div>
+        </div>
+        <div class="filterbar">
+          <input class="input" placeholder="搜索供应商名称/编码" style="width:180px">
+          <select class="select"><option>全部分类</option><option>动力电池</option><option>底盘</option><option>内外饰</option><option>电子电器</option></select>
+          <select class="select"><option>全部绩效</option><option>A级</option><option>B级</option><option>C级</option><option>D级/末10%</option></select>
+          <button class="btn btn-p">查询</button>
+        </div>
+        <div class="card" style="margin-bottom:0">
+          <table class="dt">
+            <thead><tr><th style="width:36px">序号</th><th style="width:85px">供应商编码</th><th>供应商名称</th><th style="width:70px">采购工程师</th><th style="width:70px">销售负责人</th><th style="width:60px">P账号</th><th style="width:65px">品类</th><th style="width:80px">2026绩效</th><th style="width:60px">资源池</th><th style="width:50px">操作</th></tr></thead>
+            <tbody id="list-body"></tbody>
+          </table>
+          <div class="pagination"><span>第1-100条，共666条</span><div class="pg active">1</div><div class="pg">2</div><div class="pg">3</div><div class="pg">…</div><div class="pg">7</div></div>
+        </div>
+      </div>
+
+      <!-- ===== 供应商详情（OnePage + 制造地） ===== -->
+      <div id="pg-detail" style="display:none">
+        <button class="btn btn-o btn-s" onclick="go(null,'list')" style="margin-bottom:8px">← 返回列表</button>
+        <!-- OnePage 顶部概览（集成到供应商信息中） -->
+        <div class="op-header">
+          <div><h2 id="sd-name">宁德时代新能源科技股份有限公司</h2>
+          <div class="meta">编码：SUPT00001 · 采购工程师：李明 · 品类：动力电池 · 合作起始：2022年</div></div>
+          <div class="op-tags"><span class="tag">战略合作</span><span class="tag">A级</span><span class="tag">资源池-战略</span><span class="tag">低风险</span></div>
+        </div>
+        <div class="op-grid">
+          <div class="op-card"><h3>📊 绩效概览</h3>
+            <div style="text-align:center;margin-bottom:4px"><span style="font-size:22px;font-weight:700;color:var(--s)">88.5</span><span style="font-size:10px;color:var(--g500)">/100 A级</span></div>
+            <div id="c-radar" class="chart-sm" style="height:110px"></div>
+          </div>
+          <div class="op-card"><h3>🎯 九宫格定位</h3>
+            <div id="c-mini9" class="chart-sm" style="height:130px"></div>
+            <div style="text-align:center;font-size:10px;color:var(--g500)">绩效82 × 潜力95 → <span style="color:var(--purple);font-weight:600">战略</span></div>
+          </div>
+          <div class="op-card"><h3>⚠️ 风险筛查 & 合规</h3>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:5px;margin-bottom:5px">
+              <div style="background:var(--sl);padding:6px;border-radius:4px;text-align:center"><div style="font-size:9px;color:var(--g500)">SMS信用司法</div><div style="font-size:12px;font-weight:600;color:var(--s)">低</div></div>
+              <div style="background:var(--sl);padding:6px;border-radius:4px;text-align:center"><div style="font-size:9px;color:var(--g500)">财报AI分析</div><div style="font-size:12px;font-weight:600;color:var(--s)">健康</div></div>
+              <div style="background:var(--sl);padding:6px;border-radius:4px;text-align:center"><div style="font-size:9px;color:var(--g500)">合规评估</div><div style="font-size:12px;font-weight:600;color:var(--s)">合规</div></div>
+              <div style="background:var(--sl);padding:6px;border-radius:4px;text-align:center"><div style="font-size:9px;color:var(--g500)">合规有效期</div><div style="font-size:11px;font-weight:600;color:var(--g700)">2027-08</div></div>
+            </div>
+            <div style="font-size:10px;color:var(--g500);line-height:1.5">法务/财务/ESG/数据安全/反腐败 5项全通过</div>
+          </div>
+          <div class="op-card"><h3>📦 合作概况</h3>
+            <div class="op-kv">
+              <span class="k">年度采购额</span><span style="font-weight:600;color:var(--p)">¥42亿</span>
+              <span class="k">在研项目</span><span>3个</span>
+              <span class="k">准时交付率</span><span style="color:var(--s);font-weight:600">98.5%</span>
+              <span class="k">质量PPM</span><span style="color:var(--w);font-weight:600">12</span>
+              <span class="k">制造地</span><span>4个基地</span>
+            </div>
+          </div>
+        </div>
+        <!-- 详情Tab -->
+        <div class="dtabs">
+          <div class="dtab active" onclick="dtab(this,'dt-info')">基本信息</div>
+          <div class="dtab" onclick="dtab(this,'dt-finance')">财务信息</div>
+          <div class="dtab" onclick="dtab(this,'dt-contact')">联系人信息</div>
+          <div class="dtab" onclick="dtab(this,'dt-mfg')">制造地信息 <span class="tag tag-p" style="margin-left:4px">新增</span></div>
+          <div class="dtab" onclick="dtab(this,'dt-perf')">绩效记录</div>
+          <div class="dtab" onclick="dtab(this,'dt-compliance')">合规评估 <span class="tag tag-p" style="margin-left:4px">新增</span></div>
+          <div class="dtab" onclick="dtab(this,'dt-doc')">资质文档</div>
+        </div>
+        <div class="card" style="border-radius:0 0 6px 6px;margin-top:-1px">
+          <!-- 基本信息（对标EP系统字段） -->
+          <div class="epanel active" id="dt-info">
+            <div class="card-b">
+              <div style="font-size:12px;font-weight:600;color:var(--g700);margin-bottom:8px">供应商基本信息</div>
+              <div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:6px 16px;font-size:12px;line-height:1.9;margin-bottom:14px">
+                <div><span style="color:var(--g500)">供应商名称：</span>宁德时代新能源科技股份有限公司</div>
+                <div><span style="color:var(--g500)">供应商英文名称：</span>CATL</div>
+                <div><span style="color:var(--g500)">供应商简称：</span>宁德时代</div>
+                <div><span style="color:var(--g500)">供应商简称拼音：</span>NingDeShiDai</div>
+                <div><span style="color:var(--g500)">供应商编码：</span><strong style="font-family:monospace">SUPT00001</strong></div>
+                <div><span style="color:var(--g500)">是否国内供应商：</span>中国大陆</div>
+                <div><span style="color:var(--g500)">上市公司：</span>深交所创业板 300750</div>
+                <div><span style="color:var(--g500)">官方网站：</span>www.catl.com</div>
+                <div><span style="color:var(--g500)">注册资金（万元）：</span>244,000</div>
+                <div><span style="color:var(--g500)">资本总额（万元）：</span>244,000</div>
+                <div><span style="color:var(--g500)">货币单位：</span>人民币</div>
+                <div><span style="color:var(--g500)">企业类型：</span>股份有限公司(上市)</div>
+                <div><span style="color:var(--g500)">供应商业务类型：</span>生产制造</div>
+                <div><span style="color:var(--g500)">企业成立日期：</span>2011-12-16</div>
+                <div><span style="color:var(--g500)">证件类型：</span>统一社会信用代码证书</div>
+                <div><span style="color:var(--g500)">证件号码：</span>913509005859000000</div>
+                <div><span style="color:var(--g500)">邓白氏编码：</span>448765432</div>
+                <div><span style="color:var(--g500)">法定代表人：</span>曾毓群</div>
+                <div><span style="color:var(--g500)">质量体系证书：</span>IATF16949</div>
+                <div><span style="color:var(--g500)">其它证书：</span>ISO14001 / ISO45001</div>
+                <div><span style="color:var(--g500)">经营期限-起：</span>2011-12-16</div>
+                <div><span style="color:var(--g500)">经营期限-止：</span>长期</div>
+                <div><span style="color:var(--g500)">公司占地面积（万㎡）：</span>200</div>
+                <div><span style="color:var(--g500)">是否代理供应商：</span>否</div>
+                <div><span style="color:var(--g500)">生产方名称：</span>宁德时代（自有工厂）</div>
+                <div><span style="color:var(--g500)">进入主机厂日期：</span>2021-03-15</div>
+                <div><span style="color:var(--g500)">离开主机厂日期：</span>-</div>
+                <div style="grid-column:span 2"><span style="color:var(--g500)">经营范围：</span>动力电池、储能电池、电池材料及回收系统的研发、生产、销售</div>
+              </div>
+              <!-- 注册地址 -->
+              <div style="font-size:12px;font-weight:600;color:var(--g700);margin-bottom:6px;padding-bottom:4px;border-bottom:1px solid var(--g100)">注册地址</div>
+              <table class="dt" style="margin-bottom:14px">
+                <thead><tr><th style="width:50px">序号</th><th style="width:70px">国家</th><th style="width:80px">省份</th><th style="width:80px">城市</th><th>详细地址</th><th>公司英文地址</th></tr></thead>
+                <tbody><tr><td>1</td><td>中国</td><td>福建省</td><td>宁德市</td><td>蕉城区漳湾镇新港路2号</td><td>No.2 Xingang Road, Zhangwan Town, Jiaocheng District, Ningde, Fujian, China</td></tr></tbody>
+              </table>
+              <!-- 股比构成 -->
+              <div style="font-size:12px;font-weight:600;color:var(--g700);margin-bottom:6px;padding-bottom:4px;border-bottom:1px solid var(--g100)">股比构成</div>
+              <table class="dt">
+                <thead><tr><th style="width:50px">序号</th><th>股东名称</th><th style="width:90px">国家/地区</th><th style="width:100px">出资额（万元）</th><th style="width:60px">币种</th><th style="width:80px">持股占比</th><th style="width:90px">股东类型</th></tr></thead>
+                <tbody>
+                  <tr><td>1</td><td>宁波瑞庭投资有限公司</td><td>中国</td><td>58,560</td><td>人民币</td><td>24.0%</td><td>控股股东</td></tr>
+                  <tr><td>2</td><td>黄世霖</td><td>中国</td><td>24,400</td><td>人民币</td><td>10.0%</td><td>自然人</td></tr>
+                  <tr><td>3</td><td>香港中央结算有限公司</td><td>中国香港</td><td>19,520</td><td>人民币</td><td>8.0%</td><td>机构投资者</td></tr>
+                  <tr><td>4</td><td>其他流通股东</td><td>-</td><td>141,520</td><td>人民币</td><td>58.0%</td><td>公众股东</td></tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+          <!-- 财务信息（对标EP系统字段） -->
+          <div class="epanel" id="dt-finance">
+            <div class="card-b">
+              <div style="font-size:12px;font-weight:600;color:var(--g700);margin-bottom:8px">电汇结算银行信息</div>
+              <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px 16px;font-size:12px;line-height:1.9;margin-bottom:14px">
+                <div><span style="color:var(--g500)">开户行名称：</span>中国工商银行宁德分行</div>
+                <div><span style="color:var(--g500)">银行账号：</span>1407010009200123456</div>
+                <div><span style="color:var(--g500)">开户行国家：</span>中国</div>
+                <div><span style="color:var(--g500)">开户行代码：</span>ICBKCNBJ</div>
+                <div><span style="color:var(--g500)">银行联行号：</span>102403000018</div>
+                <div><span style="color:var(--g500)">开户货币：</span>人民币</div>
+                <div><span style="color:var(--g500)">银行户主：</span>宁德时代新能源科技股份有限公司</div>
+              </div>
+              <div style="font-size:12px;font-weight:600;color:var(--g700);margin-bottom:8px;padding-top:10px;border-top:1px solid var(--g100)">承兑结算银行信息</div>
+              <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px 16px;font-size:12px;line-height:1.9;margin-bottom:14px">
+                <div><span style="color:var(--g500)">开户行名称：</span>中国建设银行宁德分行</div>
+                <div><span style="color:var(--g500)">银行账号：</span>35050168630700000123</div>
+                <div><span style="color:var(--g500)">开户行国家：</span>中国</div>
+                <div><span style="color:var(--g500)">开户行代码：</span>PCBCCNBJ</div>
+                <div><span style="color:var(--g500)">银行联行号：</span>105403000025</div>
+                <div><span style="color:var(--g500)">开户货币：</span>人民币</div>
+                <div><span style="color:var(--g500)">银行户主：</span>宁德时代新能源科技股份有限公司</div>
+              </div>
+              <div style="font-size:12px;font-weight:600;color:var(--g700);margin-bottom:8px;padding-top:10px;border-top:1px solid var(--g100)">商务前提</div>
+              <table class="dt">
+                <thead><tr><th style="width:120px">类型</th><th>账期</th><th style="width:120px">承兑汇票账期(月)</th><th style="width:120px">生效日期</th></tr></thead>
+                <tbody>
+                  <tr><td>量产件商务前提</td><td>发票入账后60天付款：100%承兑</td><td>3</td><td>2021-03-15</td></tr>
+                  <tr><td>样件商务前提</td><td>发票入账后60天付款：100%承兑</td><td>3</td><td>2021-03-15</td></tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+          <!-- 联系人信息（对标EP系统字段） -->
+          <div class="epanel" id="dt-contact">
+            <div class="card-b">
+              <table class="dt">
+                <thead><tr><th style="width:50px">序号</th><th style="width:120px">职务</th><th style="width:100px">联系人姓名</th><th style="width:130px">移动电话</th><th style="width:200px">工作邮箱</th><th>备注</th></tr></thead>
+                <tbody>
+                  <tr><td>1</td><td>销售负责人</td><td>李平</td><td>13800138001</td><td>liping@catl.com</td><td>小米项目总对接人</td></tr>
+                  <tr><td>2</td><td>技术负责人</td><td>赵峰</td><td>13800138002</td><td>zhaofeng@catl.com</td><td>动力电池技术对接</td></tr>
+                  <tr><td>3</td><td>质量负责人</td><td>王强</td><td>13800138003</td><td>wangqiang@catl.com</td><td>质量问题对接</td></tr>
+                  <tr><td>4</td><td>物流负责人</td><td>张伟</td><td>13800138004</td><td>zhangwei@catl.com</td><td>交付物流对接</td></tr>
+                  <tr><td>5</td><td>财务对接人</td><td>陈静</td><td>13800138005</td><td>chenjing@catl.com</td><td>发票对账对接</td></tr>
+                </tbody>
+              </table>
+              <div style="margin-top:8px;font-size:10px;color:var(--g500)">联系人信息由供应商在注册时填写，变更需走「供应商信息变更」流程。采购工程师可在EP中查看完整联系方式。</div>
+            </div>
+          </div>
+          <!-- 制造地信息（多工厂编码管理） -->
+          <div class="epanel" id="dt-mfg">
+            <div class="card-b">
+              <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+                <div style="font-size:11px;color:var(--g600)">制造地=供应商下属生产工厂，系统生成唯一工厂编码，<strong style="color:var(--d)">编码一经创建不可删除</strong>，仅可停用。编码供ERP/MES/质量等上下游系统调用。</div>
+                <button class="btn btn-p btn-s" onclick="showMfgModal()">+ 新增工厂</button>
+              </div>
+              <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:10px">
+                <div style="background:var(--pl);padding:8px;border-radius:5px;text-align:center"><div style="font-size:10px;color:var(--g500)">工厂总数</div><div style="font-size:16px;font-weight:700;color:var(--p)">4</div></div>
+                <div style="background:var(--sl);padding:8px;border-radius:5px;text-align:center"><div style="font-size:10px;color:var(--g500)">启用中</div><div style="font-size:16px;font-weight:700;color:var(--s)">3</div></div>
+                <div style="background:var(--g100);padding:8px;border-radius:5px;text-align:center"><div style="font-size:10px;color:var(--g500)">已停用</div><div style="font-size:16px;font-weight:700;color:var(--g500)">1</div></div>
+                <div style="background:var(--wl);padding:8px;border-radius:5px;text-align:center"><div style="font-size:10px;color:var(--g500)">编码规则</div><div style="font-size:10px;color:#d46b08;margin-top:2px">SUP+6位序号</div></div>
+              </div>
+              <table class="dt">
+                <thead><tr><th style="width:36px">#</th><th style="width:110px">工厂编码</th><th>工厂名称</th><th style="width:140px">地址</th><th style="width:70px">主要产品</th><th style="width:60px">年产能</th><th style="width:55px">状态</th><th style="width:90px">上下游引用</th><th style="width:70px">操作</th></tr></thead>
+                <tbody id="mfg-body"></tbody>
+              </table>
+              <div style="margin-top:8px;font-size:10px;color:var(--g500);line-height:1.6">
+                <strong>编码管理规则：</strong>① 工厂编码由系统自动生成（SUPT00001-F01格式），创建后不可修改、不可删除；② 停用工厂后编码保留，历史订单/质量数据仍可追溯；③ 工厂编码被ERP/MES/质量系统引用时，停用前需通知上下游系统；④ 同一供应商可拥有多个工厂编码，支持多基地管理。
+              </div>
+            </div>
+          </div>
+          <!-- 绩效记录 -->
+          <div class="epanel" id="dt-perf">
+            <div class="card-b">
+              <table class="dt">
+                <thead><tr><th>评估周期</th><th style="width:60px">商务</th><th style="width:60px">研发</th><th style="width:60px">质量</th><th style="width:60px">交付</th><th style="width:60px">售后</th><th style="width:70px">总分</th><th style="width:50px">等级</th><th style="width:80px">操作</th></tr></thead>
+                <tbody>
+                  <tr><td>2026年度</td><td>85</td><td>90</td><td>82</td><td>92</td><td>90</td><td><strong>88.5</strong></td><td><span class="tag tag-p">A</span></td><td><button class="btn-d">详情</button></td></tr>
+                  <tr><td>2025年度</td><td>82</td><td>88</td><td>85</td><td>90</td><td>88</td><td><strong>86.2</strong></td><td><span class="tag tag-p">A</span></td><td><button class="btn-d">详情</button></td></tr>
+                  <tr><td>2024年度</td><td>80</td><td>85</td><td>80</td><td>88</td><td>85</td><td><strong>82.7</strong></td><td><span class="tag tag-s">B</span></td><td><button class="btn-d">详情</button></td></tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+          <!-- 资质文档 -->
+          <div class="epanel" id="dt-doc">
+            <div class="card-b">
+              <table class="dt">
+                <thead><tr><th>文档名称</th><th style="width:100px">类型</th><th style="width:100px">有效期至</th><th style="width:80px">状态</th><th style="width:60px">操作</th></tr></thead>
+                <tbody>
+                  <tr><td>IATF16949质量管理体系认证</td><td>体系认证</td><td>2027-06-30</td><td><span class="tag tag-s">有效</span></td><td><button class="btn-d">查看</button></td></tr>
+                  <tr><td>ISO14001环境管理体系认证</td><td>体系认证</td><td>2027-03-15</td><td><span class="tag tag-s">有效</span></td><td><button class="btn-d">查看</button></td></tr>
+                  <tr><td>营业执照</td><td>资质</td><td>长期</td><td><span class="tag tag-s">有效</span></td><td><button class="btn-d">查看</button></td></tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+          <div class="epanel" id="dt-compliance">
+            <div class="card-b">
+              <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:12px">
+                <div style="background:var(--sl);padding:10px;border-radius:6px;text-align:center;border:1px solid #b7eb8f">
+                  <div style="font-size:13px;font-weight:700;color:var(--s)">合规</div>
+                  <div style="font-size:10px;color:var(--g600);margin-top:2px">总体状态</div>
+                </div>
+                <div style="background:var(--pl);padding:10px;border-radius:6px;text-align:center;border:1px solid #91caff">
+                  <div style="font-size:13px;font-weight:700;color:var(--p)">5/5</div>
+                  <div style="font-size:10px;color:var(--g600);margin-top:2px">评估项通过</div>
+                </div>
+                <div style="background:var(--g50);padding:10px;border-radius:6px;text-align:center;border:1px solid var(--g200)">
+                  <div style="font-size:13px;font-weight:700;color:var(--g700)">2026-08-15</div>
+                  <div style="font-size:10px;color:var(--g600);margin-top:2px">最近评估</div>
+                </div>
+                <div style="background:var(--g50);padding:10px;border-radius:6px;text-align:center;border:1px solid var(--g200)">
+                  <div style="font-size:13px;font-weight:700;color:var(--g700)">2027-08-15</div>
+                  <div style="font-size:10px;color:var(--g600);margin-top:2px">下次评估</div>
+                </div>
+              </div>
+              <table class="dt">
+                <thead><tr><th style="width:100px">评估项</th><th style="width:70px">评估状态</th><th style="width:80px">评估结果</th><th style="width:100px">有效期至</th><th style="width:70px">评估人</th><th style="width:100px">评估时间</th><th>评估说明</th><th style="width:60px">操作</th></tr></thead>
+                <tbody>
+                  <tr><td><strong>法务合规</strong></td><td><span class="tag tag-s">通过</span></td><td>无重大诉讼</td><td>2027-08-15</td><td>法务部</td><td>2026-08-15</td><td>近3年无重大诉讼及行政处罚，合规审查通过</td><td><button class="btn-d">详情</button></td></tr>
+                  <tr><td><strong>财务合规</strong></td><td><span class="tag tag-s">通过</span></td><td>财务健康</td><td>2027-08-15</td><td>财务部</td><td>2026-08-15</td><td>近3年审计报告无保留意见，资产负债率45%，现金流稳定</td><td><button class="btn-d">详情</button></td></tr>
+                  <tr><td><strong>ESG合规</strong></td><td><span class="tag tag-s">通过</span></td><td>ESG-B级</td><td>2027-08-15</td><td>可持续发展</td><td>2026-08-15</td><td>ISO14001有效，碳排放达标，无环保处罚记录</td><td><button class="btn-d">详情</button></td></tr>
+                  <tr><td><strong>数据安全</strong></td><td><span class="tag tag-s">通过</span></td><td>等保三级</td><td>2027-06-30</td><td>信息安全部</td><td>2026-06-30</td><td>通过等保三级认证，数据处理协议已签署</td><td><button class="btn-d">详情</button></td></tr>
+                  <tr><td><strong>反腐败合规</strong></td><td><span class="tag tag-s">通过</span></td><td>无违规记录</td><td>2027-08-15</td><td>纪检监察</td><td>2026-08-15</td><td>反商业贿赂协议已签署，无腐败投诉记录</td><td><button class="btn-d">详情</button></td></tr>
+                </tbody>
+              </table>
+              <div style="margin-top:8px;font-size:10px;color:var(--g500)">合规评估由法务/财务/ESG/信息安全/纪检监察5个部门分别执行，任一项目不通过则供应商总体状态为"待整改"，限制新项目定点。评估结果同步至OnePage风险筛查。</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ===== 绩效评估（模板配置/发起/收集/分层分级） ===== -->
+      <div id="pg-perf" style="display:none">
+        <div class="page-hdr">
+          <div class="page-title">绩效评估 <span style="font-size:11px;font-weight:400;color:var(--g500)">两种收集方案，供业务选择</span></div>
+          <div class="page-actions"><button class="btn btn-p" onclick="showLaunchModal()">+ 发起评估</button></div>
+        </div>
+        <!-- 方案切换 -->
+        <div style="display:flex;gap:0;margin-bottom:10px">
+          <div class="etab active" onclick="planTab(this,'plan-a')" style="background:#fff;border-radius:6px 6px 0 0">🅰 方案A：EP系统内建</div>
+          <div class="etab" onclick="planTab(this,'plan-b')" style="background:#fff;border-radius:6px 6px 0 0">🅱 方案B：对接多维表格（精简）</div>
+        </div>
+
+        <!-- ===== 方案A：EP系统内建 ===== -->
+        <div class="epanel active" id="plan-a">
+        <div class="etabs">
+          <div class="etab active" onclick="etab(this,'pf-tpl')">模板配置</div>
+          <div class="etab" onclick="etab(this,'pf-task')">评估任务</div>
+          <div class="etab" onclick="etab(this,'pf-result')">分层分级</div>
+        </div>
+        <!-- 模板配置 -->
+        <div class="epanel active" id="pf-tpl">
+          <div class="card">
+            <div class="card-h">
+              <div style="display:flex;align-items:center;gap:10px">
+                <select class="select" style="width:200px">
+                  <option>2026年度-标准模板（v1.2）</option>
+                  <option>2026Q4-季度模板（v1.0）</option>
+                  <option>动力电池-专项模板（v2.0）</option>
+                  <option>2025年度-标准模板（已归档）</option>
+                </select>
+                <span class="tag tag-s">已启用</span>
+                <span style="font-size:10px;color:var(--g500)">配置人：齐岳 · 最后修改：2026-09-10</span>
+              </div>
+              <div style="display:flex;gap:6px">
+                <button class="btn btn-o btn-s">新建模板</button>
+                <button class="btn btn-o btn-s">复制</button>
+                <button class="btn btn-o btn-s">版本历史</button>
+                <button class="btn btn-p btn-s">保存</button>
+              </div>
+            </div>
+            <div class="card-b">
+              <div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr 1fr;gap:10px;margin-bottom:12px">
+                <div><label style="font-size:11px;color:var(--g600);display:block;margin-bottom:3px">模板名称</label><input class="input" value="2026年度-标准模板" style="width:100%"></div>
+                <div><label style="font-size:11px;color:var(--g600);display:block;margin-bottom:3px">评估周期</label><select class="select" style="width:100%"><option>年度</option><option>半年度</option><option>季度</option><option>月度</option></select></div>
+                <div><label style="font-size:11px;color:var(--g600);display:block;margin-bottom:3px">适用品类</label><select class="select" style="width:100%"><option>全部品类</option><option>动力电池</option><option>底盘</option></select></div>
+                <div><label style="font-size:11px;color:var(--g600);display:block;margin-bottom:3px">模板管理员</label><input class="input" value="齐岳（采购部）" style="width:100%"></div>
+                <div><label style="font-size:11px;color:var(--g600);display:block;margin-bottom:3px">评分范围</label><select class="select" style="width:100%"><option>0-100分（整数）</option><option>0-100分（一位小数）</option><option>0-10分</option></select></div>
+              </div>
+              <table class="dt">
+                <thead><tr><th style="width:36px">#</th><th>维度名称</th><th style="width:55px">权重</th><th style="width:70px">打分部门</th><th style="width:80px">对接人</th><th style="width:90px">打分方式</th><th style="width:100px">数据来源</th><th style="width:45px">操作</th></tr></thead>
+                <tbody>
+                  <tr><td>1</td><td><input class="input" value="商务" style="width:70px"></td><td><input class="input" value="20%" style="width:45px;text-align:center"></td><td>采购部</td><td>齐岳</td><td><span class="tag tag-g">直接打总分</span></td><td>人工评分</td><td><button class="btn-d">删</button></td></tr>
+                  <tr><td>2</td><td><input class="input" value="研发" style="width:70px"></td><td><input class="input" value="20%" style="width:45px;text-align:center"></td><td>研发部</td><td>李文俊</td><td><span class="tag tag-g">直接打总分</span></td><td>人工评分</td><td><button class="btn-d">删</button></td></tr>
+                  <tr><td>3</td><td><input class="input" value="质量" style="width:70px"></td><td><input class="input" value="30%" style="width:45px;text-align:center"></td><td>质量部</td><td>曹冬梅</td><td><span class="tag tag-p">子项打分表</span></td><td>质量部月度评分导出</td><td><button class="btn-d">删</button></td></tr>
+                  <tr><td>4</td><td><input class="input" value="交付" style="width:70px"></td><td><input class="input" value="20%" style="width:45px;text-align:center"></td><td>物流部</td><td>孟启迪</td><td><span class="tag tag-p">子项打分表</span></td><td>物流部月度评分导出</td><td><button class="btn-d">删</button></td></tr>
+                  <tr><td>5</td><td><input class="input" value="售后" style="width:70px"></td><td><input class="input" value="10%" style="width:45px;text-align:center"></td><td>售后部</td><td>文琦</td><td><span class="tag tag-g">直接打总分</span></td><td>人工评分</td><td><button class="btn-d">删</button></td></tr>
+                </tbody>
+              </table>
+              <div style="margin-top:8px;padding:8px;background:var(--g50);border-radius:4px;font-size:11px;color:var(--g600)">权重合计：<strong style="color:var(--p)">100%</strong> · 「直接打总分」=对接人输入0-100分；「子项打分表」=导入月度Excel自动算均分 · 仅模板管理员可修改维度/权重，其他人只读</div>
+            </div>
+          </div>
+          <div class="card">
+            <div class="card-h"><div class="card-t">分级阈值</div></div>
+            <div class="card-b">
+              <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:10px">
+                <div style="background:var(--pl);padding:10px;border-radius:6px;text-align:center;border:1px solid #91caff"><div style="font-size:14px;font-weight:700;color:var(--p)">A级 ≥90</div><div style="font-size:10px;color:var(--g600);margin-top:3px">战略核心 · 优先份额</div></div>
+                <div style="background:var(--sl);padding:10px;border-radius:6px;text-align:center;border:1px solid #b7eb8f"><div style="font-size:14px;font-weight:700;color:var(--s)">B级 80-89</div><div style="font-size:10px;color:var(--g600);margin-top:3px">合格 · 正常合作</div></div>
+                <div style="background:var(--wl);padding:10px;border-radius:6px;text-align:center;border:1px solid #ffe58f"><div style="font-size:14px;font-weight:700;color:var(--w)">C级 70-79</div><div style="font-size:10px;color:var(--g600);margin-top:3px">观察 · 限制新项目</div></div>
+                <div style="background:var(--dl);padding:10px;border-radius:6px;text-align:center;border:1px solid #ffa39e"><div style="font-size:14px;font-weight:700;color:var(--d)">D级 <70/末10%</div><div style="font-size:10px;color:var(--g600);margin-top:3px">整改 · 减少份额</div></div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <!-- 评估任务（发起+收集+催办） -->
+        <div class="epanel" id="pf-task">
+          <div class="alert info"><span>💡</span><div><strong>评估流程</strong>：发起评估（选模板+周期+供应商范围）→ 系统自动分发打分任务给各部门对接人 → 在线打分/导入月度表 → 自动催办（到期前3天/逾期每日/逾期3天升级部门负责人）→ 自动加权汇总 → 采购校准 → 发布。</div></div>
+          <div class="kpi-row">
+            <div class="kpi"><div class="lbl">参评供应商</div><div class="val b">312</div><div class="sub">有完整合作记录</div></div>
+            <div class="kpi"><div class="lbl">打分进度</div><div class="val o">61%</div><div class="sub">5部门加权</div></div>
+            <div class="kpi"><div class="lbl">已完成部门</div><div class="val g">2/5</div><div class="sub">质量、交付</div></div>
+            <div class="kpi"><div class="lbl">截止日期</div><div class="val r">12-15</div><div class="sub">剩余5天 · 2部门逾期</div></div>
+          </div>
+          <div class="card">
+            <div class="card-h"><div class="card-t">部门打分进度与催办</div>
+              <button class="btn btn-p btn-s" onclick="alert('已向未完成部门发送催办通知')">一键催办</button>
+            </div>
+            <div class="card-b">
+              <table class="dt">
+                <thead><tr><th>打分维度</th><th style="width:70px">部门</th><th style="width:70px">对接人</th><th style="width:80px">应打分数</th><th style="width:80px">已完成</th><th style="width:100px">完成率</th><th style="width:70px">状态</th><th style="width:90px">操作</th></tr></thead>
+                <tbody>
+                  <tr><td>质量分(30%)</td><td>质量部</td><td>曹冬梅</td><td>312</td><td>312</td><td><div class="sbar"><div class="bar"><div class="fill h" style="width:100%"></div></div><span class="sv">100%</span></div></td><td><span class="tag tag-s">已完成</span></td><td><button class="btn-d">查看</button></td></tr>
+                  <tr><td>交付分(20%)</td><td>物流部</td><td>孟启迪</td><td>312</td><td>265</td><td><div class="sbar"><div class="bar"><div class="fill h" style="width:85%"></div></div><span class="sv">85%</span></div></td><td><span class="tag tag-w">进行中</span></td><td><button class="btn-d">催办</button></td></tr>
+                  <tr><td>商务分(20%)</td><td>采购部</td><td>齐岳</td><td>312</td><td>190</td><td><div class="sbar"><div class="bar"><div class="fill m" style="width:61%"></div></div><span class="sv">61%</span></div></td><td><span class="tag tag-w">进行中</span></td><td><button class="btn-d">催办</button></td></tr>
+                  <tr><td>研发分(20%)</td><td>研发部</td><td>李文俊</td><td>312</td><td>125</td><td><div class="sbar"><div class="bar"><div class="fill l" style="width:40%"></div></div><span class="sv">40%</span></div></td><td><span class="tag tag-d">已逾期</span></td><td><button class="btn-d">催办</button> <button class="btn-d">升级</button></td></tr>
+                  <tr><td>售后分(10%)</td><td>售后部</td><td>文琦</td><td>312</td><td>62</td><td><div class="sbar"><div class="bar"><div class="fill l" style="width:20%"></div></div><span class="sv">20%</span></div></td><td><span class="tag tag-d">已逾期</span></td><td><button class="btn-d">催办</button> <button class="btn-d">升级</button></td></tr>
+                </tbody>
+              </table>
+              <div style="margin-top:8px;font-size:10px;color:var(--g500)">催办规则：到期前3天自动飞书提醒对接人 → 逾期每日提醒 → 逾期3天自动升级至部门负责人 → 逾期7天抄送采购总监</div>
+            </div>
+          </div>
+          <div class="grid-2">
+            <div class="card"><div class="card-h"><div class="card-t">得分分布（实时）</div></div><div class="card-b"><div id="c-dist" class="chart"></div></div></div>
+            <div class="card"><div class="card-h"><div class="card-t">打分趋势</div></div><div class="card-b"><div id="c-trend" class="chart"></div></div></div>
+          </div>
+          <div class="card" style="margin-bottom:0">
+            <div class="card-h"><div class="card-t">2026年度评估任务（供应商维度）</div><span class="tag tag-w">进行中</span>
+              <div style="display:flex;gap:6px"><button class="btn btn-o btn-s">导出</button><button class="btn btn-p btn-s" onclick="showLaunchModal()">+ 发起新评估</button></div>
+            </div>
+            <table class="dt">
+              <thead><tr><th style="width:90px">供应商编码</th><th>供应商</th><th style="width:65px">品类</th><th style="width:50px">商务</th><th style="width:50px">研发</th><th style="width:50px">质量</th><th style="width:50px">交付</th><th style="width:50px">售后</th><th style="width:70px">加权总分</th><th style="width:60px">状态</th></tr></thead>
+              <tbody id="perf-body"></tbody>
+            </table>
+          </div>
+        </div>
+        <!-- 分层分级 -->
+        <div class="epanel" id="pf-result">
+          <div class="kpi-row">
+            <div class="kpi"><div class="lbl">A级（战略核心）</div><div class="val b">42</div><div class="sub">≥90分</div></div>
+            <div class="kpi"><div class="lbl">B级（合格）</div><div class="val g">168</div><div class="sub">80-89分</div></div>
+            <div class="kpi"><div class="lbl">C级（观察）</div><div class="val o">71</div><div class="sub">70-79分</div></div>
+            <div class="kpi"><div class="lbl">D级/末10%（整改）</div><div class="val r">31</div><div class="sub"><70或末10%</div></div>
+          </div>
+          <!-- 打分详情 -->
+          <div class="card" style="margin-bottom:10px">
+            <div class="card-h"><div class="card-t">打分详情 — 宁德时代新能源科技股份有限公司（SUPT00001）</div>
+              <span class="tag tag-p">A级 88.5分</span>
+            </div>
+            <div class="card-b">
+              <table class="dt">
+                <thead><tr><th style="width:80px">维度</th><th style="width:55px">权重</th><th style="width:60px">得分</th><th style="width:80px">打分部门</th><th style="width:70px">打分人</th><th style="width:90px">打分时间</th><th>打分说明/备注</th></tr></thead>
+                <tbody>
+                  <tr><td><strong>商务</strong></td><td>20%</td><td style="font-weight:600;color:var(--p)">85</td><td>采购部</td><td>齐岳</td><td>2026-12-10 14:30</td><td>价格谈判配合度好，年度降本目标达成</td></tr>
+                  <tr><td><strong>研发</strong></td><td>20%</td><td style="font-weight:600;color:var(--p)">90</td><td>研发部</td><td>李文俊</td><td>2026-12-08 16:45</td><td>技术响应快，新品开发质量高</td></tr>
+                  <tr><td><strong>质量</strong></td><td>30%</td><td style="font-weight:600;color:var(--s)">82</td><td>质量部</td><td>曹冬梅</td><td>2026-12-05 09:20</td><td>年度PPM=12，较去年下降，1次批量问题已闭环</td></tr>
+                  <tr><td><strong>交付</strong></td><td>20%</td><td style="font-weight:600;color:var(--s)">92</td><td>物流部</td><td>孟启迪</td><td>2026-12-06 11:15</td><td>准时交付率98.5%，应急响应及时</td></tr>
+                  <tr><td><strong>售后</strong></td><td>10%</td><td style="font-weight:600;color:var(--s)">90</td><td>售后部</td><td>文琦</td><td>2026-12-09 10:00</td><td>售后响应24h内，问题解决率高</td></tr>
+                  <tr style="background:var(--g50)"><td><strong>加权总分</strong></td><td>100%</td><td style="font-weight:700;color:var(--p);font-size:14px">88.5</td><td colspan="4">综合等级：<span class="tag tag-p">A级（战略核心）</span> · 采购校准人：齐岳 · 发布时间：2026-12-15</td></tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+          <div class="card" style="margin-bottom:0">
+            <div class="card-h"><div class="card-t">评估结果（按总分排序）</div>
+              <div style="display:flex;gap:6px"><select class="select"><option>全部分级</option><option>A级</option><option>B级</option><option>C级</option><option>D级</option></select><button class="btn btn-o btn-s">导出</button></div>
+            </div>
+            <table class="dt">
+              <thead><tr><th style="width:40px">排名</th><th style="width:90px">供应商编码</th><th>供应商</th><th style="width:70px">品类</th><th style="width:50px">商务</th><th style="width:50px">研发</th><th style="width:50px">质量</th><th style="width:50px">交付</th><th style="width:50px">售后</th><th style="width:65px">总分</th><th style="width:45px">等级</th><th style="width:60px">操作</th></tr></thead>
+              <tbody id="result-body"></tbody>
+            </table>
+          </div>
+        </div>
+        </div><!-- end plan-a -->
+
+        <!-- ===== 方案B：对接多维表格（直接展示原型） ===== -->
+        <div class="epanel" id="plan-b">
+          <div class="etabs">
+            <div class="etab active" onclick="btab(this,'pb-collect')">打分收集</div>
+            <div class="etab" onclick="btab(this,'pb-result')">评估结果</div>
+          </div>
+          <!-- 打分收集 -->
+          <div class="epanel active" id="pb-collect">
+            <div class="card" style="margin-bottom:10px">
+              <div class="card-h">
+                <div class="card-t">2026年度供应商绩效评估（多维表格）</div>
+                <div style="display:flex;gap:6px">
+                  <button class="btn btn-o btn-s">筛选</button>
+                  <button class="btn btn-o btn-s">分组</button>
+                  <button class="btn btn-o btn-s">导出</button>
+                  <button class="btn btn-p btn-s" onclick="showLaunchModal()">+ 发起评估</button>
+                </div>
+              </div>
+              <div class="card-b" style="padding:0">
+                <div style="display:flex;gap:0;border-bottom:1px solid var(--g100);background:var(--g50);padding:6px 12px;font-size:11px;color:var(--g500)">
+                  <span>视图：全部数据</span>
+                  <span style="margin-left:16px">采购部视图</span>
+                  <span style="margin-left:16px">质量部视图</span>
+                  <span style="margin-left:16px">研发部视图</span>
+                  <span style="margin-left:auto">共312条 · 已完成190条</span>
+                </div>
+                <table class="dt" style="border:none">
+                  <thead><tr>
+                    <th style="width:36px"><input type="checkbox"></th>
+                    <th style="width:90px">供应商编码</th>
+                    <th>供应商名称</th>
+                    <th style="width:65px">品类</th>
+                    <th style="width:65px">商务(20%)</th>
+                    <th style="width:65px">研发(20%)</th>
+                    <th style="width:65px">质量(30%)</th>
+                    <th style="width:65px">交付(20%)</th>
+                    <th style="width:65px">售后(10%)</th>
+                    <th style="width:75px">加权总分</th>
+                    <th style="width:50px">等级</th>
+                    <th style="width:70px">状态</th>
+                  </tr></thead>
+                  <tbody id="bitable-body"></tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+          <!-- 评估结果（与方案A一致） -->
+          <div class="epanel" id="pb-result">
+            <div class="kpi-row">
+              <div class="kpi"><div class="lbl">A级（战略核心）</div><div class="val b">42</div><div class="sub">≥90分</div></div>
+              <div class="kpi"><div class="lbl">B级（合格）</div><div class="val g">168</div><div class="sub">80-89分</div></div>
+              <div class="kpi"><div class="lbl">C级（观察）</div><div class="val o">71</div><div class="sub">70-79分</div></div>
+              <div class="kpi"><div class="lbl">D级/末10%（整改）</div><div class="val r">31</div><div class="sub"><70或末10%</div></div>
+            </div>
+            <div class="card" style="margin-bottom:10px">
+              <div class="card-h"><div class="card-t">打分详情 — 宁德时代新能源科技股份有限公司（SUPT00001）</div>
+                <span class="tag tag-p">A级 88.5分</span>
+              </div>
+              <div class="card-b">
+                <table class="dt">
+                  <thead><tr><th style="width:80px">维度</th><th style="width:55px">权重</th><th style="width:60px">得分</th><th style="width:80px">打分部门</th><th style="width:70px">打分人</th><th style="width:90px">打分时间</th><th>打分说明/备注</th></tr></thead>
+                  <tbody>
+                    <tr><td><strong>商务</strong></td><td>20%</td><td style="font-weight:600;color:var(--p)">85</td><td>采购部</td><td>齐岳</td><td>2026-12-10 14:30</td><td>价格谈判配合度好，年度降本目标达成</td></tr>
+                    <tr><td><strong>研发</strong></td><td>20%</td><td style="font-weight:600;color:var(--p)">90</td><td>研发部</td><td>李文俊</td><td>2026-12-08 16:45</td><td>技术响应快，新品开发质量高</td></tr>
+                    <tr><td><strong>质量</strong></td><td>30%</td><td style="font-weight:600;color:var(--s)">82</td><td>质量部</td><td>曹冬梅</td><td>2026-12-05 09:20</td><td>年度PPM=12，较去年下降，1次批量问题已闭环</td></tr>
+                    <tr><td><strong>交付</strong></td><td>20%</td><td style="font-weight:600;color:var(--s)">92</td><td>物流部</td><td>孟启迪</td><td>2026-12-06 11:15</td><td>准时交付率98.5%，应急响应及时</td></tr>
+                    <tr><td><strong>售后</strong></td><td>10%</td><td style="font-weight:600;color:var(--s)">90</td><td>售后部</td><td>文琦</td><td>2026-12-09 10:00</td><td>售后响应24h内，问题解决率高</td></tr>
+                    <tr style="background:var(--g50)"><td><strong>加权总分</strong></td><td>100%</td><td style="font-weight:700;color:var(--p);font-size:14px">88.5</td><td colspan="4">综合等级：<span class="tag tag-p">A级（战略核心）</span> · 采购校准人：齐岳 · 发布时间：2026-12-15</td></tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+            <div class="card" style="margin-bottom:0">
+              <div class="card-h"><div class="card-t">评估结果（按总分排序）</div>
+                <div style="display:flex;gap:6px"><select class="select"><option>全部分级</option><option>A级</option><option>B级</option><option>C级</option><option>D级</option></select><button class="btn btn-o btn-s">导出</button></div>
+              </div>
+              <table class="dt">
+                <thead><tr><th style="width:40px">排名</th><th style="width:90px">供应商编码</th><th>供应商</th><th style="width:65px">品类</th><th style="width:50px">商务</th><th style="width:50px">研发</th><th style="width:50px">质量</th><th style="width:50px">交付</th><th style="width:50px">售后</th><th style="width:65px">总分</th><th style="width:45px">等级</th><th style="width:60px">操作</th></tr></thead>
+                <tbody id="bitable-result-body"></tbody>
+              </table>
+            </div>
+          </div>
+        </div><!-- end plan-b -->
+      </div>
+
+      <!-- ===== 供应商资源池（品类视角） ===== -->
+      <div id="pg-pool" style="display:none">
+        <div class="page-hdr">
+          <div class="page-title">供应商资源池 <span style="font-size:11px;font-weight:400;color:var(--g500)">品类视角可用供应商 · 关联品类文件 · 替代长清单+BDL</span></div>
+          <div class="page-actions"><button class="btn btn-o">导出</button><button class="btn btn-p">+ 新建资源池</button></div>
+        </div>
+        <!-- 视图切换 -->
+        <div style="display:flex;gap:0;margin-bottom:10px">
+          <div class="etab active" onclick="poolMainView(this,'overview')" style="background:#fff;border-radius:6px 6px 0 0">全局概览</div>
+          <div class="etab" onclick="poolMainView(this,'detail')" style="background:#fff;border-radius:6px 6px 0 0">品类详情</div>
+        </div>
+        <!-- 全局概览 -->
+        <div id="pool-overview">
+          <div class="kpi-row" style="margin-bottom:10px">
+            <div class="kpi"><div class="lbl">品类总数</div><div class="val b">4</div><div class="sub">已建资源池</div></div>
+            <div class="kpi"><div class="lbl">供应商总数</div><div class="val b">20</div><div class="sub">资源池内</div></div>
+            <div class="kpi"><div class="lbl">战略供应商</div><div class="val g">7</div><div class="sub">九宫格右上</div></div>
+            <div class="kpi"><div class="lbl">清退/观察</div><div class="val r">6</div><div class="sub">需关注</div></div>
+          </div>
+          <div style="display:grid;grid-template-columns:repeat(2,1fr);gap:10px" id="pool-cat-cards"></div>
+        </div>
+        <!-- 品类详情 -->
+        <div id="pool-detail" style="display:none">
+        <!-- 多品类选择 + 品类文件关联 -->
+        <div class="card" style="margin-bottom:10px">
+          <div class="card-b" style="padding:10px 14px">
+            <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:8px">
+              <span style="font-size:11px;font-weight:600;color:var(--g700)">品类（可多选）：</span>
+              <label style="font-size:11px;display:flex;align-items:center;gap:3px;cursor:pointer"><input type="checkbox" class="pool-cat" value="0" checked onchange="switchPool()"> 动力电池</label>
+              <label style="font-size:11px;display:flex;align-items:center;gap:3px;cursor:pointer"><input type="checkbox" class="pool-cat" value="1" checked onchange="switchPool()"> 底盘系统</label>
+              <label style="font-size:11px;display:flex;align-items:center;gap:3px;cursor:pointer"><input type="checkbox" class="pool-cat" value="2" onchange="switchPool()"> 内外饰</label>
+              <label style="font-size:11px;display:flex;align-items:center;gap:3px;cursor:pointer"><input type="checkbox" class="pool-cat" value="3" onchange="switchPool()"> 电子电器</label>
+              <span style="margin-left:auto;font-size:11px;color:var(--g500)">已选 <strong id="pool-cat-count" style="color:var(--p)">2</strong> 个品类 · 共 <strong id="pool-sup-count">10</strong> 家供应商</span>
+              <span style="font-size:11px;color:var(--g500)">|</span>
+              <span style="font-size:11px;color:var(--g600)">视图：</span>
+              <button class="btn btn-p btn-s" onclick="poolView('grid')">九宫格</button>
+              <button class="btn btn-o btn-s" onclick="poolView('list')">列表</button>
+            </div>
+            <!-- 品类四类文件关联 -->
+            <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px;padding-top:8px;border-top:1px solid var(--g100)">
+              <div style="background:var(--pl);padding:7px 10px;border-radius:5px">
+                <div style="font-size:10px;color:var(--p);font-weight:600;margin-bottom:2px">📄 品类策略文件</div>
+                <div style="font-size:10px;color:var(--g600)"><span class="link">动力电池品类策略_v2.pdf</span></div>
+              </div>
+              <div style="background:var(--sl);padding:7px 10px;border-radius:5px">
+                <div style="font-size:10px;color:var(--s);font-weight:600;margin-bottom:2px">📐 技术规范(SOR)</div>
+                <div style="font-size:10px;color:var(--g600)"><span class="link">动力电池技术要求_v3.pdf</span></div>
+              </div>
+              <div style="background:var(--wl);padding:7px 10px;border-radius:5px">
+                <div style="font-size:10px;color:#d46b08;font-weight:600;margin-bottom:2px">✅ 质量标准</div>
+                <div style="font-size:10px;color:var(--g600)"><span class="link">动力电池质量协议.pdf</span></div>
+              </div>
+              <div style="background:#f9f0ff;padding:7px 10px;border-radius:5px">
+                <div style="font-size:10px;color:var(--purple);font-weight:600;margin-bottom:2px">💰 报价模板</div>
+                <div style="font-size:10px;color:var(--g600)"><span class="link">动力电池RFQ报价模板.xlsx</span></div>
+              </div>
+            </div>
+            <div style="margin-top:6px;font-size:10px;color:var(--g500)">以上四类文件来自「基础数据管理 → 品类管理」中各品类上传的附件，资源池页面自动关联展示，询价时可直接发给供应商。</div>
+          </div>
+        </div>
+        <div id="pool-grid-view">
+          <div class="g9-wrap">
+            <div class="g9-chart"><div id="c-9grid" class="chart" style="height:380px"></div></div>
+            <div class="g9-side">
+              <h4>资源池供应商</h4>
+              <div id="pool-legend"></div>
+              <div style="margin-top:8px;padding-top:6px;border-top:1px solid var(--g100);font-size:10px;color:var(--g500);line-height:1.6">
+                <strong>九宫格</strong><br>X轴：绩效（质量为主）<br>Y轴：潜力（技术/团队）<br>右上=战略，左下=清退
+              </div>
+            </div>
+          </div>
+        </div>
+        <div id="pool-list-view" style="display:none">
+          <div class="card" style="margin-bottom:0">
+            <table class="dt">
+              <thead><tr><th style="width:36px">#</th><th style="width:90px">供应商编码</th><th>供应商</th><th style="width:55px">品类</th><th style="width:70px">资源池标签</th><th style="width:50px">绩效</th><th style="width:50px">潜力</th><th style="width:45px">PSA</th><th style="width:70px">年度采购额</th><th style="width:55px">工厂数</th><th style="width:60px">交付率</th><th style="width:55px">质量PPM</th><th style="width:55px">风险</th><th style="width:55px">在研项目</th><th style="width:50px">操作</th></tr></thead>
+              <tbody id="pool-list-body"></tbody>
+            </table>
+          </div>
+        </div>
+        </div><!-- end pool-detail -->
+      </div>
+
+      </div><!-- end tab-p -->
+
+      <!-- ===== Tab2: 改造点说明 ===== -->
+      <div class="epanel" id="tab-s">
+        <div class="sol-hero">
+          <h1>小米汽车供应商绩效 · 整体方案</h1>
+          <p>基于EP现有模块最小改造，实现<strong>制造地信息、绩效评估、供应商OnePage、供应商资源池</strong>4个功能点。绩效评估提供两种收集路线（EP内建/多维表格对接）供业务选择。新增2个菜单项，增强2个现有页面，不新增独立系统。</p>
+        </div>
+
+        <div class="sol-sec">
+          <div class="sol-st"><span class="num">1</span>改造点总览</div>
+          <div class="sol-card">
+            <table class="cmp">
+              <thead><tr><th style="width:100px">功能点</th><th style="width:80px">改造类型</th><th>改造内容</th><th style="width:120px">EP现有模块</th><th style="width:80px">工作量</th></tr></thead>
+              <tbody>
+                <tr><td><strong>① 制造地信息</strong></td><td><span class="tag tag-p">增强现有</span></td><td>供应商详情页新增「制造地信息」Tab：制造地列表（编号/名称/地址/工厂编码/产品/状态），新增/编辑/删除。删除前校验关联订单+工厂引用，校验通过需审批，删除留痕。制造地编号供ERP/MES调用。</td><td>供应商管理 → 供应商清单 → 详情页</td><td><span class="tag tag-s">小</span></td></tr>
+                <tr><td><strong>② 绩效评估</strong></td><td><span class="tag tag-w">新增页面</span></td><td>供应商管理下新增「绩效评估」菜单项（1个页面，3个Tab）：模板配置（维度/权重/打分方式/分级阈值）、评估任务（发起+收集+进度）、分层分级（ABCD+末10%）。</td><td>供应商管理（新增菜单项）</td><td><span class="tag tag-w">中</span></td></tr>
+                <tr><td><strong>③ 供应商OnePage</strong></td><td><span class="tag tag-p">增强现有</span></td><td>供应商详情页顶部增加OnePage概览区：绩效雷达图、九宫格定位、风险筛查、合作概况（采购额/项目/交付/PPM）。不新增独立页面，集成到现有详情页。</td><td>供应商管理 → 供应商清单 → 详情页</td><td><span class="tag tag-s">小</span></td></tr>
+                <tr><td><strong>④ 供应商资源池</strong></td><td><span class="tag tag-w">新增页面</span></td><td>询报价与定点下新增「供应商资源池」菜单项（替代长清单管理）：按品类展示可用供应商，支持九宫格视图/列表视图切换，标签=战略/合格/鲶鱼/清退。</td><td>询报价与定点（新增/替代长清单）</td><td><span class="tag tag-w">中</span></td></tr>
+                <tr><td><strong>⑤ 合规评估</strong></td><td><span class="tag tag-p">增强现有</span></td><td>供应商详情页新增「合规评估」Tab：法务/财务/ESG/数据安全/反腐败5项评估，每项含状态/结果/有效期/评估人，总体合规状态同步OnePage。任一不通过限制新项目定点。</td><td>供应商管理 → 供应商清单 → 详情页</td><td><span class="tag tag-s">小</span></td></tr>
+              </tbody>
+            </table>
+            <div style="margin-top:8px;font-size:11px;color:var(--g600);background:var(--g50);padding:8px;border-radius:4px"><strong>总计</strong>：新增2个菜单项（绩效评估、供应商资源池），增强2个现有页面（供应商清单列表+详情页含制造地/OnePage/合规评估）。不新增独立系统，不改动EP底层架构。</div>
+          </div>
+        </div>
+
+        <div class="sol-sec">
+          <div class="sol-st"><span class="num">2</span>制造地信息 · 详细改造点</div>
+          <div class="grid-2">
+            <div class="sol-card">
+              <h3>新增内容</h3>
+              <p>• 供应商详情页新增「制造地信息」Tab<br>• 字段：制造地编号（系统生成，唯一）、名称、地址、工厂编码（关联基础数据-工厂）、主要产品、状态（启用/停用）<br>• 操作：新增、编辑、删除、启用/停用<br>• 制造地编号作为上下游系统（ERP/MES）的唯一标识</p>
+            </div>
+            <div class="sol-card">
+              <h3>删除逻辑（严谨）</h3>
+              <p><strong>删除前校验</strong>：<br>① 是否有在产/在途订单关联该制造地 → 有则禁止删除<br>② 是否在基础数据-工厂模块中被引用 → 有则禁止删除<br>③ 是否有未结质量/交付事件 → 有则禁止删除<br><strong>校验通过</strong>：需提交审批（采购经理），审批通过后软删除（状态=已删除，数据保留），操作人/时间/原因留痕。<br><strong>不可硬删除</strong>，保证上下游数据一致性。</p>
+            </div>
+          </div>
+        </div>
+
+        <div class="sol-sec">
+          <div class="sol-st"><span class="num">3</span>绩效评估 · 两种方案对比</div>
+          <div class="sol-card">
+            <table class="cmp">
+              <thead><tr><th style="width:90px">对比项</th><th style="width:180px">方案A：EP系统内建</th><th style="width:180px">方案B：对接多维表格（精简）</th></tr></thead>
+              <tbody>
+                <tr><td><strong>核心思路</strong></td><td>在EP内建完整绩效模块，模板配置/在线打分/自动汇总全流程</td><td>复用飞书多维表格收数，EP只做入口跳转和结果回显</td></tr>
+                <tr><td><strong>开发量</strong></td><td><span class="tag tag-w">中</span> 4-6周</td><td><span class="tag tag-s">小</span> 1-2周</td></tr>
+                <tr><td><strong>EP改造点</strong></td><td>新增1个页面（3个Tab：模板/任务/结果）</td><td>仅2处：绩效评估页入口 + 供应商详情绩效回显</td></tr>
+                <tr><td><strong>打分载体</strong></td><td>EP在线表单</td><td>飞书多维表格（各部门视图隔离）</td></tr>
+                <tr><td><strong>模板配置</strong></td><td>EP内可视化配置（维度/权重/阈值）</td><td>多维表格字段+公式配置</td></tr>
+                <tr><td><strong>自动汇总</strong></td><td>EP后端自动加权算分</td><td>多维表格公式自动算</td></tr>
+                <tr><td><strong>数据留痕</strong></td><td>EP操作日志，可追溯</td><td>多维表格修改历史</td></tr>
+                <tr><td><strong>OnePage集成</strong></td><td>直接读EP数据库</td><td>通过API读多维表格结果</td></tr>
+                <tr><td><strong>适用场景</strong></td><td>长期使用、需要深度集成、多周期迭代</td><td>快速上线、先跑通流程、后续再迁移到EP</td></tr>
+                <tr><td><strong>风险</strong></td><td>开发周期长，需求变更成本高</td><td>依赖多维表格，数据一致性需API同步</td></tr>
+              </tbody>
+            </table>
+            <div style="margin-top:8px;padding:8px;background:var(--g50);border-radius:4px;font-size:11px;color:var(--g600)"><strong>建议</strong>：Q4先上方案B（1-2周快速跑通2026年度评估），同时启动方案A开发，2027年度评估切换到EP内建。两种方案的绩效结果结构一致，可平滑迁移。</div>
+          </div>
+          <div class="sol-card" style="margin-top:10px">
+            <div style="font-size:12px;font-weight:600;margin-bottom:6px">方案A流程（EP内建）</div>
+            <div class="flow">
+              <div class="flow-step"><div class="sn">1</div><h4>模板配置</h4><p>维度/权重/打分方式/分级阈值可配。质量、交付用子项打分表，其他直接打总分。</p></div>
+              <div class="flow-step"><div class="sn">2</div><h4>发起评估</h4><p>选择模板+供应商范围，系统自动拉取清单，分配给5个部门。</p></div>
+              <div class="flow-step"><div class="sn">3</div><h4>收集打分</h4><p>各部门在线打分，质量/交付导入月度Excel自动算均分，其他直接输入总分。</p></div>
+              <div class="flow-step"><div class="sn">4</div><h4>分层分级</h4><p>自动加权汇总，ABCD分级，末10%强制D级，触发整改。</p></div>
+            </div>
+          </div>
+        </div>
+
+        <div class="sol-sec">
+          <div class="sol-st"><span class="num">4</span>供应商OnePage · 详细改造点</div>
+          <div class="sol-card">
+            <p><strong>定位</strong>：OnePage不是独立页面，而是供应商详情页的顶部概览区。采购员打开供应商详情即可看到核心信息，无需跳转。</p>
+            <div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:8px;margin-top:8px">
+              <div style="background:var(--pl);padding:8px;border-radius:5px"><div style="font-size:10px;color:var(--p);font-weight:600">📊 绩效概览</div><div style="font-size:10px;color:var(--g600);margin-top:2px">总分+等级+5维雷达图</div></div>
+              <div style="background:#f9f0ff;padding:8px;border-radius:5px"><div style="font-size:10px;color:var(--purple);font-weight:600">🎯 九宫格</div><div style="font-size:10px;color:var(--g600);margin-top:2px">绩效×潜力定位迷你图</div></div>
+              <div style="background:var(--sl);padding:8px;border-radius:5px"><div style="font-size:10px;color:var(--s);font-weight:600">⚠️ 风险筛查</div><div style="font-size:10px;color:var(--g600);margin-top:2px">SMS信用司法+财报AI</div></div>
+              <div style="background:var(--wl);padding:8px;border-radius:5px"><div style="font-size:10px;color:#d46b08;font-weight:600">📦 合作概况</div><div style="font-size:10px;color:var(--g600);margin-top:2px">采购额/项目/交付/PPM</div></div>
+            </div>
+            <p style="margin-top:8px;font-size:11px;color:var(--g600)"><strong>数据来源</strong>：绩效来自绩效评估模块，九宫格来自资源池模块，风险来自SMS+财报AI工具，合作概况来自EP现有订单/台账数据。OnePage只是聚合展示，不新增数据源。</p>
+          </div>
+        </div>
+
+        <div class="sol-sec">
+          <div class="sol-st"><span class="num">5</span>供应商资源池 · 详细改造点</div>
+          <div class="grid-2">
+            <div class="sol-card">
+              <h3>替代关系</h3>
+              <p>现有「长清单管理」+「RFQ预选(BDL)」两个页面，功能重叠且维护成本高。<br><br><strong>方案</strong>：新增「供应商资源池」页面，逐步替代长清单管理。BDL保留作为RFQ环节的预选清单，从资源池中选取。<br><br>每次询价只询资源池内的供应商，资源池外需走特殊审批。</p>
+            </div>
+            <div class="sol-card">
+              <h3>品类视角</h3>
+              <p>• 按品类展示资源池（每品类5-8家）<br>• 九宫格视图：绩效×潜力定位，直观展示战略/合格/鲶鱼/清退<br>• 列表视图：供应商名称/标签/绩效/潜力/PSA/在研项目<br>• 标签由品类策略会确定，系统记录维护人/更新时间<br>• 九宫格数据Q4先做线下导入展示，后续接入绩效模块</p>
+            </div>
+          </div>
+        </div>
+
+        <div class="sol-sec">
+          <div class="sol-st"><span class="num">6</span>合规评估 · 详细改造点</div>
+          <div class="grid-2">
+            <div class="sol-card">
+              <h3>评估项（5项）</h3>
+              <p>• <strong>法务合规</strong>：诉讼记录、行政处罚、合规审查（法务部）<br>• <strong>财务合规</strong>：审计报告、资产负债率、现金流（财务部）<br>• <strong>ESG合规</strong>：环境/社会/治理评估、ISO14001（可持续发展）<br>• <strong>数据安全</strong>：等保认证、数据处理协议（信息安全部）<br>• <strong>反腐败合规</strong>：反商业贿赂协议、腐败投诉（纪检监察）</p>
+            </div>
+            <div class="sol-card">
+              <h3>业务规则</h3>
+              <p>• 5项分别由对应部门评估，每项有状态/结果/有效期/评估人<br>• 任一项目不通过 → 总体状态"待整改"，限制新项目定点<br>• 全部通过 → 总体状态"合规"，有效期1年<br>• 评估结果同步OnePage风险筛查卡片<br>• 到期前30天自动提醒对应部门重新评估<br>• 评估记录留痕，支持历史查询</p>
+            </div>
+          </div>
+        </div>
+
+        <div class="sol-sec">
+          <div class="sol-st"><span class="num">7</span>页面流转关系</div>
+          <div class="sol-card">
+            <div style="text-align:center;font-size:11px;color:var(--g600);line-height:2">
+              <div style="display:inline-block;background:var(--pl);padding:6px 14px;border-radius:5px;border:1px solid #91caff;margin:4px"><strong>供应商清单</strong>（现有，增加绩效/资源池列）</div>
+              <div style="color:var(--g400)">↓ 点击供应商名称</div>
+              <div style="display:inline-block;background:#f9f0ff;padding:6px 14px;border-radius:5px;border:1px solid #d3adf7;margin:4px"><strong>供应商详情</strong>（增强：OnePage顶部概览 + 制造地Tab + 绩效记录Tab）</div>
+              <div style="color:var(--g400)">↙ 绩效数据 &nbsp;&nbsp; ↘ 九宫格数据</div>
+              <div style="display:flex;justify-content:center;gap:10px;flex-wrap:wrap">
+                <div style="display:inline-block;background:var(--wl);padding:6px 14px;border-radius:5px;border:1px solid #ffd591;margin:4px"><strong>绩效评估</strong>（新增：模板/发起/收集/分级）</div>
+                <div style="display:inline-block;background:var(--sl);padding:6px 14px;border-radius:5px;border:1px solid #b7eb8f;margin:4px"><strong>供应商资源池</strong>（新增：品类视角+九宫格）</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="sol-sec">
+          <div class="sol-st"><span class="num">8</span>业务需补充确认</div>
+          <div class="sol-card">
+            <table class="cmp">
+              <thead><tr><th style="width:30px">#</th><th style="width:110px">事项</th><th>需确认内容</th><th style="width:50px">优先级</th></tr></thead>
+              <tbody>
+                <tr><td>1</td><td>制造地编号规则</td><td>制造地编号的编码规则？是否与基础数据-工厂模块的工厂编码一致？还是独立编码？</td><td><span class="tag tag-d">P0</span></td></tr>
+                <tr><td>2</td><td>制造地删除审批</td><td>删除制造地的审批流程？审批人是谁？软删除后数据保留多久？</td><td><span class="tag tag-d">P0</span></td></tr>
+                <tr><td>3</td><td>质量部打分表</td><td>质量部月度打分表Excel模板、字段、计算规则。是否登记到EP还是只导出月度分？</td><td><span class="tag tag-d">P0</span></td></tr>
+                <tr><td>4</td><td>物流部打分表</td><td>物流部月度扣分规则、交付数据来源、均分计算方式。</td><td><span class="tag tag-d">P0</span></td></tr>
+                <tr><td>5</td><td>绩效维度权重</td><td>5维权重（默认商务20/研发20/质量30/交付20/售后10），是否按品类差异化？</td><td><span class="tag tag-d">P0</span></td></tr>
+                <tr><td>6</td><td>资源池品类范围</td><td>哪些品类先做资源池线上化？九宫格数据由谁维护、更新频率？</td><td><span class="tag tag-w">P1</span></td></tr>
+                <tr><td>7</td><td>末10%整改流程</td><td>整改计划由谁提交？期限？闭环标准？是否与下一年度评估联动？</td><td><span class="tag tag-w">P1</span></td></tr>
+                <tr><td>8</td><td>合规评估项</td><td>5项合规评估（法务/财务/ESG/数据安全/反腐败）是否齐全？各部门评估人是谁？评估周期？</td><td><span class="tag tag-d">P0</span></td></tr>
+                <tr><td>9</td><td>合规不通过处理</td><td>合规评估不通过时，限制措施的具体范围？是否影响现有订单？整改期限？</td><td><span class="tag tag-w">P1</span></td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+      </div><!-- end tab-s -->
+    </div>
+  </main>
+</div>
+
+<!-- 新增工厂弹窗 -->
+<div class="modal-mask" id="mfg-modal">
+  <div class="modal">
+    <div class="modal-h"><h3>新增工厂</h3><button class="btn-d" onclick="closeMfgModal()">✕</button></div>
+    <div class="modal-b">
+      <div class="form-row"><label>工厂编码（系统自动生成，不可修改）</label><input class="input" value="SUPT00001-F05" disabled style="background:var(--g100);color:var(--g500)"></div>
+      <div class="form-row"><label>工厂名称 *</label><input class="input" placeholder="如：贵安新区工厂"></div>
+      <div class="form-row"><label>详细地址 *</label><input class="input" placeholder="省/市/区/详细地址"></div>
+      <div class="form-row"><label>主要产品</label><input class="input" placeholder="如：动力电池电芯"></div>
+      <div class="form-row"><label>年产能</label><input class="input" placeholder="如：20GWh"></div>
+      <div class="form-row"><label>状态</label><select class="select" style="width:100%"><option>启用</option><option>停用</option></select></div>
+    </div>
+    <div class="modal-f"><button class="btn btn-o" onclick="closeMfgModal()">取消</button><button class="btn btn-p" onclick="closeMfgModal()">保存</button></div>
+  </div>
+</div>
+
+<!-- 发起评估弹窗 -->
+<div class="modal-mask" id="launch-modal">
+  <div class="modal" style="width:560px">
+    <div class="modal-h"><h3>发起绩效评估</h3><button class="btn-d" onclick="closeLaunchModal()">✕</button></div>
+    <div class="modal-b">
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px">
+        <div class="form-row"><label>评估模板 *</label><select class="select" style="width:100%"><option>2026年度-标准模板</option><option>2026Q3-季度模板</option><option>动力电池-专项模板</option></select></div>
+        <div class="form-row"><label>评估周期 *</label><select class="select" style="width:100%"><option>年度（2026全年）</option><option>半年度（H2）</option><option>季度（Q4）</option><option>月度（12月）</option></select></div>
+        <div class="form-row"><label>评估开始日 *</label><input class="input" type="date" value="2026-12-01" style="width:100%"></div>
+        <div class="form-row"><label>打分截止日 *</label><input class="input" type="date" value="2026-12-15" style="width:100%"></div>
+      </div>
+      <div class="form-row"><label>参评供应商范围 *</label>
+        <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:4px">
+          <label style="font-size:11px;display:flex;align-items:center;gap:3px"><input type="checkbox" checked> 全部正式供应商（312家）</label>
+          <label style="font-size:11px;display:flex;align-items:center;gap:3px"><input type="checkbox"> 按品类筛选</label>
+          <label style="font-size:11px;display:flex;align-items:center;gap:3px"><input type="checkbox"> 按采购工程师筛选</label>
+          <label style="font-size:11px;display:flex;align-items:center;gap:3px"><input type="checkbox"> 手动选择</label>
+        </div>
+      </div>
+      <div class="form-row"><label>打分分发对象（系统自动按模板配置分发）</label>
+        <div style="background:var(--g50);padding:8px;border-radius:4px;font-size:11px;color:var(--g600);line-height:1.8">
+          商务分 → 采购部 齐岳（312家）<br>
+          研发分 → 研发部 李文俊（312家）<br>
+          质量分 → 质量部 曹冬梅（导入月度评分表自动算）<br>
+          交付分 → 物流部 孟启迪（导入月度评分表自动算）<br>
+          售后分 → 售后部 文琦（312家）
+        </div>
+      </div>
+      <div class="form-row"><label>催办设置</label>
+        <div style="display:flex;gap:12px;font-size:11px;color:var(--g600);margin-top:4px">
+          <label><input type="checkbox" checked> 到期前3天提醒</label>
+          <label><input type="checkbox" checked> 逾期每日提醒</label>
+          <label><input type="checkbox" checked> 逾期3天升级负责人</label>
+        </div>
+      </div>
+    </div>
+    <div class="modal-f"><button class="btn btn-o" onclick="closeLaunchModal()">取消</button><button class="btn btn-p" onclick="closeLaunchModal();alert('评估任务已发起，打分通知已发送至各部门对接人')">确认发起</button></div>
+  </div>
+</div>
+
+<!-- 停用工厂确认弹窗 -->
+<div class="modal-mask" id="del-modal">
+  <div class="modal">
+    <div class="modal-h"><h3>停用工厂确认</h3><button class="btn-d" onclick="closeDelModal()">✕</button></div>
+    <div class="modal-b">
+      <div class="alert warn"><span>⚠️</span><div><strong>工厂编码一经创建不可删除</strong>，停用后编码永久保留，历史数据可追溯。</div></div>
+      <div style="font-size:12px;color:var(--g600);margin-bottom:8px">即将停用工厂：<strong>SUPT00001-F01 宁德工厂</strong></div>
+      <ul style="font-size:12px;color:var(--g600);padding-left:18px;line-height:2">
+        <li>该工厂被 <strong style="color:var(--d)">ERP/MES/质量系统</strong> 引用</li>
+        <li>存在 <strong style="color:var(--d)">3个在产订单</strong> 关联该工厂</li>
+        <li>停用后，新订单不可选择该工厂，历史订单不受影响</li>
+      </ul>
+      <div style="margin-top:8px;font-size:11px;color:var(--g500)">停用需提交采购经理审批，审批通过后生效。操作人/时间/原因将留痕。</div>
+    </div>
+    <div class="modal-f"><button class="btn btn-o" onclick="closeDelModal()">取消</button><button class="btn btn-p" onclick="closeDelModal()">提交审批停用</button></div>
+  </div>
+</div>
+
+<script>
+function go(el,page){
+  if(el){document.querySelectorAll('.ep-sb-item').forEach(i=>i.classList.remove('active'));el.classList.add('active');}
+  ['list','detail','perf','pool'].forEach(p=>{document.getElementById('pg-'+p).style.display=p===page?'block':'none';});
+  const names={list:'供应商清单',detail:'供应商详情',perf:'绩效评估',pool:'供应商资源池'};
+  document.getElementById('bc-current').textContent=names[page]||'';
+  if(page==='perf') setTimeout(initPerf,50);
+  if(page==='pool') setTimeout(initPool,50);
+  if(page==='detail') setTimeout(initDetail,50);
+}
+function tab(el,id){
+  el.parentElement.querySelectorAll('.etab').forEach(i=>i.classList.remove('active'));
+  el.classList.add('active');
+  document.getElementById('tab-p').classList.toggle('active',id==='tab-p');
+  document.getElementById('tab-s').classList.toggle('active',id==='tab-s');
+}
+function planTab(el,id){
+  el.parentElement.querySelectorAll('.etab').forEach(i=>i.classList.remove('active'));
+  el.classList.add('active');
+  document.getElementById('plan-a').classList.toggle('active',id==='plan-a');
+  document.getElementById('plan-b').classList.toggle('active',id==='plan-b');
+  if(id==='plan-a') setTimeout(initPerf,50);
+}
+function etab(el,id){
+  el.parentElement.querySelectorAll('.etab').forEach(i=>i.classList.remove('active'));
+  el.classList.add('active');
+  el.closest('#plan-a').querySelectorAll('.epanel').forEach(p=>p.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+}
+function dtab(el,id){
+  el.parentElement.querySelectorAll('.dtab').forEach(i=>i.classList.remove('active'));
+  el.classList.add('active');
+  const card=el.closest('.dtabs').nextElementSibling;
+  if(card) card.querySelectorAll('.epanel').forEach(p=>p.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+}
+function goDetail(name){document.getElementById('sd-name').textContent=name;go(null,'detail');}
+
+// Supplier list
+const suppliers=[
+  {code:'SUPT02888',name:'华为软件技术有限公司',eng:'王瑞玚',sales:'张伟',pacc:'P10023',cat:'电子电器',score:86,grade:'A',pool:'战略'},
+  {code:'SUPT02876',name:'博格华纳汽车零部件（宁波）有限公司',eng:'毛箭',sales:'李强',pacc:'P10045',cat:'底盘',score:82,grade:'B',pool:'合格'},
+  {code:'SUPT02603',name:'武汉东海敏实汽车零部件有限公司',eng:'翁伟康',sales:'王芳',pacc:'P10067',cat:'内外饰',score:78,grade:'C',pool:'合格'},
+  {code:'SUPT02594',name:'欧摩威汽车电子系统（常熟）有限公司',eng:'崔健',sales:'赵明',pacc:'P10089',cat:'电子电器',score:85,grade:'A',pool:'战略'},
+  {code:'SUPT02559',name:'江苏莱克智能电器有限公司',eng:'唐宁',sales:'陈静',pacc:'P10112',cat:'电子电器',score:75,grade:'C',pool:'观察'},
+  {code:'SUPT02426',name:'湖南美湖智造股份有限公司',eng:'毛箭',sales:'刘洋',pacc:'P10134',cat:'内外饰',score:80,grade:'B',pool:'合格'},
+  {code:'SUPT02008',name:'江苏天华汽车电子科技有限公司',eng:'王瑞玚',sales:'周杰',pacc:'P10156',cat:'电子电器',score:71,grade:'C',pool:'鲶鱼'},
+  {code:'SUPT01651',name:'庞贝捷漆油贸易（上海）有限公司',eng:'仓基伟',sales:'吴敏',pacc:'P10178',cat:'内外饰',score:88,grade:'A',pool:'战略'},
+  {code:'SUPT01237',name:'英得尔实业（广东）股份有限公司',eng:'陈凡瑜',sales:'郑涛',pacc:'P10201',cat:'电子电器',score:68,grade:'D',pool:'清退'},
+  {code:'SUPT00920',name:'无锡隆盛新能源科技有限公司',eng:'李圆媛',sales:'孙丽',pacc:'P10223',cat:'动力电池',score:83,grade:'B',pool:'合格'},
+  {code:'255805',name:'上海蒂森克虏伯汇众汽车零部件有限公司',eng:'金远达',sales:'马超',pacc:'P10245',cat:'底盘',score:81,grade:'B',pool:'合格'},
+  {code:'255702',name:'无锡威孚高科技集团股份有限公司',eng:'苏立',sales:'黄磊',pacc:'P10267',cat:'底盘',score:79,grade:'C',pool:'鲶鱼'},
+];
+function renderList(){
+  document.getElementById('list-body').innerHTML=suppliers.map((v,i)=>{
+    const sc=v.score>=85?'h':v.score>=70?'m':'l';
+    const gc=v.grade==='A'?'tag-p':v.grade==='B'?'tag-s':v.grade==='C'?'tag-w':'tag-d';
+    const pc=v.pool==='战略'?'tag-purple':v.pool==='合格'?'tag-s':v.pool==='鲶鱼'?'tag-cyan':'tag-d';
+    return `<tr><td>${i+1}</td><td style="color:var(--g500);font-family:monospace;font-size:11px">${v.code}</td>
+    <td><span class="link" onclick="goDetail('${v.name}')">${v.name}</span></td>
+    <td>${v.eng}</td><td>${v.sales}</td><td style="font-family:monospace;font-size:11px">${v.pacc}</td>
+    <td><span class="tag tag-g">${v.cat}</span></td>
+    <td><div class="sbar"><div class="bar"><div class="fill ${sc}" style="width:${v.score}%"></div></div><span class="sv">${v.score}</span></div></td>
+    <td><span class="tag ${pc}">${v.pool}</span></td>
+    <td><button class="btn-d" onclick="goDetail('${v.name}')">详情</button></td></tr>`;
+  }).join('');
+}
+renderList();
+
+// Manufacturing sites
+const mfgSites=[
+  {id:'SUPT00001-F01',name:'宁德工厂',addr:'福建宁德蕉城区漳湾镇',prod:'动力电池模组',cap:'50GWh',status:'启用',ref:'ERP/MES/质量'},
+  {id:'SUPT00001-F02',name:'溧阳工厂',addr:'江苏溧阳中关村科技产业园',prod:'动力电池电芯',cap:'30GWh',status:'启用',ref:'ERP/MES'},
+  {id:'SUPT00001-F03',name:'宜宾工厂',addr:'四川宜宾临港经开区',prod:'动力电池PACK',cap:'20GWh',status:'启用',ref:'ERP'},
+  {id:'SUPT00001-F04',name:'肇庆工厂',addr:'广东肇庆高新区',prod:'动力电池模组',cap:'15GWh',status:'停用',ref:'历史数据保留'},
+];
+function renderMfg(){
+  document.getElementById('mfg-body').innerHTML=mfgSites.map((v,i)=>{
+    const st=v.status==='启用'?'tag-s':'tag-g';
+    const actBtn=v.status==='启用'?'<button class="btn-d" onclick="showDelModal()">停用</button>':'<button class="btn-d">启用</button>';
+    return `<tr><td>${i+1}</td><td style="font-family:monospace;font-size:11px;color:var(--p);font-weight:600">${v.id}</td><td>${v.name}</td><td>${v.addr}</td>
+    <td>${v.prod}</td><td>${v.cap}</td><td><span class="tag ${st}">${v.status}</span></td>
+    <td><span class="tag tag-g">${v.ref}</span></td>
+    <td><button class="btn-d">编辑</button> ${actBtn}</td></tr>`;
+  }).join('');
+}
+renderMfg();
+function showMfgModal(){document.getElementById('mfg-modal').classList.add('show');}
+function closeMfgModal(){document.getElementById('mfg-modal').classList.remove('show');}
+function showDelModal(){document.getElementById('del-modal').classList.add('show');}
+function closeDelModal(){document.getElementById('del-modal').classList.remove('show');}
+function showLaunchModal(){document.getElementById('launch-modal').classList.add('show');}
+function closeLaunchModal(){document.getElementById('launch-modal').classList.remove('show');}
+
+// Performance
+const perfData=[
+  {code:'SUPT00001',n:'宁德时代',cat:'动力电池',b:85,r:90,q:82,d:92,a:90,s:88.5,st:'已完成'},
+  {code:'SUPT00002',n:'比亚迪弗迪',cat:'动力电池',b:80,r:85,q:88,d:85,a:82,s:84.6,st:'已完成'},
+  {code:'SUPT00003',n:'博世中国',cat:'底盘',b:72,r:88,q:78,d:85,a:80,s:80.2,st:'已完成'},
+  {code:'SUPT00004',n:'大陆集团',cat:'底盘',b:78,r:82,q:85,d:88,a:85,s:83.1,st:'已完成'},
+  {code:'SUPT00005',n:'华域汽车',cat:'内外饰',b:82,r:78,q:80,d:86,a:78,s:80.8,st:'已完成'},
+  {code:'SUPT00006',n:'敏实集团',cat:'内外饰',b:75,r:72,q:76,d:80,a:75,s:75.7,st:'打分中'},
+  {code:'SUPT00007',n:'均胜电子',cat:'电子电器',b:70,r:85,q:72,d:78,a:80,s:76.5,st:'打分中'},
+  {code:'SUPT00008',n:'德赛西威',cat:'电子电器',b:78,r:90,q:85,d:82,a:88,s:84.3,st:'已完成'},
+  {code:'SUPT00009',n:'蜂巢能源',cat:'动力电池',b:68,r:70,q:65,d:72,a:70,s:69.2,st:'已完成'},
+  {code:'SUPT00017',n:'某塑料件厂',cat:'内外饰',b:72,r:65,q:60,d:75,a:68,s:68.0,st:'已完成'},
+];
+function renderPerf(){
+  document.getElementById('perf-body').innerHTML=perfData.map(v=>{
+    const sc=v.s>=85?'h':v.s>=70?'m':'l';
+    const stTag=v.st==='已完成'?'tag-s':'tag-w';
+    return `<tr><td style="font-family:monospace;font-size:11px;color:var(--g500)">${v.code}</td><td><span class="link" onclick="goDetail('${v.n}')">${v.n}</span></td><td><span class="tag tag-g">${v.cat}</span></td>
+    <td>${v.b}</td><td>${v.r}</td><td>${v.q}</td><td>${v.d}</td><td>${v.a}</td>
+    <td><div class="sbar"><div class="bar"><div class="fill ${sc}" style="width:${v.s}%"></div></div><span class="sv">${v.s}</span></div></td>
+    <td><span class="tag ${stTag}">${v.st}</span></td></tr>`;
+  }).join('');
+  const sorted=[...perfData].sort((a,b)=>b.s-a.s);
+  document.getElementById('result-body').innerHTML=sorted.map((v,i)=>{
+    const g=v.s>=90?'A':v.s>=80?'B':v.s>=70?'C':'D';
+    const gc=g==='A'?'tag-p':g==='B'?'tag-s':g==='C'?'tag-w':'tag-d';
+    return `<tr><td>${i+1}</td><td style="font-family:monospace;font-size:11px;color:var(--g500)">${v.code}</td><td><span class="link" onclick="goDetail('${v.n}')">${v.n}</span></td><td><span class="tag tag-g">${v.cat}</span></td>
+    <td>${v.b}</td><td>${v.r}</td><td>${v.q}</td><td>${v.d}</td><td>${v.a}</td>
+    <td><strong>${v.s}</strong></td><td><span class="tag ${gc}">${g}</span></td>
+    <td><button class="btn-d">详情</button></td></tr>`;
+  }).join('');
+}
+renderPerf();
+// 方案B多维表格渲染
+const bitableData=[
+  {code:'SUPT00001',name:'宁德时代新能源科技股份有限公司',cat:'动力电池',b:85,r:90,q:82,d:92,a:90,s:88.5,g:'A',st:'已完成'},
+  {code:'SUPT00002',name:'比亚迪弗迪电池有限公司',cat:'动力电池',b:80,r:85,q:88,d:85,a:82,s:84.6,g:'A',st:'已完成'},
+  {code:'SUPT00003',name:'博世汽车部件（苏州）有限公司',cat:'底盘',b:72,r:88,q:78,d:85,a:80,s:80.2,g:'B',st:'已完成'},
+  {code:'SUPT00004',name:'大陆汽车电子（长春）有限公司',cat:'底盘',b:78,r:82,q:85,d:88,a:85,s:83.1,g:'B',st:'已完成'},
+  {code:'SUPT00005',name:'华域汽车系统股份有限公司',cat:'内外饰',b:82,r:78,q:80,d:86,a:78,s:80.8,g:'B',st:'已完成'},
+  {code:'SUPT00006',name:'敏实集团有限公司',cat:'内外饰',b:75,r:72,q:76,d:80,a:75,s:75.7,g:'C',st:'打分中'},
+  {code:'SUPT00007',name:'均胜电子股份有限公司',cat:'电子电器',b:70,r:85,q:72,d:78,a:80,s:76.5,g:'C',st:'打分中'},
+  {code:'SUPT00008',name:'惠州市德赛西威汽车电子股份有限公司',cat:'电子电器',b:78,r:90,q:85,d:82,a:88,s:84.3,g:'A',st:'已完成'},
+  {code:'SUPT00009',name:'蜂巢能源科技股份有限公司',cat:'动力电池',b:68,r:70,q:65,d:72,a:70,s:69.2,g:'D',st:'已完成'},
+  {code:'SUPT00010',name:'华为软件技术有限公司',cat:'电子电器',b:86,r:92,q:88,d:95,a:90,s:89.8,g:'A',st:'已完成'},
+];
+function renderBitable(){
+  const gc={'A':'tag-p','B':'tag-s','C':'tag-w','D':'tag-d'};
+  const stc={'已完成':'tag-s','打分中':'tag-w','未开始':'tag-g'};
+  document.getElementById('bitable-body').innerHTML=bitableData.map(v=>{
+    const sc=v.s>=85?'h':v.s>=70?'m':'l';
+    return `<tr><td><input type="checkbox"></td>
+    <td style="font-family:monospace;font-size:11px;color:var(--g500)">${v.code}</td>
+    <td><span class="link" onclick="goDetail('${v.name}')">${v.name}</span></td>
+    <td><span class="tag tag-g">${v.cat}</span></td>
+    <td style="text-align:center">${v.b||'-'}</td>
+    <td style="text-align:center">${v.r||'-'}</td>
+    <td style="text-align:center">${v.q||'-'}</td>
+    <td style="text-align:center">${v.d||'-'}</td>
+    <td style="text-align:center">${v.a||'-'}</td>
+    <td><div class="sbar"><div class="bar"><div class="fill ${sc}" style="width:${v.s}%"></div></div><span class="sv">${v.s}</span></div></td>
+    <td><span class="tag ${gc[v.g]}">${v.g}</span></td>
+    <td><span class="tag ${stc[v.st]}">${v.st}</span></td></tr>`;
+  }).join('');
+}
+renderBitable();
+// 方案B结果表格渲染
+function renderBitableResult(){
+  const gc={'A':'tag-p','B':'tag-s','C':'tag-w','D':'tag-d'};
+  const sorted=[...bitableData].sort((a,b)=>b.s-a.s);
+  document.getElementById('bitable-result-body').innerHTML=sorted.map((v,i)=>
+    `<tr><td>${i+1}</td><td style="font-family:monospace;font-size:11px;color:var(--g500)">${v.code}</td>
+    <td><span class="link" onclick="goDetail('${v.name}')">${v.name}</span></td>
+    <td><span class="tag tag-g">${v.cat}</span></td>
+    <td style="text-align:center">${v.b}</td><td style="text-align:center">${v.r}</td>
+    <td style="text-align:center">${v.q}</td><td style="text-align:center">${v.d}</td>
+    <td style="text-align:center">${v.a}</td>
+    <td><strong>${v.s}</strong></td><td><span class="tag ${gc[v.g]}">${v.g}</span></td>
+    <td><button class="btn-d">详情</button></td></tr>`
+  ).join('');
+}
+renderBitableResult();
+// 方案B子Tab切换
+function btab(el,id){
+  el.parentElement.querySelectorAll('.etab').forEach(i=>i.classList.remove('active'));
+  el.classList.add('active');
+  el.closest('#plan-b').querySelectorAll('.epanel').forEach(p=>p.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+}
+let perfInit=false;
+function initPerf(){
+  if(perfInit) return; perfInit=true;
+  echarts.init(document.getElementById('c-dist')).setOption({
+    grid:{left:35,right:15,top:20,bottom:25},
+    xAxis:{type:'category',data:['A≥90','B80-89','C70-79','D<70'],axisLabel:{fontSize:10}},
+    yAxis:{type:'value',axisLabel:{fontSize:10}},
+    series:[{type:'bar',data:[{value:42,itemStyle:{color:'#1677ff'}},{value:168,itemStyle:{color:'#52c41a'}},{value:71,itemStyle:{color:'#faad14'}},{value:31,itemStyle:{color:'#ff4d4f'}}],barWidth:28,label:{show:true,position:'top',fontSize:10}}]
+  });
+  const trendEl=document.getElementById('c-trend');
+  if(trendEl) echarts.init(trendEl).setOption({
+    grid:{left:40,right:15,top:20,bottom:25},
+    xAxis:{type:'category',data:['12-01','12-03','12-05','12-07','12-09','12-11','12-13','12-15'],axisLabel:{fontSize:9}},
+    yAxis:{type:'value',max:100,axisLabel:{formatter:'{value}%',fontSize:10}},
+    series:[{type:'line',data:[5,15,28,40,52,58,61,61],smooth:true,areaStyle:{opacity:.1},lineStyle:{color:'#1677ff',width:2},itemStyle:{color:'#1677ff'}}],
+    tooltip:{trigger:'axis'}
+  });
+}
+
+// Resource pool
+const poolData={
+  0:[{code:'SUPT00001',n:'宁德时代',cat:'动力电池',perf:82,pot:95,tag:'战略',psa:'A',amt:'42亿',fact:4,deliv:'98.5%',ppm:12,risk:'低',proj:3},
+     {code:'SUPT00002',n:'比亚迪弗迪',cat:'动力电池',perf:88,pot:80,tag:'战略',psa:'A',amt:'28亿',fact:3,deliv:'97.2%',ppm:18,risk:'低',proj:2},
+     {code:'SUPT00009',n:'蜂巢能源',cat:'动力电池',perf:65,pot:70,tag:'清退',psa:'C',amt:'5亿',fact:2,deliv:'92.1%',ppm:45,risk:'中',proj:1},
+     {code:'SUPT00011',n:'中创新航',cat:'动力电池',perf:75,pot:85,tag:'鲶鱼',psa:'B',amt:'8亿',fact:3,deliv:'95.8%',ppm:22,risk:'低',proj:1},
+     {code:'SUPT00012',n:'国轩高科',cat:'动力电池',perf:70,pot:65,tag:'观察',psa:'B',amt:'3亿',fact:2,deliv:'94.0%',ppm:30,risk:'中',proj:0}],
+  1:[{code:'SUPT00003',n:'博世中国',cat:'底盘',perf:78,pot:90,tag:'战略',psa:'A',amt:'15亿',fact:2,deliv:'96.8%',ppm:15,risk:'低',proj:4},
+     {code:'SUPT00004',n:'大陆集团',cat:'底盘',perf:85,pot:82,tag:'战略',psa:'A',amt:'12亿',fact:1,deliv:'97.5%',ppm:10,risk:'低',proj:3},
+     {code:'SUPT00013',n:'采埃孚',cat:'底盘',perf:80,pot:88,tag:'合格',psa:'A',amt:'8亿',fact:1,deliv:'96.0%',ppm:18,risk:'低',proj:2},
+     {code:'SUPT00014',n:'万向钱潮',cat:'底盘',perf:72,pot:60,tag:'观察',psa:'B',amt:'3亿',fact:2,deliv:'93.5%',ppm:35,risk:'中',proj:1},
+     {code:'SUPT00015',n:'某底盘厂',cat:'底盘',perf:60,pot:55,tag:'清退',psa:'C',amt:'1亿',fact:1,deliv:'89.0%',ppm:60,risk:'高',proj:0}],
+  2:[{code:'SUPT00005',n:'华域汽车',cat:'内外饰',perf:80,pot:78,tag:'合格',psa:'A',amt:'10亿',fact:3,deliv:'96.5%',ppm:20,risk:'低',proj:3},
+     {code:'SUPT00006',n:'敏实集团',cat:'内外饰',perf:76,pot:72,tag:'合格',psa:'B',amt:'6亿',fact:2,deliv:'95.0%',ppm:25,risk:'低',proj:2},
+     {code:'SUPT00016',n:'延锋座椅',cat:'内外饰',perf:85,pot:80,tag:'战略',psa:'A',amt:'8亿',fact:2,deliv:'97.0%',ppm:12,risk:'低',proj:2},
+     {code:'SUPT00017',n:'某塑料件厂',cat:'内外饰',perf:60,pot:50,tag:'清退',psa:'C',amt:'0.5亿',fact:1,deliv:'88.0%',ppm:70,risk:'高',proj:1},
+     {code:'SUPT00018',n:'宁波华翔',cat:'内外饰',perf:74,pot:68,tag:'鲶鱼',psa:'B',amt:'2亿',fact:2,deliv:'94.5%',ppm:28,risk:'中',proj:1}],
+  3:[{code:'SUPT00008',n:'德赛西威',cat:'电子电器',perf:85,pot:92,tag:'战略',psa:'A',amt:'6亿',fact:2,deliv:'97.8%',ppm:8,risk:'低',proj:3},
+     {code:'SUPT00010',n:'华为软件',cat:'电子电器',perf:86,pot:95,tag:'战略',psa:'A',amt:'5亿',fact:1,deliv:'99.0%',ppm:5,risk:'低',proj:2},
+     {code:'SUPT00007',n:'均胜电子',cat:'电子电器',perf:72,pot:80,tag:'鲶鱼',psa:'B',amt:'3亿',fact:2,deliv:'94.0%',ppm:25,risk:'中',proj:2},
+     {code:'SUPT00019',n:'欧摩威',cat:'电子电器',perf:85,pot:75,tag:'合格',psa:'A',amt:'2亿',fact:1,deliv:'96.5%',ppm:15,risk:'低',proj:1},
+     {code:'SUPT00020',n:'某线束厂',cat:'电子电器',perf:62,pot:58,tag:'清退',psa:'C',amt:'0.8亿',fact:1,deliv:'90.0%',ppm:55,risk:'高',proj:1}]
+};
+const tagColors={'战略':'#722ed1','合格':'#52c41a','鲶鱼':'#13c2c2','观察':'#faad14','清退':'#ff4d4f'};
+const catNames=['动力电池','底盘系统','内外饰','电子电器'];
+// 资源池全局概览渲染
+function renderPoolOverview(){
+  const cards=catNames.map((cat,i)=>{
+    const list=poolData[i];
+    const cnt=list.length;
+    const strategic=list.filter(v=>v.tag==='战略').length;
+    const clear=list.filter(v=>v.tag==='清退'||v.tag==='观察').length;
+    const avgPerf=Math.round(list.reduce((s,v)=>s+v.perf,0)/cnt);
+    const avgPot=Math.round(list.reduce((s,v)=>s+v.pot,0)/cnt);
+    const aCnt=list.filter(v=>v.psa==='A').length;
+    return `<div class="card" style="cursor:pointer;margin:0" onclick="enterPoolDetail(${i})">
+      <div class="card-h"><div class="card-t">${cat}</div><span class="tag tag-p">${cnt}家</span></div>
+      <div class="card-b">
+        <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:6px;text-align:center">
+          <div><div style="font-size:16px;font-weight:700;color:var(--p)">${strategic}</div><div style="font-size:9px;color:var(--g500)">战略</div></div>
+          <div><div style="font-size:16px;font-weight:700;color:var(--s)">${aCnt}</div><div style="font-size:9px;color:var(--g500)">A级</div></div>
+          <div><div style="font-size:16px;font-weight:700;color:var(--g700)">${avgPerf}</div><div style="font-size:9px;color:var(--g500)">平均绩效</div></div>
+          <div><div style="font-size:16px;font-weight:700;color:var(--purple)">${avgPot}</div><div style="font-size:9px;color:var(--g500)">平均潜力</div></div>
+        </div>
+        <div style="margin-top:8px;padding-top:6px;border-top:1px solid var(--g100);display:flex;justify-content:space-between;font-size:10px;color:var(--g500)">
+          <span>清退/观察：<strong style="color:var(--d)">${clear}家</strong></span>
+          <span style="color:var(--p)">查看详情 →</span>
+        </div>
+      </div>
+    </div>`;
+  }).join('');
+  document.getElementById('pool-cat-cards').innerHTML=cards;
+}
+renderPoolOverview();
+function poolMainView(el,v){
+  el.parentElement.querySelectorAll('.etab').forEach(i=>i.classList.remove('active'));
+  el.classList.add('active');
+  document.getElementById('pool-overview').style.display=v==='overview'?'block':'none';
+  document.getElementById('pool-detail').style.display=v==='detail'?'block':'none';
+  if(v==='detail'){initPool();}
+}
+function enterPoolDetail(idx){
+  // 切换到品类详情，选中对应品类
+  document.querySelectorAll('#pg-pool .etab')[1].click();
+  document.querySelectorAll('.pool-cat').forEach((c,i)=>c.checked=i===idx);
+  switchPool();
+}
+let poolInit=false;
+function initPool(){if(!poolInit){poolInit=true;}renderPool();}
+function switchPool(){renderPool();}
+function poolView(v){
+  document.getElementById('pool-grid-view').style.display=v==='grid'?'block':'none';
+  document.getElementById('pool-list-view').style.display=v==='list'?'block':'none';
+}
+function renderPool(){
+  const checked=Array.from(document.querySelectorAll('.pool-cat:checked')).map(c=>parseInt(c.value));
+  let data=[];
+  checked.forEach(c=>{data=data.concat(poolData[c]||[]);});
+  document.getElementById('pool-cat-count').textContent=checked.length;
+  document.getElementById('pool-sup-count').textContent=data.length;
+  const chart=echarts.init(document.getElementById('c-9grid'));
+  chart.setOption({
+    grid:{left:50,right:20,top:30,bottom:40},
+    xAxis:{name:'绩效',min:50,max:100,axisLabel:{fontSize:10},splitLine:{show:true,lineStyle:{type:'dashed',color:'#e8e8e8'}}},
+    yAxis:{name:'潜力',min:40,max:100,axisLabel:{fontSize:10},splitLine:{show:true,lineStyle:{type:'dashed',color:'#e8e8e8'}}},
+    series:[{type:'scatter',symbolSize:18,data:data.map(v=>({value:[v.perf,v.pot],name:v.n,itemStyle:{color:tagColors[v.tag]}})),label:{show:true,formatter:p=>p.data.name,position:'right',fontSize:10,color:'#595959'}}],
+    graphic:[
+      {type:'text',left:'75%',top:'5%',style:{text:'战略区',fill:'#722ed1',fontSize:12,fontWeight:'bold'}},
+      {type:'text',left:'10%',top:'85%',style:{text:'清退区',fill:'#ff4d4f',fontSize:12,fontWeight:'bold'}},
+      {type:'line',shape:{x1:75,y1:30,x2:75,y2:350},style:{stroke:'#d9d9d9',lineWidth:1,lineDash:[4,4]}},
+      {type:'line',shape:{x1:45,y1:190,x2:460,y2:190},style:{stroke:'#d9d9d9',lineWidth:1,lineDash:[4,4]}}
+    ]
+  });
+  document.getElementById('pool-legend').innerHTML=data.map(v=>
+    `<div class="g9-legend-item"><div class="g9-dot" style="background:${tagColors[v.tag]}"></div><span style="flex:1">${v.n}</span><span class="tag tag-g">${v.cat}</span></div>`
+  ).join('');
+  const riskColor={'低':'tag-s','中':'tag-w','高':'tag-d'};
+  document.getElementById('pool-list-body').innerHTML=data.map((v,i)=>
+    `<tr><td>${i+1}</td><td style="font-family:monospace;font-size:11px;color:var(--g500)">${v.code}</td><td><span class="link" onclick="goDetail('${v.n}')">${v.n}</span></td>
+    <td><span class="tag tag-g">${v.cat}</span></td>
+    <td><span class="tag" style="background:${tagColors[v.tag]}22;color:${tagColors[v.tag]}">${v.tag}</span></td>
+    <td>${v.perf}</td><td>${v.pot}</td><td>${v.psa}</td><td style="font-weight:600">${v.amt}</td>
+    <td>${v.fact}</td><td style="color:${parseFloat(v.deliv)>=96?'var(--s)':'var(--w)'}">${v.deliv}</td>
+    <td style="color:${v.ppm<=20?'var(--s)':v.ppm<=40?'var(--w)':'var(--d)'}">${v.ppm}</td>
+    <td><span class="tag ${riskColor[v.risk]}">${v.risk}</span></td>
+    <td>${v.proj}个</td>
+    <td><button class="btn-d">详情</button></td></tr>`
+  ).join('');
+}
+
+// Detail charts
+let detailInit=false;
+function initDetail(){
+  if(detailInit) return; detailInit=true;
+  echarts.init(document.getElementById('c-radar')).setOption({
+    radar:{indicator:[{name:'商务',max:100},{name:'研发',max:100},{name:'质量',max:100},{name:'交付',max:100},{name:'售后',max:100}],radius:'60%',axisName:{fontSize:9}},
+    series:[{type:'radar',data:[{value:[85,90,82,92,90],areaStyle:{opacity:.2},lineStyle:{color:'#1677ff'},itemStyle:{color:'#1677ff'}}]}]
+  });
+  echarts.init(document.getElementById('c-mini9')).setOption({
+    grid:{left:40,right:15,top:15,bottom:30},
+    xAxis:{name:'绩效',min:50,max:100,axisLabel:{fontSize:9},splitLine:{lineStyle:{type:'dashed',color:'#e8e8e8'}}},
+    yAxis:{name:'潜力',min:40,max:100,axisLabel:{fontSize:9},splitLine:{lineStyle:{type:'dashed',color:'#e8e8e8'}}},
+    series:[{type:'scatter',symbolSize:16,data:[[82,95]],itemStyle:{color:'#722ed1'},label:{show:true,formatter:'宁德时代',position:'right',fontSize:9}}]
+  });
+}
+</script>
+</body>
+</html>

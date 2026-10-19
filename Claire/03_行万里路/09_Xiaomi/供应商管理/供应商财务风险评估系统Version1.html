@@ -1,0 +1,3304 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>供应商财务风险评估系统</title>
+<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<style>
+:root {
+  --primary: #3b82f6;
+  --primary-light: #60a5fa;
+  --danger: #ef4444;
+  --danger-light: #fca5a5;
+  --warning: #f59e0b;
+  --warning-light: #fcd34d;
+  --success: #10b981;
+  --success-light: #6ee7b7;
+  --info: #8b5cf6;
+  --bg: #f0f2f5;
+  --card: #ffffff;
+  --text: #1e293b;
+  --text-secondary: #64748b;
+  --border: #e2e8f0;
+  --shadow: 0 1px 3px rgba(0,0,0,0.08), 0 1px 2px rgba(0,0,0,0.06);
+  --shadow-lg: 0 10px 15px -3px rgba(0,0,0,0.1), 0 4px 6px -4px rgba(0,0,0,0.1);
+}
+
+[data-theme="dark"] {
+  --bg: #0f172a;
+  --card: #1e293b;
+  --text: #f1f5f9;
+  --text-secondary: #94a3b8;
+  --border: #334155;
+  --shadow: 0 1px 3px rgba(0,0,0,0.3), 0 1px 2px rgba(0,0,0,0.2);
+}
+
+* { margin: 0; padding: 0; box-sizing: border-box; }
+
+body {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  min-height: 100vh;
+  transition: background 0.3s, color 0.3s;
+}
+
+/* Header */
+.header {
+  background: linear-gradient(135deg, #1e3a5f 0%, #2d5a87 50%, #3b82f6 100%);
+  color: white;
+  padding: 20px 40px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  box-shadow: var(--shadow-lg);
+  position: sticky;
+  top: 0;
+  z-index: 100;
+}
+
+.header h1 { font-size: 22px; font-weight: 600; letter-spacing: 1px; }
+.header-right { display: flex; align-items: center; gap: 16px; }
+.company-name { font-size: 14px; opacity: 0.9; }
+
+/* Theme toggle */
+.theme-toggle {
+  background: rgba(255,255,255,0.2);
+  border: none;
+  color: white;
+  padding: 8px 12px;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 14px;
+  transition: background 0.2s;
+}
+.theme-toggle:hover { background: rgba(255,255,255,0.3); }
+
+/* Navigation */
+.nav-tabs {
+  display: flex;
+  background: var(--card);
+  border-bottom: 2px solid var(--border);
+  padding: 0 40px;
+  gap: 0;
+  transition: background 0.3s;
+}
+
+.nav-tab {
+  padding: 14px 28px;
+  cursor: pointer;
+  font-size: 15px;
+  font-weight: 500;
+  color: var(--text-secondary);
+  border-bottom: 3px solid transparent;
+  transition: all 0.2s;
+  user-select: none;
+  position: relative;
+  bottom: -2px;
+}
+
+.nav-tab:hover { color: var(--primary); }
+.nav-tab.active {
+  color: var(--primary);
+  border-bottom-color: var(--primary);
+  font-weight: 600;
+}
+
+/* Upload area */
+.upload-area { max-width: 900px; margin: 60px auto; padding: 0 20px; }
+
+.upload-card {
+  background: var(--card);
+  border-radius: 16px;
+  padding: 60px 40px;
+  text-align: center;
+  box-shadow: var(--shadow-lg);
+  border: 2px dashed var(--border);
+  transition: all 0.3s;
+}
+
+.upload-card.dragover { border-color: var(--primary); background: #eff6ff; }
+
+.upload-icon {
+  width: 80px; height: 80px;
+  background: linear-gradient(135deg, #dbeafe, #bfdbfe);
+  border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  margin: 0 auto 24px;
+  font-size: 36px;
+}
+
+.upload-card h2 { font-size: 20px; margin-bottom: 12px; color: var(--text); }
+.upload-card p { color: var(--text-secondary); margin-bottom: 28px; font-size: 14px; }
+
+.upload-btn {
+  display: inline-flex; align-items: center; gap: 8px;
+  padding: 12px 32px;
+  background: var(--primary);
+  color: white;
+  border: none;
+  border-radius: 8px;
+  font-size: 15px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.upload-btn:hover { background: #2563eb; transform: translateY(-1px); box-shadow: var(--shadow-lg); }
+#fileInput { display: none; }
+.upload-formats { margin-top: 20px; font-size: 13px; color: var(--text-secondary); }
+
+/* Page containers */
+.page { display: none; }
+.page.active { display: block; }
+
+/* Content layout */
+.content { padding: 24px 40px; }
+
+/* Cards */
+.card {
+  background: var(--card);
+  border-radius: 12px;
+  padding: 24px;
+  box-shadow: var(--shadow);
+  margin-bottom: 24px;
+  transition: background 0.3s;
+}
+
+.card-title {
+  font-size: 16px; font-weight: 600;
+  margin-bottom: 20px;
+  display: flex; align-items: center; gap: 8px;
+  color: var(--text);
+}
+
+.card-title .dot {
+  width: 4px; height: 18px;
+  background: var(--primary);
+  border-radius: 2px;
+}
+
+/* Summary cards */
+.summary-grid { display: flex; flex-direction: column; gap: 20px; margin-bottom: 24px; }
+
+/* 供应商卡片独立设计 - 高级版 */
+.summary-grid .supplier-card {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: linear-gradient(135deg, #0f172a 0%, #1e3a8a 50%, #1e40af 100%);
+  border-radius: 16px;
+  padding: 32px 40px;
+  box-shadow: 0 4px 20px rgba(15, 23, 42, 0.4);
+  border: 2px solid #1e40af;
+  position: relative;
+  overflow: hidden;
+  transition: all 0.3s ease;
+}
+
+.summary-grid .supplier-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 12px 40px rgba(0,0,0,0.15);
+}
+
+/* 左侧装饰彩条 - 深色蓝色主题 */
+.summary-grid .supplier-card::before {
+  content: '';
+  position: absolute;
+  left: 0; top: 0; bottom: 0; width: 8px;
+  background: linear-gradient(180deg, #3b82f6 0%, #1d4ed8 50%, #1e3a8a 100%);
+}
+
+/* 供应商信息容器 */
+.supplier-info {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  z-index: 1;
+}
+
+/* 供应商头部 */
+.supplier-header {
+  display: flex;
+  align-items: center;
+}
+
+/* 数据验证状态 - 绿色 */
+.supplier-status {
+  font-size: 11px;
+  color: #34d399;
+  font-weight: 600;
+  background: rgba(16, 185, 129, 0.2);
+  padding: 4px 10px;
+  border-radius: 12px;
+  border: 1px solid rgba(16, 185, 129, 0.4);
+}
+
+/* 供应商名称 - 主要视觉焦点 */
+.supplier-name {
+  font-size: 28px;
+  font-weight: 800;
+  color: #ffffff;
+  letter-spacing: -0.5px;
+  line-height: 1.3;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
+}
+
+/* 供应商元数据 */
+.supplier-meta {
+  display: flex;
+  gap: 20px;
+  margin-top: 4px;
+}
+
+.supplier-period,
+.supplier-type {
+  font-size: 13px;
+  color: #93c5fd;
+  font-weight: 500;
+}
+
+/* 风险介绍卡片样式 */
+.risk-intro-header {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  margin-bottom: 20px;
+  padding-bottom: 16px;
+  border-bottom: 1px solid var(--border);
+}
+
+.risk-intro-icon {
+  width: 48px;
+  height: 48px;
+  background: linear-gradient(135deg, var(--primary) 0%, var(--primary-light) 100%);
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 24px;
+  box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
+}
+
+.risk-intro-title {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.risk-intro-title h3 {
+  font-size: 20px;
+  font-weight: 700;
+  color: var(--text);
+  margin: 0;
+}
+
+.risk-intro-content {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.risk-intro-desc {
+  font-size: 15px;
+  color: var(--text);
+  line-height: 1.5;
+}
+
+.risk-intro-desc strong {
+  color: var(--primary);
+  font-weight: 600;
+}
+
+.risk-intro-detail {
+  font-size: 14px;
+  color: var(--text-secondary);
+  line-height: 1.6;
+  padding: 12px 16px;
+  background: var(--bg);
+  border-radius: 8px;
+  border-left: 3px solid var(--primary);
+}
+
+/* 指标触发状态显示 */
+.indicator-status {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 12px;
+  border-radius: 20px;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.indicator-status.triggered {
+  background: rgba(239, 68, 68, 0.15);
+  color: #dc2626;
+  border: 1px solid rgba(239, 68, 68, 0.3);
+}
+
+.indicator-status.not-triggered {
+  background: rgba(16, 185, 129, 0.15);
+  color: #059669;
+  border: 1px solid rgba(16, 185, 129, 0.3);
+}
+
+.indicator-status .status-icon {
+  font-size: 14px;
+}
+
+.indicator-status .status-text {
+  font-size: 11px;
+}
+
+/* 装饰元素 */
+.supplier-decoration {
+  position: relative;
+  width: 80px;
+  height: 80px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.decoration-circle {
+  width: 60px;
+  height: 60px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, rgba(59, 130, 246, 0.1) 0%, rgba(139, 92, 246, 0.1) 100%);
+  border: 2px solid rgba(59, 130, 246, 0.2);
+  position: relative;
+}
+
+.decoration-circle::after {
+  content: '🏢';
+  position: absolute;
+  top: 50%; left: 50%;
+  transform: translate(-50%, -50%);
+  font-size: 24px;
+}
+
+
+.summary-row {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 20px;
+}
+
+.summary-card {
+  background: var(--card);
+  border-radius: 12px;
+  padding: 24px;
+  box-shadow: var(--shadow);
+  position: relative;
+  overflow: hidden;
+  transition: background 0.3s;
+}
+
+.summary-card::before {
+  content: '';
+  position: absolute;
+  top: 0; left: 0; right: 0;
+  height: 4px;
+}
+
+.summary-card.blue::before { background: linear-gradient(90deg, #3b82f6, #60a5fa); }
+.summary-card.green::before { background: linear-gradient(90deg, #10b981, #34d399); }
+.summary-card.orange::before { background: linear-gradient(90deg, #f59e0b, #fbbf24); }
+.summary-card.red::before { background: linear-gradient(90deg, #ef4444, #f87171); }
+
+.summary-label { font-size: 13px; color: var(--text-secondary); margin-bottom: 8px; font-weight: 500; }
+.summary-value { font-size: 24px; font-weight: 700; color: var(--text); word-break: break-all; }
+.summary-unit { font-size: 14px; font-weight: 400; color: var(--text-secondary); margin-left: 4px; }
+.summary-sub { font-size: 12px; color: var(--text-secondary); margin-top: 6px; }
+
+/* Tables */
+.data-table { width: 100%; border-collapse: collapse; font-size: 14px; }
+
+.data-table th {
+  background: #f8fafc;
+  padding: 12px 16px;
+  text-align: left;
+  font-weight: 600;
+  color: var(--text-secondary);
+  border-bottom: 2px solid var(--border);
+  font-size: 13px;
+  white-space: nowrap;
+}
+
+.data-table td {
+  padding: 12px 16px;
+  border-bottom: 1px solid var(--border);
+  color: var(--text);
+}
+
+.data-table tr:hover td { background: #f8fafc; }
+.data-table .num { text-align: right; font-variant-numeric: tabular-nums; }
+.data-table .total-row { font-weight: 600; background: #f8fafc; }
+
+/* Risk badges */
+.risk-badge {
+  display: inline-flex; align-items: center; gap: 4px;
+  padding: 4px 12px;
+  border-radius: 20px;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.risk-high { background: #fef2f2; color: #dc2626; border: 1px solid #fecaca; }
+.risk-medium { background: #fffbeb; color: #d97706; border: 1px solid #fde68a; }
+.risk-low { background: #eff6ff; color: #3b82f6; border: 1px solid #bfdbfe; }
+.risk-safe { background: #f0fdf4; color: #16a34a; border: 1px solid #bbf7d0; }
+
+/* Charts grid */
+.charts-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 24px;
+  margin-bottom: 24px;
+}
+
+.chart-container { position: relative; height: 300px; }
+
+/* Risk assessment specific */
+.risk-matrix {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: 20px;
+}
+
+.risk-item {
+  background: var(--card);
+  border-radius: 12px;
+  padding: 20px;
+  box-shadow: var(--shadow);
+  border-left: 4px solid transparent;
+  transition: background 0.3s;
+}
+
+.risk-item.high { border-left-color: var(--danger); }
+.risk-item.medium { border-left-color: var(--warning); }
+.risk-item.low { border-left-color: var(--primary); }
+.risk-item.safe { border-left-color: var(--success); }
+
+.risk-item-header {
+  display: flex; justify-content: space-between; align-items: center;
+  margin-bottom: 12px;
+}
+
+.risk-item-title { font-size: 15px; font-weight: 600; }
+.risk-detail { font-size: 13px; color: var(--text-secondary); line-height: 1.6; margin-top: 8px; }
+
+.risk-indicator {
+  display: flex; justify-content: space-between;
+  padding: 8px 0;
+  border-bottom: 1px solid var(--border);
+  font-size: 13px;
+}
+
+.risk-indicator:last-child { border-bottom: none; }
+.risk-indicator .label { color: var(--text-secondary); }
+.risk-indicator .value { font-weight: 600; }
+
+/* Summary page */
+.summary-section { margin-bottom: 32px; }
+.summary-section h3 {
+  font-size: 18px; font-weight: 600;
+  margin-bottom: 16px;
+  display: flex; align-items: center; gap: 8px;
+}
+
+.conclusion-card {
+  background: linear-gradient(135deg, #fef2f2 0%, #fff1f2 100%);
+  border: 1px solid #fecaca;
+  border-radius: 12px;
+  padding: 24px;
+  margin-bottom: 16px;
+}
+
+.conclusion-card.warning {
+  background: linear-gradient(135deg, #fffbeb 0%, #fef3c7 100%);
+  border-color: #fde68a;
+}
+
+.conclusion-card.safe {
+  background: linear-gradient(135deg, #f0fdf4 0%, #ecfdf5 100%);
+  border-color: #bbf7d0;
+}
+
+.conclusion-card.info {
+  background: linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%);
+  border-color: #bfdbfe;
+}
+
+.conclusion-card h4 {
+  font-size: 15px; font-weight: 600;
+  margin-bottom: 12px;
+  display: flex; align-items: center; gap: 8px;
+}
+
+.conclusion-card p { font-size: 14px; line-height: 1.8; color: var(--text); }
+
+.conclusion-card ul { margin: 8px 0; padding-left: 20px; }
+.conclusion-card li { font-size: 14px; line-height: 1.8; color: var(--text); }
+
+.highlight { color: var(--danger); font-weight: 600; }
+.highlight-warn { color: var(--warning); font-weight: 600; }
+.highlight-good { color: var(--success); font-weight: 600; }
+
+/* Overall score */
+.score-container {
+  display: flex; align-items: center; gap: 40px;
+  padding: 32px;
+  background: var(--card);
+  border-radius: 16px;
+  box-shadow: var(--shadow-lg);
+  margin-bottom: 32px;
+  transition: background 0.3s;
+}
+
+.score-circle {
+  width: 140px; height: 140px;
+  border-radius: 50%;
+  display: flex; flex-direction: column;
+  align-items: center; justify-content: center;
+  flex-shrink: 0;
+}
+
+.score-circle.high-risk { background: linear-gradient(135deg, #fef2f2, #fecaca); border: 4px solid var(--danger); }
+.score-circle.medium-risk { background: linear-gradient(135deg, #fffbeb, #fde68a); border: 4px solid var(--warning); }
+.score-circle.low-risk { background: linear-gradient(135deg, #eff6ff, #bfdbfe); border: 4px solid var(--primary); }
+.score-circle.safe-risk { background: linear-gradient(135deg, #f0fdf4, #bbf7d0); border: 4px solid var(--success); }
+
+.score-number { font-size: 42px; font-weight: 800; line-height: 1; }
+.score-label { font-size: 13px; color: var(--text-secondary); margin-top: 4px; }
+.score-text { flex: 1; }
+.score-text h3 { font-size: 20px; margin-bottom: 8px; }
+.score-text p { font-size: 14px; color: var(--text-secondary); line-height: 1.6; }
+
+/* Responsive */
+@media (max-width: 768px) {
+  .header { padding: 16px 20px; }
+  .header h1 { font-size: 18px; }
+  .nav-tabs { padding: 0 20px; }
+  .nav-tab { padding: 12px 16px; font-size: 13px; }
+  .content { padding: 16px 20px; }
+  .charts-grid { grid-template-columns: 1fr; }
+  .risk-matrix { grid-template-columns: 1fr; }
+  .summary-row { grid-template-columns: 1fr 1fr; }
+  .score-container { flex-direction: column; text-align: center; }
+  .trend-cards-container { grid-template-columns: 1fr; }
+  .trend-category-header { font-size: 14px; padding: 10px 14px; }
+}
+
+/* Animations */
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+.fade-in { animation: fadeIn 0.4s ease-out; }
+
+/* Progress bar */
+.progress-bar {
+  height: 8px;
+  background: #e5e7eb;
+  border-radius: 4px;
+  overflow: hidden;
+  margin-top: 8px;
+}
+
+.progress-fill {
+  height: 100%;
+  border-radius: 4px;
+  transition: width 0.6s ease;
+}
+
+.progress-fill.high { background: linear-gradient(90deg, #ef4444, #f87171); }
+.progress-fill.medium { background: linear-gradient(90deg, #f59e0b, #fbbf24); }
+.progress-fill.low { background: linear-gradient(90deg, #3b82f6, #60a5fa); }
+.progress-fill.safe { background: linear-gradient(90deg, #10b981, #34d399); }
+
+/* Scrollbar */
+::-webkit-scrollbar { width: 6px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+
+/* Trend tags with colored indicators */
+.trend-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  padding: 2px 8px;
+  border-radius: 12px;
+  font-size: 11px;
+  font-weight: 600;
+}
+
+.trend-tag.down {
+  background: #fef2f2;
+  color: #dc2626;
+  border: 1px solid #fecaca;
+}
+
+.trend-tag.up {
+  background: #f0fdf4;
+  color: #16a34a;
+  border: 1px solid #bbf7d0;
+}
+
+.trend-tag.flat {
+  background: #fffbeb;
+  color: #d97706;
+  border: 1px solid #fde68a;
+}
+
+/* Trend direction indicators */
+.trend-direction {
+  display: inline-block;
+  border-radius: 4px;
+  font-weight: 600;
+}
+
+.trend-direction.declining {
+  background: #fef2f2;
+  color: #dc2626;
+  border: 1px solid #fecaca;
+}
+
+.trend-direction.improving {
+  background: #f0fdf4;
+  color: #16a34a;
+  border: 1px solid #bbf7d0;
+}
+
+.trend-direction.volatile {
+  background: #fffbeb;
+  color: #d97706;
+  border: 1px solid #fde68a;
+}
+
+.trend-direction.stable {
+  background: #eff6ff;
+  color: #3b82f6;
+  border: 1px solid #bfdbfe;
+}
+
+/* Summary page combined table */
+.summary-section .data-table td { padding: 10px 12px; font-size: 13px; }
+.summary-section .data-table th { padding: 10px 12px; font-size: 12px; }
+.conclusion-card h4 { font-size: 14px; }
+.conclusion-card p { font-size: 13px; line-height: 1.6; }
+
+/* Loading overlay */
+.loading-overlay {
+  position: fixed;
+  top: 0; left: 0; right: 0; bottom: 0;
+  background: rgba(0,0,0,0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.3s;
+}
+
+.loading-overlay.active {
+  opacity: 1;
+  pointer-events: all;
+}
+
+.loading-content {
+  background: var(--card);
+  padding: 30px 40px;
+  border-radius: 12px;
+  text-align: center;
+  box-shadow: var(--shadow-lg);
+}
+
+.spinner {
+  width: 40px; height: 40px;
+  border: 3px solid var(--border);
+  border-top-color: var(--primary);
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+  margin: 0 auto 16px;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+/* Toast notifications */
+.toast-container {
+  position: fixed;
+  top: 80px;
+  right: 20px;
+  z-index: 1001;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.toast {
+  background: var(--card);
+  padding: 12px 20px;
+  border-radius: 8px;
+  box-shadow: var(--shadow-lg);
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  animation: slideIn 0.3s ease-out;
+  border-left: 4px solid var(--primary);
+}
+
+.toast.success { border-left-color: var(--success); }
+.toast.error { border-left-color: var(--danger); }
+.toast.warning { border-left-color: var(--warning); }
+
+@keyframes slideIn {
+  from { transform: translateX(100%); opacity: 0; }
+  to { transform: translateX(0); opacity: 1; }
+}
+
+/* Action buttons */
+.action-bar {
+  display: flex;
+  gap: 12px;
+  margin-bottom: 20px;
+}
+
+.action-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 16px;
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  font-size: 13px;
+  color: var(--text);
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.action-btn:hover {
+  background: var(--primary);
+  color: white;
+  border-color: var(--primary);
+}
+
+
+/* Data validation message */
+.validation-message {
+  background: #fef2f2;
+  border: 1px solid #fecaca;
+  color: #dc2626;
+  padding: 12px 16px;
+  border-radius: 8px;
+  margin-bottom: 16px;
+  font-size: 13px;
+}
+
+/* 打印样式 */
+@media print {
+  .header, .nav-tabs, .action-bar, .theme-toggle {
+    display: none !important;
+  }
+
+  .page {
+    display: block !important;
+  }
+
+  .content {
+    padding: 0;
+  }
+
+  .card {
+    break-inside: avoid;
+    page-break-inside: avoid;
+  }
+
+  body {
+    background: white;
+  }
+}
+</style>
+</head>
+<body>
+
+<div class="loading-overlay" id="loadingOverlay">
+  <div class="loading-content">
+    <div class="spinner"></div>
+    <div>正在处理数据...</div>
+  </div>
+</div>
+
+<div class="toast-container" id="toastContainer"></div>
+
+<div class="header">
+  <h1>📊 供应商财务风险评估系统</h1>
+  <div class="header-right">
+    <button class="theme-toggle" onclick="downloadTemplate()">📥 下载数据模板</button>
+    <span class="company-name" id="companyNameDisplay">请选择供应商</span>
+  </div>
+</div>
+
+<div class="nav-tabs">
+  <div class="nav-tab active" data-page="summary">财务总结</div>
+  <div class="nav-tab" data-page="liquidation-risk">清算风险</div>
+  <div class="nav-tab" data-page="solvency-risk">偿债风险</div>
+  <div class="nav-tab" data-page="cashflow-risk">造血能力风险</div>
+  <div class="nav-tab" data-page="going-concern-risk">持续经营风险</div>
+  <div class="nav-tab" data-page="operating-risk">经营业绩风险</div>
+  <div class="nav-tab" data-page="financial-data">财务数据</div>
+</div>
+
+<!-- Page 0: Upload -->
+<div class="page active" id="page-upload">
+  <div class="upload-area">
+    <div class="upload-card" id="uploadCard">
+      <div class="upload-icon">📁</div>
+      <h2>上传财务数据</h2>
+      <p>将 Excel 文件拖拽到此处，或点击下方按钮选择文件</p>
+      <button class="upload-btn" onclick="console.log('Upload button clicked'); document.getElementById('fileInput').click()">
+        <span>📎</span> 选择 Excel 文件
+      </button>
+      <input type="file" id="fileInput" accept=".xlsx,.xls,.csv">
+      <div class="upload-formats">支持格式：.xlsx, .xls, .csv</div>
+    </div>
+  </div>
+</div>
+
+<!-- 第一部分：首页综合展示 -->
+<!-- Page 1: 财务总结（第一部分第一个板块） -->
+<div class="page" id="page-summary">
+  <div class="content fade-in">
+    <div class="action-bar">
+      <button class="action-btn" onclick="importNewData()">
+        <span>📁</span> 导入新数据
+      </button>
+      <button class="action-btn" onclick="printReport()">
+        <span>🖨️</span> 打印报告
+      </button>
+    </div>
+    <div class="summary-grid">
+      <div id="supplierCard"></div>
+    </div>
+    <div id="overallScore"></div>
+    <div class="summary-section" id="trendAssessment"></div>
+    <div class="summary-section" id="riskSummary"></div>
+    <div class="summary-section" id="detailedAnalysis"></div>
+  </div>
+</div>
+
+
+
+<!-- 清算风险页面 -->
+<div class="page" id="page-liquidation-risk">
+  <div class="content fade-in">
+    <div class="card">
+      <div class="risk-intro-header">
+        <div class="risk-intro-icon">📊</div>
+        <div class="risk-intro-title">
+          <h3>清算风险</h3>
+        </div>
+      </div>
+      <div class="risk-intro-content">
+        <div class="risk-intro-desc">
+          <strong>核心问题：</strong>企业是否资不抵债？
+        </div>
+        <div class="risk-intro-detail">
+          评估企业净资产状况，反映基本偿债能力。净资产为负即面临清算风险。
+        </div>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-title"><span class="dot"></span>评估指标和计算公式</div>
+      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 24px;">
+        <div style="padding: 16px; background: #f8fafc; border-radius: 8px;">
+          <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 12px;">
+            <div>
+              <div style="font-size: 12px; color: #64748b; margin-bottom: 2px;">评估指标</div>
+              <div style="font-size: 16px; font-weight: 600;">净资产</div>
+            </div>
+            <div id="liquidation-indicator-status" class="indicator-status">
+              <span class="status-icon">⏳</span>
+            </div>
+          </div>
+          <div style="font-size: 12px; color: #64748b; margin-bottom: 4px;">风险触发标准</div>
+          <div style="font-size: 13px; line-height: 1.6; margin-bottom: 12px;">
+            • 最近一个年度的净资产 ≤ 0
+          </div>
+          <div style="font-size: 12px; color: #64748b; margin-bottom: 4px;">计算公式</div>
+          <div style="font-size: 14px; font-weight: 500;">净资产 = 总资产 - 总负债</div>
+          <div style="font-size: 11px; color: #94a3b8; margin-top: 2px;">（单位：亿元）</div>
+        </div>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-title"><span class="dot"></span>历年数据与趋势分析</div>
+      <div style="display: grid; grid-template-columns: 1fr 2fr; gap: 24px;">
+        <div>
+          <div style="font-size: 14px; font-weight: 600; color: #64748b; margin-bottom: 12px;">历年净资产数据（亿元）</div>
+          <table class="data-table" style="font-size: 13px;">
+            <thead>
+              <tr>
+                <th>年份</th>
+                <th>净资产</th>
+              </tr>
+            </thead>
+            <tbody id="liquidationDataTable"></tbody>
+          </table>
+        </div>
+        <div>
+          <div style="font-size: 14px; font-weight: 600; color: #64748b; margin-bottom: 12px;">净资产趋势图</div>
+          <div class="chart-container">
+            <canvas id="liquidationChart"></canvas>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- 偿债风险页面 -->
+<div class="page" id="page-solvency-risk">
+  <div class="content fade-in">
+    <div class="card">
+      <div class="risk-intro-header">
+        <div class="risk-intro-icon">💳</div>
+        <div class="risk-intro-title">
+          <h3>偿债风险</h3>
+        </div>
+      </div>
+      <div class="risk-intro-content">
+        <div class="risk-intro-desc">
+          <strong>核心问题：</strong>短期债务能否按时偿还？
+        </div>
+        <div class="risk-intro-detail">
+          评估短期偿债能力。流动比率过低或现金不足以覆盖短期借款时存在风险。
+        </div>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-title"><span class="dot"></span>评估指标和计算公式</div>
+      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 24px;">
+        <div style="padding: 16px; background: #f8fafc; border-radius: 8px;">
+          <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 8px;">
+            <div>
+              <div style="font-size: 12px; color: #64748b; margin-bottom: 2px;">评估指标</div>
+              <div style="font-size: 16px; font-weight: 600;">流动比率</div>
+            </div>
+            <div id="solvency-indicator-status-1" class="indicator-status">
+              <span class="status-icon">⏳</span>
+            </div>
+          </div>
+          <div style="font-size: 12px; color: #64748b; margin-bottom: 4px;">风险触发标准</div>
+          <div style="font-size: 13px; line-height: 1.6; margin-bottom: 12px;">
+            • 最近一个年度的流动比率 < 1
+          </div>
+          <div style="font-size: 12px; color: #64748b; margin-bottom: 4px;">计算公式</div>
+          <div style="font-size: 14px; font-weight: 500;">流动比率 = 流动资产 / 流动负债</div>
+        </div>
+        <div style="padding: 16px; background: #f8fafc; border-radius: 8px;">
+          <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 8px;">
+            <div>
+              <div style="font-size: 12px; color: #64748b; margin-bottom: 2px;">评估指标</div>
+              <div style="font-size: 16px; font-weight: 600;">短期偿债能力指标</div>
+            </div>
+            <div id="solvency-indicator-status-2" class="indicator-status">
+              <span class="status-icon">⏳</span>
+            </div>
+          </div>
+          <div style="font-size: 12px; color: #64748b; margin-bottom: 4px;">风险触发标准</div>
+          <div style="font-size: 13px; line-height: 1.6; margin-bottom: 12px;">
+            • 最新一个年度的货币资金 < 同期短期借款
+          </div>
+          <div style="font-size: 12px; color: #64748b; margin-bottom: 4px;">计算公式</div>
+          <div style="font-size: 14px; font-weight: 500;">短期偿债能力指标 = 货币资金 - 短期借款</div>
+          <div style="font-size: 11px; color: #94a3b8; margin-top: 2px;">（单位：亿元）</div>
+        </div>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-title"><span class="dot"></span>历年数据与趋势分析</div>
+      <div style="display: grid; grid-template-columns: 1fr 2fr; gap: 24px;">
+        <div>
+          <div style="font-size: 14px; font-weight: 600; color: #64748b; margin-bottom: 12px;">历年偿债能力数据</div>
+          <table class="data-table" style="font-size: 13px;">
+            <thead>
+              <tr>
+                <th>年份</th>
+                <th>流动比率</th>
+                <th>短期偿债能力</th>
+              </tr>
+            </thead>
+            <tbody id="solvencyDataTable"></tbody>
+          </table>
+        </div>
+        <div>
+          <div style="font-size: 14px; font-weight: 600; color: #64748b; margin-bottom: 12px;">偿债能力趋势图</div>
+          <div class="chart-container">
+            <canvas id="solvencyChart"></canvas>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- 造血能力风险页面 -->
+<div class="page" id="page-cashflow-risk">
+  <div class="content fade-in">
+    <div class="card">
+      <div class="risk-intro-header">
+        <div class="risk-intro-icon">💪</div>
+        <div class="risk-intro-title">
+          <h3>造血能力风险</h3>
+        </div>
+      </div>
+      <div class="risk-intro-content">
+        <div class="risk-intro-desc">
+          <strong>核心问题：</strong>主营业务能否产生现金？
+        </div>
+        <div class="risk-intro-detail">
+          评估经营性现金流状况。现金流持续为负表明主营业务无法产生足够现金。
+        </div>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-title"><span class="dot"></span>评估指标和计算公式</div>
+      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 24px;">
+        <div style="padding: 16px; background: #f8fafc; border-radius: 8px;">
+          <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 8px;">
+            <div>
+              <div style="font-size: 12px; color: #64748b; margin-bottom: 2px;">评估指标</div>
+              <div style="font-size: 16px; font-weight: 600;">经营性现金流净额</div>
+            </div>
+            <div id="cashflow-indicator-status" class="indicator-status">
+              <span class="status-icon">⏳</span>
+            </div>
+          </div>
+          <div style="font-size: 12px; color: #64748b; margin-bottom: 4px;">风险触发标准</div>
+          <div style="font-size: 13px; line-height: 1.6; margin-bottom: 12px;">
+            • 最近一个年度的经营性现金流净额 < 0
+          </div>
+          <div style="font-size: 12px; color: #64748b; margin-bottom: 4px;">计算公式</div>
+          <div style="font-size: 14px; font-weight: 500;">经营性现金流净额 = 经营活动现金流入 - 经营活动现金流出</div>
+          <div style="font-size: 11px; color: #94a3b8; margin-top: 2px;">（单位：亿元）</div>
+        </div>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-title"><span class="dot"></span>历年数据与趋势分析</div>
+      <div style="display: grid; grid-template-columns: 1fr 2fr; gap: 24px;">
+        <div>
+          <div style="font-size: 14px; font-weight: 600; color: #64748b; margin-bottom: 12px;">历年经营性现金流数据（亿元）</div>
+          <table class="data-table" style="font-size: 13px;">
+            <thead>
+              <tr>
+                <th>年份</th>
+                <th>经营性现金流净额</th>
+              </tr>
+            </thead>
+            <tbody id="cashflowDataTable"></tbody>
+          </table>
+        </div>
+        <div>
+          <div style="font-size: 14px; font-weight: 600; color: #64748b; margin-bottom: 12px;">经营性现金流趋势图</div>
+          <div class="chart-container">
+            <canvas id="cashflowChart"></canvas>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- 持续经营风险页面 -->
+<div class="page" id="page-going-concern-risk">
+  <div class="content fade-in">
+    <div class="card">
+      <div class="risk-intro-header">
+        <div class="risk-intro-icon">⏱️</div>
+        <div class="risk-intro-title">
+          <h3>持续经营风险</h3>
+        </div>
+      </div>
+      <div class="risk-intro-content">
+        <div class="risk-intro-desc">
+          <strong>核心问题：</strong>企业能维持运营多久？
+        </div>
+        <div class="risk-intro-detail">
+          评估现金耗尽前的运营时间。现金消耗时间过短表明生存能力面临挑战。
+        </div>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-title"><span class="dot"></span>评估指标和计算公式</div>
+      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 24px;">
+        <div style="padding: 16px; background: #f8fafc; border-radius: 8px;">
+          <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 8px;">
+            <div>
+              <div style="font-size: 12px; color: #64748b; margin-bottom: 2px;">评估指标</div>
+              <div style="font-size: 16px; font-weight: 600;">现金消耗时间</div>
+            </div>
+            <div id="goingconcern-indicator-status" class="indicator-status">
+              <span class="status-icon">⏳</span>
+            </div>
+          </div>
+          <div style="font-size: 12px; color: #64748b; margin-bottom: 4px;">风险触发标准</div>
+          <div style="font-size: 13px; line-height: 1.6; margin-bottom: 12px;">
+            • 现金消耗月份<6个月
+          </div>
+          <div style="font-size: 12px; color: #64748b; margin-bottom: 4px;">计算公式</div>
+          <div style="font-size: 14px; font-weight: 500;">现金消耗时间 = 期末货币资金 / 月均经营性现金净流出</div>
+          <div style="font-size: 11px; color: #94a3b8; margin-top: 2px;">（单位：月）</div>
+        </div>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-title"><span class="dot"></span>历年数据与趋势分析</div>
+      <div style="display: grid; grid-template-columns: 1fr 2fr; gap: 24px;">
+        <div>
+          <div style="font-size: 14px; font-weight: 600; color: #64748b; margin-bottom: 12px;">历年现金消耗时间（月）</div>
+          <table class="data-table" style="font-size: 13px;">
+            <thead>
+              <tr>
+                <th>年份</th>
+                <th>现金消耗时间</th>
+              </tr>
+            </thead>
+            <tbody id="goingConcernDataTable"></tbody>
+          </table>
+        </div>
+        <div>
+          <div style="font-size: 14px; font-weight: 600; color: #64748b; margin-bottom: 12px;">现金消耗时间趋势图</div>
+          <div class="chart-container">
+            <canvas id="goingConcernChart"></canvas>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- 经营业绩风险页面 -->
+<div class="page" id="page-operating-risk">
+  <div class="content fade-in">
+    <div class="card">
+      <div class="risk-intro-header">
+        <div class="risk-intro-icon">📈</div>
+        <div class="risk-intro-title">
+          <h3>经营业绩风险</h3>
+        </div>
+      </div>
+      <div class="risk-intro-content">
+        <div class="risk-intro-desc">
+          <strong>核心问题：</strong>经营状况是否健康？
+        </div>
+        <div class="risk-intro-detail">
+          评估盈利能力和经营效率。营收大幅下降或净利润持续为负存在风险。
+        </div>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-title"><span class="dot"></span>评估指标和计算公式</div>
+      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 24px;">
+        <div style="padding: 16px; background: #f8fafc; border-radius: 8px;">
+          <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 8px;">
+            <div>
+              <div style="font-size: 12px; color: #64748b; margin-bottom: 2px;">评估指标</div>
+              <div style="font-size: 16px; font-weight: 600;">营业收入同比增速</div>
+            </div>
+            <div id="performance-indicator-status-1" class="indicator-status">
+              <span class="status-icon">⏳</span>
+            </div>
+          </div>
+          <div style="font-size: 12px; color: #64748b; margin-bottom: 4px;">风险触发标准</div>
+          <div style="font-size: 13px; line-height: 1.6; margin-bottom: 12px;">
+            • 最近一个年度的营业收入同比下降 > 30%
+          </div>
+          <div style="font-size: 12px; color: #64748b; margin-bottom: 4px;">计算公式</div>
+          <div style="font-size: 14px; font-weight: 500;">营业收入同比增速 = (本期营收 - 上期营收) / 上期营收 × 100%</div>
+          <div style="font-size: 11px; color: #94a3b8; margin-top: 2px;">（单位：%）</div>
+        </div>
+        <div style="padding: 16px; background: #f8fafc; border-radius: 8px;">
+          <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 8px;">
+            <div>
+              <div style="font-size: 12px; color: #64748b; margin-bottom: 2px;">评估指标</div>
+              <div style="font-size: 16px; font-weight: 600;">净利润同比增速</div>
+            </div>
+            <div id="performance-indicator-status-2" class="indicator-status">
+              <span class="status-icon">⏳</span>
+            </div>
+          </div>
+          <div style="font-size: 12px; color: #64748b; margin-bottom: 4px;">风险触发标准</div>
+          <div style="font-size: 13px; line-height: 1.6; margin-bottom: 12px;">
+            • 最近一个年度的净利润同比下降或亏损扩大
+          </div>
+          <div style="font-size: 12px; color: #64748b; margin-bottom: 4px;">计算公式</div>
+          <div style="font-size: 14px; font-weight: 500;">净利润同比增速 = (本期净利润 - 上期净利润) / 上期净利润 × 100%</div>
+          <div style="font-size: 11px; color: #94a3b8; margin-top: 2px;">（单位：%）</div>
+        </div>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-title"><span class="dot"></span>历年数据与趋势分析</div>
+      <div style="display: grid; grid-template-columns: 1fr 2fr; gap: 24px;">
+        <div>
+          <div style="font-size: 14px; font-weight: 600; color: #64748b; margin-bottom: 12px;">历年经营业绩数据</div>
+          <table class="data-table" style="font-size: 13px;">
+            <thead>
+              <tr>
+                <th>年份</th>
+                <th>营业收入同比增速（%）</th>
+                <th>净利润同比增速（%）</th>
+              </tr>
+            </thead>
+            <tbody id="operatingDataTable"></tbody>
+          </table>
+        </div>
+        <div>
+          <div style="font-size: 14px; font-weight: 600; color: #64748b; margin-bottom: 12px;">经营业绩趋势图</div>
+          <div class="chart-container">
+            <canvas id="operatingChart"></canvas>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- 第三部分：详细财务数据 -->
+<!-- Page 5: 详细财务数据（第三部分） -->
+<div class="page" id="page-financial-data">
+  <div class="content fade-in">
+    <div class="summary-grid" id="summaryCards"></div>
+    <div class="card">
+      <div class="card-title"><span class="dot"></span>详细财务数据</div>
+      <div style="overflow-x:auto;">
+        <table class="data-table" id="detailTable"></table>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+// ===== 配置和常量 =====
+const CONFIG = {
+  // 风险阈值配置
+  thresholds: {
+    资产负债率: 0.7,
+    流动比率: 1.0,
+    现金覆盖月数: 6,
+    营收下降率: 0.2,
+    净利率: 0
+  },
+  // 颜色配置
+  colors: {
+    blue: ['#3b82f6', '#60a5fa', '#93c5fd', '#bfdbfe'],
+    red: '#ef4444',
+    orange: '#f59e0b',
+    green: '#10b981',
+    purple: '#8b5cf6',
+    pie: ['#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#ec4899'],
+    trend: ['#3b82f6', '#ef4444', '#10b981', '#f59e0b', '#8b5cf6', '#ec4899']
+  }
+};
+
+// ===== 全局状态管理 =====
+class AppState {
+  constructor() {
+    this.rawData = {};
+    this.riskData = {};
+    this.trendData = {};
+    this.charts = {};
+    // 避免localStorage错误
+    try {
+      this.theme = localStorage.getItem('theme') || 'light';
+    } catch (e) {
+      console.warn('Cannot access localStorage:', e);
+      this.theme = 'light';
+    }
+  }
+
+  reset() {
+    this.rawData = {};
+    this.riskData = {};
+    this.trendData = {};
+    this.destroyAllCharts();
+  }
+
+  destroyAllCharts() {
+    Object.values(this.charts).forEach(chart => {
+      if (chart) chart.destroy();
+    });
+    this.charts = {};
+  }
+}
+
+const state = new AppState();
+
+// ===== 工具函数 =====
+const utils = {
+  formatMoney(v) {
+    if (Math.abs(v) >= 100000000) return (v / 100000000).toFixed(2) + '亿';
+    if (Math.abs(v) >= 10000) return (v / 10000).toFixed(2) + '万';
+    return v.toLocaleString('zh-CN', { maximumFractionDigits: 2 });
+  },
+
+  formatMoneyShort(v) {
+    if (Math.abs(v) >= 100000000) return (v / 100000000).toFixed(2) + '亿';
+    if (Math.abs(v) >= 10000) return (v / 10000).toFixed(0) + '万';
+    return v.toLocaleString('zh-CN', { maximumFractionDigits: 0 });
+  },
+
+  formatNumber(v) {
+    if (v === null || v === undefined || isNaN(v)) return '-';
+    return Number(v).toFixed(2);
+  },
+
+  linearSlope(vals) {
+    const n = vals.length;
+    if (n < 2) return 0;
+    let sumX = 0, sumY = 0, sumXY = 0, sumX2 = 0;
+    for (let i = 0; i < n; i++) {
+      sumX += i;
+      sumY += vals[i];
+      sumXY += i * vals[i];
+      sumX2 += i * i;
+    }
+    return (n * sumXY - sumX * sumY) / (n * sumX2 - sumX * sumX);
+  },
+
+  showToast(message, type = 'info') {
+    const container = document.getElementById('toastContainer');
+    const toast = document.createElement('div');
+    toast.className = `toast ${type}`;
+    toast.innerHTML = `
+      <span>${type === 'success' ? '✅' : type === 'error' ? '❌' : type === 'warning' ? '⚠️' : 'ℹ️'}</span>
+      <span>${message}</span>
+    `;
+    container.appendChild(toast);
+    setTimeout(() => toast.remove(), 3000);
+  },
+
+  showLoading(show = true) {
+    const overlay = document.getElementById('loadingOverlay');
+    if (show) {
+      overlay.classList.add('active');
+    } else {
+      overlay.classList.remove('active');
+    }
+  }
+};
+
+// ===== 数据解析模块 =====
+class DataParser {
+  static parseExcelData(rows) {
+    try {
+      // 提取供应商名称
+      const supplier = this.extractSupplierName(rows);
+
+      // 提取年度数据
+      const { yearRow, years } = this.extractYears(rows);
+      if (yearRow < 0 || years.length === 0) {
+        throw new Error('未找到有效的年度数据列');
+      }
+
+      // 解析财务数据
+      const data = this.parseFinancialData(rows, yearRow, years, supplier);
+
+      return data;
+    } catch (error) {
+      throw new Error(`数据解析失败: ${error.message}`);
+    }
+  }
+
+  static extractSupplierName(rows) {
+    // 尝试从"供应商名称："行提取名称（新格式）
+    for (let i = 0; i < Math.min(rows.length, 10); i++) {
+      const cell = String(rows[i][0] || '');
+      if (cell.includes('供应商名称')) {
+        // 提取冒号后面的供应商名称
+        const match = cell.match(/供应商名称[：:]\s*(.+)/);
+        if (match) return match[1].trim();
+      }
+    }
+
+    // 尝试从"供应商："行提取名称（旧格式）
+    for (let i = 0; i < Math.min(rows.length, 10); i++) {
+      const cell = String(rows[i][0] || '');
+      if (cell.includes('供应商') && !cell.includes('供应商名称')) {
+        // 提取冒号后面的供应商名称
+        const match = cell.match(/供应商[：:]\s*(.+)/);
+        if (match) return match[1].trim();
+      }
+    }
+
+    // 如果没有找到，返回默认名称
+    return '示例供应商';
+  }
+
+  static extractYears(rows) {
+    let yearRow = -1;
+    let years = [];
+
+    for (let i = 0; i < rows.length; i++) {
+      const row = rows[i];
+      for (let j = 0; j < row.length; j++) {
+        let cell = row[j];
+        // 尝试将单元格值转换为数字年份
+        let year = null;
+        if (typeof cell === 'number') {
+          year = cell;
+        } else if (typeof cell === 'string') {
+          // 尝试解析字符串年份
+          const parsed = parseInt(cell);
+          if (!isNaN(parsed) && parsed >= 2020 && parsed <= 2030) {
+            year = parsed;
+          }
+        }
+
+        if (year !== null && year >= 2020 && year <= 2030) {
+          yearRow = i;
+          // 提取这一行中所有的年份
+          for (let k = j; k < row.length; k++) {
+            let v = row[k];
+            let y = null;
+            if (typeof v === 'number') {
+              y = v;
+            } else if (typeof v === 'string') {
+              const parsed = parseInt(v);
+              if (!isNaN(parsed) && parsed >= 2020 && parsed <= 2030) {
+                y = parsed;
+              }
+            }
+            if (y !== null && y >= 2020 && y <= 2030) {
+              years.push(y);
+            }
+          }
+          break;
+        }
+      }
+      if (yearRow >= 0) break;
+    }
+
+    return { yearRow, years };
+  }
+
+  static parseFinancialData(rows, yearRow, years, supplier) {
+    const data = { years, items: {}, categories: [], supplier };
+    let currentCategory = '';
+
+    console.log('parseFinancialData - yearRow:', yearRow, 'years:', years);
+
+    // 从表头下一行开始解析数据
+    for (let i = yearRow + 1; i < rows.length; i++) {
+      const row = rows[i];
+      const colA = String(row[0] || '').trim(); // 风险类型列
+      const colB = String(row[1] || '').trim(); // 指标列
+
+      if (!colB) continue;
+
+      // 设置当前风险类型作为分类
+      if (colA && colA !== currentCategory) {
+        currentCategory = colA;
+        if (!data.categories.includes(currentCategory)) {
+          data.categories.push(currentCategory);
+        }
+      }
+
+      // 提取2022-2025年的数据（列索引：2,3,4,5）
+      const values = [];
+      for (let y = 0; y < years.length; y++) {
+        const colIdx = 2 + y; // 从第3列开始（索引2）
+        let v = row[colIdx];
+        if (typeof v === 'string') v = parseFloat(v) || 0;
+        if (typeof v === 'number' && isNaN(v)) v = 0;
+        values.push(v || 0);
+      }
+
+      data.items[colB] = { category: currentCategory, values };
+
+      // Debug logging for key financial items
+      if (['总资产', '总负债', '流动资产', '流动负债', '营业收入', '净利润', '经营性现金流净额', '期末货币资金', '净利率', '毛利率', '短期借款', '货币资金', '营业成本'].includes(colB)) {
+        console.log(`Parsed ${colB}:`, values);
+      }
+    }
+
+    console.log('parseFinancialData - items:', Object.keys(data.items));
+    return data;
+  }
+}
+
+// ===== 简化趋势数据计算（用于风险评估）=====
+function calculateTrendData(rawData) {
+  const d = rawData;
+  const years = d.years;
+  const n = years.length;
+  const metrics = {};
+
+  console.log('calculateTrendData - Available items:', Object.keys(d.items));
+  console.log('calculateTrendData - Years:', years);
+
+  // Calculate trends for ALL items in the data, not just specific keyMetrics
+  // This ensures that 货币资金, 营业成本, 毛利率, etc. all get trend data
+  Object.keys(d.items).forEach(key => {
+    let itemData = d.items[key];
+
+    // Handle the case where "货币资金" and "期末货币资金" might be the same data
+    if (!itemData && key === '期末货币资金' && d.items['货币资金']) {
+      console.log('calculateTrendData - 期末货币资金 not found, using 货币资金 instead');
+      itemData = d.items['货币资金'];
+    }
+    if (!itemData && key === '货币资金' && d.items['期末货币资金']) {
+      console.log('calculateTrendData - 货币资金 not found, using 期末货币资金 instead');
+      itemData = d.items['期末货币资金'];
+    }
+
+    if (!itemData || !itemData.values || itemData.values.length === 0) {
+      console.log(`calculateTrendData - ${key} has no data, creating default stable trend`);
+      // 如果指标不存在或没有数据，创建一个默认的稳定趋势
+      metrics[key] = {
+        key: key,
+        label: key,
+        direction: 'stable',
+        consecutiveDir: 'stable',
+        lastVal: 0,
+        firstVal: 0,
+        prevVal: 0,
+        values: [],
+        yearlyChanges: [],
+        cagr: null,
+        totalChange: null,
+        isPercent: key === '净利率' || key === '毛利率'
+      };
+      return;
+    }
+
+    const vals = itemData.values;
+    console.log(`calculateTrendData - ${key} values:`, vals);
+    const firstVal = vals[0];
+    const lastVal = vals[n - 1];
+    const prevVal = n >= 2 ? vals[n - 2] : null;
+
+    // 计算总体变化方向
+    let direction = 'stable';
+    if (n >= 2 && firstVal !== 0) {
+      const totalChange = (lastVal - firstVal) / Math.abs(firstVal);
+      if (totalChange < -0.1) direction = 'declining';
+      else if (totalChange > 0.1) direction = 'improving';
+      else if (Math.abs(totalChange) > 0.05) direction = 'volatile';
+    }
+
+    // 检查是否连续下降
+    let consecutiveDir = 'stable';
+    if (n >= 3) {
+      const change1 = (vals[n-2] - vals[n-3]) / Math.abs(vals[n-3]);
+      const change2 = (vals[n-1] - vals[n-2]) / Math.abs(vals[n-2]);
+      if (change1 < 0 && change2 < 0) consecutiveDir = 'consecutive_down';
+    }
+
+    // 计算CAGR（年均复合增长率）
+    let cagr = null;
+    if (n >= 2 && firstVal !== 0) {
+      const ratio = lastVal / firstVal;
+      const numYears = n - 1;
+      cagr = Math.pow(ratio, 1 / numYears) - 1;
+    }
+
+    // 计算逐年变化
+    const yearlyChanges = [];
+    for (let i = 1; i < n; i++) {
+      const prev = vals[i - 1];
+      const curr = vals[i];
+      if (prev !== 0) {
+        yearlyChanges.push({
+          fromYear: years[i - 1],
+          toYear: years[i],
+          fromVal: prev,
+          toVal: curr,
+          change: (curr - prev) / Math.abs(prev),
+          absChange: curr - prev,
+        });
+      } else {
+        yearlyChanges.push({ fromYear: years[i-1], toYear: years[i], fromVal: prev, toVal: curr, change: null, absChange: curr - prev });
+      }
+    }
+
+    metrics[key] = {
+      key: key,
+      label: key,
+      direction: direction,
+      consecutiveDir: consecutiveDir,
+      lastVal: lastVal,
+      firstVal: firstVal,
+      prevVal: prevVal,
+      values: vals,
+      yearlyChanges: yearlyChanges,
+      cagr: cagr,
+      totalChange: firstVal !== 0 ? (lastVal - firstVal) / Math.abs(firstVal) : null,
+      isPercent: key === '净利率' || key === '毛利率'
+    };
+    console.log(`calculateTrendData - ${key} trend calculated:`, direction);
+  });
+
+  console.log('calculateTrendData - Final metrics:', Object.keys(metrics));
+
+  // 计算整体趋势
+  const decliningCount = Object.values(metrics).filter(m => m.direction === 'declining').length;
+  const improvingCount = Object.values(metrics).filter(m => m.direction === 'improving').length;
+  const totalMetrics = Object.keys(metrics).length;
+
+  let overallTrend = 'stable';
+  if (decliningCount > improvingCount * 1.5) overallTrend = 'declining';
+  else if (improvingCount > decliningCount * 1.5) overallTrend = 'improving';
+  else if (decliningCount > 0 || improvingCount > 0) overallTrend = 'mixed';
+
+  return {
+    metrics: metrics,
+    overallTrend: overallTrend,
+    decliningCount: decliningCount,
+    improvingCount: improvingCount,
+    totalMetrics: totalMetrics
+  };
+}
+
+// ===== 风险计算模块 =====
+class RiskCalculator {
+  static calculate(rawData, trendData) {
+    const d = rawData;
+    const latest = d.years.length - 1;
+    const risks = [];
+
+    // 1. 清算风险 - 净资产 = 总资产 - 总负债
+    if (d.items['总资产'] && d.items['总负债']) {
+      const netAssets = d.items['总资产'].values[latest] - d.items['总负债'].values[latest];
+      const triggered = netAssets <= 0;
+      risks.push({
+        name: '清算风险', category: '清算风险',
+        indicator: '净资产',
+        formula: '总资产 - 总负债',
+        value: netAssets,
+        displayValue: utils.formatMoney(netAssets),
+        triggered,
+        threshold: '最近一个期间的净资产 ≤ 0',
+        description: triggered
+          ? `净资产为${utils.formatMoney(netAssets)}（≤0），触发清算风险。`
+          : `净资产为${utils.formatMoney(netAssets)}（>0），风险未触发。`
+      });
+    }
+
+    // 2. 偿债风险 - 流动比率
+    if (d.items['流动资产'] && d.items['流动负债']) {
+      const currentRatio = d.items['流动资产'].values[latest] / d.items['流动负债'].values[latest];
+      const triggered = currentRatio < 1;
+      risks.push({
+        name: '偿债风险', category: '偿债风险',
+        indicator: '流动比率',
+        formula: '流动资产 / 流动负债',
+        value: currentRatio,
+        displayValue: currentRatio.toFixed(2),
+        triggered,
+        threshold: '最近一个期间的流动比率 < 1',
+        description: triggered
+          ? `流动比率仅为${currentRatio.toFixed(2)}（<1），触发偿债风险。`
+          : `流动比率为${currentRatio.toFixed(2)}（≥1），风险未触发。`
+      });
+    }
+
+    // 3. 偿债风险 - 短期偿债能力指标 = 货币资金 - 短期借款
+    if (d.items['货币资金'] && d.items['短期借款']) {
+      const cash = d.items['货币资金'].values[latest];
+      const shortTermBorrowing = d.items['短期借款'].values[latest];
+      const shortTermSolvency = cash - shortTermBorrowing;
+      const triggered = cash < shortTermBorrowing;
+      risks.push({
+        name: '偿债风险', category: '偿债风险',
+        indicator: '短期偿债能力指标',
+        formula: '货币资金 - 短期借款',
+        value: shortTermSolvency,
+        displayValue: utils.formatMoney(shortTermSolvency),
+        triggered,
+        threshold: '最新一个期间的货币资金 < 同期短期借款',
+        description: triggered
+          ? `货币资金${utils.formatMoney(cash)} < 短期借款${utils.formatMoney(shortTermBorrowing)}，触发偿债风险。`
+          : `货币资金${utils.formatMoney(cash)} ≥ 短期借款${utils.formatMoney(shortTermBorrowing)}，风险未触发。`
+      });
+    }
+
+    // 4. 造血能力风险 - 经营性现金流净额
+    if (d.items['经营性现金流净额']) {
+      const latestVal = d.items['经营性现金流净额'].values[latest];
+      const triggered = latestVal < 0;
+      risks.push({
+        name: '造血能力风险', category: '造血能力风险',
+        indicator: '经营性现金流净额',
+        formula: '经营活动产生的现金流量净额',
+        value: latestVal,
+        displayValue: utils.formatMoney(latestVal),
+        triggered,
+        threshold: '最近一个期间的经营性现金流净额 < 0',
+        description: triggered
+          ? `经营性现金流净额为${utils.formatMoney(latestVal)}（<0），触发造血能力风险。`
+          : `经营性现金流净额为${utils.formatMoney(latestVal)}（≥0），风险未触发。`
+      });
+    }
+
+    // 5. 持续经营风险 - 现金消耗时间
+    if (d.items['期末货币资金'] && d.items['经营性现金流净额']) {
+      const cash = d.items['期末货币资金'].values[latest];
+      const cf = d.items['经营性现金流净额'].values[latest];
+
+      let months, displayValue, triggered, description;
+
+      if (cf > 0) {
+        // 现金流为正（现金增加），显示正数，不触发风险
+        const monthlyIncrease = cf / 12;
+        months = cash / monthlyIncrease;
+        displayValue = months.toFixed(1) + '个月';
+        triggered = false;
+        description = `经营性现金流为正，货币资金在增加，风险未触发。`;
+      } else {
+        // 现金流为负（现金消耗），显示负数
+        const monthlyBurn = Math.abs(cf) / 12;
+        months = -(cash / monthlyBurn);
+        displayValue = months.toFixed(1) + '个月';
+        triggered = true;  // 负数直接触发风险
+        description = `按当前消耗速度，货币资金仅能维持${Math.abs(months).toFixed(1)}个月，触发持续经营风险。`;
+      }
+
+      risks.push({
+        name: '持续经营风险', category: '持续经营风险',
+        indicator: '现金消耗时间',
+        formula: '期末货币资金 / (|经营性现金流净额| / 12)',
+        value: months,
+        displayValue: displayValue,
+        triggered,
+        threshold: '现金消耗月份<6个月',
+        description: description
+      });
+    }
+
+    // 6. 经营业绩风险 - 营业收入同比增速
+    if (d.items['营业收入']) {
+      const vals = d.items['营业收入'].values;
+      const latestVal = vals[latest];
+      const prevVal = vals[latest - 1];
+      const change = prevVal ? (latestVal - prevVal) / Math.abs(prevVal) : 0;
+      const triggered = change < -0.3;
+      risks.push({
+        name: '经营业绩风险', category: '经营业绩风险',
+        indicator: '营业收入同比增速',
+        formula: '(本期营业收入 - 上期营业收入) / 上期营业收入',
+        value: change,
+        displayValue: (change * 100).toFixed(1) + '%',
+        triggered,
+        threshold: '上一个年度营业收入同比比率 < -30%',
+        description: triggered
+          ? `营业收入同比下降${(Math.abs(change)*100).toFixed(1)}%（超过30%），触发经营业绩风险。`
+          : change < 0
+          ? `营业收入小幅下降${(Math.abs(change)*100).toFixed(1)}%，未超过30%警戒线。`
+          : `营业收入同比增长${(change*100).toFixed(1)}%，风险未触发。`
+      });
+    }
+
+    // 7. 经营业绩风险 - 净利润同比增速
+    if (d.items['净利润']) {
+      const vals = d.items['净利润'].values;
+      const latestVal = vals[latest];
+      const prevVal = vals[latest - 1];
+      const prevPrevVal = latest >= 2 ? vals[latest - 2] : null;
+
+      // 判断是否亏损扩大
+      let triggered = false;
+      if (prevVal < 0 && latestVal < 0) {
+        // 两个期间都亏损，判断亏损是否扩大
+        if (prevPrevVal !== null) {
+          const prevChange = (prevVal - prevPrevVal) / Math.abs(prevPrevVal);
+          const currChange = (latestVal - prevVal) / Math.abs(prevVal);
+          triggered = currChange < prevChange; // 亏损扩大
+        } else {
+          // 没有前前一年数据，只判断是否亏损
+          triggered = true;
+        }
+      }
+
+      const change = prevVal ? (latestVal - prevVal) / Math.abs(prevVal) : 0;
+      risks.push({
+        name: '经营业绩风险', category: '经营业绩风险',
+        indicator: '净利润同比增速',
+        formula: '(本期净利润 - 上期净利润) / 上期净利润',
+        value: change,
+        displayValue: (change * 100).toFixed(1) + '%',
+        triggered,
+        threshold: '上一个年度净利润 < 0，且同比亏损扩大',
+        description: triggered
+          ? `净利润为负且亏损扩大，触发经营业绩风险。`
+          : latestVal < 0
+          ? `净利润为负但亏损未扩大。`
+          : `净利润为正，风险未触发。`
+      });
+    }
+
+    const triggeredCount = risks.filter(r => r.triggered).length;
+
+    // 根据触发项数量确定风险等级
+    let overallLevel, overallScore;
+    if (triggeredCount >= 3) {
+      overallLevel = 'high';
+      overallScore = 80;
+    } else if (triggeredCount === 2) {
+      overallLevel = 'medium';
+      overallScore = 50;
+    } else if (triggeredCount === 1) {
+      overallLevel = 'low';
+      overallScore = 25;
+    } else {
+      overallLevel = 'safe';
+      overallScore = 10;
+    }
+
+    // 返回评估结果（不包含趋势相关数据）
+    return {
+      items: risks,
+      triggeredCount,
+      overallLevel,
+      overallScore
+    };
+  }
+}
+
+
+// ===== 渲染模块 =====
+class Renderer {
+  static renderOverviewPage(showGrowthCards = true) {
+    const d = state.rawData;
+    const latest = d.years.length - 1;
+
+    document.getElementById('companyNameDisplay').textContent = d.supplier || '示例公司';
+
+    const totalAsset = d.items['总资产'] ? d.items['总资产'].values[latest] : 0;
+    const totalDebt = d.items['总负债'] ? d.items['总负债'].values[latest] : 0;
+    const revenue = d.items['营业收入'] ? d.items['营业收入'].values[latest] : 0;
+    const netProfit = d.items['净利润'] ? d.items['净利润'].values[latest] : 0;
+
+    const assetTrend = state.trendData.metrics['总资产'];
+    const debtTrend = state.trendData.metrics['总负债'];
+    const revTrend = state.trendData.metrics['营业收入'];
+    const profitTrend = state.trendData.metrics['净利润'];
+
+    function trendTag(t, metricName) {
+      if (!t) return '';
+      // 短期借款的平稳趋势不显示
+      if (metricName === '短期借款' && t.direction === 'stable') return '';
+      if (t.direction === 'declining') return `<span class="trend-tag down">↓ 持续下降</span>`;
+      if (t.direction === 'improving') return `<span class="trend-tag up">↑ 持续改善</span>`;
+      if (t.direction === 'volatile') return `<span class="trend-tag flat">↕ 波动</span>`;
+      return '';
+    }
+
+    // 计算净资产（总资产 - 总负债）
+    const netAssets = totalAsset - totalDebt;
+
+    // 计算营业收入同比增速
+    let revenueGrowth = 0;
+    let revenueGrowthTriggered = false;
+    if (d.items['营业收入'] && d.items['营业收入'].values.length >= 2) {
+      const vals = d.items['营业收入'].values;
+      const latestVal = vals[latest];
+      const prevVal = vals[latest - 1];
+      if (prevVal) {
+        revenueGrowth = (latestVal - prevVal) / Math.abs(prevVal);
+        revenueGrowthTriggered = revenueGrowth < -0.3;
+      }
+    }
+
+    // 计算净利润同比增速
+    let profitGrowth = 0;
+    let profitGrowthTriggered = false;
+    if (d.items['净利润'] && d.items['净利润'].values.length >= 2) {
+      const vals = d.items['净利润'].values;
+      const latestVal = vals[latest];
+      const prevVal = vals[latest - 1];
+      const prevPrevVal = latest >= 2 ? vals[latest - 2] : null;
+
+      if (prevVal) {
+        profitGrowth = (latestVal - prevVal) / Math.abs(prevVal);
+      }
+
+      // 判断是否亏损扩大
+      if (prevVal < 0 && latestVal < 0) {
+        if (prevPrevVal !== null) {
+          const prevChange = (prevVal - prevPrevVal) / Math.abs(prevPrevVal);
+          const currChange = (latestVal - prevVal) / Math.abs(prevVal);
+          profitGrowthTriggered = currChange < prevChange;
+        } else {
+          profitGrowthTriggered = true;
+        }
+      }
+    }
+
+    let cardsHtml = `
+      <div class="summary-row">
+        <div class="summary-card blue">
+          <div class="summary-label">净资产</div>
+          <div class="summary-value">${utils.formatMoneyShort(netAssets)}<span class="summary-unit">元</span>${trendTag(assetTrend, '总资产')}</div>
+          <div class="summary-sub">${d.years[latest]}年度</div>
+        </div>
+        <div class="summary-card green">
+          <div class="summary-label">营业收入</div>
+          <div class="summary-value">${utils.formatMoneyShort(revenue)}<span class="summary-unit">元</span>${trendTag(revTrend, '营业收入')}</div>
+          <div class="summary-sub">${d.years[latest]}年度</div>
+        </div>
+        <div class="summary-card ${netProfit >= 0 ? 'green' : 'red'}">
+          <div class="summary-label">净利润</div>
+          <div class="summary-value">${utils.formatMoneyShort(netProfit)}<span class="summary-unit">元</span>${trendTag(profitTrend, '净利润')}</div>
+          <div class="summary-sub">${d.years[latest]}年度</div>
+        </div>
+      </div>
+    `;
+
+    if (showGrowthCards) {
+      cardsHtml += `
+        <div class="summary-row" style="margin-top: 12px;">
+          <div class="summary-card ${revenueGrowthTriggered ? 'red' : 'green'}">
+            <div class="summary-label">营业收入同比增速</div>
+            <div class="summary-value">${(revenueGrowth * 100).toFixed(1)}%<span class="summary-unit"></span></div>
+            <div class="summary-sub">${revenueGrowthTriggered ? '⚠️ 风险触发' : '✅ 正常'}</div>
+          </div>
+          <div class="summary-card ${profitGrowthTriggered ? 'red' : 'green'}">
+            <div class="summary-label">净利润同比增速</div>
+            <div class="summary-value">${(profitGrowth * 100).toFixed(1)}%<span class="summary-unit"></span></div>
+            <div class="summary-sub">${profitGrowthTriggered ? '⚠️ 风险触发' : '✅ 正常'}</div>
+          </div>
+        </div>
+      `;
+    }
+
+    document.getElementById('summaryCards').innerHTML = cardsHtml;
+
+    this.renderDetailTable();
+  }
+
+
+  static renderDetailTable() {
+    const d = state.rawData;
+    let html = '<thead><tr><th>风险类型</th><th>指标</th>';
+    d.years.forEach(y => html += `<th class="num">${y}</th>`);
+    html += '</tr></thead><tbody>';
+
+    let lastCat = '';
+    for (const [name, item] of Object.entries(d.items)) {
+      const cat = item.category || '';
+      html += '<tr>';
+      if (cat !== lastCat) {
+        html += `<td rowspan="${this.countInCategory(cat)}" style="font-weight:600;vertical-align:middle;">${cat}</td>`;
+        lastCat = cat;
+      }
+      html += `<td>${name}</td>`;
+
+      // 判断是否为百分比字段
+      const isPercentField = name === '毛利率' || name === '净利率';
+      item.values.forEach(v => {
+        if (isPercentField) {
+          html += `<td class="num">${(v * 100).toFixed(2)}%</td>`;
+        } else {
+          html += `<td class="num">${utils.formatMoney(v)}</td>`;
+        }
+      });
+
+      html += '</tr>';
+    }
+    html += '</tbody>';
+    document.getElementById('detailTable').innerHTML = html;
+  }
+
+  static countInCategory(cat) {
+    return Object.values(state.rawData.items).filter(i => i.category === cat).length;
+  }
+
+
+  // 渲染清算风险图表
+  static renderLiquidationRiskChart() {
+    const d = state.rawData;
+    const years = d.years;
+    const canvasId = 'liquidationChart';
+
+    // 销毁旧图表
+    if (state.charts[canvasId]) {
+      state.charts[canvasId].destroy();
+    }
+
+    // 计算净资产数据 = 总资产 - 总负债
+    let data = [];
+    if (d.items['总资产'] && d.items['总负债']) {
+      const totalAssets = d.items['总资产'].values;
+      const totalLiabilities = d.items['总负债'].values;
+      data = years.map((year, idx) => {
+        return (totalAssets[idx] - totalLiabilities[idx]) / 100000000;
+      });
+    }
+
+    const ctx = document.getElementById(canvasId).getContext('2d');
+    state.charts[canvasId] = new Chart(ctx, {
+      type: 'line',
+      data: {
+        labels: years.map(String),
+        datasets: [{
+          label: '净资产（亿元）',
+          data: data,
+          borderColor: '#3b82f6',
+          backgroundColor: '#3b82f620',
+          fill: false,
+          tension: 0.3,
+          pointRadius: 4,
+          pointHoverRadius: 6,
+          borderWidth: 2,
+        }]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+          legend: { position: 'bottom' }
+        },
+        scales: {
+          y: { beginAtZero: false, grid: { color: '#f1f5f9' } },
+          x: { grid: { display: false } }
+        }
+      }
+    });
+
+    // 更新数据表格
+    const tbody = document.getElementById('liquidationDataTable');
+    tbody.innerHTML = '';
+    for (let i = 0; i < years.length; i++) {
+      const value = data[i];
+
+      const row = document.createElement('tr');
+      row.innerHTML = `
+        <td>${years[i]}</td>
+        <td>${utils.formatNumber(value)}</td>
+      `;
+      tbody.appendChild(row);
+    }
+  }
+
+  // 渲染偿债风险图表
+  static renderSolvencyRiskChart() {
+    const d = state.rawData;
+    const years = d.years;
+    const canvasId = 'solvencyChart';
+
+    // 销毁旧图表
+    if (state.charts[canvasId]) {
+      state.charts[canvasId].destroy();
+    }
+
+    // 计算流动比率 = 流动资产 / 流动负债
+    let currentRatioData = [];
+    if (d.items['流动资产'] && d.items['流动负债']) {
+      const currentAssets = d.items['流动资产'].values;
+      const currentLiabilities = d.items['流动负债'].values;
+      currentRatioData = years.map((year, idx) => {
+        return currentLiabilities[idx] !== 0 ? currentAssets[idx] / currentLiabilities[idx] : 0;
+      });
+    }
+
+    // 计算短期偿债能力指标 = 货币资金 - 短期借款
+    let shortTermDebtData = [];
+    if (d.items['货币资金'] && d.items['短期借款']) {
+      const cash = d.items['货币资金'].values;
+      const shortTermBorrowing = d.items['短期借款'].values;
+      shortTermDebtData = years.map((year, idx) => {
+        return (cash[idx] - shortTermBorrowing[idx]) / 100000000;
+      });
+    }
+
+    const ctx = document.getElementById(canvasId).getContext('2d');
+    state.charts[canvasId] = new Chart(ctx, {
+      type: 'line',
+      data: {
+        labels: years.map(String),
+        datasets: [
+          {
+            label: '流动比率',
+            data: currentRatioData,
+            borderColor: '#3b82f6',
+            backgroundColor: '#3b82f620',
+            fill: false,
+            tension: 0.3,
+            pointRadius: 4,
+            pointHoverRadius: 6,
+            borderWidth: 2,
+            yAxisID: 'y'
+          },
+          {
+            label: '短期偿债能力（亿元）',
+            data: shortTermDebtData,
+            borderColor: '#10b981',
+            backgroundColor: '#10b98120',
+            fill: false,
+            tension: 0.3,
+            pointRadius: 4,
+            pointHoverRadius: 6,
+            borderWidth: 2,
+            yAxisID: 'y1'
+          }
+        ]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+          legend: { position: 'bottom' }
+        },
+        scales: {
+          y: {
+            type: 'linear',
+            position: 'left',
+            beginAtZero: false,
+            grid: { color: '#f1f5f9' }
+          },
+          y1: {
+            type: 'linear',
+            position: 'right',
+            beginAtZero: false,
+            grid: { display: false }
+          },
+          x: { grid: { display: false } }
+        }
+      }
+    });
+
+    // 更新数据表格
+    const tbody = document.getElementById('solvencyDataTable');
+    tbody.innerHTML = '';
+    for (let i = 0; i < years.length; i++) {
+      const row = document.createElement('tr');
+      row.innerHTML = `
+        <td>${years[i]}</td>
+        <td>${utils.formatNumber(currentRatioData[i])}</td>
+        <td>${utils.formatNumber(shortTermDebtData[i])}</td>
+      `;
+      tbody.appendChild(row);
+    }
+  }
+
+  // 渲染造血能力风险图表
+  static renderCashflowRiskChart() {
+    const d = state.rawData;
+    const years = d.years;
+    const canvasId = 'cashflowChart';
+
+    // 销毁旧图表
+    if (state.charts[canvasId]) {
+      state.charts[canvasId].destroy();
+    }
+
+    // 经营性现金流净额数据
+    let data = [];
+    if (d.items['经营性现金流净额']) {
+      data = d.items['经营性现金流净额'].values.map(v => v / 100000000);
+    }
+
+    const ctx = document.getElementById(canvasId).getContext('2d');
+    state.charts[canvasId] = new Chart(ctx, {
+      type: 'line',
+      data: {
+        labels: years.map(String),
+        datasets: [{
+          label: '经营性现金流净额（亿元）',
+          data: data,
+          borderColor: '#10b981',
+          backgroundColor: '#10b98120',
+          fill: false,
+          tension: 0.3,
+          pointRadius: 4,
+          pointHoverRadius: 6,
+          borderWidth: 2,
+        }]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+          legend: { position: 'bottom' }
+        },
+        scales: {
+          y: { beginAtZero: false, grid: { color: '#f1f5f9' } },
+          x: { grid: { display: false } }
+        }
+      }
+    });
+
+    // 更新数据表格
+    const tbody = document.getElementById('cashflowDataTable');
+    tbody.innerHTML = '';
+    for (let i = 0; i < years.length; i++) {
+      const value = data[i];
+
+      const row = document.createElement('tr');
+      row.innerHTML = `
+        <td>${years[i]}</td>
+        <td>${utils.formatNumber(value)}</td>
+      `;
+      tbody.appendChild(row);
+    }
+  }
+
+  // 渲染持续经营风险图表
+  static renderGoingConcernRiskChart() {
+    const d = state.rawData;
+    const years = d.years;
+    const canvasId = 'goingConcernChart';
+
+    // 销毁旧图表
+    if (state.charts[canvasId]) {
+      state.charts[canvasId].destroy();
+    }
+
+    // 现金消耗时间数据
+    let data = [];
+    if (d.items['期末货币资金'] && d.items['经营性现金流净额']) {
+      data = years.map((year, idx) => {
+        const cash = d.items['期末货币资金'].values[idx];
+        const cf = d.items['经营性现金流净额'].values[idx];
+
+        if (cf > 0) {
+          // 现金流为正（现金增加），显示正数
+          const monthlyIncrease = cf / 12;
+          return cash / monthlyIncrease;
+        } else {
+          // 现金流为负（现金消耗），显示负数
+          const monthlyBurn = Math.abs(cf) / 12;
+          return -(cash / monthlyBurn);
+        }
+      });
+    }
+
+    const ctx = document.getElementById(canvasId).getContext('2d');
+    state.charts[canvasId] = new Chart(ctx, {
+      type: 'line',
+      data: {
+        labels: years.map(String),
+        datasets: [{
+          label: '现金消耗时间（月）',
+          data: data,
+          borderColor: '#f59e0b',
+          backgroundColor: '#f59e0b20',
+          fill: false,
+          tension: 0.3,
+          pointRadius: 4,
+          pointHoverRadius: 6,
+          borderWidth: 2,
+        }]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+          legend: { position: 'bottom' }
+        },
+        scales: {
+          y: { beginAtZero: true, grid: { color: '#f1f5f9' } },
+          x: { grid: { display: false } }
+        }
+      }
+    });
+
+    // 更新数据表格
+    const tbody = document.getElementById('goingConcernDataTable');
+    tbody.innerHTML = '';
+    for (let i = 0; i < years.length; i++) {
+      const value = data[i];
+      const displayValue = utils.formatNumber(value);
+
+      const row = document.createElement('tr');
+      row.innerHTML = `
+        <td>${years[i]}</td>
+        <td class="num">${displayValue}</td>
+      `;
+      tbody.appendChild(row);
+    }
+  }
+
+  // 渲染经营业绩风险图表
+  static renderOperatingRiskChart() {
+    const d = state.rawData;
+    const years = d.years;
+    const canvasId = 'operatingChart';
+
+    // 销毁旧图表
+    if (state.charts[canvasId]) {
+      state.charts[canvasId].destroy();
+    }
+
+    // 营业收入同比增速数据
+    let revenueData = [];
+    if (d.items['营业收入']) {
+      revenueData = d.items['营业收入'].values.map((v, i) => {
+        if (i === 0) return 0;
+        const prev = d.items['营业收入'].values[i - 1];
+        return prev !== 0 ? ((v - prev) / Math.abs(prev) * 100) : 0;
+      });
+    }
+
+    // 净利润同比增速数据
+    let profitData = [];
+    if (d.items['净利润']) {
+      profitData = d.items['净利润'].values.map((v, i) => {
+        if (i === 0) return 0;
+        const prev = d.items['净利润'].values[i - 1];
+        return prev !== 0 ? ((v - prev) / Math.abs(prev) * 100) : 0;
+      });
+    }
+
+    const ctx = document.getElementById(canvasId).getContext('2d');
+    state.charts[canvasId] = new Chart(ctx, {
+      type: 'line',
+      data: {
+        labels: years.map(String),
+        datasets: [
+          {
+            label: '营业收入同比增速（%）',
+            data: revenueData,
+            borderColor: '#8b5cf6',
+            backgroundColor: '#8b5cf620',
+            fill: false,
+            tension: 0.3,
+            pointRadius: 4,
+            pointHoverRadius: 6,
+            borderWidth: 2,
+          },
+          {
+            label: '净利润同比增速（%）',
+            data: profitData,
+            borderColor: '#ec4899',
+            backgroundColor: '#ec489920',
+            fill: false,
+            tension: 0.3,
+            pointRadius: 4,
+            pointHoverRadius: 6,
+            borderWidth: 2,
+          }
+        ]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+          legend: { position: 'bottom' }
+        },
+        scales: {
+          y: { beginAtZero: false, grid: { color: '#f1f5f9' } },
+          x: { grid: { display: false } }
+        }
+      }
+    });
+
+    // 更新数据表格（显示同比增速）
+    const tbody = document.getElementById('operatingDataTable');
+    tbody.innerHTML = '';
+    for (let i = 0; i < years.length; i++) {
+      // 计算营业收入同比增速
+      let revenueGrowth = '-';
+      if (i > 0 && d.items['营业收入']) {
+        const currentRevenue = d.items['营业收入'].values[i];
+        const prevRevenue = d.items['营业收入'].values[i - 1];
+        if (prevRevenue !== 0) {
+          revenueGrowth = ((currentRevenue - prevRevenue) / Math.abs(prevRevenue) * 100).toFixed(1);
+        }
+      }
+
+      // 计算净利润同比增速
+      let profitGrowth = '-';
+      if (i > 0 && d.items['净利润']) {
+        const currentProfit = d.items['净利润'].values[i];
+        const prevProfit = d.items['净利润'].values[i - 1];
+        if (prevProfit !== 0) {
+          profitGrowth = ((currentProfit - prevProfit) / Math.abs(prevProfit) * 100).toFixed(1);
+        }
+      }
+
+      const row = document.createElement('tr');
+      row.innerHTML = `
+        <td>${years[i]}</td>
+        <td class="num">${revenueGrowth}</td>
+        <td class="num">${profitGrowth}</td>
+      `;
+      tbody.appendChild(row);
+    }
+  }
+
+  // 渲染财务数据页面（第三部分）
+  static renderFinancialDataPage() {
+    this.renderOverviewPage(false);
+  }
+
+  // 更新风险触发状态显示（按每个指标）
+  static updateRiskTriggerStatus() {
+    if (!state.riskData.items) return;
+
+    // 清算风险 - 净资产
+    const liquidationRisk = state.riskData.items.find(r => r.name === '清算风险');
+    if (liquidationRisk) {
+      const statusEl = document.getElementById('liquidation-indicator-status');
+      if (statusEl) {
+        statusEl.className = 'indicator-status ' + (liquidationRisk.triggered ? 'triggered' : 'not-triggered');
+        statusEl.innerHTML = `
+          <span class="status-icon">${liquidationRisk.triggered ? '🚨' : '✅'}</span>
+          <span class="status-text">${liquidationRisk.triggered ? '已触发' : '正常'}</span>
+        `;
+      }
+    }
+
+    // 偿债风险 - 流动比率
+    const solvencyRisk1 = state.riskData.items.find(r => r.indicator === '流动比率');
+    if (solvencyRisk1) {
+      const statusEl = document.getElementById('solvency-indicator-status-1');
+      if (statusEl) {
+        statusEl.className = 'indicator-status ' + (solvencyRisk1.triggered ? 'triggered' : 'not-triggered');
+        statusEl.innerHTML = `
+          <span class="status-icon">${solvencyRisk1.triggered ? '🚨' : '✅'}</span>
+          <span class="status-text">${solvencyRisk1.triggered ? '已触发' : '正常'}</span>
+        `;
+      }
+    }
+
+    // 偿债风险 - 短期偿债能力指标
+    const solvencyRisk2 = state.riskData.items.find(r => r.indicator === '短期偿债能力指标');
+    if (solvencyRisk2) {
+      const statusEl = document.getElementById('solvency-indicator-status-2');
+      if (statusEl) {
+        statusEl.className = 'indicator-status ' + (solvencyRisk2.triggered ? 'triggered' : 'not-triggered');
+        statusEl.innerHTML = `
+          <span class="status-icon">${solvencyRisk2.triggered ? '🚨' : '✅'}</span>
+          <span class="status-text">${solvencyRisk2.triggered ? '已触发' : '正常'}</span>
+        `;
+      }
+    }
+
+    // 造血能力风险 - 经营性现金流净额
+    const cashflowRisk = state.riskData.items.find(r => r.name === '造血能力风险');
+    if (cashflowRisk) {
+      const statusEl = document.getElementById('cashflow-indicator-status');
+      if (statusEl) {
+        statusEl.className = 'indicator-status ' + (cashflowRisk.triggered ? 'triggered' : 'not-triggered');
+        statusEl.innerHTML = `
+          <span class="status-icon">${cashflowRisk.triggered ? '🚨' : '✅'}</span>
+          <span class="status-text">${cashflowRisk.triggered ? '已触发' : '正常'}</span>
+        `;
+      }
+    }
+
+    // 持续经营风险 - 现金消耗时间
+    const goingConcernRisk = state.riskData.items.find(r => r.name === '持续经营风险');
+    if (goingConcernRisk) {
+      const statusEl = document.getElementById('goingconcern-indicator-status');
+      if (statusEl) {
+        statusEl.className = 'indicator-status ' + (goingConcernRisk.triggered ? 'triggered' : 'not-triggered');
+        statusEl.innerHTML = `
+          <span class="status-icon">${goingConcernRisk.triggered ? '🚨' : '✅'}</span>
+          <span class="status-text">${goingConcernRisk.triggered ? '已触发' : '正常'}</span>
+        `;
+      }
+    }
+
+    // 经营业绩风险 - 营业收入
+    const performanceRisk1 = state.riskData.items.find(r => r.indicator === '营业收入同比增速');
+    if (performanceRisk1) {
+      const statusEl = document.getElementById('performance-indicator-status-1');
+      if (statusEl) {
+        statusEl.className = 'indicator-status ' + (performanceRisk1.triggered ? 'triggered' : 'not-triggered');
+        statusEl.innerHTML = `
+          <span class="status-icon">${performanceRisk1.triggered ? '🚨' : '✅'}</span>
+          <span class="status-text">${performanceRisk1.triggered ? '已触发' : '正常'}</span>
+        `;
+      }
+    }
+
+    // 经营业绩风险 - 净利润
+    const performanceRisk2 = state.riskData.items.find(r => r.indicator === '净利润同比增速');
+    if (performanceRisk2) {
+      const statusEl = document.getElementById('performance-indicator-status-2');
+      if (statusEl) {
+        statusEl.className = 'indicator-status ' + (performanceRisk2.triggered ? 'triggered' : 'not-triggered');
+        statusEl.innerHTML = `
+          <span class="status-icon">${performanceRisk2.triggered ? '🚨' : '✅'}</span>
+          <span class="status-text">${performanceRisk2.triggered ? '已触发' : '正常'}</span>
+        `;
+      }
+    }
+  }
+
+  static renderSummaryPage() {
+    console.log('renderSummaryPage() called');
+    const d = state.rawData;
+    const years = d.years;
+    const latest = years.length - 1;
+    // Count all triggered indicators separately (not deduplicated by category)
+    const triggered = state.riskData.items.filter(r => r.triggered);
+    const tc = triggered.length;
+    const td = state.trendData;
+    console.log('renderSummaryPage data:', { d, years, latest, triggered, tc, td });
+
+    const level = state.riskData.overallLevel;
+
+    // 综合评估（只根据触发风险项数量判断）
+    let combinedVerdict = '';
+    let combinedDetail = '';
+    let verdictIcon = '';
+    let verdictClass = '';
+
+    // 风险等级标签
+    const riskLabels = {
+      safe: '安全',
+      low: '低风险',
+      medium: '中风险',
+      high: '高风险'
+    };
+
+    // 根据触发风险项数量判断
+    if (tc === 0) {
+      verdictIcon = '✅';
+      verdictClass = 'safe';
+      combinedVerdict = '安全';
+      combinedDetail = '无触发风险项，财务状况良好。';
+    } else if (tc === 1) {
+      verdictIcon = 'ℹ️';
+      verdictClass = 'low-risk';
+      combinedVerdict = '低风险';
+      combinedDetail = `触发1项风险指标，需要关注。`;
+    } else if (tc === 2) {
+      verdictIcon = '⚠️';
+      verdictClass = 'medium-risk';
+      combinedVerdict = '中风险';
+      combinedDetail = `触发2项风险指标，存在一定风险。`;
+    } else {
+      verdictIcon = '🚨';
+      verdictClass = 'high-risk';
+      combinedVerdict = '高风险';
+      combinedDetail = `触发${tc}项风险指标，存在较高风险。`;
+    }
+
+    // 风险等级颜色配置：安全和低风险-绿色，中风险-黄色，高风险-红色
+    const riskLevelConfig = {
+      safe: { label: '安全', color: '#10b981', bgColor: '#f0fdf4', borderColor: '#bbf7d0', icon: '🟢' },
+      low: { label: '低风险', color: '#10b981', bgColor: '#f0fdf4', borderColor: '#bbf7d0', icon: '🟢' },
+      medium: { label: '中风险', color: '#d97706', bgColor: '#fffbeb', borderColor: '#fde68a', icon: '🟡' },
+      high: { label: '高风险', color: '#dc2626', bgColor: '#fef2f2', borderColor: '#fecaca', icon: '🔴' }
+    };
+
+    const riskConfig = riskLevelConfig[level];
+    const supplierName = state.rawData.supplier || '未知供应商';
+
+    // 渲染供应商卡片
+    document.getElementById('supplierCard').innerHTML = `
+      <div class="supplier-card">
+        <div class="supplier-info">
+          <div class="supplier-header">
+            <span class="supplier-status">● 数据已验证</span>
+          </div>
+          <div class="supplier-name">${supplierName}</div>
+          <div class="supplier-meta">
+            <span class="supplier-period">📅 ${years[0]} - ${years[latest]}年度</span>
+            <span class="supplier-type">📊 财务报表数据</span>
+          </div>
+        </div>
+        <div class="supplier-decoration">
+          <div class="decoration-circle"></div>
+        </div>
+      </div>
+    `;
+
+    document.getElementById('overallScore').innerHTML = `
+      <div class="score-container" style="padding:40px;">
+        <div style="flex:1;">
+          <div style="display:flex;align-items:center;gap:20px;margin-bottom:20px;">
+            <div class="score-circle ${level === 'high' ? 'high-risk' : level === 'medium' ? 'medium-risk' : level === 'low' ? 'low-risk' : 'safe-risk'}" style="width:100px;height:100px;">
+              <div class="score-number" style="color:${riskConfig.color};font-size:32px;">${tc}</div>
+              <div class="score-label" style="font-size:11px;">触发项</div>
+            </div>
+            <div>
+              <div style="font-size:14px;color:var(--text-secondary);margin-bottom:4px;">${years[0]}-${years[latest]}年度财务风险评估</div>
+              <div style="font-size:32px;font-weight:800;color:${riskConfig.color};display:flex;align-items:center;gap:10px;">
+                <span>${verdictIcon}</span>
+                <span>${riskLabels[level]}</span>
+              </div>
+            </div>
+          </div>
+          <div style="font-size:12px;color:var(--text-secondary);line-height:1.8;padding-top:16px;border-top:1px solid var(--border);">
+            <strong>评估规则：</strong> 无触发风险项为安全，触发1项为低风险，触发2项为中风险，触发3项及以上为高风险
+          </div>
+        </div>
+      </div>
+    `;
+
+    const allRows = [];
+
+    // 定义7个风险指标（用户指定的特定指标）
+    const riskIndicators = [
+      // 清算风险
+      { riskType: '清算风险', indicator: '净资产', unit: '亿元', threshold: '最近一个期间的净资产 ≤ 0' },
+
+      // 偿债风险
+      { riskType: '偿债风险', indicator: '流动比率', unit: '', threshold: '最近一个期间的流动比率 < 1' },
+      { riskType: '偿债风险', indicator: '短期偿债能力指标', unit: '亿元', threshold: '最新一个期间的货币资金 < 同期短期借款' },
+
+      // 造血能力风险
+      { riskType: '造血能力风险', indicator: '经营性现金流净额', unit: '亿元', threshold: '最近一个期间的经营性现金流净额 < 0' },
+
+      // 持续经营风险
+      { riskType: '持续经营风险', indicator: '现金消耗时间', unit: '月', threshold: '现金消耗月份<6个月' },
+
+      // 经营业绩风险
+      { riskType: '经营业绩风险', indicator: '营业收入同比增速', unit: '%', threshold: '营业收入同比增速 < -30%' },
+      { riskType: '经营业绩风险', indicator: '净利润同比增速', unit: '%', threshold: '净利润同比增速 < 0且亏损扩大' }
+    ];
+
+    console.log('renderSummaryPage - riskIndicators:', riskIndicators.length);
+    console.log('renderSummaryPage - d.years:', d.years);
+    console.log('renderSummaryPage - d.items keys:', Object.keys(d.items));
+
+    // 获取2022-2025年数据（years变量已在函数开头声明）
+    const yearIndices = {};
+    for (let i = 0; i < years.length; i++) {
+      if (years[i] >= 2022 && years[i] <= 2025) {
+        yearIndices[years[i]] = i;
+      }
+    }
+
+    console.log('Year indices:', yearIndices);
+
+    riskIndicators.forEach(item => {
+      const yearData = {};
+
+      // 根据指标类型计算每年的值
+      for (let year = 2022; year <= 2025; year++) {
+        const idx = yearIndices[year];
+        if (idx === undefined) {
+          yearData[`year${year}`] = '-';
+          continue;
+        }
+
+        let val;
+        switch(item.indicator) {
+          case '净资产': // 净资产 = 总资产 - 总负债
+            if (d.items['总资产'] && d.items['总负债']) {
+              const assets = d.items['总资产'].values[idx];
+              const liabilities = d.items['总负债'].values[idx];
+              val = assets - liabilities;
+              yearData[`year${year}`] = (val / 100000000).toFixed(2);
+            } else {
+              yearData[`year${year}`] = '-';
+            }
+            break;
+
+          case '流动比率':
+            if (d.items['流动资产'] && d.items['流动负债']) {
+              const currentAssets = d.items['流动资产'].values[idx];
+              const currentLiabilities = d.items['流动负债'].values[idx];
+              val = currentLiabilities !== 0 ? currentAssets / currentLiabilities : 0;
+              yearData[`year${year}`] = val.toFixed(2);
+            } else {
+              yearData[`year${year}`] = '-';
+            }
+            break;
+
+          case '短期偿债能力指标': // 货币资金 - 短期借款
+            if (d.items['货币资金'] && d.items['短期借款']) {
+              const cash = d.items['货币资金'].values[idx];
+              const shortTermBorrowing = d.items['短期借款'].values[idx];
+              val = cash - shortTermBorrowing;
+              yearData[`year${year}`] = (val / 100000000).toFixed(2);
+            } else {
+              yearData[`year${year}`] = '-';
+            }
+            break;
+
+          case '经营性现金流净额':
+            if (d.items['经营性现金流净额']) {
+              val = d.items['经营性现金流净额'].values[idx];
+              yearData[`year${year}`] = (val / 100000000).toFixed(2);
+            } else {
+              yearData[`year${year}`] = '-';
+            }
+            break;
+
+          case '现金消耗时间':
+            if (d.items['期末货币资金'] && d.items['经营性现金流净额']) {
+              const cash = d.items['期末货币资金'].values[idx];
+              const cf = d.items['经营性现金流净额'].values[idx];
+
+              if (cf > 0) {
+                // 现金流为正（现金增加），显示正数
+                const monthlyIncrease = cf / 12;
+                val = cash / monthlyIncrease;
+                yearData[`year${year}`] = val.toFixed(1);
+              } else {
+                // 现金流为负（现金消耗），显示负数
+                const monthlyBurn = Math.abs(cf) / 12;
+                val = -(cash / monthlyBurn);
+                yearData[`year${year}`] = val.toFixed(1);
+              }
+            } else {
+              yearData[`year${year}`] = '-';
+            }
+            break;
+
+          case '营业收入':
+            if (d.items['营业收入']) {
+              val = d.items['营业收入'].values[idx];
+              yearData[`year${year}`] = (val / 100000000).toFixed(2);
+            } else {
+              yearData[`year${year}`] = '-';
+            }
+            break;
+
+          case '营业收入同比增速':
+            if (d.items['营业收入']) {
+              const vals = d.items['营业收入'].values;
+              if (idx > 0) {
+                const prevVal = vals[idx - 1];
+                const currVal = vals[idx];
+                val = prevVal !== 0 ? (currVal - prevVal) / Math.abs(prevVal) : 0;
+                yearData[`year${year}`] = (val * 100).toFixed(1);
+              } else {
+                yearData[`year${year}`] = '-';
+              }
+            } else {
+              yearData[`year${year}`] = '-';
+            }
+            break;
+
+          case '净利润':
+            if (d.items['净利润']) {
+              val = d.items['净利润'].values[idx];
+              yearData[`year${year}`] = (val / 100000000).toFixed(2);
+            } else {
+              yearData[`year${year}`] = '-';
+            }
+            break;
+
+          case '净利润同比增速':
+            if (d.items['净利润']) {
+              const vals = d.items['净利润'].values;
+              if (idx > 0) {
+                const prevVal = vals[idx - 1];
+                const currVal = vals[idx];
+                val = prevVal !== 0 ? (currVal - prevVal) / Math.abs(prevVal) : 0;
+                yearData[`year${year}`] = (val * 100).toFixed(1);
+              } else {
+                yearData[`year${year}`] = '-';
+              }
+            } else {
+              yearData[`year${year}`] = '-';
+            }
+            break;
+
+          default:
+            yearData[`year${year}`] = '-';
+        }
+      }
+
+      // 判断风险是否触发（基于最新一期数据）
+      let isTriggered = false;
+      const latestIdx = d.years.length - 1; // 使用最新一期的索引
+      const prevIdx = latestIdx > 0 ? latestIdx - 1 : undefined;
+
+      switch(item.indicator) {
+        case '净资产':
+          if (d.items['总资产'] && d.items['总负债'] && latestIdx !== undefined) {
+            const assets = d.items['总资产'].values[latestIdx];
+            const liabilities = d.items['总负债'].values[latestIdx];
+            isTriggered = (assets - liabilities) <= 0;
+          }
+          break;
+
+        case '流动比率':
+          if (d.items['流动资产'] && d.items['流动负债'] && latestIdx !== undefined) {
+            const currentAssets = d.items['流动资产'].values[latestIdx];
+            const currentLiabilities = d.items['流动负债'].values[latestIdx];
+            const ratio = currentLiabilities !== 0 ? currentAssets / currentLiabilities : 0;
+            isTriggered = ratio < 1;
+          }
+          break;
+
+        case '短期偿债能力指标':
+          if (d.items['货币资金'] && d.items['短期借款'] && latestIdx !== undefined) {
+            const cash = d.items['货币资金'].values[latestIdx];
+            const shortTermBorrowing = d.items['短期借款'].values[latestIdx];
+            isTriggered = cash < shortTermBorrowing;
+          }
+          break;
+
+        case '经营性现金流净额':
+          if (d.items['经营性现金流净额'] && latestIdx !== undefined) {
+            const latestCF = d.items['经营性现金流净额'].values[latestIdx];
+            isTriggered = latestCF < 0;
+          }
+          break;
+
+        case '现金消耗时间':
+          if (d.items['期末货币资金'] && d.items['经营性现金流净额'] && latestIdx !== undefined) {
+            const cash = d.items['期末货币资金'].values[latestIdx];
+            const cf = d.items['经营性现金流净额'].values[latestIdx];
+
+            if (cf > 0) {
+              // 现金流为正（现金增加），显示正数，不触发风险
+              isTriggered = false;
+            } else {
+              // 现金流为负（现金消耗），显示负数，触发风险
+              isTriggered = true;
+            }
+          }
+          break;
+
+        case '营业收入同比增速':
+          if (d.items['营业收入'] && prevIdx !== undefined) {
+            const vals = d.items['营业收入'].values;
+            const prevVal = vals[prevIdx];
+            const currVal = vals[latestIdx];
+            const change = prevVal !== 0 ? (currVal - prevVal) / Math.abs(prevVal) : 0;
+            isTriggered = change < -0.3;
+          }
+          break;
+
+        case '净利润同比增速':
+          if (d.items['净利润'] && prevIdx !== undefined) {
+            const vals = d.items['净利润'].values;
+            const prevVal = vals[prevIdx];
+            const currVal = vals[latestIdx];
+            const prevPrevVal = prevIdx > 0 ? vals[prevIdx - 1] : null;
+
+            // 判断是否亏损扩大
+            if (prevVal < 0 && currVal < 0) {
+              if (prevPrevVal !== null) {
+                const prevChange = (prevVal - prevPrevVal) / Math.abs(prevPrevVal);
+                const currChange = (currVal - prevVal) / Math.abs(prevVal);
+                isTriggered = currChange < prevChange; // 亏损扩大
+              } else {
+                isTriggered = true; // 没有前前一年数据，只判断是否亏损
+              }
+            }
+          }
+          break;
+
+        default:
+          isTriggered = false;
+      }
+
+      allRows.push({
+        riskType: item.riskType,
+        indicator: item.indicator,
+        unit: item.unit,
+        threshold: item.threshold,
+        isTriggered: isTriggered,
+        ...yearData
+      });
+    });
+
+    console.log('renderSummaryPage - allRows:', allRows);
+
+    // 按风险类型分组
+    const riskGroups = {};
+    allRows.forEach(row => {
+      if (!riskGroups[row.riskType]) {
+        riskGroups[row.riskType] = [];
+      }
+      riskGroups[row.riskType].push(row);
+    });
+
+    // 生成表格行（使用rowspan合并风险类型单元格）
+    let tableRows = '';
+    Object.keys(riskGroups).forEach(riskType => {
+      const rows = riskGroups[riskType];
+      const rowCount = rows.length;
+
+      rows.forEach((row, index) => {
+        // 所有指标都显示风险评判状态
+        const riskStatusHtml = `<td style="text-align:center;">
+              <span style="display:inline-block;width:12px;height:12px;border-radius:50%;background:${row.isTriggered ? '#dc2626' : '#10b981'};box-shadow:0 0 4px ${row.isTriggered ? '#dc2626' : '#10b981'};"></span>
+            </td>`;
+
+        tableRows += `
+          <tr>
+            ${index === 0 ? `<td style="font-weight:600;" rowspan="${rowCount}">${riskType}</td>` : ''}
+            <td>${row.indicator}</td>
+            <td>${row.unit || '-'}</td>
+            <td class="num">${row.year2022 || '-'}</td>
+            <td class="num">${row.year2023 || '-'}</td>
+            <td class="num">${row.year2024 || '-'}</td>
+            <td class="num">${row.year2025 || '-'}</td>
+            ${riskStatusHtml}
+            <td>${row.threshold || '-'}</td>
+          </tr>
+        `;
+      });
+    });
+
+    let tableHtml = `
+      <div class="card" style="margin-bottom:24px;">
+        <div class="card-title"><span class="dot"></span>风险评估（7个关键指标）</div>
+        <div style="overflow-x:auto;">
+          <table class="data-table" style="font-size:12px;">
+            <thead><tr>
+              <th>风险类型</th>
+              <th>指标</th>
+              <th>单位</th>
+              <th>2022</th>
+              <th>2023</th>
+              <th>2024</th>
+              <th>2025</th>
+              <th>风险（基于最新一期财报）</th>
+              <th>高风险判断标准</th>
+            </tr></thead>
+            <tbody>
+              ${tableRows}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    `;
+
+    document.getElementById('trendAssessment').innerHTML = tableHtml;
+    document.getElementById('riskSummary').innerHTML = '';
+    document.getElementById('detailedAnalysis').innerHTML = '';
+  }
+}
+
+// ===== 事件处理 =====
+function initEventListeners() {
+  // 导航切换
+  document.querySelectorAll('.nav-tab').forEach(tab => {
+    tab.addEventListener('click', () => {
+      const page = tab.dataset.page;
+      if (!state.rawData.years) {
+        utils.showToast('请先上传数据', 'warning');
+        return;
+      }
+      document.querySelectorAll('.nav-tab').forEach(t => t.classList.remove('active'));
+      tab.classList.add('active');
+      document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+      document.getElementById('page-' + page).classList.add('active');
+
+      // 渲染对应页面
+      if (page === 'summary') {
+        Renderer.renderSummaryPage();
+      } else if (page === 'liquidation-risk') {
+        Renderer.renderLiquidationRiskChart();
+        Renderer.updateRiskTriggerStatus();
+      } else if (page === 'solvency-risk') {
+        Renderer.renderSolvencyRiskChart();
+        Renderer.updateRiskTriggerStatus();
+      } else if (page === 'cashflow-risk') {
+        Renderer.renderCashflowRiskChart();
+        Renderer.updateRiskTriggerStatus();
+      } else if (page === 'going-concern-risk') {
+        Renderer.renderGoingConcernRiskChart();
+        Renderer.updateRiskTriggerStatus();
+      } else if (page === 'operating-risk') {
+        Renderer.renderOperatingRiskChart();
+        Renderer.updateRiskTriggerStatus();
+      } else if (page === 'financial-data') {
+        Renderer.renderFinancialDataPage();
+      }
+    });
+  });
+
+  // 文件上传
+  const uploadCard = document.getElementById('uploadCard');
+  const fileInput = document.getElementById('fileInput');
+
+  uploadCard.addEventListener('dragover', e => {
+    e.preventDefault();
+    uploadCard.classList.add('dragover');
+  });
+
+  uploadCard.addEventListener('dragleave', () => {
+    uploadCard.classList.remove('dragover');
+  });
+
+  uploadCard.addEventListener('drop', e => {
+    e.preventDefault();
+    uploadCard.classList.remove('dragover');
+    if (e.dataTransfer.files && e.dataTransfer.files.length) handleFile(e.dataTransfer.files[0]);
+  });
+
+  fileInput.addEventListener('change', e => {
+    console.log('File input change event triggered');
+    console.log('Files selected:', e.target.files);
+    if (e.target.files && e.target.files.length) {
+      console.log('Calling handleFile with file:', e.target.files[0]);
+      handleFile(e.target.files[0]);
+    } else {
+      console.log('No files selected');
+    }
+  });
+
+  // 也监听upload button的点击事件
+  const uploadBtn = document.querySelector('.upload-btn');
+  if (uploadBtn) {
+    uploadBtn.addEventListener('click', (e) => {
+      console.log('Upload button clicked directly');
+      e.preventDefault();
+      e.stopPropagation();
+    });
+  }
+
+}
+
+function handleFile(file) {
+  console.log('=== handleFile called ===');
+  console.log('File:', file);
+  console.log('File name:', file.name);
+  console.log('File size:', file.size);
+  console.log('File type:', file.type);
+
+  // 检查文件类型
+  const validTypes = ['application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', 'application/vnd.ms-excel', 'application/octet-stream'];
+  const extension = file.name.split('.').pop().toLowerCase();
+  console.log('File extension:', extension);
+
+  if (!validTypes.includes(file.type) && !['xlsx', 'xls', 'csv'].includes(extension)) {
+    console.error('Invalid file type:', file.type);
+    utils.showToast('请上传Excel文件 (.xlsx, .xls, .csv)', 'error');
+    return;
+  }
+
+  utils.showLoading(true);
+
+  const reader = new FileReader();
+
+  reader.onloadstart = () => {
+    console.log('FileReader: onloadstart triggered');
+  };
+
+  reader.onload = e => {
+    console.log('=== FileReader onload triggered ===');
+    console.log('Result type:', typeof e.target.result);
+    console.log('Result length:', e.target.result ? e.target.result.length : 'null');
+
+    try {
+      console.log('Reading Excel file...');
+      const wb = XLSX.read(e.target.result, { type: 'array' });
+      console.log('Excel file read successfully, sheets:', wb.SheetNames);
+
+      const ws = wb.Sheets[wb.SheetNames[0]];
+      const json = XLSX.utils.sheet_to_json(ws, { header: 1, defval: '' });
+      console.log('Sheet converted to JSON, rows:', json.length);
+      console.log('First few rows:', json.slice(0, 10));
+
+      console.log('Parsing Excel data...');
+      const data = DataParser.parseExcelData(json);
+      console.log('Data parsed successfully:', data);
+
+      state.rawData = data;
+      // 先计算趋势数据
+      console.log('Calculating trend data...');
+      state.trendData = calculateTrendData(data);
+      console.log('Trend data calculated:', state.trendData);
+
+      // 再计算风险数据（需要趋势数据）
+      console.log('Calculating risk data...');
+      state.riskData = RiskCalculator.calculate(data, state.trendData);
+      console.log('Risk data calculated:', state.riskData);
+
+      console.log('Data import successful:', { data, trendData: state.trendData, riskData: state.riskData });
+      showApp();
+      utils.showToast('数据加载成功', 'success');
+    } catch (err) {
+      console.error('=== Data import error ===');
+      console.error('Error:', err);
+      console.error('Error message:', err.message);
+      console.error('Error stack:', err.stack);
+      utils.showToast('数据解析失败: ' + err.message, 'error');
+    } finally {
+      utils.showLoading(false);
+    }
+  };
+
+  reader.onerror = e => {
+    console.error('=== FileReader error ===');
+    console.error('Error event:', e);
+    console.error('FileReader error:', reader.error);
+    utils.showToast('文件读取失败: ' + reader.error.message, 'error');
+    utils.showLoading(false);
+  };
+
+  reader.onabort = () => {
+    console.log('FileReader: onabort triggered - file read aborted');
+    utils.showToast('文件读取被中止', 'warning');
+    utils.showLoading(false);
+  };
+
+  console.log('Starting file read...');
+  try {
+    reader.readAsArrayBuffer(file);
+  } catch (err) {
+    console.error('Error starting file read:', err);
+    utils.showToast('无法读取文件: ' + err.message, 'error');
+    utils.showLoading(false);
+  }
+}
+
+function showApp() {
+  console.log('showApp() called');
+  document.getElementById('page-upload').classList.remove('active');
+  document.getElementById('page-summary').classList.add('active');
+  document.querySelectorAll('.nav-tab')[0].classList.add('active');
+  console.log('About to render summary page');
+  Renderer.renderSummaryPage();
+  console.log('Summary page rendered');
+  Renderer.renderFinancialDataPage();
+  console.log('Financial data page rendered');
+  // 更新风险触发状态显示
+  Renderer.updateRiskTriggerStatus();
+  console.log('Risk trigger status updated');
+}
+
+
+// ===== 导入新数据功能 =====
+function importNewData() {
+  document.getElementById('fileInput').click();
+}
+
+// ===== 刷新功能 =====
+
+function refreshData() {
+  if (!state.rawData.years) {
+    utils.showToast('请先上传数据', 'warning');
+    return;
+  }
+
+  utils.showLoading(true);
+  setTimeout(() => {
+    // 重新计算趋势数据和风险数据
+    state.trendData = calculateTrendData(state.rawData);
+    state.riskData = RiskCalculator.calculate(state.rawData, state.trendData);
+    // 渲染所有页面
+    Renderer.renderSummaryPage();
+    Renderer.renderFinancialDataPage();
+    utils.showLoading(false);
+    utils.showToast('数据已刷新', 'success');
+  }, 300);
+}
+
+// ===== 下载数据模板功能 =====
+function downloadTemplate() {
+  // 创建与用户文件完全一致的模板数据（使用"供应商名称："格式）
+  const templateData = [
+    ["供应商名称：", "", "", "", "", ""],
+    ["提示：请在下方填写财务数据，导入上传至网页后，系统将自动计算所有风险指标", "", "", "", "", ""],
+    ["", "", "", "", "", "单位：元"],
+    ["风险类型", "指标", "2022", "2023", "2024", "2025"],
+    ["清算风险", "总资产", "", "", "", ""],
+    ["", "总负债", "", "", "", ""],
+    ["偿债风险", "流动资产", "", "", "", ""],
+    ["", "流动负债", "", "", "", ""],
+    ["", "货币资金", "", "", "", ""],
+    ["", "短期借款", "", "", "", ""],
+    ["造血能力风险", "经营性现金流净额", "", "", "", ""],
+    ["持续经营风险", "期末货币资金", "", "", "", ""],
+    ["经营业绩风险", "营业收入同比增速", "", "", "", ""],
+    ["", "净利润同比增速", "", "", "", ""],
+    ["盈利能力", "营业成本", "", "", "", ""],
+    ["", "毛利率", "", "", "", ""],
+    ["", "净利率", "", "", "", ""]
+  ];
+
+  // 创建工作簿和工作表
+  const wb = XLSX.utils.book_new();
+  const ws = XLSX.utils.aoa_to_sheet(templateData);
+
+  // 设置列宽
+  ws["!cols"] = [
+    { wch: 12 },
+    { wch: 18 },
+    { wch: 12 },
+    { wch: 12 },
+    { wch: 12 },
+    { wch: 12 }
+  ];
+
+  // 设置单元格合并（供应商名称和提示信息合并后6列）
+  ws["!merges"] = [
+    { s: { r: 0, c: 0 }, e: { r: 0, c: 5 } },  // 合并第1行的A-F列（供应商名称：）
+    { s: { r: 1, c: 0 }, e: { r: 1, c: 5 } }   // 合并第2行的A-F列（提示信息）
+  ];
+
+  // 添加工作表到工作簿
+  XLSX.utils.book_append_sheet(wb, ws, "Sheet1");
+
+  // 生成Excel文件
+  const excelBuffer = XLSX.write(wb, { bookType: "xlsx", type: "array" });
+
+  // 创建Blob并下载
+  const blob = new Blob([excelBuffer], { type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement("a");
+  link.href = url;
+  link.download = "供应商财务表.xlsx";
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+  URL.revokeObjectURL(url);
+
+  utils.showToast("模板下载成功", "success");
+}
+
+// ===== 打印报告功能 =====
+function printReport() {
+  if (!state.rawData.years) {
+    utils.showToast('请先上传数据', 'warning');
+    return;
+  }
+
+  // 保存当前活动页面
+  const currentPage = document.querySelector('.page.active');
+
+  // 显示所有页面用于打印
+  document.querySelectorAll('.page').forEach(page => {
+    page.classList.add('active');
+  });
+
+  // 隐藏上传页面
+  document.getElementById('page-upload').classList.remove('active');
+
+  // 触发打印
+  window.print();
+
+  // 打印完成后恢复原状
+  setTimeout(() => {
+    // 隐藏所有页面
+    document.querySelectorAll('.page').forEach(page => {
+      page.classList.remove('active');
+    });
+
+    // 恢复之前活动的页面
+    if (currentPage && currentPage.id !== 'page-upload') {
+      currentPage.classList.add('active');
+    } else {
+      // 如果没有保存的页面或保存的是上传页面，默认显示财务总结
+      document.getElementById('page-summary').classList.add('active');
+    }
+  }, 100);
+}
+
+// ===== 初始化 =====
+document.addEventListener('DOMContentLoaded', () => {
+  initEventListeners();
+
+  console.log('Application initialized successfully');
+});
+</script>
+</body>
+</html>

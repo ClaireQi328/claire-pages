@@ -1,0 +1,743 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>主控 Agent · 全流程操作手册（查询 → 下单 → 日报）</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'><rect width='24' height='24' rx='5' fill='%23ff6700'/><text x='12' y='17' font-size='14' text-anchor='middle' fill='white' font-weight='bold'>单</text></svg>">
+<style>
+:root{
+  --brand:#ff6700; --brand-soft:#fff4ec;
+  --ink:#1f2329; --ink-2:#4e5561; --ink-3:#86909c;
+  --line:#e5e6eb; --bg:#fafafa;
+  --ok:#00b578; --warn:#ff8800; --err:#f54a45; --blue:#3370ff;
+  --mono:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+}
+*{margin:0;padding:0;box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{font-family:-apple-system,"PingFang SC","Noto Sans SC","Microsoft YaHei",sans-serif;background:var(--bg);color:var(--ink);line-height:1.7;font-size:14px}
+.wrap{max-width:1120px;margin:0 auto;padding:0 20px 60px}
+/* ===== header ===== */
+header{background:linear-gradient(135deg,#fff 0%,var(--brand-soft) 100%);border-bottom:1px solid var(--line);padding:36px 0 28px;margin-bottom:0}
+.hd-inner{max-width:1120px;margin:0 auto;padding:0 20px}
+.breadcrumb{color:var(--ink-3);font-size:12px;letter-spacing:.5px}
+h1{font-size:26px;margin:8px 0 6px;font-weight:800}
+.sub{color:var(--ink-2);font-size:13px}
+.tags{display:flex;gap:8px;margin-top:14px;flex-wrap:wrap}
+.tag{font-size:12px;background:#fff;border:1px solid var(--line);border-radius:20px;padding:3px 12px;color:var(--ink-2)}
+.tag b{color:var(--brand)}
+/* ===== nav ===== */
+nav{position:sticky;top:0;z-index:50;background:rgba(255,255,255,.95);backdrop-filter:blur(8px);border-bottom:1px solid var(--line);margin-bottom:28px;box-shadow:0 1px 6px rgba(0,0,0,.04)}
+nav .wrap{display:flex;gap:2px;padding-top:0;padding-bottom:0;overflow-x:auto}
+nav a{display:block;padding:13px 13px;font-size:13px;color:var(--ink-2);text-decoration:none;white-space:nowrap;border-bottom:2px solid transparent}
+nav a:hover{color:var(--brand)}
+nav a.on{color:var(--brand);border-bottom-color:var(--brand);font-weight:600}
+/* ===== section ===== */
+section{background:#fff;border:1px solid var(--line);border-radius:12px;padding:24px 26px;margin-bottom:24px}
+.sec-title{display:flex;align-items:center;gap:10px;font-size:18px;font-weight:700;margin-bottom:4px}
+.sec-desc{color:var(--ink-3);font-size:12px;margin-bottom:16px}
+.sec-num{display:inline-flex;align-items:center;justify-content:center;width:28px;height:28px;border-radius:8px;background:var(--brand);color:#fff;font-size:14px;font-weight:700;flex:none}
+h3{font-size:15px;margin:20px 0 10px;padding-left:10px;border-left:3px solid var(--brand)}
+h4{font-size:13px;margin:14px 0 6px;color:var(--ink-2)}
+/* ===== code ===== */
+pre{background:#1f2329;color:#e6e8eb;border-radius:8px;padding:12px 16px;overflow-x:auto;font-family:var(--mono);font-size:12.5px;line-height:1.6;margin:8px 0}
+code{font-family:var(--mono);background:#f2f3f5;border-radius:4px;padding:1px 6px;font-size:12px}
+pre code{background:none;padding:0}
+.cmd-desc{color:var(--ink-3);font-size:12px;margin-top:2px}
+/* ===== tables ===== */
+table{width:100%;border-collapse:collapse;margin:10px 0 4px;font-size:13px;table-layout:fixed}
+colgroup col:nth-child(1){width:22%}
+colgroup col:nth-child(2){width:44%}
+colgroup col:nth-child(3){width:34%}
+th{background:#f7f8fa;text-align:left;font-weight:600;color:var(--ink-2)}
+th,td{border:1px solid var(--line);padding:8px 10px;vertical-align:top;word-wrap:break-word}
+td code{white-space:normal;word-break:break-all}
+tr:hover td{background:#fafbfc}
+/* ===== flow ===== */
+.flow{display:flex;align-items:stretch;gap:0;margin:14px 0;flex-wrap:wrap}
+.fstep{flex:1;min-width:130px;background:var(--brand-soft);border:1px solid #ffd9bd;border-radius:10px;padding:10px 8px;text-align:center;position:relative}
+.fstep .no{display:inline-flex;width:22px;height:22px;border-radius:50%;background:var(--brand);color:#fff;font-size:12px;align-items:center;justify-content:center;font-weight:700;margin-bottom:4px}
+.fstep .nm{font-size:12.5px;font-weight:600}
+.fstep .en{font-size:10.5px;color:var(--ink-3);margin-top:2px}
+.fstep .sk{font-size:10.5px;color:var(--brand);font-weight:600;margin-top:4px}
+.farrow{align-self:center;color:var(--brand);font-weight:700;padding:0 5px;font-size:16px}
+.fstep.hl{background:#fff;border-color:var(--brand);box-shadow:0 2px 8px rgba(255,103,0,.12)}
+/* ===== cards ===== */
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:12px;margin:12px 0}
+.card{border:1px solid var(--line);border-radius:10px;padding:14px 16px;background:#fff}
+.card .t{font-weight:600;font-size:13.5px;margin-bottom:4px;display:flex;align-items:center;gap:8px}
+.card .d{font-size:12px;color:var(--ink-2)}
+.card .meta{font-size:11px;color:var(--ink-3);margin-top:6px;font-family:var(--mono);word-break:break-all}
+.card svg{flex:none}
+/* ===== badges ===== */
+.b{display:inline-block;font-size:11.5px;border-radius:4px;padding:1px 8px;margin:1px 2px;font-weight:600}
+.b-ok{background:#e8faf2;color:var(--ok)}
+.b-warn{background:#fff3e0;color:var(--warn)}
+.b-err{background:#ffeded;color:var(--err)}
+.b-info{background:#e8f1ff;color:var(--blue)}
+/* ===== steps ===== */
+ol.steps{padding-left:22px;margin:8px 0}
+ol.steps li{margin:6px 0}
+ul.plain{list-style:none;padding-left:0}
+ul.plain li{padding:4px 0 4px 18px;position:relative;font-size:13px}
+ul.plain li::before{content:"";position:absolute;left:2px;top:12px;width:6px;height:6px;border-radius:50%;background:var(--brand)}
+/* ===== table-scroll (横向滚动表) ===== */
+.table-scroll{overflow-x:auto;margin:10px 0 4px}
+.table-scroll table{margin:0}
+@media (max-width:720px){
+  .tbl4{min-width:560px}
+  .tbl4 col:nth-child(1){width:22%!important}
+  .tbl4 col:nth-child(2){width:28%!important}
+  .tbl4 col:nth-child(3){width:12%!important}
+  .tbl4 col:nth-child(4){width:38%!important}
+  .tbl6{min-width:620px}
+  .tbl6 col:nth-child(1){width:13%!important}
+  .tbl6 col:nth-child(2){width:17%!important}
+  .tbl6 col:nth-child(3){width:17%!important}
+  .tbl6 col:nth-child(4){width:17%!important}
+  .tbl6 col:nth-child(5){width:18%!important}
+  .tbl6 col:nth-child(6){width:18%!important}
+}
+.note code, .card code, .faq-item code, .sec-desc code, li code, p code{white-space:normal;word-break:break-word}
+/* ===== note ===== */
+.note{background:var(--brand-soft);border:1px solid #ffd9bd;border-radius:8px;padding:10px 14px;font-size:12.5px;color:#7a3a00;margin:10px 0}
+.note.err{background:#ffeded;border-color:#ffc9c9;color:#b2352e}
+.note.ok{background:#e8faf2;border-color:#b7ebd3;color:#08734a}
+.note.warn{background:#fff3e0;border-color:#ffd591;color:#ad5f00}
+.note b{font-weight:700}
+/* ===== timeline ===== */
+.tl{border-left:2px solid var(--line);margin:14px 0 14px 6px;padding-left:18px}
+.tl-item{position:relative;padding:0 0 16px}
+.tl-item:last-child{padding-bottom:0}
+.tl-item::before{content:"";position:absolute;left:-25px;top:6px;width:10px;height:10px;border-radius:50%;background:var(--brand);border:2px solid #fff;box-shadow:0 0 0 2px var(--brand)}
+.tl-item .ph{font-weight:700;font-size:13.5px}
+.tl-item .ph .en2{font-weight:400;color:var(--ink-3);font-size:11.5px;margin-left:6px}
+.tl-item .desc{font-size:12.5px;color:var(--ink-2);margin-top:3px}
+/* ===== pipeline lanes ===== */
+.lanes{margin:14px 0;border:1px solid var(--line);border-radius:10px;overflow:hidden}
+.lane{display:grid;grid-template-columns:110px 1fr;border-bottom:1px solid var(--line);font-size:12.5px}
+.lane:last-child{border-bottom:none}
+.lane .who{background:#f7f8fa;font-weight:600;padding:10px 12px;color:var(--ink-2);display:flex;align-items:center}
+.lane .act{padding:10px 14px;color:var(--ink)}
+.lane .act b{color:var(--brand)}
+/* ===== journey (角色旅程泳道) ===== */
+.jr{margin:14px 0;border:1px solid var(--line);border-radius:12px;overflow:hidden}
+.jr-head{display:grid;grid-template-columns:180px 1fr;align-items:center;padding:12px 16px;font-size:13.5px;font-weight:700}
+.jr-head .t{display:flex;align-items:center;gap:8px}
+.jr-head .who-chip{display:inline-flex;align-items:center;gap:6px;background:var(--brand-soft);border:1px solid #ffd9bd;color:#ad4e00;border-radius:20px;padding:2px 12px;font-size:12px;font-weight:600}
+.jr-body{padding:0}
+.jr-row{display:grid;grid-template-columns:180px 1fr;border-top:1px solid var(--line);font-size:12.5px}
+.jr-row .k{background:#f7f8fa;color:var(--ink-2);font-weight:600;padding:10px 14px;border-right:1px solid var(--line)}
+.jr-row .v{padding:10px 14px;color:var(--ink)}
+.jr-row .v .t2{color:var(--ink);font-weight:600}
+.jr-row .v .sub-line{color:var(--ink-2);font-size:12px;margin-top:2px}
+.jr-row .v ul{margin:4px 0 0;padding-left:18px}
+.jr-row .v li{font-size:12.5px;margin:2px 0}
+.jr-row.before .v{color:var(--ink-3)}
+.jr-row.before .v li{color:var(--ink-3)}
+.jr-row.up .k{color:var(--ok)}
+@media (max-width:720px){
+  .jr-head,.jr-row{grid-template-columns:1fr}
+  .jr-row .k{border-right:none;border-bottom:1px solid var(--line);padding:8px 12px}
+}
+/* ===== faq ===== */
+.faq-item{border:1px solid var(--line);border-radius:10px;padding:12px 16px;margin:10px 0}
+.faq-item .q{font-weight:600;font-size:13.5px;color:var(--ink)}
+.faq-item .a{font-size:12.5px;color:var(--ink-2);margin-top:4px}
+/* ===== cmp 前后对比 ===== */
+.cmp2{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin:14px 0}
+.cmp-col{border:1px solid var(--line);border-radius:10px;padding:12px;background:#fff}
+.cmp-title{font-weight:700;font-size:13px;padding:6px 12px;border-radius:6px;margin-bottom:10px}
+.cmp-title.before{background:#f2f3f5;color:var(--ink-2)}
+.cmp-title.now{background:var(--brand-soft);color:var(--brand)}
+.flow-v{display:flex;flex-direction:column;gap:2px}
+.flow-v .fstep{min-width:0;width:100%;display:flex;align-items:center;gap:8px;text-align:left;padding:7px 10px;border-radius:8px;background:#fff}
+.cmp-col.before .flow-v .fstep{border:1px solid var(--line)}
+.cmp-col.now .flow-v .fstep{border:1px solid #ffd9bd;background:var(--brand-soft)}
+.flow-v .fstep .no{flex:none;margin-bottom:0;width:20px;height:20px;font-size:11px}
+.flow-v .fstep .nm{flex:1;font-size:12.5px}
+.flow-v .fstep .en{font-size:11px;color:var(--ink-3);text-align:right}
+.farrow-v{align-self:center;color:var(--brand);font-weight:700;font-size:13px;padding:1px 0;line-height:1}
+.cmp-col.before .farrow-v{color:var(--ink-3)}
+.cmp-foot{font-size:12px;color:var(--ink-2);margin-top:8px;text-align:center}
+@media (max-width:720px){
+  .cmp2{grid-template-columns:1fr}
+}
+/* ===== misc ===== */
+.footer-note{color:var(--ink-3);font-size:12px;text-align:center;padding:20px 0}
+@media (max-width:720px){
+  h1{font-size:21px}
+  section{padding:18px 16px}
+  nav a{padding:11px 10px;font-size:12px}
+  .lane{grid-template-columns:1fr}
+  .lane .who{border-right:none;border-bottom:1px solid var(--line);padding:8px 12px}
+  body{font-size:15px}
+  .card .d, ul.plain li, .tl-item .desc, .faq-item .a, .note, .cmd-desc{font-size:13.5px}
+  .card .t{font-size:14.5px}
+  table{font-size:12.5px}
+  .grid{grid-template-columns:1fr}
+  pre{font-size:12px}
+}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="hd-inner">
+    <div class="breadcrumb">小米供应链 · 样件订单自动化 / AgentSpace 上架文档</div>
+    <h1>样件订单自动化 · 操作手册</h1>
+    <div class="sub">以用户旅程为主线：三个角色每天怎么工作、Agent 在哪里替人跑腿、人只需在哪一个环节拍板 · 含能力全景、使用方式与操作细节</div>
+    <div class="tags">
+      <span class="tag">版本 <b>2026-09-24</b></span>
+      <span class="tag">关联 Skill <b>demand-query / demand-order / daily-report</b></span>
+      <span class="tag">CLI <b>dx-ep 1.0.7-beta.4</b></span>
+      <span class="tag">前置 <b>需求导入 Agent</b></span>
+    </div>
+  </div>
+</header>
+
+<nav>
+  <div class="wrap">
+    <a href="#s1" class="on">① 用户旅程</a>
+    <a href="#s2">② 前后对比</a>
+    <a href="#s3">③ 能力全景</a>
+    <a href="#s4">④ 使用方式</a>
+    <a href="#s5">⑤ 落地方案</a>
+    <a href="#s6">⑥ 角色分工</a>
+    <a href="#s7">⑦ 操作细节</a>
+    <a href="#s8">⑧ 常见问题</a>
+  </div>
+</nav>
+
+<div class="wrap">
+
+<!-- ===== 一、用户旅程 ===== -->
+<section id="s1">
+  <div class="sec-title"><span class="sec-num">1</span>用户旅程：三个角色的一天，Agent 替人跑腿、人只拍板</div>
+  <div class="sec-desc">整条样件订单链路涉及 3 类角色；下面按「角色 × 时间顺序 × 场景」拆开，逐环节对比「之前 vs 现在」，标出 Agent 带来的提升点</div>
+
+  <h3>1.1 业务全景：这条链路上有谁、流转什么</h3>
+  <div class="flow">
+    <div class="fstep hl"><div class="no">1</div><div class="nm">需求登记</div><div class="en">研发工程师</div><div class="sk">填需求收集表</div></div>
+    <div class="farrow">→</div>
+    <div class="fstep"><div class="no">2</div><div class="nm">需求导入</div><div class="en">研发需求管理员</div><div class="sk">待导入→可下单数据</div></div>
+    <div class="farrow">→</div>
+    <div class="fstep"><div class="no">3</div><div class="nm">查询可下单</div><div class="en">订单管理员</div><div class="sk">query-ready+分组</div></div>
+    <div class="farrow">→</div>
+    <div class="fstep"><div class="no">4</div><div class="nm">人工确认</div><div class="en">订单管理员</div><div class="sk">确认页/选供应商</div></div>
+    <div class="farrow">→</div>
+    <div class="fstep"><div class="no">5</div><div class="nm">执行下单</div><div class="en">Agent 自动</div><div class="sk">create-order 合并</div></div>
+    <div class="farrow">→</div>
+    <div class="fstep"><div class="no">6</div><div class="nm">日报/进度</div><div class="en">全员可见</div><div class="sk">统计+留痕+通知</div></div>
+  </div>
+  <p style="font-size:12.5px;color:var(--ink-2)">人只出现在 ②（确认导入）和 ④（选供应商/拍板下单）两个确认节点；其余环节由 Agent 自动编排执行。</p>
+
+  <h3>1.2 角色旅程一：研发需求管理员 —— 每天 9:30 被自动叫醒，确认导入即可</h3>
+  <div class="jr">
+    <div class="jr-head">
+      <div class="t"><span class="who-chip">👤 研发需求管理员</span></div>
+      <div style="color:var(--ink-2);font-weight:400;font-size:12.5px">负责：需求导入｜接触：需求收集表 + 群推送 + 导入预览页 + 导入结果</div>
+    </div>
+    <div class="jr-body">
+      <div class="jr-row">
+        <div class="k">场景 ① 早上 9:30</div>
+        <div class="v">
+          <div class="t2">收到「今日待导入」群推送</div>
+          <div class="sub-line">群机器人定时任务触发，卡片带：今日待导入明细 + 导入预览链接 + 有效/无效统计</div>
+        </div>
+      </div>
+      <div class="jr-row">
+        <div class="k">场景 ② 打开预览</div>
+        <div class="v">
+          <div class="t2">核对待导入需求</div>
+          <div class="sub-line">预览页按需求逐行展示（零件、预算、数量、要求到货日期、需求人），一眼确认字段对不对</div>
+        </div>
+      </div>
+      <div class="jr-row">
+        <div class="k">场景 ③ 确认导入</div>
+        <div class="v">
+          <div class="t2">回到 AgentSpace 对话框说「确认导入」</div>
+          <div class="sub-line">飞书卡片无法回调交互，确认统一回 AgentSpace 完成；导入结果自动推群 + 写执行日志</div>
+        </div>
+      </div>
+      <div class="jr-row before">
+        <div class="k">之前（手动）</div>
+        <div class="v">
+          <ul>
+            <li>每天手动进表格翻「样件导入状态=待导入」的记录，逐条核对字段</li>
+            <li>手工拼参数、逐条导入，导入完没人知道、没有留痕</li>
+            <li>忘了没人提醒——「今天没导」要等下游问了才发现</li>
+          </ul>
+        </div>
+      </div>
+      <div class="jr-row up">
+        <div class="k">提升点</div>
+        <div class="v"><span class="b b-ok">到点自动提醒</span><span class="b b-ok">预览先行核对</span><span class="b b-ok">结果留痕推群</span> 导入这件事不再靠记性，确认动作从「逐条操作」降到「一句话拍板」。</div>
+      </div>
+    </div>
+  </div>
+
+  <h3>1.3 角色旅程二：订单管理员 —— 早上收清单，白天点确认，下班前收日报</h3>
+  <div class="jr">
+    <div class="jr-head">
+      <div class="t"><span class="who-chip">👤 订单管理员</span></div>
+      <div style="color:var(--ink-2);font-weight:400;font-size:12.5px">负责：查询 → 选供应商 → 确认下单 → 日报｜接触：确认页 + AgentSpace 对话框 + 群卡片</div>
+    </div>
+    <div class="jr-body">
+      <div class="jr-row">
+        <div class="k">场景 ① 上午</div>
+        <div class="v">
+          <div class="t2">收到「查询完成」群推送</div>
+          <div class="sub-line">卡片带 6 项统计（可下单总量 / 一品一点组数 / 一品多点组数 / 无供应商条数等）+ 确认页链接（一品一点 / 一品多点分开两个链接）</div>
+        </div>
+      </div>
+      <div class="jr-row">
+        <div class="k">场景 ② 打开确认页</div>
+        <div class="v">
+          <div class="t2">盘点可下单需求</div>
+          <div class="sub-line">一品一点：每组可直接确认；一品多点：先逐行选供应商，选完自动合并重分组；无供应商项标黄待处理</div>
+        </div>
+      </div>
+      <div class="jr-row">
+        <div class="k">场景 ③ 确认执行</div>
+        <div class="v">
+          <div class="t2">回 AgentSpace 对话框确认</div>
+          <div class="sub-line">按订单组合并一条 create-order 下单；结果四分类（成功/草稿/失败/计划）自动推群 + 写日志</div>
+        </div>
+      </div>
+      <div class="jr-row">
+        <div class="k">场景 ④ 下班前</div>
+        <div class="v">
+          <div class="t2">收到统计日报</div>
+          <div class="sub-line">两层统计 HTML（概览 + 明细）自动生成推送，不必手搓表格对账</div>
+        </div>
+      </div>
+      <div class="jr-row before">
+        <div class="k">之前（手动）</div>
+        <div class="v">
+          <ul>
+            <li>登录系统逐条查需求状态、翻供应商报价、手工整理可下单清单</li>
+            <li>一品多点靠电话/群里确认供应商，口头记录容易错</li>
+            <li>逐条录单、填字段、怕填错；手搓统计表对账发周报</li>
+          </ul>
+        </div>
+      </div>
+      <div class="jr-row up">
+        <div class="k">提升点</div>
+        <div class="v"><span class="b b-ok">自动盘库分组</span><span class="b b-ok">确认页直达</span><span class="b b-ok">按组合并下单</span><span class="b b-ok">日报自动生成</span> 人从「搬运工」变成「判断者」，只做两件事：选供应商、拍板。</div>
+      </div>
+    </div>
+  </div>
+
+  <h3>1.4 角色旅程三：需求申请人（研发工程师）—— 提完需求，等进度自动通知</h3>
+  <div class="jr">
+    <div class="jr-head">
+      <div class="t"><span class="who-chip">👤 需求申请人</span></div>
+      <div style="color:var(--ink-2);font-weight:400;font-size:12.5px">负责：登记需求 → 看进度 → 收结果｜接触：需求收集表 + 需求进度表 + 群通知</div>
+    </div>
+    <div class="jr-body">
+      <div class="jr-row">
+        <div class="k">场景 ① 提需求</div>
+        <div class="v">
+          <div class="t2">在需求收集表登记（字段不变）</div>
+          <div class="sub-line">不改变现有登记习惯，表结构沿用</div>
+        </div>
+      </div>
+      <div class="jr-row">
+        <div class="k">场景 ② 等进度</div>
+        <div class="v">
+          <div class="t2">打开「需求进度表」即知到哪一步</div>
+          <div class="sub-line">按需求人维度展示：已导入 / 已下单 / 下单失败，每天定时刷新；不再群里问、人肉跟</div>
+        </div>
+      </div>
+      <div class="jr-row">
+        <div class="k">场景 ③ 收结果</div>
+        <div class="v">
+          <div class="t2">下单完成自动收到通知</div>
+          <div class="sub-line">订单执行成功后自动通知需求导入人，附带订单号/供应商</div>
+        </div>
+      </div>
+      <div class="jr-row before">
+        <div class="k">之前（手动）</div>
+        <div class="v">
+          <ul>
+            <li>不知道需求到哪一步，靠群里问、人肉跟进</li>
+            <li>下单完成与否要等别人通知，甚至自己查系统</li>
+          </ul>
+        </div>
+      </div>
+      <div class="jr-row up">
+        <div class="k">提升点</div>
+        <div class="v"><span class="b b-ok">进度表实时可见</span><span class="b b-ok">下单完成自动通知</span> 从「盲等 + 人肉问」变为「开表即知 + 自动推送」。</div>
+      </div>
+    </div>
+  </div>
+
+  <h3>1.5 一天时间线：整条链路在一天里怎么转</h3>
+  <div class="tl">
+    <div class="tl-item"><div class="ph">09:30 · 定时任务触发<span class="en2">研发需求管理员</span></div><div class="desc">群机器人推「今日待导入」（明细 + 预览链接），人确认后导入，结果推群 + 留痕。</div></div>
+    <div class="tl-item"><div class="ph">09:40 · 查询自动跑<span class="en2">订单管理员</span></div><div class="desc">查询可下单需求自动盘库分组，生成确认页（一品一点 / 一品多点分链接），推「查询完成」卡片。</div></div>
+    <div class="tl-item"><div class="ph">白天 · 盘点与确认<span class="en2">订单管理员</span></div><div class="desc">打开确认页：一品一点直接确认；一品多点逐行选供应商后自动合并；无供应商项人工介入。</div></div>
+    <div class="tl-item"><div class="ph">确认后 · 执行下单<span class="en2">Agent 自动</span></div><div class="desc">按订单组合并 create-order，结果四分类推群 + 写日志 + 更新需求进度表。</div></div>
+    <div class="tl-item"><div class="ph">16:30 · 统计日报<span class="en2">订单管理员</span></div><div class="desc">日报自动生成（概览 + 明细两层统计 HTML）推送群 + 留痕。</div></div>
+    <div class="tl-item"><div class="ph">全天 · 进度可见<span class="en2">需求申请人</span></div><div class="desc">随时打开需求进度表看自己的需求到哪一步，下单完成自动收通知。</div></div>
+  </div>
+
+  <h3>1.6 环节提升矩阵（横向 = 业务环节，纵向 = 角色）</h3>
+  <div class="table-scroll">
+  <table class="tbl6">
+    <colgroup><col style="width:13%"><col style="width:17%"><col style="width:17%"><col style="width:17%"><col style="width:18%"><col style="width:18%"></colgroup>
+    <tr><th>角色 / 环节</th><th>需求登记</th><th>导入</th><th>查询 / 分组</th><th>选供应商 / 确认</th><th>下单 / 进度 / 日报</th></tr>
+    <tr><td><b>研发需求管理员</b></td><td>（不变）填需求表</td><td><span class="b b-ok">自动推送+预览</span></td><td>—</td><td>—</td><td>导入结果留痕</td></tr>
+    <tr><td><b>订单管理员</b></td><td>—</td><td>—</td><td><span class="b b-ok">自动盘库分组</span></td><td><span class="b b-ok">逐行选供自动合并</span></td><td><span class="b b-ok">按组合并下单+日报</span></td></tr>
+    <tr><td><b>需求申请人</b></td><td>（不变）提交需求</td><td>—</td><td>—</td><td>—</td><td><span class="b b-ok">进度表+自动通知</span></td></tr>
+  </table>
+  </div>
+  <div class="cmd-desc">绿色 = Agent 带来的提升点；「—」= 该角色不参与此环节。整条链路从「人翻系统」变为「Agent 跑腿、人拍板」，人工仅在两个确认节点出现。</div>
+
+  <div class="note"><b>三句话记住这套旅程</b>：① 研发需求管理员每天被自动叫醒确认导入；② 订单管理员早上收清单、白天点确认、下班前收日报；③ 需求申请人开表即知进度、完成自动收通知。</div>
+</section>
+
+<!-- ===== 二、前后对比 ===== -->
+<section id="s2">
+  <div class="sec-title"><span class="sec-num">2</span>上线前后对比：从「人肉逐条」到「Agent 跑腿、人拍板」</div>
+  <div class="sec-desc">同一条样件订单链路，上线前后每一步怎么变——左列手动、右列 Agent，逐环节对照</div>
+
+  <h3>2.1 一图看懂：两条链路</h3>
+  <div class="cmp2">
+    <div class="cmp-col before">
+      <div class="cmp-title before">上线前 · 手动链路（人做全部 6 步）</div>
+      <div class="flow-v">
+        <div class="fstep"><span class="no">1</span><div class="nm">登录系统，翻需求收集表</div><div class="en">找待导入</div></div>
+        <div class="farrow-v">↓</div>
+        <div class="fstep"><span class="no">2</span><div class="nm">逐条核对字段，手工导入</div><div class="en">人核对</div></div>
+        <div class="farrow-v">↓</div>
+        <div class="fstep"><span class="no">3</span><div class="nm">逐个登录查可下单状态</div><div class="en">逐条翻</div></div>
+        <div class="farrow-v">↓</div>
+        <div class="fstep"><span class="no">4</span><div class="nm">翻供应商报价，口头确认</div><div class="en">靠沟通</div></div>
+        <div class="farrow-v">↓</div>
+        <div class="fstep"><span class="no">5</span><div class="nm">逐条录单、填字段下单</div><div class="en">易填错</div></div>
+        <div class="farrow-v">↓</div>
+        <div class="fstep"><span class="no">6</span><div class="nm">手搓统计表，发日报/周报</div><div class="en">对账难</div></div>
+      </div>
+      <div class="cmp-foot">痛点：翻得多、填得多、记不住、没留痕、易漏单</div>
+    </div>
+    <div class="cmp-col now">
+      <div class="cmp-title now">上线后 · Agent 链路（人只做 2 步确认）</div>
+      <div class="flow-v">
+        <div class="fstep"><span class="no">1</span><div class="nm">定时任务自动拉取待导入需求</div><div class="en">Agent 自动</div></div>
+        <div class="farrow-v">↓</div>
+        <div class="fstep"><span class="no">2</span><div class="nm">推送「今日待导入」→ 人确认导入</div><div class="en">人拍板</div></div>
+        <div class="farrow-v">↓</div>
+        <div class="fstep"><span class="no">3</span><div class="nm">自动查询可下单 + 分组</div><div class="en">Agent 自动</div></div>
+        <div class="farrow-v">↓</div>
+        <div class="fstep"><span class="no">4</span><div class="nm">确认页选供应商 → 人确认执行</div><div class="en">人拍板</div></div>
+        <div class="farrow-v">↓</div>
+        <div class="fstep"><span class="no">5</span><div class="nm">按订单组合并，一条 create-order</div><div class="en">Agent 自动</div></div>
+        <div class="farrow-v">↓</div>
+        <div class="fstep"><span class="no">6</span><div class="nm">日报自动生成 + 全链路留痕</div><div class="en">Agent 自动</div></div>
+      </div>
+      <div class="cmp-foot">价值：翻表、核对、查询、拼单、统计全部自动化；人只在「导入」「执行」两个节点拍板</div>
+    </div>
+  </div>
+
+  <h3>2.2 逐环节对照</h3>
+  <div class="table-scroll">
+  <table class="tbl4">
+    <colgroup><col style="width:16%"><col style="width:42%"><col style="width:42%"></colgroup>
+    <tr><th>环节</th><th>上线前 · 手动</th><th>上线后 · Agent</th></tr>
+    <tr><td><b>需求导入</b></td><td>人登录系统翻「待导入」→ 逐条核对字段 → 手工导入，忘了没人提醒，导完没留痕</td><td>定时任务自动拉取 → 群推「今日待导入」+ 预览页 → 人一句话确认，结果推群 + 写日志</td></tr>
+    <tr><td><b>查询可下单</b></td><td>人逐个登录查状态、翻供应商报价，整理可下单清单</td><td>自动盘库 → 自动分组（一品一点 / 一品多点 / 无供应商）→ 生成确认页，链接推群</td></tr>
+    <tr><td><b>选供应商</b></td><td>一品多点靠电话/群里口头确认，容易记错</td><td>确认页逐行选供应商（默认 EP 推荐），选完自动合并重分组，有据可查</td></tr>
+    <tr><td><b>执行下单</b></td><td>人逐条录单、填字段，怕填错，逐条提交</td><td>按订单组合并同键需求 → 一条 create-order，价格取最新最低价，结果四分类</td></tr>
+    <tr><td><b>统计日报</b></td><td>人手搓统计表、对账、发周报，口径不稳定</td><td>日报自动生成（概览 + 明细两层 HTML）→ 自动推群，口径一致可回查</td></tr>
+    <tr><td><b>留痕与进度</b></td><td>无统一留痕，出了问题难回溯；需求人靠群里问进度</td><td>执行日志面板（唯一权威）+ 需求进度表（按需求人维度）+ 群通知，三层留痕</td></tr>
+  </table>
+  </div>
+
+  <h3>2.3 本质变化：三类转变</h3>
+  <div class="grid">
+    <div class="card">
+      <div class="t">① 人从「搬运工」→「判断者」</div>
+      <div class="d">翻表、核对、查询、拼参、统计这些搬运型动作全部交给 Agent；人只保留两件事：选供应商、拍板确认。</div>
+    </div>
+    <div class="card">
+      <div class="t">② 操作从「逐条」→「按组合并」</div>
+      <div class="d">同键（同品同预算同行同供应商）需求合并成一条 create-order 批量下单，操作量和出错面都大幅下降。</div>
+    </div>
+    <div class="card">
+      <div class="t">③ 留痕从「无」→「三层全」</div>
+      <div class="d">执行日志面板 + 需求进度表 + 群通知，谁、何时、做了什么、结果如何都可回溯；需求人不再盲等。</div>
+    </div>
+  </div>
+
+  <div class="note"><b>一句话</b>：上线前是「人肉逐条 + 口头确认 + 无留痕」，上线后是「Agent 跑腿 + 确认页拍板 + 全链路留痕」——人工环节从 6 个降到 2 个。</div>
+</section>
+
+<!-- ===== 三、能力全景 ===== -->
+<section id="s3">
+  <div class="sec-title"><span class="sec-num">3</span>能力全景</div>
+  <div class="sec-desc">五个业务环节 + 全链路通知与留痕；每个环节既可独立使用，也可串成完整流程</div>
+
+  <div class="flow">
+    <div class="fstep hl"><div class="no">1</div><div class="nm">需求导入</div><div class="en">demand-import</div><div class="sk">表格→可下单数据</div></div>
+    <div class="farrow">→</div>
+    <div class="fstep"><div class="no">2</div><div class="nm">查询可下单需求</div><div class="en">demand-query</div><div class="sk">query-ready+分组</div></div>
+    <div class="farrow">→</div>
+    <div class="fstep"><div class="no">3</div><div class="nm">人工确认</div><div class="en">AgentSpace 对话</div><div class="sk">确认页/选供应商</div></div>
+    <div class="farrow">→</div>
+    <div class="fstep"><div class="no">4</div><div class="nm">执行下单</div><div class="en">demand-order</div><div class="sk">create-order 合并</div></div>
+    <div class="farrow">→</div>
+    <div class="fstep"><div class="no">5</div><div class="nm">统计日报</div><div class="en">daily-report</div><div class="sk">submit-list</div></div>
+  </div>
+
+  <div class="grid">
+    <div class="card">
+      <div class="t">📥 需求导入</div>
+      <div class="d">从飞书多维表格读取「待导入」需求 → 校验 → 生成预览页 → 确认后导入系统。支持定时每天跑，早上推「今日待导入」清单。</div>
+      <div class="meta">独立 Agent「需求导入 Agent」负责</div>
+    </div>
+    <div class="card">
+      <div class="t">🔍 查询可下单需求</div>
+      <div class="d">自动盘库：拉取可下单需求 → 自动分组（一品一点 / 一品多点 / 无供应商）→ 生成可视化确认页。</div>
+      <div class="meta">产出：确认页 one/multi 链接</div>
+    </div>
+    <div class="card">
+      <div class="t">👤 人工确认</div>
+      <div class="d">在 AgentSpace 对话框里看确认页、选供应商、确认执行；一品多点选完自动合并重分组。</div>
+      <div class="meta">人机协作的关键节点</div>
+    </div>
+    <div class="card">
+      <div class="t">✅ 执行下单</div>
+      <div class="d">按订单组合并同键需求 → 一条 create-order 下单，价格取最新最低价，结果四分类（成功/草稿/失败/计划）。</div>
+      <div class="meta">下单前二次确认</div>
+    </div>
+    <div class="card">
+      <div class="t">📊 统计日报</div>
+      <div class="d">按日/周期统计下单情况 → 生成两层统计 HTML（概览 + 明细）→ 推送到群。</div>
+      <div class="meta">附报告链接</div>
+    </div>
+    <div class="card">
+      <div class="t">🔔 通知与留痕</div>
+      <div class="d">群机器人为唯一主动通知主体：查询/下单/统计每个节点发一张卡片；全部操作写飞书执行日志面板，需求进度表实时更新。</div>
+      <div class="meta">谁都能看到进展</div>
+    </div>
+  </div>
+
+  <div class="note"><b>每环节独立可用</b>：不只支持「一键跑全流程」，也可以单独说「查一下今天有哪些可下单需求」「把昨天的日报发一下」——每个 Skill 单独调用都成立（见第 4 节）。</div>
+</section>
+
+<!-- ===== 四、使用方式 ===== -->
+<section id="s4">
+  <div class="sec-title"><span class="sec-num">4</span>使用方式</div>
+  <div class="sec-desc">同一套能力，按场景选择入口：对话 / 定时任务 / 线下</div>
+
+  <div class="grid">
+    <div class="card">
+      <div class="t">💬 方式一 · AgentSpace 对话</div>
+      <div class="d">打开 AgentSpace 里的 Agent（如「订单自动化」），用自然语言说需求：「查一下今天可下单的需求」「跑一遍查询+确认页」——Agent 按预设流程编排 Skill，结果在对话框里给你链接和统计，人工确认也在对话框完成。</div>
+      <div class="meta">适合：日常随时发起、例外处理、临时查看</div>
+    </div>
+    <div class="card">
+      <div class="t">⏰ 方式二 · 定时任务 / 工作流</div>
+      <div class="d">在 AgentSpace「自动化」里配置定时触发：每天固定时间自动跑「需求导入 → 查询 → 推送」，或整链路「查询 → 确认页 → 待人工确认 → 下单 → 日报」。群机器人把结果推给相关人。</div>
+      <div class="meta">适合：每日例行、无人值守、到点自动</div>
+    </div>
+    <div class="card">
+      <div class="t">🖥️ 方式三 · 线下本地 Agent</div>
+      <div class="d">在本机终端直接跑 Skill（python 脚本），输入输出与云端一致。适合调试、自测、或在本地环境单独跑某一环节。</div>
+      <div class="meta">适合：开发调试、本地验证、离线排障</div>
+    </div>
+  </div>
+
+  <div class="note"><b>三者关系</b>：三种方式共用同一套 Skill 和同一份配置，产物（确认页/日报）都上传到同一个 FDS 链接体系、日志写同一个面板——换入口不换数据，互不冲突。</div>
+</section>
+
+<!-- ===== 五、落地方案：任务流 ===== -->
+<section id="s5">
+  <div class="sec-title"><span class="sec-num">5</span>落地方案：一条任务流</div>
+  <div class="sec-desc">「AgentSpace 定时任务驱动 + 飞书群机器人触发通知 + 返回 AgentSpace 交互」</div>
+
+  <div class="flow">
+    <div class="fstep hl"><div class="no">1</div><div class="nm">定时任务驱动</div><div class="en">AgentSpace 自动化</div><div class="sk">每天到点自动启动</div></div>
+    <div class="farrow">→</div>
+    <div class="fstep"><div class="no">2</div><div class="nm">Agent 编排执行</div><div class="en">查询→分组→确认页</div><div class="sk">输出链接+统计</div></div>
+    <div class="farrow">→</div>
+    <div class="fstep"><div class="no">3</div><div class="nm">群机器人通知</div><div class="en">飞书群卡片</div><div class="sk">明细+链接+引流</div></div>
+    <div class="farrow">→</div>
+    <div class="fstep"><div class="no">4</div><div class="nm">返回 AgentSpace 确认</div><div class="en">对话框交互</div><div class="sk">选供应商/确认执行</div></div>
+  </div>
+
+  <h3>4.1 任务流如何转起来</h3>
+  <ol class="steps">
+    <li><b>定时驱动</b>：AgentSpace「自动化」配置 cron 任务（如每个工作日 9:30），到点自动唤起 Agent，无需人盯。</li>
+    <li><b>自动编排</b>：Agent 按预设流程依次调用 Skill：查询可下单需求 → 分组 → 生成确认页 → 上传 FDS 拿链接。</li>
+    <li><b>群机器人通知</b>：关键节点发飞书群卡片——「查询完成：可下单 X 条，一品一点 N 组 / 一品多点 M 组，无供应商 K 条，确认页链接」，卡片尾部带「🛰️ 前往 AgentSpace」引流链接。</li>
+    <li><b>回 AgentSpace 交互</b>：人点卡片回 AgentSpace，在对话框/确认页完成「选供应商 + 确认执行」；确认后 Agent 继续下单、出日报，再推结果卡片。</li>
+  </ol>
+
+  <div class="note"><b>为什么群机器人是唯一主动主体</b>：AgentSpace 空间内消息、空间机器人、群机器人三处各发一遍会重复打扰。约定：<b>主动通知只走群机器人</b>（含引流回 AgentSpace 的链接），AgentSpace 空间内只回一句短摘要（状态+批次+链接），不重复贴全文。</div>
+
+  <h3>4.2 每个节点的通知与交互</h3>
+  <div class="table-scroll">
+  <table class="tbl4">
+    <colgroup><col style="width:22%"><col style="width:28%"><col style="width:12%"><col style="width:38%"></colgroup>
+    <tr><th>事件</th><th>渠道</th><th>标题 emoji</th><th>内容要点</th></tr>
+    <tr><td>查询完成</td><td>群机器人（原机器人 <code>3110a395</code>）</td><td>📋</td><td>日期 + 批次号 + 6 项统计 + 确认页 one/multi 链接 + 无供应商条数 + 引流</td></tr>
+    <tr><td>需求导入完成</td><td>群机器人（需求群 <code>4cde29b7</code>）</td><td>📥</td><td>今日待导入清单 + 导入预览链接 + 有效/无效统计 + 引流（需求导入 Agent 环节）</td></tr>
+    <tr><td>下单成功</td><td>群机器人（原机器人 <code>3110a395</code>）</td><td>✅</td><td>日期 + 批次号 + 成功单数 + 订单号 + 明细链接 + 引流；另通知需求导入人</td></tr>
+    <tr><td>下单失败/草稿</td><td>群机器人（原机器人 <code>3110a395</code>）</td><td>⚠️</td><td>失败批次 + 原因 + 待处理链接，引导回 AgentSpace 处理</td></tr>
+    <tr><td>统计日报</td><td>群机器人（原机器人 <code>3110a395</code>）</td><td>📊</td><td>日期 + 周期 + 统计 + 报告链接 + 操作人</td></tr>
+  </table>
+  </div>
+
+  <h3>4.3 任务链接（引流用）</h3>
+  <ul class="plain">
+    <li>每个 AgentSpace 任务有独立详情页：<code>https://agent-space.ev.mioffice.cn/order/issues/&lt;taskId&gt;</code>（taskId 为 UUID，如 WS-51 → <code>…/order/issues/82b5bb2f-fba1-4af1-851c-bd40d7ac7dfe</code>）</li>
+    <li>运行前把当前任务链接注入 <code>AGENTSPACE_TASK_URL</code>，群卡片尾部「🛰️ 前往 AgentSpace」自动渲染为可点击直达</li>
+    <li>Agent 也可以从平台「我的任务」页自动取当前任务链接注入</li>
+  </ul>
+</section>
+
+<!-- ===== 六、角色分工 ===== -->
+<section id="s6">
+  <div class="sec-title"><span class="sec-num">6</span>三个角色怎么用</div>
+  <div class="sec-desc">研发需求管理员 / 订单管理员 / 需求申请人，各自做什么、看到什么（用户旅程的速查版）</div>
+
+  <div class="lanes">
+    <div class="lane">
+      <div class="who">研发需求管理员</div>
+      <div class="act">
+        <b>负责需求导入</b>：每天早上收到「今日待导入」推送（明细 + 预览链接）→ 确认后导入 → 导入结果推群。使用「需求导入 Agent」或定时任务。
+      </div>
+    </div>
+    <div class="lane">
+      <div class="who">订单管理员</div>
+      <div class="act">
+        <b>负责查询与下单</b>：收到「查询完成」推送 → 打开确认页盘点（一品一点直接确认 / 一品多点选供应商）→ 回 AgentSpace 确认执行 → 收到下单结果和日报。也可随时对话发起：「查一下今天可下单需求」。
+      </div>
+    </div>
+    <div class="lane">
+      <div class="who">需求申请人</div>
+      <div class="act">
+        <b>关注进度</b>：不用自己盯系统，需求进度表实时显示下单状态；订单完成后自动收到通知。想看进展随时在群里问，或打开进度表看自己的需求到哪一步。
+      </div>
+    </div>
+  </div>
+
+  <div class="note"><b>进度可见性</b>：执行日志面板（唯一权威日志）+ 需求进度表（按需求人维度展示下单状态）+ 群通知（主动推送），三层留痕覆盖"谁在什么时候做了什么、结果如何"。</div>
+</section>
+
+<!-- ===== 七、操作细节（备查） ===== -->
+<section id="s7">
+  <div class="sec-title"><span class="sec-num">7</span>操作细节（备查）</div>
+  <div class="sec-desc">环境、依赖、关键规则——日常使用不需要看，排障/上线时查阅</div>
+
+  <h3>7.1 依赖与工具</h3>
+  <table>
+    <colgroup><col><col><col></colgroup>
+    <tr><th>依赖</th><th>说明</th><th>用途</th></tr>
+    <tr><td><code>demand-query</code> Skill</td><td>查询可下单需求 + 分组 + 生成 one/multi 确认页 + 上传 FDS</td><td>查询环节</td></tr>
+    <tr><td><code>demand-order</code> Skill</td><td>消费 query 输出（items + grouping）→ 按订单组合并 → create-order 下单</td><td>下单环节</td></tr>
+    <tr><td><code>daily-report</code> Skill</td><td>submit-list 按日/周期统计 → 两层统计 HTML → FDS</td><td>日报环节</td></tr>
+    <tr><td>dx-ep CLI</td><td><code>@mi/dx-ep-cli@beta</code> = <b>1.0.7-beta.4</b>（含 sapo 域：query-ready / submit-list / create-order / import-item / import-json 全套）</td><td>全部业务调用</td></tr>
+    <tr><td>whoami</td><td>自动取登录人（下单人 = 实际登录 CLI 的人）</td><td>created_by / 操作人</td></tr>
+    <tr><td>feishu-mcp（仅日志/进度表场景）</td><td>写飞书执行日志面板 / 更新需求进度表（<code>~/.feishu-mcp-pro/auth.json</code> 登录态）</td><td>留痕</td></tr>
+    <tr><td>xiaomi-fds-auto-upload</td><td>确认页 / 结果页 / 日报页上传 FDS 生成链接</td><td>在线链接</td></tr>
+  </table>
+
+  <h3>7.2 环境检查（Agent 预设统一做，Skill 不重复）</h3>
+  <div class="table-scroll">
+  <table style="min-width:640px">
+    <colgroup><col style="width:18%"><col style="width:40%"><col style="width:42%"></colgroup>
+    <tr><th>检查项</th><th>命令</th><th>通过标准</th></tr>
+    <tr><td>python3</td><td><code>python3 --version</code></td><td>存在（3 个 skill 是 Python，必检）</td></tr>
+    <tr><td>Python 依赖</td><td><code>python3 -c "import requests, openpyxl"</code></td><td>均可 import（FDS 上传依赖，缺 requests 上传会挂）</td></tr>
+    <tr><td>dx-ep CLI 域</td><td><code>dx-ep sapo order --help</code></td><td>命令存在且列出 <b>query-ready / submit-list / create-order</b></td></tr>
+    <tr><td>CLI 配置</td><td>读 <code>~/.dx-garagehub/settings.json</code></td><td>base_url 指向 dev 网关（缺才写、写前备份、不盲目覆盖）</td></tr>
+    <tr><td>登录态</td><td><code>dx-garagehub auth status</code></td><td><b>判据防坑</b>：匹配大写 <code>Logged in</code>（非 "Not logged in"）<br>勿用 <code>grep -i "logged in"</code>——未登录文本含该子串会误判通过<br><code>Logged in</code> = 通过；<code>Not logged in</code> = 需登录</td></tr>
+  </table>
+  </div>
+
+  <div class="note"><b>版本门（2026-09-22 实跑更正）</b>：当前推荐 <code>@mi/dx-ep-cli@beta</code> = <b>1.0.7-beta.4</b>，sapo 域已并入 beta 线。安装 pin beta 标签，装完必 <code>dx-ep sapo order --help</code> 实测。历史坑：<code>latest</code>（1.0.7 稳定版）未必含 sapo，别用 <code>@latest</code>。<br><code style="display:inline-block;margin-top:6px;padding:2px 8px;background:#1f2329;color:#e6e8eb;border-radius:4px;word-break:break-all">npm i -g @mi/dx-ep-cli@beta --registry=&lt;mi-npm&gt;</code></div>
+
+  <h3>7.3 关键业务规则</h3>
+  <ul class="plain">
+    <li><b>分组内核</b>：供应商取 <code>supplierOptions</code> 去重稳定排序，逐条判 单供/多供/无供，六字段键聚合（<code>originType|brNo|brLineNumber|companyEntityId|supplierId|buyerId</code>）</li>
+    <li><b>60 天窗口</b>：要求到货日期超出 60 天剔除（不进确认页，报告剔除数）</li>
+    <li><b>多供应商不再静默按首供处理</b>：全部进确认页待人工选，不自动下单</li>
+    <li><b>无供应商项</b>：标 <code>needs_human: true</code>，不自动下单，人工介入</li>
+    <li><b>下单按订单组合并</b>：同键多需求 → 一条 <code>create-order</code>，<code>--pr-ids</code> 逗号拼全部成员；价格取 CLI 最新最低价（EP 侧判断）</li>
+    <li><b>下单不可逆</b>：执行前必须二次确认；结果严格分 <code>submitted_success / submitted_as_draft / create_failed / planned</code>，草稿/状态不明绝不报成功</li>
+    <li><b>飞书卡片无法回调交互</b>：确认一律引导回 AgentSpace 对话框操作</li>
+  </ul>
+
+  <h3>7.4 环境变量（Agent「环境变量」页注入）</h3>
+  <div class="grid">
+    <div class="card"><div class="t">网关</div><div class="d"><code>DX_EP_BASE_URL</code>（网关真名，<b>非</b> <code>DX_BASE_URL</code>）</div></div>
+    <div class="card"><div class="t">FDS</div><div class="d"><code>FDS_ACCESS_ID</code> / <code>FDS_ACCESS_SECRET</code> / <code>FDS_ENDPOINT</code></div></div>
+    <div class="card"><div class="t">下单人</div><div class="d"><code>EP_SAMPLE_ORDER_CREATED_BY</code>（仅覆盖默认 created_by 时填；默认取 whoami 登录人）</div></div>
+    <div class="card"><div class="t">引流</div><div class="d"><code>AGENTSPACE_TASK_URL</code>（运行前注入当前任务链接 → 群卡片尾行渲染为可点击引流）</div></div>
+    <div class="card"><div class="t">多维表格</div><div class="d"><code>EP_WORKBENCH_*</code>（工作台）/ <code>EP_SAMPLE_ORDER_BASE_TOKEN</code>（留痕）</div></div>
+    <div class="card"><div class="t">飞书机器人</div><div class="d"><code>FEISHU_BOT_APP_ID/SECRET</code>（发消息身份，与表格 base 是两类东西）</div></div>
+  </div>
+</section>
+
+<!-- ===== 八、常见问题 ===== -->
+<section id="s8">
+  <div class="sec-title"><span class="sec-num">8</span>常见问题与异常</div>
+  <div class="sec-desc">高频问题速查</div>
+
+  <div class="faq-item">
+    <div class="q">1. 我可以不跑全流程，只单独查一下吗？</div>
+    <div class="a">可以。每种 Skill 都能单独调用：「查一下今天有哪些可下单需求」「把确认页重新生成一下」「发一下昨天的日报」。在 AgentSpace 对话里直接说即可。</div>
+  </div>
+  <div class="faq-item">
+    <div class="q">2. 一品多点一定要人工选供应商吗？</div>
+    <div class="a">是的。多供应商项不自动按首供下单，确认页里逐行选择供应商（默认勾选 EP 推荐），选完自动合并重分组，确认后执行。避免猜错供应商下错单。</div>
+  </div>
+  <div class="faq-item">
+    <div class="q">3. 我怎么知道任务跑到哪一步了？</div>
+    <div class="a">群机器人每个节点推卡片；也可以打开需求进度表（按需求人维度看下单状态）或执行日志面板（完整留痕：谁、何时、做了什么、结果）。</div>
+  </div>
+  <div class="faq-item">
+    <div class="q">4. 飞书卡片上能直接点确认吗？</div>
+    <div class="a">不能。飞书卡片不支持回调交互，所以卡片只做通知+引流，真正的确认回 AgentSpace 对话框做（这也是「返回 AgentSpace 交互」这一环存在的原因）。</div>
+  </div>
+  <div class="faq-item">
+    <div class="q">5. 定时任务跑挂了怎么办？</div>
+    <div class="a">看群卡片里的失败原因 + 执行日志面板的失败记录；常见是 CLI 登录态过期或网关不可达，重新登录/修复后手动重跑一次即可。日志面板有 failed 记录可回溯。</div>
+  </div>
+  <div class="faq-item">
+    <div class="q">6. 通知会不会太吵？</div>
+    <div class="a">已做分层：主动通知只走群机器人一张卡，AgentSpace 空间内只回一句摘要，三处不重复。无结果也会发「查询完成：暂无可下单需求」，让群知道今天盘过了。</div>
+  </div>
+</section>
+
+<div class="footer-note">
+  配套：5 个 Skill 上传包在 <code>skill-simple/agentspace-packs/</code> ｜ Agent 预设 = <code>主控Agent-样件订单自动化-v3.txt</code> ｜ 需求导入见《需求导入Agent-上架说明-20260924》
+</div>
+
+</div>
+
+<script>
+// 导航高亮：滚动监听当前章节
+(function(){
+  var links = document.querySelectorAll('nav a');
+  var secs = document.querySelectorAll('section');
+  function onScroll(){
+    var y = window.scrollY + 90;
+    var cur = null;
+    secs.forEach(function(s){
+      if (s.offsetTop <= y) cur = s.id;
+    });
+    links.forEach(function(a){
+      a.classList.toggle('on', a.getAttribute('href') === '#' + cur);
+    });
+  }
+  window.addEventListener('scroll', onScroll, {passive:true});
+  onScroll();
+})();
+</script>
+</body>
+</html>

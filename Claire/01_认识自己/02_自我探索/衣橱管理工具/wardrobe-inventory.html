@@ -1,0 +1,601 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>我的衣橱 · 物品清单</title>
+<link rel="stylesheet" href="https://miaoda.feishu.cn/fonts/css2?family=Noto+Sans+SC:wght@300;400;500;700;900&display=swap">
+<style>
+  :root{
+    --bg:#f7f3ec;--bg-card:#fffdf8;--ink:#2c2620;--ink-soft:#5c534a;
+    --ink-mute:#8a8075;--line:#e0d8cc;--accent:#6b8e7f;--accent-soft:#e8efe9;
+    --warm:#c4956a;--warm-soft:#f5ebe0;--danger:#b85c5c;--danger-soft:#f5e6e6;
+    --caution:#d4a843;--caution-soft:#faf3e0;
+  }
+  *{margin:0;padding:0;box-sizing:border-box}
+  body{font-family:'Noto Sans SC',-apple-system,sans-serif;background:var(--bg);color:var(--ink);line-height:1.6;-webkit-font-smoothing:antialiased}
+  .wrap{max-width:1200px;margin:0 auto;padding:0 20px}
+
+  /* Header */
+  header{background:var(--bg-card);border-bottom:1px solid var(--line);padding:16px 0;position:sticky;top:0;z-index:100}
+  .header-inner{display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap}
+  .logo{font-size:20px;font-weight:900;letter-spacing:-0.3px}
+  .logo span{color:var(--accent)}
+  .header-actions{display:flex;gap:8px;flex-wrap:wrap}
+  .btn{padding:8px 16px;border-radius:8px;font-size:13px;font-weight:500;cursor:pointer;border:none;font-family:inherit;transition:all .15s;display:inline-flex;align-items:center;gap:6px}
+  .btn-primary{background:var(--accent);color:#fff}
+  .btn-primary:hover{background:#5a7d6e}
+  .btn-ghost{background:transparent;color:var(--ink-soft);border:1px solid var(--line)}
+  .btn-ghost:hover{background:var(--bg)}
+  .btn-danger{background:var(--danger-soft);color:var(--danger)}
+  .btn-sm{padding:5px 10px;font-size:12px}
+
+  /* Stats */
+  .stats-bar{display:flex;gap:16px;padding:20px 0;flex-wrap:wrap}
+  .stat{background:var(--bg-card);border:1px solid var(--line);border-radius:10px;padding:14px 20px;min-width:100px}
+  .stat .num{font-size:24px;font-weight:900;color:var(--accent);line-height:1}
+  .stat .label{font-size:12px;color:var(--ink-mute);margin-top:4px}
+
+  /* Toolbar */
+  .toolbar{display:flex;gap:10px;margin-bottom:20px;flex-wrap:wrap;align-items:center}
+  .search-box{flex:1;min-width:200px;position:relative}
+  .search-box input{width:100%;padding:9px 14px 9px 36px;border:1px solid var(--line);border-radius:8px;font-size:13px;font-family:inherit;background:var(--bg-card);color:var(--ink)}
+  .search-box input:focus{outline:none;border-color:var(--accent)}
+  .search-box::before{content:'⌕';position:absolute;left:12px;top:50%;transform:translateY(-50%);color:var(--ink-mute);font-size:16px}
+  .filter-select{padding:9px 12px;border:1px solid var(--line);border-radius:8px;font-size:13px;font-family:inherit;background:var(--bg-card);color:var(--ink-soft);cursor:pointer}
+  .filter-select:focus{outline:none;border-color:var(--accent)}
+
+  /* Grid */
+  .item-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:14px;margin-bottom:40px}
+  .item-card{background:var(--bg-card);border:1px solid var(--line);border-radius:12px;overflow:hidden;cursor:pointer;transition:all .2s;position:relative}
+  .item-card:hover{border-color:var(--accent);box-shadow:0 4px 16px rgba(0,0,0,0.06);transform:translateY(-2px)}
+  .item-photo{width:100%;height:180px;background:var(--warm-soft);display:flex;align-items:center;justify-content:center;overflow:hidden}
+  .item-photo img{width:100%;height:100%;object-fit:cover}
+  .item-photo .placeholder{color:var(--warm);font-size:40px;font-weight:300}
+  .item-body{padding:12px 14px}
+  .item-name{font-size:14px;font-weight:700;margin-bottom:6px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .item-tags{display:flex;gap:4px;flex-wrap:wrap;margin-bottom:6px}
+  .tag{font-size:11px;padding:2px 8px;border-radius:4px;background:var(--warm-soft);color:var(--warm);font-weight:500}
+  .tag-season{background:var(--accent-soft);color:var(--accent)}
+  .tag-status-keep{background:var(--accent-soft);color:var(--accent)}
+  .tag-status-review{background:var(--caution-soft);color:var(--caution)}
+  .tag-status-out{background:var(--danger-soft);color:var(--danger)}
+  .item-meta{font-size:11px;color:var(--ink-mute);display:flex;justify-content:space-between}
+  .item-delete{position:absolute;top:8px;right:8px;width:26px;height:26px;border-radius:50%;background:rgba(0,0,0,0.4);color:#fff;border:none;cursor:pointer;font-size:14px;display:none;align-items:center;justify-content:center;opacity:0;transition:opacity .2s}
+  .item-card:hover .item-delete{display:flex;opacity:1}
+  .item-delete:hover{background:var(--danger)}
+
+  /* Empty */
+  .empty-state{text-align:center;padding:60px 20px;color:var(--ink-mute)}
+  .empty-state .icon{font-size:48px;margin-bottom:16px;opacity:0.3}
+  .empty-state p{font-size:14px;margin-bottom:16px}
+
+  /* Modal */
+  .modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,0.4);z-index:200;display:none;align-items:center;justify-content:center;padding:20px}
+  .modal-overlay.active{display:flex}
+  .modal{background:var(--bg-card);border-radius:16px;width:100%;max-width:560px;max-height:90vh;overflow-y:auto;box-shadow:0 20px 60px rgba(0,0,0,0.15)}
+  .modal-header{padding:20px 24px;border-bottom:1px solid var(--line);display:flex;justify-content:space-between;align-items:center;position:sticky;top:0;background:var(--bg-card);z-index:1}
+  .modal-header h3{font-size:18px;font-weight:700}
+  .modal-close{background:none;border:none;font-size:22px;cursor:pointer;color:var(--ink-mute);padding:4px 8px}
+  .modal-body{padding:20px 24px}
+  .modal-footer{padding:16px 24px;border-top:1px solid var(--line);display:flex;justify-content:flex-end;gap:10px;position:sticky;bottom:0;background:var(--bg-card)}
+
+  /* Form */
+  .form-group{margin-bottom:16px}
+  .form-group label{display:block;font-size:13px;font-weight:600;margin-bottom:6px;color:var(--ink-soft)}
+  .form-group input,.form-group select,.form-group textarea{
+    width:100%;padding:9px 12px;border:1px solid var(--line);border-radius:8px;
+    font-size:13px;font-family:inherit;background:var(--bg);color:var(--ink)
+  }
+  .form-group input:focus,.form-group select:focus,.form-group textarea:focus{outline:none;border-color:var(--accent)}
+  .form-row{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+  .form-group textarea{resize:vertical;min-height:60px}
+  .photo-upload{width:100%;height:160px;border:2px dashed var(--line);border-radius:10px;display:flex;flex-direction:column;align-items:center;justify-content:center;cursor:pointer;transition:all .2s;overflow:hidden;position:relative}
+  .photo-upload:hover{border-color:var(--accent);background:var(--accent-soft)}
+  .photo-upload img{width:100%;height:100%;object-fit:cover;position:absolute;inset:0}
+  .photo-upload .upload-text{text-align:center;color:var(--ink-mute);font-size:13px}
+  .photo-upload .upload-text .plus{font-size:28px;display:block;margin-bottom:4px;color:var(--accent)}
+  .photo-upload input[type=file]{display:none}
+
+  /* Category tabs */
+  .cat-tabs{display:flex;gap:4px;margin-bottom:20px;flex-wrap:wrap}
+  .cat-tab{padding:7px 14px;border-radius:8px;font-size:13px;font-weight:500;cursor:pointer;border:1px solid var(--line);background:var(--bg-card);color:var(--ink-soft);transition:all .15s}
+  .cat-tab:hover{background:var(--bg)}
+  .cat-tab.active{background:var(--accent);color:#fff;border-color:var(--accent)}
+  .cat-tab .count{font-size:11px;opacity:0.7;margin-left:4px}
+
+  /* Footer */
+  footer{padding:30px 0;text-align:center;font-size:12px;color:var(--ink-mute)}
+  footer a{color:var(--accent);text-decoration:none}
+
+  /* Toast */
+  .toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:var(--ink);color:#fff;padding:10px 20px;border-radius:8px;font-size:13px;z-index:300;opacity:0;transition:opacity .3s;pointer-events:none}
+  .toast.show{opacity:1}
+
+  @media(max-width:600px){
+    .form-row{grid-template-columns:1fr}
+    .item-grid{grid-template-columns:repeat(auto-fill,minmax(160px,1fr))}
+    .item-photo{height:140px}
+    .stats-bar{gap:8px}
+    .stat{padding:10px 14px;min-width:70px}
+    .stat .num{font-size:20px}
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="wrap header-inner">
+    <div class="logo">我的衣橱 <span>· 物品清单</span></div>
+    <div class="header-actions">
+      <button class="btn btn-ghost btn-sm" onclick="exportData()">导出备份</button>
+      <button class="btn btn-ghost btn-sm" onclick="document.getElementById('importFile').click()">导入</button>
+      <input type="file" id="importFile" accept=".json" style="display:none" onchange="importData(event)">
+      <button class="btn btn-primary btn-sm" onclick="openModal()">+ 添加物品</button>
+    </div>
+  </div>
+</header>
+
+<div class="wrap">
+  <!-- Stats -->
+  <div class="stats-bar" id="statsBar"></div>
+
+  <!-- Category tabs -->
+  <div class="cat-tabs" id="catTabs"></div>
+
+  <!-- Toolbar -->
+  <div class="toolbar">
+    <div class="search-box">
+      <input type="text" id="searchInput" placeholder="搜索名称、品牌、备注..." oninput="render()">
+    </div>
+    <select class="filter-select" id="seasonFilter" onchange="render()">
+      <option value="">全部季节</option>
+      <option value="春夏">春夏</option>
+      <option value="秋冬">秋冬</option>
+      <option value="四季">四季</option>
+    </select>
+    <select class="filter-select" id="statusFilter" onchange="render()">
+      <option value="">全部状态</option>
+      <option value="留">保留</option>
+      <option value="待定">待定</option>
+      <option value="出">淘汰</option>
+    </select>
+    <select class="filter-select" id="sortSelect" onchange="render()">
+      <option value="newest">最新添加</option>
+      <option value="name">按名称</option>
+      <option value="category">按类别</option>
+    </select>
+  </div>
+
+  <!-- Item grid -->
+  <div class="item-grid" id="itemGrid"></div>
+  <div class="empty-state" id="emptyState" style="display:none">
+    <div class="icon" style="font-size:36px;font-weight:300;color:var(--warm);opacity:0.4">衣</div>
+    <p>还没有物品，点击右上角"添加物品"开始记录你的衣橱</p>
+    <button class="btn btn-primary" onclick="openModal()">+ 添加第一件</button>
+  </div>
+</div>
+
+<!-- Modal -->
+<div class="modal-overlay" id="modalOverlay" onclick="if(event.target===this)closeModal()">
+  <div class="modal">
+    <div class="modal-header">
+      <h3 id="modalTitle">添加物品</h3>
+      <button class="modal-close" onclick="closeModal()">×</button>
+    </div>
+    <div class="modal-body">
+      <div class="form-group">
+        <label>照片</label>
+        <div class="photo-upload" id="photoUpload" onclick="document.getElementById('photoInput').click()">
+          <div class="upload-text" id="uploadText"><span class="plus">+</span>点击上传照片</div>
+          <img id="photoPreview" style="display:none">
+        </div>
+        <input type="file" id="photoInput" accept="image/*" onchange="handlePhoto(event)">
+      </div>
+      <div class="form-group">
+        <label>名称 *</label>
+        <input type="text" id="f_name" placeholder="如：白色圆领纯棉T恤">
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label>大类</label>
+          <select id="f_category">
+            <option value="上衣">上衣</option>
+            <option value="下装">下装</option>
+            <option value="裙装">裙装</option>
+            <option value="外套">外套</option>
+            <option value="鞋子">鞋子</option>
+            <option value="包袋">包袋</option>
+            <option value="配饰">配饰</option>
+            <option value="运动">运动/居家</option>
+            <option value="其他">其他</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>子类</label>
+          <input type="text" id="f_subcategory" placeholder="如：T恤、牛仔裤、凉鞋">
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label>季节</label>
+          <select id="f_season">
+            <option value="春夏">春夏</option>
+            <option value="秋冬">秋冬</option>
+            <option value="四季">四季</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>颜色</label>
+          <input type="text" id="f_color" placeholder="如：白色、藏蓝、奶茶棕">
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label>品牌</label>
+          <input type="text" id="f_brand" placeholder="如：Uniqlo、Nike">
+        </div>
+        <div class="form-group">
+          <label>购买时间</label>
+          <input type="month" id="f_purchaseDate">
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label>购买渠道</label>
+          <input type="text" id="f_purchaseChannel" placeholder="如：淘宝、专柜、代购">
+        </div>
+        <div class="form-group">
+          <label>价格</label>
+          <input type="text" id="f_price" placeholder="如：299">
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label>状态</label>
+          <select id="f_status">
+            <option value="留">保留</option>
+            <option value="待定">待定</option>
+            <option value="出">淘汰</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>穿着频率</label>
+          <select id="f_wearFrequency">
+            <option value="高频">高频（每周）</option>
+            <option value="中频">中频（每月）</option>
+            <option value="低频">低频（每季）</option>
+            <option value="极少">极少（一年几次）</option>
+            <option value="未穿">从未穿过</option>
+          </select>
+        </div>
+      </div>
+      <div class="form-group">
+        <label>备注</label>
+        <textarea id="f_note" placeholder="搭配建议、穿着感受、尺码等"></textarea>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="closeModal()">取消</button>
+      <button class="btn btn-primary" onclick="saveItem()">保存</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<footer>
+  <div class="wrap">
+    <p>数据保存在本地浏览器 · 定期导出JSON备份 · 手机端用浏览器打开同一HTML文件即可使用</p>
+    <p style="margin-top:4px">从淘宝订单补充信息：打开淘宝→我的订单→截图或复制商品信息，手动填入对应字段</p>
+  </div>
+</footer>
+
+<script>
+// ===== Data Layer =====
+const STORAGE_KEY = 'wardrobe_inventory_v1';
+let items = [];
+let editingId = null;
+let currentPhoto = '';
+let activeCategory = '全部';
+
+const CATEGORIES = ['全部','上衣','下装','裙装','外套','鞋子','包袋','配饰','运动','其他'];
+
+function load(){
+  try{
+    const raw = localStorage.getItem(STORAGE_KEY);
+    items = raw ? JSON.parse(raw) : [];
+  }catch(e){ items = []; }
+}
+function save(){
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(items));
+}
+
+// ===== Pre-fill sample data (based on photos) =====
+function initSampleData(){
+  if(items.length > 0) return;
+  const samples = [
+    {name:'白色老爹运动鞋',category:'鞋子',subcategory:'运动鞋',season:'四季',color:'白色',brand:'',purchaseDate:'',purchaseChannel:'',price:'',status:'留',wearFrequency:'高频',note:'日常穿着频率最高，百搭',photo:''},
+    {name:'灰白蓝拼色运动鞋',category:'鞋子',subcategory:'运动鞋',season:'四季',color:'灰白蓝',brand:'',purchaseDate:'',purchaseChannel:'',price:'',status:'留',wearFrequency:'中频',note:'第二双日常运动鞋，颜色清爽',photo:''},
+    {name:'黑色高帮帆布鞋',category:'鞋子',subcategory:'帆布鞋',season:'四季',color:'黑色',brand:'CDG Play风格',purchaseDate:'',purchaseChannel:'',price:'',status:'留',wearFrequency:'中频',note:'侧面红心装饰，配牛仔/半裙都好',photo:''},
+    {name:'裸色尖头高跟鞋',category:'鞋子',subcategory:'高跟鞋',season:'四季',color:'裸色',brand:'',purchaseDate:'',purchaseChannel:'',price:'',status:'留',wearFrequency:'低频',note:'正式场合主力，比黑色更百搭',photo:''},
+    {name:'黑色夹脚细带凉鞋',category:'鞋子',subcategory:'凉鞋',season:'春夏',color:'黑色',brand:'',purchaseDate:'',purchaseChannel:'',price:'',status:'留',wearFrequency:'高频',note:'夏天主力凉鞋，简约好搭',photo:''},
+    {name:'米色厚底穆勒拖鞋',category:'鞋子',subcategory:'拖鞋',season:'春夏秋',color:'米色',brand:'',purchaseDate:'',purchaseChannel:'',price:'',status:'留',wearFrequency:'中频',note:'可外穿可居家，米色百搭',photo:''},
+    {name:'Salomon XT-6 户外鞋',category:'鞋子',subcategory:'户外鞋',season:'四季',color:'灰黑',brand:'Salomon',purchaseDate:'',purchaseChannel:'',price:'',status:'留',wearFrequency:'中频',note:'户外+日常潮流两穿',photo:''},
+    {name:'黑色厚底靴',category:'鞋子',subcategory:'靴子',season:'秋冬',color:'黑色',brand:'',purchaseDate:'',purchaseChannel:'',price:'',status:'留',wearFrequency:'低频',note:'如果只留一双靴子选这双',photo:''},
+    {name:'米色雪地靴（毛球）',category:'鞋子',subcategory:'雪地靴',season:'深冬',color:'米色',brand:'',purchaseDate:'',purchaseChannel:'',price:'',status:'出',wearFrequency:'极少',note:'上海气候极少需要，建议出',photo:''},
+    {name:'玫瑰金运动鞋',category:'鞋子',subcategory:'运动鞋',season:'春夏',color:'玫瑰金',brand:'',purchaseDate:'',purchaseChannel:'',price:'',status:'出',wearFrequency:'极少',note:'金属色难搭配，建议出',photo:''},
+    {name:'红黑格纹平底鞋',category:'鞋子',subcategory:'单鞋',season:'春秋',color:'红黑格纹',brand:'',purchaseDate:'',purchaseChannel:'',price:'',status:'出',wearFrequency:'极少',note:'图案强烈搭配成本高',photo:''},
+    {name:'白色长款风衣',category:'外套',subcategory:'风衣',season:'春秋',color:'白色',brand:'',purchaseDate:'',purchaseChannel:'',price:'',status:'留',wearFrequency:'中频',note:'门后挂钩，注意防尘',photo:''},
+  ];
+  samples.forEach((s,i)=>{
+    s.id = 'sample_'+i+'_'+Date.now();
+    s.createdAt = Date.now() - i*1000;
+  });
+  items = samples;
+  save();
+}
+
+// ===== Render =====
+function render(){
+  renderStats();
+  renderCatTabs();
+  renderGrid();
+}
+
+function renderStats(){
+  const total = items.length;
+  const keep = items.filter(i=>i.status==='留').length;
+  const shoes = items.filter(i=>i.category==='鞋子').length;
+  const clothes = items.filter(i=>['上衣','下装','裙装','外套'].includes(i.category)).length;
+  document.getElementById('statsBar').innerHTML = `
+    <div class="stat"><div class="num">${total}</div><div class="label">总物品</div></div>
+    <div class="stat"><div class="num">${keep}</div><div class="label">保留中</div></div>
+    <div class="stat"><div class="num">${clothes}</div><div class="label">衣服</div></div>
+    <div class="stat"><div class="num">${shoes}</div><div class="label">鞋子</div></div>
+  `;
+}
+
+function renderCatTabs(){
+  const counts = {};
+  CATEGORIES.forEach(c=>counts[c]=0);
+  items.forEach(i=>{ counts[i.category] = (counts[i.category]||0)+1; });
+  counts['全部'] = items.length;
+  let html = '';
+  CATEGORIES.forEach(c=>{
+    const active = activeCategory===c ? 'active' : '';
+    html += `<div class="cat-tab ${active}" onclick="setCategory('${c}')">${c}<span class="count">${counts[c]||0}</span></div>`;
+  });
+  document.getElementById('catTabs').innerHTML = html;
+}
+
+function setCategory(c){ activeCategory = c; render(); }
+
+function renderGrid(){
+  const search = document.getElementById('searchInput').value.toLowerCase();
+  const season = document.getElementById('seasonFilter').value;
+  const status = document.getElementById('statusFilter').value;
+  const sort = document.getElementById('sortSelect').value;
+
+  let filtered = items.filter(i=>{
+    if(activeCategory!=='全部' && i.category!==activeCategory) return false;
+    if(season && i.season!==season) return false;
+    if(status && i.status!==status) return false;
+    if(search){
+      const text = (i.name+i.brand+i.note+i.subcategory+i.color).toLowerCase();
+      if(!text.includes(search)) return false;
+    }
+    return true;
+  });
+
+  if(sort==='name') filtered.sort((a,b)=>a.name.localeCompare(b.name,'zh'));
+  else if(sort==='category') filtered.sort((a,b)=>a.category.localeCompare(b.category,'zh'));
+  else filtered.sort((a,b)=>(b.createdAt||0)-(a.createdAt||0));
+
+  const grid = document.getElementById('itemGrid');
+  const empty = document.getElementById('emptyState');
+
+  if(filtered.length===0){
+    grid.innerHTML = '';
+    empty.style.display = 'block';
+    if(items.length>0){
+      empty.querySelector('p').textContent = '没有符合筛选条件的物品';
+      empty.querySelector('button').style.display = 'none';
+    }
+    return;
+  }
+  empty.style.display = 'none';
+
+  grid.innerHTML = filtered.map(i=>{
+    const statusClass = i.status==='留'?'tag-status-keep':i.status==='待定'?'tag-status-review':'tag-status-out';
+    const photoHtml = i.photo ? `<img src="${i.photo}" alt="${i.name}">` : `<div class="placeholder">${i.name.charAt(0)}</div>`;
+    return `
+      <div class="item-card" onclick="editItem('${i.id}')">
+        <button class="item-delete" onclick="event.stopPropagation();deleteItem('${i.id}')">×</button>
+        <div class="item-photo">${photoHtml}</div>
+        <div class="item-body">
+          <div class="item-name">${esc(i.name)}</div>
+          <div class="item-tags">
+            <span class="tag">${esc(i.category)}</span>
+            <span class="tag tag-season">${esc(i.season||'')}</span>
+            <span class="tag ${statusClass}">${esc(i.status)}</span>
+          </div>
+          <div class="item-meta">
+            <span>${esc(i.brand||i.subcategory||'')}</span>
+            <span>${esc(i.color||'')}</span>
+          </div>
+        </div>
+      </div>
+    `;
+  }).join('');
+}
+
+function esc(s){ return (s||'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+
+// ===== Modal =====
+function openModal(id){
+  editingId = id || null;
+  currentPhoto = '';
+  document.getElementById('modalTitle').textContent = id ? '编辑物品' : '添加物品';
+  document.getElementById('photoPreview').style.display='none';
+  document.getElementById('uploadText').style.display='block';
+
+  if(id){
+    const item = items.find(i=>i.id===id);
+    if(item){
+      document.getElementById('f_name').value = item.name||'';
+      document.getElementById('f_category').value = item.category||'上衣';
+      document.getElementById('f_subcategory').value = item.subcategory||'';
+      document.getElementById('f_season').value = item.season||'四季';
+      document.getElementById('f_color').value = item.color||'';
+      document.getElementById('f_brand').value = item.brand||'';
+      document.getElementById('f_purchaseDate').value = item.purchaseDate||'';
+      document.getElementById('f_purchaseChannel').value = item.purchaseChannel||'';
+      document.getElementById('f_price').value = item.price||'';
+      document.getElementById('f_status').value = item.status||'留';
+      document.getElementById('f_wearFrequency').value = item.wearFrequency||'中频';
+      document.getElementById('f_note').value = item.note||'';
+      if(item.photo){
+        currentPhoto = item.photo;
+        document.getElementById('photoPreview').src = item.photo;
+        document.getElementById('photoPreview').style.display='block';
+        document.getElementById('uploadText').style.display='none';
+      }
+    }
+  }else{
+    ['f_name','f_subcategory','f_color','f_brand','f_purchaseDate','f_purchaseChannel','f_price','f_note'].forEach(id=>document.getElementById(id).value='');
+    document.getElementById('f_category').value='上衣';
+    document.getElementById('f_season').value='四季';
+    document.getElementById('f_status').value='留';
+    document.getElementById('f_wearFrequency').value='中频';
+  }
+  document.getElementById('modalOverlay').classList.add('active');
+}
+
+function closeModal(){ document.getElementById('modalOverlay').classList.remove('active'); }
+
+function editItem(id){ openModal(id); }
+
+function saveItem(){
+  const name = document.getElementById('f_name').value.trim();
+  if(!name){ showToast('请填写物品名称'); return; }
+
+  const data = {
+    name,
+    category: document.getElementById('f_category').value,
+    subcategory: document.getElementById('f_subcategory').value.trim(),
+    season: document.getElementById('f_season').value,
+    color: document.getElementById('f_color').value.trim(),
+    brand: document.getElementById('f_brand').value.trim(),
+    purchaseDate: document.getElementById('f_purchaseDate').value,
+    purchaseChannel: document.getElementById('f_purchaseChannel').value.trim(),
+    price: document.getElementById('f_price').value.trim(),
+    status: document.getElementById('f_status').value,
+    wearFrequency: document.getElementById('f_wearFrequency').value,
+    note: document.getElementById('f_note').value.trim(),
+    photo: currentPhoto,
+  };
+
+  if(editingId){
+    const idx = items.findIndex(i=>i.id===editingId);
+    if(idx>-1) items[idx] = {...items[idx], ...data};
+    showToast('已更新');
+  }else{
+    data.id = 'item_'+Date.now()+'_'+Math.random().toString(36).slice(2,7);
+    data.createdAt = Date.now();
+    items.push(data);
+    showToast('已添加');
+  }
+  save();
+  closeModal();
+  render();
+}
+
+function deleteItem(id){
+  const item = items.find(i=>i.id===id);
+  if(!item) return;
+  if(!confirm(`确定删除"${item.name}"吗？`)) return;
+  items = items.filter(i=>i.id!==id);
+  save();
+  render();
+  showToast('已删除');
+}
+
+// ===== Photo upload with compression =====
+function handlePhoto(e){
+  const file = e.target.files[0];
+  if(!file) return;
+  const reader = new FileReader();
+  reader.onload = function(ev){
+    const img = new Image();
+    img.onload = function(){
+      const canvas = document.createElement('canvas');
+      const maxW = 800;
+      let w = img.width, h = img.height;
+      if(w > maxW){ h = h * maxW / w; w = maxW; }
+      canvas.width = w; canvas.height = h;
+      canvas.getContext('2d').drawImage(img,0,0,w,h);
+      currentPhoto = canvas.toDataURL('image/jpeg', 0.7);
+      document.getElementById('photoPreview').src = currentPhoto;
+      document.getElementById('photoPreview').style.display='block';
+      document.getElementById('uploadText').style.display='none';
+    };
+    img.src = ev.target.result;
+  };
+  reader.readAsDataURL(file);
+}
+
+// ===== Import/Export =====
+function exportData(){
+  const data = JSON.stringify(items, null, 2);
+  const blob = new Blob([data], {type:'application/json'});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = 'wardrobe_inventory_'+new Date().toISOString().slice(0,10)+'.json';
+  a.click();
+  URL.revokeObjectURL(url);
+  showToast('已导出备份文件');
+}
+
+function importData(e){
+  const file = e.target.files[0];
+  if(!file) return;
+  const reader = new FileReader();
+  reader.onload = function(ev){
+    try{
+      const data = JSON.parse(ev.target.result);
+      if(Array.isArray(data)){
+        if(confirm(`导入 ${data.length} 条记录？将合并到现有清单中（重复ID会跳过）。`)){
+          const existingIds = new Set(items.map(i=>i.id));
+          data.forEach(d=>{ if(!existingIds.has(d.id)) items.push(d); });
+          save();
+          render();
+          showToast('导入成功');
+        }
+      }else{
+        showToast('文件格式不正确');
+      }
+    }catch(err){
+      showToast('文件解析失败');
+    }
+  };
+  reader.readAsText(file);
+  e.target.value = '';
+}
+
+// ===== Toast =====
+function showToast(msg){
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  setTimeout(()=>t.classList.remove('show'), 2000);
+}
+
+// ===== Init =====
+load();
+initSampleData();
+render();
+</script>
+</body>
+</html>

@@ -1,0 +1,693 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>品类管理 - 小米汽车供应链协同平台</title>
+  <style>
+    :root {
+      --accent: #1677ff;
+      --accent-hover: #4096ff;
+      --accent-soft: #eaf2ff;
+      --accent-soft-2: #dbeafe;
+      --accent-border: #cfe0ff;
+      --nav: #0f172a;
+
+      --bg: #f6f7f9;
+      --surface: #ffffff;
+      --border: #e6e8eb;
+      --border-strong: #d8dbdf;
+      --text: #111827;
+      --text-2: #5b6471;
+      --text-3: #9aa1ab;
+
+      --success: #16a34a;
+
+      --r-sm: 6px;
+      --r: 8px;
+      --r-lg: 12px;
+      --r-pill: 999px;
+
+      --shadow-sm: 0 1px 2px rgba(15,23,42,.05);
+      --shadow: 0 1px 3px rgba(15,23,42,.06), 0 1px 2px rgba(15,23,42,.04);
+    }
+    * { box-sizing: border-box; }
+    html, body { margin: 0; padding: 0; min-height: 100%; font-family: "PingFang SC", "Microsoft YaHei", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif; color: var(--text); background: var(--bg); font-size: 14px; -webkit-font-smoothing: antialiased; font-variant-numeric: tabular-nums; }
+    a { color: var(--accent); text-decoration: none; cursor: pointer; }
+    a:hover { color: var(--accent-hover); }
+    button { font-family: inherit; cursor: pointer; border: none; }
+    ::selection { background: var(--accent-soft); }
+
+    .top-nav { height: 56px; background: var(--nav); display: flex; align-items: center; padding: 0 28px; color: #fff; position: sticky; top: 0; z-index: 200; }
+    .brand { display: flex; align-items: center; gap: 10px; font-size: 15.5px; font-weight: 600; margin-right: 44px; white-space: nowrap; letter-spacing: .2px; }
+    .brand-logo { width: 28px; height: 28px; border-radius: 8px; background: linear-gradient(135deg,#ff8a4c,#fa541c); display: flex; align-items: center; justify-content: center; color: #fff; font-size: 12px; font-weight: 700; }
+    .top-menu { display: flex; gap: 26px; height: 100%; align-items: center; flex: 1; overflow-x: auto; scrollbar-width: none; }
+    .top-menu::-webkit-scrollbar { display: none; }
+    .top-menu-item { color: rgba(255,255,255,.7); font-size: 13px; white-space: nowrap; cursor: pointer; height: 100%; display: flex; align-items: center; border-bottom: 2px solid transparent; padding: 0 2px; transition: color .15s; }
+    .top-menu-item:hover { color: #fff; }
+    .top-menu-item.active { color: #fff; border-bottom-color: var(--accent); }
+    .user-info { color: rgba(255,255,255,.85); font-size: 13px; display: flex; align-items: center; gap: 9px; white-space: nowrap; }
+    .user-info .avatar { width: 26px; height: 26px; border-radius: 50%; background: #2f54eb; display:flex; align-items:center; justify-content:center; font-size:12px; color:#fff; }
+
+    .page { padding: 24px 32px 40px; }
+
+    .breadcrumb { font-size: 12.5px; color: var(--text-3); margin-bottom: 14px; }
+    .breadcrumb b { color: var(--text-2); font-weight: 500; }
+    .page-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 22px; gap: 16px; flex-wrap: wrap; }
+    .page-title { font-size: 20px; font-weight: 650; letter-spacing: .2px; display: flex; align-items: center; gap: 11px; }
+    .chip { font-size: 12px; font-weight: 500; color: var(--accent); background: var(--accent-soft); border: 1px solid var(--accent-border); padding: 3px 11px; border-radius: var(--r-pill); }
+
+    .btn { display: inline-flex; align-items: center; gap: 6px; padding: 8px 16px; border-radius: var(--r); font-size: 13px; line-height: 1; transition: background .18s, border-color .18s, transform .08s, box-shadow .18s, color .15s; }
+    .btn:active { transform: translateY(1px); }
+    .btn-primary { background: var(--accent); color: #fff; box-shadow: 0 1px 2px rgba(22,119,255,.3); }
+    .btn-primary:hover { background: var(--accent-hover); box-shadow: 0 4px 10px rgba(22,119,255,.28); }
+    .btn-default { background: #fff; color: var(--text); border: 1px solid var(--border-strong); }
+    .btn-default:hover { border-color: var(--accent); color: var(--accent); }
+    .btn-primary:disabled { background: var(--accent-border); box-shadow: none; cursor: not-allowed; }
+
+    /* 统计卡片 */
+    .stats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px; margin-bottom: 18px; }
+    .stat { background: var(--surface); border: 1px solid var(--border); border-radius: var(--r-lg); padding: 16px 18px; box-shadow: var(--shadow-sm); }
+    .stat .label { font-size: 12.5px; color: var(--text-2); margin-bottom: 8px; }
+    .stat .value { font-size: 24px; font-weight: 650; letter-spacing: .3px; }
+    .stat .value small { font-size: 13px; font-weight: 500; color: var(--text-3); margin-left: 4px; }
+    .stats-divider { height: 1px; background: var(--border); margin: 4px 0 18px; }
+    .strat-stats { margin-bottom: 0; }
+    .strat-card { position: relative; overflow: hidden; border-top: 3px solid var(--sc, var(--accent)); }
+    .strat-card .label { display: flex; align-items: center; gap: 6px; }
+    .sdot { width: 8px; height: 8px; border-radius: 50%; background: var(--sc, var(--accent)); }
+    .strat-card .value { font-size: 22px; }
+    .strat-covered { font-size: 11.5px; color: var(--text-3); margin-top: 3px; }
+    .strat-bar { margin-top: 10px; height: 4px; border-radius: 99px; background: #eef0f3; overflow: hidden; }
+    .strat-bar i { display: block; height: 100%; width: 0; background: var(--sc, var(--accent)); border-radius: 99px; transition: width .35s ease; }
+
+    .card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--r-lg); box-shadow: var(--shadow); margin-bottom: 16px; overflow: hidden; }
+
+    .filter-bar { padding: 20px 22px 18px; display: flex; flex-wrap: wrap; gap: 16px 18px; align-items: flex-end; }
+    .filter-item { display: flex; flex-direction: column; gap: 6px; }
+    .filter-item label { color: var(--text-2); font-size: 12px; font-weight: 500; }
+    .filter-item input, .filter-item select { height: 34px; border: 1px solid var(--border-strong); border-radius: var(--r); padding: 0 10px; font-size: 13px; min-width: 150px; outline: none; background: #fff; color: var(--text); transition: border-color .15s, box-shadow .15s; }
+    .filter-item input:focus, .filter-item select:focus { border-color: var(--accent); box-shadow: 0 0 0 3px rgba(22,119,255,.12); }
+    .filter-actions { display: flex; gap: 10px; margin-left: auto; }
+
+    .toolbar { padding: 13px 20px; border-bottom: 1px solid var(--border); display: flex; gap: 10px; flex-wrap: wrap; transition: background .2s; }
+    .toolbar.has-selection { background: linear-gradient(0deg, var(--accent-soft), #fff 60%); }
+    .toolbar.has-selection .btn-default { border-color: var(--accent-border); color: var(--accent); }
+
+    .table-wrap { overflow-x: auto; }
+    table { width: 100%; border-collapse: separate; border-spacing: 0; min-width: 1380px; }
+    th, td { padding: 13px 16px; text-align: left; font-size: 13px; border-bottom: 1px solid var(--border); vertical-align: top; }
+    th { background: #fafbfc; color: var(--text-2); font-weight: 500; font-size: 12px; letter-spacing: .3px; position: sticky; top: 56px; z-index: 30; border-bottom: 1px solid var(--border-strong); }
+    tbody tr { transition: background .12s; cursor: pointer; }
+    tbody tr:hover td { background: #f3f7ff; }
+    tbody tr.selected td { background: var(--accent-soft); }
+    tbody tr.selected:hover td { background: var(--accent-soft-2); }
+    tbody tr:hover td.sticky-col { background: #fff; }
+    tbody tr.selected td.sticky-col { background: var(--accent-soft); }
+    tbody tr.selected:hover td.sticky-col { background: var(--accent-soft-2); }
+    .sticky-col { position: sticky; left: 0; z-index: 20; background: var(--surface); }
+    th.sticky-col { z-index: 40; background: #fafbfc; }
+    .col-strategy { min-width: 168px; }
+
+    .status { display: inline-flex; align-items: center; gap: 6px; color: var(--success); font-weight: 500; }
+    .status::before { content: ""; width: 6px; height: 6px; border-radius: 50%; background: currentColor; }
+    .status.draft { color: var(--text-3); }
+
+    .tags { display: flex; flex-wrap: wrap; gap: 6px; }
+    .tag-pill { background: var(--accent-soft); color: var(--accent); padding: 3px 9px; border-radius: var(--r-sm); font-size: 12px; line-height: 1.5; border: 1px solid var(--accent-border); }
+    .tag-more { background: #f1f2f4; color: var(--text-2); padding: 3px 9px; border-radius: var(--r-sm); font-size: 12px; cursor: default; }
+
+    .ops { display: flex; gap: 14px; white-space: nowrap; }
+    .ops a { color: var(--accent); }
+    .ops a.danger { color: #ef4444; }
+
+    .checkbox { width: 15px; height: 15px; cursor: pointer; accent-color: var(--accent); }
+
+    .empty-hint { color: var(--text-3); font-size: 12.5px; }
+
+    /* 策略单元格：内嵌文档 chips */
+    .doc-cell { display: flex; flex-wrap: wrap; gap: 5px; align-items: center; min-height: 26px; max-width: 236px; }
+    .doc-chip { display: inline-flex; align-items: center; gap: 5px; max-width: 150px; padding: 3px 8px 3px 4px; border: 1px solid var(--accent-border); background: #f6faff; border-radius: 6px; color: #1d4ed8; font-size: 12px; cursor: pointer; text-decoration: none; }
+    .doc-chip:hover { background: #eaf3ff; border-color: #a9cdff; color: #1d4ed8; }
+    .chip-ic { width: 17px; height: 17px; border-radius: 4px; display: flex; align-items: center; justify-content: center; color: #fff; font-size: 10px; font-weight: 600; flex-shrink: 0; }
+    .dc-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .dc-x { color: #94a3b8; font-weight: 700; font-size: 13px; line-height: 1; cursor: pointer; margin-left: 1px; display: none; }
+    .doc-chip:hover .dc-x { display: inline; }
+    .dc-x:hover { color: #ef4444; }
+    .dc-add { border: 1px dashed var(--accent-border); background: #fafdff; color: var(--accent); border-radius: 6px; font-size: 12px; padding: 3px 9px; cursor: pointer; white-space: nowrap; display: inline-flex; align-items: center; gap: 4px; }
+    .dc-add:hover { background: var(--accent-soft); border-color: var(--accent); }
+    .dc-more, .dc-op { border: 1px solid var(--border-strong); background: #fff; color: var(--text-2); border-radius: 6px; font-size: 12px; padding: 3px 9px; cursor: pointer; white-space: nowrap; }
+    .dc-more:hover, .dc-op:hover { color: var(--accent); border-color: var(--accent-border); background: var(--accent-soft); }
+
+    .pagination { padding: 15px 22px; display: flex; align-items: center; justify-content: space-between; color: var(--text-2); font-size: 13px; flex-wrap: wrap; gap: 12px; }
+    .pager { display: flex; gap: 6px; align-items: center; }
+    .pager button { min-width: 30px; height: 30px; border: 1px solid var(--border-strong); background: #fff; border-radius: var(--r); color: var(--text-2); transition: border-color .15s, color .15s; }
+    .pager button:hover:not(.active) { border-color: var(--accent); color: var(--accent); }
+    .pager button.active { background: var(--accent); color: #fff; border-color: var(--accent); }
+    .pager button:disabled { opacity: .45; cursor: not-allowed; }
+    .pager select { height: 30px; border: 1px solid var(--border-strong); border-radius: var(--r); margin-left: 8px; padding: 0 6px; color: var(--text-2); background: #fff; }
+
+    .sel-count { font-weight: 600; color: var(--accent); }
+
+    .tip { font-size: 12.5px; color: var(--text-2); margin-bottom: 16px; display: flex; align-items: center; gap: 7px; background: var(--accent-soft); border: 1px solid var(--accent-border); padding: 9px 14px; border-radius: var(--r); }
+    .tip svg { color: var(--accent); flex-shrink: 0; }
+
+    /* 右侧详情抽屉 */
+    .drawer-mask { position: fixed; inset: 0; background: rgba(15,23,42,.35); opacity: 0; visibility: hidden; transition: opacity .2s, visibility .2s; z-index: 300; }
+    .drawer-mask.show { opacity: 1; visibility: visible; }
+    .drawer { position: fixed; top: 0; right: 0; bottom: 0; width: 420px; max-width: 92vw; background: #fff; box-shadow: -8px 0 32px rgba(15,23,42,.16); z-index: 310; transform: translateX(102%); transition: transform .24s ease; display: flex; flex-direction: column; }
+    .drawer.open { transform: translateX(0); }
+    .drawer-head { padding: 18px 20px 14px; border-bottom: 1px solid var(--border); display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; }
+    .drawer-title { font-size: 15.5px; font-weight: 650; display: flex; align-items: center; gap: 8px; }
+    .drawer-title .dot { width: 8px; height: 8px; border-radius: 2px; flex-shrink: 0; }
+    .drawer-sub { font-size: 12.5px; color: var(--text-3); margin-top: 4px; }
+    .drawer-close { width: 30px; height: 30px; border-radius: 8px; border: 1px solid var(--border); background: #fff; font-size: 16px; color: var(--text-2); line-height: 1; flex-shrink: 0; }
+    .drawer-close:hover { color: #ef4444; border-color: #fecaca; }
+    .drawer-body { flex: 1; overflow-y: auto; padding: 16px 20px 22px; }
+    .drawer-label { font-size: 12px; color: var(--text-2); font-weight: 600; margin-bottom: 10px; letter-spacing: .3px; }
+    .drawer-label b { color: var(--text); font-weight: 650; }
+    .doc-item { display: flex; align-items: center; gap: 12px; padding: 12px 14px; border: 1px solid var(--border); border-radius: 10px; margin-bottom: 10px; transition: border-color .15s, box-shadow .15s; animation: itemIn .18s ease; }
+    .doc-item:hover { border-color: var(--accent-border); box-shadow: var(--shadow-sm); }
+    @keyframes itemIn { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: translateY(0); } }
+    .doc-ic { width: 34px; height: 34px; border-radius: 8px; display: flex; align-items: center; justify-content: center; color: #fff; font-size: 13px; font-weight: 600; flex-shrink: 0; }
+    .doc-info { flex: 1; min-width: 0; }
+    .doc-name { font-size: 13px; font-weight: 550; color: var(--text); display: flex; align-items: center; gap: 6px; }
+    .doc-name .nm { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .doc-type { font-size: 11px; color: var(--text-3); border: 1px solid var(--border-strong); border-radius: 4px; padding: 1px 5px; flex-shrink: 0; background: #fafbfc; }
+    .doc-meta { font-size: 11.5px; color: var(--text-3); margin-top: 3px; }
+    .doc-ops { display: flex; gap: 12px; flex-shrink: 0; }
+    .doc-open { font-size: 12.5px; color: var(--accent); }
+    .doc-open:hover { color: var(--accent-hover); }
+    .doc-del { font-size: 12.5px; color: var(--text-3); background: none; padding: 0; }
+    .doc-del:hover { color: #ef4444; }
+    .drawer-empty { text-align: center; color: var(--text-3); font-size: 12.5px; padding: 36px 0 18px; }
+    .drawer-add { margin-top: 16px; border-top: 1px dashed var(--border-strong); padding-top: 16px; }
+    .drawer-add-title { font-size: 13px; font-weight: 600; margin-bottom: 10px; color: var(--text); }
+    .drawer-add-row { display: flex; gap: 8px; }
+    .drawer-add-row input { flex: 1; height: 34px; border: 1px solid var(--border-strong); border-radius: 8px; padding: 0 10px; font-size: 12.5px; outline: none; min-width: 0; transition: border-color .15s, box-shadow .15s; }
+    .drawer-add-row input:focus { border-color: var(--accent); box-shadow: 0 0 0 3px rgba(22,119,255,.12); }
+    .drawer-add-status { margin-top: 8px; font-size: 12px; min-height: 18px; display: flex; align-items: center; gap: 6px; color: var(--text-2); }
+    .drawer-add-status.ok { color: var(--success); }
+    .drawer-add-status.err { color: #ef4444; }
+    .drawer-add-hint { margin-top: 8px; font-size: 11px; color: var(--text-3); line-height: 1.65; }
+    .spinner { width: 13px; height: 13px; border: 2px solid var(--accent-border); border-top-color: var(--accent); border-radius: 50%; animation: spin .7s linear infinite; display: inline-block; flex-shrink: 0; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    @media (max-width: 1100px) { .stats { grid-template-columns: repeat(2, 1fr); } }
+    @media (prefers-reduced-motion: reduce) { * { transition: none !important; animation: none !important; } }
+  </style>
+</head>
+<body>
+  <div class="top-nav">
+    <div class="brand"><div class="brand-logo">MI</div><span>小米汽车</span></div>
+    <div class="top-menu">
+      <div class="top-menu-item">首页</div>
+      <div class="top-menu-item">个人中心</div>
+      <div class="top-menu-item active">品类管理</div>
+      <div class="top-menu-item">采购供应商管理</div>
+      <div class="top-menu-item">SCM管理</div>
+      <div class="top-menu-item">采购任务管理</div>
+      <div class="top-menu-item">价格管理</div>
+      <div class="top-menu-item">合同管理</div>
+      <div class="top-menu-item">订单管理</div>
+      <div class="top-menu-item">文档管理</div>
+      <div class="top-menu-item">基础数据管理</div>
+      <div class="top-menu-item">采购需求导入</div>
+      <div class="top-menu-item">样件费用管理</div>
+      <div class="top-menu-item">售后成本管理</div>
+      <div class="top-menu-item">供应商管理</div>
+    </div>
+    <div class="user-info"><span class="avatar">齐</span>齐岳 <span>▾</span></div>
+  </div>
+
+  <div class="page">
+    <div class="breadcrumb">首页 / <b>品类管理</b></div>
+
+    <div class="page-head">
+      <div class="page-title">品类管理 <span class="chip">VIP节点品类库</span></div>
+      <button class="btn btn-primary">+ 新增品类</button>
+    </div>
+
+    <div class="stats" id="catStats">
+      <div class="stat"><div class="label">品类总数</div><div class="value" id="stTotal">0<small>个</small></div></div>
+      <div class="stat"><div class="label">生效中</div><div class="value" id="stActive">0<small>个</small></div></div>
+      <div class="stat"><div class="label">已冻结</div><div class="value" id="stFrozen">0<small>个</small></div></div>
+      <div class="stat"><div class="label">待完善策略</div><div class="value" id="stPending">0<small>个</small></div></div>
+    </div>
+
+    <div class="stats strat-stats">
+      <div class="stat strat-card" id="stratCard-cat" style="--sc:#1677ff">
+        <div class="label"><span class="sdot"></span>品类策略</div>
+        <div class="value"><span class="strat-docs">0</span><small>份文档</small></div>
+        <div class="strat-covered">覆盖 0 / 0 个品类</div>
+        <div class="strat-bar"><i></i></div>
+      </div>
+      <div class="stat strat-card" id="stratCard-plat" style="--sc:#722ed1">
+        <div class="label"><span class="sdot"></span>平台策略</div>
+        <div class="value"><span class="strat-docs">0</span><small>份文档</small></div>
+        <div class="strat-covered">覆盖 0 / 0 个品类</div>
+        <div class="strat-bar"><i></i></div>
+      </div>
+      <div class="stat strat-card" id="stratCard-tech" style="--sc:#13c2c2">
+        <div class="label"><span class="sdot"></span>技术方案</div>
+        <div class="value"><span class="strat-docs">0</span><small>份文档</small></div>
+        <div class="strat-covered">覆盖 0 / 0 个品类</div>
+        <div class="strat-bar"><i></i></div>
+      </div>
+      <div class="stat strat-card" id="stratCard-value" style="--sc:#fa8c16">
+        <div class="label"><span class="sdot"></span>价值穿透策略</div>
+        <div class="value"><span class="strat-docs">0</span><small>份文档</small></div>
+        <div class="strat-covered">覆盖 0 / 0 个品类</div>
+        <div class="strat-bar"><i></i></div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="filter-bar">
+        <div class="filter-item"><label>品类编码</label><input placeholder="请输入" /></div>
+        <div class="filter-item"><label>品类名称</label><input placeholder="请输入" /></div>
+        <div class="filter-item"><label>VIP节点</label><select><option>请选择</option></select></div>
+        <div class="filter-item"><label>品类专家</label><select><option>请选择</option></select></div>
+        <div class="filter-item"><label>SQE工程师</label><select><option>请选择</option></select></div>
+        <div class="filter-item"><label>采购工程师</label><select><option>请选择</option></select></div>
+        <div class="filter-item"><label>财务CE</label><select><option>请选择</option></select></div>
+        <div class="filter-item"><label>专业组</label><select><option>请选择</option></select></div>
+        <div class="filter-actions">
+          <button class="btn btn-default">重置</button>
+          <button class="btn btn-primary">查询</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="tip">
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4M12 8h.01"/></svg>
+      策略四列：单元格内直接展示已关联文档名称，点击文档名可直接打开；「详情」抽屉可查看文档类型、更新人、更新时间并继续添加 / 删除文档。粘贴飞书链接后自动解析文档真实名称（演示版模拟解析，正式环境由后端对接飞书 OpenAPI）。
+    </div>
+
+    <div class="card">
+      <div class="toolbar" id="toolbar">
+        <button class="btn btn-default">批量导入</button>
+        <button class="btn btn-default">导出</button>
+        <button class="btn btn-default">转派</button>
+        <button class="btn btn-default">冻结</button>
+        <button class="btn btn-default">批量编辑</button>
+      </div>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th class="sticky-col" style="width:42px"><input type="checkbox" class="checkbox" id="checkAll" /></th>
+              <th class="sticky-col">品类编码</th>
+              <th>品类名称</th>
+              <th>品类专家</th>
+              <th>品类状态</th>
+              <th>专业组</th>
+              <th>材料品类</th>
+              <th>工艺品类</th>
+              <th>定点供应商</th>
+              <th class="col-strategy">品类策略</th>
+              <th class="col-strategy">平台策略</th>
+              <th class="col-strategy">技术方案</th>
+              <th class="col-strategy">价值穿透策略</th>
+              <th>品质备注/说明</th>
+              <th style="width:108px">操作</th>
+            </tr>
+          </thead>
+          <tbody id="tableBody"></tbody>
+        </table>
+      </div>
+      <div class="pagination">
+        <div><span class="sel-count" id="selCount">已选 0 条</span> &nbsp; 共 <span id="totalCount">0</span> 条</div>
+        <div class="pager">
+          <button disabled>&lt;</button>
+          <button class="active">1</button>
+          <button disabled>&gt;</button>
+          <select><option>100 条/页</option><option>50 条/页</option><option>20 条/页</option></select>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 详情抽屉 -->
+  <div class="drawer-mask" id="drawerMask"></div>
+  <aside class="drawer" id="drawer" aria-hidden="true">
+    <div class="drawer-head">
+      <div>
+        <div class="drawer-title"><span class="dot" id="drawerDot"></span><span id="drawerTitle">品类策略</span></div>
+        <div class="drawer-sub" id="drawerSub">CAT-00000 · 品类名称</div>
+      </div>
+      <button class="drawer-close" id="drawerClose" aria-label="关闭">×</button>
+    </div>
+    <div class="drawer-body">
+      <div class="drawer-label">已关联文档（<b id="docCount">0</b>）</div>
+      <div id="drawerList"></div>
+      <div class="drawer-add">
+        <div class="drawer-add-title">+ 添加飞书云文档</div>
+        <div class="drawer-add-row">
+          <input id="drawerInput" placeholder="粘贴飞书云文档链接，如 https://mi.feishu.cn/docx/xxx" />
+          <button class="btn btn-primary btn-xs" id="drawerAddBtn">解析添加</button>
+        </div>
+        <div class="drawer-add-status" id="drawerAddStatus"></div>
+        <div class="drawer-add-hint">粘贴链接后自动解析文档真实名称与类型（演示环境为模拟解析；正式环境由后端调用飞书 OpenAPI 获取文档标题与元信息）。支持云文档 / 电子表格 / 多维表格 / 知识库等链接。</div>
+      </div>
+    </div>
+  </aside>
+
+  <script>
+    const STRAT = [
+      { key: 'cat', label: '品类策略', color: '#1677ff' },
+      { key: 'plat', label: '平台策略', color: '#722ed1' },
+      { key: 'tech', label: '技术方案', color: '#13c2c2' },
+      { key: 'value', label: '价值穿透策略', color: '#fa8c16' },
+    ];
+    const TYPE_LABEL = { docx: '云文档', sheet: '电子表格', base: '多维表格', wiki: '知识库', file: '文件', minutes: '妙记' };
+    const TYPE_SHORT = { docx: '文', sheet: '表', base: '维', wiki: '知', file: '件', minutes: '记' };
+    const TYPE_COLOR = { docx: '#1677ff', sheet: '#13a05a', base: '#722ed1', wiki: '#fa8c16', file: '#8c8c8c', minutes: '#13c2c2' };
+
+    // 演示用文档字典：token -> 文档信息（正式环境由后端调飞书 OpenAPI 返回）
+    const DOC_LIBRARY = {
+      'DC-strat-00051':   { name: '底盘减振品类策略V2.3', type: 'docx' },
+      'DC-strat-00050':   { name: '减振垫品类策略V1.0',  type: 'docx' },
+      'DC-plat-00050':    { name: '减振平台策略V2.0',    type: 'sheet' },
+      'DC-cat-00048-v1':  { name: '品类策略V1.0',        type: 'docx' },
+      'DC-cat-00048-v2':  { name: '品类策略V2.0',        type: 'docx' },
+      'DC-plat-00048':    { name: '平台策略V1.0',        type: 'docx' },
+      'DC-tech-00048':    { name: '技术方案V1.0',        type: 'docx' },
+      'DC-tech-00048-sup':{ name: '技术方案-材料对比表', type: 'sheet' },
+      'DC-tech-00048-add':{ name: '技术方案补充说明',    type: 'docx' },
+      'DC-value-00048':   { name: '价值穿透策略V1.0',    type: 'docx' },
+      'DC-tech-00046':    { name: '充电插座技术方案',    type: 'docx' },
+      'DC-cat-00044':     { name: '前围横梁品类策略-数据表', type: 'sheet' },
+      'DC-value-00044':   { name: '价值穿透-前围横梁',   type: 'base' },
+      'DC-cat-00043':     { name: '发动机总成品类策略',  type: 'docx' },
+      'DC-plat-00043':    { name: '发动机平台策略',      type: 'docx' },
+      'DC-tech-00043':    { name: '发动机技术方案',      type: 'docx' },
+      'DC-value-00043':   { name: '价值穿透-发动机',     type: 'docx' },
+    };
+
+    const rows = [
+      { code: 'CAT-00052', name: '测试0788171', expert: '杨亚东', status: '生效', group: '焊接与热管理', materials: ['ALLOY STEEL 低合金钢'], crafts: ['注塑','激光焊接'], supplier: '/', note: '测试1', links: { cat: [], plat: [], tech: [], value: [] } },
+      { code: 'CAT-00051', name: '测试07878', expert: '张宁', status: '生效', group: '焊接与热管理', materials: ['CARBON STEEL 碳钢','BAO宝钢股份'], crafts: ['/'], supplier: '/', note: '测试2', links: { cat: [{ name: '底盘减振品类策略V2.3', url: 'https://mi.feishu.cn/docx/DC-strat-00051', type: 'docx', owner: '张宁', updated: '2026-07-28' }], plat: [], tech: [], value: [] } },
+      { code: 'CAT-00050', name: '减振垫', expert: '陈彦锡', status: '已冻结', group: '电子架构', materials: ['ALLOY STEEL 低合金钢','ALUMINUM 铝合金'], crafts: ['/'], supplier: '/', note: '测试3', links: { cat: [{ name: '减振垫品类策略V1.0', url: 'https://mi.feishu.cn/docx/DC-strat-00050', type: 'docx', owner: '陈彦锡', updated: '2026-07-30' }], plat: [{ name: '减振平台策略V2.0', url: 'https://mi.feishu.cn/sheets/DC-plat-00050', type: 'sheet', owner: '陈彦锡', updated: '2026-07-30' }], tech: [], value: [] } },
+      { code: 'CAT-00049', name: '测试07880', expert: '陈彦锡', status: '生效', group: '机械架构', materials: ['CARBON STEEL 碳钢'], crafts: ['/'], supplier: '/', note: '测试4', links: { cat: [], plat: [], tech: [], value: [] } },
+      { code: 'CAT-00048', name: '测试07881', expert: '陈彦锡', status: '生效', group: '机械架构', materials: ['CARBON STEEL 碳钢'], crafts: ['/'], supplier: '/', note: '测试5', links: { cat: [{ name: '品类策略V1.0', url: 'https://mi.feishu.cn/docx/DC-cat-00048-v1', type: 'docx', owner: '陈彦锡', updated: '2026-08-02' }, { name: '品类策略V2.0', url: 'https://mi.feishu.cn/docx/DC-cat-00048-v2', type: 'docx', owner: '陈彦锡', updated: '2026-08-09' }], plat: [{ name: '平台策略V1.0', url: 'https://mi.feishu.cn/docx/DC-plat-00048', type: 'docx', owner: '陈彦锡', updated: '2026-08-05' }], tech: [{ name: '技术方案V1.0', url: 'https://mi.feishu.cn/docx/DC-tech-00048', type: 'docx', owner: '陈彦锡', updated: '2026-08-03' }, { name: '技术方案-材料对比表', url: 'https://mi.feishu.cn/sheets/DC-tech-00048-sup', type: 'sheet', owner: '陈彦锡', updated: '2026-08-06' }, { name: '技术方案补充说明', url: 'https://mi.feishu.cn/docx/DC-tech-00048-add', type: 'docx', owner: '陈彦锡', updated: '2026-08-10' }], value: [{ name: '价值穿透策略V1.0', url: 'https://mi.feishu.cn/docx/DC-value-00048', type: 'docx', owner: '陈彦锡', updated: '2026-08-08' }] } },
+      { code: 'CAT-00047', name: '电容', expert: '陈彦锡', status: '生效', group: '电子架构', materials: ['/'], crafts: ['/'], supplier: '/', note: '测试6', links: { cat: [], plat: [], tech: [], value: [] } },
+      { code: 'CAT-00046', name: '充电插座', expert: '陈彦锡', status: '生效', group: '电子架构', materials: ['/'], crafts: ['/'], supplier: '/', note: '测试7', links: { cat: [], plat: [], tech: [{ name: '充电插座技术方案', url: 'https://mi.feishu.cn/docx/DC-tech-00046', type: 'docx', owner: '陈彦锡', updated: '2026-07-25' }], value: [] } },
+      { code: 'CAT-00045', name: '热成型', expert: '陈彦锡', status: '生效', group: '电子架构', materials: ['/'], crafts: ['/'], supplier: '/', note: '测试8', links: { cat: [], plat: [], tech: [], value: [] } },
+      { code: 'CAT-00044', name: '前围横梁', expert: '陈彦锡', status: '生效', group: '电子架构', materials: ['/'], crafts: ['/'], supplier: '/', note: '测试9', links: { cat: [{ name: '前围横梁品类策略-数据表', url: 'https://mi.feishu.cn/sheets/DC-cat-00044', type: 'sheet', owner: '陈彦锡', updated: '2026-07-22' }], plat: [], tech: [], value: [{ name: '价值穿透-前围横梁', url: 'https://mi.feishu.cn/base/DC-value-00044', type: 'base', owner: '陈彦锡', updated: '2026-07-22' }] } },
+      { code: 'CAT-00043', name: '发动机总成', expert: '李文婷', status: '生效', group: 'XEDL', materials: ['POWDERED METAL 粉末冶金','不锈钢'], crafts: ['冲压','激光切割'], supplier: '增程器', note: '测试10', links: { cat: [{ name: '发动机总成品类策略', url: 'https://mi.feishu.cn/docx/DC-cat-00043', type: 'docx', owner: '李文婷', updated: '2026-08-01' }], plat: [{ name: '发动机平台策略', url: 'https://mi.feishu.cn/docx/DC-plat-00043', type: 'docx', owner: '李文婷', updated: '2026-08-01' }], tech: [{ name: '发动机技术方案', url: 'https://mi.feishu.cn/docx/DC-tech-00043', type: 'docx', owner: '李文婷', updated: '2026-08-04' }], value: [{ name: '价值穿透-发动机', url: 'https://mi.feishu.cn/docx/DC-value-00043', type: 'docx', owner: '李文婷', updated: '2026-08-04' }] } },
+    ];
+
+    function renderTags(arr) {
+      if (!arr || arr.length === 0 || arr[0] === '/') return '<span class="empty-hint">/</span>';
+      const visible = arr.slice(0, 2);
+      const more = arr.length > 2 ? '<span class="tag-more">+' + (arr.length - 2) + '</span>' : '';
+      return '<div class="tags">' + visible.map(function (t) { return '<span class="tag-pill">' + t + '</span>'; }).join('') + more + '</div>';
+    }
+
+    function chipHtml(l, row, col, idx) {
+      const type = l.type || 'docx';
+      return '<a class="doc-chip" href="' + l.url + '" target="_blank" rel="noopener" data-act="open" data-row="' + row + '" data-col="' + col + '" data-idx="' + idx + '" title="' + l.name + ' · ' + (TYPE_LABEL[type] || '云文档') + ' · ' + (l.owner || '—') + ' 更新于 ' + (l.updated || '—') + '">' +
+        '<span class="chip-ic" style="background:' + (TYPE_COLOR[type] || '#1677ff') + '">' + (TYPE_SHORT[type] || '文') + '</span>' +
+        '<span class="dc-name">' + l.name + '</span>' +
+        '<span class="dc-x" data-act="remove" data-row="' + row + '" data-col="' + col + '" data-idx="' + idx + '">×</span>' +
+        '</a>';
+    }
+
+    function renderDocCell(links, rowIdx, col, label) {
+      const n = links.length;
+      if (n === 0) {
+        return '<div class="doc-cell">' +
+          '<button class="dc-add" data-act="add" data-row="' + rowIdx + '" data-col="' + col + '" title="添加' + label + '文档">+ 添加文档</button>' +
+          '</div>';
+      }
+      const shown = links.slice(0, 2).map(function (l, i) { return chipHtml(l, rowIdx, col, i); }).join('');
+      const more = n > 2 ? '<button class="dc-more" data-act="detail" data-row="' + rowIdx + '" data-col="' + col + '">+' + (n - 2) + ' 更多</button>' : '';
+      const detail = n <= 2 ? '<button class="dc-op" data-act="detail" data-row="' + rowIdx + '" data-col="' + col + '">详情</button>' : '';
+      return '<div class="doc-cell">' + shown + more + detail + '</div>';
+    }
+
+    const tbody = document.getElementById('tableBody');
+    const checkAll = document.getElementById('checkAll');
+    const toolbar = document.getElementById('toolbar');
+    const selCount = document.getElementById('selCount');
+
+    tbody.innerHTML = rows.map(function (r, i) {
+      return '<tr>' +
+        '<td class="sticky-col"><input type="checkbox" class="checkbox row-check" /></td>' +
+        '<td class="sticky-col">' + r.code + '</td>' +
+        '<td>' + r.name + '</td>' +
+        '<td>' + r.expert + '</td>' +
+        '<td><span class="status ' + (r.status === '已冻结' ? 'draft' : '') + '">' + r.status + '</span></td>' +
+        '<td>' + r.group + '</td>' +
+        '<td>' + renderTags(r.materials) + '</td>' +
+        '<td>' + renderTags(r.crafts) + '</td>' +
+        '<td>' + (r.supplier || '<span class="empty-hint">/</span>') + '</td>' +
+        STRAT.map(function (s) { return '<td class="col-strategy" data-col="' + s.key + '">' + renderDocCell(r.links[s.key], i, s.key, s.label) + '</td>'; }).join('') +
+        '<td>' + r.note + '</td>' +
+        '<td class="ops"><a>编辑</a><a>变更记录</a></td>' +
+        '</tr>';
+    }).join('');
+
+    /* ---------- 顶部统计（随数据动态计算） ---------- */
+    function updateStats() {
+      const total = rows.length;
+      const active = rows.filter(function (r) { return r.status === '生效'; }).length;
+      const frozen = rows.filter(function (r) { return r.status === '已冻结'; }).length;
+      const pending = rows.filter(function (r) {
+        return !STRAT.some(function (s) { return (r.links[s.key] || []).length > 0; });
+      }).length;
+      document.getElementById('stTotal').innerHTML = total + '<small>个</small>';
+      document.getElementById('stActive').innerHTML = active + '<small>个</small>';
+      document.getElementById('stFrozen').innerHTML = frozen + '<small>个</small>';
+      document.getElementById('stPending').innerHTML = pending + '<small>个</small>';
+      document.getElementById('totalCount').textContent = total;
+
+      STRAT.forEach(function (s) {
+        let docs = 0;
+        const covered = new Set();
+        rows.forEach(function (r, i) {
+          const n = (r.links[s.key] || []).length;
+          if (n > 0) { docs += n; covered.add(i); }
+        });
+        const card = document.getElementById('stratCard-' + s.key);
+        card.querySelector('.strat-docs').textContent = docs;
+        card.querySelector('.strat-covered').textContent = '覆盖 ' + covered.size + ' / ' + total + ' 个品类';
+        const pct = total ? Math.round(covered.size / total * 100) : 0;
+        card.querySelector('.strat-bar i').style.width = pct + '%';
+      });
+    }
+
+    function updateSelection() {
+      const boxes = [].slice.call(tbody.querySelectorAll('.row-check'));
+      const checked = boxes.filter(function (b) { return b.checked; }).length;
+      const total = boxes.length;
+      checkAll.checked = total > 0 && checked === total;
+      checkAll.indeterminate = checked > 0 && checked < total;
+      selCount.textContent = '已选 ' + checked + ' 条';
+      toolbar.classList.toggle('has-selection', checked > 0);
+    }
+
+    /* ---------- 行选择 ---------- */
+    tbody.addEventListener('click', function (e) {
+      const target = e.target;
+      if (target.closest('.doc-cell')) return;
+      if (target.tagName === 'A') return;
+      if (target.classList.contains('row-check')) return;
+      if (target.closest('button')) return;
+      const tr = target.closest('tr');
+      if (!tr) return;
+      const cb = tr.querySelector('.row-check');
+      if (!cb) return;
+      cb.checked = !cb.checked;
+      cb.dispatchEvent(new Event('change'));
+    });
+
+    tbody.addEventListener('change', function (e) {
+      const cb = e.target;
+      if (!cb.classList.contains('row-check')) return;
+      cb.closest('tr').classList.toggle('selected', cb.checked);
+      updateSelection();
+    });
+
+    checkAll.addEventListener('change', function () {
+      const all = checkAll.checked;
+      tbody.querySelectorAll('.row-check').forEach(function (cb) {
+        cb.checked = all;
+        cb.closest('tr').classList.toggle('selected', all);
+      });
+      updateSelection();
+    });
+
+    /* ---------- 策略单元格交互 ---------- */
+    tbody.addEventListener('click', function (e) {
+      const el = e.target.closest('[data-act]');
+      if (!el) return;
+      const act = el.dataset.act;
+      const row = parseInt(el.dataset.row, 10);
+      const col = el.dataset.col;
+      if (isNaN(row) || !col) return;
+      if (act === 'add') {
+        openDrawer(row, col, true);
+      } else if (act === 'detail') {
+        openDrawer(row, col, false);
+      } else if (act === 'remove') {
+        e.preventDefault();
+        e.stopPropagation();
+        rows[row].links[col].splice(parseInt(el.dataset.idx, 10), 1);
+        refreshCell(row, col);
+        updateStats();
+      } else if (act === 'open') {
+        return; // 默认新窗口打开
+      }
+    });
+
+    function refreshCell(row, col) {
+      const label = STRAT.find(function (s) { return s.key === col; }).label;
+      const td = tbody.querySelector('tr:nth-child(' + (row + 1) + ') td.col-strategy[data-col="' + col + '"]');
+      if (td) td.innerHTML = renderDocCell(rows[row].links[col], row, col, label);
+    }
+
+    /* ---------- 详情抽屉 ---------- */
+    const drawerMask = document.getElementById('drawerMask');
+    const drawer = document.getElementById('drawer');
+    const drawerInput = document.getElementById('drawerInput');
+    const drawerAddBtn = document.getElementById('drawerAddBtn');
+    const drawerAddStatus = document.getElementById('drawerAddStatus');
+    let drawerState = null;
+
+    function openDrawer(row, col, focusInput) {
+      drawerState = { row: row, col: col };
+      const r = rows[row];
+      const s = STRAT.find(function (x) { return x.key === col; });
+      document.getElementById('drawerTitle').textContent = s.label;
+      document.getElementById('drawerDot').style.background = s.color;
+      document.getElementById('drawerSub').textContent = r.code + ' · ' + r.name;
+      renderDrawerList();
+      drawerAddStatus.className = 'drawer-add-status';
+      drawerAddStatus.textContent = '';
+      drawerMask.classList.add('show');
+      drawer.classList.add('open');
+      drawer.setAttribute('aria-hidden', 'false');
+      document.body.style.overflow = 'hidden';
+      if (focusInput) {
+        setTimeout(function () { drawerInput.focus(); }, 120);
+      }
+    }
+
+    function closeDrawer() {
+      drawerMask.classList.remove('show');
+      drawer.classList.remove('open');
+      drawer.setAttribute('aria-hidden', 'true');
+      document.body.style.overflow = '';
+      drawerState = null;
+    }
+
+    function renderDrawerList() {
+      if (!drawerState) return;
+      const links = rows[drawerState.row].links[drawerState.col];
+      document.getElementById('docCount').textContent = links.length;
+      const list = document.getElementById('drawerList');
+      if (!links.length) {
+        list.innerHTML = '<div class="drawer-empty">暂无关联文档，粘贴飞书链接添加</div>';
+        return;
+      }
+      list.innerHTML = links.map(function (l, i) {
+        const type = l.type || 'docx';
+        return '<div class="doc-item">' +
+          '<div class="doc-ic" style="background:' + (TYPE_COLOR[type] || '#1677ff') + '">' + (TYPE_SHORT[type] || '文') + '</div>' +
+          '<div class="doc-info">' +
+          '<div class="doc-name"><span class="nm" title="' + l.name + '">' + l.name + '</span><span class="doc-type">' + (TYPE_LABEL[type] || '云文档') + '</span></div>' +
+          '<div class="doc-meta">' + (l.owner || '—') + ' 更新于 ' + (l.updated || '—') + '</div>' +
+          '</div>' +
+          '<div class="doc-ops">' +
+          '<a class="doc-open" href="' + l.url + '" target="_blank" rel="noopener">打开</a>' +
+          '<button class="doc-del" data-deldoc="' + i + '">删除</button>' +
+          '</div>' +
+          '</div>';
+      }).join('');
+    }
+
+    drawerMask.addEventListener('click', closeDrawer);
+    document.getElementById('drawerClose').addEventListener('click', closeDrawer);
+
+    document.getElementById('drawerList').addEventListener('click', function (e) {
+      const del = e.target.closest('[data-deldoc]');
+      if (!del || !drawerState) return;
+      const idx = parseInt(del.dataset.deldoc, 10);
+      rows[drawerState.row].links[drawerState.col].splice(idx, 1);
+      renderDrawerList();
+      refreshCell(drawerState.row, drawerState.col);
+      updateStats();
+    });
+
+    /* ---------- 飞书链接解析（演示版模拟） ---------- */
+    function parseFeishuUrl(url) {
+      const m = url.match(/(docx|sheets|base|wiki|file|minutes|docs)\/([A-Za-z0-9_-]+)/);
+      if (!m) return null;
+      let type = m[1];
+      if (type === 'docs') type = 'docx';
+      return { type: type, token: m[2] };
+    }
+
+    function resolveDocMeta(url) {
+      const parsed = parseFeishuUrl(url);
+      if (!parsed) return Promise.resolve(null);
+      return new Promise(function (resolve) {
+        setTimeout(function () {
+          const known = DOC_LIBRARY[parsed.token];
+          if (known) {
+            resolve({ name: known.name, type: known.type || parsed.type, url: url, owner: '齐岳', updated: '2026-08-17' });
+          } else {
+            resolve({ name: (TYPE_LABEL[parsed.type] || '云文档') + '·' + parsed.token.slice(0, 8), type: parsed.type, url: url, owner: '齐岳', updated: '2026-08-17' });
+          }
+        }, 650);
+      });
+    }
+
+    function setStatus(cls, text) {
+      drawerAddStatus.className = 'drawer-add-status' + (cls ? ' ' + cls : '');
+      drawerAddStatus.innerHTML = text;
+    }
+
+    async function onAddDoc() {
+      const url = drawerInput.value.trim();
+      if (!url) { setStatus('err', '请先粘贴飞书云文档链接'); return; }
+      if (!/feishu\.cn|larksuite\.com/.test(url)) {
+        setStatus('err', '仅支持飞书云文档链接（mi.feishu.cn / feishu.cn / larksuite.com）');
+        return;
+      }
+      drawerAddBtn.disabled = true;
+      setStatus('', '<span class="spinner"></span>正在解析文档信息…');
+      const meta = await resolveDocMeta(url);
+      drawerAddBtn.disabled = false;
+      if (!meta) { setStatus('err', '链接格式无法识别，请粘贴飞书文档 / 表格 / 多维表格等链接'); return; }
+      if (!drawerState) return;
+      rows[drawerState.row].links[drawerState.col].push(meta);
+      drawerInput.value = '';
+      renderDrawerList();
+      refreshCell(drawerState.row, drawerState.col);
+      updateStats();
+      setStatus('ok', '已添加「' + meta.name + '」');
+      setTimeout(function () {
+        if (drawerAddStatus.className.indexOf('ok') >= 0) {
+          drawerAddStatus.className = 'drawer-add-status';
+          drawerAddStatus.textContent = '';
+        }
+      }, 2600);
+    }
+
+    drawerAddBtn.addEventListener('click', onAddDoc);
+    drawerInput.addEventListener('keydown', function (e) {
+      if (e.key === 'Enter') onAddDoc();
+    });
+    document.addEventListener('keydown', function (e) {
+      if (e.key === 'Escape' && drawerState) closeDrawer();
+    });
+
+    /* 初始渲染 */
+    updateStats();
+    updateSelection();
+  </script>
+</body>
+</html>

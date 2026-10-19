@@ -1,0 +1,897 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>框架协议历史数据迁移判断工具</title>
+  <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+  <style>
+    :root {
+      --bg: #f5f7fb;
+      --card: #ffffff;
+      --text: #1f2329;
+      --muted: #646a73;
+      --primary: #2563eb;
+      --primary-dark: #1d4ed8;
+      --border: #dfe3eb;
+      --success: #0f9f6e;
+      --warning: #d97706;
+      --danger: #dc2626;
+      --info: #4f46e5;
+      --shadow: 0 14px 40px rgba(31, 35, 41, 0.08);
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
+      color: var(--text);
+      background: linear-gradient(135deg, #eef4ff 0%, var(--bg) 45%, #f9fafb 100%);
+      min-height: 100vh;
+    }
+
+    .page {
+      width: min(1440px, calc(100vw - 48px));
+      margin: 0 auto;
+      padding: 32px 0 48px;
+    }
+
+    .hero {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) auto;
+      gap: 24px;
+      align-items: center;
+      margin-bottom: 24px;
+    }
+
+    h1 {
+      margin: 0 0 10px;
+      font-size: 30px;
+      letter-spacing: -0.02em;
+    }
+
+    .subtitle {
+      margin: 0;
+      color: var(--muted);
+      line-height: 1.7;
+    }
+
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 8px 12px;
+      border-radius: 999px;
+      color: #1d4ed8;
+      background: #dbeafe;
+      font-weight: 700;
+      white-space: nowrap;
+    }
+
+    .card {
+      background: rgba(255, 255, 255, 0.92);
+      border: 1px solid rgba(223, 227, 235, 0.9);
+      border-radius: 18px;
+      box-shadow: var(--shadow);
+      padding: 22px;
+      backdrop-filter: blur(12px);
+    }
+
+    .controls {
+      display: grid;
+      grid-template-columns: 220px 1fr auto auto;
+      gap: 16px;
+      align-items: end;
+      margin-bottom: 20px;
+    }
+
+    label {
+      display: block;
+      margin-bottom: 8px;
+      font-size: 13px;
+      color: var(--muted);
+      font-weight: 700;
+    }
+
+    select,
+    input[type="file"] {
+      width: 100%;
+      min-height: 40px;
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      background: #fff;
+      padding: 8px 10px;
+      color: var(--text);
+      font-size: 14px;
+    }
+
+    button {
+      border: 0;
+      border-radius: 10px;
+      padding: 10px 16px;
+      min-height: 40px;
+      color: #fff;
+      background: var(--primary);
+      cursor: pointer;
+      font-weight: 700;
+      transition: 0.18s ease;
+    }
+
+    button:hover { background: var(--primary-dark); }
+    button.secondary { background: #334155; }
+    button.secondary:hover { background: #1e293b; }
+    button:disabled { background: #a8b1c1; cursor: not-allowed; }
+
+    .hint {
+      margin: 8px 0 0;
+      color: var(--muted);
+      font-size: 13px;
+      line-height: 1.7;
+    }
+
+    .stats {
+      display: grid;
+      grid-template-columns: repeat(5, minmax(0, 1fr));
+      gap: 12px;
+      margin: 18px 0;
+    }
+
+    .stat {
+      padding: 14px;
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      background: #fff;
+    }
+
+    .stat span {
+      display: block;
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 700;
+    }
+
+    .stat strong {
+      display: block;
+      margin-top: 6px;
+      font-size: 24px;
+    }
+
+    .tabs {
+      display: flex;
+      gap: 8px;
+      margin: 16px 0;
+      flex-wrap: wrap;
+    }
+
+    .tab {
+      color: var(--text);
+      background: #fff;
+      border: 1px solid var(--border);
+    }
+
+    .tab.active {
+      color: #fff;
+      background: var(--primary);
+      border-color: var(--primary);
+    }
+
+    .table-wrap {
+      overflow: auto;
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      background: #fff;
+      max-height: 62vh;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      min-width: 1320px;
+      font-size: 13px;
+    }
+
+    th,
+    td {
+      padding: 10px 12px;
+      border-bottom: 1px solid #edf0f5;
+      text-align: left;
+      vertical-align: top;
+      white-space: nowrap;
+    }
+
+    th {
+      position: sticky;
+      top: 0;
+      z-index: 1;
+      background: #f8fafc;
+      color: #475569;
+      font-size: 12px;
+    }
+
+    tr:hover td { background: #f8fbff; }
+
+    .pill {
+      display: inline-flex;
+      padding: 3px 8px;
+      border-radius: 999px;
+      font-size: 12px;
+      font-weight: 700;
+    }
+
+    .pill.ok { color: var(--success); background: #dcfce7; }
+    .pill.warn { color: var(--warning); background: #fef3c7; }
+    .pill.danger { color: var(--danger); background: #fee2e2; }
+    .pill.info { color: var(--info); background: #e0e7ff; }
+
+    .rules {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 14px;
+      margin-top: 18px;
+    }
+
+    .rule {
+      padding: 14px;
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      background: #fff;
+      line-height: 1.7;
+    }
+
+    .rule strong { display: block; margin-bottom: 6px; }
+
+    .empty {
+      padding: 42px 20px;
+      text-align: center;
+      color: var(--muted);
+      background: #fff;
+      border: 1px dashed var(--border);
+      border-radius: 14px;
+    }
+
+    .error {
+      display: none;
+      margin: 12px 0;
+      padding: 12px 14px;
+      border-radius: 12px;
+      color: #991b1b;
+      background: #fee2e2;
+      line-height: 1.6;
+    }
+
+    @media (max-width: 1080px) {
+      .hero,
+      .controls,
+      .stats,
+      .rules { grid-template-columns: 1fr; }
+      .page { width: min(100vw - 28px, 1440px); }
+    }
+  </style>
+</head>
+<body>
+  <main class="page">
+    <section class="hero">
+      <div>
+        <h1>框架协议历史数据迁移判断工具</h1>
+        <p class="subtitle">按“零件号 + 供应商代码 + 工厂代码”分组，结合协议类型和有效期，自动判断推荐迁移协议号、老模块处理动作和人工确认风险。</p>
+      </div>
+      <div class="badge">量产 / 售后 第一版规则</div>
+    </section>
+
+    <section class="card">
+      <div class="controls">
+        <div>
+          <label for="businessType">业务类型</label>
+          <select id="businessType">
+            <option value="量产">量产</option>
+            <option value="售后">售后</option>
+          </select>
+        </div>
+        <div>
+          <label for="fileInput">导入表格</label>
+          <input id="fileInput" type="file" accept=".xlsx,.xls,.csv" />
+          <p class="hint">仅校验并参与判断：零件号、供应商代码、工厂代码、协议号、协议类型、有效期起、有效期止；协议阶段、状态、采购工程师、供应商名称、创建时间等其他列不会作为异常项。Excel 解析和导出依赖浏览器加载 SheetJS CDN；CSV 可离线解析但多 Sheet 导出需要 Excel 格式。</p>
+        </div>
+        <button id="runBtn">开始判断</button>
+        <button id="exportBtn" class="secondary" disabled>导出 Excel 核对表</button>
+      </div>
+
+      <div id="errorBox" class="error"></div>
+      <div id="fieldMapHint" class="hint"></div>
+
+      <div class="stats">
+        <div class="stat"><span>原始行数</span><strong id="rawCount">0</strong></div>
+        <div class="stat"><span>分组数</span><strong id="groupCount">0</strong></div>
+        <div class="stat"><span>可自动迁移</span><strong id="autoCount">0</strong></div>
+        <div class="stat"><span>需人工确认</span><strong id="manualCount">0</strong></div>
+        <div class="stat"><span>异常数据</span><strong id="errorCount">0</strong></div>
+      </div>
+
+      <div class="tabs">
+        <button class="tab active" data-filter="all">全部</button>
+        <button class="tab" data-filter="自动迁移">自动迁移</button>
+        <button class="tab" data-filter="人工确认">人工确认</button>
+        <button class="tab" data-filter="异常">异常</button>
+        <button class="tab" data-filter="不需要迁移">不需要迁移的数据</button>
+      </div>
+
+      <div id="resultArea" class="empty">请先选择业务类型并导入表格。</div>
+
+      <div class="rules">
+        <div class="rule"><strong>同一分组</strong>零件号、供应商代码、工厂代码完全一致的数据归为一组，在组内判断迁移哪个协议号。</div>
+        <div class="rule"><strong>最新协议号</strong>优先按有效期起最大判断，其次按有效期止最大判断；仍并列则标记人工确认。</div>
+        <div class="rule"><strong>正式价 / 暂作价</strong>只有一种协议类型时：单协议号直接迁移，多协议号迁移最新协议号。</div>
+        <div class="rule"><strong>混合协议</strong>暂作价在前、正式价在后迁移最新协议号；正式价在前、暂作价在后迁移最新暂作价协议号；有效期重叠标记人工确认。</div>
+      </div>
+    </section>
+  </main>
+
+  <script>
+    const REQUIRED_FIELDS = {
+      partNo: ["零件号", "零部件号", "零件编号", "零部件编号", "物料号", "物料编码", "物料编号", "partNo", "part_no"],
+      supplierCode: ["供应商代码", "供应商编码", "供应商编号", "供方代码", "供方编码", "vendorCode", "supplierCode", "supplier_code"],
+      factoryCode: ["工厂代码", "工厂编码", "工厂", "小米工厂", "使用工厂", "采购工厂", "生产工厂", "plant", "plantCode", "factoryCode", "factory_code"],
+      agreementNo: ["协议号", "框架协议号", "框架协议编码", "协议编号", "框架协议编号", "合同号", "合同编号", "frameworkNo", "agreementNo", "agreement_no"],
+      agreementType: ["零件价格类型", "协议类型", "框架协议类型", "价格类型", "合同类型", "协议类别", "agreementType", "agreement_type"],
+      startDate: ["有效期起", "有效期开始", "有效期开始时间", "开始时间", "生效日期", "有效期从", "validFrom", "startDate", "start_date"],
+      endDate: ["有效期止", "有效期结束", "有效期结束时间", "结束时间", "失效日期", "有效期至", "validTo", "endDate", "end_date"]
+    };
+
+    const state = {
+      rows: [],
+      results: [],
+      activeFilter: "all"
+    };
+
+    const $ = (id) => document.getElementById(id);
+
+    document.querySelectorAll(".tab").forEach((tab) => {
+      tab.addEventListener("click", () => {
+        document.querySelectorAll(".tab").forEach((item) => item.classList.remove("active"));
+        tab.classList.add("active");
+        state.activeFilter = tab.dataset.filter;
+        renderResults();
+      });
+    });
+
+    $("runBtn").addEventListener("click", async () => {
+      try {
+        hideError();
+        const file = $("fileInput").files[0];
+        if (!file) throw new Error("请先选择需要导入的 Excel 或 CSV 文件。");
+        state.rows = await readFile(file);
+        state.results = analyzeRows(state.rows, $("businessType").value);
+        updateStats();
+        renderFieldMapHint();
+        renderResults();
+        $("exportBtn").disabled = state.results.length === 0;
+      } catch (error) {
+        showError(error.message || String(error));
+      }
+    });
+
+    $("exportBtn").addEventListener("click", () => {
+      const headers = getExportHeaders();
+      exportWorkbook(headers, state.results, buildNotMigratedRows(), `框架协议迁移判断结果_${$("businessType").value}.xlsx`);
+    });
+
+    async function readFile(file) {
+      const ext = file.name.split(".").pop().toLowerCase();
+      if (ext === "csv") return parseCsv(await file.text());
+      if (!["xlsx", "xls"].includes(ext)) throw new Error("仅支持 .xlsx、.xls、.csv 文件。");
+      if (!window.XLSX) throw new Error("Excel 解析库未加载成功，请检查网络或先另存为 CSV 后导入。");
+      const data = await file.arrayBuffer();
+      const workbook = XLSX.read(data, { type: "array", cellDates: true });
+      const firstSheet = workbook.Sheets[workbook.SheetNames[0]];
+      const matrix = XLSX.utils.sheet_to_json(firstSheet, { header: 1, defval: "", raw: false });
+      return matrixToObjects(matrix);
+    }
+
+    function parseCsv(text) {
+      const rows = [];
+      let current = [];
+      let value = "";
+      let inQuotes = false;
+      const normalized = text.replace(/^﻿/, "");
+      for (let i = 0; i < normalized.length; i++) {
+        const char = normalized[i];
+        const next = normalized[i + 1];
+        if (char === '"' && inQuotes && next === '"') {
+          value += '"';
+          i++;
+        } else if (char === '"') {
+          inQuotes = !inQuotes;
+        } else if (char === "," && !inQuotes) {
+          current.push(value);
+          value = "";
+        } else if ((char === "\n" || char === "\r") && !inQuotes) {
+          if (char === "\r" && next === "\n") i++;
+          current.push(value);
+          rows.push(current);
+          current = [];
+          value = "";
+        } else {
+          value += char;
+        }
+      }
+      if (value || current.length) {
+        current.push(value);
+        rows.push(current);
+      }
+      return matrixToObjects(rows);
+    }
+
+    function matrixToObjects(matrix) {
+      const rows = matrix.filter((row) => row.some((cell) => String(cell).trim()));
+      const headerIndex = findHeaderIndex(rows);
+      if (headerIndex < 0) {
+        throw new Error("未找到包含必需字段的表头行。请确认表头包含零件号/供应商代码/工厂代码/协议号/协议类型/有效期起/有效期止等字段。");
+      }
+      const headers = rows[headerIndex].map((header) => String(header).trim());
+      return rows.slice(headerIndex + 1)
+        .filter((row) => row.some((cell) => String(cell).trim()))
+        .map((row) => Object.fromEntries(headers.map((header, index) => [header, row[index] ?? ""])));
+    }
+
+    function findHeaderIndex(rows) {
+      const maxScanRows = Math.min(rows.length, 30);
+      for (let index = 0; index < maxScanRows; index++) {
+        const headers = rows[index].map((cell) => String(cell).trim()).filter(Boolean);
+        const matchedCount = Object.values(REQUIRED_FIELDS).filter((aliases) => {
+          const aliasSet = aliases.map(normalizeHeader);
+          return headers.some((header) => aliasSet.includes(normalizeHeader(header)));
+        }).length;
+        if (matchedCount >= 5) return index;
+      }
+      return -1;
+    }
+
+    function analyzeRows(rawRows, businessType) {
+      if (!rawRows.length) throw new Error("表格没有可读取的数据行。");
+      const fieldMap = resolveFields(Object.keys(rawRows[0]));
+      state.fieldMap = fieldMap;
+      const normalizedRows = rawRows.map((row, index) => normalizeRow(row, fieldMap, index + 2, businessType));
+      const groups = new Map();
+
+      normalizedRows.forEach((row) => {
+        const key = row.groupKey;
+        if (!groups.has(key)) groups.set(key, []);
+        groups.get(key).push(row);
+      });
+
+      return [...groups.entries()].map(([groupKey, rows]) => analyzeGroup(groupKey, rows, businessType));
+    }
+
+    function resolveFields(headers) {
+      const normalizedHeaders = headers.map((header) => ({ raw: header, key: normalizeHeader(header) }));
+      const result = {};
+      const missing = [];
+
+      Object.entries(REQUIRED_FIELDS).forEach(([field, aliases]) => {
+        const found = findHeaderByAliasPriority(normalizedHeaders, aliases);
+        if (found) result[field] = found.raw;
+        else missing.push(aliases[0]);
+      });
+
+      if (missing.length) throw new Error(`缺少必需字段：${missing.join("、")}。请检查表头名称。`);
+      return result;
+    }
+
+    function findHeaderByAliasPriority(normalizedHeaders, aliases) {
+      for (const alias of aliases) {
+        const aliasKey = normalizeHeader(alias);
+        const found = normalizedHeaders.find((header) => header.key === aliasKey);
+        if (found) return found;
+      }
+      return null;
+    }
+
+    function normalizeHeader(value) {
+      return String(value || "").trim().replace(/[\s_\-]/g, "").toLowerCase();
+    }
+
+    function normalizeRow(row, fieldMap, rowNo, businessType) {
+      const partNo = clean(row[fieldMap.partNo]);
+      const supplierCode = clean(row[fieldMap.supplierCode]);
+      const factoryCode = clean(row[fieldMap.factoryCode]);
+      const agreementNo = clean(row[fieldMap.agreementNo]);
+      const rawType = clean(row[fieldMap.agreementType]);
+      const agreementType = normalizeAgreementType(rawType);
+      const startDateText = clean(row[fieldMap.startDate]);
+      const endDateText = clean(row[fieldMap.endDate]);
+      const startDate = parseDate(startDateText);
+      const endDate = parseDate(endDateText);
+      const issues = [];
+
+      if (!partNo) issues.push("零件号为空");
+      if (!supplierCode) issues.push("供应商代码为空");
+      if (!factoryCode) issues.push("工厂代码为空");
+      if (!agreementNo) issues.push("协议号为空");
+      if (!agreementType) issues.push(`协议类型无法识别：${rawType || "空"}`);
+      if (!startDate) issues.push(`有效期起无法识别：${startDateText || "空"}`);
+      if (!endDate) issues.push(`有效期止无法识别：${endDateText || "空"}`);
+      if (startDate && endDate && startDate > endDate) issues.push("有效期起大于有效期止");
+
+      return {
+        rowNo,
+        businessType,
+        partNo,
+        supplierCode,
+        factoryCode,
+        agreementNo,
+        rawType,
+        agreementType,
+        startDateText,
+        endDateText,
+        startDate,
+        endDate,
+        issues,
+        groupKey: `${partNo}__${supplierCode}__${factoryCode}`
+      };
+    }
+
+    function clean(value) {
+      return String(value ?? "").trim();
+    }
+
+    function normalizeAgreementType(value) {
+      const text = clean(value).replace(/\s/g, "");
+      if (!text) return "";
+      const hasTemp = /暂作价|暂做价|暂价|临时价/.test(text);
+      const hasFormal = /正式价|正式/.test(text);
+      if (hasTemp && hasFormal) return "混合";
+      if (hasTemp) return "暂作价";
+      if (hasFormal) return "正式价";
+      return "";
+    }
+
+    function parseDate(value) {
+      if (value instanceof Date && !Number.isNaN(value.getTime())) return startOfDay(value);
+      const text = clean(value);
+      if (!text) return null;
+      const compact = text.match(/^(\d{4})(\d{2})(\d{2})$/);
+      if (compact) return new Date(`${compact[1]}-${compact[2]}-${compact[3]}T00:00:00`);
+      const slash = text.replace(/[./]/g, "-").match(/^(\d{4})-(\d{1,2})-(\d{1,2})/);
+      if (slash) return new Date(`${slash[1]}-${slash[2].padStart(2, "0")}-${slash[3].padStart(2, "0")}T00:00:00`);
+      const excelSerial = Number(text);
+      if (Number.isFinite(excelSerial) && excelSerial > 20000 && excelSerial < 80000) {
+        return startOfDay(new Date(Math.round((excelSerial - 25569) * 86400 * 1000)));
+      }
+      const date = new Date(text);
+      return Number.isNaN(date.getTime()) ? null : startOfDay(date);
+    }
+
+    function startOfDay(date) {
+      return new Date(date.getFullYear(), date.getMonth(), date.getDate());
+    }
+
+    function analyzeGroup(groupKey, rows, businessType) {
+      const groupIssues = rows.flatMap((row) => row.issues.map((issue) => `第${row.rowNo}行：${issue}`));
+      const validRows = rows.filter((row) => !row.issues.length);
+      const types = unique(validRows.map((row) => row.agreementType));
+      const agreementNos = unique(rows.map((row) => row.agreementNo).filter(Boolean));
+      const typeSummary = types.length ? types.join("+") : "无法识别";
+      const base = {
+        "业务类型": businessType,
+        "分组键": groupKey,
+        "零件号": rows[0].partNo,
+        "供应商代码": rows[0].supplierCode,
+        "工厂代码": rows[0].factoryCode,
+        "协议类型": typeSummary,
+        "协议类型组合": typeSummary,
+        "协议号数量": agreementNos.length,
+        "组内行数": rows.length,
+        "推荐迁移协议号": "",
+        "不需要迁移协议号": "",
+        "迁移动作": "",
+        "老模块处理": "",
+        "是否迁移价格段": "是",
+        "风险等级": "低",
+        "判断结果": "自动迁移",
+        "人工确认原因": "",
+        "涉及协议号": agreementNos.join("、"),
+        "有效期范围": summarizeDateRange(rows),
+        __rows: rows
+      };
+
+      if (groupIssues.length) {
+        return mark(base, "异常", "高", "数据字段异常", groupIssues.join("；"));
+      }
+
+      if (!validRows.length) {
+        return mark(base, "异常", "高", "无有效数据", "分组内没有可判断的数据行");
+      }
+
+      if (hasOverlap(validRows)) {
+        return mark(base, "人工确认", "高", "有效期重叠", "同一分组内存在有效期重叠，可能影响新旧价格段同步");
+      }
+
+      if (types.length === 1 && ["正式价", "暂作价"].includes(types[0])) {
+        const latest = findLatestAgreement(validRows);
+        if (latest.reason) return mark(base, "人工确认", "中", "最新协议无法唯一确定", latest.reason);
+        base["推荐迁移协议号"] = latest.agreementNo;
+        fillNotMigratedAgreements(base);
+        base["迁移动作"] = agreementNos.length === 1 ? "迁移该框架协议号" : "迁移最新框架协议号";
+        base["老模块处理"] = types[0] === "暂作价" ? "暂作价保留继续转正；转正只取暂作价结束时间" : "正式价迁移到新方案；老模块前台不作为主数据展示";
+        return base;
+      }
+
+      if (types.includes("混合") || (types.includes("正式价") && types.includes("暂作价"))) {
+        const expandedRows = expandMixedRows(validRows);
+        const tempRows = expandedRows.filter((row) => row.agreementType === "暂作价");
+        const formalRows = expandedRows.filter((row) => row.agreementType === "正式价");
+        if (!tempRows.length || !formalRows.length) {
+          return mark(base, "人工确认", "中", "混合类型不完整", "协议类型包含混合，但无法拆分出正式价和暂作价");
+        }
+        const order = judgeTempFormalOrder(tempRows, formalRows);
+        if (order === "暂作价在前，正式价在后") {
+          const latest = findLatestAgreement(validRows);
+          if (latest.reason) return mark(base, "人工确认", "中", "最新协议无法唯一确定", latest.reason);
+          base["推荐迁移协议号"] = latest.agreementNo;
+          fillNotMigratedAgreements(base);
+          base["迁移动作"] = "迁移最新框架协议号";
+          base["老模块处理"] = "暂作价保留继续转正";
+          base["风险等级"] = "中";
+          return base;
+        }
+        if (order === "正式价在前，暂作价在后") {
+          const latestTemp = findLatestAgreement(tempRows);
+          if (latestTemp.reason) return mark(base, "人工确认", "中", "最新暂作价协议无法唯一确定", latestTemp.reason);
+          base["推荐迁移协议号"] = latestTemp.agreementNo;
+          fillNotMigratedAgreements(base);
+          base["迁移动作"] = "迁移最新暂作价框架协议，在新模块上转正";
+          base["老模块处理"] = "保留必要转正链路，避免影响暂作价转正式价";
+          base["风险等级"] = "中";
+          return base;
+        }
+        return mark(base, "人工确认", "高", "正式价/暂作价顺序无法判断", order);
+      }
+
+      return mark(base, "人工确认", "中", "协议类型未覆盖", `当前协议类型：${typeSummary}`);
+    }
+
+    function fillNotMigratedAgreements(base) {
+      const involved = String(base["涉及协议号"] || "").split("、").filter(Boolean);
+      const migrated = String(base["推荐迁移协议号"] || "");
+      base["不需要迁移协议号"] = involved.filter((agreementNo) => agreementNo !== migrated).join("、");
+    }
+
+    function mark(base, result, risk, action, reason) {
+      base["判断结果"] = result;
+      base["风险等级"] = risk;
+      base["迁移动作"] = action;
+      base["人工确认原因"] = reason;
+      if (!base["老模块处理"]) base["老模块处理"] = result === "异常" ? "暂不处理，需先修正数据" : "需人工确认后处理";
+      return base;
+    }
+
+    function unique(values) {
+      return [...new Set(values.filter(Boolean))];
+    }
+
+    function summarizeAgreementTypes(rows) {
+      return unique((rows || []).map((row) => row.agreementType)).join("+");
+    }
+
+    function summarizeDateRange(rows) {
+      const dates = rows.flatMap((row) => [row.startDate, row.endDate]).filter(Boolean).sort((a, b) => a - b);
+      if (!dates.length) return "";
+      return `${formatDate(dates[0])} ~ ${formatDate(dates[dates.length - 1])}`;
+    }
+
+    function formatDate(date) {
+      if (!date) return "";
+      const year = date.getFullYear();
+      const month = String(date.getMonth() + 1).padStart(2, "0");
+      const day = String(date.getDate()).padStart(2, "0");
+      return `${year}-${month}-${day}`;
+    }
+
+    function hasOverlap(rows) {
+      const sorted = [...rows].sort((a, b) => a.startDate - b.startDate || a.endDate - b.endDate);
+      for (let i = 1; i < sorted.length; i++) {
+        if (sorted[i].startDate <= sorted[i - 1].endDate) return true;
+      }
+      return false;
+    }
+
+    function findLatestAgreement(rows) {
+      const byAgreement = new Map();
+      rows.forEach((row) => {
+        if (!byAgreement.has(row.agreementNo)) byAgreement.set(row.agreementNo, []);
+        byAgreement.get(row.agreementNo).push(row);
+      });
+      const candidates = [...byAgreement.entries()].map(([agreementNo, items]) => ({
+        agreementNo,
+        maxStart: maxDate(items.map((row) => row.startDate)),
+        maxEnd: maxDate(items.map((row) => row.endDate))
+      }));
+      candidates.sort((a, b) => b.maxStart - a.maxStart || b.maxEnd - a.maxEnd || a.agreementNo.localeCompare(b.agreementNo, "zh-CN"));
+      const top = candidates[0];
+      const tied = candidates.filter((item) => item.maxStart.getTime() === top.maxStart.getTime() && item.maxEnd.getTime() === top.maxEnd.getTime());
+      if (tied.length > 1) {
+        return { reason: `多个协议号最新有效期一致：${tied.map((item) => item.agreementNo).join("、")}` };
+      }
+      return { agreementNo: top.agreementNo };
+    }
+
+    function maxDate(dates) {
+      return new Date(Math.max(...dates.map((date) => date.getTime())));
+    }
+
+    function expandMixedRows(rows) {
+      return rows.flatMap((row) => {
+        if (row.agreementType !== "混合") return [row];
+        return [
+          { ...row, agreementType: "正式价" },
+          { ...row, agreementType: "暂作价" }
+        ];
+      });
+    }
+
+    function judgeTempFormalOrder(tempRows, formalRows) {
+      const allRows = [...tempRows, ...formalRows]
+        .sort((a, b) => a.startDate - b.startDate || a.endDate - b.endDate || a.agreementNo.localeCompare(b.agreementNo, "zh-CN"));
+
+      for (let i = 1; i < allRows.length; i++) {
+        const prev = allRows[i - 1];
+        const current = allRows[i];
+        if (current.startDate <= prev.endDate) {
+          return `${prev.agreementType}协议 ${prev.agreementNo} 区间 ${formatDate(prev.startDate)}~${formatDate(prev.endDate)} 与 ${current.agreementType}协议 ${current.agreementNo} 区间 ${formatDate(current.startDate)}~${formatDate(current.endDate)} 存在有效期重叠`;
+        }
+      }
+
+      const latest = allRows[allRows.length - 1];
+      if (latest.agreementType === "正式价") return "暂作价在前，正式价在后";
+      if (latest.agreementType === "暂作价") return "正式价在前，暂作价在后";
+      return "无法根据最新有效期价格段判断正式价/暂作价顺序";
+    }
+
+    function updateStats() {
+      $("rawCount").textContent = state.rows.length;
+      $("groupCount").textContent = state.results.length;
+      $("autoCount").textContent = state.results.filter((row) => row["判断结果"] === "自动迁移").length;
+      $("manualCount").textContent = state.results.filter((row) => row["判断结果"] === "人工确认").length;
+      $("errorCount").textContent = state.results.filter((row) => row["判断结果"] === "异常").length;
+    }
+
+    function renderFieldMapHint() {
+      const fieldMap = state.fieldMap || {};
+      const labelMap = {
+        partNo: "零件号",
+        supplierCode: "供应商代码",
+        factoryCode: "工厂代码",
+        agreementNo: "协议号",
+        agreementType: "协议类型",
+        startDate: "有效期起",
+        endDate: "有效期止"
+      };
+      const text = Object.entries(labelMap)
+        .map(([key, label]) => `${label} ← ${fieldMap[key] || "未识别"}`)
+        .join("；");
+      $("fieldMapHint").textContent = text ? `字段识别：${text}` : "";
+    }
+
+    function renderResults() {
+      const area = $("resultArea");
+      const rows = state.activeFilter === "all"
+        ? state.results
+        : state.activeFilter === "不需要迁移"
+          ? buildNotMigratedRows()
+          : state.results.filter((row) => row["判断结果"] === state.activeFilter);
+      if (!rows.length) {
+        area.className = "empty";
+        area.textContent = state.results.length ? "当前筛选条件下没有数据。" : "请先选择业务类型并导入表格。";
+        return;
+      }
+      const headers = state.activeFilter === "不需要迁移" ? getNotMigratedHeaders() : getExportHeaders();
+      area.className = "table-wrap";
+      area.innerHTML = `
+        <table>
+          <thead><tr>${headers.map((header) => `<th>${escapeHtml(header)}</th>`).join("")}</tr></thead>
+          <tbody>
+            ${rows.map((row) => `<tr>${headers.map((header) => `<td>${renderCell(header, row[header])}</td>`).join("")}</tr>`).join("")}
+          </tbody>
+        </table>
+      `;
+    }
+
+    function getExportHeaders() {
+      return ["业务类型", "分组键", "零件号", "供应商代码", "工厂代码", "协议类型", "协议号数量", "组内行数", "推荐迁移协议号", "不需要迁移协议号", "迁移动作", "老模块处理", "是否迁移价格段", "风险等级", "判断结果", "人工确认原因", "涉及协议号", "有效期范围"];
+    }
+
+    function getNotMigratedHeaders() {
+      return ["业务类型", "零件号", "供应商代码", "工厂代码", "不需要迁移协议号", "数量", "分组键", "推荐迁移协议号", "协议类型", "判断结果", "人工确认原因", "有效期范围"];
+    }
+
+    function buildNotMigratedRows() {
+      const rows = [];
+      state.results.forEach((result) => {
+        const agreementNos = String(result["不需要迁移协议号"] || "").split("、").filter(Boolean);
+        agreementNos.forEach((agreementNo) => {
+          const detailRows = (result.__rows || []).filter((row) => row.agreementNo === agreementNo);
+          rows.push({
+            "业务类型": result["业务类型"],
+            "零件号": result["零件号"],
+            "供应商代码": result["供应商代码"],
+            "工厂代码": result["工厂代码"],
+            "不需要迁移协议号": agreementNo,
+            "数量": detailRows.length || 1,
+            "分组键": `${result["零件号"]}__${result["供应商代码"]}__${result["工厂代码"]}__${agreementNo}`,
+            "推荐迁移协议号": result["推荐迁移协议号"],
+            "协议类型": summarizeAgreementTypes(detailRows.length ? detailRows : result.__rows || []),
+            "判断结果": result["判断结果"],
+            "人工确认原因": result["人工确认原因"],
+            "有效期范围": summarizeDateRange(detailRows)
+          });
+        });
+      });
+      return rows;
+    }
+
+    function exportWorkbook(headers, results, notMigratedRows, fileName) {
+      if (!window.XLSX) {
+        showError("Excel 导出库未加载成功，请检查网络后刷新页面重试。");
+        return;
+      }
+      const workbook = XLSX.utils.book_new();
+      const sheet1Data = [headers, ...results.map((row) => headers.map((header) => row[header] ?? ""))];
+      const sheet2Headers = getNotMigratedHeaders();
+      const sheet2Data = [sheet2Headers, ...notMigratedRows.map((row) => sheet2Headers.map((header) => row[header] ?? ""))];
+      const sheet1 = XLSX.utils.aoa_to_sheet(sheet1Data);
+      const sheet2 = XLSX.utils.aoa_to_sheet(sheet2Data);
+      XLSX.utils.book_append_sheet(workbook, sheet1, "迁移判断结果");
+      XLSX.utils.book_append_sheet(workbook, sheet2, "不需要迁移核对");
+      XLSX.writeFile(workbook, fileName);
+    }
+
+    function renderCell(header, value) {
+      const text = escapeHtml(value ?? "");
+      if (header === "判断结果") {
+        const cls = value === "自动迁移" ? "ok" : value === "异常" ? "danger" : "warn";
+        return `<span class="pill ${cls}">${text}</span>`;
+      }
+      if (header === "风险等级") {
+        const cls = value === "低" ? "ok" : value === "高" ? "danger" : "warn";
+        return `<span class="pill ${cls}">${text}</span>`;
+      }
+      if (header === "推荐迁移协议号" && value) return `<span class="pill info">${text}</span>`;
+      if (header === "不需要迁移协议号" && value) return `<span class="pill warn">${text}</span>`;
+      return text;
+    }
+
+    function escapeHtml(value) {
+      return String(value).replace(/[&<>"]/g, (char) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[char]));
+    }
+
+    function downloadCsv(rows, fileName) {
+      const content = rows.map((row) => row.map(escapeCsv).join(",")).join("\n");
+      const blob = new Blob(["﻿" + content], { type: "text/csv;charset=utf-8;" });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = fileName;
+      link.click();
+      URL.revokeObjectURL(url);
+    }
+
+    function escapeCsv(value) {
+      const text = String(value ?? "");
+      return /[",\n\r]/.test(text) ? `"${text.replace(/"/g, '""')}"` : text;
+    }
+
+    function showError(message) {
+      const box = $("errorBox");
+      box.textContent = message;
+      box.style.display = "block";
+    }
+
+    function hideError() {
+      const box = $("errorBox");
+      box.textContent = "";
+      box.style.display = "none";
+    }
+  </script>
+</body>
+</html>

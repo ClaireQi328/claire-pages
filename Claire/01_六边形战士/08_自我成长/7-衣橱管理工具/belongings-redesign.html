@@ -1,0 +1,919 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>个人物品清单与精简系统</title>
+<link rel="stylesheet" href="https://miaoda.feishu.cn/fonts/css2?family=Noto+Sans+SC:wght@300;400;500;700;900&display=swap">
+<style>
+  :root{
+    --bg:#f7f3ec;
+    --bg-card:#fffdf8;
+    --ink:#2c2620;
+    --ink-soft:#5c534a;
+    --ink-mute:#8a8075;
+    --line:#e0d8cc;
+    --accent:#6b8e7f;
+    --accent-soft:#e8efe9;
+    --warm:#c4956a;
+    --warm-soft:#f5ebe0;
+    --danger:#b85c5c;
+    --danger-soft:#f5e6e6;
+    --caution:#d4a843;
+    --caution-soft:#faf3e0;
+  }
+  *{margin:0;padding:0;box-sizing:border-box}
+  body{
+    font-family:'Noto Sans SC',-apple-system,BlinkMacSystemFont,sans-serif;
+    background:var(--bg);
+    color:var(--ink);
+    line-height:1.7;
+    -webkit-font-smoothing:antialiased;
+  }
+  .wrap{max-width:1040px;margin:0 auto;padding:0 24px}
+
+  /* ===== Hero ===== */
+  .hero{padding:72px 0 48px;border-bottom:1px solid var(--line)}
+  .hero-tag{
+    display:inline-block;font-size:12px;letter-spacing:2px;
+    color:var(--accent);font-weight:500;margin-bottom:16px;text-transform:uppercase;
+  }
+  .hero h1{font-size:40px;font-weight:900;line-height:1.25;letter-spacing:-0.5px;margin-bottom:16px}
+  .hero p{font-size:16px;color:var(--ink-soft);max-width:680px}
+  .hero-stats{
+    display:flex;gap:32px;margin-top:36px;flex-wrap:wrap;
+  }
+  .stat-item .num{font-size:32px;font-weight:900;color:var(--accent);line-height:1}
+  .stat-item .label{font-size:13px;color:var(--ink-mute);margin-top:4px}
+
+  /* ===== Nav tabs ===== */
+  .nav-tabs{
+    display:flex;gap:4px;padding:16px 0;position:sticky;top:0;
+    background:var(--bg);z-index:10;border-bottom:1px solid var(--line);
+    overflow-x:auto;scrollbar-width:none;
+  }
+  .nav-tabs::-webkit-scrollbar{display:none}
+  .nav-tab{
+    padding:8px 16px;border-radius:8px;font-size:13px;font-weight:500;
+    color:var(--ink-mute);cursor:pointer;white-space:nowrap;
+    transition:all .2s;border:none;background:none;font-family:inherit;
+  }
+  .nav-tab:hover{background:var(--bg-card);color:var(--ink-soft)}
+  .nav-tab.active{background:var(--accent);color:#fff}
+
+  /* ===== Section ===== */
+  section{padding:56px 0;border-bottom:1px solid var(--line)}
+  .sec-label{font-size:12px;letter-spacing:2px;color:var(--warm);font-weight:700;margin-bottom:8px;text-transform:uppercase}
+  .sec-title{font-size:26px;font-weight:900;margin-bottom:8px;letter-spacing:-0.3px}
+  .sec-desc{font-size:14px;color:var(--ink-soft);margin-bottom:32px;max-width:640px}
+
+  /* ===== Shoe cards ===== */
+  .shoe-grid{
+    display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:16px;
+  }
+  .shoe-card{
+    background:var(--bg-card);border:1px solid var(--line);border-radius:12px;
+    overflow:hidden;display:flex;flex-direction:column;
+  }
+  .shoe-card .img-wrap{
+    height:160px;overflow:hidden;position:relative;background:#f0ebe2;
+  }
+  .shoe-card .img-wrap img{
+    width:100%;height:100%;object-fit:cover;
+  }
+  .shoe-card .img-wrap .badge{
+    position:absolute;top:10px;right:10px;
+    padding:3px 10px;border-radius:100px;font-size:11px;font-weight:700;
+  }
+  .badge-keep{background:var(--accent-soft);color:var(--accent)}
+  .badge-review{background:var(--caution-soft);color:var(--caution)}
+  .badge-out{background:var(--danger-soft);color:var(--danger)}
+  .shoe-card .body{padding:14px 16px;flex:1;display:flex;flex-direction:column}
+  .shoe-card h4{font-size:15px;font-weight:700;margin-bottom:6px}
+  .shoe-card .meta{font-size:12px;color:var(--ink-mute);margin-bottom:8px;display:flex;gap:8px;flex-wrap:wrap}
+  .shoe-card .meta span{background:var(--warm-soft);padding:2px 8px;border-radius:4px;color:var(--warm)}
+  .shoe-card .note{font-size:12px;color:var(--ink-soft);line-height:1.5;margin-top:auto}
+  .shoe-card .note strong{color:var(--ink)}
+
+  /* ===== Category summary ===== */
+  .cat-summary{
+    display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:12px;margin-bottom:32px;
+  }
+  .cat-box{
+    background:var(--bg-card);border:1px solid var(--line);border-radius:10px;padding:16px;
+    text-align:center;
+  }
+  .cat-box .cat-num{font-size:28px;font-weight:900;color:var(--warm)}
+  .cat-box .cat-name{font-size:12px;color:var(--ink-mute);margin-top:2px}
+  .cat-box .cat-target{font-size:11px;color:var(--accent);margin-top:4px;font-weight:500}
+
+  /* ===== Clothes table ===== */
+  .clothes-table{
+    width:100%;border-collapse:collapse;background:var(--bg-card);
+    border-radius:12px;overflow:hidden;border:1px solid var(--line);
+  }
+  .clothes-table th{
+    background:var(--accent-soft);padding:12px 14px;text-align:left;
+    font-size:13px;font-weight:700;color:var(--accent);border-bottom:1px solid var(--line);
+  }
+  .clothes-table td{
+    padding:11px 14px;font-size:13px;border-bottom:1px solid var(--line);color:var(--ink-soft);
+  }
+  .clothes-table tr:last-child td{border-bottom:none}
+  .clothes-table .cat{font-weight:700;color:var(--ink);white-space:nowrap}
+  .clothes-table .num{font-weight:700;color:var(--warm);text-align:center}
+  .clothes-table .target{text-align:center;color:var(--accent);font-weight:600}
+  .total-row td{background:var(--warm-soft);font-weight:700;color:var(--ink)}
+
+  /* ===== Decision Matrix ===== */
+  .matrix{
+    display:grid;grid-template-columns:1fr 1fr;gap:2px;background:var(--line);
+    border-radius:12px;overflow:hidden;border:1px solid var(--line);
+  }
+  .matrix-cell{
+    background:var(--bg-card);padding:24px;min-height:160px;
+  }
+  .matrix-cell h5{
+    font-size:15px;font-weight:700;margin-bottom:8px;
+    display:flex;align-items:center;gap:8px;
+  }
+  .matrix-cell p{font-size:13px;color:var(--ink-soft);line-height:1.6}
+  .matrix-cell.keep{background:var(--accent-soft)}
+  .matrix-cell.keep h5{color:var(--accent)}
+  .matrix-cell.upgrade{background:var(--caution-soft)}
+  .matrix-cell.upgrade h5{color:var(--caution)}
+  .matrix-cell.limit{background:var(--warm-soft)}
+  .matrix-cell.limit h5{color:var(--warm)}
+  .matrix-cell.out{background:var(--danger-soft)}
+  .matrix-cell.out h5{color:var(--danger)}
+  .matrix-axis{
+    display:flex;justify-content:space-between;margin-top:12px;
+    font-size:12px;color:var(--ink-mute);padding:0 4px;
+  }
+
+  /* ===== Guide steps ===== */
+  .guide-step{
+    display:flex;gap:20px;margin-bottom:32px;position:relative;
+  }
+  .guide-step:last-child{margin-bottom:0}
+  .step-num{
+    width:40px;height:40px;border-radius:50%;background:var(--accent);color:#fff;
+    display:flex;align-items:center;justify-content:center;font-weight:700;font-size:16px;
+    flex-shrink:0;
+  }
+  .step-content{flex:1}
+  .step-content h4{font-size:17px;font-weight:700;margin-bottom:6px}
+  .step-content>p{font-size:14px;color:var(--ink-soft);margin-bottom:10px}
+  .step-content ul{list-style:none;padding-left:0}
+  .step-content li{
+    font-size:13px;color:var(--ink-soft);padding:4px 0 4px 18px;position:relative;line-height:1.6;
+  }
+  .step-content li::before{
+    content:'';position:absolute;left:0;top:11px;width:6px;height:6px;
+    border-radius:50%;background:var(--accent);
+  }
+  .step-content li strong{color:var(--ink)}
+
+  /* ===== Multi-device ===== */
+  .device-grid{
+    display:grid;grid-template-columns:repeat(3,1fr);gap:16px;margin-bottom:24px;
+  }
+  .device-card{
+    background:var(--bg-card);border:1px solid var(--line);border-radius:12px;padding:20px;
+  }
+  .device-card h4{font-size:15px;font-weight:700;margin-bottom:10px;color:var(--accent)}
+  .device-card p{font-size:13px;color:var(--ink-soft);line-height:1.6;margin-bottom:8px}
+  .device-card .pros{font-size:12px;color:var(--accent)}
+  .device-card .cons{font-size:12px;color:var(--danger)}
+  .device-rec{
+    background:var(--accent-soft);border-radius:12px;padding:20px 24px;
+    border-left:4px solid var(--accent);
+  }
+  .device-rec h4{font-size:15px;font-weight:700;color:var(--accent);margin-bottom:8px}
+  .device-rec p{font-size:13px;color:var(--ink-soft);line-height:1.7}
+  .device-rec ol{padding-left:20px;font-size:13px;color:var(--ink-soft)}
+  .device-rec li{margin-bottom:4px}
+
+  /* ===== Timeline ===== */
+  .timeline{
+    display:grid;grid-template-columns:100px 4px 1fr;gap:0 20px;align-items:start;
+  }
+  .tl-time{font-size:14px;font-weight:700;color:var(--warm);text-align:right;padding-top:2px}
+  .tl-line{background:var(--line);position:relative;min-height:100%}
+  .tl-line::before{
+    content:'';position:absolute;left:50%;top:8px;width:12px;height:12px;
+    border-radius:50%;background:var(--accent);transform:translateX(-50%);
+    border:3px solid var(--bg);box-sizing:border-box;
+  }
+  .tl-content{padding-bottom:28px}
+  .tl-content h5{font-size:15px;font-weight:700;margin-bottom:4px}
+  .tl-content p{font-size:13px;color:var(--ink-soft);line-height:1.6}
+
+  /* ===== Footer ===== */
+  footer{padding:40px 0 60px;text-align:center}
+  footer .motto{font-size:18px;font-weight:700;color:var(--accent);margin-bottom:8px}
+  footer p{font-size:13px;color:var(--ink-mute)}
+
+  /* ===== Photo note ===== */
+  .photo-note{
+    background:var(--caution-soft);border-radius:8px;padding:14px 18px;
+    margin-bottom:24px;font-size:13px;color:var(--ink-soft);
+    border-left:3px solid var(--caution);
+  }
+  .photo-note strong{color:var(--caution)}
+
+  /* ===== Responsive ===== */
+  @media(max-width:720px){
+    .hero h1{font-size:28px}
+    .shoe-grid{grid-template-columns:1fr}
+    .device-grid{grid-template-columns:1fr}
+    .matrix{grid-template-columns:1fr}
+    .cat-summary{grid-template-columns:repeat(3,1fr)}
+    .timeline{grid-template-columns:70px 4px 1fr}
+  }
+</style>
+</head>
+<body>
+
+<!-- ===== Hero ===== -->
+<div class="hero">
+  <div class="wrap">
+    <span class="hero-tag">Belongings Inventory System</span>
+    <h1>个人物品清单与精简系统</h1>
+    <p>把所有衣服、鞋子、包袋盘点成一张可追溯的清单，用"必要×喜欢"矩阵做决策，用物理边界守住乐趣。目标不是空无一物，是每件物品都值得你拥有。</p>
+    <div class="hero-stats">
+      <div class="stat-item"><div class="num">24</div><div class="label">鞋子（当前）</div></div>
+      <div class="stat-item"><div class="num">~35</div><div class="label">衣服（估算）</div></div>
+      <div class="stat-item"><div class="num">8-10</div><div class="label">鞋子目标</div></div>
+      <div class="stat-item"><div class="num">30-40</div><div class="label">衣服目标</div></div>
+    </div>
+  </div>
+</div>
+
+<!-- ===== Nav ===== -->
+<div class="nav-tabs">
+  <div class="wrap" style="display:flex;gap:4px;width:100%">
+    <button class="nav-tab active" onclick="scrollToSec('shoes')">鞋子清单</button>
+    <button class="nav-tab" onclick="scrollToSec('clothes')">衣服清单</button>
+    <button class="nav-tab" onclick="scrollToSec('matrix')">决策矩阵</button>
+    <button class="nav-tab" onclick="scrollToSec('guide')">重新设计引导</button>
+    <button class="nav-tab" onclick="scrollToSec('devices')">多设备查看</button>
+    <button class="nav-tab" onclick="scrollToSec('plan')">执行计划</button>
+  </div>
+</div>
+
+<!-- ===== 鞋子清单 ===== -->
+<section id="shoes">
+  <div class="wrap">
+    <div class="sec-label">01 / Shoes Inventory</div>
+    <h2 class="sec-title">鞋子清单 · 24 双</h2>
+    <p class="sec-desc">基于你提供的 4 张照片识别整理。部分鞋子因拍摄角度受限只能看到侧面/鞋跟，建议后续补拍正面白底图。</p>
+
+    <div class="photo-note">
+      <strong>拍照建议：</strong>后续每双鞋拍一张正面平视照（鞋头朝前，白底或地面），存入手机相册"我的物品"相册，方便随时查阅和搭配。
+    </div>
+
+    <div class="cat-summary">
+      <div class="cat-box"><div class="cat-num">4</div><div class="cat-name">靴子</div><div class="cat-target">目标 1-2</div></div>
+      <div class="cat-box"><div class="cat-num">7</div><div class="cat-name">运动鞋</div><div class="cat-target">目标 2-3</div></div>
+      <div class="cat-box"><div class="cat-num">3</div><div class="cat-name">单鞋/高跟鞋</div><div class="cat-target">目标 1-2</div></div>
+      <div class="cat-box"><div class="cat-num">4</div><div class="cat-name">凉鞋</div><div class="cat-target">目标 1-2</div></div>
+      <div class="cat-box"><div class="cat-num">3</div><div class="cat-name">拖鞋/居家</div><div class="cat-target">目标 1-2</div></div>
+      <div class="cat-box"><div class="cat-num">3</div><div class="cat-name">户外/特殊</div><div class="cat-target">目标 1</div></div>
+    </div>
+
+    <div class="shoe-grid">
+
+      <!-- 靴子类 -->
+      <div class="shoe-card">
+        <div class="img-wrap">
+          <img src="1.jpg" alt="黑色长靴">
+          <span class="badge badge-review">考虑</span>
+        </div>
+        <div class="body">
+          <h4>黑色长靴</h4>
+          <div class="meta"><span>秋冬</span><span>通勤/正式</span></div>
+          <div class="note"><strong>状态：</strong>鞋柜最上层横放，有鞋撑。上海冬天穿着机会有限，若一年穿不到 5 次可考虑出。</div>
+        </div>
+      </div>
+
+      <div class="shoe-card">
+        <div class="img-wrap">
+          <img src="2.jpg" alt="米色雪地靴">
+          <span class="badge badge-out">建议出</span>
+        </div>
+        <div class="body">
+          <h4>米色雪地靴（毛球）</h4>
+          <div class="meta"><span>深冬</span><span>休闲</span></div>
+          <div class="note"><strong>状态：</strong>带毛球装饰，风格偏可爱。上海气候极少需要雪地靴，大概率一年穿不到 3 次。</div>
+        </div>
+      </div>
+
+      <div class="shoe-card">
+        <div class="img-wrap">
+          <img src="2.jpg" alt="黑色厚底靴">
+          <span class="badge badge-keep">留</span>
+        </div>
+        <div class="body">
+          <h4>黑色厚底靴</h4>
+          <div class="meta"><span>秋冬</span><span>休闲/通勤</span></div>
+          <div class="note"><strong>状态：</strong>厚底款式，搭配裤装裙装都可。如果只留一双靴子，这双比长靴更实用。</div>
+        </div>
+      </div>
+
+      <div class="shoe-card">
+        <div class="img-wrap">
+          <img src="1.jpg" alt="棕色短靴">
+          <span class="badge badge-review">考虑</span>
+        </div>
+        <div class="body">
+          <h4>棕色短靴</h4>
+          <div class="meta"><span>秋冬</span><span>休闲</span></div>
+          <div class="note"><strong>状态：</strong>被束口袋遮挡，只能看到鞋头。和黑色厚底靴功能重叠，留更喜欢的一双。</div>
+        </div>
+      </div>
+
+      <!-- 运动鞋类 -->
+      <div class="shoe-card">
+        <div class="img-wrap">
+          <img src="1.jpg" alt="白色老爹运动鞋">
+          <span class="badge badge-keep">留</span>
+        </div>
+        <div class="body">
+          <h4>白色老爹运动鞋</h4>
+          <div class="meta"><span>四季</span><span>日常/通勤</span></div>
+          <div class="note"><strong>状态：</strong>鞋柜第3层，外观较新。白鞋百搭，是日常穿着频率最高的款，必留。</div>
+        </div>
+      </div>
+
+      <div class="shoe-card">
+        <div class="img-wrap">
+          <img src="1.jpg" alt="黑灰魔术贴运动鞋">
+          <span class="badge badge-review">考虑</span>
+        </div>
+        <div class="body">
+          <h4>黑灰魔术贴运动鞋</h4>
+          <div class="meta"><span>四季</span><span>运动</span></div>
+          <div class="note"><strong>状态：</strong>魔术贴款，鞋底有磨损痕迹。如果主要用于健身房，可留；否则和其他运动鞋功能重叠。</div>
+        </div>
+      </div>
+
+      <div class="shoe-card">
+        <div class="img-wrap">
+          <img src="2.jpg" alt="灰黑运动鞋">
+          <span class="badge badge-review">考虑</span>
+        </div>
+        <div class="body">
+          <h4>灰黑运动鞋</h4>
+          <div class="meta"><span>四季</span><span>运动/休闲</span></div>
+          <div class="note"><strong>状态：</strong>鞋头朝向镜头，鞋底磨损明显。多双灰色运动鞋中留状态最好的 1 双即可。</div>
+        </div>
+      </div>
+
+      <div class="shoe-card">
+        <div class="img-wrap">
+          <img src="1.jpg" alt="灰白蓝拼色运动鞋">
+          <span class="badge badge-keep">留</span>
+        </div>
+        <div class="body">
+          <h4>灰白蓝拼色运动鞋</h4>
+          <div class="meta"><span>四季</span><span>运动/日常</span></div>
+          <div class="note"><strong>状态：</strong>鞋跟有蓝白条纹装饰，外观较新。颜色清爽好搭，可作为第二双日常运动鞋。</div>
+        </div>
+      </div>
+
+      <div class="shoe-card">
+        <div class="img-wrap">
+          <img src="2.jpg" alt="粉白拼色运动鞋">
+          <span class="badge badge-review">考虑</span>
+        </div>
+        <div class="body">
+          <h4>粉白拼色运动鞋（薄荷绿鞋跟）</h4>
+          <div class="meta"><span>春夏</span><span>休闲</span></div>
+          <div class="note"><strong>状态：</strong>颜色较甜美，搭配受限。如果穿着频率低，可考虑出，把运动配额留给更百搭的款。</div>
+        </div>
+      </div>
+
+      <div class="shoe-card">
+        <div class="img-wrap">
+          <img src="1.jpg" alt="玫瑰金运动鞋">
+          <span class="badge badge-out">建议出</span>
+        </div>
+        <div class="body">
+          <h4>玫瑰金/铜色运动鞋</h4>
+          <div class="meta"><span>春夏</span><span>休闲</span></div>
+          <div class="note"><strong>状态：</strong>鞋柜最底层，金属色较难搭配。如果一年穿不到 3 次，建议出。</div>
+        </div>
+      </div>
+
+      <div class="shoe-card">
+        <div class="img-wrap">
+          <img src="1.jpg" alt="粉色运动鞋">
+          <span class="badge badge-out">建议出</span>
+        </div>
+        <div class="body">
+          <h4>粉色运动鞋</h4>
+          <div class="meta"><span>春夏</span><span>休闲</span></div>
+          <div class="note"><strong>状态：</strong>最底层，和粉白拼色款功能重叠。两双粉色系留一双即可，或都出。</div>
+        </div>
+      </div>
+
+      <!-- 单鞋/高跟鞋 -->
+      <div class="shoe-card">
+        <div class="img-wrap">
+          <img src="1.jpg" alt="黑色细跟高跟鞋">
+          <span class="badge badge-review">考虑</span>
+        </div>
+        <div class="body">
+          <h4>黑色细跟高跟鞋</h4>
+          <div class="meta"><span>四季</span><span>正式场合</span></div>
+          <div class="note"><strong>状态：</strong>鞋柜第2层。如果工作/社交中正式场合少，一年穿不到 3 次可考虑出；需要时可临时买或借。</div>
+        </div>
+      </div>
+
+      <div class="shoe-card">
+        <div class="img-wrap">
+          <img src="2.jpg" alt="裸色尖头高跟鞋">
+          <span class="badge badge-keep">留</span>
+        </div>
+        <div class="body">
+          <h4>裸色尖头高跟鞋</h4>
+          <div class="meta"><span>四季</span><span>正式/通勤</span></div>
+          <div class="note"><strong>状态：</strong>鞋内有鞋撑保护。裸色比黑色更百搭，配裙装裤装都可，正式场合留这一双就够。</div>
+        </div>
+      </div>
+
+      <div class="shoe-card">
+        <div class="img-wrap">
+          <img src="4.jpg" alt="金色平底单鞋">
+          <span class="badge badge-review">考虑</span>
+        </div>
+        <div class="body">
+          <h4>金色平底单鞋（蝴蝶结）</h4>
+          <div class="meta"><span>春夏秋</span><span>休闲/正式</span></div>
+          <div class="note"><strong>状态：</strong>红色抽屉下层，鞋面有褶皱。金色比裸色更抢眼，搭配受限；和裸色高跟鞋功能重叠时留一双。</div>
+        </div>
+      </div>
+
+      <div class="shoe-card">
+        <div class="img-wrap">
+          <img src="1.jpg" alt="红黑格纹平底鞋">
+          <span class="badge badge-out">建议出</span>
+        </div>
+        <div class="body">
+          <h4>红黑格纹平底鞋</h4>
+          <div class="meta"><span>春秋</span><span>休闲</span></div>
+          <div class="note"><strong>状态：</strong>格纹图案强烈，只能配纯色简约穿搭。如果不是特别喜欢，搭配成本太高，建议出。</div>
+        </div>
+      </div>
+
+      <div class="shoe-card">
+        <div class="img-wrap">
+          <img src="2.jpg" alt="黑色高帮帆布鞋">
+          <span class="badge badge-keep">留</span>
+        </div>
+        <div class="body">
+          <h4>黑色高帮帆布鞋</h4>
+          <div class="meta"><span>四季</span><span>休闲</span></div>
+          <div class="note"><strong>状态：</strong>侧面有红心装饰（CDG Play 风格），鞋头较白。百搭休闲款，配牛仔裤/半裙都好，留。</div>
+        </div>
+      </div>
+
+      <!-- 凉鞋类 -->
+      <div class="shoe-card">
+        <div class="img-wrap">
+          <img src="4.jpg" alt="黑色夹脚凉鞋">
+          <span class="badge badge-keep">留</span>
+        </div>
+        <div class="body">
+          <h4>黑色夹脚细带凉鞋</h4>
+          <div class="meta"><span>夏季</span><span>日常/通勤</span></div>
+          <div class="note"><strong>状态：</strong>你脚上正穿着，说明是高频款。黑色细带简约好搭，夏天留这一双主力凉鞋就够。</div>
+        </div>
+      </div>
+
+      <div class="shoe-card">
+        <div class="img-wrap">
+          <img src="1.jpg" alt="黄色凉鞋">
+          <span class="badge badge-out">建议出</span>
+        </div>
+        <div class="body">
+          <h4>黄色凉鞋</h4>
+          <div class="meta"><span>夏季</span><span>休闲</span></div>
+          <div class="note"><strong>状态：</strong>被束口袋半遮挡，只能看到鞋底。亮黄色搭配受限，已有黑色凉鞋主力，这双可出。</div>
+        </div>
+      </div>
+
+      <div class="shoe-card">
+        <div class="img-wrap">
+          <img src="1.jpg" alt="花纹凉鞋">
+          <span class="badge badge-out">建议出</span>
+        </div>
+        <div class="body">
+          <h4>花纹凉鞋</h4>
+          <div class="meta"><span>夏季</span><span>休闲/度假</span></div>
+          <div class="note"><strong>状态：</strong>鞋柜最底层，花纹复杂。如果不是度假专用，日常穿着机会少，建议出。</div>
+        </div>
+      </div>
+
+      <!-- 拖鞋/居家 -->
+      <div class="shoe-card">
+        <div class="img-wrap">
+          <img src="4.jpg" alt="米色厚底穆勒拖鞋">
+          <span class="badge badge-keep">留</span>
+        </div>
+        <div class="body">
+          <h4>米色厚底穆勒拖鞋</h4>
+          <div class="meta"><span>春夏秋</span><span>居家/外穿</span></div>
+          <div class="note"><strong>状态：</strong>红色抽屉下层，鞋面干净。厚底穆勒可外穿可居家，米色百搭，留。</div>
+        </div>
+      </div>
+
+      <div class="shoe-card">
+        <div class="img-wrap">
+          <img src="1.jpg" alt="黑色凉拖">
+          <span class="badge badge-review">考虑</span>
+        </div>
+        <div class="body">
+          <h4>黑色凉拖</h4>
+          <div class="meta"><span>夏季</span><span>居家/浴室</span></div>
+          <div class="note"><strong>状态：</strong>鞋柜最底层。如果是浴室专用拖鞋则留；如果是外穿款，和黑色夹脚凉鞋功能重叠。</div>
+        </div>
+      </div>
+
+      <div class="shoe-card">
+        <div class="img-wrap">
+          <img src="1.jpg" alt="深红色拖鞋">
+          <span class="badge badge-out">建议出</span>
+        </div>
+        <div class="body">
+          <h4>深红色拖鞋/单鞋</h4>
+          <div class="meta"><span>—</span><span>居家</span></div>
+          <div class="note"><strong>状态：</strong>最底层角落，只能看到鞋底。如果是旧居家拖鞋且已有米色穆勒，可出。</div>
+        </div>
+      </div>
+
+      <!-- 户外/特殊 -->
+      <div class="shoe-card">
+        <div class="img-wrap">
+          <img src="3.jpg" alt="Salomon户外鞋">
+          <span class="badge badge-keep">留</span>
+        </div>
+        <div class="body">
+          <h4>Salomon XT-6 户外鞋</h4>
+          <div class="meta"><span>四季</span><span>户外/运动/潮流</span></div>
+          <div class="note"><strong>状态：</strong>红色抽屉上层，有明显穿着痕迹但鞋底纹路尚在。户外+日常潮流两穿，功能性强，留。</div>
+        </div>
+      </div>
+
+      <div class="shoe-card">
+        <div class="img-wrap">
+          <img src="3.jpg" alt="卡其绿户外徒步鞋">
+          <span class="badge badge-review">考虑</span>
+        </div>
+        <div class="body">
+          <h4>卡其绿户外徒步鞋</h4>
+          <div class="meta"><span>春秋</span><span>户外/徒步</span></div>
+          <div class="note"><strong>状态：</strong>鞋面有污渍和磨损，鞋型偏厚重。已有 Salomon 覆盖户外场景，这双如果一年徒步不到 2 次可出。</div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</section>
+
+<!-- ===== 衣服清单 ===== -->
+<section id="clothes">
+  <div class="wrap">
+    <div class="sec-label">02 / Clothes Inventory</div>
+    <h2 class="sec-title">衣服清单 · 分类框架</h2>
+    <p class="sec-desc">基于衣橱照片估算数量。具体到每件的清单需要你整理时逐件确认，建议用下方表格作为模板，整理当天逐项填写。</p>
+
+    <div class="photo-note">
+      <strong>使用方法：</strong>整理当天把每件衣服拿出来，在"实际数量"列填入真实数字，在"每件名称"列简要描述（如"白色圆领纯棉T"）。拍正面照存入手机相册。
+    </div>
+
+    <table class="clothes-table">
+      <thead>
+        <tr>
+          <th>类别</th>
+          <th style="text-align:center">估算数量</th>
+          <th style="text-align:center">目标数量</th>
+          <th>具体构成建议</th>
+          <th>每件名称（待填）</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td class="cat">T恤 / 短袖上衣</td>
+          <td class="num">10-12</td>
+          <td class="target">6</td>
+          <td>白T×2、黑T×1、灰T×1、条纹×1、吊带×1</td>
+          <td>①___ ②___ ③___ ④___ ⑤___ ⑥___</td>
+        </tr>
+        <tr>
+          <td class="cat">衬衫 / 薄外套</td>
+          <td class="num">2-3</td>
+          <td class="target">3</td>
+          <td>白衬衫×1、休闲衬衫×1、薄开衫×1</td>
+          <td>①___ ②___ ③___</td>
+        </tr>
+        <tr>
+          <td class="cat">卫衣 / 针织</td>
+          <td class="num">3-4</td>
+          <td class="target">3</td>
+          <td>圆领卫衣×1、针织衫×2（一薄一厚）</td>
+          <td>①___ ②___ ③___</td>
+        </tr>
+        <tr>
+          <td class="cat">外套</td>
+          <td class="num">2-3</td>
+          <td class="target">3</td>
+          <td>风衣×1（已有白色）、夹克/西装×1、厚外套×1</td>
+          <td>①___ ②___ ③___</td>
+        </tr>
+        <tr>
+          <td class="cat">牛仔裤 / 长裤</td>
+          <td class="num">4-5</td>
+          <td class="target">4</td>
+          <td>直筒牛仔×1、黑色长裤×1、休闲裤×1、运动裤×1</td>
+          <td>①___ ②___ ③___ ④___</td>
+        </tr>
+        <tr>
+          <td class="cat">半裙 / 短裤</td>
+          <td class="num">3-4</td>
+          <td class="target">3</td>
+          <td>半裙×1-2、短裤×1</td>
+          <td>①___ ②___ ③___</td>
+        </tr>
+        <tr>
+          <td class="cat">连衣裙</td>
+          <td class="num">3-4</td>
+          <td class="target">3</td>
+          <td>日常休闲×1、稍正式×1、运动/居家×1</td>
+          <td>①___ ②___ ③___</td>
+        </tr>
+        <tr>
+          <td class="cat">运动内衣 / 居家服</td>
+          <td class="num">4-5</td>
+          <td class="target">4</td>
+          <td>运动内衣×2、居家服×2（单独收纳，不占挂衣区）</td>
+          <td>①___ ②___ ③___ ④___</td>
+        </tr>
+        <tr>
+          <td class="cat">包袋</td>
+          <td class="num">5-6</td>
+          <td class="target">3</td>
+          <td>日常通勤包×1、运动/轻便包×1、正式/小包×1</td>
+          <td>①___ ②___ ③___</td>
+        </tr>
+        <tr>
+          <td class="cat">帽子 / 配饰</td>
+          <td class="num">3-4</td>
+          <td class="target">2</td>
+          <td>棒球帽×1、渔夫帽×1（其他配饰集中收纳）</td>
+          <td>①___ ②___</td>
+        </tr>
+        <tr class="total-row">
+          <td class="cat">合计</td>
+          <td class="num">~40</td>
+          <td class="target">34</td>
+          <td>不含内衣袜子等消耗品</td>
+          <td></td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<!-- ===== 决策矩阵 ===== -->
+<section id="matrix">
+  <div class="wrap">
+    <div class="sec-label">03 / Decision Matrix</div>
+    <h2 class="sec-title">精简决策：必要 × 喜欢 四象限</h2>
+    <p class="sec-desc">对每件物品问两个问题："我需要它吗？"（功能必要性）和"我喜欢它吗？"（情感/审美价值）。落入哪个象限，就按对应策略处理。</p>
+
+    <div class="matrix">
+      <div class="matrix-cell keep">
+        <h5>✓ 必要 + 喜欢 → 留</h5>
+        <p>这是你衣橱的核心。穿着频率高、穿上自信、功能不可替代。好好保养，坏了就换同款或升级。<br><br><strong>典型：</strong>白色运动鞋、裸色高跟鞋、白T、牛仔裤。</p>
+      </div>
+      <div class="matrix-cell upgrade">
+        <h5>⚡ 必要 + 不喜欢 → 换更好的</h5>
+        <p>功能需要但穿着体验差（磨脚、扎皮肤、不合身）。不要凑合，淘汰后买一件真正喜欢的替代品。<br><br><strong>典型：</strong>不合身的运动内衣、磨脚的靴子。</p>
+      </div>
+      <div class="matrix-cell limit">
+        <h5>◆ 不必要 + 喜欢 → 限量保留</h5>
+        <p>不是生活必需，但带来快乐和自我表达。设定物理边界和数量上限，在边界内尽情保留。<br><br><strong>典型：</strong>Salomon 潮鞋、特殊颜色单品、爱好相关物品。</p>
+      </div>
+      <div class="matrix-cell out">
+        <h5>✗ 不必要 + 不喜欢 → 出</h5>
+        <p>既不需要也不喜欢，留着纯粹是因为"扔了可惜"或"万一以后用"。果断出，空间比物品值钱。<br><br><strong>典型：</strong>一年没穿的衣服、重复款、赠品。</p>
+      </div>
+    </div>
+    <div class="matrix-axis">
+      <span>← 不喜欢</span>
+      <span>喜欢 →</span>
+    </div>
+    <div style="display:flex;justify-content:space-between;font-size:12px;color:var(--ink-mute);padding:0 4px;margin-top:4px">
+      <span>↑ 必要</span>
+      <span>不必要 ↓</span>
+    </div>
+  </div>
+</section>
+
+<!-- ===== 物品重新设计引导 ===== -->
+<section id="guide">
+  <div class="wrap">
+    <div class="sec-label">04 / Redesign Guide</div>
+    <h2 class="sec-title">已有物品重新设计：五步法</h2>
+    <p class="sec-desc">极简不是剥夺，是精选。目标是让每一件留下的物品都有明确的位置、用途和情感价值，同时为"乐趣"留出专门的空间。</p>
+
+    <div class="guide-step">
+      <div class="step-num">1</div>
+      <div class="step-content">
+        <h4>全量盘点：看见你拥有的一切</h4>
+        <p>把所有物品从柜子里拿出来，按空间分区进行（先衣橱、再鞋柜、再抽屉、再其他）。不要边整理边放回去，全部摊开才知道总量。</p>
+        <ul>
+          <li><strong>建立物品清单：</strong>用本页的鞋子/衣服表格模板，逐件记录名称、类别、购入时间</li>
+          <li><strong>拍正面照：</strong>每件物品拍一张白底正面照，存入手机"我的物品"相册</li>
+          <li><strong>识别沉默成本：</strong>标记"过去一年没穿过/没用过"的物品，这些是重点淘汰对象</li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="guide-step">
+      <div class="step-num">2</div>
+      <div class="step-content">
+        <h4>三层筛选：功能 → 频率 → 情感</h4>
+        <p>对每件物品依次过三层筛选，任何一层不通过就进入"出"的堆。拿不准的放"待定"，最后统一再审。</p>
+        <ul>
+          <li><strong>功能层：</strong>还能用吗？有替代品吗？功能是否和其他物品重叠？</li>
+          <li><strong>频率层：</strong>过去 3 个月用过吗？过去 1 年呢？（季节款按对应季节算）</li>
+          <li><strong>情感层：</strong>看到它开心吗？穿上/用上自信吗？有不可替代的纪念意义吗？</li>
+          <li><strong>待定堆处理：</strong>如果超过总量的 10%，说明标准太松，重新过一遍；真的拿不准的，装一个箱子写上日期，3 个月没打开就原封不动捐掉</li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="guide-step">
+      <div class="step-num">3</div>
+      <div class="step-content">
+        <h4>乐趣边界：为喜欢但非必需的东西设限</h4>
+        <p>这是"简单"和"无趣"的分界线。你不需要放弃喜欢的东西，但要给它们设定物理边界和数量上限，在边界内自由保留。</p>
+        <ul>
+          <li><strong>设定物理容器：</strong>乐趣物品只允许放在一个抽屉/一个架子/一个箱子里，满了就必须淘汰旧的才能进新的</li>
+          <li><strong>设定数量上限：</strong>例如"运动鞋不超过 3 双""帽子不超过 2 顶""包不超过 3 个"，数字由你定，但定了就要守</li>
+          <li><strong>一进一出：</strong>买一件新的乐趣物品，必须淘汰一件旧的同类物品</li>
+          <li><strong>数字化替代：</strong>书可以用电子书、纪念品可以拍照存档、CD 可以转数字文件，把物理占有变成数字收藏</li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="guide-step">
+      <div class="step-num">4</div>
+      <div class="step-content">
+        <h4>重新设计收纳：一物一位、一目了然</h4>
+        <p>留下的物品按"使用频率"和"使用场景"重新分配位置。高频物品放视线平齐处，低频放高处或底层。</p>
+        <ul>
+          <li><strong>按频率分区：</strong>每天用的放最顺手的位置，每周用的放次层，每月/每季用的收起来</li>
+          <li><strong>按场景分区：</strong>出门穿戴（外套+鞋+包+钥匙）集中在玄关，居家物品集中在卧室</li>
+          <li><strong>可视化原则：</strong>能挂就不叠，能竖叠就不横叠，能看到全貌就不收进暗处</li>
+          <li><strong>一物一位：</strong>每件物品有固定位置，用完归位，不允许"暂时放一下"</li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="guide-step">
+      <div class="step-num">5</div>
+      <div class="step-content">
+        <h4>建立维护机制：从"一次整理"到"持续精简"</h4>
+        <p>整理不是一次性事件，是日常习惯。用最小的维护成本防止反弹，同时让精简成为持续的生活方式。</p>
+        <ul>
+          <li><strong>每日 1 分钟：</strong>睡前把当天用过的物品归位，衣服挂回或放洗衣篮</li>
+          <li><strong>每周 10 分钟：</strong>周日花 10 分钟检查各区域是否整洁，预排下周穿搭</li>
+          <li><strong>每季 1 小时：</strong>换季时盘点当季物品，标记一次没穿的，做小淘汰</li>
+          <li><strong>每年 1 次大清理：</strong>年底全量盘点一次，更新物品清单，淘汰率目标 10-20%</li>
+          <li><strong>购物前 30 天等待清单：</strong>想买的非必需品先记进清单，30 天后还想买再买，大部分冲动消费会自然消失</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ===== 多设备查看 ===== -->
+<section id="devices">
+  <div class="wrap">
+    <div class="sec-label">05 / Multi-Device Access</div>
+    <h2 class="sec-title">多设备查看方案</h2>
+    <p class="sec-desc">MD、Word、HTML 文档如何在电脑和手机之间便捷查看？以下三种方案对比，以及推荐组合。</p>
+
+    <div class="device-grid">
+      <div class="device-card">
+        <h4>飞书在线文档</h4>
+        <p>把 MD/Word 内容转成飞书文档，手机和电脑都有原生 APP，阅读体验最好，支持搜索、目录、评论。</p>
+        <p class="pros">✓ 手机电脑原生体验 ✓ 自动同步 ✓ 可搜索可评论</p>
+        <p class="cons">✗ HTML 可视化效果会丢失 ✗ 需要手动转换</p>
+      </div>
+      <div class="device-card">
+        <h4>飞书云空间</h4>
+        <p>把 MD/Word/HTML 原文件上传到飞书云盘文件夹，手机飞书 APP 可直接预览 Word/MD，HTML 可下载后浏览器打开。</p>
+        <p class="pros">✓ 保留原文件格式 ✓ 统一入口 ✓ 支持搜索</p>
+        <p class="cons">✗ HTML 手机预览需下载 ✗ 大文件加载慢</p>
+      </div>
+      <div class="device-card">
+        <h4>静态托管链接</h4>
+        <p>把 HTML 部署到静态托管（如 GitHub Pages、Vercel），生成永久链接，手机电脑浏览器直接打开，体验最佳。</p>
+        <p class="pros">✓ HTML 完整体验 ✓ 链接随时分享 ✓ 不占本地空间</p>
+        <p class="cons">✗ 需要部署操作 ✗ MD/Word 不适用</p>
+      </div>
+    </div>
+
+    <div class="device-rec">
+      <h4>推荐组合方案</h4>
+      <ol>
+        <li><strong>日常工作文档（MD/Word）：</strong>转成飞书在线文档，存入飞书知识库的"我的工作台"空间，手机电脑随时看</li>
+        <li><strong>可视化报告（HTML）：</strong>原文件上传飞书云空间保留，同时我可以帮你把核心内容同步成飞书文档摘要</li>
+        <li><strong>物品清单（本页）：</strong>建议转成飞书多维表格——每双鞋/每件衣服一行，可加图片、状态、穿着频率字段，手机端可随时编辑和勾选</li>
+        <li><strong>统一入口：</strong>在飞书文档里建一个"我的工作台"首页，把所有文档链接、云盘文件夹、HTML 链接汇总在一起，收藏到手机桌面</li>
+      </ol>
+    </div>
+  </div>
+</section>
+
+<!-- ===== 执行计划 ===== -->
+<section id="plan">
+  <div class="wrap">
+    <div class="sec-label">06 / Action Plan</div>
+    <h2 class="sec-title">30 天执行计划</h2>
+    <p class="sec-desc">不要想着一天搞定。按周推进，每天 15-30 分钟，一个月后你的物品系统会完全不同。</p>
+
+    <div class="timeline">
+      <div class="tl-time">第1周</div>
+      <div class="tl-line"></div>
+      <div class="tl-content">
+        <h5>盘点 + 拍照建档</h5>
+        <p>每天处理一个区域：周一衣橱上装、周二衣橱下装+裙装、周三鞋子、周四包袋配饰、周五其他物品。逐件拍正面照，填入清单表格。</p>
+      </div>
+
+      <div class="tl-time">第2周</div>
+      <div class="tl-line"></div>
+      <div class="tl-content">
+        <h5>三层筛选 + 分流</h5>
+        <p>用"功能→频率→情感"三层筛选逐件决策。准备三个袋子：留 / 出（捐/卖/送）/ 待定（装盒写日期，3个月后处理）。目标淘汰率 30-40%。</p>
+      </div>
+
+      <div class="tl-time">第3周</div>
+      <div class="tl-line"></div>
+      <div class="tl-content">
+        <h5>收纳系统重建</h5>
+        <p>采购统一衣架、抽屉分隔盒、鞋盒标签。按"频率+场景"重新归位。鞋子按类别分区，当季常穿放鞋柜外层，不常穿收抽屉或鞋盒。完成后拍"整理后"全景照。</p>
+      </div>
+
+      <div class="tl-time">第4周</div>
+      <div class="tl-line"></div>
+      <div class="tl-content">
+        <h5>习惯养成 + 数字化</h5>
+        <p>开始每日 1 分钟归位、每周日穿搭预排。把物品清单转成飞书多维表格，手机端随时更新穿着记录。建立"30 天购物等待清单"。</p>
+      </div>
+
+      <div class="tl-time">每月</div>
+      <div class="tl-line"></div>
+      <div class="tl-content">
+        <h5>回看 + 微调</h5>
+        <p>月底回看 OOTD 相册和物品清单，标记一次没穿的物品。季度末做小淘汰，年底做大清理。精简是持续过程，不是终点。</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ===== Footer ===== -->
+<footer>
+  <div class="wrap">
+    <p class="motto">简单不是拥有得少，是每一件都值得。</p>
+    <p>整理完成后，把"整理后"照片和更新后的清单发我，帮你做搭配建议和二次优化。</p>
+  </div>
+</footer>
+
+<script>
+function scrollToSec(id){
+  document.getElementById(id).scrollIntoView({behavior:'smooth',block:'start'});
+  document.querySelectorAll('.nav-tab').forEach(t=>t.classList.remove('active'));
+  event.target.classList.add('active');
+}
+// 滚动时高亮当前tab
+const sections=['shoes','clothes','matrix','guide','devices','plan'];
+window.addEventListener('scroll',()=>{
+  let current='shoes';
+  for(const id of sections){
+    const el=document.getElementById(id);
+    if(el && el.getBoundingClientRect().top<200) current=id;
+  }
+  document.querySelectorAll('.nav-tab').forEach((t,i)=>{
+    t.classList.toggle('active',sections[i]===current);
+  });
+});
+</script>
+
+</body>
+</html>

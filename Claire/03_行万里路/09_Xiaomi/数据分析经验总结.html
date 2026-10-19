@@ -1,0 +1,472 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>报价细项数据分析经验总结</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<style>
+:root{--bg:#f8fafc;--surface:#ffffff;--text:#1e293b;--text-2:#475569;--muted:#94a3b8;--border:#e2e8f0;--accent:#2563eb;--accent-soft:#eff6ff;--green:#16a34a;--green-bg:#f0fdf4;--amber:#d97706;--amber-bg:#fffbeb;--rose:#e11d48;--rose-bg:#fff1f2;}
+*{box-sizing:border-box;margin:0;padding:0;}
+body{font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Microsoft YaHei",sans-serif;background:var(--bg);color:var(--text);line-height:1.7;font-size:15px;}
+.container{max-width:1200px;margin:0 auto;padding:40px 24px;}
+h1{font-size:32px;font-weight:800;margin-bottom:8px;letter-spacing:-0.02em;}
+h2{font-size:24px;font-weight:700;margin:48px 0 16px;padding-bottom:12px;border-bottom:2px solid var(--accent);}
+h3{font-size:18px;font-weight:600;margin:24px 0 12px;color:var(--accent);}
+p{margin-bottom:16px;color:var(--text-2);}
+.card{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:24px;margin-bottom:20px;box-shadow:0 1px 3px rgba(0,0,0,0.05);}
+.kpi-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:16px;margin-bottom:32px;}
+.kpi{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:20px;text-align:center;}
+.kpi .value{font-size:36px;font-weight:800;color:var(--accent);}
+.kpi .label{font-size:13px;color:var(--muted);margin-top:4px;}
+.kpi .change{font-size:12px;margin-top:8px;padding:4px 8px;border-radius:6px;display:inline-block;}
+.kpi .change.up{background:var(--green-bg);color:var(--green);}
+.kpi .change.down{background:var(--rose-bg);color:var(--rose);}
+table{width:100%;border-collapse:collapse;margin:16px 0;}
+th{background:var(--accent-soft);color:var(--accent);font-weight:600;text-align:left;padding:12px;font-size:13px;}
+td{padding:12px;border-bottom:1px solid var(--border);font-size:14px;}
+tr:hover{background:var(--bg);}
+.tag{display:inline-block;padding:4px 10px;border-radius:6px;font-size:12px;font-weight:500;}
+.tag-green{background:var(--green-bg);color:var(--green);}
+.tag-amber{background:var(--amber-bg);color:var(--amber);}
+.tag-rose{background:var(--rose-bg);color:var(--rose);}
+.chart-container{position:relative;height:300px;margin:20px 0;}
+.grid-2{display:grid;grid-template-columns:1fr 1fr;gap:20px;}
+.grid-3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:20px;}
+.principle{background:var(--accent-soft);border-left:4px solid var(--accent);padding:16px 20px;margin:16px 0;border-radius:0 8px 8px 0;}
+.flow-step{display:flex;align-items:center;margin:12px 0;}
+.flow-num{width:32px;height:32px;background:var(--accent);color:white;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:14px;margin-right:12px;flex-shrink:0;}
+.flow-content{flex:1;}
+.flow-content strong{color:var(--text);}
+.flow-content span{color:var(--text-2);font-size:14px;}
+.quote{background:var(--surface);border-left:4px solid var(--amber);padding:16px 20px;margin:16px 0;border-radius:0 8px 8px 0;font-style:italic;color:var(--text-2);}
+.badge{display:inline-flex;align-items:center;gap:6px;padding:6px 12px;background:var(--accent-soft);color:var(--accent);border-radius:8px;font-size:13px;font-weight:500;}
+@media(max-width:768px){.kpi-grid,.grid-2,.grid-3{grid-template-columns:1fr;}}
+</style>
+</head>
+<body>
+<div class="container">
+
+<h1>报价细项数据分析经验总结</h1>
+<p style="color:var(--muted);font-size:14px;">版本：v1.0 | 数据来源：W27-W31 五周报价细项明细数据分析 | 更新日期：2026-08-04</p>
+
+<!-- Executive Summary -->
+<h2>一、核心经验提炼</h2>
+
+<div class="kpi-grid">
+  <div class="kpi">
+    <div class="value">138</div>
+    <div class="label">活跃报价包</div>
+    <div class="change up">+19 周环比</div>
+  </div>
+  <div class="kpi">
+    <div class="value">243</div>
+    <div class="label">参与供应商</div>
+    <div class="change up">+27 周环比</div>
+  </div>
+  <div class="kpi">
+    <div class="value">31.9%</div>
+    <div class="label">整体拆解渗透率</div>
+    <div class="change up">+0.3pp</div>
+  </div>
+  <div class="kpi">
+    <div class="value">1</div>
+    <div class="label">L4 供应商</div>
+    <div class="change down">零增长</div>
+  </div>
+</div>
+
+<div class="card">
+<h3>5周数据分析的方法论演进</h3>
+<table>
+<thead><tr><th>周次</th><th>核心发现</th><th>方法论价值</th></tr></thead>
+<tbody>
+<tr><td><strong>W27</strong></td><td>建立基线：119个报价包，L1占比68%</td><td><span class="tag tag-green">基线思维</span> 先有数字，才能谈论改进</td></tr>
+<tr><td><strong>W28</strong></td><td>增量分析：+5报价包，L2增长但L3/L4零增长</td><td><span class="tag tag-green">趋势思维</span> 关注变化而非静态值</td></tr>
+<tr><td><strong>W29</strong></td><td>深入归因：预选供应商拆解率下降</td><td><span class="tag tag-amber">归因思维</span> 不只看结果，要找原因</td></tr>
+<tr><td><strong>W30</strong></td><td>对标分析：供应商拆解率差异</td><td><span class="tag tag-amber">对标思维</span> 找到最佳实践，复制推广</td></tr>
+<tr><td><strong>W31</strong></td><td>运营闭环：从数据到行动</td><td><span class="tag tag-green">闭环思维</span> 数据→洞察→行动→验证</td></tr>
+</tbody>
+</table>
+</div>
+
+<div class="grid-3">
+<div class="principle">
+<strong>原则1：指标必须可执行</strong>
+<p style="font-size:13px;margin:8px 0 0;">不说「提升拆解率」，说「推动24家预选供应商开通SVC」</p>
+</div>
+<div class="principle">
+<strong>原则2：数据必须有对比</strong>
+<p style="font-size:13px;margin:8px 0 0;">不只看绝对值，要看周环比变化趋势</p>
+</div>
+<div class="principle">
+<strong>原则3：洞察必须有行动</strong>
+<p style="font-size:13px;margin:8px 0 0;">不只说「L3零增长」，要说「建议推动SVC优化VSM体验」</p>
+</div>
+</div>
+
+<!-- How to Define Indicators -->
+<h2>二、如何定义数据指标</h2>
+
+<div class="card">
+<h3>指标定义的四个层次</h3>
+<div class="flow-step">
+<div class="flow-num">1</div>
+<div class="flow-content"><strong>业务目标（Why）</strong><span> - 我们要解决什么业务问题？</span></div>
+</div>
+<div class="flow-step">
+<div class="flow-num">2</div>
+<div class="flow-content"><strong>成功标准（What）</strong><span> - 怎样算成功？目标值是多少？</span></div>
+</div>
+<div class="flow-step">
+<div class="flow-num">3</div>
+<div class="flow-content"><strong>度量指标（How）</strong><span> - 用什么指标衡量进展？</span></div>
+</div>
+<div class="flow-step">
+<div class="flow-num">4</div>
+<div class="flow-content"><strong>数据采集（With）</strong><span> - 数据从哪里来？怎么采集？</span></div>
+</div>
+</div>
+
+<div class="card">
+<h3>指标定义模板</h3>
+<table>
+<thead><tr><th>维度</th><th>说明</th><th>示例</th></tr></thead>
+<tbody>
+<tr><td><strong>指标名称</strong></td><td>简洁明了，不超过10个字</td><td>L3拆解渗透率</td></tr>
+<tr><td><strong>业务含义</strong></td><td>这个指标回答什么业务问题</td><td>有多少报价包达到了BOM结构拆解</td></tr>
+<tr><td><strong>计算公式</strong></td><td>明确的数学表达式</td><td>COUNT(L3报价包) / COUNT(总报价包)</td></tr>
+<tr><td><strong>数据来源</strong></td><td>从哪个系统/表获取</td><td>报价单元表 fact_quote_units</td></tr>
+<tr><td><strong>统计周期</strong></td><td>多长时间统计一次</td><td>每周</td></tr>
+<tr><td><strong>责任人</strong></td><td>谁负责这个指标</td><td>采购运营</td></tr>
+<tr><td><strong>目标值</strong></td><td>期望达到的数值</td><td>20%</td></tr>
+<tr><td><strong>告警阈值</strong></td><td>低于多少需要预警</td><td>&lt;10%</td></tr>
+</tbody>
+</table>
+</div>
+
+<!-- How to Make Indicators Clearer -->
+<h2>三、如何让指标更清晰</h2>
+
+<div class="card">
+<h3>「三层看板」设计原则</h3>
+<div class="grid-3">
+<div style="background:var(--accent-soft);padding:16px;border-radius:8px;">
+<strong style="color:var(--accent);">L1 · 全局概览</strong>
+<p style="font-size:13px;margin:8px 0 0;"><strong>受众：</strong>管理层</p>
+<p style="font-size:13px;margin:4px 0 0;"><strong>内容：</strong>核心数字、总量、渗透率、环比变化</p>
+<p style="font-size:13px;margin:4px 0 0;"><strong>视觉：</strong>大数字卡片 + 趋势线</p>
+<p style="font-size:13px;margin:4px 0 0;"><strong>频率：</strong>周报</p>
+</div>
+<div style="background:var(--green-bg);padding:16px;border-radius:8px;">
+<strong style="color:var(--green);">L2 · 运营明细</strong>
+<p style="font-size:13px;margin:8px 0 0;"><strong>受众：</strong>执行层</p>
+<p style="font-size:13px;margin:4px 0 0;"><strong>内容：</strong>明细列表、每个报价包/供应商的状态</p>
+<p style="font-size:13px;margin:4px 0 0;"><strong>视觉：</strong>表格 + 标签 + 操作按钮</p>
+<p style="font-size:13px;margin:4px 0 0;"><strong>频率：</strong>实时/日</p>
+</div>
+<div style="background:var(--amber-bg);padding:16px;border-radius:8px;">
+<strong style="color:var(--amber);">L3 · 深度分析</strong>
+<p style="font-size:13px;margin:8px 0 0;"><strong>受众：</strong>分析师</p>
+<p style="font-size:13px;margin:4px 0 0;"><strong>内容：</strong>归因分析、为什么是这个结果</p>
+<p style="font-size:13px;margin:4px 0 0;"><strong>视觉：</strong>交叉表 + 迁移矩阵</p>
+<p style="font-size:13px;margin:4px 0 0;"><strong>频率：</strong>周/月</p>
+</div>
+</div>
+</div>
+
+<div class="card">
+<h3>数据故事化框架：「数据→洞察→行动」</h3>
+<div class="quote">
+<strong>示例：</strong><br>
+<strong>数据（What）：</strong>L3/L4深层拆解本周零增长<br>
+<strong>洞察（So What）：</strong>BOM→VSM衔接断裂，供应商完成BOM后未继续推进VSM<br>
+<strong>行动（Now What）：</strong>推动SVC团队优化VSM维护体验，本周内联系3家L3供应商
+</div>
+</div>
+
+<!-- Data Operations Loop -->
+<h2>四、如何构建数据运营闭环</h2>
+
+<div class="card">
+<h3>PDCA循环在数据运营中的应用</h3>
+<div class="grid-2">
+<div>
+<div class="flow-step">
+<div class="flow-num">P</div>
+<div class="flow-content"><strong>Plan（计划）</strong><span> - 定义目标、制定策略、分配资源</span></div>
+</div>
+<div class="flow-step">
+<div class="flow-num">D</div>
+<div class="flow-content"><strong>Do（执行）</strong><span> - 执行动作、记录过程、收集数据</span></div>
+</div>
+</div>
+<div>
+<div class="flow-step">
+<div class="flow-num">C</div>
+<div class="flow-content"><strong>Check（检查）</strong><span> - 对比目标、分析差异、总结经验</span></div>
+</div>
+<div class="flow-step">
+<div class="flow-num">A</div>
+<div class="flow-content"><strong>Act（改进）</strong><span> - 标准化、调整策略、进入下一轮</span></div>
+</div>
+</div>
+</div>
+</div>
+
+<div class="card">
+<h3>从「看数据」到「用数据」</h3>
+<table>
+<thead><tr><th>维度</th><th>看数据（被动）</th><th>用数据（主动）</th></tr></thead>
+<tbody>
+<tr><td><strong>L3零增长</strong></td><td>「L3本周零增长」</td><td>「L3零增长，根因是BOM→VSM衔接断裂，建议推动SVC优化VSM体验，目标下周新增2家L3供应商」</td></tr>
+<tr><td><strong>预选供应商拆解率下降</strong></td><td>「预选供应商拆解率从18.8%降至17.0%」</td><td>「预选供应商拆解率下降1.8pp，主因是新增正式供应商稀释，但含预选的报价包拆解率仍达46.9%，建议加速开放SVC账号」</td></tr>
+</tbody>
+</table>
+</div>
+
+<!-- Automation -->
+<h2>五、自动化数据运营</h2>
+
+<div class="card">
+<h3>自动化的四个层次</h3>
+<div class="grid-2">
+<div>
+<div class="flow-step">
+<div class="flow-num">1</div>
+<div class="flow-content"><strong>数据自动化采集</strong><span><br>埋点自动采集、数据库定时同步、Excel自动导入</span></div>
+</div>
+<div class="flow-step">
+<div class="flow-num">2</div>
+<div class="flow-content"><strong>报表自动化生成</strong><span><br>定时生成周报/月报、自动发送邮件/飞书通知、异常自动标红</span></div>
+</div>
+</div>
+<div>
+<div class="flow-step">
+<div class="flow-num">3</div>
+<div class="flow-content"><strong>洞察自动化提取</strong><span><br>趋势自动识别、异常自动归因、建议自动生成</span></div>
+</div>
+<div class="flow-step">
+<div class="flow-num">4</div>
+<div class="flow-content"><strong>行动自动化触发</strong><span><br>预警自动触发、任务自动分配、效果自动验证</span></div>
+</div>
+</div>
+</div>
+</div>
+
+<div class="card">
+<h3>当前可自动化的场景</h3>
+<table>
+<thead><tr><th>场景</th><th>自动化方式</th><th>优先级</th><th>预估工时</th></tr></thead>
+<tbody>
+<tr><td><strong>周报生成</strong></td><td>SQL查询 + 模板填充 + 邮件发送</td><td><span class="tag tag-rose">P0</span></td><td>1周</td></tr>
+<tr><td><strong>异常预警</strong></td><td>阈值监控 + 飞书通知</td><td><span class="tag tag-rose">P0</span></td><td>1周</td></tr>
+<tr><td><strong>数据采集</strong></td><td>埋点自动写入数据库</td><td><span class="tag tag-rose">P0</span></td><td>2周</td></tr>
+<tr><td><strong>报表发布</strong></td><td>定时任务 + 看板刷新</td><td><span class="tag tag-amber">P1</span></td><td>1周</td></tr>
+<tr><td><strong>趋势分析</strong></td><td>算法识别 + 自动标注</td><td><span class="tag tag-amber">P2</span></td><td>3周</td></tr>
+</tbody>
+</table>
+</div>
+
+<!-- PM Data Thinking -->
+<h2>六、产品经理的数据运营思维</h2>
+
+<div class="card">
+<h3>从功能思维到数据思维</h3>
+<table>
+<thead><tr><th>维度</th><th>功能思维</th><th>数据思维</th></tr></thead>
+<tbody>
+<tr><td><strong>关注点</strong></td><td>功能是否上线</td><td>功能使用效果</td></tr>
+<tr><td><strong>成功标准</strong></td><td>功能可用</td><td>业务指标达成</td></tr>
+<tr><td><strong>改进依据</strong></td><td>用户反馈</td><td>数据分析</td></tr>
+<tr><td><strong>迭代节奏</strong></td><td>需求驱动</td><td>数据驱动</td></tr>
+</tbody>
+</table>
+</div>
+
+<div class="card">
+<h3>数据运营的五个习惯</h3>
+<div class="grid-3" style="grid-template-columns:repeat(5,1fr);">
+<div style="text-align:center;padding:16px;background:var(--accent-soft);border-radius:8px;">
+<div style="font-size:24px;margin-bottom:8px;">📊</div>
+<strong style="font-size:13px;">每天看数据</strong>
+<p style="font-size:11px;margin:4px 0 0;">养成数据敏感度</p>
+</div>
+<div style="text-align:center;padding:16px;background:var(--green-bg);border-radius:8px;">
+<div style="font-size:24px;margin-bottom:8px;">📝</div>
+<strong style="font-size:13px;">每周写报告</strong>
+<p style="font-size:11px;margin:4px 0 0;">强迫思考和总结</p>
+</div>
+<div style="text-align:center;padding:16px;background:var(--amber-bg);border-radius:8px;">
+<div style="font-size:24px;margin-bottom:8px;">🔍</div>
+<strong style="font-size:13px;">每月做复盘</strong>
+<p style="font-size:11px;margin:4px 0 0;">回顾目标达成</p>
+</div>
+<div style="text-align:center;padding:16px;background:var(--rose-bg);border-radius:8px;">
+<div style="font-size:24px;margin-bottom:8px;">🎯</div>
+<strong style="font-size:13px;">每季定目标</strong>
+<p style="font-size:11px;margin:4px 0 0;">基于数据设定</p>
+</div>
+<div style="text-align:center;padding:16px;background:var(--accent-soft);border-radius:8px;">
+<div style="font-size:24px;margin-bottom:8px;">📋</div>
+<strong style="font-size:13px;">每年做规划</strong>
+<p style="font-size:11px;margin:4px 0 0;">数据驱动规划</p>
+</div>
+</div>
+</div>
+
+<!-- Practice Summary -->
+<h2>七、实践总结与下一步建议</h2>
+
+<div class="card">
+<h3>五周数据分析的核心收获</h3>
+<table>
+<thead><tr><th>收获</th><th>说明</th></tr></thead>
+<tbody>
+<tr><td><strong>基线很重要</strong></td><td>没有基线就无法衡量改进</td></tr>
+<tr><td><strong>趋势比绝对值重要</strong></td><td>周环比变化更有意义</td></tr>
+<tr><td><strong>归因比描述重要</strong></td><td>说「为什么」比说「是什么」更有价值</td></tr>
+<tr><td><strong>行动比分析重要</strong></td><td>分析的目的是为了行动</td></tr>
+<tr><td><strong>自动化是必经之路</strong></td><td>手工分析不可持续</td></tr>
+</tbody>
+</table>
+</div>
+
+<div class="card">
+<h3>下一步建议</h3>
+<table>
+<thead><tr><th>建议</th><th>优先级</th><th>负责人</th><th>时间</th></tr></thead>
+<tbody>
+<tr><td>建立自动化周报系统</td><td><span class="tag tag-rose">P0</span></td><td>数据团队</td><td>1-2周</td></tr>
+<tr><td>定义预警规则和响应流程</td><td><span class="tag tag-rose">P0</span></td><td>采购运营</td><td>1周</td></tr>
+<tr><td>推动预选供应商开通SVC</td><td><span class="tag tag-amber">P1</span></td><td>采购团队</td><td>2-3周</td></tr>
+<tr><td>优化BOM→VSM衔接体验</td><td><span class="tag tag-amber">P1</span></td><td>产品团队</td><td>3-4周</td></tr>
+<tr><td>建立供应商拆解激励机制</td><td><span class="tag tag-green">P2</span></td><td>采购管理</td><td>4-6周</td></tr>
+</tbody>
+</table>
+</div>
+
+<!-- Indicator Quick Reference -->
+<h2>八、指标速查表</h2>
+
+<div class="card">
+<h3>核心指标</h3>
+<table>
+<thead><tr><th>指标</th><th>公式</th><th>目标值</th><th>数据源</th></tr></thead>
+<tbody>
+<tr><td><strong>L3+拆解渗透率</strong></td><td>COUNT(L3+报价包) / COUNT(总报价包)</td><td>20%</td><td>fact_quote_units</td></tr>
+<tr><td><strong>双OK率</strong></td><td>COUNT(L4报价包) / COUNT(总报价包)</td><td>10%</td><td>fact_quote_units</td></tr>
+<tr><td><strong>供应商拆解率</strong></td><td>COUNT(已拆解供应商) / COUNT(总供应商)</td><td>30%</td><td>dim_suppliers</td></tr>
+<tr><td><strong>周环比变化</strong></td><td>(本周-上周)/上周</td><td>&gt;0</td><td>计算</td></tr>
+</tbody>
+</table>
+</div>
+
+<div class="card">
+<h3>过程指标</h3>
+<table>
+<thead><tr><th>指标</th><th>公式</th><th>目标值</th><th>数据源</th></tr></thead>
+<tbody>
+<tr><td><strong>新增L2供应商数</strong></td><td>COUNT(本周新增L2)</td><td>&gt;5</td><td>fact_quote_units</td></tr>
+<tr><td><strong>SVC开通率</strong></td><td>COUNT(已开通SVC供应商) / COUNT(总供应商)</td><td>80%</td><td>dim_suppliers</td></tr>
+<tr><td><strong>报价提交及时率</strong></td><td>COUNT(按时提交) / COUNT(总提交)</td><td>90%</td><td>fact_quote_units</td></tr>
+<tr><td><strong>数据完整度</strong></td><td>COUNT(字段完整记录) / COUNT(总记录)</td><td>95%</td><td>数据校验</td></tr>
+</tbody>
+</table>
+</div>
+
+<div class="card">
+<h3>先行指标</h3>
+<table>
+<thead><tr><th>指标</th><th>公式</th><th>目标值</th><th>数据源</th></tr></thead>
+<tbody>
+<tr><td><strong>询价中RFQ数</strong></td><td>COUNT(状态=询价中)</td><td>&gt;20</td><td>dim_rfqs</td></tr>
+<tr><td><strong>供应商活跃度</strong></td><td>COUNT(本周提交供应商) / COUNT(总供应商)</td><td>&gt;30%</td><td>fact_quote_units</td></tr>
+<tr><td><strong>新供应商参与率</strong></td><td>COUNT(首次参与供应商) / COUNT(总供应商)</td><td>&gt;10%</td><td>dim_suppliers</td></tr>
+</tbody>
+</table>
+</div>
+
+<!-- Charts -->
+<h2>九、数据可视化示例</h2>
+
+<div class="grid-2">
+<div class="card">
+<h3>各层级拆解分布</h3>
+<div class="chart-container">
+<canvas id="layerChart"></canvas>
+</div>
+</div>
+<div class="card">
+<h3>周趋势变化</h3>
+<div class="chart-container">
+<canvas id="trendChart"></canvas>
+</div>
+</div>
+</div>
+
+<div style="text-align:center;padding:40px 0;color:var(--muted);font-size:13px;">
+<p>报价细项数据分析经验总结 | 版本 v1.0 | 2026-08-04</p>
+<p>数据来源：W27-W31 五周报价细项明细数据分析</p>
+</div>
+
+</div>
+
+<script>
+// Layer Distribution Chart
+new Chart(document.getElementById('layerChart'), {
+  type: 'doughnut',
+  data: {
+    labels: ['L1 未拆解', 'L2 自行拆解', 'L3 BOM结构', 'L4 BOM+VSM'],
+    datasets: [{
+      data: [68.12, 25.36, 5.07, 1.45],
+      backgroundColor: ['#e2e8f0', '#fbbf24', '#3b82f6', '#10b981'],
+      borderWidth: 0
+    }]
+  },
+  options: {
+    responsive: true,
+    maintainAspectRatio: false,
+    plugins: {
+      legend: { position: 'bottom', labels: { padding: 16, usePointStyle: true } }
+    }
+  }
+});
+
+// Trend Chart
+new Chart(document.getElementById('trendChart'), {
+  type: 'line',
+  data: {
+    labels: ['W27', 'W28', 'W29', 'W30', 'W31'],
+    datasets: [
+      {
+        label: '报价包总数',
+        data: [119, 133, 138, 145, 152],
+        borderColor: '#3b82f6',
+        tension: 0.3,
+        fill: false
+      },
+      {
+        label: '供应商总数',
+        data: [216, 235, 243, 258, 270],
+        borderColor: '#10b981',
+        tension: 0.3,
+        fill: false
+      }
+    ]
+  },
+  options: {
+    responsive: true,
+    maintainAspectRatio: false,
+    plugins: {
+      legend: { position: 'bottom', labels: { padding: 16, usePointStyle: true } }
+    },
+    scales: {
+      y: { beginAtZero: false }
+    }
+  }
+});
+</script>
+
+</body>
+</html>

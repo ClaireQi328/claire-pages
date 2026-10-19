@@ -1,0 +1,313 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>财务CE审批分流 · 拆单预览（方案一/方案二）原型</title>
+<style>
+  :root{
+    --primary:#4a7dff; --primary-weak:#eef3ff; --border:#e3e6ee;
+    --text:#1f2430; --text2:#6b7280; --bg:#f4f5f9; --card:#fff;
+    --warn:#b25e00; --warn-bg:#fff7e8; --err:#d93026; --ok:#178a4b;
+  }
+  *{box-sizing:border-box;margin:0;padding:0;}
+  body{font-family:'PingFang SC','Microsoft YaHei',Roboto,Arial,sans-serif;background:var(--bg);color:var(--text);}
+  .appbar{background:#1f2430;color:#fff;padding:10px 20px;display:flex;align-items:center;gap:10px;font-size:13px;}
+  .appbar b{font-size:14px;}
+  .appbar .crumb{color:#b9c0cf;}
+  .page{padding:20px;max-width:1180px;margin:0 auto;}
+  .card{background:var(--card);border:1px solid var(--border);border-radius:12px;box-shadow:0 1px 4px rgba(0,0,0,.04);}
+  .dialog{margin:18px auto 30px;max-width:1060px;background:#fff;border:1px solid var(--border);border-radius:12px;box-shadow:0 8px 30px rgba(0,0,0,.12);overflow:hidden;}
+  .dhead{padding:14px 18px 10px;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:flex-start;gap:12px;flex-wrap:wrap;}
+  .dhead h1{font-size:16px;font-weight:600;}
+  .dhead .sub{font-size:12px;color:var(--text2);margin-top:4px;line-height:1.5;}
+  .summary{background:var(--primary-weak);border:1px solid #cddcff;border-radius:8px;padding:8px 12px;font-size:13px;}
+  .summary b{color:var(--primary);font-size:15px;}
+  .tabbar{padding:10px 18px 0;border-bottom:1px solid var(--border);display:flex;gap:4px;background:#fafbfc;}
+  .tab{padding:8px 16px;font-size:13px;cursor:pointer;border:1px solid transparent;border-bottom:none;border-radius:8px 8px 0 0;color:var(--text2);background:transparent;user-select:none;}
+  .tab:hover{color:var(--primary);}
+  .tab.on{background:#fff;border-color:var(--border);color:var(--primary);font-weight:600;}
+  .tab .badge{display:inline-block;font-size:10.5px;padding:1px 6px;border-radius:4px;margin-left:6px;vertical-align:1px;background:var(--primary-weak);color:var(--primary);}
+  .tab.on .badge{background:var(--primary);color:#fff;}
+  .mini-tool{padding:8px 18px;border-bottom:1px solid var(--border);display:flex;gap:8px;align-items:center;background:#fff;}
+  .btn{padding:6px 12px;border:1px solid var(--border);border-radius:6px;background:#fff;color:var(--text);font-size:12.5px;cursor:pointer;}
+  .btn:hover{border-color:var(--primary);color:var(--primary);}
+  .btn.pri{background:var(--primary);border-color:var(--primary);color:#fff;}
+  .btn.pri:hover{opacity:.9;}
+  .btn.ghost{color:var(--text2);}
+  .spacer{flex:1;}
+  .bcount{font-size:12px;color:var(--text2);}
+  .groups{padding:6px 0;}
+  .grp{margin-bottom:6px;}
+  .grp-head{padding:8px 18px;display:flex;align-items:center;gap:10px;flex-wrap:wrap;background:#fafbfc;border-top:1px solid var(--border);border-bottom:1px solid var(--border);font-size:13px;}
+  .grp-head .gname{font-weight:600;}
+  .tag{padding:2px 8px;border-radius:4px;font-size:11.5px;}
+  .tag.auto{background:var(--primary-weak);color:var(--primary);}
+  .tag.manual{background:#e9f7ef;color:var(--ok);}
+  .tag.unmatched{background:var(--warn-bg);color:var(--warn);}
+  table{width:100%;border-collapse:collapse;font-size:12.5px;}
+  th{background:#fff;color:var(--text2);font-weight:500;text-align:left;padding:7px 8px;border-bottom:1px solid var(--border);white-space:nowrap;}
+  td{padding:6px 8px;border-bottom:1px solid #f0f1f5;white-space:nowrap;}
+  tr:last-child td{border-bottom:none;}
+  td.num{color:var(--text2);}
+  .nm{color:var(--err);font-size:11.5px;}
+  .tip{color:var(--warn);font-size:11.5px;}
+  .row-ce{border:1px solid var(--border);border-radius:5px;padding:3px 6px;font-size:12px;min-width:110px;background:#fff;}
+  .row-ce.manual{border-color:var(--ok);}
+  .row-ce:disabled{background:#f5f6f8;color:var(--text2);}
+  .note{padding:10px 18px;background:#fbfbfd;border-top:1px solid var(--border);font-size:12px;color:var(--text2);line-height:1.6;}
+  .note b{color:var(--warn);}
+  .dfoot{padding:12px 18px;border-top:1px solid var(--border);display:flex;justify-content:flex-end;gap:10px;align-items:center;}
+  .lockbar{display:none;background:#f0f1f4;border-top:1px solid var(--border);padding:10px 18px;font-size:12.5px;color:var(--text2);}
+  .lockbar .tag{margin-right:6px;}
+  .toast{position:fixed;top:16px;left:50%;transform:translateX(-50%);background:#333;color:#fff;padding:9px 16px;border-radius:8px;font-size:13px;z-index:99;opacity:0;transition:opacity .25s;pointer-events:none;max-width:80%;}
+  .toast.show{opacity:1;}
+  .toast.err{background:var(--err);}
+  .toast.ok{background:var(--ok);}
+  .legend{display:flex;gap:14px;flex-wrap:wrap;font-size:12px;color:var(--text2);margin-top:8px;}
+  @media(max-width:720px){ .page{padding:10px;} table{font-size:11.5px;} .dhead{flex-direction:column;} .grp-head{flex-wrap:wrap;} }
+</style>
+</head>
+<body>
+
+<div class="appbar">
+  <b>MVPS品类应用 · 小米汽车 SRM</b>
+  <span class="crumb">› 价格中心 › CE审批Demo › 待办任务</span>
+</div>
+
+<div class="page">
+  <div class="card" style="padding:14px 18px;margin-bottom:16px;">
+    <div style="font-size:14px;font-weight:600;">申请单编号：SCM-20260626-0001 <span class="tag unmatched" style="margin-left:8px;">草稿</span></div>
+    <div style="font-size:12px;color:var(--text2);margin-top:4px;">
+      申请人：李文俊 ｜ 供应商：上海得力电机 ｜ 采购工程师：陈兰 ｜ 所属项目：Modena(8041) ｜ 创建时间：2026-06-26
+    </div>
+    <div class="legend" style="margin-top:10px;">
+      <span><span class="tag auto">建议值</span> 系统按 VPPS→财务CE 自动映射</span>
+      <span><span class="tag manual">人工指定</span> 手动选择，本次单单生效</span>
+      <span><span class="tag unmatched">未匹配</span> 未映射到CE，默认给兜底人</span>
+    </div>
+  </div>
+
+  <div class="dialog">
+    <div class="dhead">
+      <div>
+        <h1>启动审批流程 · 拆单预览</h1>
+        <div class="sub">同一财务CE的零件聚合为一张，按CE分组展示；未匹配财务CE的零件指定给薛乔木。点击【确认生成审批单】后锁定，不可再修改。</div>
+      </div>
+      <div class="summary">
+        本单共 <b id="sumParts">0</b> 个零件 → 将生成 <b id="sumForms">0</b> 张审批单
+      </div>
+    </div>
+
+    <div class="tabbar">
+      <div class="tab on" id="tabV1" onclick="switchTab(1)">方案一 · 可选择审批人（全量开放）</div>
+      <div class="tab" id="tabV2" onclick="switchTab(2)">方案二 · 仅同一VPPS内变更人员<span class="badge">新增</span></div>
+    </div>
+
+    <div class="mini-tool">
+      <span class="bcount" id="manualCount">人工调整：0 处</span>
+      <span class="spacer"></span>
+      <button class="btn ghost" onclick="resetToSuggestion()">恢复建议值</button>
+    </div>
+
+    <div class="groups" id="groups"></div>
+
+    <div class="note" id="noteV1">
+      <b>说明：</b>① 人工调整仅对<u>本次审批分流</u>生效，不改动品类资源池（表2）的 VPPS→CE 映射；如需同步资源池，请由采购项目经理走「转派」流程（双表一致性）。② 发起审批后拆单结果锁定，变更需走「任务转派」。
+    </div>
+    <div class="note" id="noteV2" style="display:none;">
+      <b>方案二说明：</b>① 在零件行中选择审批人，<u>同一 VPPS 内全部零件自动同步为同一人</u>；② 候选人仅限该 VPPS 节点绑定的财务CE；③ 未绑定财务CE的VPPS不支持人工指定，默认兜底人（薛乔木）；④ 人工调整仅本次生效，不改动品类资源池（表2）。
+    </div>
+    <div class="lockbar" id="lockbar"><span class="tag lock">已锁定</span>审批单已生成，拆单结果不可修改；如需变更审批人，请走「任务转派」流程。</div>
+    <div class="dfoot">
+      <button class="btn" onclick="closeDialog()">取消</button>
+      <button class="btn pri" onclick="confirmGenerate()">确认生成审批单</button>
+    </div>
+  </div>
+
+  <div style="font-size:12px;color:var(--text2);text-align:center;padding:8px;">原型示意 · 行内选择审批人，同一VPPS同步变化；数据为示例</div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+(function(){
+  // ============ 数据（示例） ============
+  var vppsCE = {
+    '10.01.01 电驱-电机': ['陈兰','钱芳'],
+    '10.01.02 仪表板':   ['张宁','孙琳'],
+    '11.02.01 排气系统': ['张宁','钱芳'],
+    '10.02.01 外饰保险杠': [],
+    '11.01.02 增程器':   []
+  };
+  var autoMap = {'10.01.01 电驱-电机':'陈兰','10.01.02 仪表板':'张宁','11.02.01 排气系统':'张宁'};
+  var ceList = ['陈兰','张宁','钱芳','孙琳'];   // 全量财务CE（方案一候选）
+  var fallback = '薛乔木';                       // 兜底人
+
+  var parts = [
+    {no:'H000000033001', name:'驱动电机总成', sup:'上海得力电机', vpps:'10.01.01 电驱-电机', cat:'电驱', amt:'¥1,234.00'},
+    {no:'H000000033002', name:'电机控制器',   sup:'上海得力电机', vpps:'10.01.01 电驱-电机', cat:'电驱', amt:'¥680.00'},
+    {no:'H000000033003', name:'仪表板横梁',   sup:'宁波华翔',     vpps:'10.01.02 仪表板',   cat:'内饰', amt:'¥420.00'},
+    {no:'H000000033004', name:'消声器总成',   sup:'苏州亿和',     vpps:'11.02.01 排气系统', cat:'排气', amt:'¥960.00'},
+    {no:'H000000033005', name:'保险杠蒙皮',   sup:'常熟汽饰',     vpps:'10.02.01 外饰保险杠',cat:'外饰', amt:'¥310.00'},
+    {no:'H000000033006', name:'增程器支架',   sup:'重庆秦川',     vpps:'11.01.02 增程器',   cat:'增程', amt:'¥150.00'}
+  ];
+  parts.forEach(function(p){ p.person = null; p.manual = false; });
+  var vppsState = {};   // 方案二：vpps -> person
+  var curTab = (parseInt(new URLSearchParams(location.search).get('tab')||'1',10)===2) ? 2 : 1;
+  var locked = false;
+
+  var autoPerson = function(p){ return autoMap[p.vpps] || null; };
+  function toast(msg, type){ var t=document.getElementById('toast'); t.textContent=msg; t.className='toast show '+(type||''); clearTimeout(t._t); t._t=setTimeout(function(){t.className='toast';},2200); }
+
+  // 每个零件的最终审批人（按当前方案）
+  function ceOf(p){
+    return curTab===1 ? (p.person||autoPerson(p)||fallback) : (vppsState[p.vpps]||autoMap[p.vpps]||fallback);
+  }
+  function isManual(p){
+    return curTab===1 ? !!p.person : !!vppsState[p.vpps];
+  }
+  function isUnmatched(p){
+    return curTab===1 ? (!p.person && !autoPerson(p)) : (!vppsState[p.vpps] && !autoMap[p.vpps]);
+  }
+
+  // 按最终审批人聚合分组
+  function groupByCE(){
+    var g={};
+    parts.forEach(function(p){
+      var ce=ceOf(p);
+      if(!g[ce]) g[ce]={ce:ce, items:[]};
+      g[ce].items.push(p);
+    });
+    return g;
+  }
+
+  function updateSummary(){
+    var g=groupByCE();
+    var sumForms=Object.keys(g).length, sumParts=parts.length, manualCount=0;
+    parts.forEach(function(p){ if(isManual(p)) manualCount++; });
+    document.getElementById('sumParts').textContent=sumParts;
+    document.getElementById('sumForms').textContent=sumForms;
+    document.getElementById('manualCount').textContent='人工调整：'+manualCount+' 处';
+  }
+
+  // 行内选择器 options
+  function rowOptions(p){
+    var opts='';
+    if(curTab===1){
+      // 方案一：全量CE + 兜底
+      opts+='<option value="__fallback__">'+fallback+'（兜底）</option>';
+      ceList.forEach(function(c){ opts+='<option value="'+c+'">'+c+'</option>'; });
+    } else {
+      // 方案二：仅该VPPS绑定CE
+      var cands=vppsCE[p.vpps]||[];
+      cands.forEach(function(c){ opts+='<option value="'+c+'">'+c+'</option>'; });
+    }
+    return opts;
+  }
+
+  function render(){
+    if(locked) return;
+    document.getElementById('tabV1').className = curTab===1?'tab on':'tab';
+    document.getElementById('tabV2').className = curTab===2?'tab on':'tab';
+    document.getElementById('noteV1').style.display = curTab===1?'':'none';
+    document.getElementById('noteV2').style.display = curTab===2?'':'none';
+    updateSummary();
+
+    var g=groupByCE();
+    var keys=Object.keys(g);
+    var html='';
+    keys.forEach(function(ce,idx){
+      var grp=g[ce];
+      // 组头标签
+      var anyManual=grp.items.some(function(p){return isManual(p);});
+      var allUnmatched=grp.items.every(function(p){return isUnmatched(p);});
+      var tagHtml = allUnmatched
+        ? '<span class="tag unmatched">未匹配 · 兜底</span>'
+        : (anyManual ? '<span class="tag manual">人工指定</span>' : '<span class="tag auto">建议值</span>');
+      html += '<div class="grp">';
+      html += '<div class="grp-head">';
+      html += '<span class="tag" style="background:#eef3ff;color:#4a7dff;">审批单'+(idx+1)+'</span>';
+      html += '<span class="gname">财务CE：'+ce+'</span>';
+      html += '<span style="font-size:12px;color:var(--text2);">'+grp.items.length+' 个零件</span>';
+      html += tagHtml;
+      html += '</div>';
+      html += '<table><thead><tr><th>零件号</th><th>零件名称</th><th>供应商</th><th>VPPS节点</th><th>采购品类</th><th>到厂价(未税)</th><th>审批人（行内选择）</th></tr></thead><tbody>';
+      grp.items.forEach(function(p){
+        var ce2=ceOf(p);
+        var manual=isManual(p), unmatched=isUnmatched(p);
+        var v2Disabled = (curTab===2 && !(vppsCE[p.vpps]||[]).length);
+        var nm;
+        if(v2Disabled) nm='<span class="nm">未绑定 · 仅兜底</span>';
+        else if(unmatched) nm='<span class="nm">未匹配→可指定</span>';
+        else if(manual) nm='<span class="tag manual">人工</span>';
+        else nm='<span class="tag auto">建议</span>';
+        var selCls='row-ce'+(manual?' manual':'');
+        var selHtml='';
+        if(v2Disabled){
+          selHtml='<select class="row-ce" disabled><option>'+fallback+'（兜底）</option></select>';
+        } else {
+          selHtml='<select class="'+selCls+'" onchange="onRowCE(this,\''+p.no+'\')">'+rowOptions(p)+'</select>';
+        }
+        html += '<tr>';
+        html += '<td>'+p.no+'</td><td>'+p.name+'</td><td>'+p.sup+'</td><td>'+p.vpps+'</td><td>'+p.cat+'</td><td class="num">'+p.amt+'</td>';
+        html += '<td>'+selHtml+' '+nm+'</td>';
+        html += '</tr>';
+      });
+      html += '</tbody></table></div>';
+    });
+    document.getElementById('groups').innerHTML=html;
+
+    // 回填选中值
+    parts.forEach(function(p){
+      var sel=document.querySelector('select[onchange="onRowCE(this,\''+p.no+'\')"]');
+      if(sel) sel.value=ceOf(p);
+    });
+  }
+
+  // 行内选择审批人：方案二 → 同VPPS同步
+  window.onRowCE = function(sel, no){
+    var p=parts.find(function(x){return x.no===no;});
+    var val=sel.value;
+    if(curTab===1){
+      if(val==='__fallback__'){ p.person=null; p.manual=false; toast('零件 '+no+' 已恢复兜底人：'+fallback); }
+      else { p.person=val; p.manual=true; toast('零件 '+no+' 审批人：'+val,'ok'); }
+    } else {
+      var cands=vppsCE[p.vpps]||[];
+      if(cands.indexOf(val)<0){ toast('该人员不在「'+p.vpps+'」绑定范围内','err'); render(); return; }
+      vppsState[p.vpps]=val;
+      var n=parts.filter(function(x){return x.vpps===p.vpps;}).length;
+      toast('「'+p.vpps+'」下 '+n+' 个零件已同步审批人：'+val,'ok');
+    }
+    render();
+  };
+
+  window.switchTab = function(t){
+    if(locked){ toast('审批单已锁定，无法切换方案','err'); return; }
+    curTab=t; render();
+    toast(t===1?'已切换到方案一 · 可选择审批人（全量开放）':'已切换到方案二 · 仅同一VPPS内变更人员','ok');
+  };
+  window.resetToSuggestion = function(){
+    if(curTab===1){ parts.forEach(function(p){ p.person=null; p.manual=false; }); }
+    else { vppsState={}; }
+    toast('已恢复系统建议值','ok'); render();
+  };
+  window.closeDialog = function(){ toast('已取消，未发起审批'); };
+  window.confirmGenerate = function(){
+    var g=groupByCE(); var keys=Object.keys(g);
+    var msg='本单 '+parts.length+' 个零件 → 已生成 '+keys.length+' 张审批单：\n';
+    keys.forEach(function(ce,i){ msg+='  审批单'+(i+1)+'：'+ce+'，'+g[ce].items.length+' 个零件\n'; });
+    msg+='\n审批单已发起并锁定（原型演示）。';
+    toast('审批单已生成','ok');
+    locked=true;
+    document.getElementById('lockbar').style.display='block';
+    document.querySelector('.dfoot').style.display='none';
+    document.getElementById('groups').style.pointerEvents='none';
+    alert(msg);
+  };
+
+  render();
+})();
+</script>
+</body>
+</html>

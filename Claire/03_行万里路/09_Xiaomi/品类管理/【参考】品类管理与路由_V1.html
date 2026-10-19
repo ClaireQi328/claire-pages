@@ -1,0 +1,1316 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>品类主数据管理与自动路由系统 · EP 采购系统</title>
+<style>
+:root{
+  --p:#1677ff;--ph:#4096ff;--pl:#e6f4ff;--pa:rgba(22,119,255,.06);
+  --s:#52c41a;--sl:#f6ffed;--sa:rgba(82,196,26,.08);
+  --w:#faad14;--wl:#fffbe6;--wa:rgba(250,173,20,.08);
+  --d:#ff4d4f;--dl:#fff2f0;--da:rgba(255,77,79,.06);
+  --g50:#fafafa;--g100:#f5f5f5;--g200:#e8e8e8;--g300:#d9d9d9;
+  --g400:#bfbfbf;--g500:#8c8c8c;--g600:#595959;--g700:#434343;
+  --g800:#262626;--g900:#1f1f1f;
+  --r:10px;--rs:6px;--rl:14px;
+  --sh:0 1px 3px rgba(0,0,0,.04),0 1px 2px rgba(0,0,0,.06);
+  --shm:0 4px 12px rgba(0,0,0,.07);
+  --shl:0 8px 24px rgba(0,0,0,.09);
+  --tr:all .2s ease;
+  --nav-bg:#001529;--nav-bg-light:#002140;
+  --purple:#722ed1;--purple-l:#f9f0ff;
+  --cyan:#13c2c2;--cyan-l:#e6fffb;
+  --orange:#fa8c16;--orange-l:#fff7e6;
+  --magenta:#eb2f96;--magenta-l:#fff0f6;
+  --green2:#389e0d;
+}
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif;background:#f0f2f5;color:var(--g800);line-height:1.6;font-size:13px;min-height:100vh;overflow-x:hidden}
+
+/* ===== Top Nav ===== */
+.topnav{background:var(--nav-bg);height:48px;display:flex;align-items:center;padding:0 20px;position:fixed;top:0;left:0;right:0;z-index:1000}
+.topnav-logo{display:flex;align-items:center;gap:8px;margin-right:32px;flex-shrink:0}
+.topnav-logo .mi{width:28px;height:28px;background:linear-gradient(135deg,#ff6700,#ff4d00);border-radius:6px;display:flex;align-items:center;justify-content:center;color:#fff;font-size:12px;font-weight:700}
+.topnav-logo span{color:#fff;font-size:15px;font-weight:600;letter-spacing:.5px}
+.topnav-menu{display:flex;align-items:center;gap:0;flex:1;overflow-x:auto;scrollbar-width:none}
+.topnav-menu::-webkit-scrollbar{display:none}
+.tni{padding:0 16px;height:48px;display:flex;align-items:center;color:rgba(255,255,255,.65);font-size:13px;cursor:pointer;white-space:nowrap;transition:all .2s;position:relative}
+.tni:hover{color:#fff;background:rgba(255,255,255,.08)}
+.tni.active{color:#fff;background:rgba(255,255,255,.12)}
+.tni.active::after{content:'';position:absolute;bottom:0;left:10px;right:10px;height:2px;background:var(--p);border-radius:2px 2px 0 0}
+.topnav-right{display:flex;align-items:center;gap:12px;margin-left:auto;flex-shrink:0}
+.nicon{width:32px;height:32px;border-radius:50%;display:flex;align-items:center;justify-content:center;color:rgba(255,255,255,.65);cursor:pointer;transition:all .2s;font-size:14px}
+.nicon:hover{background:rgba(255,255,255,.1);color:#fff}
+.nav-user{display:flex;align-items:center;gap:6px;color:rgba(255,255,255,.85);font-size:12px;cursor:pointer}
+.nav-avatar{width:28px;height:28px;border-radius:50%;background:linear-gradient(135deg,var(--p),#4096ff);display:flex;align-items:center;justify-content:center;color:#fff;font-size:11px;font-weight:600}
+
+/* ===== Main Layout ===== */
+.srm-layout{display:flex;height:calc(100vh - 48px);margin-top:48px}
+
+/* ===== Sidebar ===== */
+.sidebar{width:252px;background:#fff;border-right:1px solid var(--g200);display:flex;flex-direction:column;flex-shrink:0;overflow:hidden}
+.sidebar-hdr{padding:16px 18px;border-bottom:1px solid var(--g100);background:linear-gradient(180deg,#fafbfc,#fff)}
+.sidebar-hdr h3{font-size:15px;font-weight:700;color:var(--g900);margin-bottom:2px}
+.sidebar-hdr p{font-size:11px;color:var(--g500)}
+.sidebar-hdr .hdr-badge{display:inline-flex;align-items:center;gap:4px;margin-top:6px;padding:3px 10px;border-radius:20px;background:var(--pl);color:var(--p);font-size:11px;font-weight:600}
+.sp-menu{flex:1;overflow-y:auto;padding:8px 0}
+.sp-group-label{padding:8px 18px 6px;font-size:11px;color:var(--g400);font-weight:600;text-transform:uppercase;letter-spacing:.5px}
+.sp-item{display:flex;align-items:center;gap:10px;padding:9px 18px;font-size:13px;color:var(--g600);cursor:pointer;transition:all .15s;border-left:3px solid transparent;position:relative}
+.sp-item:hover{color:var(--p);background:var(--pl)}
+.sp-item.active{color:var(--p);background:var(--pl);font-weight:600;border-left-color:var(--p)}
+.sp-icon{width:22px;height:22px;border-radius:5px;display:flex;align-items:center;justify-content:center;font-size:11px;flex-shrink:0}
+.si-blue{background:var(--pl);color:var(--p)}.si-green{background:var(--sl);color:var(--s)}
+.si-orange{background:var(--wl);color:var(--orange)}.si-purple{background:var(--purple-l);color:var(--purple)}
+.si-cyan{background:var(--cyan-l);color:var(--cyan)}.si-red{background:var(--dl);color:var(--d)}
+.si-magenta{background:var(--magenta-l);color:var(--magenta)}.si-gray{background:var(--g100);color:var(--g600)}
+.sp-badge{margin-left:auto;font-size:10px;padding:1px 7px;border-radius:10px;background:var(--g100);color:var(--g500);font-weight:500}
+.sp-item.active .sp-badge{background:rgba(22,119,255,.15);color:var(--p)}
+
+/* ===== Main Content Area ===== */
+.main-area{flex:1;display:flex;flex-direction:column;overflow:hidden;background:#f0f2f5}
+.page-header{background:#fff;padding:16px 24px;border-bottom:1px solid var(--g200);flex-shrink:0}
+.ph-row{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px}
+.ph-title{font-size:17px;font-weight:700;color:var(--g900);display:flex;align-items:center;gap:10px}
+.ph-breadcrumb{font-size:12px;color:var(--g500)}
+.ph-breadcrumb span{color:var(--g400)} .ph-breadcrumb .bc-cur{color:var(--g700)}
+.ph-tabs{display:flex;gap:0;border-bottom:1px solid transparent}
+.ptab{padding:8px 18px;font-size:13px;color:var(--g600);cursor:pointer;border-bottom:2px solid transparent;transition:var(--tr);position:relative;margin-bottom:-1px}
+.ptab:hover{color:var(--p)}
+.ptab.active{color:var(--p);font-weight:600;border-bottom-color:var(--p)}
+.ptab .ptag{font-size:10px;padding:0 6px;border-radius:8px;margin-left:4px}
+
+.page-body{flex:1;overflow-y:auto;padding:16px 24px}
+
+/* ===== KPI Cards ===== */
+.kpi-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:14px;margin-bottom:16px}
+.kpi-card{background:#fff;border:1px solid var(--g200);border-radius:var(--r);padding:16px 20px;display:flex;align-items:center;gap:14px;transition:var(--tr);cursor:pointer;position:relative;overflow:hidden}
+.kpi-card:hover{border-color:var(--p);box-shadow:var(--shm);transform:translateY(-1px)}
+.kpi-icon{width:46px;height:46px;border-radius:11px;display:flex;align-items:center;justify-content:center;font-size:20px;flex-shrink:0}
+.kpi-icon.blue{background:linear-gradient(135deg,var(--pl),#d6e8ff)}
+.kpi-icon.green{background:linear-gradient(135deg,var(--sl),#d9f7be)}
+.kpi-icon.orange{background:linear-gradient(135deg,var(--wl),#ffe58f)}
+.kpi-icon.purple{background:linear-gradient(135deg,var(--purple-l),#efdbff)}
+.kpi-icon.cyan{background:linear-gradient(135deg,var(--cyan-l),#b5f5ec)}
+.kpi-icon.red{background:linear-gradient(135deg,var(--dl),#ffccc7)}
+.kpi-info{flex:1}
+.kpi-val{font-size:24px;font-weight:700;color:var(--g900);line-height:1.2}
+.kpi-label{font-size:11px;color:var(--g500);margin-top:2px}
+.kpi-trend{font-size:11px;font-weight:500}
+.kpi-trend.up{color:var(--s)} .kpi-trend.down{color:var(--d)}
+
+/* ===== Section Card ===== */
+.sec{background:#fff;border:1px solid var(--g200);border-radius:var(--r);margin-bottom:16px;overflow:hidden}
+.sec-hdr{display:flex;align-items:center;justify-content:space-between;padding:14px 20px;border-bottom:1px solid var(--g100);background:linear-gradient(180deg,#fafafa,#f8f8f8)}
+.sec-title{font-size:14px;font-weight:700;color:var(--g900);display:flex;align-items:center;gap:8px}
+.sec-title::before{content:'';width:3px;height:16px;border-radius:2px;background:var(--p);flex-shrink:0}
+.sec-title .st-count{font-size:11px;color:var(--p);background:var(--pl);padding:1px 8px;border-radius:8px;font-weight:500}
+.sec-body{padding:16px 20px}
+.sec-actions{display:flex;gap:8px;align-items:center}
+
+/* ===== Tags ===== */
+.tag{display:inline-block;font-size:11px;padding:2px 8px;border-radius:4px;font-weight:500;white-space:nowrap}
+.tag-p{background:var(--pl);color:var(--p)}
+.tag-s{background:var(--sl);color:var(--s)}
+.tag-w{background:var(--wl);color:var(--orange)}
+.tag-d{background:var(--dl);color:var(--d)}
+.tag-purple{background:var(--purple-l);color:var(--purple)}
+.tag-cyan{background:var(--cyan-l);color:var(--cyan)}
+.tag-gray{background:var(--g100);color:var(--g600)}
+
+/* ===== Buttons ===== */
+.btn{border:none;padding:7px 16px;border-radius:var(--rs);font-size:12px;font-weight:500;cursor:pointer;transition:var(--tr);display:inline-flex;align-items:center;gap:5px;white-space:nowrap}
+.btn:active{transform:scale(.97)}
+.btn-p{background:linear-gradient(135deg,var(--p) 0%,#4096ff 100%);color:#fff;box-shadow:0 2px 6px rgba(22,119,255,.25)}
+.btn-p:hover{box-shadow:0 4px 12px rgba(22,119,255,.35);transform:translateY(-1px)}
+.btn-o{background:#fff;color:var(--g700);border:1px solid var(--g300)}.btn-o:hover{color:var(--p);border-color:var(--p);background:var(--pa)}
+.btn-g{background:var(--g50);color:var(--g600);border:1px solid var(--g200)}.btn-g:hover{color:var(--p);border-color:var(--p);background:var(--pa)}
+.btn-s{padding:4px 10px;font-size:11px;border-radius:4px}
+.btn-link{color:var(--p);font-size:12px;cursor:pointer;background:none;border:none;padding:0}.btn-link:hover{text-decoration:underline}
+.btn-danger{background:linear-gradient(135deg,var(--d),#ff7875);color:#fff}
+.btn-success{background:linear-gradient(135deg,var(--s),#73d13d);color:#fff}
+.btn-purple{background:linear-gradient(135deg,var(--purple),#9254de);color:#fff}
+
+/* ===== Filter Bar ===== */
+.filter-bar{display:flex;align-items:center;gap:10px;flex-wrap:wrap;padding:12px 20px;background:var(--g50);border-bottom:1px solid var(--g100)}
+.fg{display:flex;align-items:center;gap:6px}
+.fl{font-size:12px;color:var(--g600);white-space:nowrap}
+.fi{padding:6px 10px;border:1px solid var(--g300);border-radius:var(--rs);font-size:12px;background:#fff;min-width:140px;transition:var(--tr)}
+.fi:focus{outline:none;border-color:var(--p);box-shadow:0 0 0 3px rgba(22,119,255,.1)}
+select.fi{cursor:pointer}
+
+/* ===== Table ===== */
+.table-wrap{overflow-x:auto}
+table{width:100%;border-collapse:collapse;font-size:12px;min-width:1000px}
+thead th{padding:10px 12px;text-align:left;font-weight:600;color:var(--g700);background:var(--g50);border-bottom:1px solid var(--g200);white-space:nowrap;position:sticky;top:0;z-index:2}
+tbody td{padding:10px 12px;border-bottom:1px solid var(--g100);vertical-align:middle;color:var(--g700)}
+tbody tr:hover{background:var(--pa)}
+tbody tr.selected{background:var(--pl)}
+.chk{width:36px;text-align:center!important}
+.chk input{cursor:pointer}
+
+/* ===== Tree View ===== */
+.tree-panel{display:flex;flex-direction:column;height:100%}
+.tp-hdr{padding:12px 16px;border-bottom:1px solid var(--g100);display:flex;align-items:center;justify-content:space-between;background:var(--g50)}
+.tp-search{padding:10px 14px;border-bottom:1px solid var(--g100)}
+.tp-search input{width:100%;padding:7px 10px;border:1px solid var(--g300);border-radius:var(--rs);font-size:12px}
+.tp-search input:focus{outline:none;border-color:var(--p);box-shadow:0 0 0 3px rgba(22,119,255,.1)}
+.tp-body{flex:1;overflow-y:auto;padding:6px 0}
+.tn{}
+.tr-row{display:flex;align-items:center;gap:4px;padding:5px 12px 5px 0;cursor:pointer;font-size:12px;color:var(--g700);transition:all .12s;white-space:nowrap}
+.tr-row:hover{background:var(--pl);color:var(--p)}
+.tr-row.sel{background:var(--pl);color:var(--p);font-weight:600}
+.tr-indent{display:inline-block;width:20px;flex-shrink:0;text-align:center;color:var(--g400);font-size:10px}
+.tr-toggle{width:16px;height:16px;display:inline-flex;align-items:center;justify-content:center;font-size:10px;color:var(--g500);cursor:pointer;flex-shrink:0;border-radius:3px;transition:var(--tr)}
+.tr-toggle:hover{background:var(--g100);color:var(--p)}
+.tr-toggle.open{transform:rotate(90deg)}
+.tr-icon{font-size:12px;flex-shrink:0}
+.tr-label{flex:1;overflow:hidden;text-overflow:ellipsis}
+.tr-code{font-size:10px;color:var(--g400);margin-left:4px;font-family:'Consolas',monospace}
+.tr-count{font-size:10px;padding:0 5px;border-radius:8px;background:var(--g100);color:var(--g500);margin-left:auto;flex-shrink:0}
+.tr-row.sel .tr-count{background:rgba(22,119,255,.15);color:var(--p)}
+
+/* ===== Split View ===== */
+.split-view{display:flex;flex:1;overflow:hidden;gap:0}
+.sv-left{width:360px;background:#fff;border:1px solid var(--g200);border-radius:var(--r);display:flex;flex-direction:column;overflow:hidden;flex-shrink:0}
+.sv-right{flex:1;overflow:hidden;display:flex;flex-direction:column}
+
+/* ===== Route Flow Diagram ===== */
+.route-flow{display:flex;align-items:center;gap:0;padding:20px;overflow-x:auto}
+.rf-node{display:flex;flex-direction:column;align-items:center;min-width:140px}
+.rf-box{padding:12px 20px;border-radius:var(--rl);text-align:center;font-size:12px;font-weight:600;white-space:nowrap;position:relative;transition:var(--tr);cursor:pointer}
+.rf-box.l1{background:linear-gradient(135deg,var(--pl),#bae0ff);color:var(--p);border:2px solid var(--ph)}
+.rf-box.l2{background:linear-gradient(135deg,var(--purple-l),#efdbff);color:var(--purple);border:2px solid #9254de}
+.rf-box.l3{background:linear-gradient(135deg,var(--sl),#d9f7be);color:var(--green2);border:2px solid var(--s)}
+.rf-box.agent{background:linear-gradient(135deg,#fff7e6,#ffd591);color:var(--orange);border:2px dashed var(--orange)}
+.rf-arrow{width:40px;height:2px;background:var(--g300);position:relative;flex-shrink:0;margin:0 4px}
+.rf-arrow::after{content:'';position:absolute;right:-1px;top:-4px;border:5px solid transparent;border-left-color:var(--g300)}
+.rf-label{font-size:10px;color:var(--g500);margin-top:6px}
+
+/* ===== Routing Rules Table ===== */
+.rule-priority{display:inline-flex;align-items:center;justify-content:center;width:22px;height:22px;border-radius:6px;font-size:11px;font-weight:700;background:var(--g100);color:var(--g600)}
+.rule-priority.hi{background:var(--dl);color:var(--d)}
+.rule-priority.mid{background:var(--wl);color:var(--orange)}
+.rule-priority.lo{background:var(--pl);color:var(--p)}
+
+/* ===== Config Panel (3-column for routing) ===== */
+.config-cols{display:grid;grid-template-columns:repeat(3,1fr);gap:16px}
+.cc-col{background:var(--g50);border:1px solid var(--g200);border-radius:var(--r);overflow:hidden}
+.cc-hdr{padding:10px 14px;background:var(--g100);font-size:12px;font-weight:700;color:var(--g700);display:flex;align-items:center;justify-content:space-between}
+.cc-body{padding:12px}
+.cc-item{display:flex;align-items:center;gap:8px;padding:8px 10px;border-radius:var(--rs);margin-bottom:4px;cursor:pointer;transition:var(.15s ease all)}
+.cc-item:hover{background:#fff;box-shadow:var(--sh)}
+.cc-item.selected{background:var(--pl);border:1px solid var(--ph)}
+.cci-icon{width:28px;height:28px;border-radius:6px;display:flex;align-items:center;justify-content:center;font-size:12px;flex-shrink:0}
+.cci-info{flex:1;min-width:0}
+.cci-name{font-size:12px;font-weight:600;color:var(--g800);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.cci-desc{font-size:10px;color:var(--g500);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+
+/* ===== Person/Buyer Card ===== */
+.buyer-card{display:flex;align-items:center;gap:10px;padding:8px 12px;border:1px solid var(--g200);border-radius:var(--r);margin-bottom:6px;cursor:pointer;transition:var(.15s ease all)}
+.buyer-card:hover{background:#fff;box-shadow:var(--sh);border-color:var(--ph)}
+.buyer-card.selected{background:var(--pl);border-color:var(--p)}
+.buyer-avatar{width:34px;height:34px;border-radius:50%;display:flex;align-items:center;justify-content:center;color:#fff;font-size:12px;font-weight:600;flex-shrink:0}
+.buyer-info{flex:1;min-width:0}
+.buyer-name{font-size:13px;font-weight:600;color:var(--g800)}
+.buyer-meta{font-size:11px;color:var(--g500)}
+.buyer-load{font-size:10px;padding:1px 8px;border-radius:10px;font-weight:500}
+.buyer-load.ok{background:var(--sl);color:var(--s)}
+.buyer-load.warn{background:var(--wl);color:var(--orange)}
+.buyer-load.full{background:var(--dl);color:var(--d)}
+
+/* ===== Progress Bar ===== */
+.progress-bar{height:6px;background:var(--g200);border-radius:3px;overflow:hidden;flex:1;min-width:80px}
+.pb-fill{height:100%;border-radius:3px;transition:width .4s ease}
+.pb-fill.blue{background:linear-gradient(90deg,var(--p),var(--ph))}
+.pb-fill.green{background:linear-gradient(90deg,var(--s),#73d13d)}
+.pb-fill.orange{background:linear-gradient(90deg,var(--w),#ffc53d)}
+.pb-fill.red{background:linear-gradient(90deg,var(--d),#ff7875)}
+
+/* ===== Detail Panel for tree ===== */
+.detail-panel{flex:1;display:flex;flex-direction:column;overflow:hidden}
+.dp-header{padding:16px 20px;border-bottom:1px solid var(--g200);background:linear-gradient(180deg,#fff,#fafcff);flex-shrink:0}
+.dp-title{font-size:15px;font-weight:700;color:var(--g900);display:flex;align-items:center;gap:8px}
+.dp-tags{display:flex;gap:6px;margin-top:8px}
+.dp-body{flex:1;overflow-y:auto;padding:16px 20px}
+.dp-section{margin-bottom:20px}
+.dps-title{font-size:13px;font-weight:600;color:var(--g700);margin-bottom:10px;display:flex;align-items:center;gap:6px}
+.dps-title::before{content:'';width:3px;height:14px;border-radius:2px;background:var(--p)}
+.dp-field{display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px dashed var(--g100)}
+.dp-fl{font-size:12px;color:var(--g500)}.dp-fv{font-size:12px;font-weight:500;color:var(--g800)}
+
+/* ===== Modal Overlay ===== */
+.modal-overlay{display:none;position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,.55);z-index:2000;align-items:center;justify-content:center}
+.modal-overlay.show{display:flex}
+.modal-box{background:#fff;border-radius:var(--rl);width:680px;max-width:92vw;max-height:88vh;overflow:hidden;box-shadow:0 25px 80px rgba(0,0,0,.3);display:flex;flex-direction:column}
+.modal-box.sm{width:480px}.modal-box.lg{width:860px}.modal-box.xl{width:1100px}
+.mb-hdr{padding:18px 24px;border-bottom:1px solid var(--g200);display:flex;align-items:center;justify-content:space-between;background:linear-gradient(180deg,#fafbff,#fff);flex-shrink:0}
+.mb-title{font-size:16px;font-weight:700;color:var(--g900)}
+.mb-close{width:30px;height:30px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:18px;color:var(--g500);cursor:pointer;transition:var(--tr);border:none;background:none}
+.mb-close:hover{background:var(--g100);color:var(--g700)}
+.mb-body{padding:24px;overflow-y:auto;flex:1}
+.mb-ftr{padding:14px 24px;border-top:1px solid var(--g200);display:flex;justify-content:flex-end;gap:10px;background:var(--g50);flex-shrink:0}
+
+/* ===== Form Elements ===== */
+.form-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+.form-item{display:flex;flex-direction:column;gap:6px}
+.fi-label{font-size:13px;font-weight:500;color:var(--g700)}
+.fi-label .req{color:var(--d)}
+.fi-input{padding:9px 12px;border:1px solid var(--g300);border-radius:var(--rs);font-size:13px;transition:var(--tr)}
+.fi-input:focus{outline:none;border-color:var(--p);box-shadow:0 0 0 3px rgba(22,119,255,.1)}
+select.fi-input{cursor:pointer}
+textarea.fi-input{resize:vertical;min-height:72px;font-family:inherit;line-height:1.5}
+.fi-help{font-size:11px;color:var(--g500)}
+
+/* ===== Condition Builder ===== */
+.cond-row{display:flex;align-items:center;gap:8px;padding:10px 12px;background:var(--g50);border:1px solid var(--g200);border-radius:var(--rs);margin-bottom:8px}
+.cond-field{font-size:12px;color:var(--g600);font-weight:500;min-width:90px}
+.cond-op{font-size:12px;color:var(--g500);min-width:60px}
+.cond-val{flex:1;padding:5px 10px;border:1px solid var(--g300);border-radius:4px;font-size:12px;min-width:120px}
+
+/* ===== Pagination ===== */
+.pagination{display:flex;align-items:center;justify-content:space-between;padding:12px 20px;border-top:1px solid var(--g100);background:var(--g50)}
+.pg-info{font-size:12px;color:var(--g500)}
+.pg-btns{display:flex;gap:4px}
+.pg-btn{padding:5px 10px;border:1px solid var(--g200);border-radius:var(--rs);font-size:12px;cursor:pointer;background:#fff;color:var(--g600);transition:var(--tr)}
+.pg-btn:hover:not(:disabled){border-color:var(--p);color:var(--p)}
+.pg-btn:disabled{opacity:.4;cursor:not-allowed}
+.pg-btn.active{background:var(--p);color:#fff;border-color:var(--p)}
+
+/* ===== Batch Action Bar ===== */
+.batch-bar{display:none;align-items:center;gap:12px;padding:10px 20px;background:var(--pl);border-radius:var(--r);margin-bottom:12px}
+.batch-bar.show{display:flex}
+.bb-text{font-size:12px;color:var(--p);font-weight:500}
+
+/* ===== Routing Result Preview ===== */
+.route-preview{margin-top:16px;padding:16px;background:linear-gradient(180deg,var(--pl),#f0f7ff);border:1px solid var(--ph);border-radius:var(--r)}
+
+/* ===== Sub Tabs (within task routing) ===== */
+.sub-tabs{display:flex;gap:0;border-bottom:1px solid var(--g200);background:#fff;padding:0 20px}
+.sbtab{padding:10px 18px;font-size:13px;color:var(--g600);cursor:pointer;border-bottom:2px solid transparent;transition:var(--tr);margin-bottom:-1px;display:flex;align-items:center;gap:6px;white-space:nowrap}
+.sbtab:hover{color:var(--p)}
+.sbtab.active{color:var(--p);font-weight:600;border-bottom-color:var(--p)}
+.sbtab .sb-badge{font-size:10px;padding:0 6px;border-radius:8px;background:var(--g100);color:var(--g500);font-weight:500}
+.sbtab.active .sb-badge{background:var(--pl);color:var(--p)}
+
+.tab-content{display:none}
+.tab-content.active{display:block}
+
+@media(max-width:1200px){.config-cols{grid-template-columns:1fr 1fr}}
+@media(max-width:900px){.config-cols{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+
+<!-- ==================== TOP NAV ==================== -->
+<nav class="topnav">
+  <div class="topnav-logo"><div class="mi">EP</div><span>品类主数据管理与自动路由</span></div>
+  <div class="topnav-menu">
+    <div class="tni active" onclick="switchMainTab(this,'overview')">📊 总览</div>
+    <div class="tni" onclick="switchMainTab(this,'category')">📂 采购品类</div>
+    <div class="tni" onclick="switchMainTab(this,'routing')">🔀 路由规则</div>
+    <div class="tni" onclick="switchMainTab(this,'tasks')">📋 任务路由</div>
+    <div class="tni" onclick="switchMainTab(this,'project')">🚗 项目管控</div>
+  </div>
+  <div class="topnav-right">
+    <div class="nicon">🔔</div><div class="nicon">⚙️</div>
+    <div class="nav-user"><div class="nav-avatar">齐</div>齐越</div>
+  </div>
+</nav>
+
+<!-- ==================== MAIN LAYOUT ==================== -->
+<div class="srm-layout">
+
+<!-- ============ SIDEBAR ============ -->
+<aside class="sidebar">
+  <div class="sidebar-hdr">
+    <h3>品类主数据体系</h3>
+    <p>Category Master Data</p>
+    <div class="hdr-badge">🔀 采购员自动路由</div>
+  </div>
+  <div class="sp-menu">
+    <div class="sp-group-label">主数据配置</div>
+    <div class="sp-item active" data-page="cat-mgmt" onclick="switchSidebar(this,'cat-mgmt')">
+      <div class="sp-icon si-blue">📂</div><span>采购品类维护</span><span class="sp-badge">128</span></div>
+    <div class="sp-item" data-page="mvps-map" onclick="switchSidebar(this,'mvps-map')">
+      <div class="sp-icon si-purple">🏗️</div><span>MVPS 分级</span><span class="sp-badge">56</span></div>
+    <div class="sp-item" data-page="buyer-tree" onclick="switchSidebar(this,'buyer-tree')">
+      <div class="sp-icon si-green">👤</div><span>采购员配置</span><span class="sp-badge">42</span></div>
+    <div class="sp-item" data-page="supplier-map" onclick="switchSidebar(this,'supplier-map')">
+      <div class="sp-icon si-cyan">🏭</div><span>合格供应商映射</span><span class="sp-badge">340</span></div>
+    
+    <div class="sp-group-label">路由引擎</div>
+    <div class="sp-item" data-page="route-rules" onclick="switchSidebar(this,'route-rules')">
+      <div class="sp-icon si-orange">🔀</div><span>路由规则库</span><span class="sp-badge">24</span></div>
+    <div class="sp-item" data-page="route-log" onclick="switchSidebar(this,'route-log')">
+      <div class="sp-icon si-magenta">📜</div><span>路由执行日志</span></div>
+    <div class="sp-item" data-page="batch-transfer" onclick="switchSidebar(this,'batch-transfer')">
+      <div class="sp-icon si-red">📤</div><span>批量转移</span></div>
+    
+    <div class="sp-group-label">任务模块</div>
+    <div class="sp-item" data-page="mod-sor" onclick="switchSidebar(this,'mod-sor')">
+      <div class="sp-icon si-blue">📋</div><span>SOR 寻源</span><span class="sp-badge">1245</span></div>
+    <div class="sp-item" data-page="mod-bdl" onclick="switchSidebar(this,'mod-bdl')">
+      <div class="sp-icon si-purple">📝</div><span>BDL 清单</span><span class="sp-badge">867</span></div>
+    <div class="sp-item" data-page="mod-ewo" onclick="switchSidebar(this,'mod-ewo')">
+      <div class="sp-icon si-green">🔧</div><span>EWO 变更</span><span class="sp-badge">432</span></div>
+    <div class="sp-item" data-page="mod-cwo" onclick="switchSidebar(this,'mod-cwo')">
+      <div class="sp-icon si-orange">💰</div><span>CWO 成本</span><span class="sp-badge">156</span></div>
+    <div class="sp-item" data-page="mod-swo" onclick="switchSidebar(this,'mod-swo')">
+      <div class="sp-icon si-cyan">💻</div><span>SWO 软件</span><span class="sp-badge">89</span></div>
+    <div class="sp-item" data-page="mod-fw" onclick="switchSidebar(this,'mod-fw')">
+      <div class="sp-icon si-gray">📄</div><span>框架协议</span><span class="sp-badge">189</span></div>
+
+    <div class="sp-group-label">数据治理</div>
+    <div class="sp-item" data-page="version-mgmt" onclick="switchSidebar(this,'version-mgmt')">
+      <div class="sp-icon si-gray">📌</div><span>版本追溯</span></div>
+    <div class="sp-item" data-page="batch-import" onclick="switchSidebar(this,'batch-import')">
+      <div class="sp-icon si-gray">📥</div><span>批量导入</span></div>
+    <div class="sp-item" data-page="data-audit" onclick="switchSidebar(this,'data-audit')">
+      <div class="sp-icon si-gray">🔍</div><span>数据稽核</span></div>
+  </div>
+</aside>
+
+<!-- ============ MAIN AREA ============ -->
+<main class="main-area">
+
+  <!-- ===== PAGE HEADER ===== -->
+  <div class="page-header">
+    <div class="ph-row">
+      <div>
+        <div class="ph-title">📊 品类主数据管理与自动路由</div>
+        <div class="ph-breadcrumb">首页 <span>/</span> <span class="bc-cur">品类主数据体系</span></div>
+      </div>
+      <div style="display:flex;gap:8px">
+        <button class="btn btn-o btn-s" onclick="openModal('importModal')">📥 批量导入</button>
+        <button class="btn btn-o btn-s" onclick="openModal('exportModal')">📤 导出</button>
+        <button class="btn btn-p" onclick="openModal('addCatModal')">+ 新增品类</button>
+      </div>
+    </div>
+    <div class="ph-tabs" id="mainTabs">
+      <div class="ptab active" onclick="switchPTab(this,'tab-overview')">
+        🏠 总览<span class="ptag tag tag-p">Overview</span></div>
+      <div class="ptab" onclick="switchPTab(this,'tab-category')">
+        📂 采购品类<span class="ptag tag tag-gray">128项</span></div>
+      <div class="ptab" onclick="switchPTab(this,'tab-routing')">
+        🔀 路由规则<span class="ptag tag tag-orange">24条</span></div>
+      <div class="ptab" onclick="switchPTab(this,'tab-tasks')">
+        📋 任务路由<span class="ptag tag tag-purple">6模块</span></div>
+      <div class="ptab" onclick="switchPTab(this,'tab-project')">
+        🚗 项目管控<span class="ptag tag tag-cyan">12项目</span></div>
+      </div>
+  </div>
+
+  <!-- ===== PAGE BODY ===== -->
+  <div class="page-body">
+
+    <!-- ========== TAB 1: 总览 ========== -->
+    <div class="tab-content active" id="tab-overview">
+      <!-- KPI Cards -->
+      <div class="kpi-grid">
+        <div class="kpi-card">
+          <div class="kpi-icon blue">📂</div>
+          <div class="kpi-info"><div class="kpi-val">128</div><div class="kpi-label">采购品类总数</div></div>
+          <div class="kpi-trend up">↑ 12 本月新增</div>
+        </div>
+        <div class="kpi-card">
+          <div class="kpi-icon purple">🏗️</div>
+          <div class="kpi-info"><div class="kpi-val">56</div><div class="kpi-label">MVPS 分级节点</div></div>
+          <div class="kpi-trend up">↑ 3 层级完整</div>
+        </div>
+        <div class="kpi-card">
+          <div class="kpi-icon green">👤</div>
+          <div class="kpi-info"><div class="kpi-val">42</div><div class="kpi-label">采购员配置</div></div>
+          <div class="kpi-trend">在线可派活</div>
+        </div>
+        <div class="kpi-card">
+          <div class="kpi-icon orange">🔀</div>
+          <div class="kpi-info"><div class="kpi-val">24</div><div class="kpi-label">路由规则数</div></div>
+          <div class="kpi-trend">全部生效中</div>
+        </div>
+        <div class="kpi-card">
+          <div class="kpi-icon cyan">🏭</div>
+          <div class="kpi-info"><div class="kpi-val">340</div><div class="kpi-label">合格供应商映射</div></div>
+          <div class="kpi-trend up">↑ 98%覆盖率</div>
+        </div>
+        <div class="kpi-card">
+          <div class="kpi-icon red">📋</div>
+          <div class="kpi-info"><div class="kpi-val">2,847</div><div class="kpi-label">待路由任务</div></div>
+          <div class="kpi-trend down">↓ 15% 较上周</div>
+        </div>
+      </div>
+
+      <!-- Routing Flow (System perspective, no workflow) -->
+      <div class="sec">
+        <div class="sec-hdr">
+          <div class="sec-title">🔀 自动路由机制：品类 → MVPS → 采购员</div>
+          <div class="sec-actions"><span class="tag tag-s">系统自动执行</span></div>
+        </div>
+        <div class="sec-body">
+          <div class="route-flow">
+            <div class="rf-node">
+              <div class="rf-box l1">采购品类分类<br/><span style="font-weight:400;font-size:11px">从 SOR/BDL/EWO 自动识别</span></div>
+              <div class="rf-label">第 1 级 · 数据输入</div>
+            </div>
+            <div class="rf-arrow"></div>
+            <div class="rf-node">
+              <div class="rf-box l2">MVPS 整车分级<br/><span style="font-weight:400;font-size:11px">V1/V2/V3/VX 策略级</span></div>
+              <div class="rf-label">第 2 级 · 策略匹配</div>
+            </div>
+            <div class="rf-arrow"></div>
+            <div class="rf-node">
+              <div class="rf-box l3">采购员自动指派<br/><span style="font-weight:400;font-size:11px">按规则库匹配负责人</span></div>
+              <div class="rf-label">第 3 级 · 派活结果</div>
+            </div>
+          </div>
+          <div style="margin-top:16px;padding:12px 16px;background:var(--g50);border-radius:var(--rs);font-size:12px;color:var(--g600)">
+            💡 <strong>路由说明：</strong>系统根据任务中的零件编码 / 品类标签，自动匹配 MVPS 级别，再依据<strong>路由规则库</strong>将任务指派给对应采购员，全程无需人工派活。当多条规则命中时，按规则优先级与采购员当前负载综合判定。
+          </div>
+        </div>
+      </div>
+
+      <!-- Module Routing Status (List-style summary) -->
+      <div class="sec">
+        <div class="sec-hdr">
+          <div class="sec-title">📋 各模块路由启用状态</div>
+          <div class="sec-actions"><button class="btn btn-o btn-s">配置规则</button></div>
+        </div>
+        <div class="sec-body" style="padding:0">
+          <div class="table-wrap">
+            <table>
+              <thead><tr>
+                <th class="chk"><input type="checkbox"></th>
+                <th>业务模块</th><th>路由状态</th><th>命中规则数</th>
+                <th>今日自动派活</th><th>待人工处理</th><th>自动派活率</th><th>操作</th>
+              </tr></thead>
+              <tbody>
+                <tr><td class="chk"><input type="checkbox"></td><td><strong>SOR 寻源需求</strong></td><td><span class="chip" style="background:var(--sl);color:var(--s)">● 已启用</span></td><td>8</td><td><strong>342</strong></td><td>12</td><td><div style="width:90px"><div class="progress-bar"><div class="pb-fill green" style="width:96%"></div></div></div></td><td><button class="btn btn-link">规则</button></td></tr>
+                <tr><td class="chk"><input type="checkbox"></td><td><strong>BDL 零部件清单</strong></td><td><span class="chip" style="background:var(--sl);color:var(--s)">● 已启用</span></td><td>6</td><td><strong>218</strong></td><td>8</td><td><div style="width:90px"><div class="progress-bar"><div class="pb-fill green" style="width:93%"></div></div></div></td><td><button class="btn btn-link">规则</button></td></tr>
+                <tr><td class="chk"><input type="checkbox"></td><td><strong>EWO 工程变更</strong></td><td><span class="chip" style="background:var(--sl);color:var(--s)">● 已启用</span></td><td>5</td><td><strong>96</strong></td><td>5</td><td><div style="width:90px"><div class="progress-bar"><div class="pb-fill orange" style="width:88%"></div></div></div></td><td><button class="btn btn-link">规则</button></td></tr>
+                <tr><td class="chk"><input type="checkbox"></td><td><strong>CWO 成本变更</strong></td><td><span class="chip" style="background:var(--wl);color:var(--orange)">● 配置中</span></td><td>3</td><td><strong>31</strong></td><td>4</td><td><div style="width:90px"><div class="progress-bar"><div class="pb-fill orange" style="width:76%"></div></div></div></td><td><button class="btn btn-link">规则</button></td></tr>
+                <tr><td class="chk"><input type="checkbox"></td><td><strong>SWO 软件变更</strong></td><td><span class="chip" style="background:var(--g100);color:var(--g500)">○ 未启用</span></td><td>0</td><td><strong>0</strong></td><td>0</td><td><span style="color:var(--g400)">—</span></td><td><button class="btn btn-link" style="color:var(--orange)">去配置</button></td></tr>
+                <tr><td class="chk"><input type="checkbox"></td><td><strong>框架协议</strong></td><td><span class="chip" style="background:var(--sl);color:var(--s)">● 已启用</span></td><td>2</td><td><strong>54</strong></td><td>2</td><td><div style="width:90px"><div class="progress-bar"><div class="pb-fill green" style="width:91%"></div></div></div></td><td><button class="btn btn-link">规则</button></td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div><!-- end tab-overview -->
+
+    <!-- ========== TAB 2: 采购品类 ========== -->
+    <div class="tab-content" id="tab-category">
+      <div class="split-view" style="height: calc(100vh - 220px)">
+        <div class="sv-left">
+          <div class="tree-panel">
+            <div class="tp-hdr"><h4>📂 品类树结构</h4><button class="btn btn-p btn-s" onclick="openModal('addCatModal')">+ 新增</button></div>
+            <div class="tp-search"><input placeholder="搜索品类名称 / 编码..."></div>
+            <div class="tp-body" id="categoryTree">
+              <div class="tn">
+                <div class="tr-row sel" onclick="selectTreeRow(this)"><span class="tr-toggle open">▶</span><span class="tr-icon">⚙️</span><span class="tr-label">动力总成</span><span class="tr-code">CAT-P01</span><span class="tr-count">24</span></div>
+                <div class="tn" style="padding-left:20px">
+                  <div class="tr-row" onclick="selectTreeRow(this)"><span class="tr-toggle open">▶</span><span class="tr-icon">🔋</span><span class="tr-label">电池系统</span><span class="tr-code">CAT-P01-01</span><span class="tr-count">8</span></div>
+                  <div class="tn" style="padding-left:20px">
+                    <div class="tr-row" onclick="selectTreeRow(this)"><span class="tr-toggle">▶</span><span class="tr-icon">📦</span><span class="tr-label">电池包总成</span><span class="tr-code">CAT-P01-01-A</span><span class="tr-count">3</span></div>
+                    <div class="tr-row" onclick="selectTreeRow(this)"><span class="tr-toggle">▶</span><span class="tr-icon">🔌</span><span class="tr-label">BMS 电池管理</span><span class="tr-code">CAT-P01-01-B</span><span class="tr-count">2</span></div>
+                    <div class="tr-row" onclick="selectTreeRow(this)"><span class="tr-toggle">▶</span><span class="tr-icon">🌡️</span><span class="tr-label">热管理系统</span><span class="tr-code">CAT-P01-01-C</span><span class="tr-count">3</span></div>
+                  </div>
+                  <div class="tr-row" onclick="selectTreeRow(this)"><span class="tr-toggle open">▶</span><span class="tr-icon">⚡</span><span class="tr-label">电驱系统</span><span class="tr-code">CAT-P01-02</span><span class="tr-count">10</span></div>
+                  <div class="tr-row" onclick="selectTreeRow(this)"><span class="tr-toggle">▶</span><span class="tr-icon">🔌</span><span class="tr-label">电控系统</span><span class="tr-code">CAT-P01-03</span><span class="tr-count">6</span></div>
+                </div>
+              </div>
+              <div class="tn">
+                <div class="tr-row" onclick="selectTreeRow(this)"><span class="tr-toggle open">▶</span><span class="tr-icon">🛞</span><span class="tr-label">底盘系统</span><span class="tr-code">CAT-C01</span><span class="tr-count">32</span></div>
+                <div class="tn" style="padding-left:20px">
+                  <div class="tr-row" onclick="selectTreeRow(this)"><span class="tr-toggle">▶</span><span class="tr-icon">🧱</span><span class="tr-label">制动系统</span><span class="tr-code">CAT-C01-01</span><span class="tr-count">6</span></div>
+                  <div class="tr-row" onclick="selectTreeRow(this)"><span class="tr-toggle">▶</span><span class="tr-icon">🔄</span><span class="tr-label">转向系统</span><span class="tr-code">CAT-C01-02</span><span class="tr-count">5</span></div>
+                  <div class="tr-row" onclick="selectTreeRow(this)"><span class="tr-toggle">▶</span><span class="tr-icon">🔇</span><span class="tr-label">悬架减震</span><span class="tr-code">CAT-C01-03</span><span class="tr-count">8</span></div>
+                  <div class="tr-row" onclick="selectTreeRow(this)"><span class="tr-toggle">▶</span><span class="tr-icon">🛼</span><span class="tr-label">车轮轮胎</span><span class="tr-code">CAT-C01-04</span><span class="tr-count">4</span></div>
+                </div>
+              </div>
+              <div class="tn">
+                <div class="tr-row" onclick="selectTreeRow(this)"><span class="tr-toggle open">▶</span><span class="tr-icon">🚗</span><span class="tr-label">车身系统</span><span class="tr-code">CAT-B01</span><span class="tr-count">28</span></div>
+                <div class="tn" style="padding-left:20px">
+                  <div class="tr-row" onclick="selectTreeRow(this)"><span class="tr-toggle">▶</span><span class="tr-icon">🪑</span><span class="tr-label">座椅总成</span><span class="tr-code">CAT-B01-01</span><span class="tr-count">6</span></div>
+                  <div class="tr-row" onclick="selectTreeRow(this)"><span class="tr-toggle">▶</span><span class="tr-icon">🪟</span><span class="tr-label">车身外饰</span><span class="tr-code">CAT-B01-02</span><span class="tr-count">10</span></div>
+                  <div class="tr-row" onclick="selectTreeRow(this)"><span class="tr-toggle">▶</span><span class="tr-icon">🚪</span><span class="tr-label">车门系统</span><span class="tr-code">CAT-B01-03</span><span class="tr-count">5</span></div>
+                  <div class="tr-row" onclick="selectTreeRow(this)"><span class="tr-toggle">▶</span><span class="tr-icon">💡</span><span class="tr-label">照明系统</span><span class="tr-code">CAT-B01-04</span><span class="tr-count">7</span></div>
+                </div>
+              </div>
+              <div class="tn"><div class="tr-row" onclick="selectTreeRow(this)"><span class="tr-toggle">▶</span><span class="tr-icon">📡</span><span class="tr-label">电子电器</span><span class="tr-code">CAT-E01</span><span class="tr-count">44</span></div></div>
+              <div class="tn"><div class="tr-row" onclick="selectTreeRow(this)"><span class="tr-toggle">▶</span><span class="tr-icon">🛋️</span><span class="tr-label">内饰系统</span><span class="tr-code">CAT-I01</span><span class="tr-count">18</span></div></div>
+            </div>
+          </div>
+        </div>
+        <div class="detail-panel">
+          <div class="dp-header">
+            <div class="dp-title">⚙️ 动力总成 <span class="tag tag-p">L1</span></div>
+            <div class="dp-tags">
+              <span class="tag tag-purple">MVPS-V1</span>
+              <span class="tag tag-cyan">SRM 直连</span>
+              <span class="tag tag-s">已生效</span>
+            </div>
+          </div>
+          <div class="dp-body">
+            <div class="dp-section">
+              <div class="dps-title">基本信息</div>
+              <div class="dp-field"><span class="dp-fl">品类编码</span><span class="dp-fv">CAT-P01</span></div>
+              <div class="dp-field"><span class="dp-fl">品类名称</span><span class="dp-fv">动力总成</span></div>
+              <div class="dp-field"><span class="dp-fl">层级</span><span class="dp-fv">一级（L1）</span></div>
+              <div class="dp-field"><span class="dp-fl">MiBOM 触发字段</span><span class="dp-fv">POWER_TRAIN_TYPE</span></div>
+              <div class="dp-field"><span class="dp-fl">数据来源</span><span class="dp-fv">SRM 系统 / PLM 同步</span></div>
+              <div class="dp-field"><span class="dp-fl">最后更新</span><span class="dp-fv">2026-07-10 14:32 齐越</span></div>
+            </div>
+            <div class="dp-section">
+              <div class="dps-title">默认路由采购员</div>
+              <div class="buyer-card selected">
+                <div class="buyer-avatar" style="background:linear-gradient(135deg,var(--p),#4096ff)">张</div>
+                <div class="buyer-info"><div class="buyer-name">张明</div><div class="buyer-meta">动力总成采购员 · 5年经验</div></div>
+                <span class="buyer-load warn">负载 78%</span>
+              </div>
+              <div class="buyer-card">
+                <div class="buyer-avatar" style="background:linear-gradient(135deg,var(--s),#73d13d)">王</div>
+                <div class="buyer-info"><div class="buyer-name">王磊</div><div class="buyer-meta">动力总成采购员 · 2年经验</div></div>
+                <span class="buyer-load ok">负载 45%</span>
+              </div>
+            </div>
+            <div class="dp-section">
+              <div class="dps-title">关联供应商（Top 5）</div>
+              <div class="table-wrap">
+                <table>
+                  <thead><tr><th>供应商</th><th>等级</th><th>MVPS</th><th>状态</th></tr></thead>
+                  <tbody>
+                    <tr><td>宁德时代</td><td><span class="tag tag-s">A</span></td><td>V1关键</td><td><span class="chip" style="background:var(--sl);color:var(--s)">正常</span></td></tr>
+                    <tr><td>比亚迪弗迪</td><td><span class="tag tag-s">A</span></td><td>V1关键</td><td><span class="chip" style="background:var(--sl);color:var(--s)">正常</span></td></tr>
+                    <tr><td>中创新航</td><td><span class="tag tag-w">B+</span></td><td>V2重要</td><td><span class="chip" style="background:var(--sl);color:var(--s)">正常</span></td></tr>
+                    <tr><td>国轩高科</td><td><span class="tag tag-w">B</span></td><td>V2重要</td><td><span class="chip" style="background:var(--sl);color:var(--s)">正常</span></td></tr>
+                    <tr><td>欣旺达</td><td><span class="tag tag-w">B</span></td><td>V3一般</td><td><span class="chip" style="background:var(--wl);color:var(--orange)">观察</span></td></tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div><!-- end tab-category -->
+
+    <!-- ========== TAB 3: 路由规则 ========== -->
+    <div class="tab-content" id="tab-routing">
+      <!-- Routing Config 3-column: Category -> MVPS -> Buyer -->
+      <div class="sec">
+        <div class="sec-hdr">
+          <div class="sec-title">🔀 路由规则配置 — 品类 × MVPS × 采购员</div>
+          <div class="sec-actions">
+            <button class="btn btn-o btn-s" onclick="openModal('importModal')">📥 导入规则</button>
+            <button class="btn btn-p btn-s" onclick="openModal('addRuleModal')">+ 新增规则</button>
+          </div>
+        </div>
+        <div class="sec-body">
+          <div class="config-cols">
+            <!-- Column 1: Category -->
+            <div class="cc-col">
+              <div class="cc-hdr"><span>L1 采购品类</span><span class="tag tag-p">条件源</span></div>
+              <div class="cc-body">
+                <div class="cc-item selected"><div class="cci-icon si-blue">⚙️</div><div class="cci-info"><div class="cci-name">动力总成</div><div class="cci-desc">CAT-P01 · 24子品类</div></div></div>
+                <div class="cc-item"><div class="cci-icon si-blue">🛞</div><div class="cci-info"><div class="cci-name">底盘系统</div><div class="cci-desc">CAT-C01 · 32子品类</div></div></div>
+                <div class="cc-item"><div class="cci-icon si-blue">🚗</div><div class="cci-info"><div class="cci-name">车身系统</div><div class="cci-desc">CAT-B01 · 28子品类</div></div></div>
+                <div class="cc-item"><div class="cci-icon si-blue">📡</div><div class="cci-info"><div class="cci-name">电子电器</div><div class="cci-desc">CAT-E01 · 44子品类</div></div></div>
+                <div class="cc-item"><div class="cci-icon si-blue">🛋️</div><div class="cci-info"><div class="cci-name">内饰系统</div><div class="cci-desc">CAT-I01 · 18子品类</div></div></div>
+              </div>
+            </div>
+            <!-- Column 2: MVPS Level -->
+            <div class="cc-col">
+              <div class="cc-hdr"><span>L2 MVPS 级别</span><span class="tag tag-purple">策略层</span></div>
+              <div class="cc-body">
+                <div class="cc-item selected"><div class="cci-icon" style="background:linear-gradient(135deg,#ff4d4f,#ff7875);color:#fff">V1</div><div class="cci-info"><div class="cci-name">V1 关键件</div><div class="cci-desc">CEO 审批 · 最高管控</div></div></div>
+                <div class="cc-item"><div class="cci-icon" style="background:linear-gradient(135deg,#faad14,#ffc53d);color:#fff">V2</div><div class="cci-info"><div class="cci-name">V2 重要件</div><div class="cci-desc">VP 审批 · 重点管控</div></div></div>
+                <div class="cc-item"><div class="cci-icon" style="background:linear-gradient(135deg,#1677ff,#4096ff);color:#fff">V3</div><div class="cci-info"><div class="cci-name">V3 一般件</div><div class="cci-desc">总监审批 · 常规管控</div></div></div>
+                <div class="cc-item"><div class="cci-icon" style="background:linear-gradient(135deg,#8c8c8c,#bfbfbf);color:#fff">VX</div><div class="cci-info"><div class="cci-name">VX 标准件</div><div class="cci-desc">经理审批 · 标准流程</div></div></div>
+              </div>
+            </div>
+            <!-- Column 3: Buyer (采购员) -->
+            <div class="cc-col">
+              <div class="cc-hdr"><span>L3 采购员</span><span class="tag tag-s">派活目标</span></div>
+              <div class="cc-body">
+                <div class="buyer-card selected"><div class="buyer-avatar" style="background:linear-gradient(135deg,var(--p),#4096ff)">张</div><div class="buyer-info"><div class="buyer-name">张明</div><div class="buyer-meta">动力总成 · 5年</div></div><span class="buyer-load warn">78%</span></div>
+                <div class="buyer-card"><div class="buyer-avatar" style="background:linear-gradient(135deg,var(--s),#73d13d)">王</div><div class="buyer-info"><div class="buyer-name">王磊</div><div class="buyer-meta">动力总成 · 2年</div></div><span class="buyer-load ok">45%</span></div>
+                <div class="buyer-card"><div class="buyer-avatar" style="background:linear-gradient(135deg,var(--cyan),#36cfc9);color:#fff">赵</div><div class="buyer-info"><div class="buyer-name">赵静</div><div class="buyer-meta">动力总成 · 1年</div></div><span class="buyer-load ok">32%</span></div>
+                <div class="buyer-card"><div class="buyer-avatar" style="background:linear-gradient(135deg,var(--purple),#9254de)">刘</div><div class="buyer-info"><div class="buyer-name">刘洋</div><div class="buyer-meta">底盘系统 · 4年</div></div><span class="buyer-load warn">71%</span></div>
+              </div>
+            </div>
+          </div>
+          
+          <!-- Routing Result Preview -->
+          <div class="route-preview">
+            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">
+              <div style="font-size:13px;font-weight:600;color:var(--g800)">📋 路由预览</div>
+              <button class="btn btn-p btn-s" onclick="openModal('addRuleModal')">保存为规则</button>
+            </div>
+            <div class="route-flow" style="padding:0">
+              <div class="rf-node"><div class="rf-box l1" style="font-size:11px;padding:8px 14px">动力总成</div></div>
+              <div class="rf-arrow"></div>
+              <div class="rf-node"><div class="rf-box l2" style="font-size:11px;padding:8px 14px">V1 关键件</div></div>
+              <div class="rf-arrow"></div>
+              <div class="rf-node"><div class="rf-box l3" style="font-size:11px;padding:8px 14px">→ 张明（采购员）</div></div>
+            </div>
+            <div style="margin-top:10px;font-size:11px;color:var(--g500)">⚙️ 命中条件：品类=动力总成 且 MVPS=V1 → 指派采购员「张明」；若负载&gt;80% 则自动溢出至「王磊」</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Routing Rules Library (Refined) -->
+      <div class="sec">
+        <div class="sec-hdr">
+          <div class="sec-title">📜 路由规则库 <span class="st-count">24 条</span></div>
+          <div class="sec-actions">
+            <div class="fg"><span class="fl">筛选：</span><select class="fi"><option>全部模块</option><option>SOR</option><option>BDL</option><option>EWO</option><option>CWO</option><option>SWO</option><option>框架协议</option></select></div>
+          </div>
+        </div>
+        <div class="sec-body" style="padding:0">
+          <div class="table-wrap">
+            <table>
+              <thead><tr>
+                <th class="chk"><input type="checkbox"></th>
+                <th>优先级</th><th>规则名称</th><th>适用模块</th><th>条件（IF）</th><th>动作（THEN）</th>
+                <th>溢出策略</th><th>状态</th><th>操作</th>
+              </tr></thead>
+              <tbody>
+                <tr>
+                  <td class="chk"><input type="checkbox"></td>
+                  <td><span class="rule-priority hi">1</span></td>
+                  <td><strong>动力V1直派张明</strong></td>
+                  <td><span class="tag tag-p">SOR</span> <span class="tag tag-purple">BDL</span></td>
+                  <td>品类=动力总成 且 MVPS=V1</td>
+                  <td>指派 <strong>张明</strong></td>
+                  <td>负载&gt;80% → 王磊</td>
+                  <td><span class="chip" style="background:var(--sl);color:var(--s)">● 生效</span></td>
+                  <td><button class="btn btn-link">编辑</button> <button class="btn btn-link">日志</button></td>
+                </tr>
+                <tr>
+                  <td class="chk"><input type="checkbox"></td>
+                  <td><span class="rule-priority hi">2</span></td>
+                  <td><strong>电池系统V1专项</strong></td>
+                  <td><span class="tag tag-p">SOR</span></td>
+                  <td>品类=电池系统 且 MVPS=V1</td>
+                  <td>指派 <strong>张明</strong></td>
+                  <td>负载&gt;75% → 王磊</td>
+                  <td><span class="chip" style="background:var(--sl);color:var(--s)">● 生效</span></td>
+                  <td><button class="btn btn-link">编辑</button> <button class="btn btn-link">日志</button></td>
+                </tr>
+                <tr>
+                  <td class="chk"><input type="checkbox"></td>
+                  <td><span class="rule-priority mid">3</span></td>
+                  <td><strong>底盘V2派刘洋</strong></td>
+                  <td><span class="tag tag-p">SOR</span> <span class="tag tag-s">EWO</span> <span class="tag tag-orange">CWO</span></td>
+                  <td>品类=底盘系统 且 MVPS=V2/V3</td>
+                  <td>指派 <strong>刘洋</strong></td>
+                  <td>负载&gt;80% → 周杰</td>
+                  <td><span class="chip" style="background:var(--sl);color:var(--s)">● 生效</span></td>
+                  <td><button class="btn btn-link">编辑</button> <button class="btn btn-link">日志</button></td>
+                </tr>
+                <tr>
+                  <td class="chk"><input type="checkbox"></td>
+                  <td><span class="rule-priority mid">4</span></td>
+                  <td><strong>车身V2派孙丽</strong></td>
+                  <td><span class="tag tag-p">SOR</span> <span class="tag tag-purple">BDL</span></td>
+                  <td>品类=车身系统 且 MVPS=V2</td>
+                  <td>指派 <strong>孙丽</strong></td>
+                  <td>负载&gt;80% → 郑敏</td>
+                  <td><span class="chip" style="background:var(--sl);color:var(--s)">● 生效</span></td>
+                  <td><button class="btn btn-link">编辑</button> <button class="btn btn-link">日志</button></td>
+                </tr>
+                <tr>
+                  <td class="chk"><input type="checkbox"></td>
+                  <td><span class="rule-priority mid">5</span></td>
+                  <td><strong>EWO变更派SQE协同</strong></td>
+                  <td><span class="tag tag-s">EWO</span></td>
+                  <td>模块=EWO 且 有成本影响</td>
+                  <td>指派 品类对应采购员 + 抄送 SQE</td>
+                  <td>—</td>
+                  <td><span class="chip" style="background:var(--sl);color:var(--s)">● 生效</span></td>
+                  <td><button class="btn btn-link">编辑</button> <button class="btn btn-link">日志</button></td>
+                </tr>
+                <tr>
+                  <td class="chk"><input type="checkbox"></td>
+                  <td><span class="rule-priority lo">6</span></td>
+                  <td><strong>框架协议派签约人</strong></td>
+                  <td><span class="tag tag-gray">框架协议</span></td>
+                  <td>模块=框架协议 且 品类命中</td>
+                  <td>指派 该品类框架负责人</td>
+                  <td>—</td>
+                  <td><span class="chip" style="background:var(--sl);color:var(--s)">● 生效</span></td>
+                  <td><button class="btn btn-link">编辑</button> <button class="btn btn-link">日志</button></td>
+                </tr>
+                <tr>
+                  <td class="chk"><input type="checkbox"></td>
+                  <td><span class="rule-priority lo">7</span></td>
+                  <td><strong>内饰/电子V3负载均衡</strong></td>
+                  <td><span class="tag tag-s">EWO</span> <span class="tag tag-gray">框架协议</span></td>
+                  <td>品类=内饰/电子 且 MVPS=V3</td>
+                  <td>按负载最低自动分配</td>
+                  <td>—</td>
+                  <td><span class="chip" style="background:var(--wl);color:var(--orange)">● 配置中</span></td>
+                  <td><button class="btn btn-link">编辑</button> <button class="btn btn-link">日志</button></td>
+                </tr>
+                <tr>
+                  <td class="chk"><input type="checkbox"></td>
+                  <td><span class="rule-priority lo">8</span></td>
+                  <td><strong>SWO软件待定</strong></td>
+                  <td><span class="tag tag-cyan">SWO</span></td>
+                  <td>模块=SWO</td>
+                  <td><span style="color:var(--g400)">未配置采购员</span></td>
+                  <td>—</td>
+                  <td><span class="chip" style="background:var(--g100);color:var(--g500)">○ 未启用</span></td>
+                  <td><button class="btn btn-link" style="color:var(--orange)">去配置</button></td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+          <div class="pagination">
+            <div class="pg-info">共 24 条路由规则</div>
+            <div class="pg-btns"><button class="pg-btn" disabled>&lt;</button><button class="pg-btn active">1</button><button class="pg-btn">2</button><button class="pg-btn">3</button><button class="pg-btn">&gt;</button></div>
+          </div>
+        </div>
+      </div>
+    </div><!-- end tab-routing -->
+
+    <!-- ========== TAB 4: 任务路由 (6 modules as lists) ========== -->
+    <div class="tab-content" id="tab-tasks">
+      <!-- Sub Tabs for modules -->
+      <div class="sub-tabs" id="taskSubTabs">
+        <div class="sbtab active" onclick="switchSubTab(this,'sub-sor')">📋 SOR 寻源 <span class="sb-badge">1245</span></div>
+        <div class="sbtab" onclick="switchSubTab(this,'sub-bdl')">📝 BDL 清单 <span class="sb-badge">867</span></div>
+        <div class="sbtab" onclick="switchSubTab(this,'sub-ewo')">🔧 EWO 变更 <span class="sb-badge">432</span></div>
+        <div class="sbtab" onclick="switchSubTab(this,'sub-cwo')">💰 CWO 成本 <span class="sb-badge">156</span></div>
+        <div class="sbtab" onclick="switchSubTab(this,'sub-swo')">💻 SWO 软件 <span class="sb-badge">89</span></div>
+        <div class="sbtab" onclick="switchSubTab(this,'sub-fw')">📄 框架协议 <span class="sb-badge">189</span></div>
+      </div>
+
+      <!-- ===== SUB: SOR ===== -->
+      <div class="tab-content active" id="sub-sor" style="padding:16px 24px">
+        <div class="sec">
+          <div class="sec-hdr">
+            <div class="sec-title">📋 SOR 寻源任务列表 — 按品类自动路由至采购员</div>
+            <div class="sec-actions">
+              <button class="btn btn-danger btn-s" onclick="openModal('transferModal')">📤 批量转移</button>
+              <button class="btn btn-o btn-s">手动指派</button>
+            </div>
+          </div>
+          <div class="filter-bar">
+            <div class="fg"><span class="fl">SOR 编号</span><input class="fi" placeholder="输入 SOR 编号"></div>
+            <div class="fg"><span class="fl">品类</span><select class="fi"><option>全部</option><option>动力总成</option><option>底盘系统</option><option>车身系统</option><option>电子电器</option></select></div>
+            <div class="fg"><span class="fl">路由状态</span><select class="fi"><option>全部</option><option>✅ 已路由</option><option>⏳ 待路由</option><option>❌ 路由失败</option></select></div>
+            <div class="fg"><span class="fl">采购员</span><select class="fi"><option>全部</option><option>张明</option><option>刘洋</option><option>孙丽</option><option>王磊</option></select></div>
+          </div>
+          <div class="sec-body" style="padding:0">
+            <div class="table-wrap">
+              <table>
+                <thead><tr>
+                  <th class="chk"><input type="checkbox"></th>
+                  <th>SOR编号</th><th>SOR名称</th><th>品类</th><th>MVPS</th>
+                  <th>自动路由结果</th><th>指派采购员</th><th>计划响应</th><th>状态</th><th>操作</th>
+                </tr></thead>
+                <tbody>
+                  <tr>
+                    <td class="chk"><input type="checkbox"></td>
+                    <td><a style="color:var(--p)" href="#">SCR-MP-BW-0054</a></td><td>前仓大灯模组B柱</td>
+                    <td><span class="tag tag-cyan">车身-外饰</span></td><td><span class="tag tag-w">V2</span></td>
+                    <td><span class="tag tag-s">✅ 自动路由</span></td>
+                    <td><div class="buyer-card" style="margin:0;padding:4px 8px"><div class="buyer-avatar" style="width:22px;height:22px;font-size:10px;background:linear-gradient(135deg,var(--purple),#9254de)">孙</div><span style="font-size:12px;font-weight:600">孙丽</span></div></td>
+                    <td>2026-07-18</td><td><span class="chip" style="background:var(--wl);color:var(--orange)">● 待接收</span></td>
+                    <td><button class="btn btn-link">详情</button> <button class="btn btn-link">转移</button></td>
+                  </tr>
+                  <tr>
+                    <td class="chk"><input type="checkbox"></td>
+                    <td><a style="color:var(--p)" href="#">SCR-MP-BW-0055</a></td><td>KunLun倒车镜总成SOR</td>
+                    <td><span class="tag tag-cyan">车身-外饰</span></td><td><span class="tag tag-w">V2</span></td>
+                    <td><span class="tag tag-s">✅ 自动路由</span></td>
+                    <td><div class="buyer-card" style="margin:0;padding:4px 8px"><div class="buyer-avatar" style="width:22px;height:22px;font-size:10px;background:linear-gradient(135deg,var(--purple),#9254de)">孙</div><span style="font-size:12px;font-weight:600">孙丽</span></div></td>
+                    <td>2026-07-18</td><td><span class="chip" style="background:var(--wl);color:var(--orange)">● 待接收</span></td>
+                    <td><button class="btn btn-link">详情</button> <button class="btn btn-link">转移</button></td>
+                  </tr>
+                  <tr>
+                    <td class="chk"><input type="checkbox"></td>
+                    <td><a style="color:var(--p)" href="#">SCR-MP-BW-0062</a></td><td>尾门侧围B柱</td>
+                    <td><span class="tag tag-cyan">车身-车身</span></td><td><span class="tag tag-p">V3</span></td>
+                    <td><span class="tag tag-s">✅ 自动路由</span></td>
+                    <td><div class="buyer-card" style="margin:0;padding:4px 8px"><div class="buyer-avatar" style="width:22px;height:22px;font-size:10px;background:linear-gradient(135deg,var(--purple),#9254de)">孙</div><span style="font-size:12px;font-weight:600">孙丽</span></div></td>
+                    <td>2026-07-20</td><td><span class="chip" style="background:var(--sl);color:var(--s)">● 处理中</span></td>
+                    <td><button class="btn btn-link">详情</button> <button class="btn btn-link">转移</button></td>
+                  </tr>
+                  <tr>
+                    <td class="chk"><input type="checkbox"></td>
+                    <td><a style="color:var(--p)" href="#">SCR-MP-P01-0023</a></td><td>电池包热管理组件</td>
+                    <td><span class="tag tag-p">动力-电池</span></td><td><span class="tag tag-d">V1</span></td>
+                    <td><span class="tag tag-s">✅ 自动路由</span><br/><span style="font-size:10px;color:var(--g500)">+ CEO抄送</span></td>
+                    <td><div class="buyer-card" style="margin:0;padding:4px 8px"><div class="buyer-avatar" style="width:22px;height:22px;font-size:10px;background:linear-gradient(135deg,var(--p),#4096ff)">张</div><span style="font-size:12px;font-weight:600">张明</span></div></td>
+                    <td>2026-07-16</td><td><span class="chip" style="background:var(--sl);color:var(--s)">● 审批中</span></td>
+                    <td><button class="btn btn-link">详情</button> <button class="btn btn-link">转移</button></td>
+                  </tr>
+                  <tr>
+                    <td class="chk"><input type="checkbox"></td>
+                    <td><a style="color:var(--p)" href="#">SCR-MP-C01-0018</a></td><td>CDC 减震器总成</td>
+                    <td><span class="tag tag-blue">底盘-悬架</span></td><td><span class="tag tag-w">V2</span></td>
+                    <td><span class="tag tag-s">✅ 自动路由</span></td>
+                    <td><div class="buyer-card" style="margin:0;padding:4px 8px"><div class="buyer-avatar" style="width:22px;height:22px;font-size:10px;background:linear-gradient(135deg,var(--purple),#9254de)">刘</div><span style="font-size:12px;font-weight:600">刘洋</span></div></td>
+                    <td>2026-07-19</td><td><span class="chip" style="background:var(--wl);color:var(--orange)">● 待接收</span></td>
+                    <td><button class="btn btn-link">详情</button> <button class="btn btn-link">转移</button></td>
+                  </tr>
+                  <tr style="background:var(--dl)">
+                    <td class="chk"><input type="checkbox"></td>
+                    <td><a style="color:var(--p)" href="#">SCR-MP-E01-0007</a></td><td>域控制器 MCU</td>
+                    <td><span class="tag tag-purple">电子电器</span></td><td><span class="tag tag-d">V1</span></td>
+                    <td><span class="tag tag-d">❌ 路由失败</span><br/><span style="font-size:10px;color:var(--d)">未配置电子采购员</span></td>
+                    <td><span style="color:var(--g400)">—</span></td><td>—</td><td><span class="chip" style="background:var(--dl);color:var(--d)">⚠ 待人工</span></td>
+                    <td><button class="btn btn-link" style="color:var(--d)">手动指派</button></td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+            <div class="pagination"><div class="pg-info">第 1-6 条，共 1,245 条</div><div class="pg-btns"><button class="pg-btn" disabled>&lt;</button><button class="pg-btn active">1</button><button class="pg-btn">2</button><button class="pg-btn">3</button><button class="pg-btn">...</button><button class="pg-btn">208</button><button class="pg-btn">&gt;</button></div></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ===== SUB: BDL ===== -->
+      <div class="tab-content" id="sub-bdl" style="padding:16px 24px">
+        <div class="sec">
+          <div class="sec-hdr">
+            <div class="sec-title">📝 BDL 零部件清单任务列表</div>
+            <div class="sec-actions"><button class="btn btn-danger btn-s" onclick="openModal('transferModal')">📤 批量转移</button><button class="btn btn-o btn-s">手动指派</button></div>
+          </div>
+          <div class="filter-bar">
+            <div class="fg"><span class="fl">RFQ编号</span><input class="fi" placeholder="输入 RFQ 编号"></div>
+            <div class="fg"><span class="fl">品类</span><select class="fi"><option>全部</option><option>动力总成</option><option>底盘系统</option><option>车身系统</option></select></div>
+            <div class="fg"><span class="fl">采购员</span><select class="fi"><option>全部</option><option>张明</option><option>刘洋</option><option>孙丽</option></select></div>
+          </div>
+          <div class="sec-body" style="padding:0">
+            <div class="table-wrap">
+              <table>
+                <thead><tr>
+                  <th class="chk"><input type="checkbox"></th>
+                  <th>RFQ编号</th><th>RFQ名称</th><th>品类</th><th>MVPS</th>
+                  <th>指派采购员</th><th>创建时间</th><th>路由状态</th><th>状态</th><th>操作</th>
+                </tr></thead>
+                <tbody>
+                  <tr><td class="chk"><input type="checkbox"></td><td><a style="color:var(--p)" href="#">RFQ-SWO-20260711-001</a></td><td>SWO变更RFQ</td><td><span class="tag tag-cyan">车身</span></td><td><span class="tag tag-w">V2</span><td><div class="buyer-card" style="margin:0;padding:4px 8px"><div class="buyer-avatar" style="width:22px;height:22px;font-size:10px;background:linear-gradient(135deg,var(--purple),#9254de)">孙</div><span style="font-size:12px;font-weight:600">孙丽</span></div></td><td>2026-07-13</td><td><span class="tag tag-s">✅ 已路由</span></td><td><span class="tag tag-s">通过</span></td><td><button class="btn btn-link">详情</button> <button class="btn btn-link">转移</button></td></tr>
+                  <tr><td class="chk"><input type="checkbox"></td><td><a style="color:var(--p)" href="#">RFQ-SWO-20260711-002</a></td><td>SWO增量品自选模组</td><td><span class="tag tag-p">动力</span></td><td><span class="tag tag-d">V1</span></td><td><div class="buyer-card" style="margin:0;padding:4px 8px"><div class="buyer-avatar" style="width:22px;height:22px;font-size:10px;background:linear-gradient(135deg,var(--p),#4096ff)">张</div><span style="font-size:12px;font-weight:600">张明</span></div></td><td>2026-07-13</td><td><span class="tag tag-s">✅ 已路由</span></td><td><span class="tag tag-s">通过</span></td><td><button class="btn btn-link">详情</button> <button class="btn btn-link">转移</button></td></tr>
+                  <tr><td class="chk"><input type="checkbox"></td><td><a style="color:var(--p)" href="#">RFQ-SWO-20260713-008</a></td><td>海马·SWO变更RFQ</td><td><span class="tag tag-blue">底盘</span></td><td><span class="tag tag-w">V2</span></td><td><div class="buyer-card" style="margin:0;padding:4px 8px"><div class="buyer-avatar" style="width:22px;height:22px;font-size:10px;background:linear-gradient(135deg,var(--purple),#9254de)">刘</div><span style="font-size:12px;font-weight:600">刘洋</span></div></td><td>2026-07-13</td><td><span class="tag tag-s">✅ 已路由</span></td><td><span class="tag tag-orange">评审中</span></td><td><button class="btn btn-link">详情</button> <button class="btn btn-link">转移</button></td></tr>
+                  <tr><td class="chk"><input type="checkbox"></td><td><a style="color:var(--p)" href="#">RFQ-SWO-20260710-015</a></td><td>SWO变更RFQ</td><td><span class="tag tag-cyan">车身</span></td><td><span class="tag tag-w">V2</span></td><td><div class="buyer-card" style="margin:0;padding:4px 8px"><div class="buyer-avatar" style="width:22px;height:22px;font-size:10px;background:linear-gradient(135deg,var(--purple),#9254de)">孙</div><span style="font-size:12px;font-weight:600">孙丽</span></div></td><td>2026-07-10</td><td><span class="tag tag-s">✅ 已路由</span></td><td><span class="tag tag-s">通过</span></td><td><button class="btn btn-link">详情</button> <button class="btn btn-link">转移</button></td></tr>
+                  <tr style="background:var(--dl)"><td class="chk"><input type="checkbox"></td><td><a style="color:var(--p)" href="#">RFQ-P01-20260712-031</a></td><td>电池箱体BDL</td><td><span class="tag tag-p">动力-电池</span></td><td><span class="tag tag-d">V1</span></td><td><span style="color:var(--g400)">—</span></td><td>2026-07-12</td><td><span class="tag tag-d">❌ 失败</span></td><td><span class="chip" style="background:var(--dl);color:var(--d)">⚠ 待人工</span></td><td><button class="btn btn-link" style="color:var(--d)">手动指派</button></td></tr>
+                </tbody>
+              </table>
+            </div>
+            <div class="pagination"><div class="pg-info">第 1-5 条，共 867 条</div><div class="pg-btns"><button class="pg-btn" disabled>&lt;</button><button class="pg-btn active">1</button><button class="pg-btn">2</button><button class="pg-btn">3</button><button class="pg-btn">...</button><button class="pg-btn">145</button><button class="pg-btn">&gt;</button></div></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ===== SUB: EWO ===== -->
+      <div class="tab-content" id="sub-ewo" style="padding:16px 24px">
+        <div class="sec">
+          <div class="sec-hdr">
+            <div class="sec-title">🔧 EWO 工程变更任务列表</div>
+            <div class="sec-actions"><button class="btn btn-danger btn-s" onclick="openModal('transferModal')">📤 批量转移</button><button class="btn btn-o btn-s">手动指派</button></div>
+          </div>
+          <div class="filter-bar">
+            <div class="fg"><span class="fl">EWO单号</span><input class="fi" placeholder="输入 EWO 单号"></div>
+            <div class="fg"><span class="fl">车型</span><select class="fi"><option>全部</option><option>MX11</option><option>Modena</option><option>MX11Z</option></select></div>
+            <div class="fg"><span class="fl">采购员</span><select class="fi"><option>全部</option><option>张明</option><option>刘洋</option><option>孙丽</option></select></div>
+          </div>
+          <div class="sec-body" style="padding:0">
+            <div class="table-wrap">
+              <table>
+                <thead><tr>
+                  <th class="chk"><input type="checkbox"></th>
+                  <th>EWO单号</th><th>变更零件</th><th>品类</th><th>车型</th>
+                  <th>指派采购员</th><th>价值影响</th><th>路由状态</th><th>状态</th><th>操作</th>
+                </tr></thead>
+                <tbody>
+                  <tr><td class="chk"><input type="checkbox"></td><td><code>EWO2026070162</code></td><td>P000019936003</td><td><span class="tag tag-purple">电子</span></td><td>MX11</td><td><div class="buyer-card" style="margin:0;padding:4px 8px"><div class="buyer-avatar" style="width:22px;height:22px;font-size:10px;background:linear-gradient(135deg,var(--cyan),#36cfc9);color:#fff">黄</div><span style="font-size:12px;font-weight:600">黄伟</span></div></td><td>有</td><td><span class="tag tag-s">✅ 已路由</span></td><td><span class="tag tag-s">待处理</span></td><td><button class="btn btn-link">详情</button> <button class="btn btn-link">转移</button></td></tr>
+                  <tr><td class="chk"><input type="checkbox"></td><td><code>EWO2026070162</code></td><td>P000019914003</td><td><span class="tag tag-purple">电子</span></td><td>MX11</td><td><div class="buyer-card" style="margin:0;padding:4px 8px"><div class="buyer-avatar" style="width:22px;height:22px;font-size:10px;background:linear-gradient(135deg,var(--cyan),#36cfc9);color:#fff">黄</div><span style="font-size:12px;font-weight:600">黄伟</span></div></td><td>有</td><td><span class="tag tag-s">✅ 已路由</span></td><td><span class="tag tag-s">待处理</span></td><td><button class="btn btn-link">详情</button> <button class="btn btn-link">转移</button></td></tr>
+                  <tr><td class="chk"><input type="checkbox"></td><td><code>EWO2026070115</code></td><td>P000045486005</td><td><span class="tag tag-blue">底盘</span></td><td>Modena 25C</td><td><div class="buyer-card" style="margin:0;padding:4px 8px"><div class="buyer-avatar" style="width:22px;height:22px;font-size:10px;background:linear-gradient(135deg,var(--purple),#9254de)">刘</div><span style="font-size:12px;font-weight:600">刘洋</span></div></td><td>无</td><td><span class="tag tag-s">✅ 已路由</span></td><td><span class="tag tag-w">待处理</span></td><td><button class="btn btn-link">详情</button> <button class="btn btn-link">转移</button></td></tr>
+                  <tr><td class="chk"><input type="checkbox"></td><td><code>EWO2026070098</code></td><td>P000023411002</td><td><span class="tag tag-p">动力</span></td><td>MX11</td><td><div class="buyer-card" style="margin:0;padding:4px 8px"><div class="buyer-avatar" style="width:22px;height:22px;font-size:10px;background:linear-gradient(135deg,var(--p),#4096ff)">张</div><span style="font-size:12px;font-weight:600">张明</span></div></td><td>有</td><td><span class="tag tag-s">✅ 已路由</span></td><td><span class="tag tag-s">待处理</span></td><td><button class="btn btn-link">详情</button> <button class="btn btn-link">转移</button></td></tr>
+                </tbody>
+              </table>
+            </div>
+            <div class="pagination"><div class="pg-info">第 1-4 条，共 432 条</div><div class="pg-btns"><button class="pg-btn" disabled>&lt;</button><button class="pg-btn active">1</button><button class="pg-btn">2</button><button class="pg-btn">3</button><button class="pg-btn">...</button><button class="pg-btn">72</button><button class="pg-btn">&gt;</button></div></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ===== SUB: CWO ===== -->
+      <div class="tab-content" id="sub-cwo" style="padding:16px 24px">
+        <div class="sec">
+          <div class="sec-hdr">
+            <div class="sec-title">💰 CWO 成本变更任务列表</div>
+            <div class="sec-actions"><button class="btn btn-danger btn-s" onclick="openModal('transferModal')">📤 批量转移</button><button class="btn btn-o btn-s">手动指派</button></div>
+          </div>
+          <div class="filter-bar">
+            <div class="fg"><span class="fl">CWO单号</span><input class="fi" placeholder="输入 CWO 单号"></div>
+            <div class="fg"><span class="fl">品类</span><select class="fi"><option>全部</option><option>动力总成</option><option>底盘系统</option><option>车身系统</option></select></div>
+            <div class="fg"><span class="fl">采购员</span><select class="fi"><option>全部</option><option>张明</option><option>刘洋</option><option>孙丽</option></select></div>
+          </div>
+          <div class="sec-body" style="padding:0">
+            <div class="table-wrap">
+              <table>
+                <thead><tr>
+                  <th class="chk"><input type="checkbox"></th>
+                  <th>CWO单号</th><th>成本变更项</th><th>品类</th><th>MVPS</th>
+                  <th>指派采购员</th><th>金额影响</th><th>路由状态</th><th>状态</th><th>操作</th>
+                </tr></thead>
+                <tbody>
+                  <tr><td class="chk"><input type="checkbox"></td><td><code>CWO2026070156</code></td><td>电池pack成本优化</td><td><span class="tag tag-p">动力-电池</span></td><td><span class="tag tag-d">V1</span></td><td><div class="buyer-card" style="margin:0;padding:4px 8px"><div class="buyer-avatar" style="width:22px;height:22px;font-size:10px;background:linear-gradient(135deg,var(--p),#4096ff)">张</div><span style="font-size:12px;font-weight:600">张明</span></div></td><td>¥-2.3M</td><td><span class="tag tag-w">⏳ 配置中</span></td><td><span class="tag tag-w">待接收</span></td><td><button class="btn btn-link">详情</button> <button class="btn btn-link">转移</button></td></tr>
+                  <tr><td class="chk"><input type="checkbox"></td><td><code>CWO2026070142</code></td><td>座椅骨架成本重算</td><td><span class="tag tag-cyan">车身-座椅</span></td><td><span class="tag tag-w">V2</span></td><td><div class="buyer-card" style="margin:0;padding:4px 8px"><div class="buyer-avatar" style="width:22px;height:22px;font-size:10px;background:linear-gradient(135deg,var(--purple),#9254de)">孙</div><span style="font-size:12px;font-weight:600">孙丽</span></div></td><td>¥-0.8M</td><td><span class="tag tag-s">✅ 已路由</span></td><td><span class="tag tag-s">处理中</span></td><td><button class="btn btn-link">详情</button> <button class="btn btn-link">转移</button></td></tr>
+                  <tr><td class="chk"><input type="checkbox"></td><td><code>CWO2026070133</code></td><td>悬架弹簧降本</td><td><span class="tag tag-blue">底盘-悬架</span></td><td><span class="tag tag-w">V2</span></td><td><div class="buyer-card" style="margin:0;padding:4px 8px"><div class="buyer-avatar" style="width:22px;height:22px;font-size:10px;background:linear-gradient(135deg,var(--purple),#9254de)">刘</div><span style="font-size:12px;font-weight:600">刘洋</span></div></td><td>¥-1.5M</td><td><span class="tag tag-s">✅ 已路由</span></td><td><span class="tag tag-s">处理中</span></td><td><button class="btn btn-link">详情</button> <button class="btn btn-link">转移</button></td></tr>
+                </tbody>
+              </table>
+            </div>
+            <div class="pagination"><div class="pg-info">第 1-3 条，共 156 条</div><div class="pg-btns"><button class="pg-btn" disabled>&lt;</button><button class="pg-btn active">1</button><button class="pg-btn">2</button><button class="pg-btn">3</button><button class="pg-btn">...</button><button class="pg-btn">26</button><button class="pg-btn">&gt;</button></div></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ===== SUB: SWO ===== -->
+      <div class="tab-content" id="sub-swo" style="padding:16px 24px">
+        <div class="sec">
+          <div class="sec-hdr">
+            <div class="sec-title">💻 SWO 软件变更任务列表</div>
+            <div class="sec-actions"><button class="btn btn-o btn-s" style="color:var(--orange)">⚙️ 配置路由规则</button></div>
+          </div>
+          <div class="filter-bar">
+            <div class="fg"><span class="fl">SWO单号</span><input class="fi" placeholder="输入 SWO 单号"></div>
+            <div class="fg"><span class="fl">品类</span><select class="fi"><option>全部</option><option>电子电器</option><option>智能座舱</option></select></div>
+          </div>
+          <div class="sec-body" style="padding:0">
+            <div class="table-wrap">
+              <table>
+                <thead><tr>
+                  <th class="chk"><input type="checkbox"></th>
+                  <th>SWO单号</th><th>软件模块</th><th>品类</th><th>车型</th>
+                  <th>指派采购员</th><th>路由状态</th><th>状态</th><th>操作</th>
+                </tr></thead>
+                <tbody>
+                  <tr style="background:var(--dl)"><td class="chk"><input type="checkbox"></td><td><code>SWO2026070089</code></td><td>智驾域控软件V2.3</td><td><span class="tag tag-purple">电子</span></td><td>MX11</td><td><span style="color:var(--g400)">—</span></td><td><span class="tag tag-d">❌ 未配置</span></td><td><span class="chip" style="background:var(--dl);color:var(--d)">⚠ 待配置</span></td><td><button class="btn btn-link" style="color:var(--orange)">去配置</button></td></tr>
+                  <tr style="background:var(--dl)"><td class="chk"><input type="checkbox"></td><td><code>SWO2026070076</code></td><td>座舱OS V1.8</td><td><span class="tag tag-purple">电子</span></td><td>Modena</td><td><span style="color:var(--g400)">—</span></td><td><span class="tag tag-d">❌ 未配置</span></td><td><span class="chip" style="background:var(--dl);color:var(--d)">⚠ 待配置</span></td><td><button class="btn btn-link" style="color:var(--orange)">去配置</button></td></tr>
+                </tbody>
+              </table>
+            </div>
+            <div class="pagination"><div class="pg-info">第 1-2 条，共 89 条（其中 89 条待配置路由规则）</div><div class="pg-btns"><button class="pg-btn" disabled>&lt;</button><button class="pg-btn active">1</button><button class="pg-btn">2</button><button class="pg-btn">&gt;</button></div></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ===== SUB: 框架协议 ===== -->
+      <div class="tab-content" id="sub-fw" style="padding:16px 24px">
+        <div class="sec">
+          <div class="sec-hdr">
+            <div class="sec-title">📄 框架协议任务列表</div>
+            <div class="sec-actions"><button class="btn btn-danger btn-s" onclick="openModal('transferModal')">📤 批量转移</button><button class="btn btn-o btn-s">手动指派</button></div>
+          </div>
+          <div class="filter-bar">
+            <div class="fg"><span class="fl">协议编号</span><input class="fi" placeholder="输入协议编号"></div>
+            <div class="fg"><span class="fl">品类</span><select class="fi"><option>全部</option><option>动力总成</option><option>底盘系统</option><option>车身系统</option></select></div>
+            <div class="fg"><span class="fl">采购员</span><select class="fi"><option>全部</option><option>张明</option><option>刘洋</option><option>孙丽</option></select></div>
+          </div>
+          <div class="sec-body" style="padding:0">
+            <div class="table-wrap">
+              <table>
+                <thead><tr>
+                  <th class="chk"><input type="checkbox"></th>
+                  <th>协议编号</th><th>协议名称</th><th>品类</th><th>供应商</th>
+                  <th>框架负责人</th><th>有效期</th><th>路由状态</th><th>状态</th><th>操作</th>
+                </tr></thead>
+                <tbody>
+                  <tr><td class="chk"><input type="checkbox"></td><td><code>FW-2026-P01-001</code></td><td>动力电池框架协议</td><td><span class="tag tag-p">动力-电池</span></td><td>宁德时代</td><td><div class="buyer-card" style="margin:0;padding:4px 8px"><div class="buyer-avatar" style="width:22px;height:22px;font-size:10px;background:linear-gradient(135deg,var(--p),#4096ff)">张</div><span style="font-size:12px;font-weight:600">张明</span></div></td><td>2026-2028</td><td><span class="tag tag-s">✅ 已路由</span></td><td><span class="tag tag-s">生效中</span></td><td><button class="btn btn-link">详情</button> <button class="btn btn-link">转移</button></td></tr>
+                  <tr><td class="chk"><input type="checkbox"></td><td><code>FW-2026-C01-003</code></td><td>底盘件框架协议</td><td><span class="tag tag-blue">底盘</span></td><td>采埃孚</td><td><div class="buyer-card" style="margin:0;padding:4px 8px"><div class="buyer-avatar" style="width:22px;height:22px;font-size:10px;background:linear-gradient(135deg,var(--purple),#9254de)">刘</div><span style="font-size:12px;font-weight:600">刘洋</span></div></td><td>2026-2027</td><td><span class="tag tag-s">✅ 已路由</span></td><td><span class="tag tag-s">生效中</span></td><td><button class="btn btn-link">详情</button> <button class="btn btn-link">转移</button></td></tr>
+                  <tr><td class="chk"><input type="checkbox"></td><td><code>FW-2026-B01-005</code></td><td>车身外饰框架协议</td><td><span class="tag tag-cyan">车身</span></td><td>敏实集团</td><td><div class="buyer-card" style="margin:0;padding:4px 8px"><div class="buyer-avatar" style="width:22px;height:22px;font-size:10px;background:linear-gradient(135deg,var(--purple),#9254de)">孙</div><span style="font-size:12px;font-weight:600">孙丽</span></div></td><td>2026-2027</td><td><span class="tag tag-s">✅ 已路由</span></td><td><span class="tag tag-w">待续签</span></td><td><button class="btn btn-link">详情</button> <button class="btn btn-link">转移</button></td></tr>
+                </tbody>
+              </table>
+            </div>
+            <div class="pagination"><div class="pg-info">第 1-3 条，共 189 条</div><div class="pg-btns"><button class="pg-btn" disabled>&lt;</button><button class="pg-btn active">1</button><button class="pg-btn">2</button><button class="pg-btn">3</button><button class="pg-btn">...</button><button class="pg-btn">32</button><button class="pg-btn">&gt;</button></div></div>
+          </div>
+        </div>
+      </div>
+
+    </div><!-- end tab-tasks -->
+
+    <!-- ========== TAB 5: 项目管控 ========== -->
+    <div class="tab-content" id="tab-project">
+      <div class="sec">
+        <div class="sec-hdr">
+          <div class="sec-title">🚗 车型项目管控 — 在线化替代 Excel 拉单</div>
+          <div class="sec-actions"><button class="btn btn-o btn-s">📥 导入项目</button><button class="btn btn-p btn-s">+ 新建车型项目</button></div>
+        </div>
+        <div class="sec-body" style="padding:0">
+          <div class="filter-bar">
+            <div class="fg"><span class="fl">车型项目</span><input class="fi" placeholder="搜索车型..."></div>
+            <div class="fg"><span class="fl">项目阶段</span><select class="fi"><option>全部</option><option>预研</option><option>试制</option><option>SOP</option><option>量产</option></select></div>
+            <div class="fg"><span class="fl">品类归属</span><select class="fi"><option>全部品类</option><option>动力总成</option><option>底盘系统</option><option>车身系统</option></select></div>
+            <div class="fg"><button class="btn btn-p btn-s">查询</button><button class="btn btn-o btn-s">重置</button></div>
+          </div>
+          <div class="table-wrap">
+            <table>
+              <thead><tr>
+                <th class="chk"><input type="checkbox"></th>
+                <th>车型项目</th><th>项目代号</th><th>当前阶段</th><th>品类归属</th>
+                <th>负责采购员</th><th>SOR</th><th>BDL</th><th>EWO</th><th>项目进度</th><th>状态</th><th>操作</th>
+              </tr></thead>
+              <tbody>
+                <tr>
+                  <td class="chk"><input type="checkbox"></td>
+                  <td><strong>MX11 小米汽车</strong><br/><span style="color:var(--g500);font-size:11px">首款车型 · C级轿车</span></td>
+                  <td><code>PJ-MX11</code></td>
+                  <td><span class="tag tag-s">SOP</span></td>
+                  <td><span class="tag tag-p">动力</span> <span class="tag tag-purple">底盘</span> <span class="tag tag-cyan">车身</span></td>
+                  <td>张明 / 刘洋 / 孙丽</td>
+                  <td><strong>156</strong></td><td><strong>89</strong></td><td><strong>34</strong></td>
+                  <td><div style="width:100px"><div class="progress-bar"><div class="pb-fill blue" style="width:78%"></div></div></div></td>
+                  <td><span class="chip" style="background:var(--sl);color:var(--s)">● 进行中</span></td>
+                  <td><button class="btn btn-link">详情</button> <button class="btn btn-link">看板</button></td>
+                </tr>
+                <tr>
+                  <td class="chk"><input type="checkbox"></td>
+                  <td><strong>Modena SUV</strong><br/><span style="color:var(--g500);font-size:11px">中型SUV · 第二款</span></td>
+                  <td><code>PJ-MOD</code></td>
+                  <td><span class="tag tag-w">试制</span></td>
+                  <td><span class="tag tag-p">动力</span> <span class="tag tag-cyan">电子</span></td>
+                  <td>张明 / 黄伟</td>
+                  <td><strong>89</strong></td><td><strong>45</strong></td><td><strong>12</strong></td>
+                  <td><div style="width:100px"><div class="progress-bar"><div class="pb-fill orange" style="width:45%"></div></div></div></td>
+                  <td><span class="chip" style="background:var(--wl);color:var(--orange)">● 试制中</span></td>
+                  <td><button class="btn btn-link">详情</button> <button class="btn btn-link">看板</button></td>
+                </tr>
+                <tr>
+                  <td class="chk"><input type="checkbox"></td>
+                  <td><strong>MX11-Z 纯电版</strong><br/><span style="color:var(--g500);font-size:11px">MX11 衍生车型</span></td>
+                  <td><code>PJ-MX11Z</code></td>
+                  <td><span class="tag tag-purple">预研</span></td>
+                  <td><span class="tag tag-p">动力</span></td>
+                  <td>张明</td>
+                  <td><strong>23</strong></td><td><strong>8</strong></td><td><strong>2</strong></td>
+                  <td><div style="width:100px"><div class="progress-bar"><div class="pb-fill" style="width:15%;background:linear-gradient(90deg,#d9d9d9,#bfbfbf)"></div></div></div></td>
+                  <td><span class="chip" style="background:var(--purple-l);color:var(--purple)">● 预研</span></td>
+                  <td><button class="btn btn-link">详情</button> <button class="btn btn-link">看板</button></td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div><!-- end tab-project -->
+
+  </div><!-- end page-body -->
+</main>
+</div><!-- end srm-layout -->
+
+<!-- ==================== MODAL: Add Category ==================== -->
+<div class="modal-overlay" id="addCatModal">
+  <div class="modal-box lg">
+    <div class="mb-hdr"><div class="mb-title">📂 新增采购品类</div><button class="mb-close" onclick="closeModal('addCatModal')">×</button></div>
+    <div class="mb-body">
+      <div class="form-grid">
+        <div class="form-item"><label class="fi-label">品类编码 <span class="req">*</span></label><input class="fi-input" placeholder="如 CAT-P01-01-A"><div class="fi-help">系统自动生成或手动指定</div></div>
+        <div class="form-item"><label class="fi-label">品类名称 <span class="req">*</span></label><input class="fi-input" placeholder="如 电池包总成"></div>
+        <div class="form-item"><label class="fi-label">上级品类</label><select class="fi-input"><option>— 无（根级品类）</option><option>CAT-P01 动力总成</option><option>CAT-P01-01 电池系统</option></select></div>
+        <div class="form-item"><label class="fi-label">MVPS 默认级别</label><select class="fi-input"><option>V1 关键件</option><option>V2 重要件</option><option>V3 一般件</option><option>VX 标准件</option></select></div>
+        <div class="form-item"><label class="fi-label">MiBOM 触发字段</label><input class="fi-input" placeholder="PLM/MiBOM 对应触发字段"><div class="fi-help">用于从 BOM 自动识别并归类</div></div>
+        <div class="form-item"><label class="fi-label">数据来源</label><select class="fi-input"><option>SRM 系统</option><option>PLM 同步</option><option>手工录入</option></select></div>
+      </div>
+      <div style="margin-top:20px"><label class="fi-label">品类描述</label><textarea class="fi-input" rows="3" placeholder="描述该品类的范围、包含的零部件类型..."></textarea></div>
+      <div style="margin-top:20px;padding:16px;background:var(--g50);border-radius:var(--r);border:1px solid var(--g200)">
+        <div style="font-size:13px;font-weight:600;color:var(--g800);margin-bottom:12px">👤 默认指派采购员</div>
+        <div style="display:flex;gap:12px;flex-wrap:wrap">
+          <div style="flex:1;min-width:150px"><div style="font-size:11px;color:var(--g500);margin-bottom:4px">主采购员</div><select class="fi-input" style="width:100%"><option>请选择...</option><option>张明 - 动力总成</option><option>刘洋 - 底盘</option><option>孙丽 - 车身</option></select></div>
+          <div style="flex:1;min-width:150px"><div style="font-size:11px;color:var(--g500);margin-bottom:4px">备用采购员（溢出）</div><select class="fi-input" style="width:100%"><option>请选择...</option><option>王磊 - 动力总成</option><option>周杰 - 底盘</option><option>郑敏 - 车身</option></select></div>
+        </div>
+      </div>
+    </div>
+    <div class="mb-ftr"><button class="btn btn-o" onclick="closeModal('addCatModal')">取消</button><button class="btn btn-p" onclick="closeModal('addCatModal')">✓ 保存品类</button></div>
+  </div>
+</div>
+
+<!-- ==================== MODAL: Add Rule ==================== -->
+<div class="modal-overlay" id="addRuleModal">
+  <div class="modal-box xl">
+    <div class="mb-hdr"><div class="mb-title">🔀 新增路由规则</div><button class="mb-close" onclick="closeModal('addRuleModal')">×</button></div>
+    <div class="mb-body">
+      <div class="form-grid">
+        <div class="form-item"><label class="fi-label">规则名称 <span class="req">*</span></label><input class="fi-input" placeholder="如 动力V1直派张明"></div>
+        <div class="form-item"><label class="fi-label">优先级 <span class="req">*</span></label><select class="fi-input"><option>1（最高）</option><option>2</option><option>3</option><option>4</option><option>5</option><option>6（最低）</option></select></div>
+      </div>
+
+      <div style="margin-top:20px">
+        <div style="font-size:13px;font-weight:600;color:var(--g800);margin-bottom:10px">📥 条件（IF）— 满足以下全部条件时触发</div>
+        <div class="cond-row"><span class="cond-field">适用模块</span><span class="cond-op">包含</span><select class="cond-val"><option>SOR</option><option>BDL</option><option>EWO</option><option>CWO</option><option>SWO</option><option>框架协议</option></select><button class="btn btn-link" style="margin-left:auto">+ 加条件</button></div>
+        <div class="cond-row"><span class="cond-field">采购品类</span><span class="cond-op">等于</span><select class="cond-val"><option>动力总成</option><option>底盘系统</option><option>车身系统</option><option>电子电器</option></select></div>
+        <div class="cond-row"><span class="cond-field">MVPS 级别</span><span class="cond-op">属于</span><select class="cond-val"><option>V1 关键件</option><option>V2 重要件</option><option>V3 一般件</option><option>VX 标准件</option></select></div>
+        <div class="cond-row"><span class="cond-field">采购金额</span><span class="cond-op">区间</span><input class="cond-val" placeholder="如 100万 - 500万"></div>
+      </div>
+
+      <div style="margin-top:20px">
+        <div style="font-size:13px;font-weight:600;color:var(--g800);margin-bottom:10px">📤 动作（THEN）— 指派给以下采购员</div>
+        <div style="display:flex;gap:12px;flex-wrap:wrap">
+          <div style="flex:1;min-width:200px"><div style="font-size:11px;color:var(--g500);margin-bottom:4px">主采购员</div><select class="fi-input" style="width:100%"><option>张明 - 动力总成</option><option>王磊 - 动力总成（备用）</option><option>刘洋 - 底盘</option><option>孙丽 - 车身</option></select></div>
+          <div style="flex:1;min-width:200px"><div style="font-size:11px;color:var(--g500);margin-bottom:4px">抄送人员</div><select class="fi-input" style="width:100%"><option>无</option><option>SQE 李芳</option><option>SQE 陈静</option><option>项目经理</option></select></div>
+        </div>
+      </div>
+
+      <div style="margin-top:20px;padding:14px;background:var(--g50);border-radius:var(--r);border:1px solid var(--g200)">
+        <div style="font-size:13px;font-weight:600;color:var(--g800);margin-bottom:10px">⚙️ 溢出策略（负载均衡）</div>
+        <div style="display:flex;gap:12px;flex-wrap:wrap;align-items:center">
+          <span style="font-size:12px;color:var(--g600)">当主采购员负载超过</span>
+          <select class="fi-input" style="width:100px"><option>80%</option><option>75%</option><option>85%</option></select>
+          <span style="font-size:12px;color:var(--g600)">时，自动溢出至</span>
+          <select class="fi-input" style="width:160px"><option>王磊（动力备用）</option><option>按负载最低自动分配</option><option>同级其他采购员</option></select>
+        </div>
+      </div>
+    </div>
+    <div class="mb-ftr"><button class="btn btn-o" onclick="closeModal('addRuleModal')">取消</button><button class="btn btn-p" onclick="closeModal('addRuleModal')">✓ 保存规则</button></div>
+  </div>
+</div>
+
+<!-- ==================== MODAL: Import ==================== -->
+<div class="modal-overlay" id="importModal">
+  <div class="modal-box sm">
+    <div class="mb-hdr"><div class="mb-title">📥 批量导入</div><button class="mb-close" onclick="closeModal('importModal')">×</button></div>
+    <div class="mb-body">
+      <div style="border:2px dashed var(--g300);border-radius:var(--rl);padding:40px;text-align:center;cursor:pointer;transition:var(--tr)"
+           onmouseover="this.style.borderColor='var(--p)';this.style.background='var(--pa)'" onmouseout="this.style.borderColor='var(--g300)';this.style.background='#fff'">
+        <div style="font-size:40px;margin-bottom:8px">📁</div>
+        <div style="font-size:14px;font-weight:600;color:var(--g800)">点击或拖拽上传文件</div>
+        <div style="font-size:12px;color:var(--g500);margin-top:6px">支持 .xlsx / .csv · 最大 10MB</div>
+      </div>
+      <div style="margin-top:16px"><a href="#" style="color:var(--p);font-size:12px">📎 下载导入模板</a> <span style="color:var(--g300);margin:0 8px">|</span> <a href="#" style="color:var(--p);font-size:12px">📖 导入规范</a></div>
+      <div style="margin-top:16px;padding:12px;background:var(--wl);border-radius:var(--rs);font-size:12px;color:var(--g700)">⚠️ 导入前请确保品类编码唯一；支持增量更新；导入后需人工复核 MVPS 与采购员映射关系。</div>
+    </div>
+    <div class="mb-ftr"><button class="btn btn-o" onclick="closeModal('importModal')">取消</button><button class="btn btn-p" onclick="closeModal('importModal')">开始导入</button></div>
+  </div>
+</div>
+
+<!-- ==================== MODAL: Export ==================== -->
+<div class="modal-overlay" id="exportModal">
+  <div class="modal-box sm">
+    <div class="mb-hdr"><div class="mb-title">📤 导出数据</div><button class="mb-close" onclick="closeModal('exportModal')">×</button></div>
+    <div class="mb-body">
+      <div class="form-item" style="margin-bottom:14px"><label class="fi-label">导出范围</label><select class="fi-input"><option>全部品类（含子品类）</option><option>仅当前筛选结果</option><option>品类 + 采购员路由</option><option>品类 + 供应商映射</option><option>全量（含所有关联）</option></select></div>
+      <div class="form-item" style="margin-bottom:14px"><label class="fi-label">导出格式</label><select class="fi-input"><option>Excel (.xlsx)</option><option>CSV (.csv)</option><option>JSON (for MCP/API)</option></select></div>
+      <div class="form-item"><label class="fi-label">是否包含版本历史</label><select class="fi-input"><option>否</option><option>是（最近10版）</option><option>是（全量版本）</option></select></div>
+    </div>
+    <div class="mb-ftr"><button class="btn btn-o" onclick="closeModal('exportModal')">取消</button><button class="btn btn-p" onclick="closeModal('exportModal')">📥 开始下载</button></div>
+  </div>
+</div>
+
+<!-- ==================== MODAL: Batch Transfer ==================== -->
+<div class="modal-overlay" id="transferModal">
+  <div class="modal-box">
+    <div class="mb-hdr"><div class="mb-title">📤 批量任务转移</div><button class="mb-close" onclick="closeModal('transferModal')">×</button></div>
+    <div class="mb-body">
+      <div style="display:flex;align-items:center;gap:12px;margin-bottom:20px;padding:12px;background:var(--pl);border-radius:var(--rs)">
+        <span style="font-size:20px">📋</span>
+        <div><div style="font-size:14px;font-weight:600">已选择 <strong style="color:var(--p)">6</strong> 条任务</div><div style="font-size:12px;color:var(--g500)">涵盖 SOR(3) + BDL(2) + EWO(1)</div></div>
+      </div>
+      <div class="form-grid">
+        <div class="form-item"><label class="fi-label">转移至采购员 <span class="req">*</span></label><select class="fi-input"><option>请选择新采购员...</option><option>张明 - 动力总成</option><option>刘洋 - 底盘</option><option>孙丽 - 车身</option><option>黄伟 - 电子</option></select></div>
+        <div class="form-item"><label class="fi-label">转移原因 <span class="req">*</span></label><select class="fi-input"><option>请选择原因...</option><option>人员调整/调岗</option><option>工作负载均衡</option><option>临时代理</option><option>专业能力匹配</option></select></div>
+      </div>
+      <div class="form-item" style="margin-top:14px"><label class="fi-label">备注说明</label><textarea class="fi-input" rows="3" placeholder="可选填写转移备注..."></textarea></div>
+      <div style="margin-top:16px;padding:12px;background:var(--dl);border-radius:var(--rs);font-size:12px;color:var(--d)">⚠️ 批量转移将同时更新 SOR/BDL/EWO 的采购员字段，原负责人将收到通知。建议先确认接收方工作负载。</div>
+    </div>
+    <div class="mb-ftr"><button class="btn btn-o" onclick="closeModal('transferModal')">取消</button><button class="btn btn-success" onclick="closeModal('transferModal')">✓ 确认转移</button></div>
+  </div>
+</div>
+
+<script>
+// ===== Page Header Tabs =====
+function switchPTab(el, tabId) {
+  document.querySelectorAll('#mainTabs .ptab').forEach(t => {
+    t.classList.remove('active'); t.style.color='var(--g600)'; t.style.borderBottomColor='transparent';
+  });
+  el.classList.add('active'); el.style.color='var(--p)'; el.style.borderBottomColor='var(--p)';
+  document.querySelectorAll('.page-body .tab-content').forEach(tc => tc.classList.remove('active'));
+  const target = document.getElementById(tabId);
+  if(target) target.classList.add('active');
+}
+
+// ===== Sub Tabs (task modules) =====
+function switchSubTab(el, subId) {
+  document.querySelectorAll('#taskSubTabs .sbtab').forEach(t => {
+    t.classList.remove('active'); t.style.color='var(--g600)'; t.style.borderBottomColor='transparent';
+  });
+  el.classList.add('active'); el.style.color='var(--p)'; el.style.borderBottomColor='var(--p)';
+  document.querySelectorAll('#tab-tasks > .tab-content').forEach(tc => {
+    if(tc.id.startsWith('sub-')) tc.classList.remove('active');
+  });
+  const target = document.getElementById(subId);
+  if(target) target.classList.add('active');
+}
+
+// ===== Top Nav =====
+function switchMainTab(el, tab) {
+  document.querySelectorAll('.tni').forEach(n => n.classList.remove('active'));
+  el.classList.add('active');
+}
+
+// ===== Sidebar =====
+function switchSidebar(el, page) {
+  document.querySelectorAll('.sp-item').forEach(item => item.classList.remove('active'));
+  if(el) el.classList.add('active');
+}
+
+// ===== Tree Row Select =====
+function selectTreeRow(row) {
+  document.querySelectorAll('#categoryTree .tr-row').forEach(r => r.classList.remove('sel'));
+  row.classList.add('sel');
+}
+
+// ===== Tree Toggle =====
+document.querySelectorAll('.tr-toggle').forEach(toggle => {
+  toggle.addEventListener('click', function(e) {
+    e.stopPropagation();
+    this.classList.toggle('open');
+    const parentNode = this.closest('.tn');
+    if(parentNode){
+      const children = parentNode.querySelector(':scope > .tn');
+      if(children) children.style.display = children.style.display === 'none' ? '' : 'none';
+    }
+  });
+});
+
+// ===== Modal =====
+function openModal(id){const m=document.getElementById(id);if(m)m.classList.add('show');}
+function closeModal(id){const m=document.getElementById(id);if(m)m.classList.remove('show');}
+
+// ===== Config Item Select =====
+document.querySelectorAll('.cc-item').forEach(item => {
+  item.addEventListener('click', function() {
+    const parent = this.closest('.cc-body');
+    if(parent){parent.querySelectorAll('.cc-item').forEach(i => i.classList.remove('selected'));this.classList.add('selected');}
+  });
+});
+
+// ===== Buyer Card Select =====
+document.querySelectorAll('.buyer-card').forEach(card => {
+  if(card.closest('.cc-col')){
+    card.addEventListener('click', function(){
+      const parent = this.closest('.cc-body');
+      if(parent){parent.querySelectorAll('.buyer-card').forEach(c => c.classList.remove('selected'));this.classList.add('selected');}
+    });
+  }
+});
+
+// ===== Checkbox select all =====
+document.querySelectorAll('thead input[type="checkbox"]').forEach(cb => {
+  cb.addEventListener('change', function() {
+    const tbody = this.closest('table').querySelector('tbody');
+    if(tbody) tbody.querySelectorAll('input[type="checkbox"]').forEach(c => c.checked = this.checked);
+  });
+});
+
+// ===== Close modals on overlay click =====
+document.querySelectorAll('.modal-overlay').forEach(overlay => {
+  overlay.addEventListener('click', function(e){ if(e.target === this) this.classList.remove('show'); });
+});
+</script>
+
+</body>
+</html>

@@ -1,0 +1,330 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>样件订单 · 执行日志面板</title>
+<style>
+:root{
+  --nav-h:52px;
+  --bg:#f4f6fa;--card:#fff;--line:#e6e9f0;--ink:#1f2530;--sub:#7b8494;
+  --blue:#2563eb;--green:#16a34a;--orange:#ea580c;--red:#dc2626;--grey:#94a3b8;--yellow:#d97706;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:var(--bg);color:var(--ink);font:13px/1.6 -apple-system,"PingFang SC","Microsoft YaHei",sans-serif;padding-top:var(--nav-h)}
+
+/* 顶部导航 */
+.topnav{position:fixed;top:0;left:0;right:0;height:var(--nav-h);background:#1c2433;color:#fff;display:flex;align-items:center;padding:0 20px;z-index:100;box-shadow:0 1px 4px rgba(0,0,0,.2)}
+.topnav .mi-logo{width:28px;height:28px;background:#ff6900;border-radius:5px;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:14px;color:#fff;margin-right:10px}
+.topnav .brand{font-size:14px;font-weight:600;margin-right:24px}
+.topnav .menu{display:flex;gap:2px}
+.topnav .menu a{color:rgba(255,255,255,.82);text-decoration:none;padding:7px 14px;border-radius:4px;font-size:13px;cursor:pointer}
+.topnav .menu a:hover{background:rgba(255,255,255,.12)}
+.topnav .menu a.on{background:rgba(255,255,255,.18);color:#fff;font-weight:500}
+.topnav .sp{flex:1}
+.topnav .meta{font-size:12px;color:rgba(255,255,255,.6)}
+
+.wrap{max-width:1280px;margin:0 auto;padding:20px}
+
+/* 头部 */
+.head{background:linear-gradient(120deg,#0f1a2e,#16294d);color:#fff;border-radius:12px;padding:20px 24px;display:flex;justify-content:space-between;align-items:flex-end;flex-wrap:wrap;gap:10px;margin-bottom:16px}
+.head h1{font-size:18px;font-weight:600}
+.head .meta{font-size:12px;color:#9fb3d9;margin-top:4px}
+.head .stats{font-size:13px;color:#c3d4f0}
+
+/* KPI 卡片 */
+.kpis{display:grid;grid-template-columns:repeat(7,1fr);gap:10px;margin-bottom:14px}
+.kpi{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:12px 14px}
+.kpi b{display:block;font-size:22px;font-variant-numeric:tabular-nums;line-height:1.2}
+.kpi span{font-size:11.5px;color:var(--sub)}
+.kpi.ok b{color:var(--green)}.kpi.partial b{color:var(--orange)}.kpi.wait b{color:var(--yellow)}.kpi.fail b{color:var(--red)}
+
+/* 趋势图 */
+.card{background:var(--card);border:1px solid var(--line);border-radius:10px;margin-bottom:14px;overflow:hidden}
+.card .hd{font-size:13px;font-weight:600;padding:11px 16px;border-bottom:1px solid var(--line);display:flex;justify-content:space-between;align-items:center;color:#3a4353}
+.card .hd i{font-style:normal;font-weight:400;color:var(--sub);font-size:12px}
+.card .bd{padding:14px 16px}
+
+.trend{display:flex;gap:8px;align-items:flex-end;min-height:100px;padding:0 4px}
+.bar{flex:1;display:flex;flex-direction:column;justify-content:flex-end;align-items:center;gap:6px}
+.bar .fill{width:100%;max-width:48px;background:linear-gradient(180deg,#3b82f6,#2563eb);border-radius:4px 4px 0 0;min-height:8px;transition:all .3s}
+.bar:hover .fill{background:linear-gradient(180deg,#60a5fa,#3b82f6)}
+.bar i{font-style:normal;font-size:11px;color:var(--sub);font-variant-numeric:tabular-nums}
+.bar .date{font-size:10.5px;color:var(--sub)}
+
+/* 筛选器 */
+.filters{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:10px 14px;margin-bottom:14px;display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+.filters input,.filters select{border:1px solid var(--line);border-radius:6px;padding:6px 10px;font-size:12.5px;background:#fff;color:var(--ink);outline:none}
+.filters input:focus,.filters select:focus{border-color:var(--blue)}
+.filters input{flex:1;min-width:200px}
+.chips{display:flex;gap:5px}
+.chip{border:1px solid var(--line);border-radius:16px;padding:4px 12px;font-size:12px;cursor:pointer;background:#fff;color:var(--sub);user-select:none;transition:all .15s}
+.chip:hover{border-color:var(--blue);color:var(--blue)}
+.chip.on{background:#eef2ff;border-color:var(--blue);color:var(--blue);font-weight:600}
+
+/* 表格 */
+table{width:100%;border-collapse:collapse;font-size:12.5px}
+th{background:#f7f8fb;color:#5a6474;font-weight:500;text-align:left;padding:9px 12px;white-space:nowrap;border-bottom:1px solid var(--line)}
+td{padding:9px 12px;border-top:1px solid #f0f2f6;vertical-align:top}
+tr:hover td{background:#fafbfe}
+.ts{color:var(--sub);white-space:nowrap;font-variant-numeric:tabular-nums;font-size:12px}
+.mono{font-family:ui-monospace,Menlo,Consolas,monospace;font-size:11.5px;color:#47536b}
+.num{font-variant-numeric:tabular-nums;white-space:nowrap}
+.tag{display:inline-block;border-radius:5px;padding:1px 8px;font-size:11.5px;font-weight:600;white-space:nowrap}
+.tag.ok{background:#e7f6ec;color:var(--green)}.tag.partial{background:#fff3e6;color:var(--orange)}
+.tag.wait{background:#fef3c7;color:var(--yellow)}.tag.fail{background:#fde8e8;color:var(--red)}
+.sub{color:var(--sub);font-size:11.5px;margin-top:2px}
+
+/* 展开行 */
+.expand-btn{cursor:pointer;color:var(--blue);font-size:11.5px;user-select:none}
+.expand-btn:hover{text-decoration:underline}
+.detail-row{display:none;background:#fafbfd}
+.detail-row.show{display:table-row}
+.detail-row td{padding:12px 16px}
+.detail-box{background:#fff;border:1px solid var(--line);border-radius:6px;padding:12px}
+.detail-box h4{font-size:12.5px;margin-bottom:8px;color:#3a4353}
+.detail-box .item{display:flex;gap:8px;padding:4px 0;font-size:12px;border-bottom:1px dashed #eee}
+.detail-box .item:last-child{border-bottom:none}
+.detail-box .item .k{color:var(--sub);min-width:100px}
+.detail-box .item .v{color:#333}
+
+.empty{padding:32px;text-align:center;color:var(--sub);font-size:13px}
+.foot{text-align:center;color:var(--sub);font-size:11.5px;margin-top:16px;padding:12px}
+
+@media(max-width:900px){
+  .kpis{grid-template-columns:repeat(4,1fr)}
+}
+@media(max-width:600px){
+  .kpis{grid-template-columns:repeat(2,1fr)}
+  .topnav .menu{display:none}
+}
+</style>
+</head>
+<body>
+
+<!-- 顶部导航 -->
+<div class="topnav">
+  <div class="mi-logo">MI</div>
+  <div class="brand">小米汽车 · 样件订单自动化</div>
+  <div class="menu">
+    <a class="on">执行日志面板</a>
+    <a href="执行日报.html">执行日报</a>
+    <a href="日报订单明细.html">日报订单明细</a>
+  </div>
+  <div class="sp"></div>
+  <div class="meta">数据源 logs/workflow.db + jsonl</div>
+</div>
+
+<div class="wrap">
+
+  <!-- 头部 -->
+  <div class="head">
+    <div>
+      <h1>📋 样件订单 · 执行日志面板</h1>
+      <div class="meta">生成时间 2026-09-14 20:30:00 · 点击右上角刷新重新生成 · 日志永久保留于 logs/</div>
+    </div>
+    <div class="stats">23 条执行 · 5 个产物 · 5 个 Skill · 累计耗时 42.6s</div>
+  </div>
+
+  <!-- KPI 卡片 -->
+  <div class="kpis">
+    <div class="kpi"><b>23</b><span>总执行次数</span></div>
+    <div class="kpi ok"><b>15</b><span>成功</span></div>
+    <div class="kpi partial"><b>4</b><span>部分成功</span></div>
+    <div class="kpi wait"><b>2</b><span>待决策</span></div>
+    <div class="kpi fail"><b>2</b><span>失败</span></div>
+    <div class="kpi"><b>42.6s</b><span>累计耗时</span></div>
+    <div class="kpi"><b>5</b><span>涉及 Skill</span></div>
+  </div>
+
+  <!-- 按日执行趋势 -->
+  <div class="card">
+    <div class="hd">📈 按日执行趋势 <i>最近 7 天</i></div>
+    <div class="bd">
+      <div class="trend">
+        <div class="bar" title="09-08: 共4 · 成功1"><div class="fill" style="height:30%"></div><i>4</i><span class="date">09-08</span></div>
+        <div class="bar" title="09-09: 共6 · 成功3"><div class="fill" style="height:45%"></div><i>6</i><span class="date">09-09</span></div>
+        <div class="bar" title="09-10: 共8 · 成功5"><div class="fill" style="height:60%"></div><i>8</i><span class="date">09-10</span></div>
+        <div class="bar" title="09-11: 共5 · 成功4"><div class="fill" style="height:38%"></div><i>5</i><span class="date">09-11</span></div>
+        <div class="bar" title="09-12: 共10 · 成功7"><div class="fill" style="height:75%"></div><i>10</i><span class="date">09-12</span></div>
+        <div class="bar" title="09-13: 共7 · 成功5"><div class="fill" style="height:53%"></div><i>7</i><span class="date">09-13</span></div>
+        <div class="bar" title="09-14: 共23 · 成功15"><div class="fill" style="height:100%"></div><i>23</i><span class="date">09-14</span></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 筛选器 -->
+  <div class="filters">
+    <input id="q" placeholder="🔍 关键词：批次 / Skill / CLI / 摘要 / 订单号…">
+    <select id="fd">
+      <option value="">全部日期</option>
+      <option value="2026-09-14">2026-09-14</option>
+      <option value="2026-09-13">2026-09-13</option>
+      <option value="2026-09-12">2026-09-12</option>
+      <option value="2026-09-11">2026-09-11</option>
+      <option value="2026-09-10">2026-09-10</option>
+      <option value="2026-09-09">2026-09-09</option>
+      <option value="2026-09-08">2026-09-08</option>
+    </select>
+    <select id="fs">
+      <option value="">全部 Skill</option>
+      <option value="需求导入">需求导入</option>
+      <option value="需求检查">需求检查</option>
+      <option value="查询可下单">查询可下单</option>
+      <option value="创建订单">创建订单</option>
+      <option value="交互确认">交互确认</option>
+    </select>
+    <div class="chips" id="chips">
+      <span class="chip on" data-s="">全部</span>
+      <span class="chip" data-s="success">成功</span>
+      <span class="chip" data-s="partial">部分成功</span>
+      <span class="chip" data-s="waiting">待决策</span>
+      <span class="chip" data-s="failed">失败</span>
+    </div>
+  </div>
+
+  <!-- 执行记录 -->
+  <div class="card">
+    <div class="hd">📝 执行记录 <i id="record-count">23 条</i></div>
+    <table>
+      <thead>
+        <tr><th style="width:40px"></th><th>时间</th><th>批次</th><th>Skill</th><th>CLI</th><th>状态</th><th>耗时</th><th>摘要 / 明细</th></tr>
+      </thead>
+      <tbody id="tbody">
+        <!-- 记录由 JS 渲染 -->
+      </tbody>
+    </table>
+  </div>
+
+  <!-- 产物登记 -->
+  <div class="card">
+    <div class="hd">📦 产物登记 <i>5 个（路径 · 大小 · SHA1 可追溯）</i></div>
+    <table>
+      <thead><tr><th>时间</th><th>批次</th><th>环节</th><th>文件路径</th><th>大小</th><th>SHA1</th></tr></thead>
+      <tbody>
+        <tr><td class="ts">09-14 20:28</td><td>B20260914</td><td>需求导入</td><td class="mono">demand-import/output/import_records_20260914.json</td><td class="num">28KB</td><td class="mono">a1b2c3d4e5f6</td></tr>
+        <tr><td class="ts">09-14 20:29</td><td>B20260914</td><td>可下单查询</td><td class="mono">_shared/output/ReadyOrders_20260914_202900.json</td><td class="num">45KB</td><td class="mono">b2c3d4e5f6a7</td></tr>
+        <tr><td class="ts">09-14 20:30</td><td>B20260914</td><td>订单创建</td><td class="mono">demand-order-create/output/OrderLog_20260914_203000.json</td><td class="num">32KB</td><td class="mono">c3d4e5f6a7b8</td></tr>
+        <tr><td class="ts">09-14 20:30</td><td>B20260914</td><td>执行日报</td><td class="mono">reports/skill_report_20260914.html</td><td class="num">18KB</td><td class="mono">d4e5f6a7b8c9</td></tr>
+        <tr><td class="ts">09-14 20:30</td><td>B20260914</td><td>工作流汇总</td><td class="mono">reports/workflow_summary_20260914.json</td><td class="num">8KB</td><td class="mono">e5f6a7b8c9d0</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="foot">
+    本面板由 log_viewer.py 生成 · 日志永久保留于 logs/ · 每次工作流结束后自动刷新<br>
+    小米汽车 · 样件订单自动化 · 执行日志面板 v2.0
+  </div>
+
+</div>
+
+<script>
+// 模拟执行记录数据
+const records = [
+  {ts:'09-14 20:30',batch:'B20260914',skill:'创建订单',cli:'dx-ep sapo order create-order',status:'partial',elapsed:'5.6s',summary:'已提交审批 2 · 草稿待核实 2 · 失败 1',detail:'订单编号=4900037888 · 供应商=博世 · 状态=已提交审批\n订单编号=4900037889 · 供应商=大陆集团 · 状态=已提交审批\n订单编号=4900037890 · 供应商=敏实集团 · 状态=草稿待核实\n订单编号=4900037892 · 供应商=福耀玻璃 · 状态=失败(价格不一致)'},
+  {ts:'09-14 20:29',batch:'B20260914',skill:'查询可下单',cli:'dx-ep sapo order query-ready',status:'success',elapsed:'1.2s',summary:'查询136条 · 筛选后7条可下单',detail:'筛选条件：到货日期 >= 今天往前推2个月（含未来）\n可下单需求：7条（含试制3条、散件4条）'},
+  {ts:'09-14 20:29',batch:'B20260914',skill:'需求检查',cli:'demand-check（本地校验）',status:'success',elapsed:'0.8s',summary:'PASS 20 · WARN 0 · REJECT 0',detail:'16项校验全部通过：必填字段/数量/日期/预算一致性/行号连续/EP账号/样件用途'},
+  {ts:'09-14 20:28',batch:'B20260914',skill:'需求导入',cli:'dx-ep sapo order import-json',status:'partial',elapsed:'3.2s',summary:'导入 20 条 · 异常 3 条',detail:'异常记录 recvueZKYQTxKZ：需求申请人邮箱为空\n异常记录 recvua2fMUte4w：研发工程师邮箱为空\n异常记录 recvu2VZSsFgcX：预算编号缺失'},
+  {ts:'09-14 20:27',batch:'B20260914',skill:'交互确认',cli:'feishu-mcp（多维表格）',status:'waiting',elapsed:'0.0s',summary:'导入前确认 · 等待需求导入人决策',detail:'确认项：共23条记录，可导入20条，异常3条\n决策人：需求导入人\n状态：待确认'},
+  {ts:'09-13 15:20',batch:'B20260913',skill:'创建订单',cli:'dx-ep sapo order create-order',status:'success',elapsed:'4.8s',summary:'已提交审批 3 · 全部成功',detail:'订单编号=4900037880 · 供应商=博世 · 状态=已提交审批\n订单编号=4900037881 · 供应商=敏实集团 · 状态=已提交审批\n订单编号=4900037882 · 供应商=拓普集团 · 状态=已提交审批'},
+  {ts:'09-13 15:19',batch:'B20260913',skill:'查询可下单',cli:'dx-ep sapo order query-ready',status:'success',elapsed:'1.5s',summary:'查询98条 · 筛选后5条可下单',detail:''},
+  {ts:'09-13 15:18',batch:'B20260913',skill:'需求导入',cli:'dx-ep sapo order import-json',status:'success',elapsed:'2.9s',summary:'导入 15 条 · 全部成功',detail:''},
+  {ts:'09-12 10:30',batch:'B20260912',skill:'创建订单',cli:'dx-ep sapo order create-order',status:'failed',elapsed:'12.0s',summary:'CLI 调用失败：超时',detail:'错误：subprocess.TimeoutExpired\n可能原因：网络问题/服务慢/登录过期\n建议：检查 dx-garagehub auth login 登录状态'},
+  {ts:'09-12 10:28',batch:'B20260912',skill:'查询可下单',cli:'dx-ep sapo order query-ready',status:'failed',elapsed:'30.0s',summary:'登录错误：not logged in',detail:'检测到登录错误关键词：not logged in\n请执行：dx-garagehub auth login 重新登录'},
+  {ts:'09-12 09:15',batch:'B20260912',skill:'需求导入',cli:'dx-ep sapo order import-json',status:'partial',elapsed:'3.5s',summary:'导入 18 条 · 异常 2 条',detail:''},
+  {ts:'09-11 14:00',batch:'B20260911',skill:'创建订单',cli:'dx-ep sapo order create-order',status:'success',elapsed:'5.2s',summary:'已提交审批 2 · 草稿 1',detail:''},
+  {ts:'09-11 13:58',batch:'B20260911',skill:'查询可下单',cli:'dx-ep sapo order query-ready',status:'success',elapsed:'1.3s',summary:'查询85条 · 筛选后3条可下单',detail:''},
+  {ts:'09-11 13:57',batch:'B20260911',skill:'需求检查',cli:'demand-check',status:'success',elapsed:'0.6s',summary:'PASS 12 · 全部通过',detail:''},
+  {ts:'09-11 13:56',batch:'B20260911',skill:'需求导入',cli:'dx-ep sapo order import-json',status:'success',elapsed:'2.8s',summary:'导入 12 条 · 全部成功',detail:''},
+  {ts:'09-10 16:45',batch:'B20260910',skill:'交互确认',cli:'feishu-mcp',status:'waiting',elapsed:'0.0s',summary:'下单前确认 · 等待订单管理员决策',detail:''},
+  {ts:'09-10 16:44',batch:'B20260910',skill:'创建订单',cli:'dx-ep sapo order create-order',status:'partial',elapsed:'6.1s',summary:'已提交审批 1 · 草稿 2 · 失败 1',detail:''},
+  {ts:'09-10 16:42',batch:'B20260910',skill:'查询可下单',cli:'dx-ep sapo order query-ready',status:'success',elapsed:'1.8s',summary:'查询120条 · 筛选后8条可下单',detail:''},
+  {ts:'09-10 16:40',batch:'B20260910',skill:'需求导入',cli:'dx-ep sapo order import-json',status:'success',elapsed:'3.1s',summary:'导入 25 条 · 全部成功',detail:''},
+  {ts:'09-09 11:20',batch:'B20260909',skill:'需求导入',cli:'dx-ep sapo order import-json',status:'success',elapsed:'2.7s',summary:'导入 10 条 · 全部成功',detail:''},
+  {ts:'09-09 11:18',batch:'B20260909',skill:'查询可下单',cli:'dx-ep sapo order query-ready',status:'failed',elapsed:'1.2s',summary:'CLI 调用失败：超时',detail:''},
+  {ts:'09-08 09:09',batch:'B20260908',skill:'交互确认',cli:'-',status:'waiting',elapsed:'0.0s',summary:'FAIL 记录等待用户决策',detail:''},
+];
+
+const statusMap = {
+  success:{tag:'成功',cls:'ok'},
+  partial:{tag:'部分成功',cls:'partial'},
+  waiting:{tag:'待决策',cls:'wait'},
+  failed:{tag:'失败',cls:'fail'}
+};
+
+function renderRecords() {
+  const tbody = document.getElementById('tbody');
+  tbody.innerHTML = '';
+  records.forEach((r, i) => {
+    const st = statusMap[r.status];
+    const tr = document.createElement('tr');
+    tr.dataset.st = r.status;
+    tr.dataset.skill = r.skill;
+    tr.dataset.date = r.ts.slice(0,5);
+    tr.innerHTML = `
+      <td><span class="expand-btn" onclick="toggleDetail(${i})">▶</span></td>
+      <td class="ts">${r.ts}</td>
+      <td>${r.batch}</td>
+      <td>${r.skill}</td>
+      <td class="mono">${r.cli}</td>
+      <td><span class="tag ${st.cls}">${st.tag}</span></td>
+      <td class="num">${r.elapsed}</td>
+      <td>${r.summary}${r.detail ? '<div class="sub">点击展开查看详情</div>' : ''}</td>
+    `;
+    tbody.appendChild(tr);
+
+    if (r.detail) {
+      const dtr = document.createElement('tr');
+      dtr.className = 'detail-row';
+      dtr.id = 'detail-' + i;
+      dtr.innerHTML = `<td colspan="8"><div class="detail-box"><h4>📋 执行详情</h4>${r.detail.split('\n').map(l => `<div class="item"><span class="k">•</span><span class="v">${l}</span></div>`).join('')}</div></td>`;
+      tbody.appendChild(dtr);
+    }
+  });
+}
+
+function toggleDetail(i) {
+  const row = document.getElementById('detail-' + i);
+  if (row) {
+    row.classList.toggle('show');
+    const btn = row.previousElementSibling.querySelector('.expand-btn');
+    btn.textContent = row.classList.contains('show') ? '▼' : '▶';
+  }
+}
+
+// 筛选
+const q = document.getElementById('q'), fd = document.getElementById('fd'), fs = document.getElementById('fs');
+const chips = [...document.querySelectorAll('.chip')];
+let st = '';
+
+function apply() {
+  const t = q.value.toLowerCase();
+  const d = fd.value ? fd.value.slice(5) : '';
+  const sk = fs.value;
+  let count = 0;
+  document.querySelectorAll('#tbody tr').forEach(tr => {
+    if (tr.classList.contains('detail-row')) return;
+    const txt = (tr.textContent || '').toLowerCase();
+    const ok = (!t || txt.includes(t)) && (!d || tr.dataset.date === d) && (!st || tr.dataset.st === st) && (!sk || tr.dataset.skill === sk);
+    tr.style.display = ok ? '' : 'none';
+    if (ok) count++;
+  });
+  document.getElementById('record-count').textContent = count + ' 条';
+}
+
+q.oninput = apply;
+fd.onchange = apply;
+fs.onchange = apply;
+chips.forEach(c => c.onclick = () => {
+  chips.forEach(x => x.classList.remove('on'));
+  c.classList.add('on');
+  st = c.dataset.s;
+  apply();
+});
+
+renderRecords();
+apply();
+</script>
+
+</body>
+</html>

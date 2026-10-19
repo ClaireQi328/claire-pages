@@ -1,0 +1,513 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>路由引擎 · 规则配置中心</title>
+<style>
+  :root{
+    --color-primary:#1677FF; --color-primary-hover:#4096FF; --color-primary-active:#0958D9;
+    --color-primary-light:#E6F4FF; --color-primary-border:#91CAFF;
+    --color-bg:#ffffff; --color-bg-grey:#F5F5F5;
+    --color-border:#D9D9D9; --color-border-light:#F0F0F0;
+    --color-text:rgba(0,0,0,0.88); --color-text-secondary:rgba(0,0,0,0.65); --color-text-tertiary:rgba(0,0,0,0.45);
+    --color-green:#16A34A; --color-green-bg:#E6F6EC; --color-orange:#FF6900; --color-orange-bg:#FFF4E6;
+    --color-red:#DC2626; --color-red-bg:#FDE8E8; --color-yellow:#F59E0B; --color-yellow-bg:#FEF3C7;
+    --color-hover:#F5F5F5; --shadow-modal:0 12px 48px rgba(0,0,0,0.15);
+  }
+  *{margin:0;padding:0;box-sizing:border-box;}
+  body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif;font-size:14px;color:var(--color-text);background:var(--color-bg-grey);line-height:1.6;}
+  button{font-family:inherit;cursor:pointer;border:none;outline:none;}
+  input,select,textarea{font-family:inherit;font-size:13px;outline:none;}
+  .page{max-width:1120px;margin:0 auto;padding:18px 22px 60px;}
+  .breadcrumb{font-size:13px;color:var(--color-text-tertiary);padding:6px 0 10px;}
+  .breadcrumb b{color:var(--color-text);font-weight:500;}
+  .page-title{font-size:20px;font-weight:600;display:flex;align-items:baseline;gap:10px;margin-bottom:4px;}
+  .page-title .sub{font-size:12px;color:var(--color-text-tertiary);font-weight:400;}
+  .callout{background:var(--color-primary-light);border:1px solid var(--color-primary-border);border-radius:6px;padding:10px 14px;font-size:12px;color:var(--color-primary-active);margin:10px 0 14px;line-height:1.8;}
+  .callout b{font-weight:600;}
+  .toolbar{display:flex;align-items:center;gap:14px;margin-bottom:12px;flex-wrap:wrap;}
+  .sub-tabs{display:flex;gap:2px;border-bottom:1px solid var(--color-border);margin-bottom:0;}
+  .sub-tabs .sub-tab{padding:8px 14px;font-size:13px;color:var(--color-text-secondary);border-bottom:2px solid transparent;cursor:pointer;}
+  .sub-tabs .sub-tab:hover{color:var(--color-primary);}
+  .sub-tabs .sub-tab.active{color:var(--color-primary);border-bottom-color:var(--color-primary);font-weight:600;}
+  .toolbar .cnt{margin-left:auto;font-size:12px;color:var(--color-text-tertiary);}
+  .toolbar .cnt b{color:var(--color-primary);font-size:14px;}
+  .filter-bar{background:#fff;border:1px solid var(--color-border);border-radius:6px;padding:12px 16px;margin-bottom:14px;display:flex;flex-wrap:wrap;gap:12px;align-items:flex-end;}
+  .filter-item{display:flex;flex-direction:column;gap:4px;}
+  .filter-item label{font-size:12px;color:var(--color-text-tertiary);}
+  .filter-item select{height:30px;border:1px solid var(--color-border);border-radius:6px;padding:0 8px;min-width:120px;background:#fff;font-size:13px;}
+  .btn{padding:6px 14px;border-radius:6px;font-size:13px;border:1px solid var(--color-border);background:#fff;color:var(--color-text-secondary);}
+  .btn:hover{border-color:var(--color-primary);color:var(--color-primary);}
+  .btn-primary{background:var(--color-primary);color:#fff;border-color:var(--color-primary);box-shadow:0 1px 2px rgba(22,119,255,.25);}
+  .btn-primary:hover{background:var(--color-primary-hover);color:#fff;}
+  .btn-primary:active{background:var(--color-primary-active);}
+  .btn-sm{padding:2px 9px;font-size:12px;}
+  .btn-link{background:none;border:none;color:var(--color-primary);padding:0 5px;font-size:12px;}
+  .btn-link:hover{text-decoration:underline;}
+  .btn-link.disabled{color:var(--color-text-tertiary);cursor:not-allowed;}
+  .btn-link.danger{color:var(--color-red);}
+  table{width:100%;border-collapse:collapse;font-size:13px;}
+  table thead th{background:#FAFAFA;color:var(--color-text-secondary);font-weight:500;padding:9px 10px;text-align:left;border-bottom:1px solid var(--color-border);white-space:nowrap;position:sticky;top:0;}
+  table tbody td{padding:8px 10px;border-bottom:1px solid var(--color-border-light);white-space:nowrap;vertical-align:middle;}
+  table tbody tr:hover{background:var(--color-hover);}
+  .table-wrap{border:1px solid var(--color-border);border-radius:6px;overflow:auto;background:#fff;}
+  .table-wrap.compact td,.table-wrap.compact th{padding:6px 9px;}
+  .tag{display:inline-block;font-size:11px;padding:1px 8px;border-radius:3px;white-space:nowrap;}
+  .tag-blue{background:var(--color-primary-light);color:var(--color-primary-active);border:1px solid var(--color-primary-border);}
+  .tag-green{background:var(--color-green-bg);color:var(--color-green);}
+  .tag-orange{background:var(--color-orange-bg);color:var(--color-orange);}
+  .tag-grey{background:var(--color-bg-grey);color:var(--color-text-tertiary);}
+  .tag-purple{background:#F3EBFE;color:#7C3AED;}
+  .tag-yellow{background:var(--color-yellow-bg);color:#B45309;}
+  .chain-cell{white-space:normal;min-width:380px;line-height:1.8;color:var(--color-text-secondary);font-size:12px;}
+  .switch{position:relative;display:inline-block;width:40px;height:22px;border-radius:11px;background:#D9D9D9;cursor:pointer;transition:background .2s;vertical-align:middle;}
+  .switch.on{background:var(--color-primary);}
+  .switch i{position:absolute;top:2px;left:2px;width:18px;height:18px;border-radius:50%;background:#fff;transition:left .2s;box-shadow:0 1px 2px rgba(0,0,0,.2);}
+  .switch.on i{left:20px;}
+  .modal-mask{display:none;position:fixed;inset:0;background:rgba(0,0,0,0.4);z-index:1000;align-items:center;justify-content:center;}
+  .modal-mask.show{display:flex;}
+  .modal{background:#fff;border-radius:8px;box-shadow:var(--shadow-modal);max-height:88vh;display:flex;flex-direction:column;}
+  .modal-header{padding:14px 20px;border-bottom:1px solid var(--color-border);display:flex;align-items:center;justify-content:space-between;}
+  .modal-header .title{font-size:15px;font-weight:600;}
+  .modal-header .close{background:none;border:none;font-size:18px;color:var(--color-text-tertiary);cursor:pointer;line-height:1;}
+  .modal-header .close:hover{color:var(--color-text);}
+  .modal-body{padding:16px 20px;overflow:auto;}
+  .modal-footer{padding:12px 20px;border-top:1px solid var(--color-border);display:flex;justify-content:flex-end;gap:8px;}
+  .form-group{margin-bottom:12px;}
+  .form-group label{display:block;font-size:13px;color:var(--color-text-secondary);margin-bottom:6px;}
+  .form-group label .hint{font-weight:400;color:var(--color-text-tertiary);font-size:11px;}
+  .form-group input[type=text],.form-group select{height:30px;border:1px solid var(--color-border);border-radius:6px;padding:0 8px;width:100%;background:#fff;font-size:13px;}
+  .form-group input.read-only{background:var(--color-bg-grey);color:var(--color-text-tertiary);}
+  .form-row{display:flex;gap:16px;}
+  .form-row .form-group{flex:1;}
+  .cond-editor{border:1px solid var(--color-border);border-radius:6px;padding:12px;background:var(--color-bg-grey);}
+  .cond-editor table{background:#fff;}
+  .cond-editor table td{padding:5px 6px;border-bottom:1px solid var(--color-border-light);white-space:nowrap;vertical-align:middle;}
+  .cond-editor table th{background:#FAFAFA;padding:5px 6px;font-size:11px;color:var(--color-text-secondary);font-weight:500;border-bottom:1px solid var(--color-border);text-align:left;white-space:nowrap;}
+  .cond-editor select{height:26px;border:1px solid var(--color-border);border-radius:6px;padding:0 5px;font-size:12px;background:#fff;max-width:100%;}
+  .cond-editor select.empty-val{border-color:var(--color-red);}
+  .cond-editor .val-fixed{display:inline-block;height:26px;line-height:26px;padding:0 8px;color:var(--color-text-tertiary);font-size:12px;background:var(--color-bg-grey);border-radius:6px;}
+  .cond-ops{margin-top:8px;display:flex;gap:8px;align-items:center;}
+  .cond-ops .count{margin-left:auto;font-size:11px;color:var(--color-text-tertiary);}
+  .op-btn{font-size:12px;color:var(--color-primary);cursor:pointer;margin-right:5px;user-select:none;}
+  .op-btn.dis{color:#C0C4CC;cursor:not-allowed;}
+  .op-btn.danger{color:var(--color-red);}
+  .idx{display:inline-flex;width:20px;height:20px;border-radius:50%;background:var(--color-primary-light);color:var(--color-primary-active);font-size:11px;align-items:center;justify-content:center;font-weight:500;}
+  .toast{position:fixed;top:24px;left:50%;transform:translateX(-50%);background:rgba(0,0,0,0.85);color:#fff;padding:8px 20px;border-radius:6px;font-size:13px;z-index:1200;display:none;}
+  .view{display:none;}
+  .view.active{display:block;}
+  .note{font-size:12px;color:var(--color-text-tertiary);margin-top:12px;line-height:1.8;}
+  .queue-flow{display:flex;align-items:center;gap:8px;background:#fff;border:1px solid var(--color-border);border-radius:6px;padding:10px 14px;font-size:12px;color:var(--color-text-secondary);margin-bottom:12px;flex-wrap:wrap;}
+  .queue-flow b{color:var(--color-primary);font-weight:600;}
+  .queue-flow .arrow{color:var(--color-border);}
+</style>
+</head>
+<body>
+<div class="page">
+  <div class="breadcrumb">基础数据管理 / <b>规则引擎</b></div>
+  <div class="page-title">路由引擎 · 规则配置中心 <span class="sub">一个任务类型一条规则 · 优先级内嵌 WHEN 条件组 · 异常队列闭环</span></div>
+  <div class="callout">
+    <b>核心设计：</b>WHEN 条件组 = 有序子条件序列，<b>子条件排列顺序即优先级</b>（命中即停，不用 AND/OR）；判断条件含 <b>台账 / VPPS / 车型项目 / VPPS节点</b>（均为内部条件）；THEN 拆为 <b>分配方式</b>（按台账 / 按VPPS / 按车型项目）× <b>分配角色</b>（采购 / 采购经理 / 指定人员）；<b>一个任务类型只能有一条生效规则</b>；ELSE 兜底统一为指定人员；未命中/字段缺失/人员缺失等任务进入<b>异常队列</b>闭环处理。
+  </div>
+  <div class="toolbar">
+    <button class="btn btn-primary" onclick="openRuleModal(-1)">＋ 新增规则</button>
+    <div class="sub-tabs">
+      <span class="sub-tab active" id="tab-list" onclick="switchView('list')">规则配置</span>
+      <span class="sub-tab" id="tab-queue" onclick="switchView('queue')">异常队列</span>
+    </div>
+    <span class="cnt">共 <b id="cntRules">6</b> 条规则 · 引擎展开 <b id="cntTotal">24</b> 条 · 异常 <b id="cntExc" style="color:var(--color-orange)">6</b> 条</span>
+  </div>
+
+  <!-- 视图1：规则配置（列表） -->
+  <div class="view active" id="view-list">
+    <div class="filter-bar">
+      <div class="filter-item"><label>状态</label><select id="fltStatus"><option value="全部">全部</option><option>启用</option><option>停用</option></select></div>
+      <div class="filter-item"><label>任务类型</label><select id="fltType"><option value="全部">全部</option><option>EWO</option><option>CWO</option><option>SWO</option><option>样件</option><option>量产框架</option><option>售后框架</option></select></div>
+      <button class="btn btn-primary" onclick="doFilter()">查询</button>
+      <button class="btn" onclick="resetFilter()">重置</button>
+    </div>
+    <div class="table-wrap compact">
+      <table>
+        <thead><tr><th>规则ID</th><th>任务类型</th><th>WHEN 判定链（完整）</th><th>ELSE</th><th>兜底人员</th><th>状态</th><th>操作</th></tr></thead>
+        <tbody id="listBody"></tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- 视图2：异常队列 -->
+  <div class="view" id="view-queue">
+    <div class="queue-flow">
+      <b>异常队列（只读展示）：</b>承接判定链未命中 / 字段缺失 / 人员缺失 / 多人冲突等任务，按异常原因、任务类型筛选查看；本页不做处理动作，处理由业务人员在任务/异常管理中完成。
+    </div>
+    <div class="filter-bar">
+      <div class="filter-item"><label>异常原因</label><select id="excReason"><option value="全部">全部</option><option>无规则命中</option><option>字段缺失</option><option>人员缺失</option><option>多人冲突</option><option>未匹配VPPS节点</option></select></div>
+      <div class="filter-item"><label>任务类型</label><select id="excType"><option value="全部">全部</option><option>EWO</option><option>CWO</option><option>SWO</option><option>样件</option><option>量产框架</option><option>售后框架</option></select></div>
+      <button class="btn btn-primary" onclick="doExcFilter()">查询</button>
+      <button class="btn" onclick="resetExcFilter()">重置</button>
+    </div>
+    <div class="table-wrap compact">
+      <table>
+        <thead><tr><th>异常ID</th><th>任务类型</th><th>零件号</th><th>VPPS</th><th>异常原因</th><th>触发规则</th></tr></thead>
+        <tbody id="excBody"></tbody>
+      </table>
+    </div>
+  </div>
+
+  <div class="note">规则配置：新增/编辑在弹窗中完成，「＋ 添加条件」直接在条件组中插入空行、行内补全（判断条件含台账 / VPPS / 车型项目 / VPPS节点，THEN 自动联动分配方式，分配角色含采购 / 采购经理 / 指定人员——指定人员仅选人、不放角色，默认路梦瑶）；存在空值保存时系统报错并定位到行；任务类型唯一（重复报错）；子条件顺序即优先级，用 ↑ ↓ 调整；「保存」存为草稿、「应用」立即生效。异常队列：只读展示未命中/字段缺失/人员缺失/多人冲突等任务，支持按异常原因、任务类型筛选，不展示状态、不做处理动作。</div>
+</div>
+
+<!-- 弹窗：新增/编辑规则 -->
+<div class="modal-mask" id="modalRule" onclick="if(event.target===this)closeModal('modalRule')">
+  <div class="modal" style="width:940px;">
+    <div class="modal-header">
+      <span class="title" id="ruleModalTitle">新增规则</span>
+      <button class="close" onclick="closeModal('modalRule')">×</button>
+    </div>
+    <div class="modal-body">
+      <div class="form-row">
+        <div class="form-group"><label>规则ID</label><input type="text" class="read-only" id="mId" readonly></div>
+        <div class="form-group"><label>任务类型 <span class="hint">（一个类型只能有一条生效规则）</span></label>
+          <select id="mType" onchange="onTypeChange(this.value)"></select></div>
+        <div class="form-group"><label>状态</label>
+          <div style="display:flex;align-items:center;gap:8px;padding-top:4px;">
+            <div class="switch on" id="mStatus" onclick="toggleMStatus()"><i></i></div>
+            <span style="font-size:12px;color:var(--color-green);" id="mStatusTxt">启用</span>
+          </div>
+        </div>
+      </div>
+      <div class="form-group">
+        <label>WHEN 条件组 <span class="hint">（有序子条件，顺序即优先级，命中即停，不用 AND/OR；「添加条件」插入空行，空值保存时报错）</span></label>
+        <div class="cond-editor">
+          <table>
+            <thead><tr>
+              <th style="width:52px">优先级</th><th style="width:120px">零件</th><th style="width:110px">判断条件</th><th style="width:100px">值</th>
+              <th style="width:110px">分配方式</th><th style="width:100px">分配角色</th><th style="width:110px">指定人员</th><th style="width:110px">操作</th>
+            </tr></thead>
+            <tbody id="mCondList"></tbody>
+          </table>
+          <div class="cond-ops">
+            <button class="btn btn-sm btn-primary" onclick="addEmptyCond()">＋ 添加条件</button>
+            <button class="btn btn-sm" onclick="clearMConds()">清空条件</button>
+            <span class="count" id="mCondCount">共 0 条子条件</span>
+          </div>
+        </div>
+      </div>
+      <div class="form-group">
+        <label>ELSE 兜底 <span class="hint">（统一为指定人员）</span></label>
+        <div style="display:flex;align-items:center;gap:10px;">
+          <span class="tag tag-orange">指定人员</span>
+          <select id="mElsePerson" style="height:30px;border:1px solid var(--color-border);border-radius:6px;padding:0 8px;min-width:140px;background:#fff;font-size:13px;"></select>
+        </div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn" onclick="closeModal('modalRule')">取消</button>
+      <button class="btn" onclick="saveRuleModal('draft')">保存草稿</button>
+      <button class="btn btn-primary" onclick="saveRuleModal('apply')">应用</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+var TYPES = ['EWO','CWO','SWO','样件','量产框架','售后框架'];
+var CAR_VALUES = ['MS11','Modena','Modena-L'];
+var VPPS_NODES = ['1011-M05','10.02.03-B030','30.01.01-F010','50.01.02-E010'];
+var PERSONS = ['路梦瑶','admin','杨欣欣','夏书豪','刘文飞','刘勇'];
+var ROLE_POOL = {
+  'EWO':['任务零件','改后零件','改前零件'],
+  'CWO':['本色件','任务零件'],
+  'SWO':['参考量产件','任务零件'],
+  '样件':['任务零件'],
+  '量产框架':['任务零件'],
+  '售后框架':['任务零件','参考量产件']
+};
+var NUM = ['①','②','③','④','⑤','⑥','⑦','⑧','⑨','⑩','⑪','⑫','⑬','⑭','⑮','⑯','⑰','⑱','⑲','⑳'];
+function defCond(role, el, val, role2){
+  var method = el==='台账' ? '按台账' : ((el==='VPPS'||el==='VPPS节点') ? '按VPPS' : '按车型项目');
+  if(!role2){ role2 = (el==='车型项目') ? '指定人员' : '采购'; }
+  var dval = el==='车型项目' ? 'MS11' : (el==='VPPS节点' ? VPPS_NODES[0] : '是');
+  return {role:role, el:el, val:val||dval, method:method, role2:role2, person:(role2==='指定人员'?'路梦瑶':'')};
+}
+function defRule(id, type, multi, conds, elsePerson){
+  var list = [defCond('任务零件','车型项目','MS11','指定人员')];
+  conds.forEach(function(c){ list.push(defCond(c[0], c[1])); });
+  return {id:id, type:type, multi:multi, conds:list, elsePerson:elsePerson};
+}
+var rules = [
+  defRule('R-EWO','EWO',false,
+    [['任务零件','台账'],['改后零件','台账'],['改前零件','台账'],['改后零件','VPPS'],['改前零件','VPPS'],['任务零件','VPPS']],
+    '路梦瑶'),
+  defRule('R-CWO','CWO',false,[['本色件','台账'],['本色件','VPPS']],'路梦瑶'),
+  defRule('R-SWO','SWO',false,[['参考量产件','台账'],['任务零件','VPPS'],['参考量产件','VPPS']],'路梦瑶'),
+  defRule('R-YJ','样件',false,[['任务零件','台账'],['任务零件','VPPS']],'路梦瑶'),
+  defRule('R-LT','量产框架',true,[['任务零件','台账'],['任务零件','VPPS']],'admin'),
+  defRule('R-ST','售后框架',true,[['任务零件','台账'],['任务零件','VPPS'],['参考量产件','VPPS']],'路梦瑶')
+];
+var EXC_REASONS = ['无规则命中','字段缺失','人员缺失','多人冲突','未匹配VPPS节点'];
+var excData = [
+  {id:'EX-2026-001', type:'EWO', partNo:'P000080905003', vpps:'—', reason:'无规则命中（判定链全未命中，ELSE兜底人未配置）', rule:'R-EWO'},
+  {id:'EX-2026-002', type:'CWO', partNo:'P000071002005', vpps:'30.01.01-F010', reason:'未匹配VPPS节点（节点 1011-M05 未命中）', rule:'R-CWO'},
+  {id:'EX-2026-003', type:'SWO', partNo:'P000090103004', vpps:'50.01.02-E010', reason:'人员缺失（品类资源池无采购员或已离职）', rule:'R-SWO'},
+  {id:'EX-2026-004', type:'量产框架', partNo:'批量', vpps:'多个', reason:'多人冲突（多VPPS多角色无法唯一确定）', rule:'R-LT'},
+  {id:'EX-2026-005', type:'样件', partNo:'P000062301008', vpps:'—', reason:'字段缺失（零件号未解析出 VPPS）', rule:'R-YJ'},
+  {id:'EX-2026-006', type:'售后框架', partNo:'P000100501002', vpps:'10.02.03-B030', reason:'无规则命中（车型项目=Modena 无对应规则）', rule:'R-ST'}
+];
+var form = null;
+var curView = 'list';
+var curFilter = {status:'全部', type:'全部'};
+var excFilter = {reason:'全部', type:'全部'};
+
+function idxNum(i){ return i < NUM.length ? NUM[i] : (i+1); }
+function chainText(r){
+  return r.conds.map(function(c){ return c.role+'·'+c.el+'='+c.val; }).join(' → ');
+}
+function hasActive(type, excludeId){
+  return rules.some(function(r){ return r.type===type && r.status && r.id!==excludeId; });
+}
+
+/* ========== 视图切换 ========== */
+function switchView(v){
+  curView = v;
+  document.getElementById('view-list').classList.toggle('active', v==='list');
+  document.getElementById('view-queue').classList.toggle('active', v==='queue');
+  document.getElementById('tab-list').classList.toggle('active', v==='list');
+  document.getElementById('tab-queue').classList.toggle('active', v==='queue');
+}
+
+/* ========== 规则列表 ========== */
+function renderList(){
+  var body = document.getElementById('listBody');
+  var html = '';
+  rules.forEach(function(r){
+    if(curFilter.status!=='全部' && (curFilter.status==='启用')!==r.status) return;
+    if(curFilter.type!=='全部' && curFilter.type!==r.type) return;
+    html += '<tr>'
+      + '<td><b style="color:var(--color-primary)">'+r.id+'</b></td>'
+      + '<td><span class="tag tag-blue">'+r.type+'</span>'+(r.multi?' <span class="tag tag-purple">批量多人</span>':'')+'</td>'
+      + '<td class="chain-cell">'+chainText(r)+'</td>'
+      + '<td><span class="tag tag-orange">指定人员</span></td>'
+      + '<td>'+r.elsePerson+'</td>'
+      + '<td><span class="tag '+(r.status?'tag-green':'tag-grey')+'">'+(r.status?'启用':'停用')+'</span></td>'
+      + '<td>'
+      + '<a class="btn-link" onclick="openRuleModal('+rules.indexOf(r)+')">编辑</a>'
+      + '<a class="btn-link'+(r.status?' disabled':'')+'" onclick="applyQuick('+rules.indexOf(r)+')">应用</a>'
+      + '<a class="btn-link danger" onclick="delRule('+rules.indexOf(r)+')">删除</a>'
+      + '</td></tr>';
+  });
+  body.innerHTML = html || '<tr><td colspan="7" style="text-align:center;color:var(--color-text-tertiary);padding:24px;">暂无匹配规则</td></tr>';
+  document.getElementById('cntRules').textContent = rules.length;
+  var kC = 0; rules.forEach(function(r){ kC += r.conds.length; });
+  document.getElementById('cntTotal').textContent = kC + rules.length;
+  renderExcCount();
+}
+function doFilter(){
+  curFilter.status = document.getElementById('fltStatus').value;
+  curFilter.type = document.getElementById('fltType').value;
+  renderList();
+}
+function resetFilter(){
+  document.getElementById('fltStatus').value = '全部';
+  document.getElementById('fltType').value = '全部';
+  curFilter = {status:'全部', type:'全部'};
+  renderList();
+}
+function applyQuick(ri){
+  var r = rules[ri];
+  if(hasActive(r.type, r.id)){ toast('任务类型 '+r.type+' 已有生效的规则，无法应用'); return; }
+  r.status = true; renderList(); toast(r.id+' 已应用，立即生效');
+}
+function delRule(ri){
+  if(!confirm('确认删除规则 '+rules[ri].id+' ？')) return;
+  rules.splice(ri,1); renderList(); toast('已删除 '+rules[ri].id);
+}
+
+/* ========== 异常队列 ========== */
+function renderExcCount(){
+  document.getElementById('cntExc').textContent = excData.length;
+}
+function renderExc(){
+  var body = document.getElementById('excBody');
+  var html = '';
+  excData.forEach(function(e){
+    if(excFilter.type!=='全部' && excFilter.type!==e.type) return;
+    if(excFilter.reason!=='全部' && e.reason.indexOf(excFilter.reason)<0) return;
+    html += '<tr>'
+      + '<td>'+e.id+'</td>'
+      + '<td><span class="tag tag-blue">'+e.type+'</span></td>'
+      + '<td>'+e.partNo+'</td>'
+      + '<td>'+e.vpps+'</td>'
+      + '<td style="white-space:normal;min-width:240px;font-size:12px;color:var(--color-text-secondary);">'+e.reason+'</td>'
+      + '<td>'+e.rule+'</td>'
+      + '</tr>';
+  });
+  body.innerHTML = html || '<tr><td colspan="6" style="text-align:center;color:var(--color-text-tertiary);padding:24px;">暂无异常任务</td></tr>';
+  renderExcCount();
+}
+function doExcFilter(){
+  excFilter.reason = document.getElementById('excReason').value;
+  excFilter.type = document.getElementById('excType').value;
+  renderExc();
+}
+function resetExcFilter(){
+  document.getElementById('excReason').value = '全部';
+  document.getElementById('excType').value = '全部';
+  excFilter = {reason:'全部', type:'全部'};
+  renderExc();
+}
+function excClaim(i){}
+function excHandle(i){}
+function excRerun(i){}
+
+/* ========== 弹窗：新增/编辑规则 ========== */
+function openRuleModal(ri){
+  if(ri >= 0){
+    form = JSON.parse(JSON.stringify(rules[ri]));
+    document.getElementById('ruleModalTitle').textContent = '编辑规则';
+  } else {
+    var used = rules.filter(function(r){ return r.status; }).map(function(r){ return r.type; });
+    var free = TYPES.filter(function(t){ return used.indexOf(t) < 0; });
+    if(!free.length){ toast('6 类任务均已有生效规则，请先停用或删除现有规则'); return; }
+    var n = rules.length + 1;
+    form = defRule('R-NEW-'+String(n).padStart(3,'0'), free[0], false, [['任务零件','台账'],['任务零件','VPPS']], '路梦瑶');
+    form.status = false;
+    document.getElementById('ruleModalTitle').textContent = '新增规则';
+  }
+  document.getElementById('mId').value = form.id;
+  document.getElementById('mType').innerHTML = TYPES.map(function(t){ return '<option'+(t===form.type?' selected':'')+'>'+t+'</option>'; }).join('');
+  document.getElementById('mElsePerson').innerHTML = PERSONS.map(function(p){ return '<option'+(p===form.elsePerson?' selected':'')+'>'+p+'</option>'; }).join('');
+  setMStatus(form.status);
+  renderMConds();
+  openModal('modalRule');
+}
+function openModal(id){ document.getElementById(id).classList.add('show'); }
+function closeModal(id){ document.getElementById(id).classList.remove('show'); }
+function toggleMStatus(){ form.status = !form.status; setMStatus(form.status); }
+function setMStatus(v){
+  document.getElementById('mStatus').classList.toggle('on', v);
+  document.getElementById('mStatusTxt').textContent = v ? '启用' : '停用';
+}
+function onTypeChange(t){
+  if(hasActive(t, form.id)){ toast('任务类型 '+t+' 已有生效的规则，请先停用或修改现有规则'); renderMConds(); return; }
+  form.type = t;
+  renderMConds();
+}
+function renderMConds(){
+  var tbody = document.getElementById('mCondList');
+  var pool = ROLE_POOL[form.type] || ROLE_POOL['EWO'];
+  var html = '';
+  form.conds.forEach(function(c, ci){
+    var roleOpts = '<option value="">请选择</option>' + pool.map(function(rp){ return '<option'+(rp===c.role?' selected':'')+'>'+rp+'</option>'; }).join('');
+    var elOpts = '<option value="">请选择</option>' + ['台账','VPPS','车型项目','VPPS节点'].map(function(e){ return '<option'+(e===c.el?' selected':'')+'>'+e+'</option>'; }).join('');
+    var valCell;
+    if(!c.el){ valCell = '<span class="val-fixed">—</span>'; }
+    else if(c.el==='车型项目'){
+      valCell = '<select onchange="updMCond('+ci+',\'val\',this.value)">'+CAR_VALUES.map(function(v){ return '<option'+(v===c.val?' selected':'')+'>'+v+'</option>'; }).join('')+'</select>';
+    } else if(c.el==='VPPS节点'){
+      valCell = '<select onchange="updMCond('+ci+',\'val\',this.value)">'+VPPS_NODES.map(function(v){ return '<option'+(v===c.val?' selected':'')+'>'+v+'</option>'; }).join('')+'</select>';
+    } else {
+      valCell = '<span class="val-fixed">是</span>';
+    }
+    var methodOpts = '<option value="">请选择</option>' + ['按台账','按VPPS','按车型项目'].map(function(m){ return '<option'+(m===c.method?' selected':'')+'>'+m+'</option>'; }).join('');
+    var role2Opts = '<option value="">请选择</option>' + ['采购','采购经理','指定人员'].map(function(r2){ return '<option'+(r2===c.role2?' selected':'')+'>'+r2+'</option>'; }).join('');
+    var personCell;
+    if(c.role2==='指定人员'){
+      personCell = '<select onchange="updMCond('+ci+',\'person\',this.value)">'+PERSONS.map(function(p){ return '<option'+(p===c.person?' selected':'')+'>'+p+'</option>'; }).join('')+'</select>';
+    } else {
+      personCell = '<span class="val-fixed">—</span>';
+    }
+    html += '<tr>'
+      + '<td><span class="idx">'+idxNum(ci)+'</span></td>'
+      + '<td><select'+(c.role?'':' class="empty-val"')+' onchange="updMCond('+ci+',\'role\',this.value)">'+roleOpts+'</select></td>'
+      + '<td><select'+(c.el?'':' class="empty-val"')+' onchange="onElChange('+ci+',this.value)">'+elOpts+'</select></td>'
+      + '<td>'+valCell+'</td>'
+      + '<td><select'+(c.method?'':' class="empty-val"')+' onchange="updMCond('+ci+',\'method\',this.value)">'+methodOpts+'</select></td>'
+      + '<td><select'+(c.role2?'':' class="empty-val"')+' onchange="onRole2Change('+ci+',this.value)">'+role2Opts+'</select></td>'
+      + '<td>'+personCell+'</td>'
+      + '<td><span class="op-btn'+(ci===0?' dis':'')+'" onclick="moveMCond('+ci+',-1)">↑</span><span class="op-btn'+(ci===form.conds.length-1?' dis':'')+'" onclick="moveMCond('+ci+',1)">↓</span><span class="op-btn danger" onclick="delMCond('+ci+')">删除</span></td>'
+      + '</tr>';
+  });
+  tbody.innerHTML = html || '<tr><td colspan="8" style="text-align:center;color:var(--color-text-tertiary);padding:12px;">暂无子条件，请点击「＋ 添加条件」插入空行</td></tr>';
+  document.getElementById('mCondCount').textContent = '共 '+form.conds.length+' 条子条件';
+}
+function addEmptyCond(){
+  form.conds.push({role:'', el:'', val:'', method:'', role2:'', person:''});
+  renderMConds();
+}
+function onElChange(ci, el){
+  var c = form.conds[ci];
+  c.el = el;
+  if(!el){ renderMConds(); return; }
+  c.val = el==='车型项目' ? 'MS11' : (el==='VPPS节点' ? VPPS_NODES[0] : '是');
+  c.method = el==='台账' ? '按台账' : ((el==='VPPS'||el==='VPPS节点') ? '按VPPS' : '按车型项目');
+  if(el==='车型项目'){ c.role2 = '指定人员'; c.person = '路梦瑶'; }
+  else if(!c.role2){ c.role2 = '采购'; c.person = ''; }
+  renderMConds();
+}
+function onRole2Change(ci, r2){
+  var c = form.conds[ci];
+  c.role2 = r2;
+  if(r2==='指定人员' && !c.person){ c.person = '路梦瑶'; }
+  if(r2==='采购' || r2==='采购经理'){ c.person = ''; }
+  renderMConds();
+}
+function updMCond(ci, key, val){ form.conds[ci][key] = val; renderMConds(); }
+function moveMCond(ci, dir){
+  var ni = ci + dir;
+  if(ni < 0 || ni >= form.conds.length) return;
+  var t = form.conds[ci]; form.conds[ci] = form.conds[ni]; form.conds[ni] = t;
+  renderMConds();
+}
+function delMCond(ci){ form.conds.splice(ci,1); renderMConds(); }
+function clearMConds(){ form.conds = []; renderMConds(); }
+function validateForm(){
+  if(!form.conds.length) return 'WHEN 条件组至少需要 1 条子条件';
+  for(var i=0;i<form.conds.length;i++){
+    var c = form.conds[i];
+    var missing = [];
+    if(!c.role) missing.push('零件');
+    if(!c.el) missing.push('判断条件');
+    if(!c.val) missing.push('值');
+    if(!c.method) missing.push('分配方式');
+    if(!c.role2) missing.push('分配角色');
+    if(c.role2==='指定人员' && !c.person) missing.push('指定人员');
+    if(missing.length) return '第 '+(i+1)+' 条子条件存在空值：'+missing.join('、')+'，请补全';
+  }
+  return '';
+}
+function saveRuleModal(mode){
+  var err = validateForm();
+  if(err){ toast(err); return; }
+  if(mode==='apply'){
+    if(hasActive(form.type, form.id)){ toast('任务类型 '+form.type+' 已有生效的规则，无法应用'); return; }
+    form.status = true;
+  } else {
+    form.status = false;
+  }
+  var idx = -1;
+  for(var i=0;i<rules.length;i++){ if(rules[i].id===form.id){ idx = i; break; } }
+  if(idx >= 0){ rules[idx] = JSON.parse(JSON.stringify(form)); }
+  else { rules.push(JSON.parse(JSON.stringify(form))); }
+  closeModal('modalRule');
+  renderList();
+  toast(form.id+' 已'+(mode==='apply'?'应用，立即生效':'保存（草稿）'));
+}
+
+/* ========== Toast ========== */
+var toastTimer = null;
+function toast(msg){
+  var t = document.getElementById('toast');
+  t.textContent = msg;
+  t.style.display = 'block';
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(function(){ t.style.display = 'none'; }, 2400);
+}
+
+/* ========== 初始化 ========== */
+renderList();
+renderExc();
+</script>
+</body>
+</html>

@@ -1,0 +1,390 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>暂作价框架 · 财务CE审批分流（评审版）</title>
+<style>
+  :root{
+    --primary:#1E80FF; --primary-hover:#4096FF; --primary-active:#0958D9;
+    --primary-light:#E6F4FF; --primary-border:#91CAFF;
+    --bg:#F5F7FA; --card:#FFFFFF; --border:#E0E0E0; --border-light:#F0F0F0;
+    --text:rgba(0,0,0,0.88); --text-2:rgba(0,0,0,0.65); --text-3:rgba(0,0,0,0.45);
+    --green:#16A34A; --green-bg:#E6F6EC; --orange:#FF6900; --orange-bg:#FFF4E6;
+    --red:#DC2626; --red-bg:#FDE8E8; --purple:#7C3AED; --purple-bg:#F3EBFE;
+    --shadow:0 1px 4px rgba(0,0,0,0.08);
+  }
+  *{margin:0;padding:0;box-sizing:border-box;}
+  body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif;font-size:14px;color:var(--text);background:var(--bg);line-height:1.6;}
+  button{font-family:inherit;cursor:pointer;border:none;outline:none;}
+  input,select{font-family:inherit;font-size:13px;outline:none;}
+  /* 顶部导航 */
+  .topnav{height:52px;background:#fff;border-bottom:1px solid var(--border);display:flex;align-items:center;padding:0 20px;position:sticky;top:0;z-index:100;}
+  .topnav .logo{display:flex;align-items:center;gap:8px;margin-right:26px;flex-shrink:0;}
+  .topnav .logo .mi{width:30px;height:30px;background:linear-gradient(135deg,#FF6900,#FFB800);color:#fff;font-weight:700;font-size:14px;display:flex;align-items:center;justify-content:center;border-radius:6px;}
+  .topnav .logo span{font-size:15px;font-weight:600;}
+  .topnav .menu{display:flex;gap:2px;flex:1;align-items:center;overflow:hidden;}
+  .topnav .menu a{padding:6px 12px;font-size:13px;color:var(--text-2);white-space:nowrap;border-radius:6px;cursor:pointer;}
+  .topnav .menu a:hover{background:var(--primary-light);color:var(--primary);}
+  .topnav .user{margin-left:auto;display:flex;align-items:center;gap:8px;font-size:13px;flex-shrink:0;}
+  .topnav .user .av{width:26px;height:26px;border-radius:50%;background:var(--primary);color:#fff;font-size:12px;display:flex;align-items:center;justify-content:center;}
+  .page{max-width:1120px;margin:0 auto;padding:16px 22px 60px;}
+  /* 页面头 */
+  .page-head{display:flex;align-items:center;gap:12px;background:#fff;border:1px solid var(--border);border-radius:8px;padding:14px 18px;margin-bottom:14px;flex-wrap:wrap;}
+  .page-head .back{color:var(--text-2);font-size:20px;cursor:pointer;line-height:1;padding-right:6px;}
+  .page-head .title{font-size:16px;font-weight:600;}
+  .page-head .status{font-size:13px;color:var(--text-3);display:flex;align-items:center;gap:6px;}
+  .page-head .status .dot{width:8px;height:8px;border-radius:50%;background:#9CA3AF;}
+  .page-head .spacer{flex:1;}
+  .btn{padding:6px 14px;border-radius:6px;font-size:13px;border:1px solid var(--border);background:#fff;color:var(--text-2);}
+  .btn:hover{border-color:var(--primary);color:var(--primary);}
+  .btn-primary{background:var(--primary);color:#fff;border-color:var(--primary);}
+  .btn-primary:hover{background:var(--primary-hover);color:#fff;}
+  .btn-sm{padding:3px 10px;font-size:12px;}
+  .btn-link{background:none;border:none;color:var(--primary);padding:0 5px;font-size:12px;text-decoration:underline;cursor:pointer;}
+  .btn-link.danger{color:var(--red);}
+  /* 卡片 */
+  .card{background:#fff;border:1px solid var(--border);border-radius:8px;margin-bottom:14px;overflow:hidden;}
+  .card-head{display:flex;align-items:center;justify-content:space-between;padding:12px 18px;border-bottom:1px solid var(--border-light);}
+  .card-head .t{font-size:15px;font-weight:600;}
+  .card-body{padding:16px 18px;}
+  .kv{display:flex;gap:40px;flex-wrap:wrap;font-size:14px;}
+  .kv .item b{font-weight:500;color:var(--text-2);margin-right:6px;}
+  /* 表格 */
+  table{width:100%;border-collapse:collapse;font-size:13px;}
+  thead th{background:#FAFAFA;color:var(--text-2);font-weight:500;padding:9px 12px;text-align:left;border-bottom:1px solid var(--border);white-space:nowrap;}
+  tbody td{padding:9px 12px;border-bottom:1px solid var(--border-light);white-space:nowrap;}
+  tbody tr:hover{background:#FAFAFA;}
+  .tag{display:inline-block;font-size:11px;padding:1px 8px;border-radius:3px;white-space:nowrap;}
+  .tag-blue{background:var(--primary-light);color:var(--primary-active);border:1px solid var(--primary-border);}
+  .tag-green{background:var(--green-bg);color:var(--green);}
+  .tag-orange{background:var(--orange-bg);color:var(--orange);}
+  .tag-purple{background:var(--purple-bg);color:var(--purple);}
+  .tag-grey{background:#F1F2F4;color:var(--text-3);}
+  .empty{text-align:center;padding:40px 0;color:var(--text-3);}
+  .empty .ic{font-size:34px;margin-bottom:8px;}
+  /* 模态 */
+  .modal-mask{display:none;position:fixed;inset:0;background:rgba(0,0,0,0.4);z-index:1000;align-items:center;justify-content:center;}
+  .modal-mask.show{display:flex;}
+  .modal{background:#fff;border-radius:8px;box-shadow:0 12px 48px rgba(0,0,0,0.15);max-height:88vh;display:flex;flex-direction:column;width:640px;}
+  .modal-header{padding:14px 20px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;}
+  .modal-header .title{font-size:15px;font-weight:600;}
+  .modal-header .close{background:none;border:none;font-size:18px;color:var(--text-3);cursor:pointer;line-height:1;}
+  .modal-body{padding:16px 20px;overflow:auto;}
+  .modal-footer{padding:12px 20px;border-top:1px solid var(--border);display:flex;justify-content:flex-end;gap:8px;}
+  .callout{background:var(--primary-light);border:1px solid var(--primary-border);border-radius:6px;padding:10px 14px;font-size:13px;color:var(--primary-active);margin-bottom:14px;line-height:1.8;}
+  .callout b{font-weight:600;}
+  .split-item{display:flex;align-items:center;gap:12px;border:1px solid var(--border);border-radius:6px;padding:10px 14px;margin-bottom:10px;flex-wrap:wrap;}
+  .split-item .ce{font-size:14px;font-weight:600;min-width:90px;}
+  .split-item .cnt{font-size:12px;color:var(--text-2);}
+  .split-item .parts{font-size:12px;color:var(--text-3);flex:1;}
+  /* 审批单卡片 */
+  .order-card{background:#fff;border:1px solid var(--border);border-radius:8px;padding:14px 18px;margin-bottom:12px;display:flex;align-items:center;gap:16px;flex-wrap:wrap;}
+  .order-card .oid{font-size:14px;font-weight:600;color:var(--primary);}
+  .order-card .meta{font-size:12px;color:var(--text-2);}
+  /* 审批流程 */
+  .flow{display:flex;align-items:flex-start;gap:0;padding:8px 4px;flex-wrap:wrap;}
+  .flow .step{display:flex;flex-direction:column;align-items:center;width:130px;position:relative;}
+  .flow .step .node{width:26px;height:26px;border-radius:50%;background:#D9DCE1;color:#fff;font-size:12px;display:flex;align-items:center;justify-content:center;z-index:1;}
+  .flow .step.done .node{background:var(--green);}
+  .flow .step.active .node{background:var(--primary);box-shadow:0 0 0 4px var(--primary-light);}
+  .flow .step .lab{font-size:12px;margin-top:6px;color:var(--text-2);}
+  .flow .step .who{font-size:11px;color:var(--text-3);}
+  .flow .step::after{content:'';position:absolute;top:13px;left:64px;width:66px;height:2px;background:#E0E0E0;}
+  .flow .step.done::after{background:var(--green);}
+  .flow .step:last-child::after{display:none;}
+  .toast{position:fixed;top:24px;left:50%;transform:translateX(-50%);background:rgba(0,0,0,0.85);color:#fff;padding:8px 20px;border-radius:6px;font-size:13px;z-index:1200;display:none;}
+  .view{display:none;}
+  .view.active{display:block;}
+  .note{font-size:12px;color:var(--text-3);margin-top:10px;line-height:1.8;}
+</style>
+</head>
+<body>
+
+<div class="topnav">
+  <div class="logo"><div class="mi">mi</div><span>小米汽车</span></div>
+  <div class="menu">
+    <a>首页</a><a>个人中心</a><a>供应商管理</a><a>采购项目管理</a><a>SOR管理</a><a>采购任务管理</a><a>询报价与定点</a><a>价格中心</a><a>履约管理</a><a>合同管理</a><a>订单管理</a><a>…</a>
+  </div>
+  <div class="user"><div class="av">李</div><span>李文俊</span><span>…</span></div>
+</div>
+
+<div class="page">
+
+  <!-- ===== 视图1：申请单详情 ===== -->
+  <div class="view active" id="v-detail">
+    <div class="callout">
+      <b>财务CE审批分流（2.4）：</b>点击【启动审批流程】后，系统按<b>零件 → VPPS → 财务CE</b> 解析本单全部零件，<b>同一财务CE的零件聚合为一张审批单</b>，每个CE生成一张审批单；未找到财务CE工程师的零件，指定给<b>薛乔木</b>（可在BPM配置）。
+    </div>
+    <div class="page-head">
+      <span class="back" onclick="toast('返回列表')">←</span>
+      <span class="title">申请单编号: WF20260806001</span>
+      <span class="status"><span class="dot"></span>草稿 ☆</span>
+      <span class="spacer"></span>
+      <button class="btn" onclick="toast('已保存')">保存</button>
+      <button class="btn" onclick="toast('已删除')">删除</button>
+      <button class="btn btn-primary" onclick="openSplitModal()">启动审批流程</button>
+    </div>
+
+    <div class="card">
+      <div class="card-head"><span class="t">基本信息</span></div>
+      <div class="card-body">
+        <div class="kv">
+          <div class="item"><b>申请人:</b>李文俊</div>
+          <div class="item"><b>创建时间:</b>2026-08-06 16:50:03</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-head">
+        <span class="t">零件详情</span>
+        <span><button class="btn btn-sm btn-primary" onclick="toast('新增条目（原型演示）')">新增条目</button> <button class="btn btn-sm" onclick="toast('导入（原型演示）')">导入</button></span>
+      </div>
+      <div class="card-body" style="padding:12px 18px;">
+        <table>
+          <thead><tr><th>序号</th><th>供应商编码 *</th><th>供应商名称</th><th>到厂价(未税) ②*</th><th>生效时间 *</th><th>币种 *</th><th>税率 *</th><th>单位(BOM/采购) *</th><th>转换关系 *</th><th>建议来源</th><th>财务CE</th><th>编辑</th></tr></thead>
+          <tbody id="partBody"></tbody>
+        </table>
+        <div style="display:flex;justify-content:flex-end;align-items:center;gap:8px;padding-top:10px;font-size:12px;color:var(--text-3);">← → 第1-3条，共3条</div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-head"><span class="t">审批流程</span></div>
+      <div class="card-body">
+        <div class="empty" id="flowEmpty"><div class="ic">📄</div>暂无数据</div>
+        <div id="flowList" style="display:none;"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== 视图2：审批单列表（拆单结果） ===== -->
+  <div class="view" id="v-orders">
+    <div class="page-head">
+      <span class="back" onclick="switchView('v-detail');renderFlowCards()">←</span>
+      <span class="title">审批单列表 <span style="font-size:12px;color:var(--text-3);font-weight:400;">申请单 WF20260806001 拆单结果</span></span>
+      <span class="spacer"></span>
+      <button class="btn" onclick="switchView('v-detail');renderFlowCards()">返回申请单</button>
+    </div>
+    <div class="callout"><b>拆单结果：</b>本单 3 个零件映射到 <b>2 位财务CE</b>，已生成 <b>2 张审批单</b>（同一CE零件聚合）；未匹配到财务CE的零件将指定给<b>薛乔木</b>处理。</div>
+    <div id="orderList"></div>
+  </div>
+
+  <!-- ===== 视图3：审批单详情（审批流程） ===== -->
+  <div class="view" id="v-order-detail">
+    <div class="page-head">
+      <span class="back" onclick="switchView('v-orders')">←</span>
+      <span class="title" id="odTitle">审批单详情</span>
+      <span class="spacer"></span>
+      <button class="btn" onclick="switchView('v-orders')">返回列表</button>
+    </div>
+    <div class="card">
+      <div class="card-head"><span class="t">审批信息</span></div>
+      <div class="card-body">
+        <div class="kv">
+          <div class="item"><b>审批单号:</b><span id="odNo"></span></div>
+          <div class="item"><b>财务CE:</b><span id="odCe"></span></div>
+          <div class="item"><b>零件数:</b><span id="odCnt"></span></div>
+          <div class="item"><b>发起时间:</b>2026-08-06 17:05:20</div>
+        </div>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-head"><span class="t">零件明细（按VPPS聚合）</span></div>
+      <div class="card-body" style="padding:12px 18px;">
+        <table>
+          <thead><tr><th>序号</th><th>供应商编码</th><th>供应商名称</th><th>VPPS</th><th>到厂价(未税)</th><th>生效时间</th><th>币种</th><th>税率</th></tr></thead>
+          <tbody id="odParts"></tbody>
+        </table>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-head"><span class="t">审批流程</span></div>
+      <div class="card-body">
+        <div class="flow" id="odFlow"></div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<!-- 弹窗：拆单预览 -->
+<div class="modal-mask" id="modalSplit" onclick="if(event.target===this)closeModal('modalSplit')">
+  <div class="modal">
+    <div class="modal-header">
+      <span class="title">启动审批流程 · 拆单预览</span>
+      <button class="close" onclick="closeModal('modalSplit')">×</button>
+    </div>
+    <div class="modal-body">
+      <div class="callout" style="margin-bottom:12px;">本申请单共 <b id="spTotal">0</b> 个零件，映射到 <b id="spCeCnt">0</b> 位财务CE，将生成 <b id="spOrderCnt">0</b> 张审批单（同一财务CE的零件聚合为一张）；审批单号按申请单关联编号：<b>WF20260806001-1 ~ -<span id="spOrderCnt2">0</span></b>；未匹配财务CE的零件指定给<b>薛乔木</b>。</div>
+      <div id="splitList"></div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn" onclick="closeModal('modalSplit')">取消</button>
+      <button class="btn btn-primary" onclick="confirmSplit()">确认生成审批单</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+// ===== 数据：零件 → VPPS → 财务CE =====
+var parts = [
+  {no:1, sup:'0000404805', supName:'廊坊振华全京申汽车…', price:'/', eff:'2026-08-06', cur:'人民币-元', tax:'13%进项税,中国', unit:'个/个', conv:'1/1', src:'S', vpps:'10.02.03-B030', ce:'张伟'},
+  {no:2, sup:'/', supName:'/', price:'/', eff:'2026-08-06', cur:'人民币-元', tax:'13%进项税,中国', unit:'个/个', conv:'1/1', src:'D', vpps:'30.01.01-F010', ce:'李娜'},
+  {no:3, sup:'/', supName:'/', price:'/', eff:'2026-08-06', cur:'人民币-元', tax:'13%进项税,中国', unit:'个/个', conv:'1/1', src:'S', vpps:'10.02.03-B030', ce:'张伟'}
+];
+// 审批单生成结果
+var orders = [];
+var curOrder = null;
+var FLOW_STEPS = ['提交申请','财务CE审批','采购主管审批','完成'];
+
+function renderParts(){
+  var body = document.getElementById('partBody');
+  var html = '';
+  parts.forEach(function(p){
+    html += '<tr>'+
+      '<td>'+p.no+'</td>'+
+      '<td>'+p.sup+'</td>'+
+      '<td style="max-width:160px;overflow:hidden;text-overflow:ellipsis;">'+p.supName+'</td>'+
+      '<td>'+p.price+'</td>'+
+      '<td>'+p.eff+'</td>'+
+      '<td>'+p.cur+'</td>'+
+      '<td>'+p.tax+'</td>'+
+      '<td>'+p.unit+'</td>'+
+      '<td>'+p.conv+'</td>'+
+      '<td><span class="tag tag-blue">'+p.src+'</span></td>'+
+      '<td><span class="tag tag-purple">'+p.ce+'</span> <span style="font-size:11px;color:var(--text-3);">'+p.vpps+'</span></td>'+
+      '<td><a class="btn-link" onclick="toast(\'详情\')">详情</a> <a class="btn-link danger" onclick="toast(\'删除\')">删除</a></td>'+
+      '</tr>';
+  });
+  body.innerHTML = html;
+}
+
+// ===== 拆单预览 =====
+function openSplitModal(){
+  var groups = {};
+  parts.forEach(function(p){
+    if(!groups[p.ce]) groups[p.ce] = [];
+    groups[p.ce].push(p);
+  });
+  var ceNames = Object.keys(groups);
+  document.getElementById('spTotal').textContent = parts.length;
+  document.getElementById('spCeCnt').textContent = ceNames.length;
+  document.getElementById('spOrderCnt').textContent = ceNames.length;
+  document.getElementById('spOrderCnt2').textContent = ceNames.length;
+  var html = '';
+  ceNames.forEach(function(ce, i){
+    var list = groups[ce];
+    html += '<div class="split-item">'+
+      '<span class="ce">'+ce+'</span>'+
+      '<span class="tag tag-purple">财务CE</span>'+
+      '<span class="cnt">'+list.length+' 个零件 → 生成 1 张审批单（<b>WF20260806001-'+(i+1)+'</b>）</span>'+
+      '<span class="parts">零件：'+list.map(function(p){ return '#'+p.no+'（'+p.vpps+'）'; }).join('、')+'</span>'+
+      '</div>';
+  });
+  html += '<div class="split-item" style="border-left:3px solid var(--orange);">'+
+    '<span class="ce">薛乔木</span><span class="tag tag-orange">未匹配CE兜底</span>'+
+    '<span class="cnt">0 个零件</span><span class="parts">本单零件均匹配到财务CE（未匹配时自动指定给薛乔木）</span></div>';
+  document.getElementById('splitList').innerHTML = html;
+  openModal('modalSplit');
+}
+function confirmSplit(){
+  // 按 CE 聚合生成审批单（审批单号 = 申请单号-序号，体现关联）
+  var groups = {};
+  parts.forEach(function(p){
+    if(!groups[p.ce]) groups[p.ce] = [];
+    groups[p.ce].push(p);
+  });
+  orders = [];
+  var idx = 1;
+  Object.keys(groups).forEach(function(ce){
+    orders.push({no:'WF20260806001-' + idx, ce:ce, parts:groups[ce], status:'审批中', step:1});
+    idx++;
+  });
+  closeModal('modalSplit');
+  switchView('v-orders');
+  renderOrders();
+  toast('已生成 '+orders.length+' 张审批单（WF20260806001-1 ~ -'+orders.length+'，每个财务CE一张）');
+}
+
+// ===== 审批单列表 =====
+function renderOrders(){
+  var box = document.getElementById('orderList');
+  var html = '';
+  orders.forEach(function(o, i){
+    html += '<div class="order-card">'+
+      '<span class="oid">'+o.no+'</span>'+
+      '<span class="tag tag-purple">财务CE：'+o.ce+'</span>'+
+      '<span class="tag tag-green">'+o.status+'</span>'+
+      '<span class="meta">'+o.parts.length+' 个零件 · VPPS：'+o.parts.map(function(p){return p.vpps;}).filter(function(v,i,a){return a.indexOf(v)===i;}).join('、')+'</span>'+
+      '<span style="margin-left:auto;"><a class="btn-link" onclick="viewOrder('+i+')">查看流程</a></span>'+
+      '</div>';
+  });
+  box.innerHTML = html || '<div class="empty">暂无审批单</div>';
+}
+function viewOrder(i){
+  curOrder = orders[i];
+  document.getElementById('odTitle').textContent = '审批单详情 · '+curOrder.no;
+  document.getElementById('odNo').textContent = curOrder.no;
+  document.getElementById('odCe').textContent = curOrder.ce + '（财务CE）';
+  document.getElementById('odCnt').textContent = curOrder.parts.length + ' 个';
+  var html = '';
+  curOrder.parts.forEach(function(p, j){
+    html += '<tr><td>'+(j+1)+'</td><td>'+p.sup+'</td><td>'+p.supName+'</td><td><span class="tag tag-blue">'+p.vpps+'</span></td><td>'+p.price+'</td><td>'+p.eff+'</td><td>'+p.cur+'</td><td>'+p.tax+'</td></tr>';
+  });
+  document.getElementById('odParts').innerHTML = html;
+  // 审批流程：提交→财务CE审批(当前)→采购主管→完成
+  var flow = '';
+  FLOW_STEPS.forEach(function(s, j){
+    var who = j===0 ? '李文俊' : (j===1 ? curOrder.ce : (j===2 ? '采购主管' : '—'));
+    var cls = j < 1 ? 'done' : (j===1 ? 'active' : '');
+    flow += '<div class="step '+cls+'"><div class="node">'+(j+1)+'</div><div class="lab">'+s+'</div><div class="who">'+who+'</div></div>';
+  });
+  document.getElementById('odFlow').innerHTML = flow;
+  switchView('v-order-detail');
+}
+
+// ===== 申请单详情审批流程卡片（拆单后展示生成的审批单） =====
+function renderFlowCards(){
+  var empty = document.getElementById('flowEmpty');
+  var list = document.getElementById('flowList');
+  if(!orders.length){
+    empty.style.display = 'block';
+    list.style.display = 'none';
+    return;
+  }
+  empty.style.display = 'none';
+  list.style.display = 'block';
+  var html = '';
+  orders.forEach(function(o, i){
+    html += '<div class="order-card">'+
+      '<span class="oid">'+o.no+'</span>'+
+      '<span class="tag tag-purple">财务CE：'+o.ce+'</span>'+
+      '<span class="tag tag-green">'+o.status+'</span>'+
+      '<span class="meta">'+o.parts.length+' 个零件</span>'+
+      '<span style="margin-left:auto;"><a class="btn-link" onclick="viewOrder('+i+')">查看流程</a></span>'+
+      '</div>';
+  });
+  list.innerHTML = html;
+}
+
+function switchView(id){
+  document.querySelectorAll('.view').forEach(function(v){ v.classList.remove('active'); });
+  document.getElementById(id).classList.add('active');
+}
+function openModal(id){ document.getElementById(id).classList.add('show'); }
+function closeModal(id){ document.getElementById(id).classList.remove('show'); }
+var toastTimer = null;
+function toast(msg){
+  var t = document.getElementById('toast');
+  t.textContent = msg; t.style.display = 'block';
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(function(){ t.style.display='none'; }, 2200);
+}
+renderParts();
+</script>
+</body>
+</html>

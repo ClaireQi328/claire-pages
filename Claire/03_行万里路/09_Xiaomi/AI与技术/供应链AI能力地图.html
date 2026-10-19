@@ -1,0 +1,1118 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>供应链 AI 能力全景图</title>
+<style>
+  /* ========================================
+     FOUNDATION
+     ======================================== */
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg-primary: #06090f;
+    --bg-secondary: #0c1220;
+    --bg-card: rgba(15, 23, 42, 0.65);
+    --text-primary: #e2e8f0;
+    --text-secondary: #94a3b8;
+    --text-muted: #64748b;
+    --border-subtle: rgba(148, 163, 184, 0.08);
+    --glow-sm: 0 0 15px;
+    --glow-md: 0 0 30px;
+    --radius-sm: 8px;
+    --radius-md: 14px;
+    --radius-lg: 20px;
+
+    /* Phase accent colors */
+    --c1: #3b82f6;  --c1-dim: rgba(59, 130, 246, 0.12);  --c1-glow: rgba(59, 130, 246, 0.35);
+    --c2: #06b6d4;  --c2-dim: rgba(6, 182, 212, 0.12);  --c2-glow: rgba(6, 182, 212, 0.35);
+    --c3: #10b981;  --c3-dim: rgba(16, 185, 129, 0.12);  --c3-glow: rgba(16, 185, 129, 0.35);
+    --c4: #8b5cf6;  --c4-dim: rgba(139, 92, 246, 0.12);  --c4-glow: rgba(139, 92, 246, 0.35);
+    --c5: #f59e0b;  --c5-dim: rgba(245, 158, 11, 0.12);  --c5-glow: rgba(245, 158, 11, 0.35);
+  }
+
+  body {
+    background: var(--bg-primary);
+    color: var(--text-primary);
+    font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "Segoe UI", Roboto, sans-serif;
+    line-height: 1.6;
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  /* Subtle grid background */
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background-image:
+      radial-gradient(circle at 20% 50%, rgba(59,130,246,0.03) 0%, transparent 50%),
+      radial-gradient(circle at 80% 50%, rgba(139,92,246,0.03) 0%, transparent 50%),
+      linear-gradient(rgba(148,163,184,0.03) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(148,163,184,0.03) 1px, transparent 1px);
+    background-size: 100% 100%, 100% 100%, 60px 60px, 60px 60px;
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  /* ========================================
+     HEADER
+     ======================================== */
+  .header {
+    position: relative;
+    z-index: 2;
+    text-align: center;
+    padding: 56px 24px 32px;
+  }
+
+  .header-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 6px 16px;
+    border-radius: 100px;
+    border: 1px solid rgba(59,130,246,0.25);
+    background: rgba(59,130,246,0.08);
+    color: #93c5fd;
+    font-size: 12px;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    margin-bottom: 20px;
+  }
+
+  .header-badge .pulse-dot {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: #3b82f6;
+    animation: pulse-dot 2s ease-in-out infinite;
+  }
+
+  @keyframes pulse-dot {
+    0%, 100% { opacity: 1; transform: scale(1); }
+    50% { opacity: 0.5; transform: scale(0.7); }
+  }
+
+  .header h1 {
+    font-size: clamp(28px, 4vw, 48px);
+    font-weight: 700;
+    letter-spacing: -0.03em;
+    line-height: 1.15;
+    background: linear-gradient(135deg, #e2e8f0 0%, #94a3b8 50%, #e2e8f0 100%);
+    background-size: 200% 200%;
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    animation: shimmer 8s ease-in-out infinite;
+  }
+
+  @keyframes shimmer {
+    0%, 100% { background-position: 0% 50%; }
+    50% { background-position: 100% 50%; }
+  }
+
+  .header .subtitle {
+    margin-top: 12px;
+    color: var(--text-secondary);
+    font-size: 15px;
+    max-width: 600px;
+    margin-left: auto;
+    margin-right: auto;
+  }
+
+  /* ========================================
+     LEGEND
+     ======================================== */
+  .legend {
+    position: relative;
+    z-index: 2;
+    display: flex;
+    justify-content: center;
+    gap: 24px;
+    padding: 16px 24px;
+    flex-wrap: wrap;
+  }
+
+  .legend-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 12px;
+    color: var(--text-muted);
+  }
+
+  .legend-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+  }
+
+  .legend-dot.manual { background: #475569; }
+  .legend-dot.semi { background: #06b6d4; }
+  .legend-dot.intelligent { background: #10b981; }
+  .legend-dot.auto { background: #f59e0b; }
+
+  /* ========================================
+     FLOW PIPELINE (5 Phases Connected)
+     ======================================== */
+  .pipeline-section {
+    position: relative;
+    z-index: 2;
+    padding: 24px 16px 0;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .pipeline-section::-webkit-scrollbar { height: 4px; }
+  .pipeline-section::-webkit-scrollbar-track { background: transparent; }
+  .pipeline-section::-webkit-scrollbar-thumb { background: rgba(148,163,184,0.15); border-radius: 4px; }
+
+  .pipeline {
+    display: flex;
+    align-items: flex-start;
+    gap: 0;
+    min-width: 1100px;
+    padding: 0 24px;
+  }
+
+  /* Phase Column */
+  .phase {
+    flex: 1;
+    min-width: 180px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    cursor: pointer;
+    transition: transform 0.3s ease;
+  }
+
+  .phase:hover { transform: translateY(-4px); }
+
+  .phase.dimmed { opacity: 0.3; transform: scale(0.97); }
+  .phase.highlighted { opacity: 1; transform: translateY(-6px) scale(1.02); }
+
+  /* Phase header circle/node */
+  .phase-node {
+    position: relative;
+    width: 56px;
+    height: 56px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 20px;
+    border: 2px solid;
+    transition: all 0.4s ease;
+    z-index: 3;
+  }
+
+  .phase-node::after {
+    content: '';
+    position: absolute;
+    inset: -6px;
+    border-radius: 50%;
+    border: 1px solid;
+    opacity: 0.3;
+    animation: ring-pulse 3s ease-in-out infinite;
+  }
+
+  @keyframes ring-pulse {
+    0%, 100% { transform: scale(1); opacity: 0.3; }
+    50% { transform: scale(1.15); opacity: 0.1; }
+  }
+
+  .p1 .phase-node { background: var(--c1-dim); border-color: var(--c1); color: var(--c1); }
+  .p1 .phase-node::after { border-color: var(--c1); }
+  .p2 .phase-node { background: var(--c2-dim); border-color: var(--c2); color: var(--c2); }
+  .p2 .phase-node::after { border-color: var(--c2); }
+  .p3 .phase-node { background: var(--c3-dim); border-color: var(--c3); color: var(--c3); }
+  .p3 .phase-node::after { border-color: var(--c3); }
+  .p4 .phase-node { background: var(--c4-dim); border-color: var(--c4); color: var(--c4); }
+  .p4 .phase-node::after { border-color: var(--c4); }
+  .p5 .phase-node { background: var(--c5-dim); border-color: var(--c5); color: var(--c5); }
+  .p5 .phase-node::after { border-color: var(--c5); }
+
+  .phase-label {
+    margin-top: 12px;
+    text-align: center;
+    font-size: 14px;
+    font-weight: 600;
+    letter-spacing: 0.02em;
+    white-space: nowrap;
+  }
+
+  .phase-count {
+    margin-top: 4px;
+    font-size: 11px;
+    color: var(--text-muted);
+  }
+
+  /* Flow connector between phases */
+  .flow-connector {
+    flex: 0 0 auto;
+    width: 56px;
+    height: 56px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+    align-self: flex-start;
+    margin-top: 0;
+  }
+
+  .flow-line {
+    width: 100%;
+    height: 2px;
+    position: relative;
+    overflow: visible;
+  }
+
+  .flow-line::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    border-radius: 1px;
+  }
+
+  .flow-line::after {
+    content: '';
+    position: absolute;
+    top: -3px;
+    left: 0;
+    width: 10px;
+    height: 8px;
+    border-radius: 50%;
+    animation: flow-dot 2.5s ease-in-out infinite;
+    filter: blur(1px);
+  }
+
+  @keyframes flow-dot {
+    0% { left: -10px; opacity: 0; }
+    20% { opacity: 1; }
+    80% { opacity: 1; }
+    100% { left: calc(100% + 10px); opacity: 0; }
+  }
+
+  .fc1 .flow-line::before { background: linear-gradient(90deg, var(--c1), var(--c2)); }
+  .fc1 .flow-line::after { background: var(--c2); box-shadow: 0 0 12px var(--c2-glow); animation-delay: 0s; }
+  .fc2 .flow-line::before { background: linear-gradient(90deg, var(--c2), var(--c3)); }
+  .fc2 .flow-line::after { background: var(--c3); box-shadow: 0 0 12px var(--c3-glow); animation-delay: 0.5s; }
+  .fc3 .flow-line::before { background: linear-gradient(90deg, var(--c3), var(--c4)); }
+  .fc3 .flow-line::after { background: var(--c4); box-shadow: 0 0 12px var(--c4-glow); animation-delay: 1s; }
+  .fc4 .flow-line::before { background: linear-gradient(90deg, var(--c4), var(--c5)); }
+  .fc4 .flow-line::after { background: var(--c5); box-shadow: 0 0 12px var(--c5-glow); animation-delay: 1.5s; }
+
+  /* ========================================
+     CAPABILITY MATRIX (Below Pipeline)
+     ======================================== */
+  .matrix-section {
+    position: relative;
+    z-index: 2;
+    padding: 32px 16px 0;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .matrix-section::-webkit-scrollbar { height: 4px; }
+  .matrix-section::-webkit-scrollbar-track { background: transparent; }
+  .matrix-section::-webkit-scrollbar-thumb { background: rgba(148,163,184,0.15); border-radius: 4px; }
+
+  .matrix {
+    display: grid;
+    grid-template-columns: repeat(5, 1fr);
+    gap: 16px;
+    min-width: 1100px;
+    padding: 0 24px;
+  }
+
+  /* Phase Column in Matrix */
+  .phase-col {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    transition: opacity 0.4s ease;
+  }
+
+  .matrix-section.has-highlight .phase-col { opacity: 0.2; }
+  .matrix-section.has-highlight .phase-col.active { opacity: 1; }
+
+  /* Sub-process group */
+  .sub-group {
+    background: var(--bg-card);
+    border: 1px solid var(--border-subtle);
+    border-radius: var(--radius-md);
+    padding: 12px;
+    backdrop-filter: blur(12px);
+    transition: all 0.35s ease;
+  }
+
+  .sub-group:hover {
+    border-color: rgba(148,163,184,0.15);
+    transform: translateY(-2px);
+  }
+
+  .p1-col .sub-group { border-top: 2px solid var(--c1); }
+  .p2-col .sub-group { border-top: 2px solid var(--c2); }
+  .p3-col .sub-group { border-top: 2px solid var(--c3); }
+  .p4-col .sub-group { border-top: 2px solid var(--c4); }
+  .p5-col .sub-group { border-top: 2px solid var(--c5); }
+
+  .sub-group-title {
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    margin-bottom: 8px;
+    color: var(--text-muted);
+  }
+
+  .p1-col .sub-group-title { color: var(--c1); }
+  .p2-col .sub-group-title { color: var(--c2); }
+  .p3-col .sub-group-title { color: var(--c3); }
+  .p4-col .sub-group-title { color: var(--c4); }
+  .p5-col .sub-group-title { color: var(--c5); }
+
+  .cap-list {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+
+  /* Capability Node */
+  .cap-node {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 5px 8px;
+    border-radius: 6px;
+    font-size: 12px;
+    line-height: 1.3;
+    color: var(--text-secondary);
+    background: rgba(255,255,255,0.02);
+    border: 1px solid transparent;
+    transition: all 0.25s ease;
+    cursor: default;
+  }
+
+  .cap-node:hover {
+    background: rgba(255,255,255,0.05);
+    color: var(--text-primary);
+    border-color: rgba(148,163,184,0.12);
+  }
+
+  .cap-dot {
+    width: 5px;
+    height: 5px;
+    border-radius: 50%;
+    flex-shrink: 0;
+  }
+
+  .cap-node[data-level="1"] .cap-dot { background: #475569; }
+  .cap-node[data-level="2"] .cap-dot { background: #06b6d4; box-shadow: 0 0 6px rgba(6,182,212,0.4); }
+  .cap-node[data-level="3"] .cap-dot { background: #10b981; box-shadow: 0 0 6px rgba(16,185,129,0.4); }
+  .cap-node[data-level="4"] .cap-dot { background: #f59e0b; box-shadow: 0 0 6px rgba(245,158,11,0.4); }
+
+  /* AI level badge */
+  .ai-badge {
+    font-size: 9px;
+    padding: 1px 5px;
+    border-radius: 3px;
+    margin-left: auto;
+    flex-shrink: 0;
+    font-weight: 500;
+    letter-spacing: 0.03em;
+  }
+
+  .cap-node[data-level="1"] .ai-badge { background: rgba(71,85,105,0.2); color: #64748b; }
+  .cap-node[data-level="2"] .ai-badge { background: rgba(6,182,212,0.15); color: #22d3ee; }
+  .cap-node[data-level="3"] .ai-badge { background: rgba(16,185,129,0.15); color: #34d399; }
+  .cap-node[data-level="4"] .ai-badge { background: rgba(245,158,11,0.15); color: #fbbf24; }
+
+  /* ========================================
+     HIGHLIGHTED SKILL NODES (Gold Glow)
+     ======================================== */
+  .cap-node.skill {
+    background: rgba(245,158,11,0.06);
+    border-color: rgba(245,158,11,0.15);
+  }
+
+  .cap-node.skill .cap-dot {
+    background: #f59e0b !important;
+    box-shadow: 0 0 8px rgba(245,158,11,0.5) !important;
+    animation: skill-pulse 2s ease-in-out infinite;
+  }
+
+  @keyframes skill-pulse {
+    0%, 100% { box-shadow: 0 0 6px rgba(245,158,11,0.4); }
+    50% { box-shadow: 0 0 12px rgba(245,158,11,0.7); }
+  }
+
+  /* ========================================
+     CROSS-CUTTING CAPABILITIES (Footer)
+     ======================================== */
+  .cross-section {
+    position: relative;
+    z-index: 2;
+    padding: 32px 40px 48px;
+  }
+
+  .cross-header {
+    text-align: center;
+    margin-bottom: 20px;
+  }
+
+  .cross-header h3 {
+    font-size: 16px;
+    font-weight: 600;
+    color: var(--text-secondary);
+    letter-spacing: 0.02em;
+  }
+
+  .cross-header .line {
+    width: 40px;
+    height: 1px;
+    background: linear-gradient(90deg, transparent, var(--text-muted), transparent);
+    margin: 8px auto 0;
+  }
+
+  .cross-grid {
+    display: flex;
+    justify-content: center;
+    gap: 12px;
+    flex-wrap: wrap;
+    max-width: 900px;
+    margin: 0 auto;
+  }
+
+  .cross-chip {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 18px;
+    border-radius: 100px;
+    background: var(--bg-card);
+    border: 1px solid var(--border-subtle);
+    backdrop-filter: blur(12px);
+    font-size: 13px;
+    color: var(--text-secondary);
+    transition: all 0.3s ease;
+    cursor: default;
+  }
+
+  .cross-chip:hover {
+    border-color: rgba(148,163,184,0.2);
+    color: var(--text-primary);
+    transform: translateY(-2px);
+  }
+
+  .cross-chip .chip-icon {
+    font-size: 16px;
+  }
+
+  /* ========================================
+     STATS BAR
+     ======================================== */
+  .stats-bar {
+    position: relative;
+    z-index: 2;
+    display: flex;
+    justify-content: center;
+    gap: 48px;
+    padding: 24px;
+    margin: 0 40px;
+    border-top: 1px solid var(--border-subtle);
+    border-bottom: 1px solid var(--border-subtle);
+  }
+
+  .stat {
+    text-align: center;
+  }
+
+  .stat-num {
+    font-size: 28px;
+    font-weight: 700;
+    letter-spacing: -0.02em;
+    background: linear-gradient(135deg, var(--c1), var(--c4));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+  }
+
+  .stat-label {
+    font-size: 11px;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    margin-top: 2px;
+  }
+
+  /* ========================================
+     FOOTER
+     ======================================== */
+  .footer {
+    position: relative;
+    z-index: 2;
+    text-align: center;
+    padding: 24px;
+    color: var(--text-muted);
+    font-size: 11px;
+  }
+
+  /* ========================================
+     TOOLTIP
+     ======================================== */
+  .tooltip {
+    position: fixed;
+    z-index: 100;
+    padding: 10px 14px;
+    background: rgba(15, 23, 42, 0.95);
+    border: 1px solid rgba(148,163,184,0.15);
+    border-radius: 8px;
+    backdrop-filter: blur(16px);
+    font-size: 12px;
+    color: var(--text-primary);
+    max-width: 260px;
+    pointer-events: none;
+    opacity: 0;
+    transform: translateY(4px);
+    transition: opacity 0.2s, transform 0.2s;
+    line-height: 1.5;
+  }
+
+  .tooltip.visible {
+    opacity: 1;
+    transform: translateY(0);
+  }
+
+  /* ========================================
+     RESPONSIVE
+     ======================================== */
+  @media (max-width: 768px) {
+    .pipeline-section, .matrix-section {
+      padding-left: 0;
+      padding-right: 0;
+    }
+    .pipeline, .matrix { padding: 0 12px; }
+    .stats-bar { gap: 24px; margin: 0 16px; flex-wrap: wrap; }
+    .cross-section { padding: 24px 16px 32px; }
+  }
+</style>
+</head>
+<body>
+
+<!-- ===== HEADER ===== -->
+<header class="header">
+  <div class="header-badge">
+    <span class="pulse-dot"></span>
+    Supply Chain AI Capability Map
+  </div>
+  <h1>供应链 AI 能力全景图</h1>
+  <p class="subtitle">从供应商注册到履约执行，端到端的 AI 赋能流程</p>
+</header>
+
+<!-- ===== LEGEND ===== -->
+<div class="legend">
+  <div class="legend-item"><span class="legend-dot manual"></span>人工流程</div>
+  <div class="legend-item"><span class="legend-dot semi"></span>半自动</div>
+  <div class="legend-item"><span class="legend-dot intelligent"></span>智能辅助</div>
+  <div class="legend-item"><span class="legend-dot auto"></span>全自动 / AI Skill</div>
+</div>
+
+<!-- ===== PIPELINE FLOW ===== -->
+<section class="pipeline-section">
+  <div class="pipeline">
+
+    <!-- Phase 1: 供应商管理 -->
+    <div class="phase p1" data-phase="1">
+      <div class="phase-node">🏢</div>
+      <div class="phase-label">供应商管理</div>
+      <div class="phase-count">8 子过程 · 16 能力</div>
+    </div>
+
+    <div class="flow-connector fc1"><div class="flow-line"></div></div>
+
+    <!-- Phase 2: 品类资源池 -->
+    <div class="phase p2" data-phase="2">
+      <div class="phase-node">📦</div>
+      <div class="phase-label">品类资源池</div>
+      <div class="phase-count">2 子过程 · 3 能力</div>
+    </div>
+
+    <div class="flow-connector fc2"><div class="flow-line"></div></div>
+
+    <!-- Phase 3: 寻源定点 -->
+    <div class="phase p3" data-phase="3">
+      <div class="phase-node">🎯</div>
+      <div class="phase-label">寻源定点</div>
+      <div class="phase-count">6 子过程 · 14 能力</div>
+    </div>
+
+    <div class="flow-connector fc3"><div class="flow-line"></div></div>
+
+    <!-- Phase 4: 履约执行 -->
+    <div class="phase p4" data-phase="4">
+      <div class="phase-node">⚡</div>
+      <div class="phase-label">履约执行</div>
+      <div class="phase-count">6 子过程 · 18 能力</div>
+    </div>
+
+    <div class="flow-connector fc4"><div class="flow-line"></div></div>
+
+    <!-- Phase 5: 变更管理 -->
+    <div class="phase p5" data-phase="5">
+      <div class="phase-node">🔄</div>
+      <div class="phase-label">变更管理</div>
+      <div class="phase-count">2 子过程 · 4 能力</div>
+    </div>
+
+  </div>
+</section>
+
+<!-- ===== CAPABILITY MATRIX ===== -->
+<section class="matrix-section" id="matrixSection">
+  <div class="matrix">
+
+    <!-- ======== PHASE 1: 供应商管理 ======== -->
+    <div class="phase-col p1-col" data-phase="1">
+
+      <div class="sub-group">
+        <div class="sub-group-title">注册</div>
+        <div class="cap-list">
+          <div class="cap-node" data-level="1" data-tip="供应商自主注册，人工审核">
+            <span class="cap-dot"></span>注册<span class="ai-badge">人工</span>
+          </div>
+          <div class="cap-node skill" data-level="4" data-tip="财务风险自动识别与评估">
+            <span class="cap-dot"></span>财务风险<span class="ai-badge">Skill</span>
+          </div>
+          <div class="cap-node" data-level="2" data-tip="MCP/Bot 辅助合同与司法风险筛查">
+            <span class="cap-dot"></span>合同/司法风险<span class="ai-badge">Bot</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="sub-group">
+        <div class="sub-group-title">准入</div>
+        <div class="cap-list">
+          <div class="cap-node" data-level="1" data-tip="工程能力评估，人工主导">
+            <span class="cap-dot"></span>工程<span class="ai-badge">人工</span>
+          </div>
+          <div class="cap-node" data-level="1" data-tip="质量体系审核与评估">
+            <span class="cap-dot"></span>质量<span class="ai-badge">人工</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="sub-group">
+        <div class="sub-group-title">绩效</div>
+        <div class="cap-list">
+          <div class="cap-node" data-level="2" data-tip="触发绩效评估流程">
+            <span class="cap-dot"></span>发起绩效评估<span class="ai-badge">半自动</span>
+          </div>
+          <div class="cap-node" data-level="1" data-tip="评估结果手动录入系统">
+            <span class="cap-dot"></span>评估结果录入<span class="ai-badge">人工</span>
+          </div>
+          <div class="cap-node skill" data-level="4" data-tip="AI 自动计算供应商绩效得分">
+            <span class="cap-dot"></span>绩效评估计算<span class="ai-badge">Skill</span>
+          </div>
+          <div class="cap-node" data-level="1" data-tip="生成绩效评估报告，人工整理">
+            <span class="cap-dot"></span>绩效评估报告<span class="ai-badge">人工</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="sub-group">
+        <div class="sub-group-title">分析</div>
+        <div class="cap-list">
+          <div class="cap-node skill" data-level="4" data-tip="AI 驱动的供应商全景分析仪表盘">
+            <span class="cap-dot"></span>Onepage<span class="ai-badge">Skill</span>
+          </div>
+          <div class="cap-node" data-level="2" data-tip="供应链网络拓扑可视化">
+            <span class="cap-dot"></span>eg 供应网络<span class="ai-badge">半自动</span>
+          </div>
+          <div class="cap-node" data-level="1" data-tip="国产化替代方案分析">
+            <span class="cap-dot"></span>eg 国产化率<span class="ai-badge">人工</span>
+          </div>
+          <div class="cap-node" data-level="1" data-tip="供应商能力深度分析">
+            <span class="cap-dot"></span>eg 供应商分析<span class="ai-badge">人工</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="sub-group">
+        <div class="sub-group-title">情报</div>
+        <div class="cap-list">
+          <div class="cap-node" data-level="1" data-tip="行业舆情监测">
+            <span class="cap-dot"></span>舆情<span class="ai-badge">人工</span>
+          </div>
+          <div class="cap-node" data-level="1" data-tip="大宗商品价格追踪">
+            <span class="cap-dot"></span>大宗<span class="ai-badge">人工</span>
+          </div>
+          <div class="cap-node" data-level="1" data-tip="竞品供应商情报收集">
+            <span class="cap-dot"></span>友商<span class="ai-badge">人工</span>
+          </div>
+          <div class="cap-node" data-level="1" data-tip="车型项目供应商匹配分析">
+            <span class="cap-dot"></span>车型<span class="ai-badge">人工</span>
+          </div>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- ======== PHASE 2: 品类资源池 ======== -->
+    <div class="phase-col p2-col" data-phase="2">
+
+      <div class="sub-group">
+        <div class="sub-group-title">品类策略</div>
+        <div class="cap-list">
+          <div class="cap-node skill" data-level="4" data-tip="AI 辅助制定品类采购策略">
+            <span class="cap-dot"></span>品类策略<span class="ai-badge">Skill</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="sub-group">
+        <div class="sub-group-title">知识库</div>
+        <div class="cap-list">
+          <div class="cap-node" data-level="1" data-tip="基础文档存储与检索">
+            <span class="cap-dot"></span>知识库<span class="ai-badge">基础</span>
+          </div>
+          <div class="cap-node skill" data-level="4" data-tip="AI 增强的智能知识检索与推荐">
+            <span class="cap-dot"></span>知识库增强<span class="ai-badge">Skill</span>
+          </div>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- ======== PHASE 3: 寻源定点 ======== -->
+    <div class="phase-col p3-col" data-phase="3">
+
+      <div class="sub-group">
+        <div class="sub-group-title">SOR</div>
+        <div class="cap-list">
+          <div class="cap-node skill" data-level="4" data-tip="AI 自动生成 SOR 文档">
+            <span class="cap-dot"></span>生成 SOR<span class="ai-badge">Skill</span>
+          </div>
+          <div class="cap-node skill" data-level="4" data-tip="AI 辅助 SOR 审查与合规校验">
+            <span class="cap-dot"></span>SOR 审查<span class="ai-badge">Skill</span>
+          </div>
+          <div class="cap-node skill" data-level="4" data-tip="SOR 深度分析与供应商匹配">
+            <span class="cap-dot"></span>SOR 深度分析<span class="ai-badge">Skill</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="sub-group">
+        <div class="sub-group-title">QTR / TR</div>
+        <div class="cap-list">
+          <div class="cap-node skill" data-level="4" data-tip="QTR 流程自动跟踪与提醒">
+            <span class="cap-dot"></span>QTR 进度<span class="ai-badge">Skill</span>
+          </div>
+          <div class="cap-node skill" data-level="4" data-tip="TR 技术评审流程自动推进">
+            <span class="cap-dot"></span>TR 进度<span class="ai-badge">Skill</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="sub-group">
+        <div class="sub-group-title">BD 评审会</div>
+        <div class="cap-list">
+          <div class="cap-node skill" data-level="4" data-tip="AI 自动生成 BD 评审会所需材料">
+            <span class="cap-dot"></span>材料自动生成<span class="ai-badge">Skill</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="sub-group">
+        <div class="sub-group-title">RFQ</div>
+        <div class="cap-list">
+          <div class="cap-node skill" data-level="4" data-tip="RFQ 全流程进度自动追踪">
+            <span class="cap-dot"></span>RFQ 进度<span class="ai-badge">Skill</span>
+          </div>
+          <div class="cap-node skill" data-level="4" data-tip="AI 智能比价与成本分析">
+            <span class="cap-dot"></span>智能比价<span class="ai-badge">Skill</span>
+          </div>
+          <div class="cap-node skill" data-level="4" data-tip="AI 自动生成上会材料">
+            <span class="cap-dot"></span>上会材料生成<span class="ai-badge">Skill</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="sub-group">
+        <div class="sub-group-title">会议安排</div>
+        <div class="cap-list">
+          <div class="cap-node skill" data-level="4" data-tip="AI 自动安排寻源会议">
+            <span class="cap-dot"></span>会议安排<span class="ai-badge">Skill</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="sub-group">
+        <div class="sub-group-title">定点</div>
+        <div class="cap-list">
+          <div class="cap-node" data-level="1" data-tip="定点结果人工审批与发布">
+            <span class="cap-dot"></span>定点结果<span class="ai-badge">人工</span>
+          </div>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- ======== PHASE 4: 履约执行 ======== -->
+    <div class="phase-col p4-col" data-phase="4">
+
+      <div class="sub-group">
+        <div class="sub-group-title">合同</div>
+        <div class="cap-list">
+          <div class="cap-node skill" data-level="4" data-tip="AI 自动生成合同文本">
+            <span class="cap-dot"></span>合同生成<span class="ai-badge">Skill</span>
+          </div>
+          <div class="cap-node skill" data-level="4" data-tip="AI 辅助合同条款审核">
+            <span class="cap-dot"></span>合同审核<span class="ai-badge">Skill</span>
+          </div>
+          <div class="cap-node" data-level="2" data-tip="合同签署流程管理">
+            <span class="cap-dot"></span>合同签署<span class="ai-badge">半自动</span>
+          </div>
+          <div class="cap-node skill" data-level="4" data-tip="合同执行进度自动追踪">
+            <span class="cap-dot"></span>合同进度追踪<span class="ai-badge">Skill</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="sub-group">
+        <div class="sub-group-title">框架</div>
+        <div class="cap-list">
+          <div class="cap-node" data-level="1" data-tip="框架价格人工谈判与确定">
+            <span class="cap-dot"></span>框架价<span class="ai-badge">人工</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="sub-group">
+        <div class="sub-group-title">订单</div>
+        <div class="cap-list">
+          <div class="cap-node skill" data-level="4" data-tip="AI 自动生成采购订单">
+            <span class="cap-dot"></span>自动订单<span class="ai-badge">Skill</span>
+          </div>
+          <div class="cap-node" data-level="2" data-tip="订单审批流程自动化">
+            <span class="cap-dot"></span>订单审批<span class="ai-badge">半自动</span>
+          </div>
+          <div class="cap-node" data-level="1" data-tip="订单执行进度人工跟踪">
+            <span class="cap-dot"></span>订单进度跟踪<span class="ai-badge">人工</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="sub-group">
+        <div class="sub-group-title">模具 / 开发</div>
+        <div class="cap-list">
+          <div class="cap-node skill" data-level="4" data-tip="模具开发申请单自动生成">
+            <span class="cap-dot"></span>申请单<span class="ai-badge">Skill</span>
+          </div>
+          <div class="cap-node" data-level="2" data-tip="模具费用自动计算">
+            <span class="cap-dot"></span>计费单<span class="ai-badge">半自动</span>
+          </div>
+          <div class="cap-node" data-level="1" data-tip="模具开发进度人工跟踪">
+            <span class="cap-dot"></span>模具进度跟踪<span class="ai-badge">人工</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="sub-group">
+        <div class="sub-group-title">返利 / 大宗补差</div>
+        <div class="cap-list">
+          <div class="cap-node skill" data-level="4" data-tip="AI 自动计算返利与补差金额">
+            <span class="cap-dot"></span>补差计算<span class="ai-badge">Skill</span>
+          </div>
+          <div class="cap-node skill" data-level="4" data-tip="AI 自动生成供应商补差方案">
+            <span class="cap-dot"></span>供应商补差<span class="ai-badge">Skill</span>
+          </div>
+          <div class="cap-node" data-level="2" data-tip="补差执行进度可视化追踪">
+            <span class="cap-dot"></span>补差可视化<span class="ai-badge">半自动</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="sub-group">
+        <div class="sub-group-title">补差结算</div>
+        <div class="cap-list">
+          <div class="cap-node" data-level="1" data-tip="结算单人工审核与确认">
+            <span class="cap-dot"></span>结算单<span class="ai-badge">人工</span>
+          </div>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- ======== PHASE 5: 变更管理 ======== -->
+    <div class="phase-col p5-col" data-phase="5">
+
+      <div class="sub-group">
+        <div class="sub-group-title">变更单</div>
+        <div class="cap-list">
+          <div class="cap-node" data-level="1" data-tip="工程变更工单">
+            <span class="cap-dot"></span>EWO<span class="ai-badge">人工</span>
+          </div>
+          <div class="cap-node" data-level="1" data-tip="客户变更工单">
+            <span class="cap-dot"></span>CWO<span class="ai-badge">人工</span>
+          </div>
+          <div class="cap-node" data-level="1" data-tip="供应商变更工单">
+            <span class="cap-dot"></span>SWO<span class="ai-badge">人工</span>
+          </div>
+          <div class="cap-node" data-level="1" data-tip="供应商主体变更">
+            <span class="cap-dot"></span>主体变更<span class="ai-badge">人工</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="sub-group">
+        <div class="sub-group-title">管理</div>
+        <div class="cap-list">
+          <div class="cap-node" data-level="2" data-tip="变更进度可视化管理">
+            <span class="cap-dot"></span>进度管理<span class="ai-badge">半自动</span>
+          </div>
+          <div class="cap-node skill" data-level="4" data-tip="AI 自动校验主体变更合规性">
+            <span class="cap-dot"></span>主体变更校验<span class="ai-badge">Skill</span>
+          </div>
+        </div>
+      </div>
+
+    </div>
+
+  </div>
+</section>
+
+<!-- ===== CROSS-CUTTING ===== -->
+<section class="cross-section">
+  <div class="cross-header">
+    <h3>全流程横切能力</h3>
+    <div class="line"></div>
+  </div>
+  <div class="cross-grid">
+    <div class="cross-chip"><span class="chip-icon">📊</span>数据洞察</div>
+    <div class="cross-chip"><span class="chip-icon">📅</span>会议安排</div>
+    <div class="cross-chip"><span class="chip-icon">🔗</span>流程协同</div>
+    <div class="cross-chip"><span class="chip-icon">📋</span>会议待办追踪</div>
+    <div class="cross-chip"><span class="chip-icon">🔍</span>进度可视化</div>
+    <div class="cross-chip"><span class="chip-icon">🌐</span>端到端溯源</div>
+  </div>
+</section>
+
+<!-- ===== STATS ===== -->
+<div class="stats-bar">
+  <div class="stat">
+    <div class="stat-num">5</div>
+    <div class="stat-label">核心阶段</div>
+  </div>
+  <div class="stat">
+    <div class="stat-num">24</div>
+    <div class="stat-label">子过程</div>
+  </div>
+  <div class="stat">
+    <div class="stat-num">55+</div>
+    <div class="stat-label">AI 能力节点</div>
+  </div>
+  <div class="stat">
+    <div class="stat-num">22</div>
+    <div class="stat-label">已点亮 Skill</div>
+  </div>
+</div>
+
+<!-- ===== FOOTER ===== -->
+<footer class="footer">
+  Supply Chain AI Capability Map · 供应链 AI 能力全景图 · 2026
+</footer>
+
+<!-- ===== TOOLTIP ===== -->
+<div class="tooltip" id="tooltip"></div>
+
+<!-- ===== INTERACTION SCRIPT ===== -->
+<script>
+(function() {
+  const phases = document.querySelectorAll('.phase');
+  const phaseCols = document.querySelectorAll('.phase-col');
+  const matrixSection = document.getElementById('matrixSection');
+  const tooltip = document.getElementById('tooltip');
+
+  let activePhase = null;
+
+  // Phase hover: highlight corresponding column
+  phases.forEach(phase => {
+    phase.addEventListener('mouseenter', () => {
+      const p = phase.dataset.phase;
+      if (activePhase) return;
+      phases.forEach(ph => {
+        if (ph.dataset.phase !== p) ph.classList.add('dimmed');
+        else ph.classList.add('highlighted');
+      });
+      matrixSection.classList.add('has-highlight');
+      phaseCols.forEach(col => {
+        if (col.dataset.phase === p) col.classList.add('active');
+      });
+    });
+
+    phase.addEventListener('mouseleave', () => {
+      if (activePhase) return;
+      phases.forEach(ph => { ph.classList.remove('dimmed', 'highlighted'); });
+      matrixSection.classList.remove('has-highlight');
+      phaseCols.forEach(col => col.classList.remove('active'));
+    });
+
+    // Click to lock highlight
+    phase.addEventListener('click', () => {
+      const p = phase.dataset.phase;
+      if (activePhase === p) {
+        // Unlock
+        activePhase = null;
+        phases.forEach(ph => { ph.classList.remove('dimmed', 'highlighted'); });
+        matrixSection.classList.remove('has-highlight');
+        phaseCols.forEach(col => col.classList.remove('active'));
+      } else {
+        // Lock
+        activePhase = p;
+        phases.forEach(ph => {
+          if (ph.dataset.phase !== p) { ph.classList.add('dimmed'); ph.classList.remove('highlighted'); }
+          else { ph.classList.add('highlighted'); ph.classList.remove('dimmed'); }
+        });
+        matrixSection.classList.add('has-highlight');
+        phaseCols.forEach(col => {
+          if (col.dataset.phase === p) col.classList.add('active');
+          else col.classList.remove('active');
+        });
+      }
+    });
+  });
+
+  // Capability tooltip
+  document.querySelectorAll('.cap-node[data-tip]').forEach(node => {
+    node.addEventListener('mouseenter', (e) => {
+      tooltip.textContent = node.dataset.tip;
+      tooltip.classList.add('visible');
+    });
+
+    node.addEventListener('mousemove', (e) => {
+      const x = Math.min(e.clientX + 12, window.innerWidth - 280);
+      const y = e.clientY - 40;
+      tooltip.style.left = x + 'px';
+      tooltip.style.top = y + 'px';
+    });
+
+    node.addEventListener('mouseleave', () => {
+      tooltip.classList.remove('visible');
+    });
+  });
+
+  // Click anywhere to unlock
+  document.addEventListener('click', (e) => {
+    if (!e.target.closest('.phase') && activePhase) {
+      activePhase = null;
+      phases.forEach(ph => { ph.classList.remove('dimmed', 'highlighted'); });
+      matrixSection.classList.remove('has-highlight');
+      phaseCols.forEach(col => col.classList.remove('active'));
+    }
+  });
+
+})();
+</script>
+
+</body>
+</html>

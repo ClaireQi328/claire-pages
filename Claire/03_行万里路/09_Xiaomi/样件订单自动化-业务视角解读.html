@@ -1,0 +1,882 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>样件订单自动化 · 业务视角解读</title>
+<style>
+:root{
+  --nav-h:56px;
+  --blue:#3370ff;--blue-2:#2b5bdb;
+  --ink:#1f2329;--grey:#646a73;--line:#e5e6eb;--bg:#f5f7fa;
+  --green:#00a870;--red:#f53f3f;--orange:#ff9d00;--purple:#722ed1;
+  --yellow:#d97706;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font:14px/1.8 -apple-system,"PingFang SC","Microsoft YaHei",sans-serif;color:var(--ink);background:var(--bg);padding-top:var(--nav-h)}
+
+/* 顶部导航 */
+.topnav{position:fixed;top:0;left:0;right:0;height:var(--nav-h);background:linear-gradient(135deg,#1c2433,#2a3a5c);color:#fff;display:flex;align-items:center;padding:0 24px;z-index:100;box-shadow:0 2px 8px rgba(0,0,0,.15)}
+.topnav .logo{display:flex;align-items:center;gap:10px;margin-right:32px}
+.topnav .logo-icon{width:32px;height:32px;background:var(--orange);border-radius:6px;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:16px}
+.topnav .logo-text{font-size:15px;font-weight:600}
+.topnav .menu{display:flex;gap:2px}
+.topnav .menu a{color:rgba(255,255,255,.8);text-decoration:none;padding:8px 16px;border-radius:6px;font-size:13px;cursor:pointer;transition:all .15s}
+.topnav .menu a:hover{background:rgba(255,255,255,.1)}
+.topnav .menu a.on{background:rgba(255,255,255,.18);color:#fff;font-weight:500}
+.topnav .sp{flex:1}
+.topnav .meta{font-size:12px;color:rgba(255,255,255,.6)}
+
+/* Hero */
+.hero{background:linear-gradient(135deg,#1c2433 0%,#2a3a5c 50%,#3370ff 100%);color:#fff;padding:60px 40px 50px;position:relative;overflow:hidden}
+.hero::before{content:'';position:absolute;top:-50%;right:-10%;width:500px;height:500px;background:radial-gradient(circle,rgba(255,255,255,.1) 0%,transparent 70%);border-radius:50%}
+.hero h1{font-size:36px;font-weight:700;margin-bottom:12px;position:relative}
+.hero .subtitle{font-size:18px;color:rgba(255,255,255,.85);margin-bottom:24px;position:relative}
+.hero .tags{display:flex;gap:10px;flex-wrap:wrap;position:relative}
+.hero .tag{background:rgba(255,255,255,.15);border:1px solid rgba(255,255,255,.25);padding:6px 14px;border-radius:20px;font-size:13px}
+
+.wrap{max-width:1100px;margin:0 auto;padding:32px 40px 60px}
+
+/* 章节 */
+.section{margin-bottom:48px}
+.section-title{font-size:24px;font-weight:700;color:var(--ink);margin-bottom:8px;padding-bottom:12px;border-bottom:3px solid var(--blue);display:inline-block}
+.section-desc{font-size:14px;color:var(--grey);margin-bottom:24px}
+
+h3{font-size:18px;font-weight:600;margin:28px 0 14px;color:var(--ink)}
+h4{font-size:15px;font-weight:600;margin:20px 0 10px;color:var(--ink)}
+p{margin-bottom:14px;color:#444}
+
+/* 卡片 */
+.card{background:#fff;border:1px solid var(--line);border-radius:10px;padding:20px 24px;margin-bottom:16px;box-shadow:0 1px 3px rgba(0,0,0,.04)}
+.card.highlight{border-left:4px solid var(--blue);background:#f8faff}
+.card.success{border-left:4px solid var(--green)}
+.card.warning{border-left:4px solid var(--orange)}
+.card.danger{border-left:4px solid var(--red)}
+.card.purple{border-left:4px solid var(--purple)}
+
+/* 引用块 */
+.quote{background:linear-gradient(135deg,#f0f4ff,#f8faff);border-left:4px solid var(--blue);padding:16px 20px;border-radius:0 8px 8px 0;margin:16px 0;font-size:15px;color:#2a3a5c;font-weight:500}
+.quote strong{color:var(--blue)}
+
+/* 表格 */
+table{width:100%;border-collapse:collapse;font-size:13px;margin:16px 0;background:#fff;border-radius:8px;overflow:hidden;box-shadow:0 1px 3px rgba(0,0,0,.04)}
+th{background:linear-gradient(135deg,#f7f8fa,#eef0f4);color:#3a4353;font-weight:600;text-align:left;padding:12px 14px;border-bottom:2px solid var(--line);white-space:nowrap}
+td{padding:11px 14px;border-bottom:1px solid #f0f1f3;vertical-align:top}
+tr:hover td{background:#fafbfe}
+tr:last-child td{border-bottom:none}
+
+/* 标签 */
+.tag-sm{display:inline-block;padding:2px 10px;border-radius:4px;font-size:12px;font-weight:600}
+.tag-blue{background:#e8f0ff;color:var(--blue)}
+.tag-green{background:#e5faf1;color:var(--green)}
+.tag-orange{background:#fff4e5;color:#b36b00}
+.tag-red{background:#ffebe8;color:var(--red)}
+.tag-purple{background:#f5e8ff;color:var(--purple)}
+.tag-grey{background:#f2f3f5;color:var(--grey)}
+
+/* 流程图 */
+.flow-box{background:#f8f9ff;border:1px solid #e0e5ff;border-radius:10px;padding:20px;margin:16px 0;font-family:"SF Mono",Menlo,Consolas,monospace;font-size:12.5px;line-height:1.7;overflow-x:auto;white-space:pre;color:#333}
+
+/* 架构图 */
+.arch-layer{border-radius:10px;padding:16px 20px;margin-bottom:10px;color:#fff;position:relative}
+.arch-layer.l1{background:linear-gradient(135deg,#f53f3f,#c92a2a)}
+.arch-layer.l2{background:linear-gradient(135deg,#ff9d00,#e88a00)}
+.arch-layer.l3{background:linear-gradient(135deg,#3370ff,#2b5bdb)}
+.arch-layer.l4{background:linear-gradient(135deg,#722ed1,#5a1fb0)}
+.arch-layer .layer-name{font-size:16px;font-weight:700;margin-bottom:6px}
+.arch-layer .layer-desc{font-size:13px;opacity:.9}
+.arch-layer .layer-items{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}
+.arch-layer .layer-item{background:rgba(255,255,255,.2);padding:4px 12px;border-radius:4px;font-size:12px}
+
+/* 时间线 */
+.timeline{position:relative;padding-left:28px;margin:16px 0}
+.timeline::before{content:'';position:absolute;left:10px;top:6px;bottom:6px;width:2px;background:var(--line)}
+.tl-item{position:relative;margin-bottom:18px}
+.tl-item::before{content:'';position:absolute;left:-22px;top:6px;width:12px;height:12px;border-radius:50%;background:var(--blue);border:2px solid #fff;box-shadow:0 0 0 2px var(--blue)}
+.tl-item.success::before{background:var(--green);box-shadow:0 0 0 2px var(--green)}
+.tl-item.warning::before{background:var(--orange);box-shadow:0 0 0 2px var(--orange)}
+.tl-item.danger::before{background:var(--red);box-shadow:0 0 0 2px var(--red)}
+.tl-item .tl-title{font-size:14px;font-weight:600;margin-bottom:4px}
+.tl-item .tl-desc{font-size:13px;color:var(--grey)}
+
+/* 坑卡片 */
+.pit-card{background:#fff;border:1px solid var(--line);border-radius:10px;margin-bottom:20px;overflow:hidden;box-shadow:0 2px 8px rgba(0,0,0,.05)}
+.pit-card .pit-head{background:linear-gradient(135deg,#fff4e5,#ffe8cc);padding:14px 20px;border-bottom:1px solid #ffd9a3;display:flex;align-items:center;gap:10px}
+.pit-card .pit-icon{font-size:20px}
+.pit-card .pit-title{font-size:15px;font-weight:700;color:#b36b00}
+.pit-card .pit-body{padding:18px 20px}
+.pit-card .pit-section{margin-bottom:14px}
+.pit-card .pit-section:last-child{margin-bottom:0}
+.pit-card .pit-label{font-size:12px;font-weight:700;color:var(--grey);text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px}
+.pit-card .pit-content{font-size:13.5px;color:#444;line-height:1.7}
+.pit-card .pit-lesson{background:#e5faf1;border-left:3px solid var(--green);padding:10px 14px;border-radius:0 6px 6px 0;font-size:13.5px;color:#0a7a4e}
+.pit-card .pit-lesson strong{color:#065f46}
+
+/* 统计卡片 */
+.stat-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:14px;margin:20px 0}
+.stat-card{background:#fff;border:1px solid var(--line);border-radius:10px;padding:18px 20px;position:relative;overflow:hidden}
+.stat-card::before{content:'';position:absolute;left:0;top:0;bottom:0;width:4px;background:var(--blue)}
+.stat-card.green::before{background:var(--green)}
+.stat-card.orange::before{background:var(--orange)}
+.stat-card.red::before{background:var(--red)}
+.stat-card.purple::before{background:var(--purple)}
+.stat-card .stat-num{font-size:28px;font-weight:700;color:var(--ink);line-height:1.2}
+.stat-card .stat-label{font-size:13px;color:var(--grey);margin-top:4px}
+.stat-card .stat-desc{font-size:11.5px;color:#86909c;margin-top:2px}
+
+/* 两列 */
+.two-col{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+@media(max-width:800px){.two-col{grid-template-columns:1fr}}
+
+/* 目录 */
+.toc{background:#fff;border:1px solid var(--line);border-radius:10px;padding:20px 24px;margin-bottom:32px}
+.toc h3{margin-top:0;margin-bottom:12px;font-size:16px}
+.toc ul{list-style:none;padding-left:0}
+.toc li{padding:6px 0;border-bottom:1px dashed #eee}
+.toc li:last-child{border-bottom:none}
+.toc a{color:var(--blue);text-decoration:none;font-size:13.5px}
+.toc a:hover{text-decoration:underline}
+.toc .toc-num{display:inline-block;width:24px;color:var(--grey);font-weight:600}
+
+/* 页脚 */
+.footer{text-align:center;padding:32px;color:var(--grey);font-size:12.5px;border-top:1px solid var(--line);margin-top:48px}
+
+@media(max-width:768px){
+  .wrap{padding:20px 16px}
+  .hero{padding:40px 20px 36px}
+  .hero h1{font-size:26px}
+  .topnav .menu{display:none}
+}
+</style>
+</head>
+<body>
+
+<!-- 顶部导航 -->
+<div class="topnav">
+  <div class="logo">
+    <div class="logo-icon">MI</div>
+    <div class="logo-text">小米汽车 · 样件订单自动化</div>
+  </div>
+  <div class="menu">
+    <a href="#overview" class="on">开篇</a>
+    <a href="#design">设计思路</a>
+    <a href="#flow">业务流程</a>
+    <a href="#arch">架构设计</a>
+    <a href="#interaction">人机协作</a>
+    <a href="#scenarios">关键场景</a>
+    <a href="#lessons">经验避坑</a>
+    <a href="#future">未来展望</a>
+  </div>
+  <div class="sp"></div>
+  <div class="meta">v1.0 · 2026-09-14</div>
+</div>
+
+<!-- Hero -->
+<div class="hero">
+  <h1>样件订单自动化 · 业务视角解读</h1>
+  <div class="subtitle">一份给业务同学看的说明书：我们用 Agent 做了什么、为什么这么做、它是怎么工作的</div>
+  <div class="tags">
+    <span class="tag">🤖 Agent 设计</span>
+    <span class="tag">🏗️ 架构思维</span>
+    <span class="tag">🎨 设计思维</span>
+    <span class="tag">🤝 人机协作</span>
+    <span class="tag">📖 业务视角</span>
+  </div>
+</div>
+
+<div class="wrap">
+
+  <!-- 目录 -->
+  <div class="toc">
+    <h3>📑 目录</h3>
+    <ul>
+      <li><a href="#overview"><span class="toc-num">01</span>开篇：我们在解决什么问题</a></li>
+      <li><a href="#design"><span class="toc-num">02</span>整体设计思路：Agent 化的核心理念</a></li>
+      <li><a href="#flow"><span class="toc-num">03</span>业务流程全景：从需求到订单的完整旅程</a></li>
+      <li><a href="#arch"><span class="toc-num">04</span>四层架构设计：为什么这么分层</a></li>
+      <li><a href="#interaction"><span class="toc-num">05</span>人机协作设计：人做决策，AI 做执行</a></li>
+      <li><a href="#roles"><span class="toc-num">06</span>角色与职责：谁在什么时候做什么</a></li>
+      <li><a href="#scenarios"><span class="toc-num">07</span>关键场景详解</a></li>
+      <li><a href="#thinking"><span class="toc-num">08</span>设计背后的思考</a></li>
+      <li><a href="#lessons"><span class="toc-num">09</span>经验与避坑（业务视角）</a></li>
+      <li><a href="#future"><span class="toc-num">10</span>未来展望</a></li>
+    </ul>
+  </div>
+
+  <!-- 01 开篇 -->
+  <div class="section" id="overview">
+    <div class="section-title">01 · 开篇：我们在解决什么问题</div>
+    <div class="section-desc">每天都在重复的"手工活"，以及我们的目标</div>
+
+    <h3>每天都在重复的"手工活"</h3>
+    <p>想象一下，一个采购工程师每天早上到公司，要做这样一串事情：</p>
+
+    <div class="timeline">
+      <div class="tl-item"><div class="tl-title">打开飞书多维表格，看看昨天有哪些新的样件需求</div></div>
+      <div class="tl-item"><div class="tl-title">一条一条检查：零件号对不对？预算有没有？收货人信息全不全？</div></div>
+      <div class="tl-item"><div class="tl-title">把合格的需求整理成标准格式，导入到 EP 系统</div></div>
+      <div class="tl-item"><div class="tl-title">去 EP 系统查一下，哪些需求已经可以下单了</div></div>
+      <div class="tl-item"><div class="tl-title">对可以下单的需求，一条一条创建订单</div></div>
+      <div class="tl-item warning"><div class="tl-title">遇到一个零件有好几家供应商的，要去问研发或者采购负责人选哪家</div></div>
+      <div class="tl-item warning"><div class="tl-title">订单创建完了，还要跟踪审批进度，催一下卡住的审批</div></div>
+    </div>
+
+    <div class="quote">
+      这一整套流程，人工做下来要 <strong>2-3 个小时</strong>，而且容易出错。
+    </div>
+
+    <p>更麻烦的是：需求信息不全的时候不知道该找谁补、供应商选择没有记录下次还得重新问、订单创建失败了不知道是哪里出了问题、月底想统计还得手动数...</p>
+
+    <h3>我们的目标：让人只做"人该做的事"</h3>
+    <p>我们做这套自动化，不是为了把人换掉，而是为了<strong>把人从重复劳动中解放出来，去做真正需要判断和决策的事情</strong>。</p>
+
+    <div class="quote">
+      <strong>AI 做执行，人做决策。</strong>
+    </div>
+
+    <div class="two-col">
+      <div class="card success">
+        <h4 style="margin-top:0">✅ 机器擅长的</h4>
+        <p style="margin-bottom:0">重复操作、数据校验、状态跟踪、批量处理、规则匹配、日志记录</p>
+      </div>
+      <div class="card warning">
+        <h4 style="margin-top:0">❌ 机器不擅长的</h4>
+        <p style="margin-bottom:0">供应商选择、异常判断、跨部门协调、商务谈判、策略决策</p>
+      </div>
+    </div>
+
+    <p style="margin-top:16px">所以我们的设计原则是：<strong>能自动的全自动化，不能自动的推给人来决策，决策完了机器继续执行。</strong></p>
+  </div>
+
+  <!-- 02 设计思路 -->
+  <div class="section" id="design">
+    <div class="section-title">02 · 整体设计思路：Agent 化的核心理念</div>
+    <div class="section-desc">什么是 Agent？我们的 Agent 长什么样？</div>
+
+    <h3>什么是 Agent？</h3>
+    <p>你可以把 Agent 想象成一个<strong>"数字员工"</strong>。它不是一个简单的脚本（脚本只会按固定流程跑，遇到问题就卡住），而是一个<strong>有目标、会思考、能求助、会记录</strong>的智能体。</p>
+
+    <p>一个好的 Agent 应该具备这几个能力：</p>
+
+    <table>
+      <thead><tr><th>能力</th><th>说明</th><th>类比</th></tr></thead>
+      <tbody>
+        <tr><td><span class="tag-sm tag-blue">目标感</span></td><td>知道自己要完成什么任务</td><td>就像员工知道今天的 KPI</td></tr>
+        <tr><td><span class="tag-sm tag-green">分步执行</span></td><td>把大任务拆成小步骤，一步一步做</td><td>就像做项目要有 WBS</td></tr>
+        <tr><td><span class="tag-sm tag-orange">异常处理</span></td><td>遇到问题不会直接崩溃，而是想办法解决或者求助</td><td>就像遇到问题会找领导请示</td></tr>
+        <tr><td><span class="tag-sm tag-purple">人机协作</span></td><td>不确定的事情主动找人确认，确认完了继续干</td><td>就像重要决策要请示领导</td></tr>
+        <tr><td><span class="tag-sm tag-blue">全程留痕</span></td><td>每一步做了什么、结果如何，都记录下来</td><td>就像写工作日报和项目文档</td></tr>
+        <tr><td><span class="tag-sm tag-green">可追溯</span></td><td>出了问题能查到是哪一步出的、为什么出问题</td><td>就像审计要有日志</td></tr>
+      </tbody>
+    </table>
+
+    <h3>我们的 Agent 长什么样？</h3>
+    <p>我们的样件订单 Agent，本质上是一个<strong>"工作流编排器 + 5 个专业技能 + 4 个角色协作"</strong>的组合。</p>
+
+    <div class="card highlight">
+      <h4 style="margin-top:0">🎯 可以这样理解：</h4>
+      <ul style="padding-left:20px;margin-bottom:0">
+        <li style="margin-bottom:8px"><strong>工作流编排器</strong> = 项目经理，负责统筹全局、安排进度、协调资源</li>
+        <li style="margin-bottom:8px"><strong>5 个专业技能</strong> = 5 个专业岗位的员工，各管一摊</li>
+        <li style="margin-bottom:0"><strong>4 个角色</strong> = 4 类业务人员，在关键节点参与决策</li>
+      </ul>
+    </div>
+
+    <div class="flow-box">项目经理（编排器）
+    ↓ 安排任务
+专业员工（5个Skill）→ 执行具体工作
+    ↓ 遇到问题
+业务人员（4个角色）→ 做决策、拍板
+    ↓ 决策结果
+专业员工（5个Skill）→ 继续执行
+    ↓ 完成
+项目经理（编排器）→ 记录结果、推进下一步</div>
+  </div>
+
+  <!-- 03 业务流程 -->
+  <div class="section" id="flow">
+    <div class="section-title">03 · 业务流程全景：从需求到订单的完整旅程</div>
+    <div class="section-desc">一张图看懂全流程，以及两个关键的"人工确认点"</div>
+
+    <h3>完整流程图</h3>
+    <div class="flow-box">┌─────────────────────────────────────────────────────────────────┐
+│                        每日自动启动（定时任务）                      │
+└──────────────────────────────┬──────────────────────────────────┘
+                               ▼
+┌─────────────────────────────────────────────────────────────────┐
+│  ① 导入前确认                                                    │
+│  Agent 把今天要导入的需求整理成清单，推给需求导入人确认           │
+│  清单里写清楚：一共多少条、多少条合格、多少条有问题、问题是什么    │
+│                         ↓ 需求导入人确认                           │
+└──────────────────────────────┬──────────────────────────────────┘
+                               ▼
+┌─────────────────────────────────────────────────────────────────┐
+│  ② 需求导入（AI 自动执行）                                        │
+│  把确认过的需求，按标准格式导入到 EP 系统                          │
+│  输出：成功多少条、失败多少条、失败原因是什么                       │
+└──────────────────────────────┬──────────────────────────────────┘
+                               ▼
+┌─────────────────────────────────────────────────────────────────┐
+│  ③ 需求检查（AI 自动执行）                                        │
+│  对导入的需求做 16 项规则校验：必填字段、数量、日期、预算...       │
+│  输出：PASS 多少条、WARN 多少条、REJECT 多少条                    │
+└──────────────────────────────┬──────────────────────────────────┘
+                               ▼
+┌─────────────────────────────────────────────────────────────────┐
+│  ④ 查询可下单（AI 自动执行）                                      │
+│  去 EP 系统查一下，哪些需求已经满足下单条件了                      │
+│  自动过滤掉：到货日期太远的、还没审批完的                           │
+└──────────────────────────────┬──────────────────────────────────┘
+                               ▼
+┌─────────────────────────────────────────────────────────────────┐
+│  ⑤ 下单前确认                                                    │
+│  Agent 把可下单的需求整理成汇总，推给订单管理员确认                │
+│  汇总里写清楚：多少条可以下单、涉及哪些零件、哪些供应商            │
+│                         ↓ 订单管理员确认                           │
+└──────────────────────────────┬──────────────────────────────────┘
+                               ▼
+┌─────────────────────────────────────────────────────────────────┐
+│  ⑥ 订单创建（AI 自动执行 + 人工决策）                              │
+│  🟢 A类：一个价格、一个供应商 → 自动下单，不用管                    │
+│  🟡 B类：一个价格、多个供应商 → 推给人选供应商                      │
+│  🔵 C类：多个价格、一个供应商 → 系统自动选最新价格，自动下单        │
+│  🟣 D类：多个价格、多个供应商 → 系统选价格，推给人选供应商          │
+└──────────────────────────────┬──────────────────────────────────┘
+                               ▼
+┌─────────────────────────────────────────────────────────────────┐
+│  完成！生成日报 + 执行日志 + 订单明细                              │
+│  所有数据沉淀到飞书多维表格，随时可查、可审计                       │
+└─────────────────────────────────────────────────────────────────┘</div>
+
+    <h3>两个关键的"人工确认点"</h3>
+    <p>在整个流程中，我们特意设置了<strong>两个必须人工确认的节点</strong>，而不是让 AI 一路跑到底。</p>
+
+    <table>
+      <thead><tr><th>确认节点</th><th>谁来确认</th><th>确认什么</th><th>为什么需要人确认</th></tr></thead>
+      <tbody>
+        <tr>
+          <td><span class="tag-sm tag-orange">导入前确认</span></td>
+          <td>需求导入人</td>
+          <td>今天要导入的需求清单对不对、异常记录怎么处理</td>
+          <td>需求数据是源头，源头错了后面全错，必须人来把关</td>
+        </tr>
+        <tr>
+          <td><span class="tag-sm tag-orange">下单前确认</span></td>
+          <td>订单管理员</td>
+          <td>今天要下单的需求对不对、有没有特殊情况</td>
+          <td>下单是真金白银的操作，必须人来确认才能执行</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <div class="quote">
+      这两个确认点，Agent 会把信息整理得清清楚楚，推送到飞书群里，相关人员点一下"确认"就可以继续。<strong>不需要人去翻系统、整理数据，只需要做判断。</strong>
+    </div>
+  </div>
+
+  <!-- 04 架构设计 -->
+  <div class="section" id="arch">
+    <div class="section-title">04 · 四层架构设计：为什么这么分层</div>
+    <div class="section-desc">整体架构图，以及分层背后的设计思考</div>
+
+    <h3>整体架构图</h3>
+    <p>我们把整个系统分成了四层，每一层各司其职：</p>
+
+    <div class="arch-layer l1">
+      <div class="layer-name">第一层：决策层（人）</div>
+      <div class="layer-desc">需求导入人 · 订单管理员 · 采购员 · 需求用户 — 只做决策，不做重复劳动</div>
+      <div class="layer-items">
+        <span class="layer-item">需求导入人</span>
+        <span class="layer-item">订单管理员</span>
+        <span class="layer-item">采购员</span>
+        <span class="layer-item">需求用户</span>
+      </div>
+    </div>
+
+    <div class="arch-layer l2">
+      <div class="layer-name">第二层：编排层（Agent 大脑）</div>
+      <div class="layer-desc">工作流编排器 · 状态机 · 确认节点 — 负责统筹全局、安排进度、协调人机协作</div>
+      <div class="layer-items">
+        <span class="layer-item">工作流编排器</span>
+        <span class="layer-item">状态机</span>
+        <span class="layer-item">确认节点</span>
+        <span class="layer-item">重试机制</span>
+      </div>
+    </div>
+
+    <div class="arch-layer l3">
+      <div class="layer-name">第三层：执行层（专业技能）</div>
+      <div class="layer-desc">需求导入 · 需求检查 · 查询可下单 · 创建订单 · 交互确认 — 每个技能只管自己的一摊事</div>
+      <div class="layer-items">
+        <span class="layer-item">需求导入</span>
+        <span class="layer-item">需求检查</span>
+        <span class="layer-item">查询可下单</span>
+        <span class="layer-item">创建订单</span>
+        <span class="layer-item">交互确认</span>
+      </div>
+    </div>
+
+    <div class="arch-layer l4">
+      <div class="layer-name">第四层：数据层（沉淀与追溯）</div>
+      <div class="layer-desc">执行日志 · 工作流汇总 · 确认单 · 供应商选择 — 所有操作都有记录，随时可查、可审计</div>
+      <div class="layer-items">
+        <span class="layer-item">执行日志</span>
+        <span class="layer-item">工作流汇总</span>
+        <span class="layer-item">确认单</span>
+        <span class="layer-item">供应商选择</span>
+      </div>
+    </div>
+
+    <h3 style="margin-top:32px">为什么要这么分层？</h3>
+    <p>这是一个很经典的设计思路，背后有几个考虑：</p>
+
+    <div class="card">
+      <h4 style="margin-top:0">1. 关注点分离（Separation of Concerns）</h4>
+      <p style="margin-bottom:0">每一层只关心自己的事情，不越界。改一层不会影响其他层。比如我们想换一个订单创建的实现方式，只需要改执行层，编排层和决策层都不用动。</p>
+    </div>
+
+    <div class="card">
+      <h4 style="margin-top:0">2. 单一职责（Single Responsibility）</h4>
+      <p style="margin-bottom:0">每个模块只做一件事，而且把这件事做好。出了问题容易定位——订单创建失败了，就去查订单创建技能，不用去翻其他代码。</p>
+    </div>
+
+    <div class="card">
+      <h4 style="margin-top:0">3. 可替换性 & 可扩展性</h4>
+      <p style="margin-bottom:0">每一层都是可以替换的：现在用飞书卡片确认，以后可以换成飞书待办；现在用 Python 写的编排器，以后可以换成 AgentSpace。想加新功能？在对应的层加就行。</p>
+    </div>
+  </div>
+
+  <!-- 05 人机协作 -->
+  <div class="section" id="interaction">
+    <div class="section-title">05 · 人机协作设计：人做决策，AI 做执行</div>
+    <div class="section-desc">四个人机交互节点，以及"把选择题留给人"的设计原则</div>
+
+    <h3>四个人机交互节点</h3>
+    <table>
+      <thead><tr><th>节点</th><th>时机</th><th>Agent 做什么</th><th>人做什么</th></tr></thead>
+      <tbody>
+        <tr><td><span class="tag-sm tag-blue">阶段前确认</span></td><td>每个阶段执行前</td><td>把要做的事情、影响范围整理清楚，推送给人</td><td>确认可以执行，或者驳回、跳过</td></tr>
+        <tr><td><span class="tag-sm tag-green">阶段后确认</span></td><td>每个阶段完成后</td><td>把执行结果、成功/失败、关键数据整理成报告</td><td>确认结果没问题，继续下一步；或者要求重试</td></tr>
+        <tr><td><span class="tag-sm tag-red">失败后决策</span></td><td>阶段执行失败时</td><td>把错误信息、可能原因、建议方案整理清楚</td><td>决定怎么处理：重试、跳过、终止、人工介入</td></tr>
+        <tr><td><span class="tag-sm tag-orange">供应商选择</span></td><td>遇到多供应商时</td><td>把各家供应商的报价、交货期、评分列成表格</td><td>选一家供应商，Agent 继续创建订单</td></tr>
+      </tbody>
+    </table>
+
+    <h3>设计思路：把"选择题"留给人，把"问答题"交给 AI</h3>
+    <div class="quote">
+      <strong>不要让人去做问答题，要让人做选择题。</strong>
+    </div>
+
+    <div class="two-col">
+      <div class="card danger">
+        <h4 style="margin-top:0">❌ 不好的设计</h4>
+        <p>Agent 跑失败了，甩给人一堆错误日志，说"你看看怎么回事"——让人做问答题。</p>
+      </div>
+      <div class="card success">
+        <h4 style="margin-top:0">✅ 好的设计</h4>
+        <p>Agent 跑失败了，告诉人"这个错误是登录超时导致的，建议你先执行登录命令，然后我重试。你看可以吗？"——让人做选择题。</p>
+      </div>
+    </div>
+
+    <p style="margin-top:16px"><strong>我们的所有交互节点，都遵循这个原则：Agent 先分析、先给建议，人只需要判断、确认。</strong></p>
+
+    <h3>供应商选择：一个典型的人机协作场景</h3>
+    <p>供应商选择是最能体现"人机协作"的场景：</p>
+
+    <div class="two-col">
+      <div class="card highlight">
+        <h4 style="margin-top:0">🤖 Agent 做的事</h4>
+        <ol style="padding-left:20px;margin-bottom:0">
+          <li style="margin-bottom:6px">自动检测到这个零件有多个供应商</li>
+          <li style="margin-bottom:6px">把每家供应商的信息整理成表格：名称、单价、交货期、MOQ、历史评分</li>
+          <li style="margin-bottom:6px">根据数量智能选择交互方式（&lt;5条卡片，≥5条多维表格）</li>
+          <li style="margin-bottom:6px">等人选完了，自动读取选择结果</li>
+          <li>用选好的供应商继续创建订单</li>
+        </ol>
+      </div>
+      <div class="card success">
+        <h4 style="margin-top:0">👤 人做的事</h4>
+        <ol style="padding-left:20px;margin-bottom:0">
+          <li style="margin-bottom:6px">看一下 Agent 整理好的供应商对比表</li>
+          <li style="margin-bottom:6px">根据业务经验选一家（最便宜的？交货最快的？合作最久的？）</li>
+          <li>点一下"确认"就完事了</li>
+        </ol>
+      </div>
+    </div>
+
+    <div class="quote" style="margin-top:16px">
+      💡 <strong>贴心设计</strong>：人选完供应商后，系统会<strong>自动把状态从"待选择"改成"已选择"</strong>，不用人手动去改状态。而且会自动记录选择时间，方便后续追溯。
+    </div>
+  </div>
+
+  <!-- 06 角色 -->
+  <div class="section" id="roles">
+    <div class="section-title">06 · 角色与职责：谁在什么时候做什么</div>
+    <div class="section-desc">四个角色，以及为什么要做角色区分</div>
+
+    <h3>四个角色</h3>
+    <table>
+      <thead><tr><th>角色</th><th>职责</th><th>能看到什么</th><th>能做什么决策</th></tr></thead>
+      <tbody>
+        <tr>
+          <td><span class="tag-sm tag-blue">需求导入人</span></td>
+          <td>负责把需求导入系统，处理导入异常</td>
+          <td>需求总数、成功/失败数、异常记录详情、数据源</td>
+          <td>导入前确认、导入结果确认</td>
+        </tr>
+        <tr>
+          <td><span class="tag-sm tag-green">订单管理员</span></td>
+          <td>负责订单流程管理和最终确认</td>
+          <td>可下单需求、订单结果、预算信息、供应商信息、交货日期</td>
+          <td>下单前确认、订单结果确认</td>
+        </tr>
+        <tr>
+          <td><span class="tag-sm tag-orange">采购员</span></td>
+          <td>负责具体采购执行，跟踪自己的订单</td>
+          <td>分配给自己的订单、供应商、零件号、数量、交货期、价格</td>
+          <td>（只看，不做流程决策）</td>
+        </tr>
+        <tr>
+          <td><span class="tag-sm tag-purple">需求用户</span></td>
+          <td>提出需求的人，跟踪自己的需求状态</td>
+          <td>自己提的需求、当前状态、零件名称、数量、预计到货日期</td>
+          <td>（只看，不做流程决策）</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <h3>为什么要做角色区分？</h3>
+    <div class="two-col">
+      <div class="card highlight">
+        <h4 style="margin-top:0">1. 信息最小化原则</h4>
+        <p style="margin-bottom:0">不是所有人都需要看到所有信息。需求用户不需要看到供应商报价（采购敏感信息），采购员不需要看到其他采购员的订单。<strong>每个人只看到和自己相关的信息，决策效率更高，也避免了信息泄露。</strong></p>
+      </div>
+      <div class="card highlight">
+        <h4 style="margin-top:0">2. 职责边界清晰</h4>
+        <p style="margin-bottom:0">每个角色知道自己该做什么、不该做什么。需求导入人只管导入，不管下单；订单管理员只管流程，不管具体采购执行。<strong>职责清晰了，出了问题也知道该找谁。</strong></p>
+      </div>
+    </div>
+  </div>
+
+  <!-- 07 关键场景 -->
+  <div class="section" id="scenarios">
+    <div class="section-title">07 · 关键场景详解</div>
+    <div class="section-desc">四个典型场景，看 Agent 是怎么工作的</div>
+
+    <h3>场景一：日常自动跑批（最常见的场景）</h3>
+    <div class="timeline">
+      <div class="tl-item success"><div class="tl-title">08:00 · 定时任务自动启动，Agent 开始工作</div><div class="tl-desc">去飞书多维表格读取昨天新增的需求，整理成清单</div></div>
+      <div class="tl-item"><div class="tl-title">08:01 · 推送导入前确认卡片</div><div class="tl-desc">"今天共有 23 条需求待导入，其中 20 条合格，3 条有异常..." 需求导入人点"确认导入"</div></div>
+      <div class="tl-item success"><div class="tl-title">08:02 · 自动导入 + 自动检查</div><div class="tl-desc">20 条成功导入，3 条异常跳过；16 项校验全部 PASS</div></div>
+      <div class="tl-item success"><div class="tl-title">08:03 · 查询可下单需求</div><div class="tl-desc">查到 7 条可以下单，自动过滤掉到货日期太远的</div></div>
+      <div class="tl-item"><div class="tl-title">08:04 · 推送下单前确认卡片</div><div class="tl-desc">"今天共有 7 条需求可下单，涉及 5 个零件、4 家供应商..." 订单管理员点"确认下单"</div></div>
+      <div class="tl-item success"><div class="tl-title">08:05 · 自动创建订单</div><div class="tl-desc">5 条 A类自动下单成功，2 条 B类推送给人选供应商</div></div>
+      <div class="tl-item success"><div class="tl-title">08:10 · 全部完成，生成日报</div><div class="tl-desc">推送到群里，同时把所有数据沉淀到多维表格</div></div>
+    </div>
+    <div class="quote">整个过程，人只需要点两次"确认"，其他全是自动的。</div>
+
+    <h3>场景二：异常处理（登录超时）</h3>
+    <div class="card warning">
+      <p style="margin-bottom:8px"><strong>发生了什么：</strong>Agent 执行到"查询可下单"时，调用 EP CLI 超时了。</p>
+      <p style="margin-bottom:8px"><strong>Agent 做的事：</strong>没有直接崩溃，而是分析错误原因——错误信息里有 "not logged in"，判断是登录过期了。然后把错误整理成清晰的信息推送给订单管理员：</p>
+      <div class="quote" style="margin:10px 0">
+        【执行失败】查询可下单 阶段失败<br>
+        错误类型：登录超时<br>
+        可能原因：EP 系统登录态过期<br>
+        建议操作：请执行 <code>dx-garagehub auth login</code> 重新登录，登录完成后我会自动重试<br>
+        [我已登录，重试] [跳过此步骤] [终止工作流]
+      </div>
+      <p style="margin-bottom:0"><strong>人做的事：</strong>去执行了登录命令，然后点了"我已登录，重试"。Agent 重新执行，这次成功了，工作流继续往下走。</p>
+    </div>
+
+    <h3>场景三：供应商选择（多供应商场景）</h3>
+    <p>Agent 创建订单时，发现有 3 个零件是多供应商的。因为只有 3 个（少于 5 个阈值），Agent 选择推送飞书卡片，每个零件一张卡片：</p>
+
+    <div class="card highlight">
+      <h4 style="margin-top:0">📋 供应商选择卡片示例</h4>
+      <p><strong>EPS控制器(二供)</strong> · 车型：SU7-Max · 数量：10 · 要求到货：2026-10-15</p>
+      <table>
+        <thead><tr><th>供应商</th><th>单价</th><th>交货期</th><th>MOQ</th><th>评分</th></tr></thead>
+        <tbody>
+          <tr><td>博世</td><td>¥12,000</td><td>15天</td><td>5</td><td>96分·S级</td></tr>
+          <tr><td>大陆集团</td><td>¥12,000</td><td>18天</td><td>10</td><td>94分·S级</td></tr>
+        </tbody>
+      </table>
+      <p style="margin-bottom:0">[选博世] [选大陆集团]</p>
+    </div>
+
+    <p style="margin-top:16px">采购负责人看了一下，选了博世（合作更久、评分更高）。Agent 收到选择结果，用博世继续创建订单，同时把选择结果记录到多维表格，状态自动从"待选择"改成"已选择"。</p>
+
+    <div class="quote">
+      💡 如果有 10 个零件需要选供应商呢？Agent 不会推 10 张卡片刷屏，而是推一张汇总卡片 + 一个多维表格链接，人在多维表格里批量选，效率更高。
+    </div>
+
+    <h3>场景四：订单跟踪与催办</h3>
+    <p>订单管理员想看看今天创建的订单审批到哪一步了，打开飞书多维表格的"订单跟踪"视图，一目了然：</p>
+    <ul style="padding-left:20px">
+      <li style="margin-bottom:6px">2 笔已提交审批，正在等张经理审批</li>
+      <li style="margin-bottom:6px">2 笔审批中，正在等李总监审批</li>
+      <li style="margin-bottom:6px">1 笔供应商已确认</li>
+    </ul>
+    <p>发现有一笔订单卡了 2 天还没审批，点一下"催办"按钮，系统自动给审批人发了一条飞书消息。审批人收到消息，点进去一看，很快就审批完了。</p>
+    <div class="quote">所有订单状态都在多维表格里实时更新，不用去 EP 系统一条一条查。</div>
+  </div>
+
+  <!-- 08 设计思考 -->
+  <div class="section" id="thinking">
+    <div class="section-title">08 · 设计背后的思考</div>
+    <div class="section-desc">三个关键设计决策，以及为什么这么做</div>
+
+    <h3>为什么用"工作流 + 确认节点"，而不是"一条命令跑到底"？</h3>
+    <div class="two-col">
+      <div class="card danger">
+        <h4 style="margin-top:0">❌ 一条命令跑到底</h4>
+        <p style="margin-bottom:0">听起来很美，但真实世界总是有各种异常：登录过期、网络超时、数据不对、供应商报价变了... 遇到异常就直接崩了，还得人去查日志、找原因、手动恢复。</p>
+      </div>
+      <div class="card success">
+        <h4 style="margin-top:0">✅ 工作流 + 确认节点</h4>
+        <p style="margin-bottom:0">每一步执行完都记录状态；遇到异常不会崩溃，而是停下来分析原因、推给人决策；人决策完了可以从断点继续；所有步骤都有日志，随时可以查。<strong>这才是真正可靠的自动化。</strong></p>
+      </div>
+    </div>
+
+    <h3>为什么要做 A/B/C/D 分类？</h3>
+    <p>因为<strong>不同的订单，自动化的程度是不一样的</strong>：</p>
+    <table>
+      <thead><tr><th>分类</th><th>条件</th><th>自动化程度</th><th>需要人介入</th></tr></thead>
+      <tbody>
+        <tr><td><span class="tag-sm tag-green">A类</span></td><td>一个价格、一个供应商</td><td>100% 自动</td><td>不需要</td></tr>
+        <tr><td><span class="tag-sm tag-orange">B类</span></td><td>一个价格、多个供应商</td><td>90% 自动</td><td>选供应商</td></tr>
+        <tr><td><span class="tag-sm tag-blue">C类</span></td><td>多个价格、一个供应商</td><td>100% 自动</td><td>不需要（系统自动选最新价格）</td></tr>
+        <tr><td><span class="tag-sm tag-purple">D类</span></td><td>多个价格、多个供应商</td><td>50% 自动</td><td>选供应商</td></tr>
+      </tbody>
+    </table>
+    <div class="quote">
+      如果不分类，所有订单都走一样的流程，那要么是该自动的没自动（效率低），要么是不该自动的自动了（风险高）。分类之后，我们就可以做到：<strong>能自动的全自动化，不能自动的精准找人。</strong>
+    </div>
+
+    <h3>为什么数据要沉淀到飞书多维表格？</h3>
+    <div class="stat-grid">
+      <div class="stat-card"><div class="stat-num">🌐</div><div class="stat-label">可访问性</div><div class="stat-desc">在线的，任何人任何设备都能看</div></div>
+      <div class="stat-card green"><div class="stat-num">👥</div><div class="stat-label">可协作</div><div class="stat-desc">多人同时查看、编辑、评论</div></div>
+      <div class="stat-card orange"><div class="stat-num">📊</div><div class="stat-label">可视化</div><div class="stat-desc">看板视图、画册视图、仪表盘</div></div>
+      <div class="stat-card purple"><div class="stat-num">🔍</div><div class="stat-label">可审计</div><div class="stat-desc">所有操作都有记录，可追溯</div></div>
+    </div>
+  </div>
+
+  <!-- 09 经验避坑 -->
+  <div class="section" id="lessons">
+    <div class="section-title">09 · 经验与避坑（业务视角）</div>
+    <div class="section-desc">六个真实踩过的坑，以及给后来者的三条建议</div>
+
+    <!-- 坑一 -->
+    <div class="pit-card">
+      <div class="pit-head">
+        <span class="pit-icon">🕳️</span>
+        <span class="pit-title">坑一：以为"自动化"就是"一条命令跑到底"</span>
+      </div>
+      <div class="pit-body">
+        <div class="pit-section">
+          <div class="pit-label">踩坑经历</div>
+          <div class="pit-content">最开始做的时候，我们想的很简单：把需求导入、检查、查询、下单串成一个脚本，定时跑就行了。结果第一次跑就出问题了——EP 系统登录过期了，脚本跑到一半报错退出，后面的步骤全没执行。更麻烦的是，我们不知道哪些执行了、哪些没执行，只能去翻日志，一条一条对。</div>
+        </div>
+        <div class="pit-lesson">
+          <strong>学到的经验：</strong>自动化不是"跑通一次"，而是"每次都能可靠地跑通"。真实世界的业务总是有各种异常，如果脚本遇到异常就崩溃，那这样的自动化是不可靠的。所以我们后来改成了"工作流 + 确认节点 + 异常处理"的模式——每一步都记录状态，遇到异常停下来分析原因、推给人决策，人决策完了从断点继续。
+        </div>
+      </div>
+    </div>
+
+    <!-- 坑二 -->
+    <div class="pit-card">
+      <div class="pit-head">
+        <span class="pit-icon">🕳️</span>
+        <span class="pit-title">坑二：把一堆技术错误甩给业务同学</span>
+      </div>
+      <div class="pit-body">
+        <div class="pit-section">
+          <div class="pit-label">踩坑经历</div>
+          <div class="pit-content">有一次订单创建失败了，我们的脚本把一长串错误日志直接推到了飞书群里，里面全是技术术语：subprocess.TimeoutExpired、returncode != 0、JSONDecodeError... 结果业务同学看了一脸懵，问我们："这是什么意思？我该怎么办？"我们还得解释半天。</div>
+        </div>
+        <div class="pit-lesson">
+          <strong>学到的经验：</strong>不要让人做问答题，要让人做选择题。业务同学不关心技术细节，他们只关心：出了什么问题？为什么会出？我该怎么做？做完之后呢？所以后来我们做了错误分类和翻译——登录超时就说"EP 系统登录过期了，请执行 xx 命令重新登录，登录完点这里重试"，把技术错误翻译成业务语言，把问答题变成选择题。
+        </div>
+      </div>
+    </div>
+
+    <!-- 坑三 -->
+    <div class="pit-card">
+      <div class="pit-head">
+        <span class="pit-icon">🕳️</span>
+        <span class="pit-title">坑三：供应商选择，推了一堆卡片刷屏</span>
+      </div>
+      <div class="pit-body">
+        <div class="pit-section">
+          <div class="pit-label">踩坑经历</div>
+          <div class="pit-content">有一次订单创建时，发现有 12 个零件都是多供应商的。我们的脚本很"敬业"地给每个零件推了一张选择卡片，结果飞书群里一下子刷了 12 张卡片，手机震个不停。业务同学吐槽："这么多，我一张一张选得选到什么时候？能不能批量选？"</div>
+        </div>
+        <div class="pit-lesson">
+          <strong>学到的经验：</strong>交互方式要根据数量智能选择，不能一刀切。少量待选（3-5个）用卡片交互很方便；但如果待选很多（10个以上），卡片就会刷屏，而且一张一张选效率很低。所以我们后来做了智能分流——少于5个待选推送卡片，5个及以上推送汇总卡片+多维表格链接，人在多维表格里批量选。
+        </div>
+      </div>
+    </div>
+
+    <!-- 坑四 -->
+    <div class="pit-card">
+      <div class="pit-head">
+        <span class="pit-icon">🕳️</span>
+        <span class="pit-title">坑四：人选完供应商，还得手动改状态</span>
+      </div>
+      <div class="pit-body">
+        <div class="pit-section">
+          <div class="pit-label">踩坑经历</div>
+          <div class="pit-content">最开始做供应商选择的时候，人选完供应商后，还得手动去多维表格里把状态从"待选择"改成"已选择"，还得填写选择时间。结果经常有人忘了改状态，导致工作流一直等不到"已选择"的信号，卡在那里不动。还得有人去提醒："你选完供应商了吗？记得改状态啊！"</div>
+        </div>
+        <div class="pit-lesson">
+          <strong>学到的经验：</strong>能自动的就不要让人手动做，哪怕只是改一个状态。后来我们加了自动状态切换——系统每次查询待选记录时，自动检查"已选供应商ID"字段，如果不为空且状态是"待选择"，就自动改成"已选择"并填写选择时间。人只需要填一个"已选供应商ID"，其他的系统自动搞定。这虽然是个小细节，但体验提升很大。
+        </div>
+      </div>
+    </div>
+
+    <!-- 坑五 -->
+    <div class="pit-card">
+      <div class="pit-head">
+        <span class="pit-icon">🕳️</span>
+        <span class="pit-title">坑五：所有人看到的信息都一样，信息过载</span>
+      </div>
+      <div class="pit-body">
+        <div class="pit-section">
+          <div class="pit-label">踩坑经历</div>
+          <div class="pit-content">最开始做通知的时候，我们把所有信息都推到同一个群里，所有人看到的内容都一样：需求导入的异常详情（含申请人邮箱、电话）、订单创建的详细结果（含供应商报价、金额）、执行日志（含技术错误）。结果需求用户说"这些供应商报价我不需要看啊，而且这不是敏感信息吗？"，采购员说"群里消息太多了，我都找不到分配给我的订单了"。</div>
+        </div>
+        <div class="pit-lesson">
+          <strong>学到的经验：</strong>信息要按角色过滤，每个人只看到和自己相关的。后来我们做了角色权限和内容过滤——需求导入人看到需求导入相关的信息，订单管理员看到订单全流程的信息，采购员只看到分配给自己的订单，需求用户只看到自己提的需求（看不到供应商报价等敏感信息）。每个人收到的信息都是精准的，既避免了信息过载，也保护了敏感数据。
+        </div>
+      </div>
+    </div>
+
+    <!-- 坑六 -->
+    <div class="pit-card">
+      <div class="pit-head">
+        <span class="pit-icon">🕳️</span>
+        <span class="pit-title">坑六：以为"价格判断"要自己做，结果 EP 系统已经做了</span>
+      </div>
+      <div class="pit-body">
+        <div class="pit-section">
+          <div class="pit-label">踩坑经历</div>
+          <div class="pit-content">最开始看 PRD 的时候，我们看到 C类和 D类场景需要"匹配台账取最新价格"，就开始研究怎么从台账里查价格、怎么比对日期、怎么取最新价格。研究了半天，写了一堆代码。结果后来发现，dx-ep CLI 在创建订单的时候，内部已经自动做了价格判断——会自动匹配台账、取最新价格、判断是不是最低价。我们白忙活了半天。</div>
+        </div>
+        <div class="pit-lesson">
+          <strong>学到的经验：</strong>不要重复造轮子，先搞清楚底层系统已经做了什么。后来我们调整了策略——价格判断完全交给 EP CLI 内部做，我们不重复实现；Skill 层只做分类标注、多供应商检测、供应商选择推送。这样代码量少了很多，也更可靠。<strong>做自动化之前，先搞清楚哪些是底层系统已经做了的，哪些是需要我们做的。</strong>
+        </div>
+      </div>
+    </div>
+
+    <!-- 给后来者的建议 -->
+    <h3 style="margin-top:32px">给后来者的三条建议</h3>
+    <div class="two-col">
+      <div class="card highlight">
+        <h4 style="margin-top:0">1. 先想清楚"哪些能自动、哪些不能自动"</h4>
+        <p style="margin-bottom:0">不要追求 100% 自动化。很多场景是需要人来判断的（供应商选择、异常处理、商务决策），强行自动化反而会出问题。更好的做法是：<strong>能自动的全自动化，不能自动的精准找人，人机协作才是最高效的。</strong></p>
+      </div>
+      <div class="card highlight">
+        <h4 style="margin-top:0">2. 把"人"放在设计的中心</h4>
+        <p style="margin-bottom:0">很多人做自动化，一开始就想"用什么技术栈、怎么写代码"，但其实更应该先想：用这个系统的人是谁？他们每天的工作流程是什么样的？他们最头疼的是什么？<strong>技术是为人服务的，而不是反过来。</strong></p>
+      </div>
+    </div>
+    <div class="card highlight" style="margin-top:16px">
+      <h4 style="margin-top:0">3. 从一个小场景开始，跑通了再扩展</h4>
+      <p style="margin-bottom:0">不要一开始就想做一个大而全的系统，那样很容易失败。更好的做法是：先选一个最痛、最频繁的小场景（比如"需求导入"），把这个场景做深、做透、做稳定，跑通了、验证了价值，再一个一个加场景，最后串成完整的工作流。<strong>小步快跑、快速验证、持续迭代，这是做自动化项目的正确姿势。</strong></p>
+    </div>
+  </div>
+
+  <!-- 10 未来展望 -->
+  <div class="section" id="future">
+    <div class="section-title">10 · 未来展望</div>
+    <div class="section-desc">从短期优化到长期愿景，我们接下来要做什么</div>
+
+    <div class="two-col">
+      <div class="card">
+        <h4 style="margin-top:0;color:var(--blue)">🚀 短期优化（1-2 个月）</h4>
+        <ul style="padding-left:20px;margin-bottom:0">
+          <li style="margin-bottom:6px"><strong>预算不足检测</strong>：创建订单前自动检查预算够不够，不够提前预警</li>
+          <li style="margin-bottom:6px"><strong>定向待办推送</strong>：推送到具体人的飞书待办，确保人能看到</li>
+          <li style="margin-bottom:6px"><strong>订单状态查询</strong>：按需求号、零件号、订单号批量查询状态</li>
+          <li><strong>一键催办</strong>：对卡住的审批，一键催办采购、财务审批</li>
+        </ul>
+      </div>
+      <div class="card">
+        <h4 style="margin-top:0;color:var(--green)">📈 中期规划（3-6 个月）</h4>
+        <ul style="padding-left:20px;margin-bottom:0">
+          <li style="margin-bottom:6px"><strong>供应商拒绝原因展示</strong>：供应商拒绝时自动展示拒绝原因</li>
+          <li style="margin-bottom:6px"><strong>智能推荐供应商</strong>：基于历史数据给供应商选择提供智能推荐</li>
+          <li style="margin-bottom:6px"><strong>数据分析仪表盘</strong>：趋势分析、瓶颈分析、效率分析</li>
+          <li><strong>移动端适配</strong>：在手机上也能方便地确认决策、查看状态</li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="card purple" style="margin-top:16px">
+      <h4 style="margin-top:0">🌟 长期愿景（6 个月以上）</h4>
+      <div class="two-col">
+        <div>
+          <ul style="padding-left:20px;margin-bottom:0">
+            <li style="margin-bottom:6px"><strong>平台化</strong>：把工作流引擎做成通用平台，其他业务场景也能快速接入</li>
+            <li style="margin-bottom:6px"><strong>Agent 市场</strong>：把每个 Skill 做成可复用的原子能力，形成能力市场</li>
+          </ul>
+        </div>
+        <div>
+          <ul style="padding-left:20px;margin-bottom:0">
+            <li style="margin-bottom:6px"><strong>预测性自动化</strong>：基于历史数据预测哪些需求可能出问题，提前预警</li>
+            <li><strong>全链路自动化</strong>：从需求提出、导入、检查、下单、审批、交货、验收，全链路自动化</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+
+    <div class="quote" style="margin-top:24px">
+      这套样件订单自动化系统，本质上是在回答一个问题：<strong>在 AI 时代，人和机器应该怎么协作？</strong><br><br>
+      我们的答案是：<strong>机器做机器擅长的事（重复、批量、精确），人做人擅长的事（判断、决策、协调）。机器不是来取代人的，而是来解放人的——把人从重复劳动中解放出来，去做更有价值的事情。</strong><br><br>
+      这就是我们的设计哲学，也是这套系统的灵魂。
+    </div>
+  </div>
+
+  <div class="footer">
+    样件订单自动化 · 业务视角解读 v1.0 · 2026-09-14<br>
+    作者：齐岳 · 小米汽车供应链
+  </div>
+
+</div>
+
+<script>
+// 平滑滚动
+document.querySelectorAll('.topnav a[href^="#"], .toc a[href^="#"]').forEach(a => {
+  a.addEventListener('click', e => {
+    e.preventDefault();
+    const target = document.querySelector(a.getAttribute('href'));
+    if (target) {
+      const top = target.offsetTop - 70;
+      window.scrollTo({ top, behavior: 'smooth' });
+      // 更新导航高亮
+      document.querySelectorAll('.topnav .menu a').forEach(x => x.classList.remove('on'));
+      const navLink = document.querySelector('.topnav .menu a[href="' + a.getAttribute('href') + '"]');
+      if (navLink) navLink.classList.add('on');
+    }
+  });
+});
+
+// 滚动时更新导航高亮
+window.addEventListener('scroll', () => {
+  const sections = document.querySelectorAll('.section');
+  let current = '';
+  sections.forEach(s => {
+    if (window.scrollY >= s.offsetTop - 100) current = s.id;
+  });
+  if (current) {
+    document.querySelectorAll('.topnav .menu a').forEach(x => x.classList.remove('on'));
+    const navLink = document.querySelector('.topnav .menu a[href="#' + current + '"]');
+    if (navLink) navLink.classList.add('on');
+  }
+});
+</script>
+
+</body>
+</html>

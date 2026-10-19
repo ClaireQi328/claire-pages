@@ -1,0 +1,429 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>执行日志面板 · 样件订单自动化</title>
+<style>
+:root{
+  --nav-h:48px;--blue:#3370ff;--ink:#1f2329;--grey:#646a73;--line:#e5e6eb;--bg:#f5f7fa;
+  --green:#00a870;--red:#f53f3f;--orange:#ff9d00;--purple:#722ed1;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font:12px/1.55 -apple-system,"PingFang SC","Microsoft YaHei",sans-serif;color:var(--ink);background:var(--bg);padding-top:var(--nav-h)}
+.topnav{position:fixed;top:0;left:0;right:0;height:var(--nav-h);background:linear-gradient(135deg,#1c2433,#2a3a5c);color:#fff;display:flex;align-items:center;padding:0 20px;z-index:100;box-shadow:0 1px 4px rgba(0,0,0,.2)}
+.topnav .logo{display:flex;align-items:center;gap:8px;margin-right:24px}
+.topnav .logo-icon{width:24px;height:24px;background:#ff6900;border-radius:4px;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:12px}
+.topnav .logo-text{font-size:13px;font-weight:600}
+.topnav .menu{display:flex;gap:2px}
+.topnav .menu a{color:rgba(255,255,255,.8);text-decoration:none;padding:6px 12px;border-radius:4px;font-size:12px;cursor:pointer}
+.topnav .menu a:hover{background:rgba(255,255,255,.1)}
+.topnav .menu a.on{background:rgba(255,255,255,.18);color:#fff;font-weight:500}
+.topnav .sp{flex:1}
+.topnav .meta{font-size:11px;color:rgba(255,255,255,.6)}
+.wrap{max-width:1200px;margin:0 auto;padding:16px 24px 40px}
+.page-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px}
+.page-head h1{font-size:18px;font-weight:700}
+.page-head .refresh{font-size:11px;color:var(--grey)}
+.page-head .refresh button{background:var(--blue);color:#fff;border:none;padding:5px 12px;border-radius:4px;font-size:11px;cursor:pointer;margin-left:8px}
+.page-head .refresh button:hover{background:var(--blue-2,#2b5bdb)}
+.kpi-row{display:grid;grid-template-columns:repeat(7,1fr);gap:8px;margin-bottom:14px}
+.kpi{background:#fff;border:1px solid var(--line);border-radius:6px;padding:10px 12px;position:relative;overflow:hidden}
+.kpi::before{content:'';position:absolute;left:0;top:0;bottom:0;width:3px;background:var(--blue)}
+.kpi.g::before{background:var(--green)}.kpi.o::before{background:var(--orange)}.kpi.r::before{background:var(--red)}.kpi.p::before{background:var(--purple)}
+.kpi .v{font-size:20px;font-weight:700;line-height:1.2}
+.kpi .l{font-size:11px;color:var(--grey);margin-top:2px}
+.card{background:#fff;border:1px solid var(--line);border-radius:6px;margin-bottom:12px;overflow:hidden}
+.card .hd{padding:8px 14px;border-bottom:1px solid var(--line);font-weight:600;font-size:13px;display:flex;align-items:center;gap:6px}
+.card .hd .tip{font-weight:400;font-size:11px;color:var(--grey);margin-left:auto}
+.card .bd{padding:12px 14px}
+/* 趋势图 */
+.trend{display:flex;align-items:flex-end;gap:6px;height:120px;padding:8px 0}
+.trend .bar-col{flex:1;display:flex;flex-direction:column;align-items:center;gap:4px}
+.trend .bar-wrap{width:100%;display:flex;justify-content:center;align-items:flex-end;height:90px;gap:2px}
+.trend .bar{width:10px;border-radius:2px 2px 0 0;min-height:2px;position:relative;cursor:pointer;transition:opacity .15s}
+.trend .bar:hover{opacity:.8}
+.trend .bar .tip{display:none;position:absolute;bottom:100%;left:50%;transform:translateX(-50%);background:#333;color:#fff;padding:3px 8px;border-radius:3px;font-size:10px;white-space:nowrap;z-index:10}
+.trend .bar:hover .tip{display:block}
+.trend .date{font-size:10px;color:var(--grey)}
+.trend-legend{display:flex;gap:14px;font-size:11px;color:var(--grey);margin-top:6px}
+.trend-legend span{display:flex;align-items:center;gap:4px}
+.trend-legend i{width:10px;height:10px;border-radius:2px;display:inline-block}
+/* 筛选器 */
+.filters{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px}
+.filters input,.filters select{padding:5px 10px;border:1px solid var(--line);border-radius:4px;font-size:11px;background:#fff}
+.filters input{flex:1;min-width:150px}
+.filters .count{font-size:11px;color:var(--grey);align-self:center}
+/* 表格 */
+table{width:100%;border-collapse:collapse;font-size:11.5px}
+th{background:#f7f8fa;color:#3a4353;font-weight:600;text-align:left;padding:7px 10px;border-bottom:2px solid var(--line);white-space:nowrap;font-size:11px;cursor:pointer;user-select:none}
+th:hover{background:#eef0f4}
+th.sort-asc::after{content:' ▲';font-size:9px}
+th.sort-desc::after{content:' ▼';font-size:9px}
+td{padding:6px 10px;border-bottom:1px solid #f0f1f3;vertical-align:middle}
+tr:hover td{background:#fafbfe}
+tr.expanded td{background:#f0f4ff}
+.tag{display:inline-block;padding:1px 7px;border-radius:3px;font-size:10px;font-weight:600}
+.t-green{background:#e5faf1;color:var(--green)}.t-orange{background:#fff4e5;color:#b36b00}
+.t-red{background:#ffebe8;color:var(--red)}.t-grey{background:#f2f3f5;color:var(--grey)}.t-blue{background:#e8f0ff;color:var(--blue)}.t-purple{background:#f5e8ff;color:var(--purple)}
+.mono{font-family:ui-monospace,Menlo,Consolas,monospace;font-size:10.5px;color:#47536b}
+.expand-btn{cursor:pointer;color:var(--blue);font-size:12px;user-select:none}
+.detail-row{display:none;background:#f8f9ff}
+.detail-row.show{display:table-row}
+.detail-row td{padding:10px 14px}
+.detail-box{background:#fff;border:1px solid #e0e5ff;border-radius:4px;padding:10px 12px;font-size:11px;line-height:1.6}
+.detail-box .row{display:flex;gap:8px;margin-bottom:4px}
+.detail-box .k{color:var(--grey);min-width:70px;font-weight:600}
+.detail-box .v{color:#333;flex:1;word-break:break-all}
+.empty{text-align:center;padding:30px;color:var(--grey);font-size:12px}
+.loading{text-align:center;padding:40px;color:var(--grey);font-size:13px}
+.error{text-align:center;padding:40px;color:var(--red);font-size:13px}
+.pagination{display:flex;justify-content:space-between;align-items:center;padding:8px 14px;border-top:1px solid var(--line);font-size:11px;color:var(--grey)}
+.pagination button{background:#fff;border:1px solid var(--line);padding:3px 10px;border-radius:3px;font-size:11px;cursor:pointer}
+.pagination button:disabled{opacity:.4;cursor:not-allowed}
+.pagination .page-info{display:flex;gap:4px;align-items:center}
+.pagination .page-info button{min-width:26px}
+.pagination .page-info button.active{background:var(--blue);color:#fff;border-color:var(--blue)}
+@media(max-width:900px){.kpi-row{grid-template-columns:repeat(4,1fr)}}
+@media(max-width:600px){.kpi-row{grid-template-columns:repeat(2,1fr)}.topnav .menu{display:none}}
+</style>
+</head>
+<body>
+
+<div class="topnav">
+  <div class="logo"><div class="logo-icon">MI</div><div class="logo-text">样件订单自动化</div></div>
+  <div class="menu">
+    <a class="on">执行日志面板</a>
+    <a href="执行日报.html">执行日报</a>
+    <a href="日报订单明细.html">日报订单明细</a>
+  </div>
+  <div class="sp"></div>
+  <div class="meta" id="genTime">加载中...</div>
+</div>
+
+<div class="wrap">
+  <div class="page-head">
+    <h1>📋 执行日志面板</h1>
+    <div class="refresh">
+      数据来源：飞书多维表格
+      <button onclick="location.reload()">🔄 刷新数据</button>
+    </div>
+  </div>
+
+  <div id="loading" class="loading">正在加载数据...</div>
+  <div id="error" class="error" style="display:none"></div>
+  <div id="content" style="display:none">
+
+    <!-- KPI -->
+    <div class="kpi-row" id="kpiRow"></div>
+
+    <!-- 趋势图 -->
+    <div class="card">
+      <div class="hd">📈 按日执行趋势<span class="tip">最近 7 天</span></div>
+      <div class="bd">
+        <div class="trend" id="trendChart"></div>
+        <div class="trend-legend">
+          <span><i style="background:var(--green)"></i>成功</span>
+          <span><i style="background:var(--orange)"></i>部分成功</span>
+          <span><i style="background:#f0b429"></i>待决策</span>
+          <span><i style="background:var(--red)"></i>失败</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- 执行记录 -->
+    <div class="card">
+      <div class="hd">📝 执行记录<span class="tip" id="recordCount">共 0 条</span></div>
+      <div class="bd">
+        <div class="filters">
+          <input type="text" id="searchInput" placeholder="🔍 搜索关键词（零件号/摘要/CLI/错误...）">
+          <select id="skillFilter"><option value="">全部 Skill</option></select>
+          <select id="statusFilter"><option value="">全部状态</option></select>
+          <span class="count" id="filterCount"></span>
+        </div>
+        <div style="overflow-x:auto">
+          <table id="logTable">
+            <thead><tr>
+              <th data-sort="time">时间</th>
+              <th data-sort="batch">批次号</th>
+              <th data-sort="skill">Skill</th>
+              <th data-sort="cli">CLI</th>
+              <th data-sort="status">状态</th>
+              <th data-sort="duration">耗时(秒)</th>
+              <th>摘要</th>
+              <th>操作</th>
+            </tr></thead>
+            <tbody id="logBody"></tbody>
+          </table>
+        </div>
+        <div class="pagination" id="pagination"></div>
+      </div>
+    </div>
+
+    <!-- 产物登记 -->
+    <div class="card">
+      <div class="hd">📦 产物登记<span class="tip" id="artifactCount">共 0 个产物</span></div>
+      <div class="bd">
+        <table>
+          <thead><tr><th>时间</th><th>Skill</th><th>产物路径</th><th>大小</th><th>SHA1</th></tr></thead>
+          <tbody id="artifactBody"></tbody>
+        </table>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<script>
+let allData = null;
+let filteredLogs = [];
+let currentPage = 1;
+const pageSize = 15;
+let sortField = 'time';
+let sortDir = 'desc';
+
+async function loadData() {
+  try {
+    const res = await fetch('data.json?_=' + Date.now());
+    if (!res.ok) throw new Error('HTTP ' + res.status);
+    allData = await res.json();
+    document.getElementById('loading').style.display = 'none';
+    document.getElementById('content').style.display = 'block';
+    document.getElementById('genTime').textContent = '数据更新：' + allData.generated_at;
+    renderAll();
+  } catch (e) {
+    document.getElementById('loading').style.display = 'none';
+    document.getElementById('error').style.display = 'block';
+    document.getElementById('error').textContent = '数据加载失败：' + e.message + '（请先运行 python3 fetch_data.py 生成 data.json）';
+  }
+}
+
+function renderAll() {
+  renderKPI();
+  renderTrend();
+  renderFilters();
+  applyFilter();
+  renderArtifacts();
+}
+
+function renderKPI() {
+  const s = allData.stats;
+  const kpis = [
+    {v: s.total_executions, l: '总执行次数', c: ''},
+    {v: s.success_count, l: '成功', c: 'g'},
+    {v: s.partial_count, l: '部分成功', c: 'o'},
+    {v: s.pending_count, l: '待决策', c: 'p'},
+    {v: s.failed_count, l: '失败', c: 'r'},
+    {v: s.total_duration.toFixed(1) + 's', l: '累计耗时', c: ''},
+    {v: s.total_artifacts, l: '产物数量', c: ''},
+  ];
+  document.getElementById('kpiRow').innerHTML = kpis.map(k =>
+    `<div class="kpi ${k.c}"><div class="v">${k.v}</div><div class="l">${k.l}</div></div>`
+  ).join('');
+}
+
+function renderTrend() {
+  const byDate = allData.stats.by_date;
+  const dates = Object.keys(byDate).sort().slice(-7);
+  const maxCount = Math.max(...dates.map(d => byDate[d].count), 1);
+  const colors = {success: 'var(--green)', partial: 'var(--orange)', pending: '#f0b429', failed: 'var(--red)'};
+
+  let html = '';
+  dates.forEach(date => {
+    const d = byDate[date];
+    const total = d.count;
+    const hSuccess = (d.success / maxCount) * 85;
+    const hPartial = (d.partial / maxCount) * 85;
+    const hPending = (d.pending / maxCount) * 85;
+    const hFailed = (d.failed / maxCount) * 85;
+    const dateShort = date.slice(5);
+    html += `<div class="bar-col">
+      <div class="bar-wrap">
+        <div class="bar" style="height:${hSuccess}px;background:${colors.success}"><span class="tip">${date} 成功 ${d.success}</span></div>
+        <div class="bar" style="height:${hPartial}px;background:${colors.partial}"><span class="tip">${date} 部分成功 ${d.partial}</span></div>
+        <div class="bar" style="height:${hPending}px;background:${colors.pending}"><span class="tip">${date} 待决策 ${d.pending}</span></div>
+        <div class="bar" style="height:${hFailed}px;background:${colors.failed}"><span class="tip">${date} 失败 ${d.failed}</span></div>
+      </div>
+      <div class="date">${dateShort}</div>
+    </div>`;
+  });
+  document.getElementById('trendChart').innerHTML = html;
+}
+
+function renderFilters() {
+  const skills = [...new Set(allData.execution_logs.map(l => l.skill).filter(Boolean))];
+  const statuses = [...new Set(allData.execution_logs.map(l => l.status).filter(Boolean))];
+  document.getElementById('skillFilter').innerHTML = '<option value="">全部 Skill</option>' +
+    skills.map(s => `<option value="${s}">${s}</option>`).join('');
+  document.getElementById('statusFilter').innerHTML = '<option value="">全部状态</option>' +
+    statuses.map(s => `<option value="${s}">${s}</option>`).join('');
+
+  document.getElementById('searchInput').addEventListener('input', applyFilter);
+  document.getElementById('skillFilter').addEventListener('change', applyFilter);
+  document.getElementById('statusFilter').addEventListener('change', applyFilter);
+}
+
+function statusTag(s) {
+  const map = {'成功':'t-green','部分成功':'t-orange','待决策':'t-purple','失败':'t-red'};
+  return `<span class="tag ${map[s]||'t-grey'}">${s||'未知'}</span>`;
+}
+
+function applyFilter() {
+  const kw = document.getElementById('searchInput').value.toLowerCase();
+  const skill = document.getElementById('skillFilter').value;
+  const status = document.getElementById('statusFilter').value;
+
+  filteredLogs = allData.execution_logs.filter(log => {
+    if (skill && log.skill !== skill) return false;
+    if (status && log.status !== status) return false;
+    if (kw) {
+      const text = [log.time, log.batch, log.skill, log.cli, log.status, log.summary, log.detail, log.error, log.artifact_path].join(' ').toLowerCase();
+      if (!text.includes(kw)) return false;
+    }
+    return true;
+  });
+
+  // 排序
+  filteredLogs.sort((a, b) => {
+    let va = a[sortField] || '';
+    let vb = b[sortField] || '';
+    if (sortField === 'duration') { va = Number(va); vb = Number(vb); }
+    if (va < vb) return sortDir === 'asc' ? -1 : 1;
+    if (va > vb) return sortDir === 'asc' ? 1 : -1;
+    return 0;
+  });
+
+  currentPage = 1;
+  document.getElementById('recordCount').textContent = `共 ${filteredLogs.length} 条`;
+  document.getElementById('filterCount').textContent = `筛选后 ${filteredLogs.length} 条`;
+  renderTable();
+}
+
+function renderTable() {
+  const start = (currentPage - 1) * pageSize;
+  const pageData = filteredLogs.slice(start, start + pageSize);
+  const tbody = document.getElementById('logBody');
+
+  if (pageData.length === 0) {
+    tbody.innerHTML = '<tr><td colspan="8" class="empty">没有匹配的记录</td></tr>';
+    document.getElementById('pagination').innerHTML = '';
+    return;
+  }
+
+  let html = '';
+  pageData.forEach((log, idx) => {
+    const realIdx = start + idx;
+    html += `<tr>
+      <td class="mono">${log.time || ''}</td>
+      <td class="mono">${log.batch || ''}</td>
+      <td>${log.skill || ''}</td>
+      <td class="mono" style="max-width:180px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${log.cli||''}">${log.cli || ''}</td>
+      <td>${statusTag(log.status)}</td>
+      <td class="mono">${log.duration ? Number(log.duration).toFixed(1) : '-'}</td>
+      <td style="max-width:250px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${log.summary||''}">${log.summary || '-'}</td>
+      <td><span class="expand-btn" onclick="toggleDetail(${realIdx})">▶ 详情</span></td>
+    </tr>`;
+    html += `<tr class="detail-row" id="detail-${realIdx}"><td colspan="8">
+      <div class="detail-box">
+        <div class="row"><span class="k">时间</span><span class="v mono">${log.time||''}</span></div>
+        <div class="row"><span class="k">批次号</span><span class="v mono">${log.batch||'-'}</span></div>
+        <div class="row"><span class="k">Skill</span><span class="v">${log.skill||'-'}</span></div>
+        <div class="row"><span class="k">CLI</span><span class="v mono">${log.cli||'-'}</span></div>
+        <div class="row"><span class="k">状态</span><span class="v">${statusTag(log.status)}</span></div>
+        <div class="row"><span class="k">耗时</span><span class="v">${log.duration?Number(log.duration).toFixed(1)+' 秒':'-'}</span></div>
+        <div class="row"><span class="k">摘要</span><span class="v">${log.summary||'-'}</span></div>
+        <div class="row"><span class="k">明细</span><span class="v" style="white-space:pre-wrap">${log.detail||'-'}</span></div>
+        ${log.error ? `<div class="row"><span class="k">错误</span><span class="v" style="color:var(--red);white-space:pre-wrap">${log.error}</span></div>` : ''}
+        ${log.artifact_path ? `<div class="row"><span class="k">产物</span><span class="v mono">${log.artifact_path} (${(log.artifact_size/1024).toFixed(1)} KB, SHA1: ${log.sha1||'-'})</span></div>` : ''}
+      </div>
+    </td></tr>`;
+  });
+  tbody.innerHTML = html;
+
+  // 排序表头
+  document.querySelectorAll('#logTable th[data-sort]').forEach(th => {
+    th.classList.remove('sort-asc','sort-desc');
+    if (th.dataset.sort === sortField) th.classList.add(sortDir === 'asc' ? 'sort-asc' : 'sort-desc');
+  });
+
+  renderPagination();
+}
+
+function toggleDetail(idx) {
+  const row = document.getElementById('detail-' + idx);
+  const btn = row.previousElementSibling.querySelector('.expand-btn');
+  if (row.classList.contains('show')) {
+    row.classList.remove('show');
+    btn.textContent = '▶ 详情';
+  } else {
+    row.classList.add('show');
+    btn.textContent = '▼ 收起';
+  }
+}
+
+function renderPagination() {
+  const totalPages = Math.ceil(filteredLogs.length / pageSize);
+  const start = (currentPage - 1) * pageSize + 1;
+  const end = Math.min(currentPage * pageSize, filteredLogs.length);
+
+  let pages = '';
+  const maxShow = 5;
+  let pStart = Math.max(1, currentPage - 2);
+  let pEnd = Math.min(totalPages, pStart + maxShow - 1);
+  if (pEnd - pStart < maxShow - 1) pStart = Math.max(1, pEnd - maxShow + 1);
+  for (let i = pStart; i <= pEnd; i++) {
+    pages += `<button class="${i===currentPage?'active':''}" onclick="goPage(${i})">${i}</button>`;
+  }
+
+  document.getElementById('pagination').innerHTML = `
+    <span>显示 ${start}-${end} / 共 ${filteredLogs.length} 条</span>
+    <div class="page-info">
+      <button onclick="goPage(${currentPage-1})" ${currentPage<=1?'disabled':''}>上一页</button>
+      ${pages}
+      <button onclick="goPage(${currentPage+1})" ${currentPage>=totalPages?'disabled':''}>下一页</button>
+    </div>`;
+}
+
+function goPage(p) {
+  const totalPages = Math.ceil(filteredLogs.length / pageSize);
+  if (p < 1 || p > totalPages) return;
+  currentPage = p;
+  renderTable();
+  window.scrollTo({top: document.getElementById('logTable').offsetTop - 60, behavior: 'smooth'});
+}
+
+// 表头排序
+document.addEventListener('click', e => {
+  const th = e.target.closest('th[data-sort]');
+  if (!th) return;
+  const field = th.dataset.sort;
+  if (sortField === field) {
+    sortDir = sortDir === 'asc' ? 'desc' : 'asc';
+  } else {
+    sortField = field;
+    sortDir = 'desc';
+  }
+  applyFilter();
+});
+
+function renderArtifacts() {
+  const artifacts = allData.execution_logs.filter(l => l.artifact_path);
+  document.getElementById('artifactCount').textContent = `共 ${artifacts.length} 个产物`;
+  const tbody = document.getElementById('artifactBody');
+  if (artifacts.length === 0) {
+    tbody.innerHTML = '<tr><td colspan="5" class="empty">暂无产物记录</td></tr>';
+    return;
+  }
+  tbody.innerHTML = artifacts.map(a => `<tr>
+    <td class="mono">${a.time||''}</td>
+    <td>${a.skill||''}</td>
+    <td class="mono" style="word-break:break-all">${a.artifact_path}</td>
+    <td class="mono">${(a.artifact_size/1024).toFixed(1)} KB</td>
+    <td class="mono">${a.sha1||'-'}</td>
+  </tr>`).join('');
+}
+
+loadData();
+</script>
+</body>
+</html>

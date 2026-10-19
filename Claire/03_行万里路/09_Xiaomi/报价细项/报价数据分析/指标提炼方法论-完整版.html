@@ -1,0 +1,549 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;510;590;700&display=swap" rel="stylesheet">
+<title>指标提炼实战手记 · 从报价细项五周数据中长出来的方法论</title>
+<style>
+  :root{
+    --ink:#18191a; --ink-soft:#3a4654; --muted:#5f6b7a; --faint:#8a8f98;
+    --line:#e8eaec; --line-soft:#f1f3f5;
+    --bg:#ffffff; --bg-soft:#f7f8f9; --bg-tint:#f0f2f5;
+    --accent:#5e6ad2; --accent-soft:#eef0fa; --accent-line:#d5d8ee;
+    --sage:#3d6b56; --sage-soft:#edf4f0; --sage-line:#cee4d8;
+    --amber:#9a6a2f; --amber-soft:#faf3e8; --amber-line:#ecddc6;
+    --rose:#9a4a5e; --rose-soft:#f9eef1; --rose-line:#f0d6dd;
+    --purple:#6a4f9e; --purple-soft:#f2edf8; --purple-line:#ddd0ee;
+    --r-card:8px; --r-chip:5px; --r-pill:999px;
+    --maxw:920px;
+    --font-sans:"Inter","PingFang SC","Microsoft YaHei","Hiragino Sans GB",system-ui,sans-serif;
+    --font-mono:"SF Mono",ui-monospace,Menlo,monospace;
+  }
+  *{box-sizing:border-box}
+  html{scroll-behavior:smooth}
+  body{margin:0;background:var(--bg);color:var(--ink);
+    font-family:var(--font-sans);font-size:15.5px;line-height:1.72;
+    -webkit-font-smoothing:antialiased;font-feature-settings:"cv01","ss03";
+    letter-spacing:-0.006em;}
+  .progress{position:fixed;top:0;left:0;right:0;height:2px;background:var(--accent);
+    transform:scaleX(0);transform-origin:0 50%;z-index:30;
+    animation:prog linear;animation-timeline:scroll(root)}
+  @keyframes prog{to{transform:scaleX(1)}}
+  @media (prefers-reduced-motion:reduce){.progress{animation:none;transform:scaleX(1)}}
+  a{color:var(--accent);text-decoration:none;transition:color .15s}
+  a:hover{color:var(--ink);text-decoration:underline}
+  .topnav{position:sticky;top:0;z-index:20;background:rgba(255,255,255,.88);
+    backdrop-filter:saturate(160%) blur(10px);border-bottom:1px solid var(--line);
+    padding:10px 20px;display:flex;gap:13px;flex-wrap:wrap;align-items:center;font-size:12.5px}
+  .topnav .brand{font-weight:510;color:var(--ink);margin-right:2px;letter-spacing:-0.1px}
+  .topnav a{color:var(--muted);white-space:nowrap;font-weight:510}
+  .topnav a:hover{color:var(--accent);text-decoration:none}
+  .wrap{max-width:var(--maxw);margin:0 auto;padding:0 28px 100px}
+  .hero{padding:60px 0 36px;margin-bottom:14px;border-bottom:1px solid var(--line)}
+  .hero .kicker{display:inline-block;font-size:10.5px;letter-spacing:2.5px;text-transform:uppercase;
+    color:var(--accent);font-weight:510;background:var(--accent-soft);
+    border:1px solid var(--accent-line);border-radius:var(--r-pill);padding:3px 13px}
+  .hero h1{font-size:36px;line-height:1.22;margin:18px 0 14px;letter-spacing:-.8px;font-weight:510}
+  .hero .lead{font-size:16.5px;color:var(--muted);max-width:700px;margin:0;line-height:1.68;letter-spacing:-0.006em}
+  .hero .meta{margin-top:24px;display:flex;gap:24px;flex-wrap:wrap;font-size:12.5px;color:var(--faint);
+    padding-top:18px;border-top:1px solid var(--line-soft)}
+  .hero .meta b{color:var(--ink);font-weight:510}
+  .intro{background:var(--bg-soft);border:1px solid var(--line);border-left:3px solid var(--accent);
+    border-radius:var(--r-card);padding:18px 22px;margin:6px 0 4px;color:var(--ink-soft);font-size:15px}
+  .intro b{color:var(--ink)}
+  .part{margin-top:56px}
+  .part-h{display:flex;align-items:baseline;gap:14px;border-bottom:2px solid var(--ink);
+    padding-bottom:11px;margin-bottom:4px}
+  .part-h .num{font-size:12px;font-weight:700;color:#fff;background:var(--ink);
+    border-radius:var(--r-chip);padding:3px 10px;letter-spacing:.5px;flex:none}
+  .part-h h2{font-size:22px;margin:0;letter-spacing:-.3px;font-weight:590}
+  .part-h .en{font-size:11.5px;color:var(--faint);font-weight:600;letter-spacing:.5px;margin-left:auto;white-space:nowrap}
+  .sec{margin-top:32px}
+  .sec-h{font-size:16.5px;font-weight:590;color:var(--ink);margin:0 0 10px;
+    display:flex;align-items:center;gap:9px;letter-spacing:-0.2px}
+  .sec-h::before{content:"";width:4px;height:17px;background:var(--accent);border-radius:2px;display:inline-block;flex:none}
+  p{margin:10px 0}
+  .muted{color:var(--muted)}
+  code.inline{background:var(--bg-tint);padding:1px 5px;border-radius:3px;font-family:var(--font-mono);font-size:12px;color:var(--accent)}
+  .callout{border-radius:var(--r-card);padding:14px 18px;margin:16px 0;font-size:14.5px;line-height:1.72;border:1px solid;background:#fff}
+  .callout .t{font-weight:590;display:block;margin-bottom:3px;font-size:12.5px;letter-spacing:-0.1px}
+  .callout.tip{background:var(--accent-soft);border-color:var(--accent-line);color:#2c4a63;border-left:3px solid var(--accent)}
+  .callout.key{background:var(--sage-soft);border-color:var(--sage-line);color:#2f4d40;border-left:3px solid var(--sage)}
+  .callout.warn{background:var(--amber-soft);border-color:var(--amber-line);color:#5e3f1e;border-left:3px solid var(--amber)}
+  .callout.rose{background:var(--rose-soft);border-color:var(--rose-line);color:#5e2e3a;border-left:3px solid var(--rose)}
+  table.styled{width:100%;border-collapse:separate;border-spacing:0;margin:14px 0;font-size:13.6px;
+    border:1px solid var(--line);border-radius:var(--r-card);overflow:hidden}
+  table.styled th,table.styled td{border:none;border-bottom:1px solid var(--line-soft);padding:9px 12px;text-align:left;vertical-align:top}
+  table.styled tr:last-child td{border-bottom:none}
+  table.styled th{background:var(--bg-soft);color:var(--ink-soft);font-weight:510;border-bottom:1px solid var(--line);font-size:12px;letter-spacing:.2px}
+  table.styled td b{color:var(--accent)}
+  table.styled .ok{color:var(--sage);font-weight:700}
+  table.styled .no{color:var(--rose);font-weight:700}
+  table.styled tr:hover td{background:var(--bg-soft)}
+  .diagram{background:var(--bg-soft);border:1px solid var(--line);border-radius:var(--r-card);
+    padding:22px;margin:18px 0;text-align:center}
+  .diagram svg{width:100%;height:auto;max-width:780px}
+  .diagram .cap{font-size:12px;color:var(--faint);margin-top:10px}
+  .checklist{list-style:none;padding:0;margin:14px 0}
+  .checklist li{position:relative;padding:9px 8px 9px 34px;border-bottom:1px solid var(--line-soft);font-size:14.5px}
+  .checklist li:last-child{border-bottom:none}
+  .checklist li::before{content:"\25A2";position:absolute;left:8px;top:9px;color:var(--accent);font-size:14px}
+  .checklist li b{color:var(--ink);font-weight:590}
+  .vs{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin:16px 0}
+  .vs .col{border:1px solid var(--line);border-radius:var(--r-card);padding:14px 16px;font-size:14px}
+  .vs .col.bad{background:var(--rose-soft);border-color:var(--rose-line)}
+  .vs .col.good{background:var(--sage-soft);border-color:var(--sage-line)}
+  .vs .col .h{font-weight:590;margin-bottom:6px;display:block;letter-spacing:-0.1px}
+  .vs .col.bad .h{color:var(--rose)}
+  .vs .col.good .h{color:var(--sage)}
+  .timeline{list-style:none;padding:0;margin:14px 0;position:relative}
+  .timeline::before{content:"";position:absolute;left:14px;top:0;bottom:0;width:2px;background:var(--line)}
+  .timeline li{position:relative;padding:12px 8px 12px 40px;font-size:14.5px;border-bottom:1px solid var(--line-soft)}
+  .timeline li:last-child{border-bottom:none}
+  .timeline li::before{content:"";position:absolute;left:9px;top:16px;width:12px;height:12px;
+    border-radius:50%;background:var(--accent);border:2px solid var(--bg)}
+  .timeline li .tl-date{font-size:12px;font-weight:590;color:var(--accent);display:block;margin-bottom:2px}
+  .timeline li b{font-weight:590;color:var(--ink)}
+  .footer{margin-top:60px;padding-top:22px;border-top:1px solid var(--line);
+    font-size:12.5px;color:var(--faint);text-align:center;line-height:1.9}
+  .footer p{margin:2px 0}
+  @supports (animation-timeline:view()){
+    @media (prefers-reduced-motion:no-preference){
+      .sec{animation:rise .7s cubic-bezier(.16,1,.3,1) both;animation-timeline:view();animation-range:entry 4% cover 26%}
+    }
+  }
+  @keyframes rise{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:none}}
+  @media(max-width:640px){
+    .vs{grid-template-columns:1fr}
+    .hero{padding:38px 0 24px}
+    .hero h1{font-size:26px}
+    .part-h .en{display:none}
+    .part-h{flex-wrap:wrap}
+    .topnav{font-size:12px;gap:10px}
+  }
+</style>
+</head>
+<body>
+<div class="progress"></div>
+<div class="topnav">
+  <span class="brand">指标提炼实战手记</span>
+  <a href="#s1">01 起点</a>
+  <a href="#s2">02 指标怎么建</a>
+  <a href="#s3">03 建基线</a>
+  <a href="#s4">04 增量</a>
+  <a href="#s5">05 归因</a>
+  <a href="#s6">06 对标</a>
+  <a href="#s7">07 闭环</a>
+  <a href="#s8">08 自动化</a>
+  <a href="#s9">09 PM启示</a>
+</div>
+<div class="wrap">
+
+<!-- ============ HERO ============ -->
+<header class="hero">
+  <span class="kicker">报价细项五周数据 · 实战手记</span>
+  <h1>指标提炼实战手记：从五周数据中长出来的方法论</h1>
+  <p class="lead">这不是一篇方法论教材。这是一份从报价细项 PRD、埋点方案 v4.0、W27-W31 五周周报和 W30 看板快照中提炼出来的实战手记——每一方法论点都有真实的数据困境做背书，每一条「应该怎么做」都对应着「当时确实遇到了什么」。如果你也在做 B2B 产品的数据运营，这篇手记想告诉你：指标不是设计出来的，是在每周的分析、纠结、误判、修正中一步步磨出来的。</p>
+  <div class="meta">
+    <span><b>素材</b> PRD + 埋点方案v4.0 + W27-W31周报 + W30看板快照</span>
+    <span><b>数据范围</b> 119→168 报价包，216→293 供应商，12 个自然周(W19-W30)</span>
+    <span><b>日期</b> 2026-08-05</span>
+  </div>
+</header>
+
+<div class="intro">
+  <b>这份手记和「方法论手册」的区别：</b> 方法论手册告诉你「指标要有公式、有责任人、有阈值」——这没错，但是空话。这份手记告诉你：W28 那周，预选供应商拆解率从 18.8% 降到 17.0%，第一反应是「意愿退步」，但拆开一看分母变了——新增大量正式供应商拉高了基座。这个误判让我们意识到「相关不等于因果」，这条经验不是从书上看来的，是踩坑踩出来的。<b>方法论的价值不在正确，在它被真实经历验证过。</b>
+</div>
+
+<!-- ============ 01 起点 ============ -->
+<section class="part" id="s1">
+  <div class="part-h"><span class="num">01</span><h2>起点：PRD 甩出「成本穿透」，然后呢？</h2><span class="en">The Starting Point</span></div>
+
+  <div class="sec">
+    <h3 class="sec-h">1.1 一句话引发的五周工作</h3>
+    <p>报价细项 PRD 开篇写的是：「实现报价总价到工序明细的全维度成本穿透」。功能分两期上线：I期（0511）支持供应商在 EP 自行拆解 BOM 结构；II期（0608）支持供应商在 SVC 拆解 BOM + 维护 VSM 后到 EP 做材料及制造明细报价。</p>
+    <p>功能上线后，第一个问题来了：<b>穿透了多少？谁穿透了？谁没穿透？</b> 没人答得上来。系统跑起来了，但不知道跑得好不好。这就是起点——不是「我们决定做数据运营」，是「业务问了几个数，我们答不上来」。</p>
+    <div class="callout key"><span class="t">真实困境</span>功能上线 ≠ 功能有效。0511 上线到 0706 做第一份周报，中间隔了近两个月——这两个月里拆解情况完全是黑盒。不是不想看，是没有指标、没有口径、没有数据源。第一份周报之前，我们连「拆解率」怎么算都讨论了一周。</div>
+  </div>
+
+  <div class="sec">
+    <h3 class="sec-h">1.2 把「成本穿透」翻译成可量化的东西</h3>
+    <p>PRD 的「成本穿透」是一个方向，不是一个指标。真正开始做数据运营时，第一步是把这个方向翻译成可量化的东西。我们走了四步——不是理论上应该走四步，是实际走的过程中被逼着分了四层：</p>
+    <table class="styled">
+      <tr><th>追问</th><th>当时被业务追问的原话</th><th>我们的回答</th></tr>
+      <tr><td><b>Why</b></td><td>「你们做这个拆解到底为了什么？」</td><td>数据割裂、标准不一、分析滞后；要做价值穿透、产能优化</td></tr>
+      <tr><td><b>What</b></td><td>「那穿透到什么程度算够了？」</td><td>报价从总价穿透到工序明细；深层（BOM+VSM）拆解率要从低位提升</td></tr>
+      <tr><td><b>How</b></td><td>「你们用啥指标衡量穿透？」</td><td>按 RFQ 最高拆解层级统计 L1-L4 渗透率、双OK率</td></tr>
+      <tr><td><b>With</b></td><td>「数据从哪来？现在有吗？」</td><td>EP 提交事件埋点 + 每周 CSV 快照</td></tr>
+    </table>
+    <p>四步走完，「成本穿透」变成了「L1-L4 四级渗透率 + 双OK率」，每个指标有明确公式、数据源和统计口径。但这个过程不是一气呵成的——What 层的目标值至今还在和业务打合，With 层的埋点方案从 v1 迭代到了 v4.0。</p>
+  </div>
+
+  <div class="sec">
+    <h3 class="sec-h">1.3 L1-L4：不是我们定义的层级，是 PRD + 埋点共同长出来的</h3>
+    <p>拆解深度分 L1-L4 四级，这不是运营团队拍的脑袋。PRD 定义了两种成本拆解路径（EP 自行拆解 vs SVC BOM+VSM），埋点方案把这个路径翻译成了四种场景的布尔判定。两份文档碰在一起，自然长出了 L1-L4：</p>
+    <table class="styled">
+      <tr><th>层级</th><th>业务定义</th><th>埋点判定</th><th>触发事件</th></tr>
+      <tr><td><b>L1 未拆解</b></td><td>供应商未做任何拆解，按整件报价</td><td>BOM单层 且 BOM≠OK</td><td><code class="inline">bom_self_no_decomposed</code></td></tr>
+      <tr><td><b>L2 自行拆解</b></td><td>供应商在 EP 端自行维护了多层级 BOM</td><td>BOM多层级 且 BOM≠OK</td><td><code class="inline">bom_self_decomposed</code></td></tr>
+      <tr><td><b>L3 BOM结构</b></td><td>供应商按 SVC BOM 层级拆解报价</td><td>BOM=OK 且 VSM≠OK</td><td><code class="inline">svc_bom_structure_ok</code></td></tr>
+      <tr><td><b>L4 BOM+VSM</b></td><td>供应商按 SVC BOM+VSM 全维度报价</td><td>BOM=OK 且 VSM=OK</td><td><code class="inline">svc_vsm_structure_ok</code></td></tr>
+    </table>
+    <div class="callout tip"><span class="t">关键认知</span>这四级，既是 PRD 对拆解深度的业务定义，也是埋点方案的四个场景事件，还是周报和看板的分层配色。<b>一个概念在三处复用</b>——这不是设计巧不巧妙，是不得不这样。如果 PRD 说三层、埋点做四层、看板画五层，每次出报告都要做映射转换，口径永远对不齐。</div>
+  </div>
+</section>
+
+<!-- ============ 02 指标怎么建 ============ -->
+<section class="part" id="s2">
+  <div class="part-h"><span class="num">02</span><h2>指标怎么建：从一句话到一个体系</h2><span class="en">Building the Metric System</span></div>
+
+  <div class="sec">
+    <h3 class="sec-h">2.1 第一步：把形容词翻译成名词加数字</h3>
+    <p>PRD 说「成本穿透」。这三个字是方向，不是指标。你不能对开发说「帮我做一个成本穿透的看板」——他问你「穿透到什么程度算穿透了？分母是什么？按报价包算还是按供应商算？」你答不上来，就还没到指标这一步。</p>
+    <p>我们的做法很笨——就是被业务追问了四个问题，每个问题逼出下一层：</p>
+    <table class="styled">
+      <tr><th>被追问</th><th>原话</th><th>被逼出来的回答</th></tr>
+      <tr><td>Why</td><td>你们做这个到底为了什么？</td><td>看不到报价背后的真实成本结构</td></tr>
+      <tr><td>What</td><td>穿透到什么程度算够了？</td><td>BOM 结构 + VSM 工序明细都拆出来</td></tr>
+      <tr><td>How</td><td>用什么指标衡量？</td><td>按 RFQ 取最高拆解层级，算 L1-L4 各级渗透率</td></tr>
+      <tr><td>With</td><td>数据在哪？现在有吗？</td><td>EP 提交事件埋点 + Kafka → ClickHouse</td></tr>
+    </table>
+    <p>四步走完，「成本穿透」变成了「L4 渗透率 = COUNT(scene=4) / COUNT(总报价单元)」。这是从形容词到名词加数字的翻译。没有这一步，后面的一切都谈不上。</p>
+    <div class="callout warn"><span class="t">实际踩的坑</span>What 层的目标值（L3+ 要到多少？双OK率要到多少？）我们到 W30 都还在和业务打合。不是不想定，是品类差异太大——座椅类拆解价值极高、紧固件拆了也没意义。一刀切定一个数不现实，后来改成按品类分层设目标。所以指标建设不是线性的「四步走完就完了」，是反复折返的。</div>
+  </div>
+
+  <div class="sec">
+    <h3 class="sec-h">2.2 第二步：把业务概念翻译成布尔判定</h3>
+    <p>有了指标名称和公式，还要把业务概念翻译成代码能判断的布尔逻辑。这一步如果不做，指标就会变成「每个人有自己的算法」——你说拆解了，他说没拆解，各算各的，数据对不上。</p>
+    <p>埋点方案 v4.0 里有一张判定矩阵，就是把「BOM 结构 OK 吗」「VSM 审批 OK 吗」两个布尔值组合成四个场景：</p>
+    <table class="styled">
+      <tr><th>BOM 结构状态</th><th>VSM 审批状态</th><th>判定</th><th>事件</th></tr>
+      <tr><td>单层 / 无 BOM</td><td>任意</td><td>L1 未拆解</td><td><code class="inline">bom_self_no_decomposed</code></td></tr>
+      <tr><td>多层级自拆解</td><td>任意</td><td>L2 自行拆解</td><td><code class="inline">bom_self_decomposed</code></td></tr>
+      <tr><td>SVC BOM = OK</td><td>SVC VSM ≠ OK</td><td>L3 BOM 结构</td><td><code class="inline">svc_bom_structure_ok</code></td></tr>
+      <tr><td>SVC BOM = OK</td><td>SVC VSM = OK</td><td>L4 BOM+VSM（双 OK）</td><td><code class="inline">svc_vsm_structure_ok</code></td></tr>
+    </table>
+    <p>这张表不是理论模型——是埋点方案里写的真实判定逻辑，供应商每次点「提交报价」时，系统在事务提交前快照当前状态，按这张表判定触发哪个事件。改口径不改文档，改代码。这把「单一口径」从口头共识变成了工程约束。</p>
+    <div class="callout key"><span class="t">经验</span>判定矩阵最大的价值不是「让所有人算法一致」——那是结果。真正的价值是：<b>当有人在会议上说「这个报价包算不算拆解了」时，你不用吵，打开矩阵查一下</b>。少了那张表，每个口径分歧都会变成一场会议，开不完的会。</div>
+  </div>
+
+  <div class="sec">
+    <h3 class="sec-h">2.3 第三步：区分结果、过程、先行——别只盯一个数</h3>
+    <p>最开始我们只盯一个数——整体拆解率。119 个报价包里有多少拆了。看着这个数每周涨一点，觉得还行。但 W28 一出问题：拆解率从 31.6% 微涨到 31.9%（+0.3pp），但 L3/L4 深层拆解纹丝不动。总量在涨，深度没涨——你只盯一个数看不出来。</p>
+    <p>后来把指标分成三层，问题立刻清晰了：</p>
+    <table class="styled">
+      <tr><th>类型</th><th>回答什么</th><th>我们的真实指标</th><th>为什么不能只盯它</th></tr>
+      <tr><td><b>结果指标</b></td><td>做得怎么样</td><td>整体拆解率 31.0%、L3+渗透率 7.1%</td><td>滞后——看到的时候已经发生了</td></tr>
+      <tr><td><b>过程指标</b></td><td>正在发生什么</td><td>本周新增拆解供应商数、L2→L3 转化</td><td>同步——能看但不能提前预警</td></tr>
+      <tr><td><b>先行指标</b></td><td>接下来会怎样</td><td>询价中 RFQ 拆解率 20.8%、SVC 开通率</td><td>领先——能预判下周潜力</td></tr>
+    </table>
+    <p>盯先行指标的意义在 W29 体现得最明显：「询价中」状态的 48 个 RFQ 拆解率 20.8%，是所有状态里最高的。这意味着什么？意味着下周有 38 个未拆的询价中 RFQ 还可以推——这就是运营资源该压的地方。如果只看结果指标 31.0%，你看不出该往哪用力。</p>
+    <div class="callout tip"><span class="t">实操判断</span>如果你只有一个指标，你永远在追尾灯——看到的都是已经发生的。加一个先行指标，你才能提前预判。怎么找先行指标？问自己一个问题：<b>「如果这个数涨了，两周后我的结果指标会不会涨？」</b>如果会，它就是先行指标。</div>
+  </div>
+
+  <div class="sec">
+    <h3 class="sec-h">2.4 第四步：写指标字典——公式、责任人、阈值缺一不可</h3>
+    <p>指标定义完了不等于落地了。我们踩过一个坑：定义了「双OK率」，但没定阈值，没定责任人。结果连续三周没人看这个数——因为不知道该谁看，也不知道看到多少要紧张。</p>
+    <p>后来逼自己每个指标填四个字段，缺一个不算定义完成：</p>
+    <table class="styled">
+      <tr><th>字段</th><th>双OK率的真实填写</th><th>缺了会怎样</th></tr>
+      <tr><td><b>公式</b></td><td>COUNT(scene=4) / COUNT(总报价单元)</td><td>每个人算出来不一样</td></tr>
+      <tr><td><b>责任人</b></td><td>采购运营组</td><td>没人看，挂在那当摆设</td></tr>
+      <tr><td><b>目标值</b></td><td>10%（按品类分层后调）</td><td>不知道做到多少算够</td></tr>
+      <tr><td><b>告警阈值</b></td><td>周环比下降 > 10% 触发 P1</td><td>出了问题没人知道，等开会才提</td></tr>
+    </table>
+    <p>告警阈值写进埋点方案后，系统自动巡检——双OK率周环比掉超 10%，飞书群自动弹通知给采购总监。不需要有人每天盯看板巡检。这一条是「行动自动化」的雏形。</p>
+    <div class="callout rose"><span class="t">真实教训</span>「双OK率」定义后第一周没人看。不是不重视，是因为没有阈值——不知道 5% 是正常还是要紧张，不知道该不该行动。指标没有阈值 = 不会报警的指标 = 没人管的指标。后来加了「周环比 > 10% 触发 P1」，立刻就有人盯了。不是因为加了技术，是因为加了判断标准。</div>
+  </div>
+
+  <div class="sec">
+    <h3 class="sec-h">2.5 第五步：分三层看板——给对的人看对的数</h3>
+    <p>指标有了、口径定了、阈值设了，最后一个问题：给谁看？给多少？W27 第一版周报犯了个错——把 119 个报价包的明细全甩到群里，管理层看不过来，采购员又看不到自己负责的那几个。</p>
+    <p>W28 开始分三层：</p>
+    <table class="styled">
+      <tr><th>层</th><th>给谁看</th><th>看什么</th><th>频率</th></tr>
+      <tr><td>管理层</td><td>采购总监</td><td>168 报价包 / 52 拆解 / 31.0% / 293 供应商</td><td>周</td></tr>
+      <tr><td>执行层</td><td>采购员</td><td>自己组的拆解率排名、自己负责的 RFQ 明细</td><td>日</td></tr>
+      <tr><td>分析师</td><td>运营/PM</td><td>L3/L4 深层明细、迁移矩阵、采购组对比</td><td>周/月</td></tr>
+    </table>
+    <p>判断一个看板好不好，不看图表多不多，看「给对的人看对了数没有」。把整体 KPI 卡放最上面，深层明细放最下面——角色错配从设计上就避免了。W30 的看板快照就是这个结构：顶层 4 个大数字卡（168/52/31.0%/293），中层周趋势 + 采购组对比，底层深层明细表。总监看顶层就够了，采购员看中层找自己，分析师翻底层做归因。</p>
+    <div class="callout key"><span class="t">方法总结</span>指标建立不是一步——是五步：翻译（形容词→名词+数字）→ 判定（业务概念→布尔矩阵）→ 分层（结果/过程/先行）→ 字典（公式+责任人+阈值+数据源）→ 看板（三层分层）。每一步都可能折返——我们在 What 层的目标值上折返了好几次。但五步走完，指标就从一句话变成了一个体系。</div>
+  </div>
+</section>
+
+<!-- ============ 03 建基线 ============ -->
+<section class="part" id="s3">
+  <div class="part-h"><span class="num">03</span><h2>W27：建立基线——先有数字才能谈改进</h2><span class="en">Establish Baseline</span></div>
+
+  <div class="sec">
+    <h3 class="sec-h">3.1 第一份周报：119 个报价包的真实图景</h3>
+    <p>0706 做了第一份周报。数据截止 2026年7月6日，119 个活跃报价包、216 家供应商。这个数字本身不重要——重要的是第一次看到了分布：</p>
+    <table class="styled">
+      <tr><th>层级</th><th>报价包数</th><th>占比</th><th>供应商数</th><th>占比</th></tr>
+      <tr><td><b>L4 BOM+VSM</b></td><td>2</td><td>1.68%</td><td>1</td><td>0.46%</td></tr>
+      <tr><td><b>L3 BOM结构</b></td><td>3</td><td>2.52%</td><td>4</td><td>1.85%</td></tr>
+      <tr><td><b>L2 自行拆解</b></td><td>33</td><td>27.73%</td><td>31</td><td>14.35%</td></tr>
+      <tr><td><b>L1 未拆解</b></td><td>81</td><td>68.07%</td><td>180</td><td>83.33%</td></tr>
+    </table>
+    <p>68% 的报价包停在 L1 未拆解。深层拆解（L3+L4）只有 5 个报价包、5 家供应商。浙江戈尔德是唯一做到 L4 的供应商，在 MX1127B-1 被动减振器和国产 CDC 减振器总成两个报价包上实现了全维度穿透。</p>
+    <div class="callout warn"><span class="t">当时的感受</span>68% 未拆解，看着很刺眼。但回头看——<b>没有基线，就没有资格说「差」</b>。68% 是好还是坏？在没有 W26 之前的数据做对比时，我们只能说「当前状态是 68%」。基线的意义不是评价好坏，是建立坐标——之后的每一周都要和这个 68% 比。</div>
+  </div>
+
+  <div class="sec">
+    <h3 class="sec-h">2.2 意外发现：预选供应商比正式供应商拆得更猛</h3>
+    <p>W27 最有价值的发现不是「68% 未拆解」——那个谁都能预见。真正的发现是：预选供应商的拆解率（18.8%）居然比正式供应商（10.8%）还高。但预选供应商被限制在 L2，L3/L4 完全缺席（0个），因为他们无法登录 SVC。</p>
+    <table class="styled">
+      <tr><th>类型</th><th>拆解率</th><th>L4</th><th>L3</th><th>L2</th><th>L1</th></tr>
+      <tr><td>预选供应商</td><td class="ok">18.8%</td><td>0</td><td>0</td><td>15家</td><td>73家</td></tr>
+      <tr><td>正式供应商</td><td>10.8%</td><td>1</td><td>8</td><td>21家</td><td>125家</td></tr>
+    </table>
+    <p>进一步看报价包维度：含预选供应商的报价包拆解率达到 <b>51.0%</b>，远超仅正式供应商报价包的 17.6%。这意味着涉及预选供应商的报价包本身拆解意愿更强——开放 SVC 账号可以释放更大的拆解潜力。24 个已达 L2 的预选供应商 RFQ 具备向 L3/L4 升级的基础条件。</p>
+    <div class="callout key"><span class="t">方法论萌芽</span>这第一次让我们意识到「指标不是平的」。拆解率这个总数（10.8% vs 18.8%）有意义，但不够。必须拆开看结构——预选 vs 正式，含预选 vs 不含预选。后来我们把这种做法总结成「指标三分法」：结果指标、过程指标、先行指标。但当时没有这个框架，只是被数据追着走，不得不分层看。</div>
+  </div>
+</section>
+
+<!-- ============ 03 增量 ============ -->
+<section class="part" id="s3">
+  <div class="part-h"><span class="num">03</span><h2>W28：增量分析——涨了，但没涨在该涨的地方</h2><span class="en">Incremental Analysis</span></div>
+
+  <div class="sec">
+    <h3 class="sec-h">3.1 +5 报价包，但深层零增长</h3>
+    <p>0707 到 0713 的一周，报价包从 133 增长到 138（+5），供应商从 235 到 243（+8）。表面看是在涨。但拆开看层级变化，问题出来了：</p>
+    <table class="styled">
+      <tr><th>层级</th><th>0707</th><th>0713</th><th>变化</th><th>趋势</th></tr>
+      <tr><td>L4 BOM+VSM</td><td>2</td><td>2</td><td>0</td><td class="no">持平</td></tr>
+      <tr><td>L3 BOM结构</td><td>7</td><td>7</td><td>0</td><td class="no">持平</td></tr>
+      <tr><td>L2 自行拆解</td><td>33</td><td>35</td><td>+2</td><td class="ok">增长</td></tr>
+      <tr><td>L1 未拆解</td><td>91</td><td>94</td><td>+3</td><td>随总量增长</td></tr>
+    </table>
+    <p>L3 和 L4 本周零增长——维持 7 个和 2 个。L2 新增 2 个，但新增的 5 个报价包里有 3 个停在 L1。也就是说：总量在涨，但深层拆解纹丝不动。</p>
+    <div class="callout warn"><span class="t">当时的判断</span>深层拆解进入平台期。根因很清楚——埋点方案里已经写明了：供应商在 SVC 完成了 BOM 结构拆解后，没有继续推进到 VSM 制造工序成本。BOM → VSM 的衔接环节断裂了。这不是猜测——7 个 L3 供应商都有重新提交记录（加速踏板、动力钥匙、主轮铸造都有二次提交），说明他们在持续维护 BOM 结构数据，但就是没有继续往下推 VSM。</div>
+  </div>
+
+  <div class="sec">
+    <h3 class="sec-h">3.2 误判：「预选供应商意愿退步」</h3>
+    <p>W28 还观察到一个变化：预选供应商拆解率从 18.8% 降到了 17.0%（-1.8pp），而正式供应商从 10.8% 升到 19.4%（+8.6pp）。第一反应是「预选供应商意愿退步了」。</p>
+    <p>但这个判断是错的。</p>
+    <p>拆开看原因：本周新增了大量正式供应商参与 L2/L3 拆解，拉高了正式供应商的拆解率基座（分母），使预选供应商的占比<b>相对</b>下降。预选供应商的绝对拆解数并没有退步——15 家 L2 维持不变。是分母变了，不是分子变了。这叫<b>稀释效应</b>。</p>
+    <div class="vs">
+      <div class="col bad"><span class="h">错误判断</span>
+        现象：预选拆解率 18.8%→17.0%<br>
+        判断：意愿退步<br>
+        动作：去催预选供应商<br>
+        结果：打错靶，浪费资源
+      </div>
+      <div class="col good"><span class="h">正确归因</span>
+        现象：同上<br>
+        判断：稀释效应——正式供应商大量新增拉高分母<br>
+        动作：加速预选 SVC 开放，释放深层潜力<br>
+        结果：聚焦结构性瓶颈
+      </div>
+    </div>
+    <div class="callout rose"><span class="t">踩出来的教训</span>「相关不等于因果」这句话听了无数遍，但真到自己手上时还是会犯。看到「下降」立刻推「提升」动作，是人的本能。验证手段其实不复杂——分层对比：把整体拆开看绝对数，预选的绝对拆解数有没有退步？没有，就是稀释。这一周让我们定了一条规矩：<b>动手推运营动作前，先问——这个差异是因果，还是结构性稀释？</b></div>
+  </div>
+
+  <div class="sec">
+    <h3 class="sec-h">3.3 采购员维度的发现：仓基伟的 12 个 RFQ</h3>
+    <p>W28 第一次按采购员拆分拆解率。结果很直接：张俊负责的 2 个 RFQ 全部拆解（100%），王瑞玚负责 6 个 RFQ 中 4 个达到 L2（66.7%）。但仓基伟负责 12 个 RFQ，<b>全部停在 L1，拆解率 0%</b>。</p>
+    <p>这个发现让运营从「均匀推动」转向「定向辅导」。不是给所有人发通知「请推动拆解」——那没用。而是找到仓基伟，问清楚是什么卡住了，针对性地解决。互联网产品运营里管这叫「分层运营」，但做的时候不会想着用框架，只是被数据追到了具体的人。</p>
+  </div>
+</section>
+
+<!-- ============ 04 归因 ============ -->
+<section class="part" id="s4">
+  <div class="part-h"><span class="num">04</span><h2>W29-W30：从看数到找原因——归因和对标</h2><span class="en">Attribution & Benchmarking</span></div>
+
+  <div class="sec">
+    <h3 class="sec-h">4.1 按 RFQ 状态找窗口：询价中是最佳推动时机</h3>
+    <p>W28 有一张表让我们意识到——不是所有报价包都有同样的推动价值。按 RFQ 状态拆分渗透率后发现：</p>
+    <table class="styled">
+      <tr><th>RFQ状态</th><th>报价包数</th><th>已拆解</th><th>渗透率</th><th>说明</th></tr>
+      <tr><td>询价中</td><td>48</td><td>10</td><td class="ok">20.8%</td><td>在途报价包拆解率最高，运营空间最大</td></tr>
+      <tr><td>已完成</td><td>75</td><td>10</td><td>13.3%</td><td>已定点，拆解价值转为成本库沉淀</td></tr>
+      <tr><td>ENQUIRING</td><td>8</td><td>1</td><td>12.5%</td><td>初期阶段，引导关键期</td></tr>
+      <tr><td>NOMINATING</td><td>4</td><td>0</td><td class="no">0%</td><td>定点阶段，拆解动力不足</td></tr>
+    </table>
+    <p>48 个「询价中」RFQ 中仍有 38 个未拆解，这是当前运营推动的最佳切入点。为什么？因为询价阶段供应商有动力配合——他们正在竞争拿定点。等定点了再推拆解，动力就没了。</p>
+    <div class="callout tip"><span class="t">互联网方法论对应</span>用 AARRR 海盗模型审视：获取（供应商注册）→ 激活（首次拆解报价）→ 留存（持续参与）→ 收益（深层拆解完成）→ 推荐（标杆推广）。「询价中」阶段是 Activation 环节的高潜窗口——供应商正在竞争，有动力配合拆解要求。运营资源前移到这个窗口，比等定点后补救有效得多。</div>
+  </div>
+
+  <div class="sec">
+    <h3 class="sec-h">4.2 W30 看板快照：168 个报价包，采购组差距巨大</h3>
+    <p>W30 的看板快照是数据最完整的一版。168 个报价包、293 家供应商、整体拆解率 31.0%。但最有冲击力的是按采购组拆分：</p>
+    <table class="styled">
+      <tr><th>采购组</th><th>报价包数</th><th>已拆解</th><th>拆解率</th><th>深度(L3+L4)</th></tr>
+      <tr><td>电驱</td><td>4</td><td>3</td><td class="ok">75.0%</td><td>0</td></tr>
+      <tr><td>增程&热管理</td><td>5</td><td>3</td><td>60.0%</td><td>0</td></tr>
+      <tr><td>电子架构</td><td>20</td><td>11</td><td>55.0%</td><td>3</td></tr>
+      <tr><td>机械架构</td><td>30</td><td>9</td><td>30.0%</td><td class="ok">6</td></tr>
+      <tr><td>内饰</td><td>30</td><td>9</td><td>30.0%</td><td>3</td></tr>
+      <tr><td>车身外饰</td><td>66</td><td>17</td><td>25.8%</td><td>0</td></tr>
+      <tr><td>电池</td><td>12</td><td>0</td><td class="no">0.0%</td><td class="no">0</td></tr>
+    </table>
+    <p>电驱组 75%、电池组 0%——差距就是空间。机械架构虽然拆解率只有 30%，但深度拆解（L3+L4）有 6 个，是所有组里最多的——因为减振器、主轮总成这些品类天然适合深度拆解。</p>
+    <div class="callout key"><span class="t">方法论自然涌现</span>对标不是排名——排名只制造焦虑。对标的目的是找到「他们做对了什么」。电驱组 75% 怎么来的？是因为减振器这个品类天然适合拆解，还是因为采购员包思推得猛？研究清楚后标准化、推广。互联网产品运营管这叫 best practice replication，但当时我们只是觉得「得看看电驱怎么做的」。</div>
+  </div>
+
+  <div class="sec">
+    <h3 class="sec-h">4.3 W30 供应商明细：22 家当周拆解</h3>
+    <p>W30 快照的深层明细里，当周有 22 家供应商达成了 L2+ 拆解。其中 L3 深度 4 家：北京握奇慧通（动力钥匙）、广州丰达电机（Gen3.0扬声器）、惠州华阳通用（kunlun流媒体后视镜）、瑞声光电（Gen3.0扬声器）。这些供应商和对应的 RFQ 都是采购员王瑞玚在推——他是 L2/L3 拆解推进最有效的采购员之一。</p>
+    <p>这个发现催生了一个动作：不均匀地分配运营资源。给王瑞玚的 RFQ 更多支持（标杆案例推广），给仓基伟的 RFQ 定向辅导（12 个全 L1，需要从零开始）。这就是后来总结成「北极星下沉为杠杆指标」的实际来源——不是先有了框架才去做，是做了之后发现确实在这么做，才给起了个名字。</p>
+  </div>
+</section>
+
+<!-- ============ 05 对标 ============ -->
+<section class="part" id="s5">
+  <div class="part-h"><span class="num">05</span><h2>五周里做对了什么——从数据到行动</h2><span class="en">From Data to Action</span></div>
+
+  <div class="sec">
+    <h3 class="sec-h">5.1 每条结论都走完了「数据→洞察→行动」</h3>
+    <p>回头看五周周报，每条关键发现都按一个结构写——当时没意识到这是个框架，后来才知道叫「What → So What → Now What」：</p>
+    <table class="styled">
+      <tr><th>周次</th><th>数据 (What)</th><th>洞察 (So What)</th><th>行动 (Now What)</th></tr>
+      <tr><td>W27</td><td>119 报价包，L1 占 68%</td><td>深层拆解尚在起步阶段，大部分供应商没有拆解意识</td><td>建立基线；按品类分层设拆解目标</td></tr>
+      <tr><td>W28</td><td>L3/L4 零增长，预选率降至 17.0%</td><td>BOM→VSM 衔接断裂；预选率下降是稀释效应非退步</td><td>推动 SVC 优化 VSM 体验；加速预选 SVC 开放</td></tr>
+      <tr><td>W29-W30</td><td>168 报价包，拆解率 31.0%；电驱 75%、电池 0%</td><td>采购组差距大；询价中是最佳推动窗口</td><td>定向辅导低拆解率采购员；聚焦 38 个未拆询价中 RFQ</td></tr>
+    </table>
+    <div class="callout warn"><span class="t">反例</span>如果停在数据层——「L3/L4 零增长」——报告了数，没人知道怎么办。停在洞察层——「BOM→VSM 断裂」——知道了原因但没有动作。只有走到行动层——「推动 SVC 优化 VSM 维护体验，本周内联系 3 家 L3 供应商」——才有方案、有责任、有时间。</div>
+  </div>
+
+  <div class="sec">
+    <h3 class="sec-h">5.2 用产品手段促达成，不只是催运营</h3>
+    <p>指标不会自己涨——只靠运营人员每周打电话催供应商，不可持续。报价细项 PRD 和埋点方案里已经设计了几种产品手段来促进指标达成：</p>
+    <table class="styled">
+      <tr><th>产品手段</th><th>真实落点</th><th>为什么有效</th></tr>
+      <tr><td><b>分步 UI 降门槛</b></td><td>PRD 供应商填报 UI 分 8 步；BOM 存在则结构化、否则手工</td><td>不阻碍报价是底线——拆解是加分项不是门槛</td></tr>
+      <tr><td><b>告警自动推送</b></td><td>双OK率周环比 > 10% 触发 P1 飞书通知</td><td>机器替人巡检，异常主动找人</td></tr>
+      <tr><td><b>品类分层激励</b></td><td>高价值品类强推 L4、低价值允许 L1</td><td>不搞一刀切——紧固件拆解无意义，电池包必须拆</td></tr>
+      <tr><td><b>口径工程固化</b></td><td>判定矩阵写进埋点方案 + skill 参数化</td><td>改口径走评审，不靠会议纪要</td></tr>
+    </table>
+    <div class="callout key"><span class="t">核心思想</span>把正确的动作设计成系统的默认路径。如果拆解是填报流程的默认步骤，不拆解才需要额外操作，渗透率自然提升。这是互联网产品「用产品机制替代运营人力」的精髓——但我们做的时候只是觉得「不能每周都打电话催」。</div>
+  </div>
+</section>
+
+<!-- ============ 06 闭环 ============ -->
+<section class="part" id="s6">
+  <div class="part-h"><span class="num">06</span><h2>五周 PDCA：闭环不是循环</h2><span class="en">The PDCA Loop</span></div>
+
+  <div class="sec">
+    <h3 class="sec-h">6.1 每周带着上周的待办进入新一轮</h3>
+    <p>回头看 W27→W31，五周不是一个简单的「每周导 CSV 做报表」。每周都在验证上周的判断、修正上周的假设：</p>
+    <ul class="timeline">
+      <li><span class="tl-date">W27 · 0706</span><b>Plan 建基线</b>：119 报价包、L1 占 68%。预选 18.8% > 正式 10.8%。发现含预选的报价包拆解率 51%。待办：补数据 + 定目标 + 推 SVC 开放。</li>
+      <li><span class="tl-date">W28 · 0713</span><b>Do 看增量</b>：+5 报价包，L2 +2 但 L3/L4 零增长。预选率降至 17.0%——<b>验证上周判断</b>：不是退步，是稀释效应。BOM→VSM 衔接断裂确认。</li>
+      <li><span class="tl-date">W29 · 0721</span><b>Check 做归因</b>：按 RFQ 状态拆渗透率，发现询价中 20.8% 是最佳窗口。仓基伟 12 个 RFQ 全 L1 确认，需定向辅导。</li>
+      <li><span class="tl-date">W30 · 0728</span><b>Act 做对标</b>：168 报价包、31.0% 拆解率。电驱 75% vs 电池 0%。深度拆解 12 个（+1）。找到标杆：王瑞玚的 RFQ 推得最好。</li>
+      <li><span class="tl-date">W31 · 0804</span><b>下一轮 Plan</b>：从数据到行动，形成运营闭环。把待办变成产品手段——分步 UI、告警、品类分层。</li>
+    </ul>
+    <div class="callout warn"><span class="t">常见误区</span>很多团队的「周报」其实不是 PDCA，是「周循环」——每周导数据、做表格、发群、下周再来一遍。没有待办、没有验证、没有改进。判断你的周报是不是闭环，就看一个问题：<b>这周的报告有没有验证上周的行动效果？</b>如果没有，你只是在循环，不是在闭环。</div>
+  </div>
+
+  <div class="sec">
+    <h3 class="sec-h">6.2 口径是怎么固化下来的</h3>
+    <p>五周里，口径的定义经历了从「讨论」到「文档」到「工程固化」的过程：</p>
+    <table class="styled">
+      <tr><th>口径</th><th>最初</th><th>固化后</th></tr>
+      <tr><td>报价包</td><td>「按 RFQ 算还是按供应商算？」</td><td>RFQ 去重，取全部供应商中的最高拆解层级</td></tr>
+      <tr><td>已拆解</td><td>「L2 算拆解吗？还是只算 L3+？」</td><td>L2+L3+L4；深度 = L3+L4</td></tr>
+      <tr><td>周归属</td><td>「按创建时间还是提交时间？」</td><td>最新提交时间所在 ISO 周，剔除不完整周</td></tr>
+      <tr><td>场景判定</td><td>「BOM 自拆和 SVC BOM 怎么区分？」</td><td>判定矩阵：BOM 多层级+非 OK → scene2；BOM=OK+VSM≠OK → scene3</td></tr>
+    </table>
+    <p>固化方式不是写个文档——是写进埋点方案的判定矩阵，固化进参数化 skill 的代码逻辑里。改口径不走会议纪要，走代码评审。这把「单一口径」从理念变成了工程约束。</p>
+  </div>
+</section>
+
+<!-- ============ 07 自动化 ============ -->
+<section class="part" id="s7">
+  <div class="part-h"><span class="num">07</span><h2>自动化：从手工改常量到参数化 skill</h2><span class="en">Automation Journey</span></div>
+
+  <div class="sec">
+    <h3 class="sec-h">7.1 报告生成的真实演进路径</h3>
+    <p>五周里，报告生成方式的变化本身就是自动化四层阶梯的缩影——不是规划出来的，是被迫的：</p>
+    <div class="diagram">
+      <svg viewBox="0 0 720 200" xmlns="http://www.w3.org/2000/svg" font-family="Inter,PingFang SC,Microsoft YaHei,sans-serif">
+        <defs><marker id="ar7" markerWidth="9" markerHeight="9" refX="7" refY="4.5" orient="auto"><path d="M0,0 L9,4.5 L0,9 z" fill="#9aa6b4"/></marker></defs>
+        <g><rect x="20" y="20" width="150" height="50" rx="8" fill="#6b7686"/><text x="95" y="42" fill="#fff" font-size="12" font-weight="590" text-anchor="middle">W27 手工改常量</text><text x="95" y="58" fill="#d0d6e0" font-size="10" text-anchor="middle">每次改十几个数字</text></g>
+        <line x1="170" y1="45" x2="190" y2="45" stroke="#9aa6b4" stroke-width="2" marker-end="url(#ar7)"/>
+        <g><rect x="190" y="20" width="150" height="50" rx="8" fill="#9a6a2f"/><text x="265" y="42" fill="#fff" font-size="12" font-weight="590" text-anchor="middle">W28 CSV+JS渲染</text><text x="265" y="58" fill="#f6e8d6" font-size="10" text-anchor="middle">数据从硬编码变文件</text></g>
+        <line x1="340" y1="45" x2="360" y2="45" stroke="#9aa6b4" stroke-width="2" marker-end="url(#ar7)"/>
+        <g><rect x="360" y="20" width="150" height="50" rx="8" fill="#3d6b56"/><text x="435" y="42" fill="#fff" font-size="12" font-weight="590" text-anchor="middle">W30 参数化skill</text><text x="435" y="58" fill="#dceae4" font-size="10" text-anchor="middle">--file --prev --upload</text></g>
+        <line x1="510" y1="45" x2="530" y2="45" stroke="#9aa6b4" stroke-width="2" marker-end="url(#ar7)"/>
+        <g><rect x="530" y="20" width="170" height="50" rx="8" fill="#5e6ad2"/><text x="615" y="42" fill="#fff" font-size="12" font-weight="590" text-anchor="middle">下一站：告警+自动归因</text><text x="615" y="58" fill="#dce8f2" font-size="10" text-anchor="middle">L3 洞察自动化</text></g>
+        <text x="95" y="100" fill="#6b7686" font-size="10" text-anchor="middle">2小时</text>
+        <text x="265" y="100" fill="#9a6a2f" font-size="10" text-anchor="middle">30分钟</text>
+        <text x="435" y="100" fill="#3d6b56" font-size="10" text-anchor="middle">30秒</text>
+        <text x="615" y="100" fill="#5e6ad2" font-size="10" text-anchor="middle">0秒（自动触发）</text>
+      </svg>
+      <div class="cap">图 · 报告生成从 2 小时到 30 秒——不是因为技术炫，是不得不</div>
+    </div>
+    <div class="callout tip"><span class="t">为什么被迫</span>第一周手工改 HTML 常量，改了两个小时，改到眼花还改错了一个数字。第二周换成 CSV 导入 + JS 渲染，快了但还要手动调整格式。第三周以后写成参数化 skill——<code class="inline">--file 本周.csv --prev 上周.csv --upload</code> 一键出报告，30 秒。不是想搞自动化，是每周两小时实在受不了了。</div>
+  </div>
+
+  <div class="sec">
+    <h3 class="sec-h">7.2 埋点方案的四层自动化阶梯</h3>
+    <p>埋点方案 v4.0 里已经规划了完整的四层——不是事后总结的，是实际在做时一层层建的：</p>
+    <table class="styled">
+      <tr><th>层级</th><th>内容</th><th>状态</th><th>为什么先做这层</th></tr>
+      <tr><td><b>L1 采集</b></td><td>4 个埋点事件 → Kafka → ClickHouse</td><td class="ok">已完成</td><td>没有数据，后面三层都是空中楼阁</td></tr>
+      <tr><td><b>L2 生成</b></td><td>L1/L2 看板 + 参数化 skill 出报告</td><td class="ok">已完成</td><td>人从搬数据中解放出来</td></tr>
+      <tr><td><b>L3 洞察</b></td><td>迁移矩阵 + 趋势识别 + 自动归因</td><td>规划中</td><td>机器做初筛，人做判断</td></tr>
+      <tr><td><b>L4 行动</b></td><td>告警系统：双OK率周环比 > 10% 触发 P1</td><td class="ok">已落地</td><td>异常主动找人，不需要每天巡检</td></tr>
+    </table>
+    <div class="callout warn"><span class="t">自动化的边界</span>让机器做「重复且可定义」的——埋点采集、定时报表、异常标红、告警推送。让人做「判断且创造」的——是真异常还是噪声？对供应商的话术和节奏？资源怎么分配？如果你能用 if-else 写清楚规则，就让机器做。如果你需要思考才能决定，就留给人。自动化放大人的判断，不替代它。</div>
+  </div>
+</section>
+
+<!-- ============ 08 PM启示 ============ -->
+<section class="part" id="s8">
+  <div class="part-h"><span class="num">08</span><h2>给 PM 的启示：从这五周里提炼的经验</h2><span class="en">Lessons for PMs</span></div>
+
+  <div class="sec">
+    <h3 class="sec-h">8.1 三个被数据验证过的原则</h3>
+    <table class="styled">
+      <tr><th>原则</th><th>我们犯过的错</th><th>验证过程</th></tr>
+      <tr><td><b>指标必须可执行</b></td><td>最初只说「提升拆解率」</td><td>后来改成「推动 24 个预选供应商开通 SVC」——有数字、有责任、有时间</td></tr>
+      <tr><td><b>数据必须有对比</b></td><td>W27 说「L2 有 33 个」</td><td>W28 说「L2 从 33 到 35，+2，环比+6%」——有趋势</td></tr>
+      <tr><td><b>洞察必须有行动</b></td><td>「L3/L4 零增长」只报了数</td><td>后来补上「根因是 BOM→VSM 断裂，推动 SVC 优化 VSM 体验」——有方案</td></tr>
+    </table>
+  </div>
+
+  <div class="sec">
+    <h3 class="sec-h">8.2 从功能思维到数据思维</h3>
+    <p>报价细项功能 0511 上线——按功能思维，工作就完成了。但按数据思维，0511 上线只是开始：功能跑起来了吗？有人在用吗？拆解了多少？谁拆得深？谁没拆？为什么没拆？怎么推动？这些问题，功能思维不关心，数据思维必须回答。</p>
+    <table class="styled">
+      <tr><th>维度</th><th>功能思维</th><th>数据思维（五周实践后的转变）</th></tr>
+      <tr><td>关注点</td><td>功能是否上线</td><td class="ok">拆解率是否提升</td></tr>
+      <tr><td>成功标准</td><td>功能可用</td><td class="ok">双OK率 / L3+渗透率达标</td></tr>
+      <tr><td>改进依据</td><td>用户反馈（零散）</td><td class="ok">埋点 + 周报系统分析</td></tr>
+      <tr><td>迭代节奏</td><td>需求驱动</td><td class="ok">周度 PDCA 闭环</td></tr>
+    </table>
+  </div>
+
+  <div class="sec">
+    <h3 class="sec-h">8.3 五个踩过的坑</h3>
+    <ul class="checklist">
+      <li><b>数据淹没</b>：W27 有 119 个报价包的明细，一开始想全铺开。后来发现管理层只关心一个数字——拆解率。把 200 行明细甩给管理层是角色错配。</li>
+      <li><b>虚荣指标</b>：只看报价包总数增长（119→138→168）——总量在涨但拆解率没动。盯渗透率，不是盯绝对值。</li>
+      <li><b>相关即因果</b>：预选拆解率下降→误判意愿退步→差点打错靶。W28 那一周的误判让我们定了归因纪律。</li>
+      <li><b>数据孤岛</b>：75 个已定点 RFQ 中只有 10 个有拆解数据（13.3%），大量线下历史成本未沉淀进线上。</li>
+      <li><b>分析瘫痪</b>：L3 零增长发现了但没立刻行动。后来逼自己每条结论都走到「行动」层——有方案、有责任、有时间。</li>
+    </ul>
+  </div>
+
+  <div class="sec">
+    <h3 class="sec-h">8.4 如果只记一件事</h3>
+    <p>报价细项五周数据运营证明了一件事：<b>指标不是算出来的——它是被设计、采集、呈现、推动、固化出来的。</b></p>
+    <p>PRD 给出价值主张（成本穿透），埋点方案把主张翻译成采集口径（4 个场景事件 + ClickHouse），看板把口径呈现为可读的数字（三层看板），故事化把数字变成洞察（What→So What→Now What），待办把洞察变成动作（补数据、定目标、推 SVC），自动化把动作固化成系统（参数化 skill + 告警）。</p>
+    <p>任何一环断裂，指标就退化为报表。五周里我们每一步都走过——也每一步都犯过错。但回头看，每一周都比上一周多懂一点。<b>这才是数据运营的真相：不是方法论的正确，是经验的厚度。</b></p>
+  </div>
+</section>
+
+<div class="footer">
+  <p>指标提炼实战手记 · 从报价细项五周数据中长出来的方法论</p>
+  <p class="sub">素材：报价细项 PRD + 埋点方案 v4.0 + W27-W31 周报 + W30 看板快照 ｜ 设计规范：Linear Design System</p>
+</div>
+
+</div>
+</body>
+</html>

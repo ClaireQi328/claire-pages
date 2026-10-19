@@ -1,0 +1,1607 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>小米汽车 EP 采购工作台优化 · 方案与原型 v2</title>
+<style>
+:root{
+  --pri:#1890ff; --pri-h:#40a9ff; --pri-a:#096dd9; --pri-bg:#e6f7ff; --pri-bd:#91d5ff;
+  --ok:#52c41a; --ok-bg:#f6ffed; --ok-bd:#b7eb8f;
+  --warn:#faad14; --warn-bg:#fffbe6; --warn-bd:#ffe58f;
+  --err:#f5222d; --err-bg:#fff1f0; --err-bd:#ffa39e;
+  --t1:rgba(0,0,0,.85); --t2:rgba(0,0,0,.65); --t3:rgba(0,0,0,.45); --t4:rgba(0,0,0,.25);
+  --bd:#e8e8e8; --bd2:#d9d9d9; --bg:#f0f2f5; --card:#fff;
+  --sh:0 1px 4px rgba(0,0,0,.08); --sh2:0 4px 12px rgba(0,0,0,.15);
+  --r:4px;
+}
+*{margin:0;padding:0;box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Hiragino Sans GB","Microsoft YaHei",Helvetica,Arial,sans-serif;font-size:14px;color:var(--t2);background:var(--bg);line-height:1.5715}
+a{color:var(--pri);text-decoration:none;cursor:pointer}
+a:hover{color:var(--pri-h)}
+::-webkit-scrollbar{width:6px;height:6px}
+::-webkit-scrollbar-thumb{background:rgba(0,0,0,.2);border-radius:3px}
+
+/* ===== 演示外壳导航 ===== */
+.dnav{position:sticky;top:0;z-index:90;background:#001529;color:#fff;display:flex;align-items:center;height:52px;padding:0 24px;gap:8px}
+.dnav-logo{font-size:15px;font-weight:600;color:#fff;margin-right:24px;display:flex;align-items:center;gap:8px;white-space:nowrap}
+.dnav-logo .dot{width:22px;height:22px;border-radius:4px;background:var(--pri);display:inline-flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;color:#fff}
+.dnav-tabs{display:flex;gap:4px;flex:1}
+.dnav-tab{padding:0 16px;height:52px;line-height:52px;color:rgba(255,255,255,.65);cursor:pointer;font-size:14px;border-bottom:2px solid transparent;white-space:nowrap}
+.dnav-tab:hover{color:#fff}
+.dnav-tab.on{color:#fff;border-bottom-color:var(--pri)}
+.dnav-meta{font-size:12px;color:rgba(255,255,255,.45);white-space:nowrap}
+.view{display:none}
+.view.on{display:block}
+
+/* ===== 通用 ===== */
+.wrap{max-width:1440px;margin:0 auto;padding:24px}
+.card{background:var(--card);border-radius:var(--r);box-shadow:var(--sh)}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:4px;height:28px;padding:0 12px;font-size:13px;color:var(--t2);background:#fff;border:1px solid var(--bd2);border-radius:var(--r);cursor:pointer;transition:all .2s;white-space:nowrap;user-select:none}
+.btn:hover{color:var(--pri);border-color:var(--pri)}
+.btn-pri{background:var(--pri);border-color:var(--pri);color:#fff}
+.btn-pri:hover{background:var(--pri-h);border-color:var(--pri-h);color:#fff}
+.btn-sm{height:24px;padding:0 8px;font-size:12px}
+.btn-text{border:none;background:none;color:var(--pri);height:auto;padding:0 4px}
+.btn-text:hover{color:var(--pri-h);border:none}
+.btn-danger-text{border:none;background:none;color:var(--err);height:auto;padding:0 4px}
+.tag{display:inline-block;padding:0 7px;font-size:12px;line-height:20px;border-radius:var(--r);border:1px solid;white-space:nowrap}
+.tag-red{color:var(--err);background:var(--err-bg);border-color:var(--err-bd)}
+.tag-orange{color:#fa8c16;background:#fff7e6;border-color:#ffd591}
+.tag-gold{color:#d48806;background:var(--warn-bg);border-color:var(--warn-bd)}
+.tag-blue{color:var(--pri);background:var(--pri-bg);border-color:var(--pri-bd)}
+.tag-green{color:#389e0d;background:var(--ok-bg);border-color:var(--ok-bd)}
+.tag-gray{color:var(--t3);background:#fafafa;border-color:var(--bd2)}
+.tag-volc{color:#fff;background:#595959;border-color:#595959}
+.badge{position:relative;display:inline-block}
+.badge-dot::after{content:"";position:absolute;top:-2px;right:-4px;min-width:6px;height:6px;background:var(--err);border-radius:3px}
+.badge-n{position:absolute;top:-9px;right:-10px;min-width:16px;height:16px;padding:0 4px;background:var(--err);color:#fff;font-size:11px;line-height:16px;text-align:center;border-radius:8px;font-weight:400}
+.chip{display:inline-flex;align-items:center;gap:4px;padding:2px 10px;font-size:12px;border:1px solid var(--bd);border-radius:14px;background:#fff;color:var(--t2);cursor:pointer;white-space:nowrap}
+.chip:hover{color:var(--pri);border-color:var(--pri)}
+.chip.on{color:var(--pri);border-color:var(--pri);background:var(--pri-bg)}
+.hr{height:1px;background:var(--bd);border:0;margin:16px 0}
+.num{font-variant-numeric:tabular-nums}
+
+/* ===== 方案视图 ===== */
+.plan-hero{background:linear-gradient(135deg,#001529 0%,#0b2b52 60%,#11427f 100%);color:#fff;padding:56px 24px 48px}
+.plan-hero-in{max-width:1180px;margin:0 auto}
+.plan-kicker{font-size:13px;letter-spacing:4px;color:#69b7ff;margin-bottom:14px}
+.plan-hero h1{font-size:34px;font-weight:600;letter-spacing:1px;margin-bottom:14px}
+.plan-hero-sub{font-size:16px;color:rgba(255,255,255,.75);max-width:860px;line-height:1.8}
+.plan-hero-sub b{color:#fff}
+.hero-q{display:flex;gap:12px;margin-top:28px;flex-wrap:wrap}
+.hero-q .q{flex:1;min-width:220px;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.18);border-radius:6px;padding:16px 18px}
+.hero-q .q i{font-style:normal;font-size:12px;color:#69b7ff;display:block;margin-bottom:6px;letter-spacing:2px}
+.hero-q .q b{font-size:17px;font-weight:500;color:#fff}
+.sec{max-width:1180px;margin:0 auto;padding:40px 24px 8px}
+.sec-no{display:inline-flex;align-items:center;gap:10px;margin-bottom:6px}
+.sec-no .n{width:26px;height:26px;border-radius:4px;background:var(--pri);color:#fff;font-size:14px;font-weight:600;display:inline-flex;align-items:center;justify-content:center}
+.sec-no h2{font-size:22px;color:var(--t1);font-weight:600}
+.sec-lead{font-size:14px;color:var(--t3);margin-bottom:22px}
+.sec-lead b{color:var(--t2)}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+.grid4{display:grid;grid-template-columns:repeat(4,1fr);gap:16px}
+@media(max-width:1000px){.grid2,.grid4{grid-template-columns:1fr}}
+.pain{padding:20px 22px;border-top:3px solid var(--err)}
+.pain .p-no{font-size:12px;color:var(--t4);letter-spacing:1px}
+.pain h3{font-size:16px;color:var(--t1);margin:4px 0 10px}
+.pain p{font-size:13px;color:var(--t2);line-height:1.8}
+.pain .cost{margin-top:10px;font-size:12px;color:var(--err);background:var(--err-bg);border:1px solid var(--err-bd);border-radius:4px;padding:6px 10px}
+.quote-bar{margin:18px 0 0;padding:18px 22px;background:#fff;border-left:4px solid var(--pri);box-shadow:var(--sh);border-radius:0 4px 4px 0}
+.quote-bar .qt{font-size:15px;color:var(--t1);line-height:1.8}
+.quote-bar .qs{font-size:12px;color:var(--t3);margin-top:6px}
+.tbl{width:100%;border-collapse:collapse;background:#fff;font-size:13px}
+.tbl th{background:#fafafa;color:var(--t1);font-weight:600;text-align:left;padding:10px 12px;border-bottom:1px solid var(--bd);white-space:nowrap}
+.tbl td{padding:10px 12px;border-bottom:1px solid var(--bd);color:var(--t2);vertical-align:top;line-height:1.7}
+.tbl tr:last-child td{border-bottom:none}
+.tbl .em{color:var(--t1);font-weight:600}
+.tbl-wrap{border-radius:var(--r);box-shadow:var(--sh);overflow:hidden}
+.tbl-cap{padding:14px 18px 0;background:#fff}
+.tbl-cap h3{font-size:16px;color:var(--t1)}
+.tbl-cap p{font-size:12px;color:var(--t3);margin:2px 0 10px}
+.nio-map td:first-child{white-space:nowrap;font-weight:600;color:var(--t1)}
+.nio-flag{display:inline-block;font-size:11px;color:#fff;background:var(--pri);border-radius:2px;padding:1px 6px;margin-left:6px;vertical-align:1px}
+.prin{padding:22px;border-top:3px solid var(--pri)}
+.prin .pi{font-size:26px;margin-bottom:8px}
+.prin h3{font-size:16px;color:var(--t1);margin-bottom:8px}
+.prin p{font-size:13px;color:var(--t2);line-height:1.8}
+.prin p b{color:var(--t1)}
+.mod-card{padding:0;margin-bottom:14px;overflow:hidden}
+.mod-head{display:flex;align-items:center;gap:10px;padding:14px 20px;background:#fafafa;border-bottom:1px solid var(--bd);flex-wrap:wrap}
+.mod-head .mno{font-size:13px;font-weight:700;color:var(--pri)}
+.mod-head h3{font-size:15px;color:var(--t1);margin-right:auto}
+.mod-body{display:grid;grid-template-columns:1fr 1.4fr 1.2fr;gap:0}
+@media(max-width:1000px){.mod-body{grid-template-columns:1fr}}
+.mod-col{padding:14px 20px;border-right:1px solid var(--bd)}
+.mod-col:last-child{border-right:none}
+.mod-col i{font-style:normal;font-size:11px;letter-spacing:2px;color:var(--t4);display:block;margin-bottom:8px}
+.mod-col p,.mod-col li{font-size:13px;color:var(--t2);line-height:1.8}
+.mod-col ul{list-style:none}
+.mod-col li{padding-left:14px;position:relative;margin-bottom:4px}
+.mod-col li::before{content:"";position:absolute;left:0;top:10px;width:5px;height:5px;border-radius:50%;background:var(--pri)}
+.mod-col .arrow{color:var(--t4);margin:0 6px}
+.kpi{padding:20px;text-align:left}
+.kpi .kv{font-size:28px;font-weight:600;color:var(--t1);line-height:1.2}
+.kpi .kv small{font-size:14px;font-weight:400;color:var(--t3)}
+.kpi .kl{font-size:13px;color:var(--t2);margin-top:4px}
+.kpi .kd{font-size:12px;color:var(--t3);margin-top:6px;line-height:1.6}
+.rm{display:grid;grid-template-columns:repeat(3,1fr);gap:16px}
+@media(max-width:1000px){.rm{grid-template-columns:1fr}}
+.rm-col{padding:20px;border-top:3px solid var(--bd2)}
+.rm-col.p0{border-top-color:var(--err)}
+.rm-col.p1{border-top-color:var(--warn)}
+.rm-col.p2{border-top-color:var(--pri)}
+.rm-col h3{font-size:15px;color:var(--t1);margin-bottom:2px}
+.rm-col .when{font-size:12px;color:var(--t3);margin-bottom:12px}
+.rm-col li{font-size:13px;color:var(--t2);line-height:1.9;padding-left:14px;position:relative;list-style:none}
+.rm-col li::before{content:"";position:absolute;left:0;top:11px;width:5px;height:5px;border-radius:50%;background:var(--t4)}
+.rm-col .theme{font-size:11px;letter-spacing:1px;color:var(--t4);margin:10px 0 2px}
+.matrix-legend{font-size:12px;color:var(--t3);margin:10px 0 0}
+.cell-dot{text-align:center;font-size:15px}
+
+/* ===== EP 应用外壳（原型视图） ===== */
+.ep-top{background:#fff;border-bottom:1px solid var(--bd);position:sticky;top:52px;z-index:60}
+.ep-top-in{max-width:1440px;margin:0 auto;display:flex;align-items:center;height:56px;padding:0 24px;gap:0}
+.ep-logo{display:flex;align-items:center;gap:8px;font-size:16px;font-weight:600;color:var(--t1);margin-right:28px;white-space:nowrap}
+.ep-logo .mi{width:26px;height:26px;border-radius:4px;background:#ff6900;color:#fff;font-size:10px;font-weight:700;display:inline-flex;align-items:center;justify-content:center}
+.ep-menu{display:flex;flex:1;height:56px;overflow-x:auto}
+.ep-mi{position:relative;height:56px;line-height:56px;padding:0 14px;font-size:14px;color:var(--t2);cursor:pointer;white-space:nowrap}
+.ep-mi:hover{color:var(--pri)}
+.ep-mi.on{color:var(--pri)}
+.ep-mi.on::after{content:"";position:absolute;left:14px;right:14px;bottom:0;height:2px;background:var(--pri)}
+.ep-mi .fav{color:var(--warn);margin-right:3px;font-size:12px}
+.ep-mi .sub{position:absolute;top:54px;left:0;min-width:180px;background:#fff;box-shadow:var(--sh2);border-radius:var(--r);padding:6px 0;z-index:70;display:none}
+.ep-mi:hover .sub{display:block}
+.ep-mi .sub a{display:block;padding:8px 16px;font-size:13px;color:var(--t2);line-height:1.4}
+.ep-mi .sub a:hover{background:var(--pri-bg);color:var(--pri)}
+.ep-search{display:flex;align-items:center;gap:8px;height:32px;padding:0 12px;background:#fafafa;border:1px solid var(--bd2);border-radius:var(--r);color:var(--t4);font-size:13px;cursor:pointer;margin:0 16px;min-width:200px}
+.ep-search:hover{border-color:var(--pri)}
+.ep-search .kbd{margin-left:auto;font-size:11px;border:1px solid var(--bd2);border-radius:3px;padding:0 4px;color:var(--t3)}
+.ep-acts{display:flex;align-items:center;gap:16px}
+.ep-bell{position:relative;font-size:18px;color:var(--t2);cursor:pointer;line-height:1}
+.ep-role{display:flex;align-items:center;gap:8px;cursor:pointer;padding:4px 8px;border-radius:var(--r)}
+.ep-role:hover{background:#fafafa}
+.ep-avatar{width:28px;height:28px;border-radius:50%;background:linear-gradient(135deg,#1890ff,#0050b3);color:#fff;display:inline-flex;align-items:center;justify-content:center;font-size:12px;font-weight:500}
+.ep-role .who{font-size:13px;color:var(--t1);line-height:1.2}
+.ep-role .who small{display:block;font-size:11px;color:var(--t3)}
+/* 角色切换条 */
+.rolebar{max-width:1440px;margin:0 auto;padding:12px 24px 0;display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.rolebar .lb{font-size:12px;color:var(--t3);margin-right:2px}
+/* 工作台主体 */
+.wb{max-width:1440px;margin:0 auto;padding:12px 24px 40px;display:grid;grid-template-columns:minmax(0,1fr) 360px;gap:16px;align-items:start}
+.wb.wide-r{grid-template-columns:minmax(0,1fr) 360px}
+.wb-col{display:flex;flex-direction:column;gap:16px;min-width:0}
+@media(max-width:1100px){.wb{grid-template-columns:1fr}}
+.wb-card-h{display:flex;align-items:center;gap:10px;padding:14px 20px;border-bottom:1px solid var(--bd);flex-wrap:wrap}
+.wb-card-h h3{font-size:16px;color:var(--t1);font-weight:600;display:flex;align-items:center;gap:8px;white-space:nowrap}
+.wb-card-h .cap{font-size:11px;color:var(--t4);font-weight:400;letter-spacing:1px}
+.wb-card-h .sp{margin-left:auto;display:flex;align-items:center;gap:8px}
+.wb-card-b{padding:12px 20px 16px}
+/* 预警条 */
+.alerts{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}
+@media(max-width:1100px){.alerts{grid-template-columns:1fr}}
+.alert-card{border-radius:var(--r);padding:12px 14px;border:1px solid;background:#fff;box-shadow:var(--sh);display:flex;flex-direction:column;gap:6px;position:relative}
+.alert-card.lv-r{border-color:var(--err-bd);background:var(--err-bg)}
+.alert-card.lv-y{border-color:var(--warn-bd);background:var(--warn-bg)}
+.alert-card.lv-b{border-color:var(--pri-bd);background:var(--pri-bg)}
+.alert-card .at{display:flex;align-items:center;gap:8px;font-size:14px;font-weight:600;color:var(--t1)}
+.alert-card .ad{font-size:12px;color:var(--t2);line-height:1.6}
+.alert-card .af{display:flex;align-items:center;gap:8px;margin-top:2px}
+.alert-card .ax{position:absolute;top:8px;right:8px;color:var(--t4);cursor:pointer;font-size:14px;line-height:1;padding:2px}
+.alert-card .ax:hover{color:var(--t2)}
+.lvdot{width:8px;height:8px;border-radius:50%;flex:none}
+.lvdot.r{background:var(--err)}.lvdot.y{background:var(--warn)}.lvdot.b{background:var(--pri)}
+/* 待办 */
+.tabs{display:flex;gap:24px;border-bottom:1px solid var(--bd);padding:0 20px}
+.tab{padding:10px 0;font-size:14px;color:var(--t2);cursor:pointer;border-bottom:2px solid transparent;position:relative;white-space:nowrap}
+.tab:hover{color:var(--pri)}
+.tab.on{color:var(--pri);border-bottom-color:var(--pri);font-weight:500}
+.tab .cnt{font-size:11px;color:var(--t4);margin-left:2px}
+.tab.on .cnt{color:var(--pri)}
+.subtabs{display:flex;gap:8px;padding:12px 20px 4px;flex-wrap:wrap}
+.todo-row{display:flex;align-items:center;gap:10px;padding:11px 20px;border-bottom:1px solid #f0f0f0;cursor:pointer;transition:background .15s}
+.todo-row:hover{background:#fafafa}
+.todo-row:last-child{border-bottom:none}
+.todo-row .pri{flex:none;width:44px;text-align:center}
+.todo-row .tt{flex:1;min-width:0}
+.todo-row .tt .t1{font-size:14px;color:var(--t1);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.todo-row .tt .t2{font-size:12px;color:var(--t3);margin-top:2px;display:flex;gap:10px;flex-wrap:wrap}
+.todo-row .tt .t2 .od{color:var(--err)}
+.todo-row .ops{display:flex;gap:2px;flex:none;opacity:.9}
+.todo-row .stay{flex:none;font-size:12px;color:var(--t3);text-align:right;min-width:64px}
+.todo-row .stay b{display:block;font-weight:500;color:var(--t2)}
+.todo-row .stay.hot b{color:var(--err)}
+/* 看板 */
+.kb{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;padding:16px 20px}
+.kb-col{background:#fafafa;border-radius:var(--r);padding:10px;min-height:120px}
+.kb-col h4{font-size:13px;color:var(--t2);display:flex;align-items:center;margin-bottom:8px;gap:6px}
+.kb-col h4 .cnt{margin-left:auto;font-size:11px;color:var(--t4);background:#fff;border-radius:8px;padding:0 6px;line-height:16px}
+.kb-item{background:#fff;border-radius:var(--r);padding:10px 12px;margin-bottom:8px;box-shadow:var(--sh);font-size:13px;color:var(--t1);cursor:pointer;border-left:3px solid transparent}
+.kb-item:hover{border-color:var(--pri-bd)}
+.kb-item.p-urgent{border-left-color:var(--err)}
+.kb-item.p-sla{border-left-color:var(--warn)}
+.kb-item.p-block{border-left-color:#722ed1}
+.kb-item .m{font-size:11px;color:var(--t3);margin-top:4px;display:flex;gap:6px;align-items:center}
+/* 矩阵 */
+.mx{width:100%;border-collapse:collapse;font-size:13px}
+.mx th{background:#fafafa;color:var(--t1);font-weight:600;padding:9px 10px;border-bottom:1px solid var(--bd);text-align:left;white-space:nowrap}
+.mx td{padding:9px 10px;border-bottom:1px solid #f0f0f0;vertical-align:middle}
+.mx tr:last-child td{border-bottom:none}
+.mx tr.urgent-row{background:var(--err-bg)}
+.mx .pkg{font-weight:600;color:var(--t1);white-space:nowrap}
+.mx .pkg small{display:block;font-weight:400;color:var(--t3);font-size:12px}
+.st{display:inline-flex;align-items:center;gap:5px;font-size:12px;padding:2px 8px;border-radius:10px;cursor:pointer;white-space:nowrap}
+.st.done{color:#389e0d;background:var(--ok-bg)}
+.st.doing{color:var(--pri);background:var(--pri-bg)}
+.st.urgent{color:#fff;background:var(--err)}
+.st.blocked{color:#722ed1;background:#f9f0ff}
+.st.wait{color:var(--t4);background:#fafafa;border:1px dashed var(--bd2)}
+.st .exp{font-size:10px;opacity:.7}
+.substep{background:#fafafa;border-radius:var(--r);margin:4px 10px 10px;padding:8px 12px}
+.substep table{width:100%;font-size:12px;border-collapse:collapse}
+.substep td{padding:4px 6px;color:var(--t3);border-bottom:1px dashed #eee}
+.substep tr:last-child td{border-bottom:none}
+.substep .who{color:var(--t2)}
+.prog{display:flex;align-items:center;gap:8px;min-width:110px}
+.prog .bar{flex:1;height:6px;background:#f0f0f0;border-radius:3px;overflow:hidden}
+.prog .bar i{display:block;height:100%;background:var(--pri);border-radius:3px}
+.prog .bar.full i{background:var(--ok)}
+.prog span{font-size:12px;color:var(--t3)}
+/* 指标卡 */
+.mgrid{display:grid;grid-template-columns:repeat(4,1fr);gap:12px}
+@media(max-width:1200px){.mgrid{grid-template-columns:repeat(2,1fr)}}
+.mcard{border:1px solid var(--bd);border-radius:var(--r);padding:12px 14px;cursor:pointer;transition:box-shadow .2s;background:#fff;position:relative}
+.mcard:hover{box-shadow:var(--sh2)}
+.mcard .mk{font-size:12px;color:var(--t3);display:flex;align-items:center}
+.mcard .mk .drill{margin-left:auto;font-size:11px;color:var(--t4)}
+.mcard .mv{font-size:24px;font-weight:600;color:var(--t1);line-height:1.3;font-variant-numeric:tabular-nums}
+.mcard .mv small{font-size:12px;font-weight:400;color:var(--t3)}
+.mcard .md{font-size:12px;display:flex;align-items:center;gap:6px}
+.mcard .up{color:var(--err)}.mcard .down{color:var(--ok)}.mcard .goodup{color:var(--ok)}
+.mcard svg.spark{position:absolute;right:10px;bottom:10px;opacity:.9}
+/* 统计 */
+.stat-grid{display:grid;grid-template-columns:200px 1fr;gap:20px;align-items:start}
+@media(max-width:900px){.stat-grid{grid-template-columns:1fr}}
+.donut-wrap{text-align:center}
+.donut{width:150px;height:150px;border-radius:50%;margin:0 auto;position:relative;display:flex;align-items:center;justify-content:center}
+.donut .hole{width:96px;height:96px;background:#fff;border-radius:50%;display:flex;flex-direction:column;align-items:center;justify-content:center;position:relative;z-index:1}
+.donut .hole b{font-size:22px;color:var(--t1)}
+.donut .hole span{font-size:11px;color:var(--t3)}
+.dlegend{margin-top:12px;font-size:12px;color:var(--t2);display:flex;flex-direction:column;gap:4px;align-items:center}
+.dlegend i{width:8px;height:8px;border-radius:2px;display:inline-block;margin-right:5px}
+.hbars{display:flex;flex-direction:column;gap:7px}
+.hbar{display:grid;grid-template-columns:88px 1fr 108px;align-items:center;gap:8px;font-size:12px}
+.hbar .nm{color:var(--t2);text-align:right;white-space:nowrap;overflow:hidden}
+.hbar .tr{height:14px;background:#f5f5f5;border-radius:2px;overflow:hidden;position:relative}
+.hbar .tr i{display:block;height:100%;background:#69b1ff;border-radius:2px;transition:width .3s}
+.hbar .tr i.bad{background:#ff7875}
+.hbar .vl{color:var(--t3);white-space:nowrap}
+.hbar:hover .tr i{background:var(--pri)}
+.detail-tbl{width:100%;border-collapse:collapse;font-size:12px;margin-top:14px}
+.detail-tbl th{color:var(--t3);font-weight:400;text-align:right;padding:6px 8px;border-bottom:1px solid var(--bd);white-space:nowrap}
+.detail-tbl th:first-child{text-align:left}
+.detail-tbl td{padding:6px 8px;border-bottom:1px solid #f5f5f5;text-align:right;color:var(--t2);font-variant-numeric:tabular-nums}
+.detail-tbl td:first-child{text-align:left;color:var(--t1)}
+.detail-tbl tr:hover td{background:#fafafa}
+.detail-tbl .expd{color:var(--pri);cursor:pointer;margin-right:4px}
+/* 消息 */
+.msg-row{display:flex;gap:10px;padding:10px 20px;border-bottom:1px solid #f0f0f0;align-items:flex-start;cursor:pointer}
+.msg-row:hover{background:#fafafa}
+.msg-row:last-child{border-bottom:none}
+.msg-row .mi2{width:8px;height:8px;border-radius:50%;background:var(--err);flex:none;margin-top:6px}
+.msg-row .mi2.read{background:transparent;border:1px solid var(--bd2)}
+.msg-row .mb{flex:1;min-width:0}
+.msg-row .mt{font-size:13px;color:var(--t1)}
+.msg-row .mm{font-size:12px;color:var(--t3);margin-top:2px}
+.msg-row .mtail{font-size:12px;color:var(--t4);flex:none}
+.readring{display:inline-flex;align-items:center;gap:6px;font-size:12px;color:var(--t3)}
+.readring .rr{width:26px;height:26px;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;font-size:10px;color:#fff}
+/* AI */
+.ai-groups{display:flex;flex-direction:column;gap:12px}
+.ai-g h4{font-size:12px;color:var(--t3);font-weight:400;margin-bottom:8px;display:flex;align-items:center;gap:6px}
+.ai-g h4 .ag{font-size:11px;color:var(--pri);background:var(--pri-bg);border:1px solid var(--pri-bd);border-radius:8px;padding:0 8px;line-height:17px}
+.skill{display:inline-flex;align-items:center;gap:6px;padding:7px 12px;border:1px solid var(--bd);border-radius:var(--r);font-size:13px;color:var(--t2);cursor:pointer;background:#fff;margin:0 8px 8px 0;transition:all .15s}
+.skill:hover{color:var(--pri);border-color:var(--pri);box-shadow:var(--sh)}
+.skill .si{width:18px;height:18px;border-radius:4px;background:linear-gradient(135deg,#722ed1,#1890ff);color:#fff;font-size:10px;display:inline-flex;align-items:center;justify-content:center;flex:none}
+.agent-task{display:flex;align-items:center;gap:10px;padding:9px 12px;border:1px solid var(--bd);border-radius:var(--r);margin-bottom:8px;background:#fff;font-size:13px}
+.agent-task .sp2{width:14px;height:14px;border:2px solid var(--pri-bd);border-top-color:var(--pri);border-radius:50%;animation:spin 1s linear infinite;flex:none}
+.agent-task .q2{width:14px;height:14px;border-radius:50%;border:2px solid var(--bd2);flex:none}
+.agent-task .ok2{width:14px;height:14px;border-radius:50%;background:var(--ok);color:#fff;font-size:10px;display:inline-flex;align-items:center;justify-content:center;flex:none}
+@keyframes spin{to{transform:rotate(360deg)}}
+.ai-push{border:1px solid #d3adf7;background:#f9f0ff;border-radius:var(--r);padding:10px 12px;font-size:13px;color:var(--t2);display:flex;gap:8px;align-items:flex-start}
+.ai-push .ai-tag{flex:none;font-size:11px;color:#722ed1;border:1px solid #d3adf7;border-radius:3px;padding:0 4px;background:#fff;margin-top:1px}
+/* 最近访问/收藏 */
+.rec-chips{display:flex;flex-wrap:wrap;gap:8px}
+/* 自定义面板 */
+.cust{position:fixed;top:0;right:-340px;width:340px;height:100vh;background:#fff;box-shadow:-6px 0 16px rgba(0,0,0,.12);z-index:120;transition:right .25s;display:flex;flex-direction:column}
+.cust.open{right:0}
+.cust-h{padding:16px 20px;border-bottom:1px solid var(--bd);display:flex;align-items:center;font-size:15px;color:var(--t1);font-weight:600}
+.cust-h .x{margin-left:auto;cursor:pointer;color:var(--t3);font-size:16px}
+.cust-b{flex:1;overflow-y:auto;padding:12px 20px}
+.cust-item{display:flex;align-items:center;gap:8px;padding:10px 0;border-bottom:1px solid #f0f0f0;font-size:13px;color:var(--t1)}
+.cust-item small{display:block;font-size:11px;color:var(--t3);font-weight:400}
+.cust-item .mv2{margin-left:auto;display:flex;gap:4px}
+.cust-item .eye{cursor:pointer;color:var(--pri);font-size:14px;padding:2px 4px}
+.cust-item.off .eye{color:var(--t4)}
+.cust-item.off .nm2{color:var(--t4)}
+.cust-f{padding:14px 20px;border-top:1px solid var(--bd);font-size:12px;color:var(--t3);line-height:1.7;background:#fafafa}
+/* 抽屉 AI 助手 */
+.mask{position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:100;display:none}
+.mask.on{display:block}
+.drawer{position:fixed;top:0;right:-460px;width:440px;max-width:92vw;height:100vh;background:#fff;z-index:110;box-shadow:var(--sh2);transition:right .25s;display:flex;flex-direction:column}
+.drawer.on{right:0}
+.dr-h{padding:14px 20px;border-bottom:1px solid var(--bd);display:flex;align-items:center;gap:10px}
+.dr-h .t{font-size:15px;font-weight:600;color:var(--t1)}
+.dr-h .ag-chip{font-size:11px;color:var(--pri);background:var(--pri-bg);border:1px solid var(--pri-bd);border-radius:10px;padding:1px 8px}
+.dr-h .x{margin-left:auto;cursor:pointer;color:var(--t3);font-size:16px;padding:4px}
+.dr-ctx{padding:8px 20px;background:var(--pri-bg);border-bottom:1px solid var(--bd);font-size:12px;color:var(--t2);display:flex;align-items:center;gap:6px}
+.dr-body{flex:1;overflow-y:auto;padding:16px 20px;display:flex;flex-direction:column;gap:12px}
+.msg-u{align-self:flex-end;max-width:85%;background:var(--pri);color:#fff;border-radius:8px 8px 2px 8px;padding:9px 12px;font-size:13px;line-height:1.7;white-space:pre-wrap}
+.msg-a{align-self:flex-start;max-width:92%;background:#fafafa;border:1px solid var(--bd);border-radius:8px 8px 8px 2px;padding:10px 12px;font-size:13px;color:var(--t2);line-height:1.7}
+.msg-a .acard{background:#fff;border:1px solid var(--bd);border-radius:var(--r);margin:8px 0;overflow:hidden}
+.msg-a .acard .ah{padding:8px 12px;background:#fafafa;border-bottom:1px solid var(--bd);font-size:13px;color:var(--t1);font-weight:600;display:flex;align-items:center;gap:6px}
+.msg-a .acard .ab{padding:10px 12px;font-size:12px}
+.msg-a .acard .af2{padding:8px 12px;border-top:1px solid #f0f0f0;display:flex;gap:8px;align-items:center}
+.msg-a .cite{font-size:11px;color:var(--t3);margin-top:6px}
+.msg-a .cite a{margin-right:8px}
+.msg-a .fb{display:flex;gap:10px;margin-top:8px;font-size:12px;color:var(--t4)}
+.msg-a .fb span{cursor:pointer}
+.msg-a .fb span:hover{color:var(--pri)}
+.st-row{display:flex;align-items:center;gap:8px;padding:5px 0;border-bottom:1px dashed #f0f0f0;font-size:12px}
+.st-row:last-child{border-bottom:none}
+.st-row .sn{width:52px;color:var(--t3);flex:none}
+.st-row .sw{flex:1;color:var(--t2)}
+.dr-quick{padding:8px 20px 0;display:flex;gap:6px;flex-wrap:wrap}
+.dr-in{padding:12px 20px 16px;display:flex;gap:8px;align-items:flex-end}
+.dr-in textarea{flex:1;border:1px solid var(--bd2);border-radius:var(--r);padding:8px 10px;font-size:13px;font-family:inherit;resize:none;height:60px;outline:none;color:var(--t1)}
+.dr-in textarea:focus{border-color:var(--pri);box-shadow:0 0 0 2px rgba(24,144,255,.2)}
+/* 模态 */
+.modal{position:fixed;inset:0;z-index:130;display:none;align-items:center;justify-content:center}
+.modal.on{display:flex}
+.modal .m-mask{position:absolute;inset:0;background:rgba(0,0,0,.45)}
+.modal .m-box{position:relative;width:440px;max-width:92vw;background:#fff;border-radius:var(--r);box-shadow:var(--sh2);padding:24px}
+.modal .m-t{font-size:16px;color:var(--t1);font-weight:600;display:flex;gap:10px;align-items:flex-start}
+.modal .m-t .ic{color:var(--warn);font-size:18px;line-height:1.3}
+.modal .m-c{font-size:13px;color:var(--t2);line-height:1.8;margin:10px 0 4px;padding-left:28px}
+.modal .m-c .scope{background:#fafafa;border:1px solid var(--bd);border-radius:var(--r);padding:10px 12px;margin-top:8px;font-size:12px;color:var(--t3)}
+.modal .m-f{display:flex;justify-content:flex-end;gap:8px;margin-top:18px}
+/* toast */
+.toast{position:fixed;top:70px;left:50%;transform:translateX(-50%);z-index:200;background:#fff;box-shadow:var(--sh2);border-radius:var(--r);padding:10px 16px;font-size:13px;color:var(--t1);display:none;align-items:center;gap:8px;max-width:80vw}
+.toast.on{display:flex}
+.toast .ok{color:var(--ok);font-size:15px}
+
+/* ===== 一个流 ===== */
+.flow-wrap{max-width:1180px;margin:0 auto;padding:24px}
+.flow-top{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:16px}
+.flow-top h2{font-size:20px;color:var(--t1);margin-right:auto}
+.flow-grid{display:grid;grid-template-columns:240px 1fr;gap:16px;align-items:start}
+@media(max-width:900px){.flow-grid{grid-template-columns:1fr}}
+.elev{position:sticky;top:120px}
+.elev .e-step{display:flex;gap:10px;padding:12px 14px;cursor:pointer;position:relative}
+.elev .e-step .e-ic{width:24px;height:24px;border-radius:50%;border:2px solid var(--bd2);background:#fff;color:var(--t4);font-size:12px;display:flex;align-items:center;justify-content:center;flex:none;z-index:1}
+.elev .e-step::before{content:"";position:absolute;left:25px;top:0;bottom:0;width:2px;background:var(--bd)}
+.elev .e-step:first-child::before{top:24px}
+.elev .e-step:last-child::before{bottom:auto;height:24px}
+.elev .e-step .e-nm{font-size:14px;color:var(--t2);line-height:24px}
+.elev .e-step .e-st{font-size:11px;color:var(--t4)}
+.elev .e-step.done .e-ic{border-color:var(--ok);background:var(--ok);color:#fff}
+.elev .e-step.cur .e-ic{border-color:var(--pri);background:var(--pri);color:#fff}
+.elev .e-step.cur{background:var(--pri-bg);border-radius:var(--r)}
+.elev .e-step.cur .e-nm{color:var(--pri);font-weight:600}
+.elev .e-step.hot .e-ic{border-color:var(--err);background:var(--err);color:#fff}
+.flow-step{padding:20px 24px;margin-bottom:16px;scroll-margin-top:130px}
+.flow-step h3{font-size:16px;color:var(--t1);display:flex;align-items:center;gap:10px;margin-bottom:4px}
+.flow-step h3 .backtop{margin-left:auto;font-size:12px;color:var(--t4);cursor:pointer}
+.fs-meta{display:grid;grid-template-columns:repeat(4,1fr);gap:1px;background:var(--bd);border:1px solid var(--bd);border-radius:var(--r);overflow:hidden;margin:14px 0}
+@media(max-width:900px){.fs-meta{grid-template-columns:repeat(2,1fr)}}
+.fs-meta .fm{background:#fff;padding:10px 14px}
+.fs-meta .fm i{font-style:normal;font-size:11px;color:var(--t3);display:block}
+.fs-meta .fm b{font-size:14px;color:var(--t1);font-weight:500}
+.fs-sub{display:flex;align-items:stretch;gap:0;margin:14px 0;flex-wrap:wrap}
+.fs-node{flex:1;min-width:130px;border:1px solid var(--bd);padding:10px 12px;position:relative;background:#fff;font-size:12px}
+.fs-node:first-child{border-radius:var(--r) 0 0 var(--r)}
+.fs-node:last-child{border-radius:0 var(--r) var(--r) 0}
+.fs-node+.fs-node{border-left:none}
+.fs-node b{display:block;font-size:13px;color:var(--t1);margin-bottom:4px}
+.fs-node .fw{color:var(--t3)}
+.fs-node.on{border-color:var(--pri);box-shadow:0 0 0 1px var(--pri) inset;background:var(--pri-bg)}
+.fs-node.on b{color:var(--pri)}
+.fs-node.hot{border-color:var(--err);background:var(--err-bg)}
+.fs-node.hot b{color:var(--err)}
+.fs-node.ok2{background:var(--ok-bg);border-color:var(--ok-bd)}
+.fs-node .stay2{margin-top:4px;color:var(--t4)}
+.fs-acts{display:flex;gap:8px;flex-wrap:wrap;margin-top:6px}
+.fs-note{font-size:12px;color:var(--t3);background:#fafafa;border:1px dashed var(--bd2);border-radius:var(--r);padding:8px 12px;margin-top:12px;line-height:1.7}
+.flow-prog{display:flex;align-items:center;gap:12px;padding:14px 24px;margin-bottom:16px}
+.flow-prog .lab{font-size:13px;color:var(--t2);white-space:nowrap}
+.flow-prog .bar{flex:1;height:8px;background:#f0f0f0;border-radius:4px;overflow:hidden}
+.flow-prog .bar i{display:block;height:100%;background:linear-gradient(90deg,#1890ff,#69b1ff);border-radius:4px}
+
+/* 组件清单视图 */
+.comp-wrap{max-width:1280px;margin:0 auto;padding:28px 24px 60px}
+.comp-wrap h2{font-size:22px;color:var(--t1);margin-bottom:4px}
+.comp-lead{font-size:13px;color:var(--t3);margin-bottom:20px}
+.antd-tag{display:inline-block;font-size:11px;color:#0958d9;background:#f0f5ff;border:1px solid #adc6ff;border-radius:3px;padding:0 5px;margin:1px 2px 1px 0;white-space:nowrap}
+.newdev{display:inline-block;font-size:11px;color:#d46b08;background:#fff7e6;border:1px solid #ffd591;border-radius:3px;padding:0 5px;margin-left:4px}
+.reuse{display:inline-block;font-size:11px;color:#389e0d;background:#f6ffed;border:1px solid #b7eb8f;border-radius:3px;padding:0 5px;margin-left:4px}
+footer.ep-foot{padding:24px;text-align:center;font-size:12px;color:var(--t4)}
+</style>
+</head>
+<body>
+<!-- ===== 演示导航（原型外壳，非 EP 系统 UI） ===== -->
+<div class="dnav">
+  <span class="dnav-logo"><span class="dot">EP</span>采购工作台优化 · 方案与原型 v2</span>
+  <div class="dnav-tabs">
+    <div class="dnav-tab on" data-nav="plan">一、优化方案</div>
+    <div class="dnav-tab" data-nav="proto">二、工作台原型</div>
+    <div class="dnav-tab" data-nav="flow">三、一个流 Workspace</div>
+    <div class="dnav-tab" data-nav="comp">四、组件清单与路线</div>
+  </div>
+  <span class="dnav-meta">Ant Design 3.26 · 2026-10-13</span>
+</div>
+
+<!-- ================= 视图一：优化方案 ================= -->
+<div class="view on" id="view-plan">
+
+  <div class="plan-hero">
+    <div class="plan-hero-in">
+      <div class="plan-kicker">小米汽车 EP 生产采购系统 · Q4 立项方案</div>
+      <h1>把首页从「单据罗列」，变成「干活的地方」</h1>
+      <div class="plan-hero-sub">采购工作台定位升级：<b>流程驱动 + 角色化 + AI 增强</b>的任务中心。同一套组件，按角色组装；一条业务主线，从 SOR 串到合同；每一次点击，都直接落在"要做的事"上。</div>
+      <div class="hero-q">
+        <div class="q"><i>问题一</i><b>今天要做什么</b><div style="font-size:12px;color:rgba(255,255,255,.55);margin-top:6px">策展排序的待办 + 行内直接操作</div></div>
+        <div class="q"><i>问题二</i><b>流程到哪了</b><div style="font-size:12px;color:rgba(255,255,255,.55);margin-top:6px">项目 × 节点矩阵 + 一个流 Workspace</div></div>
+        <div class="q"><i>问题三</i><b>什么需要我行动</b><div style="font-size:12px;color:rgba(255,255,255,.55);margin-top:6px">预警分级 + 消息中心 + AI 主动推送</div></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 第一幕 现状 -->
+  <div class="sec">
+    <div class="sec-no"><span class="n">1</span><h2>为什么改：工作台不是功能门户，是我的工作入口</h2></div>
+    <div class="sec-lead">现有首页六个模块方向正确，但四个结构性问题让它停留在"信息展示"，没有成为"行动入口"。</div>
+    <div class="grid4">
+      <div class="card pain"><div class="p-no">PAIN 01</div><h3>待办罗列，无轻重</h3><p>各模块单据堆进列表，不分紧急度、不标 SLA、不能行内处理，每件事都要点进详情页操作一遍。</p><div class="cost">处理一条待办平均 3 次跳转</div></div>
+      <div class="card pain"><div class="p-no">PAIN 02</div><h3>工作流导航本质是表格</h3><p>一个包一行单据，包一多就乱；进度按"完成环节数"粗算，看不出谁在办、卡在哪、停了多久。</p><div class="cost">负责人包多时该模块失效</div></div>
+      <div class="card pain"><div class="p-no">PAIN 03</div><h3>首页信息过载</h3><p>流程、AI、动态、概览全部平铺一屏，缺少"一眼看出我做了什么、哪些要弄"的汇总视角。</p><div class="cost">老板与执行者看到的信息相同</div></div>
+      <div class="card pain"><div class="p-no">PAIN 04</div><h3>菜单找不到</h3><p>菜单按系统模块组织、数量多，没有主题化分组、收藏和最近访问，新人跨职能都难定位页面。</p><div class="cost">改一个页面找半天</div></div>
+    </div>
+    <div class="quote-bar">
+      <div class="qt">"我看了导航，根本看不明白。""首页是不是东西太多了？一眼都能看出来我做了什么东西、哪些东西要弄，这一块挺好的。"</div>
+      <div class="qs">2026-10-13 采购工作台方案讨论会 · 前端 张平 / 叶放</div>
+    </div>
+  </div>
+
+  <!-- 第二幕 对标 -->
+  <div class="sec">
+    <div class="sec-no"><span class="n">2</span><h2>向谁学：16 个产品验证 7 大趋势，NIO 是同类最佳</h2></div>
+    <div class="sec-lead">外部对标来自《采购工作台对标研究报告》：采购供应链 6 个、企业工作台 5 个、协同 SaaS 5 个；内部对标 <b>Miracle、IDP、NIO 采购平台</b>。Miracle / IDP 组件不能直接复用——技术栈不同，但交互形态可借鉴；<b>NIO 采购平台与 EP 同为车企采购系统，其工作台打法逐条映射为 EP 的落地动作。</b></div>
+    <div class="grid2">
+      <div>
+        <div class="tbl-wrap">
+          <div class="tbl-cap"><h3>七大趋势 → EP 映射</h3><p>16 个产品交叉验证的共同方向</p></div>
+          <table class="tbl">
+            <tr><th>趋势</th><th>代表产品</th><th>EP 落点</th></tr>
+            <tr><td class="em">任务中心化</td><td>Ariba / Coupa / Linear / Asana</td><td>待办策展排序 + 行内操作</td></tr>
+            <tr><td class="em">角色化千人千面</td><td>Salesforce / 飞书 / 钉钉 / 企企通</td><td>六角色 × 模块配置</td></tr>
+            <tr><td class="em">流程节点可视化</td><td>Ivalua / Ariba / Jira / 泛微</td><td>项目 × 节点矩阵 + 一个流</td></tr>
+            <tr><td class="em">数据看板实时化</td><td>飞书仪表盘 / Monday / 甄云</td><td>指标卡 + 趋势 + 下钻</td></tr>
+            <tr><td class="em">AI 助手标配</td><td>Joule / Coupa / GEP Qi / IVA</td><td>AI 入口三形态 + Agent 任务卡</td></tr>
+            <tr><td class="em">通知分级降噪</td><td>Linear Inbox / 企微 / 飞书</td><td>预警只显示"需要我行动"</td></tr>
+            <tr><td class="em">生态开放</td><td>Ariba 网络 / AppExchange / anycross</td><td>跨系统统一入口 · 远期</td></tr>
+          </table>
+        </div>
+      </div>
+      <div>
+        <div class="tbl-wrap">
+          <div class="tbl-cap"><h3>NIO 采购平台做法 → EP 落地动作<span class="nio-flag">主对标</span></h3><p>同为车企生产采购，场景同构度最高</p></div>
+          <table class="tbl nio-map">
+            <tr><th>NIO 做法</th><th>EP 落地动作</th></tr>
+            <tr><td>工作台按角色设计<br><span style="font-weight:400;color:var(--t3);font-size:12px">快速掌控进展，快速进入状态</span></td><td>采购员 / CE / PM / SIE / SQE / 物流 六角色，同一工作台按配置组装模块与数据</td></tr>
+            <tr><td>任务可视化<br><span style="font-weight:400;color:var(--t3);font-size:12px">任务类型、数量、节点、状态</span></td><td>待办按模块分组 + 数量角标 + 状态页签 + 优先级徽标；看板视图切换</td></tr>
+            <tr><td>任务快速定位<br><span style="font-weight:400;color:var(--t3);font-size:12px">工作台作为各功能页面导航入口</span></td><td>矩阵节点点击直达单据；收藏 + 最近访问菜单；全局搜索 / Cmd+K</td></tr>
+            <tr><td>常用业务场景【一个流】<br><span style="font-weight:400;color:var(--t3);font-size:12px">Workspace 展现全流程与关键节点，一次性分步骤完成</span></td><td>新增「一个流 Workspace」：选定业务包，竖向电梯导航沿 SOR→BDL→RFQ→定点→合同 逐步推进</td></tr>
+            <tr><td>寻源主流程优化<br><span style="font-weight:400;color:var(--t3);font-size:12px">步骤引导、竖向电梯导航、核心信息前置、关键状态突出</span></td><td>单据流程页统一改造：核心字段前置卡 + 流程节点条 + 关键状态高亮，组件全站复用</td></tr>
+            <tr><td>通知公告 + 自适应屏效</td><td>消息中心三级分类 + 已读追踪 + 催办；首页栅格自适应</td></tr>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 第三幕 设计 -->
+  <div class="sec">
+    <div class="sec-no"><span class="n">3</span><h2>改成什么样：三条原则，八个模块</h2></div>
+    <div class="grid4" style="grid-template-columns:repeat(3,1fr)">
+      <div class="card prin"><div class="pi">🎭</div><h3>原则一 · 角色化</h3><p>组件库 → 角色配置 → 个人自定义，三层结构。<b>组织默认版兜底，角色决定模块组合，个人再微调顺序与收藏。</b>PM 看进度与负荷，CE 看核价与偏差，采购员看待办与回标。</p></div>
+      <div class="card prin"><div class="pi">⛓️</div><h3>原则二 · 流程驱动</h3><p>以 SOR→BDL→RFQ→定点→合同 业务主线为骨架，<b>待办挂在节点上，节点点进去就是工作现场</b>；一个流 Workspace 让新场景一次性分步骤走完。</p></div>
+      <div class="card prin"><div class="pi">🤖</div><h3>原则三 · AI 前台化</h3><p>已开发的 skill 全部前置到工作台：点击 skill 即把映射 prompt 填入 EP 智能助手并切到对应 Agent。<b>从"能力罗列"到"查得准、答得对、能催办"。</b></p></div>
+    </div>
+
+    <div style="margin:28px 0 10px;font-size:16px;font-weight:600;color:var(--t1)">八个模块的 Before → After</div>
+    <div class="tbl-wrap">
+      <table class="tbl">
+        <tr><th style="width:150px">模块</th><th>现状</th><th>升级后</th><th style="width:170px">对标</th><th style="width:60px">优先级</th></tr>
+        <tr><td class="em">① 任务中心<br><span style="font-weight:400;color:var(--t3);font-size:12px">我的待办</span></td><td>按模块罗列，逐条点进详情处理</td><td>策展排序：紧急→SLA→阻塞→进行中→其他；状态页签；<span class="em">行内通过/驳回/催办</span>；角标红点；列表/看板双视图；逾期红字直出</td><td>Linear / Asana<br>Coupa / GEP</td><td>P0</td></tr>
+        <tr><td class="em">② 流程状态矩阵<br><span style="font-weight:400;color:var(--t3);font-size:12px">工作流导航</span></td><td>项目×节点表格，进度粗算环节数</td><td>节点状态徽标 + <span class="em">子步骤展开</span>：执行人、停留时长、超期警示；紧急包置顶标红；节点点击直达单据；进度按节点自动计算</td><td>Ivalua / Ariba<br>Jira / 泛微</td><td>P0</td></tr>
+        <tr><td class="em">③ 预警卡片</td><td>预警与动态混排</td><td>只显示"需要当前角色行动"：SLA 到期、阻塞、被催办；红黄蓝三级；处理后自动消失；规则可配置</td><td>Linear / GEP<br>甄云</td><td>P0</td></tr>
+        <tr><td class="em">④ 待办统计<br><span style="font-weight:400;color:var(--t3);font-size:12px">老板视角</span></td><td>无</td><td>逾期/未逾期圆环 + 组内成员完成率条 + 明细下钻表；<span class="em">一眼看出做了哪些、哪些要弄</span>；PM/管理者角色默认展示</td><td>叶放参考设计<br>飞书仪表盘</td><td>P0</td></tr>
+        <tr><td class="em">⑤ 指标概览<br><span style="font-weight:400;color:var(--t3);font-size:12px">本月概览</span></td><td>8 个静态数字</td><td>指标卡 + 环比 + 迷你趋势线，点击下钻明细；数据与单据流转同源自动更新</td><td>飞书 / Monday<br>甄云 / Jira</td><td>P0</td></tr>
+        <tr><td class="em">⑥ 消息动态中心<br><span style="font-weight:400;color:var(--t3);font-size:12px">最近动态</span></td><td>时间流混排</td><td>待行动 / 跟进 / 系统消息三级 Tab；已读未读；催办已读追踪 + 一键催办未读人</td><td>Linear Inbox<br>企微 / 飞书</td><td>P0/P1</td></tr>
+        <tr><td class="em">⑦ AI 能力入口<br><span style="font-weight:400;color:var(--t3);font-size:12px">能力地图落地</span></td><td>能力罗列，点击无响应</td><td>skill 点击 → prompt 填入智能助手 + 自动切 Agent；Agent 任务卡；AI 摘要主动推送；L0→L3 分层建设</td><td>Joule / Coupa<br>GEP Qi / IVA</td><td>P1</td></tr>
+        <tr><td class="em">⑧ 组件化定制<br><span style="font-weight:400;color:var(--t3);font-size:12px">添加组件+拖拽</span></td><td>固定布局</td><td>模块显隐 / 排序 / 收藏即时生效；<span class="em">拖拽自由组合为 EP 自研组件</span>，首期用显隐+排序降级实现，二期上拖拽设计器</td><td>Miracle / 钉钉<br>Salesforce</td><td>P0 简版<br>P1 完整</td></tr>
+      </table>
+    </div>
+
+    <div style="margin:28px 0 10px;font-size:16px;font-weight:600;color:var(--t1)">角色 × 模块矩阵：一个工作台，六张面孔</div>
+    <div class="tbl-wrap">
+      <table class="tbl">
+        <tr><th>角色</th><th class="cell-dot">预警</th><th class="cell-dot">任务中心</th><th class="cell-dot">流程矩阵</th><th class="cell-dot">待办统计</th><th class="cell-dot">指标概览</th><th class="cell-dot">消息动态</th><th class="cell-dot">AI 入口</th><th class="cell-dot">收藏/最近</th><th>首页重心</th></tr>
+        <tr><td class="em">采购员</td><td class="cell-dot">●</td><td class="cell-dot">●</td><td class="cell-dot">●</td><td class="cell-dot">○</td><td class="cell-dot">○</td><td class="cell-dot">●</td><td class="cell-dot">●</td><td class="cell-dot">●</td><td>今日待办与回标进度</td></tr>
+        <tr><td class="em">CE 成本工程师</td><td class="cell-dot">●</td><td class="cell-dot">●</td><td class="cell-dot">○</td><td class="cell-dot">—</td><td class="cell-dot">●</td><td class="cell-dot">○</td><td class="cell-dot">●</td><td class="cell-dot">●</td><td>核价任务与成本偏差</td></tr>
+        <tr><td class="em">PM 项目经理</td><td class="cell-dot">●</td><td class="cell-dot">○</td><td class="cell-dot">●</td><td class="cell-dot">●</td><td class="cell-dot">●</td><td class="cell-dot">●</td><td class="cell-dot">●</td><td class="cell-dot">○</td><td>项目进度与团队负荷</td></tr>
+        <tr><td class="em">SIE 采购工程</td><td class="cell-dot">●</td><td class="cell-dot">●</td><td class="cell-dot">●</td><td class="cell-dot">○</td><td class="cell-dot">○</td><td class="cell-dot">●</td><td class="cell-dot">○</td><td class="cell-dot">●</td><td>供应商准入与样件交付</td></tr>
+        <tr><td class="em">SQE 供应商质量</td><td class="cell-dot">●</td><td class="cell-dot">●</td><td class="cell-dot">○</td><td class="cell-dot">○</td><td class="cell-dot">●</td><td class="cell-dot">●</td><td class="cell-dot">○</td><td class="cell-dot">●</td><td>质量问题与 8D 闭环</td></tr>
+        <tr><td class="em">物流</td><td class="cell-dot">●</td><td class="cell-dot">●</td><td class="cell-dot">○</td><td class="cell-dot">—</td><td class="cell-dot">—</td><td class="cell-dot">●</td><td class="cell-dot">○</td><td class="cell-dot">●</td><td>到货差异与对账</td></tr>
+      </table>
+      <div class="matrix-legend">● 默认展示　○ 次级/可开启　— 隐藏　·　角色配置由管理员维护，个人在角色默认版之上微调</div>
+    </div>
+  </div>
+
+  <!-- 第四幕 AI -->
+  <div class="sec">
+    <div class="sec-no"><span class="n">4</span><h2>AI 怎么落：四层能力，三种形态，首批十个场景</h2></div>
+    <div class="sec-lead">来自《AI 对话能力建设方案》：不做一步到位的全自动 Agent，<b>按 L0 问答 → L1 上下文助手 → L2 行动 Agent → L3 多 Agent 编排</b>渐进建设，每个层级独立可验收；L2 以上动作一律"建议-确认-执行"，全量审计。</div>
+    <div class="grid2">
+      <div class="tbl-wrap">
+        <div class="tbl-cap"><h3>能力分层与入口形态</h3></div>
+        <table class="tbl">
+          <tr><th>层级</th><th>能力</th><th>典型场景</th><th>依赖</th></tr>
+          <tr><td class="em">L0 问答</td><td>知识问答、单据查询</td><td>"回标率怎么算""XX 项目到哪了"</td><td>RAG + 权限</td></tr>
+          <tr><td class="em">L1 上下文</td><td>感知当前页面/角色</td><td>"总结这份报价差异"</td><td>工作台上下文注入</td></tr>
+          <tr><td class="em">L2 行动</td><td>建议-确认-执行</td><td>"给未回标供应商发催办"</td><td>权限 + 确认组件</td></tr>
+          <tr><td class="em">L3 编排</td><td>跨节点任务拆解</td><td>"本周到期定点跟进一遍"</td><td>流程引擎</td></tr>
+        </table>
+        <div style="padding:12px 18px;font-size:13px;color:var(--t2);border-top:1px solid var(--bd)">三种入口形态：<span class="tag tag-blue">全局入口</span> 首页搜索框 + Cmd+K + 侧边对话窗　<span class="tag tag-blue">节点内嵌</span> 矩阵节点/单据页旁的 AI 建议气泡　<span class="tag tag-blue">主动推送</span> 首页摘要卡与消息中心</div>
+      </div>
+      <div class="tbl-wrap">
+        <div class="tbl-cap"><h3>首批 P0 场景（按流程节点）</h3></div>
+        <table class="tbl">
+          <tr><th>节点</th><th>场景</th><th>层级</th></tr>
+          <tr><td class="em">RFQ</td><td>回标监控与一键催办 · 报价对比分析</td><td>L2 / L1</td></tr>
+          <tr><td class="em">SOR</td><td>SOR 撰写辅助 · 评审摘要</td><td>L1</td></tr>
+          <tr><td class="em">定点</td><td>定标周期预警：超 30 天自动说明卡在哪</td><td>L2</td></tr>
+          <tr><td class="em">通用</td><td>查单状态 · 今日待办摘要 · 知识问答</td><td>L0 / L1</td></tr>
+        </table>
+        <div style="padding:12px 18px;font-size:13px;color:var(--t2);border-top:1px solid var(--bd)">落地路径已确认：智能助手为通用 NPM 包，<b>提供"填入 prompt + 切换 Agent"方法</b>即可打通首页 skill 点击；回复可溯源、权限随用户、数据不出租户。</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 第五幕 落地 -->
+  <div class="sec">
+    <div class="sec-no"><span class="n">5</span><h2>怎么落地：先方案定组件，再按评估排期</h2></div>
+    <div class="sec-lead">会议结论：<b>Miracle / IDP 组件不可搬运，EP 全部基于 Ant Design 3.26 原子组件重新组装</b>；能拼装的先上，需新开发的提前立项。组件逐项评估见「组件清单与路线」页。</div>
+
+    <div class="grid2" style="margin-bottom:20px">
+      <div class="card" style="padding:22px 26px;border-top:3px solid var(--pri)">
+        <h3 style="font-size:16px;color:var(--t1);margin-bottom:14px">会议结论 · 回应「重复建设」关切<span style="font-size:12px;color:var(--t3);font-weight:400;margin-left:8px">2026-10-13 与前端 叶放 / 张平 对齐</span></h3>
+        <ol style="font-size:13px;color:var(--t2);line-height:2;padding-left:18px">
+          <li><b>不搬运、不另起。</b>Miracle 工作台与 EP 底层框架、技术栈不同，代码无法迁移，只借鉴交互形态；EP 不自建第二套设计体系，全部用 EP 现有 antd 3.26 原子组件组装，样式与线上页面天然一致。</li>
+          <li><b>不自建第二个 AI 助手。</b>EP 智能助手是通用 NPM 包，工作台只做「入口 + 上下文注入」：skill 点击调用助手方法填入 prompt、切换 Agent；对话运行时、鉴权改版均由助手侧演进，我们只提接口需求。</li>
+          <li><b>不重复开发 skill 本身。</b>已开发的 CLI / AgentSpace skill 直接挂到 AI 能力入口展示与调用，工作台不造第二套 Agent 执行链路。</li>
+          <li><b>不建第二条统计链路。</b>待办完成率、逾期数、停留时长等统计走后端开放接口供数，前端只展示；参考系统已验证该模式可行。</li>
+          <li><b>唯一确认的新开发件</b>：拖拽布局设计器（涉及布局状态保存接口，P1）；首期用「显隐 + 排序 + 收藏」降级满足业务诉求。</li>
+          <li><b>流程结论</b>：先方案后组件再排期——周四方案评审定模块，按「组件清单与路线」页逐行评估排期，12 月开发窗口前完成组件储备；菜单主题化改版先与业务确认必要性，避免过度设计。</li>
+        </ol>
+      </div>
+      <div class="tbl-wrap">
+        <div class="tbl-cap"><h3>重复建设边界表</h3><p>每一项：不做什么 / 复用什么 / 谁供数</p></div>
+        <table class="tbl">
+          <tr><th>能力</th><th>我们不做</th><th>复用 / 边界</th></tr>
+          <tr><td class="em">AI 对话</td><td>第二个助手、第二套 Agent 运行时</td><td>EP 智能助手 NPM 包，需助手侧暴露「填 prompt + 切 Agent」方法（跨仓库，叶放已确认可实现）</td></tr>
+          <tr><td class="em">AI skill</td><td>工作台内重复开发技能</td><td>已开发 CLI / AgentSpace skill 直接挂载调用</td></tr>
+          <tr><td class="em">组件库</td><td>搬运 Miracle / IDP 代码、自研设计体系</td><td>EP 现有 antd 3.26 原子组件拼装；版本不升级不引入新栈</td></tr>
+          <tr><td class="em">待办与统计</td><td>第二套待办存储、前端造统计口径</td><td>各模块待办聚合 + 待办统计开放接口，后端供数</td></tr>
+          <tr><td class="em">布局定制</td><td>P0 不上拖拽设计器</td><td>显隐 / 排序 / 收藏先落地；拖拽 P1 自研并保存个人配置</td></tr>
+          <tr><td class="em">菜单</td><td>不盲目全量改 Layout</td><td>收藏 + 最近访问改动小可做；主题化分组待业务确认</td></tr>
+        </table>
+      </div>
+    </div>
+
+    <div class="rm">
+      <div class="card rm-col p0"><h3>P0 · 工作台 1.0</h3><div class="when">方案评审后启动，1-2 个季度</div>
+        <div class="theme">行动闭环</div>
+        <ul><li>待办策展排序 + 状态页签 + 行内操作</li><li>流程状态矩阵：子步骤 / 执行人 / 停留时长</li><li>预警分级"只显示需要我行动的"</li><li>指标卡 + 趋势 + 下钻</li><li>待办统计：完成率圆环 + 明细下钻</li><li>模块显隐与排序 · 收藏 · 最近访问</li></ul></div>
+      <div class="card rm-col p1"><h3>P1 · 流程与 AI</h3><div class="when">半年内</div>
+        <div class="theme">一个流 + 智能</div>
+        <ul><li>一个流 Workspace + 竖向电梯导航</li><li>AI 入口：prompt 注入 + Agent 切换 + 摘要推送</li><li>拖拽布局设计器（EP 自研组件）</li><li>自动化规则：BDL 通过自动建 RFQ、临期自动催办</li><li>催办已读追踪 + 一键催办未读人</li></ul></div>
+      <div class="card rm-col p2"><h3>P2 · 生态与生成式</h3><div class="when">远期方向</div>
+        <div class="theme">开放演进</div>
+        <ul><li>供应商外部门户 / 受限视图</li><li>多 Agent 编排：跨节点自动跟进</li><li>AI 按任务动态组装首页（生成式 UI）</li><li>跨系统统一入口 launchpad</li></ul></div>
+    </div>
+    <div class="quote-bar" style="margin-top:16px">
+      <div class="qt"><b>本周动作：</b>① 周四方案评审，以本原型 + 组件清单为讨论底稿；② 与业务确认角色矩阵与模块取舍；③ 前端按「组件清单与路线」页评估新开发项排期；④ 与智能助手侧确认 prompt 注入方法的接口形式。</div>
+      <div class="qs">对齐 12 月开发窗口，前期调研与组件储备先行</div>
+    </div>
+  </div>
+
+  <!-- 第六幕 验证 -->
+  <div class="sec">
+    <div class="sec-no"><span class="n">6</span><h2>怎么算成：五个可量化验收指标</h2></div>
+    <div class="grid4" style="grid-template-columns:repeat(5,1fr)">
+      <div class="card kpi"><div class="kv">↓50<small>%</small></div><div class="kl">待办平均处理时长</div><div class="kd">行内操作替代逐单跳转</div></div>
+      <div class="card kpi"><div class="kv">≥40<small>%</small></div><div class="kl">待办行内直接处理占比</div><div class="kd">衡量"工作台=行动入口"</div></div>
+      <div class="card kpi"><div class="kv">↓<small> </small></div><div class="kl">待办逾期率</div><div class="kd">SLA 标注 + 催办追踪驱动</div></div>
+      <div class="card kpi"><div class="kv">3<small> 次点击内</small></div><div class="kl">任意功能页可达</div><div class="kd">矩阵直达 + 收藏 + 搜索</div></div>
+      <div class="card kpi"><div class="kv">≥50<small>%</small></div><div class="kl">AI 建议采纳率</div><div class="kd">P0 期末，反馈闭环校准</div></div>
+    </div>
+  </div>
+
+  <div style="height:40px"></div>
+</div>
+<!-- ================= 视图二：工作台原型 ================= -->
+<div class="view" id="view-proto">
+
+  <!-- EP 系统顶栏 -->
+  <div class="ep-top">
+    <div class="ep-top-in">
+      <span class="ep-logo"><span class="mi">MI</span>EP 生产采购系统</span>
+      <nav class="ep-menu" id="epMenu"></nav>
+      <div class="ep-search" data-act="open-ai"><span>🔍</span> 搜单据 / 问 AI 助手<span class="kbd">⌘K</span></div>
+      <div class="ep-acts">
+        <span class="ep-bell badge-dot" data-act="scroll-feed" title="消息">🔔</span>
+        <div class="ep-role" id="epRoleChip">
+          <span class="ep-avatar" id="epAvatar">齐</span>
+          <span class="who" id="epWho">齐岳<small>采购员 · 电驱采购组</small></span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 角色切换（演示控件） -->
+  <div class="rolebar"><span class="lb">演示 · 切换角色：</span><span id="roleChips"></span>
+    <span style="margin-left:auto;display:flex;gap:8px">
+      <button class="btn btn-sm" data-act="toggle-cust">⚙ 自定义工作台</button>
+      <button class="btn btn-sm" data-act="reset-cust">恢复角色默认</button>
+    </span>
+  </div>
+
+  <!-- 工作台主体：模块由 JS 按角色配置渲染 -->
+  <div class="wb" id="wbRoot">
+    <div class="wb-col" id="wbMain"></div>
+    <div class="wb-col" id="wbSide"></div>
+  </div>
+
+  <!-- 自定义面板 -->
+  <div class="cust" id="custPanel">
+    <div class="cust-h">自定义工作台<span class="x" data-act="toggle-cust">✕</span></div>
+    <div class="cust-b" id="custBody"></div>
+    <div class="cust-f">首期实现：模块显隐 + 顺序调整 + 收藏（个人配置持久化需前后端联调）。<br>拖拽布局设计器为 EP 自研新组件，P1 落地；Miracle 组件不可直接复用。</div>
+  </div>
+</div>
+
+<!-- ================= 视图三：一个流 Workspace ================= -->
+<div class="view" id="view-flow">
+  <div class="flow-wrap">
+    <div class="flow-top">
+      <h2>一个流 Workspace · 新零件定点全流程</h2>
+      <span class="tag tag-blue">借鉴 NIO：常用业务场景一个流操作 · 全流程关键节点 · 一次性分步骤完成</span>
+      <button class="btn btn-sm" data-act="goto-proto">← 返回工作台</button>
+    </div>
+    <div class="card flow-prog">
+      <span class="lab">电驱系统-逆变器壳体 · RFQ-2026-0042</span>
+      <div class="bar"><i style="width:55%"></i></div>
+      <span class="lab num" style="color:var(--pri);font-weight:600">2.5 / 5 节点</span>
+      <span class="lab" style="color:var(--t4)">当前卡在：RFQ 回标 · 停留 5 天</span>
+    </div>
+    <div class="flow-grid">
+      <div class="card elev" id="flowElev"></div>
+      <div id="flowSteps"></div>
+    </div>
+  </div>
+</div>
+
+<!-- ================= 视图四：组件清单与路线 ================= -->
+<div class="view" id="view-comp">
+  <div class="comp-wrap">
+    <h2>前端组件清单 · 基于 Ant Design 3.26</h2>
+    <div class="comp-lead">EP 现用组件库为 antd 3.26，版本不升级；<b>用原子组件拼装的部分与现有样式天然一致、开发快</b>；标 <span class="newdev">新开发</span> 的需 EP 自研或前后端联调。本表即周四评审用的"组件图"，可直接按行拆排期。</div>
+
+    <div style="font-size:16px;font-weight:600;color:var(--t1);margin:0 0 10px">A · Ant Design 3.26 原子组件 · 直接可用不新开发</div>
+    <div class="tbl-wrap" style="margin-bottom:22px">
+      <table class="tbl">
+        <tr><th style="width:150px">分组</th><th>组件</th><th>在本方案中的用途</th></tr>
+        <tr><td class="em">导航与布局</td><td><span class="antd-tag">Menu</span><span class="antd-tag">Dropdown</span><span class="antd-tag">Anchor</span><span class="antd-tag">Breadcrumb</span><span class="antd-tag">Row / Col</span><span class="antd-tag">Icon</span><span class="antd-tag">Affix</span></td><td>主题化顶栏菜单与收藏下拉；一个流竖向电梯导航（Anchor）；首页栅格自适应；吸顶表头</td></tr>
+        <tr><td class="em">数据展示</td><td><span class="antd-tag">Table</span><span class="antd-tag">List</span><span class="antd-tag">Card</span><span class="antd-tag">Statistic</span><span class="antd-tag">Descriptions</span><span class="antd-tag">Tag</span><span class="antd-tag">Badge</span><span class="antd-tag">Avatar</span><span class="antd-tag">Timeline</span><span class="antd-tag">Tooltip</span></td><td>流程矩阵与待办明细（Table expandable 子步骤）；待办行/消息行（List）；模块容器与预警卡（Card）；指标卡数字（Statistic）；单据核心信息前置（Descriptions）；优先级/状态徽标（Tag）；角标红点（Badge）；动态流（Timeline）</td></tr>
+        <tr><td class="em">反馈与状态</td><td><span class="antd-tag">Alert</span><span class="antd-tag">Modal</span><span class="antd-tag">Popconfirm</span><span class="antd-tag">Drawer</span><span class="antd-tag">message</span><span class="antd-tag">notification</span><span class="antd-tag">Progress</span><span class="antd-tag">Spin</span><span class="antd-tag">Empty</span></td><td>预警条；L2 行动确认弹窗（Modal）；行内审批二次确认（Popconfirm）；AI 助手侧边抽屉（Drawer）；完成率圆环（Progress type=circle）；节点进度条（Progress）；加载/空态</td></tr>
+        <tr><td class="em">表单与筛选</td><td><span class="antd-tag">Input / Input.Search</span><span class="antd-tag">Input.TextArea</span><span class="antd-tag">Select</span><span class="antd-tag">DatePicker / RangePicker</span><span class="antd-tag">Checkbox</span><span class="antd-tag">Radio.Group</span><span class="antd-tag">Tabs</span><span class="antd-tag">Switch</span><span class="antd-tag">Form</span></td><td>全局搜索与 AI 输入框；筛选器与统计时间范围；催办对象勾选；列表/看板视图切换（Radio.Button）；状态页签（Tabs）；自定义开关（Switch）</td></tr>
+      </table>
+    </div>
+
+    <div style="font-size:16px;font-weight:600;color:var(--t1);margin:0 0 10px">B · EP 自研组合组件 · 方案涉及的全部新开发件</div>
+    <div class="tbl-wrap" style="margin-bottom:22px">
+      <table class="tbl">
+        <tr><th style="width:190px">组件</th><th>功能点</th><th style="width:220px">原子组件构成</th><th style="width:170px">外部依赖</th><th style="width:52px">优先级</th></tr>
+        <tr><td class="em">WorkflowMatrix<br>流程状态矩阵</td><td>项目×节点矩阵；子步骤展开（执行人/停留时长）；紧急置顶；进度自动计算；节点直达</td><td><span class="antd-tag">Table</span><span class="antd-tag">Tag</span><span class="antd-tag">Progress</span><span class="antd-tag">Tooltip</span></td><td>后端：节点停留时长、状态实时推送</td><td>P0</td></tr>
+        <tr><td class="em">TaskCenter<br>策展待办</td><td>紧急→SLA→阻塞排序策略；状态页签；行内通过/驳回/催办；角标；列表/看板切换</td><td><span class="antd-tag">Tabs</span><span class="antd-tag">List</span><span class="antd-tag">Badge</span><span class="antd-tag">Popconfirm</span></td><td>后端：优先级/SLA 字段与待办聚合接口</td><td>P0</td></tr>
+        <tr><td class="em">AlertCard<br>分级预警卡</td><td>按角色过滤"需要我行动"；红黄蓝三级；处理后消失；今日不再提醒</td><td><span class="antd-tag">Card</span><span class="antd-tag">Alert</span><span class="antd-tag">Tag</span></td><td>预警规则配置（P1 规则引擎）</td><td>P0</td></tr>
+        <tr><td class="em">TodoStats<br>待办统计</td><td>逾期/未逾期圆环；组内/部门完成率条；明细下钻表</td><td><span class="antd-tag">Progress</span><span class="antd-tag">Table</span><span class="antd-tag">Card</span></td><td>复用待办统计开放接口，不建第二链路</td><td>P0</td></tr>
+        <tr><td class="em">MetricCards<br>指标卡组</td><td>8 指标 + 环比 + 迷你趋势线；点击下钻；显隐顺序可配</td><td><span class="antd-tag">Card</span><span class="antd-tag">Statistic</span> + 轻量 SVG 折线</td><td>后端：趋势数据、指标口径配置</td><td>P0</td></tr>
+        <tr><td class="em">MessageCenter<br>三级消息</td><td>待行动/跟进/系统 Tab；已读未读持久化；订阅规则</td><td><span class="antd-tag">Tabs</span><span class="antd-tag">List</span><span class="antd-tag">Badge</span><span class="antd-tag">Popover</span></td><td>消息服务：已读状态回传</td><td>P0/P1</td></tr>
+        <tr><td class="em">AIFeatureMap<br>skill 卡与 Agent 任务卡</td><td>skill 按 Agent 分组展示；点击注入 prompt；Agent 任务进行中/排队/完成</td><td><span class="antd-tag">Card</span><span class="antd-tag">Tag</span><span class="antd-tag">Spin</span></td><td>skill 注册表（CLI/AgentSpace 清单）</td><td>P1</td></tr>
+        <tr><td class="em">PromptInject<br>助手注入桥</td><td>跨仓库调用智能助手 NPM 包：open + 填 prompt + 切 Agent + 带页面上下文</td><td>—（接口封装）</td><td>助手侧新增暴露方法（叶放对接中）</td><td>P1</td></tr>
+        <tr><td class="em">FlowWorkspace<br>一个流页架</td><td>竖向电梯导航 + 步骤卡 + 核心信息前置 + 下一步快捷操作</td><td><span class="antd-tag">Anchor</span><span class="antd-tag">Descriptions</span><span class="antd-tag">Steps</span><span class="antd-tag">Card</span></td><td>各节点单据创建接口</td><td>P1</td></tr>
+        <tr><td class="em">LayoutKit 简版<br>模块定制面板</td><td>模块显隐/排序/主侧栏切换；收藏与最近访问</td><td><span class="antd-tag">Drawer</span><span class="antd-tag">Switch</span><span class="antd-tag">Menu</span></td><td>个人配置持久化接口（联调）</td><td>P0</td></tr>
+        <tr><td class="em">DragLayoutDesigner<br>拖拽布局设计器</td><td>添加组件 + 自由拖拽组合 + 尺寸调整</td><td>自研（参考 Miracle 交互，代码不可搬）</td><td>布局配置接口</td><td>P1</td></tr>
+        <tr><td class="em">ReadTracker<br>催办已读追踪</td><td>已读比例环；未读名单；一键催办未读人</td><td><span class="antd-tag">Progress</span><span class="antd-tag">Popover</span><span class="antd-tag">List</span></td><td>消息已读数据</td><td>P1</td></tr>
+        <tr><td class="em">ConfirmAction<br>L2 行动确认</td><td>动作说明 + 影响范围 + 可回滚 + 全量审计留痕</td><td><span class="antd-tag">Modal</span><span class="antd-tag">Checkbox</span></td><td>审计日志接口</td><td>P1</td></tr>
+        <tr><td class="em">AICard<br>结构化消息卡</td><td>对话内状态卡/催办清单/对比表，带操作按钮与溯源引用</td><td><span class="antd-tag">Card</span><span class="antd-tag">Table</span><span class="antd-tag">Tag</span></td><td>助手渲染协议</td><td>P1</td></tr>
+      </table>
+    </div>
+
+    <div style="font-size:16px;font-weight:600;color:var(--t1);margin:0 0 10px">C · 复用现有能力 · 明确不重复建设</div>
+    <div class="tbl-wrap" style="margin-bottom:26px">
+      <table class="tbl">
+        <tr><th style="width:200px">能力</th><th>复用方式</th><th>我们的边界（不做什么）</th></tr>
+        <tr><td class="em">EP 智能助手</td><td>通用 NPM 包引入，工作台作为其消费入口</td><td>不自研对话运行时、不重复做鉴权改版（助手侧刘涛团队演进中）</td></tr>
+        <tr><td class="em">AI skill / CLI</td><td>已开发 skill 注册进 AI 能力入口，点击即调用</td><td>不在工作台内重写 skill 逻辑，不建第二套 Agent</td></tr>
+        <tr><td class="em">待办统计开放接口</td><td>完成率/逾期数等直接取数展示（参考系统已验证该模式）</td><td>前端不造统计口径，后端供数</td></tr>
+        <tr><td class="em">EP 既有表格与筛选</td><td>7.7 通用基础组件直接沿用现有实现</td><td>不重做列配置/分页等已有能力</td></tr>
+        <tr><td class="em">组件版本</td><td>antd 3.26 原子组件组装，样式与线上页面一致</td><td>不升级组件大版本、不引入第二 UI 栈</td></tr>
+      </table>
+    </div>
+
+    <div style="font-size:16px;font-weight:600;color:var(--t1);margin:0 0 10px">组件 × 模块 × 优先级 总览</div>
+
+    <div class="tbl-wrap" style="margin-bottom:24px">
+      <table class="tbl">
+        <tr><th style="width:170px">组件</th><th style="width:52px">模块</th><th style="width:46px">优先级</th><th>核心功能</th><th style="width:230px">antd 3.26 组合</th><th style="width:150px">开发评估</th><th style="width:120px">对标</th></tr>
+        <tr><td class="em">7.1 流程状态矩阵<br><span style="font-weight:400;color:var(--t3);font-size:12px">WorkflowMatrix</span></td><td>②</td><td>P0</td><td>项目×节点矩阵；状态徽标；子步骤展开（执行人/停留时长）；紧急置顶；进度条自动计算；节点点击直达单据</td><td><span class="antd-tag">Table</span><span class="antd-tag">Tag</span><span class="antd-tag">Badge</span><span class="antd-tag">Progress</span><span class="antd-tag">Tooltip</span><span class="antd-tag">Icon</span><span class="antd-tag">expandable</span></td><td><span class="reuse">拼装可快开</span>停留时长统计需后端接口</td><td>Ivalua / Ariba</td></tr>
+        <tr><td class="em">7.2 任务中心<br><span style="font-weight:400;color:var(--t3);font-size:12px">TaskCenter</span></td><td>①</td><td>P0</td><td>角色+模块双维分组；策展排序；状态页签；行内审批/催办；角标；列表/看板切换</td><td><span class="antd-tag">Tabs</span><span class="antd-tag">List</span><span class="antd-tag">Badge</span><span class="antd-tag">Button</span><span class="antd-tag">Popconfirm</span><span class="antd-tag">Radio.Group</span></td><td><span class="reuse">拼装可快开</span>排序策略需后端字段</td><td>Linear / Coupa</td></tr>
+        <tr><td class="em">7.3 预警卡片<br><span style="font-weight:400;color:var(--t3);font-size:12px">AlertCard</span></td><td>③</td><td>P0</td><td>仅"需要我行动"；三级视觉；按角色过滤；处理后消失；规则可配置</td><td><span class="antd-tag">Card</span><span class="antd-tag">Alert</span><span class="antd-tag">Tag</span><span class="antd-tag">Icon</span></td><td><span class="reuse">拼装可快开</span>预警规则引擎 P1</td><td>Linear / 甄云</td></tr>
+        <tr><td class="em">7.4 消息动态中心<br><span style="font-weight:400;color:var(--t3);font-size:12px">MessageCenter</span></td><td>⑥</td><td>P0/P1</td><td>待行动/跟进/系统三级；已读未读；催办追踪；snooze</td><td><span class="antd-tag">Tabs</span><span class="antd-tag">List</span><span class="antd-tag">Badge</span><span class="antd-tag">Popover</span><span class="antd-tag">Avatar</span></td><td><span class="reuse">拼装可快开</span>已读数据需消息服务</td><td>Linear / 企微</td></tr>
+        <tr><td class="em">7.5 指标概览卡<br><span style="font-weight:400;color:var(--t3);font-size:12px">MetricCards</span></td><td>⑤</td><td>P0</td><td>8 指标卡+环比+迷你趋势；点击下钻；数据同源自动更新</td><td><span class="antd-tag">Card</span><span class="antd-tag">Statistic</span><span class="antd-tag">Icon</span><span class="antd-tag">Tooltip</span></td><td><span class="reuse">拼装可快开</span>趋势图用轻量 SVG/图表库</td><td>飞书 / 甄云</td></tr>
+        <tr><td class="em">7.5b 待办统计<br><span style="font-weight:400;color:var(--t3);font-size:12px">TodoStats</span></td><td>④</td><td>P0</td><td>逾期/未逾期圆环；组内完成率条；明细下钻表；部门/个人双维</td><td><span class="antd-tag">Progress(type=circle)</span><span class="antd-tag">Table</span><span class="antd-tag">Card</span></td><td><span class="reuse">拼装可快开</span>统计接口开放即可</td><td>叶放参考设计</td></tr>
+        <tr><td class="em">7.6 AI 能力入口<br><span style="font-weight:400;color:var(--t3);font-size:12px">AIEntry</span></td><td>⑦</td><td>P1</td><td>skill 点击→prompt 注入+切 Agent；Agent 任务卡；AI 摘要推送；对话可溯源</td><td><span class="antd-tag">Drawer</span><span class="antd-tag">Card</span><span class="antd-tag">Input.TextArea</span><span class="antd-tag">Tag</span><span class="antd-tag">Spin</span></td><td><span class="newdev">需新开发</span>助手 NPM 包需暴露填 prompt 方法·跨仓库</td><td>Joule / GEP Qi</td></tr>
+        <tr><td class="em">7.7 通用基础<br><span style="font-weight:400;color:var(--t3);font-size:12px">BaseComponents</span></td><td>全站</td><td>P0</td><td>表格列配置/筛选保存视图/分页/表单/状态徽标体系/空态加载态</td><td><span class="antd-tag">Table</span><span class="antd-tag">Filter</span><span class="antd-tag">Form</span><span class="antd-tag">Empty</span><span class="antd-tag">Spin</span><span class="antd-tag">Pagination</span></td><td><span class="reuse">EP 已有</span>视图持久化需联调</td><td>Notion / Monday</td></tr>
+        <tr><td class="em">7.8 布局与定制<br><span style="font-weight:400;color:var(--t3);font-size:12px">LayoutKit</span></td><td>⑧</td><td>P0简/P1全</td><td>栅格自适应；模块显隐排序；收藏；最近访问；拖拽设计器</td><td><span class="antd-tag">Row/Col</span><span class="antd-tag">Menu</span><span class="antd-tag">Anchor</span><span class="antd-tag">Icon</span></td><td><span class="newdev">拖拽需自研</span>收藏/最近访问需前后端联调</td><td>Miracle / 钉钉</td></tr>
+      </table>
+    </div>
+
+    <div class="grid2">
+      <div class="tbl-wrap">
+        <div class="tbl-cap"><h3>会议结论 · 复用边界</h3><p>2026-10-13 与前端对齐</p></div>
+        <table class="tbl">
+          <tr><th>结论</th><th>影响</th></tr>
+          <tr><td class="em">Miracle / IDP 组件不可搬运</td><td>技术栈不同，只借鉴交互形态；不承诺"搬组件"</td></tr>
+          <tr><td class="em">EP 原子组件拼装 = 快</td><td>待办列表、指标卡、消息分级、矩阵表等按现有样式直接组装</td></tr>
+          <tr><td class="em">拖拽自由组合 = 自研新组件</td><td>涉及布局状态保存接口，P1 排期；首期用显隐+排序降级</td></tr>
+          <tr><td class="em">收藏 / 最近访问 = 前后端联调</td><td>改动量不大，可先做；菜单主题化涉及 Layout 整体</td></tr>
+          <tr><td class="em">AI 助手 = 通用 NPM 包跨仓库</td><td>需助手侧提供"填 prompt + 切 Agent"方法，已确认可实现</td></tr>
+          <tr><td class="em">统计类数据 = 后端供数</td><td>停留时长、完成率、逾期率需后端统计接口，前端仅展示</td></tr>
+        </table>
+      </div>
+      <div class="tbl-wrap">
+        <div class="tbl-cap"><h3>验收标准摘要</h3><p>每组件的硬指标，写入排期验收</p></div>
+        <table class="tbl">
+          <tr><th>组件</th><th>验收要点</th></tr>
+          <tr><td class="em">任务中心</td><td>策展排序+临期置顶；行内审批回调刷新；角标 5 秒内同步；空/加载/异常态齐备</td></tr>
+          <tr><td class="em">流程矩阵</td><td>节点列可配置；状态与单据实时同步；子步骤可见执行人与停留时长；紧急置顶直达</td></tr>
+          <tr><td class="em">预警卡片</td><td>按角色过滤；规则可配；处理后消失；点击直达单据</td></tr>
+          <tr><td class="em">指标/统计</td><td>8 指标卡可配置显隐；点击下钻明细可导出；与单据同源自动更新</td></tr>
+          <tr><td class="em">AI 入口</td><td>首批 3 类场景（查单/催办/摘要）；回复附来源；L2 动作必经确认</td></tr>
+          <tr><td class="em">一个流</td><td>电梯导航定位准确；核心信息前置；下一步操作 ≤2 次点击</td></tr>
+        </table>
+      </div>
+    </div>
+    <div style="height:40px"></div>
+  </div>
+</div>
+
+<footer class="ep-foot">小米汽车 · 采购数字化 · 工作台优化方案 v2 · 基于 Ant Design 3.26 组件规范 · 2026-10-13</footer>
+
+<!-- 全局浮层 -->
+<div class="mask" id="mask"></div>
+<div class="drawer" id="aiDrawer">
+  <div class="dr-h"><span style="font-size:18px">🤖</span><span class="t">EP 智能助手</span><span class="ag-chip" id="drAgent">通用效率</span><span class="x" data-act="close-ai">✕</span></div>
+  <div class="dr-ctx" id="drCtx">📎 当前上下文：首页 · 我的待办</div>
+  <div class="dr-quick" id="drQuick"></div>
+  <div class="dr-body" id="drBody"></div>
+  <div class="dr-in"><textarea id="drInput" placeholder="输入问题或快捷指令，Enter 发送"></textarea><button class="btn btn-pri" data-act="send-chat">发送</button></div>
+</div>
+<div class="modal" id="modal">
+  <div class="m-mask" data-act="close-modal"></div>
+  <div class="m-box">
+    <div class="m-t"><span class="ic">⚠️</span><span id="mTitle">确认操作</span></div>
+    <div class="m-c" id="mBody"></div>
+    <div class="m-f"><button class="btn" data-act="close-modal">取消</button><button class="btn btn-pri" id="mOk">确认执行</button></div>
+  </div>
+</div>
+<div class="toast" id="toast"><span class="ok">✓</span><span id="toastMsg"></span></div>
+<script>
+/* ============================================================
+   小米汽车 EP 采购工作台优化 · 方案与原型 v2
+   数据与交互层：模块注册表 + 角色配置 + 事件委托
+   ============================================================ */
+var $ = function(id){ return document.getElementById(id); };
+
+/* ---------- 基础数据 ---------- */
+var ROLES = {
+  buyer:{ label:'采购员', person:'齐岳', avatar:'齐', dept:'电驱采购组 · 采购员' },
+  ce:{ label:'CE 成本', person:'李楠', avatar:'李', dept:'成本工程组 · CE' },
+  pm:{ label:'PM 项目经理', person:'王强', avatar:'王', dept:'电驱项目部 · PM' },
+  sie:{ label:'SIE 采购工程', person:'赵磊', avatar:'赵', dept:'采购工程部 · SIE' },
+  sqe:{ label:'SQE 质量', person:'孙敏', avatar:'孙', dept:'供应商质量部 · SQE' },
+  log:{ label:'物流', person:'陈晨', avatar:'陈', dept:'供应链物流 · 计划员' }
+};
+var ROLE_LAYOUT = {
+  buyer:{ main:['todo','matrix','metrics'], side:['alerts','ai','feed','recent'] },
+  ce:{    main:['todo','metrics','matrix'], side:['alerts','ai','feed','recent'] },
+  pm:{    main:['stats','matrix','metrics'], side:['alerts','todo','feed','ai','recent'] },
+  sie:{   main:['todo','matrix'],           side:['alerts','feed','ai','recent'] },
+  sqe:{   main:['todo','metrics'],          side:['alerts','feed','ai','recent'] },
+  log:{   main:['todo'],                    side:['alerts','feed','recent'] }
+};
+var MOD_META = {
+  todo:{t:'我的待办', cap:'7.2 TaskCenter'}, matrix:{t:'工作流导航 · 流程状态矩阵', cap:'7.1 WorkflowMatrix'},
+  alerts:{t:'预警', cap:'7.3 AlertCard'}, stats:{t:'待办统计', cap:'7.5b TodoStats'},
+  metrics:{t:'本月概览', cap:'7.5 MetricCards'}, feed:{t:'消息 · 动态中心', cap:'7.4 MessageCenter'},
+  ai:{t:'AI 能力入口', cap:'7.6 AIEntry'}, recent:{t:'最近访问 · 收藏', cap:'7.8 LayoutKit'}
+};
+var MOD_DESC = {
+  todo:'策展排序 · 行内操作', matrix:'项目×节点 · 子步骤', alerts:'只显示需要我行动的',
+  stats:'完成率 · 逾期 · 下钻', metrics:'指标卡 · 趋势 · 下钻', feed:'待行动/跟进/系统',
+  ai:'skill 点击 → 助手', recent:'导航入口 · 屏效'
+};
+
+/* 菜单（主题化分组 + 收藏） */
+var MENUS = [
+  {k:'home', n:'工作台', sub:null},
+  {k:'src', n:'寻源定点', sub:['SOR 管理','BDL 评审','定点单','定点上会']},
+  {k:'rfq', n:'询报价', sub:['RFQ 管理','回标跟踪','报价对比','价格问询']},
+  {k:'cost', n:'成本价格', sub:['价格库','目标价管理','核价任务','降本追踪']},
+  {k:'ctr', n:'合同管理', sub:['合同起草','用印管理','到期台账']},
+  {k:'sup', n:'供应商管理', sub:['准入审核','绩效看板','供应商 OnePage','风险监控','样件进度']}
+];
+
+/* 待办：按角色 */
+var MOD_LABEL = {sourcing:'寻源定点', rfq:'RFQ 询报价', sor:'SOR 管理', contract:'合同管理', supplier:'供应商管理', cost:'核价', quality:'质量管理', log:'物流协同'};
+var TODOS = {
+  buyer:[
+    {id:'b1', pri:'urgent', st:'new', mod:'sourcing', t:'电池PACK上盖 · 定点上会材料提交', doc:'DD-2026-0117', sup:'延锋国际', stay:'停留 2 天', due:'今天 17:00 截止', od:true, ops:[['去提交','jump'],['催审批','urge']]},
+    {id:'b2', pri:'sla', st:'new', mod:'rfq', t:'逆变器壳体 RFQ-R2 回标催办', doc:'RFQ-2026-0042', sup:'汇川 / 李尔 / 弗迪 未回标', stay:'停留 5 天', due:'明天 18:00 截止', od:false, ops:[['一键催办','urgeai'],['查看','jump']]},
+    {id:'b3', pri:'sla', st:'new', mod:'cost', t:'一体化压铸后地板 · 报价核价', doc:'HJ-2026-0089', sup:'文灿股份', stay:'停留 1 天', due:'SLA 后天', od:false, ops:[['去核价','jump']]},
+    {id:'b4', pri:'block', st:'new', mod:'sourcing', t:'智驾域控 · 定点审批阻塞', doc:'DD-2026-0102', sup:'—', stay:'卡成本委员会 5 天', due:'已超 3 天', od:true, ops:[['催办','urge'],['查看意见','jump']]},
+    {id:'b5', pri:'block', st:'new', mod:'rfq', t:'隐藏式门把手 RFQ-R1 无法发标：供应商资质过期', doc:'RFQ-2026-0051', sup:'成量弹簧', stay:'停留 3 天', due:'阻塞中', od:false, ops:[['去处理','jump']]},
+    {id:'b6', pri:'doing', st:'doing', mod:'sourcing', t:'座椅面套 · BDL 评审（我负责）', doc:'BDL-2026-0210', sup:'李尔 / 继峰', stay:'进行中', due:'', od:false, ops:[['去评审','jump']]},
+    {id:'b7', pri:'doing', st:'doing', mod:'contract', t:'车灯总成 · 合同条款确认', doc:'HT-2026-0033', sup:'华域视觉', stay:'法务审核中 2 天', due:'', od:false, ops:[['查看','jump']]},
+    {id:'b8', pri:'doing', st:'doing', mod:'sor', t:'天幕玻璃 · SOR 修订（需求变更）', doc:'SOR-2026-0078', sup:'福耀玻璃', stay:'进行中', due:'', od:false, ops:[['编辑','jump']]},
+    {id:'b9', pri:'normal', st:'approve', mod:'sourcing', t:'逆变器壳体 RFQ-R1 定标结果审批', doc:'DB-2026-0041', sup:'汇川技术', stay:'待你审批', due:'SLA 1 天', od:false, ops:[['通过','pass'],['驳回','reject'],['比价分析','ai:比价分析']]},
+    {id:'b10', pri:'normal', st:'approve', mod:'supplier', t:'中创新航 · 年度绩效报告确认', doc:'JX-2026-0019', sup:'中创新航', stay:'待确认', due:'', od:false, ops:[['通过','pass'],['查看','jump']]},
+    {id:'b11', pri:'normal', st:'new', mod:'supplier', t:'华域汽车 · 资质变更审核', doc:'ZZ-2026-0064', sup:'华域汽车', stay:'停留 1 天', due:'', od:false, ops:[['去审核','jump']]},
+    {id:'b12', pri:'normal', st:'done', mod:'rfq', t:'逆变器壳体 RFQ-R1 定标发出', doc:'RFQ-2026-0041', sup:'6 家', stay:'', due:'', od:false, ops:[['查看','jump']]}
+  ],
+  ce:[
+    {id:'c1', pri:'urgent', st:'new', mod:'cost', t:'一体化压铸后地板 · 报价超目标价 8% 待核价', doc:'HJ-2026-0089', sup:'文灿股份', stay:'停留 1 天', due:'今天', od:false, ops:[['去核价','jump'],['报价对比分析','ai:报价对比分析']]},
+    {id:'c2', pri:'sla', st:'new', mod:'cost', t:'3 笔报价低于历史均价 15% · 异常确认', doc:'YC-2026-0012', sup:'3 家', stay:'停留 2 天', due:'SLA 明天', od:false, ops:[['逐笔确认','jump']]},
+    {id:'c3', pri:'doing', st:'doing', mod:'cost', t:'逆变器壳体 R2 · 价格分析', doc:'RFQ-2026-0042', sup:'6 家', stay:'进行中', due:'', od:false, ops:[['比价分析','ai:比价分析']]},
+    {id:'c4', pri:'normal', st:'approve', mod:'cost', t:'天幕玻璃目标价制定审批', doc:'MB-2026-0007', sup:'福耀玻璃', stay:'待审批', due:'', od:false, ops:[['通过','pass'],['驳回','reject']]},
+    {id:'c5', pri:'normal', st:'new', mod:'cost', t:'座椅面套成本 BOM 审核', doc:'BOM-2026-0021', sup:'李尔', stay:'停留 4 天', due:'', od:false, ops:[['去审核','jump']]},
+    {id:'c6', pri:'normal', st:'done', mod:'cost', t:'车灯总成价格卷积更新', doc:'格物-09', sup:'华域视觉', stay:'', due:'', od:false, ops:[['查看','jump']]}
+  ],
+  pm:[
+    {id:'m1', pri:'urgent', st:'approve', mod:'sourcing', t:'智驾域控定点上会材料 · 你需预审', doc:'DD-2026-0102', sup:'—', stay:'今天 16:00 上会', due:'今天', od:false, ops:[['去预审','jump'],['定点材料摘要','ai:定点材料摘要']]},
+    {id:'m2', pri:'block', st:'new', mod:'sourcing', t:'3 个项目定标周期超 30 天 · 定卡点', doc:'—', sup:'—', stay:'本周新增 1 个', due:'', od:false, ops:[['定标周期预警','ai:定标周期预警'],['查看','jump']]},
+    {id:'m3', pri:'sla', st:'new', mod:'sourcing', t:'电驱项目组逾期率 38% · 待督办', doc:'—', sup:'6 名成员', stay:'', due:'周五前', od:false, ops:[['一键催办未处理','urge']]},
+    {id:'m4', pri:'doing', st:'doing', mod:'sourcing', t:'SP3 车型 BOM 冻结跟踪', doc:'—', sup:'—', stay:'进行中', due:'', od:false, ops:[['查看','jump']]},
+    {id:'m5', pri:'normal', st:'done', mod:'sourcing', t:'9 月项目月报确认', doc:'—', sup:'—', stay:'', due:'', od:false, ops:[['查看','jump']]}
+  ],
+  sie:[
+    {id:'s1', pri:'urgent', st:'new', mod:'supplier', t:'2 家供应商资质过期 · 阻塞发标', doc:'ZZ-2026-0061', sup:'成量弹簧 / 宁夏共享', stay:'停留 3 天', due:'今天', od:true, ops:[['去处理','jump']]},
+    {id:'s2', pri:'sla', st:'new', mod:'supplier', t:'PPAP 提交跟踪 · 3 份临期', doc:'PPAP-0114', sup:'3 家', stay:'', due:'SLA 3 天', od:false, ops:[['催办','urge'],['查看','jump']]},
+    {id:'s3', pri:'doing', st:'doing', mod:'supplier', t:'样件认可进度 · 电驱二阶段', doc:'YJ-2026-0033', sup:'汇川', stay:'进行中', due:'', od:false, ops:[['查看','jump']]},
+    {id:'s4', pri:'normal', st:'approve', mod:'supplier', t:'新供应商准入评审结论审批', doc:'ZR-2026-0008', sup:'爱柯迪', stay:'待审批', due:'', od:false, ops:[['通过','pass'],['驳回','reject']]},
+    {id:'s5', pri:'normal', st:'new', mod:'supplier', t:'资质到期扫描 · 下月 5 家', doc:'—', sup:'5 家', stay:'', due:'', od:false, ops:[['资质到期扫描','ai:资质到期扫描']]}
+  ],
+  sqe:[
+    {id:'q1', pri:'urgent', st:'new', mod:'quality', t:'8D 报告超期未关闭 · 1 件', doc:'8D-2026-0027', sup:'宁波华翔', stay:'超期 2 天', due:'今天', od:true, ops:[['催办','urge'],['查看','jump']]},
+    {id:'q2', pri:'sla', st:'new', mod:'quality', t:'来料批次不合格处理 · 2 单', doc:'RL-2026-0091', sup:'旭升股份', stay:'', due:'SLA 明天', od:false, ops:[['去处理','jump']]},
+    {id:'q3', pri:'doing', st:'doing', mod:'quality', t:'压铸件 Cpk 改善跟踪', doc:'—', sup:'文灿', stay:'进行中', due:'', od:false, ops:[['查看','jump']]},
+    {id:'q4', pri:'normal', st:'approve', mod:'quality', t:'9 月供应商质量月报确认', doc:'—', sup:'—', stay:'', due:'', od:false, ops:[['通过','pass']]}
+  ],
+  log:[
+    {id:'l1', pri:'urgent', st:'new', mod:'log', t:'到货差异裁定 · 3 单', doc:'CY-2026-0055', sup:'2 家', stay:'今天', due:'今天', od:false, ops:[['去裁定','jump']]},
+    {id:'l2', pri:'sla', st:'new', mod:'log', t:'月台排期冲突处理', doc:'YT-2026-0102', sup:'—', stay:'', due:'SLA 明天', od:false, ops:[['去处理','jump']]},
+    {id:'l3', pri:'doing', st:'doing', mod:'log', t:'10 月对账 · 2 笔异常', doc:'DZ-2026-0010', sup:'—', stay:'进行中', due:'', od:false, ops:[['查看','jump']]},
+    {id:'l4', pri:'normal', st:'done', mod:'log', t:'9 月对账完成确认', doc:'—', sup:'—', stay:'', due:'', od:false, ops:[['查看','jump']]}
+  ]
+};
+var PRI_META = { urgent:['紧急','tag-red',0], sla:['临期','tag-gold',1], block:['阻塞','tag-volc',2], doing:['进行中','tag-blue',3], normal:['','tag-gray',4] };
+
+/* 流程矩阵：项目 × 节点 */
+var NODES = ['SOR','BDL','RFQ','定点','合同'];
+var MATRIX = [
+  {id:'x2', pkg:'电池PACK上盖', buyer:'齐岳', urgent:true, nodes:[
+    {s:'done'},{s:'done'},{s:'done', t:'R4 定标'},
+    {s:'urgent', t:'今天 17:00 上会', sub:[['材料提交','urgent','齐岳','停留 2 天'],['上会评审','wait','成本委员会',''],['定点发布','wait','','']]},
+    {s:'wait'}]},
+  {id:'x4', pkg:'智能驾驶域控制器', buyer:'齐岳', urgent:true, nodes:[
+    {s:'done'},{s:'done'},{s:'done', t:'R3 定标'},
+    {s:'blocked', t:'卡审批 5 天', sub:[['发起审批','done','齐岳',''],['成本委员会','blocked','张宁 等 3 人','停留 5 天'],['结果发布','wait','','']]},
+    {s:'wait'}]},
+  {id:'x1', pkg:'电驱系统-逆变器壳体', buyer:'齐岳', urgent:false, nodes:[
+    {s:'done'},{s:'done'},
+    {s:'doing', t:'R2 · 3/6 回标', sub:[['发标','done','张平','3 天前发出'],['回标','doing','供应商 3/6 家','停留 5 天 ⚠'],['评标','wait','',''],['定价','wait','','']]},
+    {s:'wait'},{s:'wait'}]},
+  {id:'x3', pkg:'一体化压铸后地板', buyer:'王强', urgent:false, nodes:[
+    {s:'done'},{s:'done'},{s:'doing', t:'核价中', sub:[['发标','done','王强',''],['回标','done','5/5 家',''],['评标','doing','CE 李楠','停留 1 天'],['定价','wait','','']]},{s:'wait'},{s:'wait'}]},
+  {id:'x5', pkg:'座椅面套', buyer:'齐岳', urgent:false, nodes:[
+    {s:'done'},{s:'doing', t:'评审中', sub:[['发起','done','齐岳',''],['BDL 评审','doing','评审组 4/7','停留 2 天']]},{s:'wait'},{s:'wait'},{s:'wait'}]},
+  {id:'x6', pkg:'车灯总成', buyer:'王强', urgent:false, nodes:[
+    {s:'done'},{s:'done'},{s:'done', t:'R2 定标'},{s:'done'},{s:'doing', t:'法务审核', sub:[['条款确认','done','王强',''],['法务审核','doing','法务部','停留 2 天'],['用印','wait','','']]}]},
+  {id:'x7', pkg:'天幕玻璃', buyer:'齐岳', urgent:false, nodes:[
+    {s:'doing', t:'修订中'},{s:'wait'},{s:'wait'},{s:'wait'},{s:'wait'}]},
+  {id:'x8', pkg:'隐藏式门把手', buyer:'赵磊', urgent:false, nodes:[
+    {s:'done'},{s:'done'},{s:'blocked', t:'资质阻塞', sub:[['发标','blocked','资质过期','停留 3 天'],['回标','wait','','']]},{s:'wait'},{s:'wait'}]}
+];
+
+/* 指标卡 */
+var METRICS = {
+  buyer:[
+    {k:'SOR 发起', v:'18', u:'份', d:'+3', dir:'up', good:'up', sp:[9,11,10,13,12,15,18]},
+    {k:'BDL 评审', v:'12', u:'次', d:'+1', dir:'up', good:'up', sp:[6,7,9,8,10,11,12]},
+    {k:'RFQ 发出', v:'15', u:'个包', d:'↑25%', dir:'up', good:'up', sp:[7,9,8,11,10,13,15]},
+    {k:'定点完成', v:'9', u:'项', d:'↑12%', dir:'up', good:'up', sp:[4,5,7,6,8,8,9]},
+    {k:'合同签署', v:'8', u:'份', d:'↑14%', dir:'up', good:'up', sp:[3,5,4,6,6,7,8]},
+    {k:'供方准入', v:'7', u:'家', d:'↑40%', dir:'up', good:'up', sp:[2,3,3,4,5,5,7]},
+    {k:'报价回标率', v:'92', u:'%', d:'↑3pp', dir:'up', good:'up', sp:[84,86,85,88,89,90,92]},
+    {k:'定标周期', v:'18', u:'天', d:'↓2天', dir:'down', good:'down', sp:[24,23,22,21,20,20,18]}
+  ],
+  ce:[
+    {k:'核价完成', v:'24', u:'笔', d:'+5', dir:'up', good:'up', sp:[12,14,15,18,20,22,24]},
+    {k:'目标价达成率', v:'86', u:'%', d:'↑2pp', dir:'up', good:'up', sp:[80,81,83,82,84,85,86]},
+    {k:'降本贡献', v:'4.2', u:'亿', d:'完成度 68%', dir:'up', good:'up', sp:[1.2,1.8,2.4,3.0,3.5,3.9,4.2]},
+    {k:'价格异常待确认', v:'6', u:'起', d:'-2', dir:'down', good:'down', sp:[11,10,9,8,8,7,6]}
+  ],
+  pm:[
+    {k:'在管项目', v:'18', u:'个', d:'+2', dir:'up', good:'up', sp:[14,15,15,16,17,17,18]},
+    {k:'节点逾期包', v:'7', u:'个', d:'-1', dir:'down', good:'down', sp:[11,10,10,9,8,8,7]},
+    {k:'平均定标周期', v:'18', u:'天', d:'↓2天', dir:'down', good:'down', sp:[24,23,22,21,20,20,18]},
+    {k:'上会通过率', v:'78', u:'%', d:'↑5pp', dir:'up', good:'up', sp:[66,70,68,72,74,75,78]}
+  ],
+  sie:[
+    {k:'准入审核中', v:'8', u:'家', d:'+2', dir:'up', good:'up', sp:[4,5,6,6,7,7,8]},
+    {k:'PPAP 临期', v:'3', u:'份', d:'-1', dir:'down', good:'down', sp:[6,6,5,5,4,4,3]},
+    {k:'资质 30 天内到期', v:'5', u:'家', d:'+1', dir:'up', good:'down', sp:[2,3,3,4,4,5,5]}
+  ],
+  sqe:[
+    {k:'8D 未关闭', v:'4', u:'件', d:'-1', dir:'down', good:'down', sp:[7,6,6,5,5,5,4]},
+    {k:'来料批合格率', v:'98.2', u:'%', d:'↑0.3', dir:'up', good:'up', sp:[97.2,97.5,97.6,97.8,98,98.1,98.2]},
+    {k:'质量月报', v:'待确认', u:'', d:'1 份', dir:'up', good:'up', sp:[1,1,2,2,3,3,4]}
+  ],
+  log:[
+    {k:'到货差异待裁定', v:'3', u:'单', d:'-2', dir:'down', good:'down', sp:[8,7,6,5,5,4,3]},
+    {k:'准时到货率', v:'96', u:'%', d:'↑1pp', dir:'up', good:'up', sp:[93,94,94,95,95,96,96]},
+    {k:'对账异常', v:'2', u:'笔', d:'持平', dir:'up', good:'down', sp:[2,3,2,2,3,2,2]}
+  ]
+};
+
+/* 待办统计（叶放参考设计） */
+var STATS_GROUP = {
+  total:128, done:96, overdue:7, doing:25,
+  members:[
+    {n:'齐岳', r:75, o:2},{n:'王强', r:89, o:1},{n:'赵磊', r:56, o:4},{n:'孙敏', r:68, o:0},{n:'陈晨', r:94, o:0},{n:'刘艺', r:42, o:6}
+  ]
+};
+var STATS_DEPT = {
+  rows:[
+    {n:'电驱采购组', total:412, done:309, r:'75.0%', od:23, or:'5.6%', rem:80},
+    {n:'电池采购组', total:287, done:255, r:'88.8%', od:5, or:'1.7%', rem:27},
+    {n:'车身采购组', total:196, done:110, r:'56.1%', od:34, or:'17.3%', rem:52},
+    {n:'电子采购组', total:341, done:232, r:'68.0%', od:59, or:'17.3%', rem:50},
+    {n:'内饰采购组', total:158, done:77, r:'48.7%', od:45, or:'28.5%', rem:36},
+    {n:'智驾采购组', total:96, done:44, r:'45.8%', od:12, or:'12.5%', rem:40}
+  ]
+};
+
+/* 消息 */
+var MSGS = {
+  buyer:{
+    action:[
+      {id:'a1', t:'延锋定点审批已流转至你，待处理 2 天', m:'DD-2026-0117 · 催办来源：王强', r:false},
+      {id:'a2', t:'RFQ-2026-0042 催办回执：5 家中 3 家已读', m:'未读 2 家：李尔 / 弗迪电池 · 可一键催办未读', r:false},
+      {id:'a3', t:'张平 @你：压铸后地板目标价口径确认', m:'评论于 HJ-2026-0089', r:false}
+    ],
+    follow:[
+      {id:'f1', t:'宁德时代 R3 已回标，进入比价', m:'RFQ-2026-0038 · 10 分钟前', r:true},
+      {id:'f2', t:'博世合同已寄出待用印', m:'HT-2026-0029', r:true},
+      {id:'f3', t:'华域资质变更已提交材料', m:'ZZ-2026-0064', r:false},
+      {id:'f4', t:'李尔报价问询待回复', m:'RFQ-2026-0042', r:false},
+      {id:'f5', t:'中创新航 PPAP 已受理', m:'PPAP-0114', r:true}
+    ],
+    sys:[
+      {id:'s1', t:'自动化：BDL-2026-0208 评审通过，已自动创建 RFQ 草稿', m:'规则：BDL 通过 → 建 RFQ', r:true},
+      {id:'s2', t:'价格库月度更新完成（12,847 条）', m:'', r:true},
+      {id:'s3', t:'系统公告：EP 将于本周六 22:00 例行维护', m:'', r:true}
+    ]
+  },
+  ce:{ action:[{id:'a1', t:'3 笔异常低价待你确认', m:'YC-2026-0012', r:false}], follow:[{id:'f1', t:'压铸后地板报价已上传', m:'文灿股份', r:false}], sys:[{id:'s1', t:'价格库更新，卷积系数已同步', m:'', r:true}] },
+  pm:{ action:[{id:'a1', t:'电驱组逾期率 38%，建议督办', m:'AI 摘要 · 查看未处理清单', r:false},{id:'a2', t:'今天 16:00 智驾域控定点上会提醒', m:'DD-2026-0102', r:false}], follow:[{id:'f1', t:'车身组 2 个包定标周期超 30 天', m:'', r:false}], sys:[{id:'s1', t:'9 月项目月报已生成草稿', m:'', r:true}] },
+  sie:{ action:[{id:'a1', t:'成量弹簧资质已过期，阻塞 RFQ 发标', m:'ZZ-2026-0061', r:false}], follow:[{id:'f1', t:'爱柯迪准入材料已提交', m:'', r:true}], sys:[{id:'s1', t:'资质到期扫描完成：下月 5 家', m:'', r:true}] },
+  sqe:{ action:[{id:'a1', t:'8D-2026-0027 已超期 2 天未关闭', m:'宁波华翔', r:false}], follow:[{id:'f1', t:'旭升整改报告已提交待验证', m:'', r:false}], sys:[{id:'s1', t:'9 月质量数据已封账', m:'', r:true}] },
+  log:{ action:[{id:'a1', t:'3 单到货差异需今日裁定', m:'CY-2026-0055', r:false}], follow:[], sys:[{id:'s1', t:'10 月对账任务已下发', m:'', r:true}] }
+};
+
+/* AI 技能 */
+var SKILLS = [
+  {agent:'寻源定点', items:['定点材料摘要','比价分析','独供风险扫描']},
+  {agent:'供应商管理', items:['供应商 OnePage','资质到期扫描','绩效报告生成']},
+  {agent:'成本分析', items:['报价对比分析','历史价查询','价格异常识别']},
+  {agent:'合同', items:['条款风险审查','到期合同盘点']},
+  {agent:'通用效率', items:['查单状态','今日待办摘要','一键催办','流程知识问答']}
+];
+var SKILL_PROMPT = {
+  '定点材料摘要':'汇总 RFQ 比价结果、技术评审与商务条件，生成 DD-2026-0117 定点上会材料摘要',
+  '比价分析':'对 RFQ-2026-0042 的 6 家报价按总成本口径（单价/运费/付款条款/税）做对比分析',
+  '独供风险扫描':'扫描当前在管品类，列出独供且回标率低于 80% 的包及建议的二供方向',
+  '供应商 OnePage':'生成 宁德时代 的 OnePage：基本信息、绩效、合作车型、风险事件',
+  '资质到期扫描':'列出未来 60 天内资质到期的供应商及影响的在途单据',
+  '绩效报告生成':'生成 中创新航 2026 年度绩效报告（质量/交期/成本/响应/技术五维）',
+  '报价对比分析':'对比 文灿股份 本次报价与目标价、历史均价的差异并标注异常项',
+  '历史价查询':'查询 一体化压铸后地板 近 12 个月历史成交价与波动',
+  '价格异常识别':'找出本周低于历史均价 15% 以上的报价并解释可能原因',
+  '条款风险审查':'对照标准模板审查 HT-2026-0033 合同草稿的风险条款并给出修改建议',
+  '到期合同盘点':'盘点未来 90 天到期合同及续签建议',
+  '查单状态':'查 DD-2026-0117 电池PACK上盖定点单现在到哪个节点、卡在谁手上',
+  '今日待办摘要':'结合我的待办生成今天必须处理事项摘要',
+  '一键催办':'列出临期未回标的 RFQ 并生成催办清单',
+  '流程知识问答':'BDL 评审通过后到 RFQ 发标，需要满足哪些前置条件？',
+  '定标周期预警':'列出定标周期超过 30 天的项目，并说明各自卡在哪个节点'
+};
+var AGENT_TASKS = [
+  {n:'本周到期定点自动跟进', st:'run', p:'3/7'},
+  {n:'电池包报价对比（R4 汇总）', st:'queue', p:''},
+  {n:'9 月采购月报摘要', st:'ok', p:'已完成'}
+];
+
+/* 最近访问 / 收藏 */
+var RECENT = ['RFQ 询报价','定点上会','价格库','供应商 OnePage','合同用印','SOR 管理','样件进度','绩效看板'];
+
+/* ---------- 状态 ---------- */
+var S = {
+  role:'buyer', todoMod:'all', todoSt:'new', todoView:'list',
+  exp:{}, dismissed:{}, msgTab:'action', read:{},
+  cust:{}, favs:['src','rfq','ctr'], chat:[], agent:'通用效率', ctx:'首页 · 我的待办',
+  flowCur:2
+};
+
+/* ---------- 工具 ---------- */
+function esc(s){ return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+function spark(vals, color){
+  var w=64, h=22, mn=Math.min.apply(null,vals), mx=Math.max.apply(null,vals), rng=(mx-mn)||1;
+  var pts = vals.map(function(v,i){ return (i*(w/(vals.length-1))).toFixed(1)+','+(h-2-((v-mn)/rng)*(h-4)).toFixed(1); }).join(' ');
+  return '<svg class="spark" width="'+w+'" height="'+h+'"><polyline points="'+pts+'" fill="none" stroke="'+(color||'#69b1ff')+'" stroke-width="1.5"/></svg>';
+}
+function toast(msg){ $('toastMsg').textContent = msg; var t=$('toast'); t.classList.add('on'); clearTimeout(t._h); t._h=setTimeout(function(){t.classList.remove('on');},2600); }
+var modalOk = null;
+function showModal(title, body, okLabel, onOk){
+  $('mTitle').innerHTML = title; $('mBody').innerHTML = body;
+  $('mOk').textContent = okLabel || '确认执行'; modalOk = onOk;
+  $('modal').classList.add('on');
+}
+function closeModal(){ $('modal').classList.remove('on'); modalOk=null; }
+
+/* ---------- 布局配置（自定义） ---------- */
+function getMods(role){
+  if(!S.cust[role]){
+    var L = ROLE_LAYOUT[role], arr=[];
+    L.main.forEach(function(k){ arr.push({k:k, col:'main', vis:true}); });
+    L.side.forEach(function(k){ arr.push({k:k, col:'side', vis:true}); });
+    S.cust[role] = arr;
+  }
+  return S.cust[role];
+}
+function resetCust(){ delete S.cust[S.role]; renderWb(); renderCust(); toast('已恢复 ' + ROLES[S.role].label + ' 默认布局'); }
+
+/* ---------- 顶栏菜单 ---------- */
+function renderMenu(){
+  var h='';
+  MENUS.forEach(function(m){
+    if(m.k==='home'){ h+='<div class="ep-mi on">工作台</div>'; return; }
+    var star = S.favs.indexOf(m.k)>=0 ? '<span class="fav">★</span>' : '';
+    h+='<div class="ep-mi" data-act="menu" data-k="'+m.k+'">'+star+m.n+(m.sub?' ▾':'')+
+       (m.sub?'<div class="sub">'+m.sub.map(function(s){return '<a data-act="menu-jump" data-n="'+esc(s)+'">'+esc(s)+'</a>';}).join('')+'</div>':'')+'</div>';
+  });
+  var favSub = MENUS.filter(function(m){return S.favs.indexOf(m.k)>=0;});
+  h+='<div class="ep-mi" style="color:var(--warn)">★ 收藏 ▾<div class="sub">'+(favSub.length?favSub.map(function(m){return '<a data-act="menu-jump" data-n="'+esc(m.n)+'">'+esc(m.n)+'</a>';}).join(''):'<a style="color:var(--t4)">悬停菜单点 ★ 收藏</a>')+'</div></div>';
+  $('epMenu').innerHTML=h;
+}
+
+/* ---------- 模块渲染 ---------- */
+function cardWrap(key, bodyHtml, extraHead){
+  var m = MOD_META[key];
+  return '<div class="card" data-mod="'+key+'"><div class="wb-card-h"><h3>'+m.t+' <span class="cap">'+m.cap+'</span></h3><span class="sp">'+(extraHead||'')+'</span></div>'+bodyHtml+'</div>';
+}
+function renderAlerts(col){
+  var A = ALERTS[S.role] || [];
+  var list = A.filter(function(a){ return !S.dismissed[a.id]; });
+  if(!list.length) return '<div class="alerts" data-mod="alerts" style="'+(col==='side'?'grid-template-columns:1fr':'')+'"><div class="alert-card lv-b"><div class="at"><span class="lvdot b"></span>暂无需要你行动的预警</div><div class="ad">预警规则：SLA 到期 / 流程阻塞 / 被催办 · 处理后自动消失</div></div></div>';
+  return '<div class="alerts" data-mod="alerts" style="'+(col==='side'?'grid-template-columns:1fr':'')+'">'+list.map(function(a){
+    return '<div class="alert-card lv-'+a.lv+'"><span class="ax" data-act="alert-x" data-id="'+a.id+'" title="今日不再提醒">✕</span>'+
+      '<div class="at"><span class="lvdot '+a.lv+'"></span>'+esc(a.t)+'</div>'+
+      '<div class="ad">'+esc(a.d)+'</div>'+
+      '<div class="af">'+a.ops.map(function(o){ return '<button class="btn btn-sm'+(o[1]==='urgeai'||o[1]==='urge'?' btn-pri':'')+'" data-act="alert-op" data-k="'+o[1]+'" data-t="'+esc(a.t)+'">'+o[0]+'</button>'; }).join('')+
+      '<span style="margin-left:auto;font-size:11px;color:var(--t4)">'+esc(a.tag)+'</span></div></div>';
+  }).join('')+'</div>';
+}
+var ALERTS = {
+  buyer:[
+    {id:'al1', lv:'r', t:'电池PACK上盖 · 今天 17:00 上会', d:'定点材料尚未提交 · DD-2026-0117 · 延锋国际', ops:[['去提交','jump'],['催审批','urge']], tag:'SLA 到期'},
+    {id:'al2', lv:'y', t:'逆变器壳体 R2 明天截止 · 3 家未回标', d:'汇川 / 李尔 / 弗迪 未回标，回标率 50%', ops:[['一键催办','urgeai'],['查看','jump']], tag:'流程阻塞'},
+    {id:'al3', lv:'b', t:'MCU 独供风险升至 92%', d:'建议启动二供开发 · 来自供应商风险监控', ops:[['去立项','jump'],['独供风险扫描','ai:独供风险扫描']], tag:'风险提示'}
+  ],
+  ce:[
+    {id:'cl1', lv:'r', t:'压铸后地板报价超目标价 8%', d:'HJ-2026-0089 · 文灿股份 · 今天需给出核价结论', ops:[['去核价','jump'],['报价对比分析','ai:报价对比分析']], tag:'SLA 到期'},
+    {id:'cl2', lv:'y', t:'3 笔报价低于历史均价 15%', d:'异常低价需逐笔确认，避免后续交付风险', ops:[['价格异常识别','ai:价格异常识别']], tag:'风险提示'}
+  ],
+  pm:[
+    {id:'pl1', lv:'r', t:'智驾域控定点审批阻塞 5 天', d:'卡成本委员会 · 张宁等 3 人未处理', ops:[['催办','urge'],['查看','jump']], tag:'流程阻塞'},
+    {id:'pl2', lv:'y', t:'电驱采购组逾期率 38%', d:'6 名成员中 2 人逾期率超 20%，建议督办', ops:[['查看明细','jump']], tag:'团队负荷'},
+    {id:'pl3', lv:'b', t:'今天 16:00 定点上会 1 场', d:'DD-2026-0117 电池PACK上盖 · 材料待预审', ops:[['去预审','jump']], tag:'日程'}
+  ],
+  sie:[
+    {id:'sl1', lv:'r', t:'2 家供应商资质过期阻塞发标', d:'成量弹簧 / 宁夏共享 · 影响 3 个在途 RFQ', ops:[['去处理','jump'],['资质到期扫描','ai:资质到期扫描']], tag:'流程阻塞'}
+  ],
+  sqe:[
+    {id:'ql1', lv:'r', t:'8D-2026-0027 超期 2 天未关闭', d:'宁波华翔 · 压铸件尺寸偏差', ops:[['催办','urge'],['查看','jump']], tag:'SLA 到期'}
+  ],
+  log:[
+    {id:'ll1', lv:'r', t:'3 单到货差异需今日裁定', d:'CY-2026-0055 · 涉及 2 家供应商', ops:[['去裁定','jump']], tag:'SLA 到期'}
+  ]
+};
+
+function todoList(role){ return TODOS[role] || []; }
+function renderTodo(col){
+  var list = todoList(S.role);
+  var mods = [];
+  list.forEach(function(t){ if(mods.indexOf(t.mod)<0) mods.push(t.mod); });
+  var filtered = list.filter(function(t){
+    if(S.todoMod!=='all' && t.mod!==S.todoMod) return false;
+    if(S.todoView==='list' && t.st!==S.todoSt) return false;
+    return true;
+  });
+  filtered.sort(function(a,b){ return PRI_META[a.pri][2]-PRI_META[b.pri][2]; });
+  var cnt = function(st){ return list.filter(function(t){return t.st===st;}).length; };
+  var head = '<div class="tabs">'+[['new','待处理'],['doing','进行中'],['approve','待审批'],['done','已完成']].map(function(x){
+      if(S.todoView!=='list') return '';
+      return '<div class="tab'+(S.todoSt===x[0]?' on':'')+'" data-act="todo-st" data-k="'+x[0]+'">'+x[1]+'<span class="cnt num">'+cnt(x[0])+'</span></div>';
+    }).join('')+'</div>'+
+    '<div class="subtabs"><span class="chip'+(S.todoMod==='all'?' on':'')+'" data-act="todo-mod" data-k="all">全部</span>'+
+    mods.map(function(mk){ return '<span class="chip'+(S.todoMod===mk?' on':'')+'" data-act="todo-mod" data-k="'+mk+'">'+MOD_LABEL[mk]+'</span>'; }).join('')+'</div>';
+  var body;
+  if(S.todoView==='list'){
+    body = filtered.length ? filtered.map(function(t){
+      var p = PRI_META[t.pri];
+      return '<div class="todo-row" data-act="todo-open" data-id="'+t.id+'">'+
+        '<span class="pri">'+(p[0]?'<span class="tag '+p[1]+'">'+p[0]+'</span>':'')+'</span>'+
+        '<span class="tt"><div class="t1">'+esc(t.t)+'</div><div class="t2">'+
+          '<span>'+esc(t.doc)+(t.sup?' · '+esc(t.sup):'')+'</span>'+
+          (t.due?'<span class="'+(t.od?'od':'')+'">'+esc(t.due)+'</span>':'')+
+          (t.stay?'<span>'+esc(t.stay)+'</span>':'')+
+        '</div></span>'+
+        '<span class="ops">'+t.ops.map(function(o){
+            return '<button class="btn btn-sm'+(o[1]==='pass'||o[1]==='urge'||o[1]==='urgeai'?' btn-pri':'')+'" data-act="todo-op" data-k="'+esc(o[1])+'" data-id="'+t.id+'" data-t="'+esc(o[0])+'">'+o[0]+'</button>';
+          }).join('')+'</span></div>';
+    }).join('') : '<div style="padding:36px;text-align:center;color:var(--t4)">该分组暂无待办 · 换一个页签看看</div>';
+  } else {
+    var cols = [['new','待处理'],['doing','进行中'],['approve','待审批'],['done','已完成']];
+    body = '<div class="kb">'+cols.map(function(c){
+      var items = filtered.filter(function(t){return t.st===c[0];});
+      return '<div class="kb-col"><h4>'+c[1]+'<span class="cnt num">'+items.length+'</span></h4>'+items.map(function(t){
+        return '<div class="kb-item p-'+t.pri+'" data-act="todo-open" data-id="'+t.id+'">'+esc(t.t)+'<div class="m">'+(PRI_META[t.pri][0]?'<span class="tag '+PRI_META[t.pri][1]+'" style="font-size:10px">'+PRI_META[t.pri][0]+'</span>':'')+esc(t.doc)+' · '+MOD_LABEL[t.mod]+'</div></div>';
+      }).join('')+'</div>';
+    }).join('')+'</div>';
+  }
+  var toggle = '<span class="chip" data-act="todo-view" data-k="'+(S.todoView==='list'?'kanban':'list')+'">'+(S.todoView==='list'?'▦ 看板视图':'☰ 列表视图')+'</span>';
+  return cardWrap('todo', head+body, '<span style="font-size:12px;color:var(--t3)">策展排序：紧急→SLA→阻塞→进行中</span>'+toggle);
+}
+
+function stChip(n, rowId, doc){
+  var map = {done:['done','✓ 完成'], doing:['doing','● 进行中'], urgent:['urgent','! 紧急'], blocked:['blocked','⛔ 阻塞'], wait:['wait','—']};
+  var m = map[n.s];
+  var label = m[1] + (n.t ? ' · '+n.t : '');
+  var exp = n.sub ? ' <span class="exp">'+(S.exp[rowId+doc]?'▲':'▼')+'</span>' : '';
+  return '<span class="st '+m[0]+'" data-act="mx-st" data-row="'+rowId+'" data-node="'+doc+'" data-doc="'+esc(doc)+'">'+label+exp+'</span>';
+}
+function renderMatrix(col){
+  var rows = MATRIX.slice().sort(function(a,b){ return (b.urgent?1:0)-(a.urgent?1:0); });
+  var h = '<table class="mx"><tr><th>项目 / 包</th>'+NODES.map(function(n){return '<th>'+n+'</th>';}).join('')+'<th>进度</th></tr>';
+  rows.forEach(function(r){
+    var done = r.nodes.filter(function(n){return n.s==='done';}).length;
+    var pct = Math.round(done/5*100);
+    h += '<tr class="'+(r.urgent?'urgent-row':'')+'"><td class="pkg">'+esc(r.pkg)+'<small>负责人 '+r.buyer+(r.urgent?' · <span style="color:var(--err)">紧急置顶</span>':'')+'</small></td>';
+    r.nodes.forEach(function(n,i){
+      h += '<td>'+stChip(n, r.id, NODES[i])+'</td>';
+    });
+    h += '<td><div class="prog"><div class="bar'+(pct===100?' full':'')+'"><i style="width:'+pct+'%"></i></div><span class="num">'+done+'/5</span></div></td></tr>';
+    r.nodes.forEach(function(n,i){
+      if(n.sub && S.exp[r.id+NODES[i]]){
+        h += '<tr><td></td><td colspan="6"><div class="substep" style="margin:0 10px 6px"><table>'+n.sub.map(function(s){
+          return '<tr><td style="width:70px;color:var(--t1)">'+esc(s[0])+'</td><td style="width:80px">'+({done:'✓ 完成',doing:'● 进行中',urgent:'! 紧急',blocked:'⛔ 阻塞',wait:'— 待发起'}[s[1]]||s[1])+'</td><td class="who" style="width:130px">'+esc(s[2])+'</td><td>'+esc(s[3]||'')+'</td></tr>';
+        }).join('')+'</table></div></td></tr>';
+      }
+    });
+  });
+  h += '</table>';
+  return cardWrap('matrix', h, '<span style="font-size:12px;color:var(--t3)">点节点展开子步骤 · 点状态直达单据</span>');
+}
+
+function renderMetrics(col){
+  var ms = METRICS[S.role] || METRICS.buyer;
+  var per = col==='side'?2:4;
+  return cardWrap('metrics', '<div class="mgrid" style="grid-template-columns:repeat('+per+',1fr)">'+ms.map(function(m){
+    var dirCls = (m.good==='up' ? (m.dir==='up'?'goodup':'up') : (m.dir==='down'?'goodup':'up'));
+    return '<div class="mcard" data-act="metric" data-n="'+esc(m.k)+'"><div class="mk">'+m.k+'<span class="drill">下钻 ›</span></div><div class="mv num">'+m.v+'<small> '+m.u+'</small></div><div class="md '+dirCls+'">'+esc(m.d)+'</div>'+spark(m.sp, m.dir==='down'?'#95de64':'#69b1ff')+'</div>';
+  }).join('')+'</div>', '<span style="font-size:12px;color:var(--t3)">数据与单据流转同源 · 点击下钻</span>');
+}
+
+function renderStats(col){
+  var isPM = S.role==='pm';
+  var g = STATS_GROUP;
+  var donePct = Math.round(g.done/g.total*100), odPct = Math.round(g.overdue/g.total*100);
+  var donut = '<div class="donut-wrap"><div class="donut" style="background:conic-gradient(var(--ok) 0 '+donePct+'%, var(--err) '+donePct+'% '+(donePct+odPct)+'%, #f0f0f0 '+(donePct+odPct)+'% 100%)"><div class="hole"><b class="num">'+g.total+'</b><span>当前待办总数</span></div></div>'+
+    '<div class="dlegend"><span><i style="background:var(--ok)"></i>已完成 '+g.done+'</span><span><i style="background:var(--err)"></i>已逾期 '+g.overdue+'</span><span><i style="background:#f0f0f0"></i>未逾期 '+g.doing+'</span></div></div>';
+  var bars;
+  if(isPM){
+    bars = '<div class="hbars">'+STATS_DEPT.rows.map(function(r){
+      var v = parseFloat(r.r);
+      return '<div class="hbar"><span class="nm">'+r.n+'</span><div class="tr"><i style="width:'+v+'%"></i></div><span class="vl num">完成率 '+r.r+' · 逾期率 '+r.or+'</span></div>';
+    }).join('')+'</div>'+
+    '<table class="detail-tbl"><tr><th>三级部门</th><th>总数</th><th>完成数</th><th>完成率</th><th>逾期数</th><th>逾期率</th><th>未完成数</th></tr>'+
+    STATS_DEPT.rows.map(function(r){ return '<tr><td><span class="expd">▸</span>'+r.n+'</td><td>'+r.total+'</td><td>'+r.done+'</td><td>'+r.r+'</td><td style="color:'+(parseFloat(r.or)>10?'var(--err)':'inherit')+'">'+r.od+'</td><td>'+r.or+'</td><td>'+r.rem+'</td></tr>'; }).join('')+'</table>';
+  } else {
+    bars = '<div class="hbars">'+g.members.map(function(m){
+      return '<div class="hbar"><span class="nm">'+m.n+'</span><div class="tr"><i class="'+(m.o>2?'bad':'')+'" style="width:'+m.r+'%"></i></div><span class="vl num">完成率 '+m.r+'%'+(m.o?' · 逾期 '+m.o:'')+'</span></div>';
+    }).join('')+'</div>';
+  }
+  return cardWrap('stats', '<div class="stat-grid">'+donut+'<div>'+bars+'</div></div>', '<span style="font-size:12px;color:var(--t3)">'+(isPM?'部门维度 · 点击行下钻个人明细':'我的组 · 数据来自待办统计开放接口')+'</span>');
+}
+
+function renderFeed(col){
+  var M = MSGS[S.role] || {action:[],follow:[],sys:[]};
+  var tabs = [['action','待行动',M.action.length],['follow','跟进',M.follow.length],['sys','系统消息',M.sys.length]];
+  var list = M[{action:'action',follow:'follow',sys:'sys'}[S.msgTab]] || [];
+  var h = '<div class="tabs" style="padding:0 20px">'+tabs.map(function(t){
+    return '<div class="tab'+(S.msgTab===t[0]?' on':'')+'" data-act="msg-tab" data-k="'+t[0]+'">'+t[1]+'<span class="cnt num">'+t[2]+'</span></div>';
+  }).join('')+'</div>';
+  h += list.length ? list.map(function(m){
+    var read = S.read[m.id] || m.r;
+    return '<div class="msg-row" data-act="msg-read" data-id="'+m.id+'"><span class="mi2'+(read?' read':'')+'"></span><span class="mb"><div class="mt">'+esc(m.t)+'</div><div class="mm">'+esc(m.m)+'</div></span>'+
+      (m.id==='a2'?'<span class="readring" data-act="urge-unread"><span class="rr" style="background:conic-gradient(#69b1ff 0 60%, #f0f0f0 60% 100%)">3/5</span>一键催办未读</span>':'')+
+      '<span class="mtail">'+(read?'':'未读')+'</span></div>';
+  }).join('') : '<div style="padding:28px;text-align:center;color:var(--t4)">暂无消息</div>';
+  return cardWrap('feed', h);
+}
+
+function renderAI(col){
+  var h = '<div class="wb-card-b"><div class="ai-groups">'+
+    SKILLS.map(function(g){
+      return '<div class="ai-g"><h4><span class="ag">'+g.agent+' Agent</span></h4>'+g.items.map(function(s){
+        return '<span class="skill" data-act="skill" data-s="'+esc(s)+'"><span class="si">AI</span>'+esc(s)+'</span>';
+      }).join('')+'</div>';
+    }).join('')+
+    '</div><div class="hr"></div>'+
+    '<div style="font-size:12px;color:var(--t3);margin-bottom:8px">Agent 任务卡 · AI 正在替你跑的事</div>'+
+    AGENT_TASKS.map(function(t){
+      var ic = t.st==='run'?'<span class="sp2"></span>':(t.st==='queue'?'<span class="q2"></span>':'<span class="ok2">✓</span>');
+      return '<div class="agent-task" data-act="agent-task" data-n="'+esc(t.n)+'">'+ic+'<span>'+esc(t.n)+'</span><span style="margin-left:auto;font-size:12px;color:var(--t3)">'+(t.st==='run'?'进行中 '+t.p:(t.st==='queue'?'排队中':t.p+' · 查看'))+'</span></div>';
+    }).join('')+
+    '<div class="ai-push" style="margin-top:10px"><span class="ai-tag">AI 摘要</span><span>今日待办摘要：<b>3 个 RFQ 临期未回标</b>，2 个定点今天到期，可一键催办。<a data-act="skill" data-s="一键催办">去处理 ›</a></span></div>'+
+    '</div>';
+  return cardWrap('ai', h, '<span style="font-size:12px;color:var(--t3)">点击 skill → prompt 填入助手</span>');
+}
+
+function renderRecent(col){
+  var h = '<div class="wb-card-b">'+
+    '<div style="font-size:12px;color:var(--t3);margin-bottom:8px">最近访问 · 最近使用排最前</div><div class="rec-chips">'+
+    RECENT.map(function(r){ return '<span class="chip" data-act="recent-jump" data-n="'+esc(r)+'">'+esc(r)+'</span>'; }).join('')+'</div>'+
+    '<div style="font-size:12px;color:var(--t3);margin:14px 0 8px">常用菜单收藏 · 悬停顶栏菜单点 ★</div><div class="rec-chips">'+
+    MENUS.filter(function(m){return m.k!=='home';}).map(function(m){
+      var on = S.favs.indexOf(m.k)>=0;
+      return '<span class="chip'+(on?' on':'')+'" data-act="fav" data-k="'+m.k+'">'+(on?'★':'☆')+' '+m.n+'</span>';
+    }).join('')+'</div></div>';
+  return cardWrap('recent', h);
+}
+
+var RENDER = { alerts:renderAlerts, todo:renderTodo, matrix:renderMatrix, metrics:renderMetrics, stats:renderStats, feed:renderFeed, ai:renderAI, recent:renderRecent };
+
+function renderWb(){
+  var mods = getMods(S.role);
+  var main = mods.filter(function(m){ return m.col==='main' && m.vis; });
+  var side = mods.filter(function(m){ return m.col==='side' && m.vis; });
+  $('wbMain').innerHTML = main.map(function(m){ return m.k==='alerts' ? renderAlerts('main') : RENDER[m.k]('main'); }).join('');
+  $('wbSide').innerHTML = side.map(function(m){ return m.k==='alerts' ? renderAlerts('side') : RENDER[m.k]('side'); }).join('');
+  var r = ROLES[S.role];
+  $('epWho').innerHTML = r.person+'<small>'+r.dept+'</small>';
+  $('epAvatar').textContent = r.avatar;
+  renderRoleChips();
+  renderMenu();
+}
+function renderRoleChips(){
+  $('roleChips').innerHTML = Object.keys(ROLES).map(function(k){
+    return '<span class="chip'+(S.role===k?' on':'')+'" data-act="setrole" data-k="'+k+'">'+ROLES[k].label+'</span>';
+  }).join('');
+}
+function renderCust(){
+  var mods = getMods(S.role);
+  $('custBody').innerHTML = mods.map(function(m,i){
+    return '<div class="cust-item'+(m.vis?'':' off')+'"><span class="eye" data-act="cust-vis" data-i="'+i+'" title="显示/隐藏">'+(m.vis?'👁':'—')+'</span>'+
+      '<span class="nm2">'+MOD_META[m.k].t+'<small>'+MOD_DESC[m.k]+'</small></span>'+
+      '<span class="mv2"><span class="chip" style="height:22px;padding:0 8px;font-size:11px" data-act="cust-col" data-i="'+i+'">'+(m.col==='main'?'主栏':'侧栏')+'</span>'+
+      '<button class="btn btn-sm" data-act="cust-mv" data-i="'+i+'" data-d="-1">↑</button><button class="btn btn-sm" data-act="cust-mv" data-i="'+i+'" data-d="1">↓</button></span></div>';
+  }).join('');
+}
+
+/* ---------- 一个流 ---------- */
+var FLOW = [
+  {n:'SOR 需求发起', st:'done', meta:[['SOR 编号','SOR-2026-0041'],['品类','电驱系统 · 逆变器壳体'],['需求数量','12 万台/年'],['目标 SOP','2027-06']],
+   note:'已完成 · 技术中心 2026-08-12 发布，需求冻结于 08-30。', acts:[['查看 SOR 详情','jump']]},
+  {n:'BDL 清单评审', st:'done', meta:[['BDL 编号','BDL-2026-0198'],['零件行数','186 行'],['评审结论','通过'],['评审完成','2026-09-18']],
+   note:'已完成 · 自动化规则：评审通过后系统自动创建了 RFQ 草稿（见消息中心）。', acts:[['查看 BDL','jump']]},
+  {n:'RFQ 多轮报价', st:'cur', hot:true, meta:[['当前轮次','R2 / 共 4 轮'],['发标日期','2026-10-08'],['回标截止','2026-10-14 18:00'],['回标进度','3 / 6 家']],
+   sub:[['发标','ok2','张平'],['回标','hot','供应商 · 停留 5 天'],['评标','wait','CE 李楠'],['定价','wait','采购+CE+研发']],
+   note:'当前节点 · 未回标：汇川 / 李尔 / 弗迪。核心信息已前置，异常项红色高亮。', acts:[['一键催办未回标','urgeai'],['报价对比分析','ai:报价对比分析'],['申请延期截止日','jump'],['进入 RFQ 详情页','jump']]},
+  {n:'定点单', st:'wait', meta:[['候选供应商','待定（依赖 R2 结果）'],['上会排期','预计 10-28 成本委员会'],['目标价','¥ 268/件']],
+   note:'待发起 · 上会材料可由 AI 定点材料摘要自动生成。', acts:[['定点材料摘要','ai:定点材料摘要'],['创建定点单','jump']]},
+  {n:'合同签署', st:'wait', meta:[['合同模板','生产采购标准模板 V3.2'],['预计签署','定点后 10 个工作日']],
+   note:'待发起 · 定标后自动触发合同草稿，条款风险由 AI 预审。', acts:[['查看模板','jump']]}
+];
+function renderFlow(){
+  $('flowElev').innerHTML = FLOW.map(function(f,i){
+    var cls = f.st==='done'?'done':(f.st==='cur'?'cur':'')+(f.hot?' hot':'');
+    var ic = f.st==='done'?'✓':(f.st==='cur'?(i+1):'—');
+    return '<div class="e-step '+cls+'" data-act="flow-goto" data-i="'+i+'"><span class="e-ic">'+ic+'</span><span><span class="e-nm">'+f.n+'</span><br><span class="e-st">'+(f.st==='done'?'已完成':(f.st==='cur'?(f.hot?'进行中 · 有阻塞':'进行中'):'待发起'))+'</span></span></div>';
+  }).join('');
+  $('flowSteps').innerHTML = FLOW.map(function(f,i){
+    var stTag = f.st==='done'?'<span class="tag tag-green">已完成</span>':(f.st==='cur'?(f.hot?'<span class="tag tag-red">当前 · 停留 5 天</span>':'<span class="tag tag-blue">当前</span>'):'<span class="tag tag-gray">待发起</span>');
+    var h = '<div class="card flow-step" id="fstep-'+i+'"><h3><span style="color:var(--t4)">'+(i+1)+'</span> '+f.n+' '+stTag+'<span class="backtop" data-act="flow-top">↑ 回到顶部</span></h3>'+
+      '<div class="fs-meta">'+f.meta.map(function(m){ return '<div class="fm"><i>'+m[0]+'</i><b>'+m[1]+'</b></div>'; }).join('')+'</div>';
+    if(f.sub){
+      h += '<div class="fs-sub">'+f.sub.map(function(s){
+        var stl = s[1]==='ok2'?'✓ 完成':(s[1]==='hot'?'! 进行中':(s[1]==='wait'?'待办':'进行中'));
+        return '<div class="fs-node '+s[1]+'"><b>'+s[0]+' · '+stl+'</b><span class="fw">'+s[2]+'</span>'+(s[1]==='hot'?'<div class="stay2" style="color:var(--err)">停留 5 天 ⚠</div>':'')+'</div>';
+      }).join('')+'</div>';
+    }
+    h += '<div class="fs-acts">'+f.acts.map(function(a){
+        return '<button class="btn btn-sm'+(a[1]==='urgeai'?' btn-pri':'')+'" data-act="flow-act" data-k="'+esc(a[1])+'" data-t="'+esc(a[0])+'">'+a[0]+'</button>';
+      }).join('')+'</div>'+
+      '<div class="fs-note">'+f.note+'</div></div>';
+    return h;
+  }).join('');
+}
+
+/* ---------- AI 助手抽屉 ---------- */
+function openAI(prompt, agent, ctx){
+  $('aiDrawer').classList.add('on'); $('mask').classList.add('on');
+  if(agent){ S.agent = agent; }
+  $('drAgent').textContent = S.agent;
+  $('drCtx').textContent = '📎 当前上下文：' + (ctx || S.ctx);
+  $('drQuick').innerHTML = ['今日待办摘要','RFQ 临期未回标','定点材料摘要','查单状态'].map(function(q){
+    return '<span class="chip" data-act="quick" data-s="'+esc(q)+'">'+q+'</span>';
+  }).join('');
+  if(prompt){ $('drInput').value = prompt; $('drInput').focus(); }
+  renderChat();
+}
+function closeAI(){ $('aiDrawer').classList.remove('on'); $('mask').classList.remove('on'); }
+function renderChat(){
+  $('drBody').innerHTML = S.chat.map(function(m){
+    if(m.role==='u') return '<div class="msg-u">'+esc(m.text)+'</div>';
+    return '<div class="msg-a">'+m.html+'</div>';
+  }).join('') || '<div class="msg-a" style="color:var(--t3)">👋 我是 EP 智能助手。可以查单据状态、生成催办、做报价对比与摘要。<br>点击首页任意 skill 会把对应指令带进来，也可以直接输入。<div class="cite">权限随你的账号 · 回复可溯源 · 数据不出租户</div></div>';
+  $('drBody').scrollTop = $('drBody').scrollHeight;
+}
+function aiReply(text){
+  var h;
+  if(/催办|未回标/.test(text)){
+    h = '已按"SLA 3 天内到期且存在未回标"筛选，共 <b>1 个 RFQ · 3 家供应商</b>：<div class="acard"><div class="ah">📋 催办清单 · RFQ-2026-0042 逆变器壳体 R2<span class="tag tag-gold" style="margin-left:auto">截止 10-14</span></div>'+
+      '<div class="ab"><div class="st-row"><span class="sn">汇川技术</span><span class="sw">未回标 · R1 曾延期 1 天</span><span class="tag tag-red">未读上次催办</span></div>'+
+      '<div class="st-row"><span class="sn">李尔</span><span class="sw">未回标 · 报价问询未回复</span><span class="tag tag-gold">待跟进</span></div>'+
+      '<div class="st-row"><span class="sn">弗迪电池</span><span class="sw">未回标 · 首次合作</span><span class="tag tag-blue">正常</span></div></div>'+
+      '<div class="af2"><button class="btn btn-sm btn-pri" data-act="send-urge">发送催办（抄送 CE）</button><button class="btn btn-sm" data-act="chat-say" data-t="只催办汇川技术">改选对象</button></div></div>'+
+      '<div class="cite">来源：<a>[1] RFQ-2026-0042</a><a>[2] 回标记录</a> · 动作需你确认后执行（L2）</div>'+fbRow();
+  } else if(/到哪|状态|查单|卡/.test(text)){
+    h = '<b>DD-2026-0117 电池PACK上盖定点单</b>当前状态：<div class="acard"><div class="ah">🔎 节点状态卡</div><div class="ab">'+
+      '<div class="st-row"><span class="sn">SOR</span><span class="sw">✓ 已完成</span><span>08-12</span></div>'+
+      '<div class="st-row"><span class="sn">BDL</span><span class="sw">✓ 已完成</span><span>09-18</span></div>'+
+      '<div class="st-row"><span class="sn">RFQ</span><span class="sw">✓ R4 定标 · 延锋国际</span><span>10-06</span></div>'+
+      '<div class="st-row"><span class="sn">定点</span><span class="sw"><b style="color:var(--err)">● 今天 17:00 上会 · 材料未提交</b></span><span class="tag tag-red">SLA</span></div>'+
+      '<div class="st-row"><span class="sn">合同</span><span class="sw">— 待发起</span><span></span></div></div>'+
+      '<div class="af2"><button class="btn btn-sm btn-pri" data-act="chat-say" data-t="生成定点上会材料摘要">定点材料摘要</button><button class="btn btn-sm" data-act="jump-doc" data-d="DD-2026-0117">打开单据</button></div></div>'+
+      '<div class="cite">来源：<a>[1] 定点单实时取数</a><a>[2] 上会排期表</a></div>'+fbRow();
+  } else if(/摘要|今日|今天/.test(text)){
+    h = '今日必须处理（按策展优先级）：<div class="acard"><div class="ah">🗓 今日待办摘要 · 3 项</div><div class="ab">'+
+      '<div class="st-row"><span class="tag tag-red">紧急</span><span class="sw">电池PACK上盖 17:00 上会 · 材料未提交</span><button class="btn btn-sm" data-act="jump-doc" data-d="DD-2026-0117">去提交</button></div>'+
+      '<div class="st-row"><span class="tag tag-gold">临期</span><span class="sw">逆变器壳体 R2 明天截止 · 3 家未回标</span><button class="btn btn-sm btn-pri" data-act="chat-say" data-t="列出临期未回标的 RFQ 并生成催办清单">催办</button></div>'+
+      '<div class="st-row"><span class="tag tag-volc">阻塞</span><span class="sw">智驾域控定点审批卡成本委员会 5 天</span><button class="btn btn-sm" data-act="chat-say" data-t="给成本委员会张宁等 3 人发催办">催审批</button></div></div></div>'+
+      '<div class="cite">来源：<a>[1] 我的待办</a><a>[2] SLA 配置</a></div>'+fbRow();
+  } else if(/对比|比价/.test(text)){
+    h = 'RFQ-2026-0042 已回标 3 家，按总成本口径对比：<div class="acard"><div class="ah">📊 报价对比（总成本 = 单价+运费+付款条款折算+税）</div><div class="ab">'+
+      '<div class="st-row"><span class="sn">宁德时代</span><span class="sw">¥262.4 · <b style="color:var(--ok)">最低</b> · 账期 60 天</span><span class="tag tag-green">推荐短名单</span></div>'+
+      '<div class="st-row"><span class="sn">中创新航</span><span class="sw">¥266.1 · +1.4% · 账期 90 天</span><span class="tag tag-blue">商务占优</span></div>'+
+      '<div class="st-row"><span class="sn">国轩</span><span class="sw">¥271.8 · +3.6% · 产能待核实</span><span class="tag tag-gold">待澄清</span></div></div>'+
+      '<div class="af2"><button class="btn btn-sm" data-act="jump-doc" data-d="RFQ-2026-0042">打开比价工作台</button></div></div>'+
+      '<div class="cite">来源：<a>[1] 回标文件</a><a>[2] 价格库·物流费率</a> · AI 辅助，人工确认</div>'+fbRow();
+  } else if(/风险|独供/.test(text)){
+    h = '扫描在管 91 家供应商 × 18 个项目包，识别独供风险 3 项：<div class="acard"><div class="ah">⚠ 独供风险 Top</div><div class="ab">'+
+      '<div class="st-row"><span class="sn">MCU</span><span class="sw">恩智浦独供 · 风险指数 92</span><span class="tag tag-red">建议二供开发</span></div>'+
+      '<div class="st-row"><span class="sn">域控芯片</span><span class="sw">地平线 · 单一来源 · 风险 71</span><span class="tag tag-gold">关注</span></div>'+
+      '<div class="st-row"><span class="sn">一体化压铸</span><span class="sw">文灿 · 产能利用率 94%</span><span class="tag tag-gold">关注</span></div></div></div>'+
+      '<div class="cite">来源：<a>[1] 供应商风险监控</a><a>[2] 产能调查表</a></div>'+fbRow();
+  } else {
+    h = '收到（原型示意）。真实系统里这里会走 RAG + 单据实时取数，并附来源链接。你可以试试快捷指令：<b>查单状态 / 今日待办摘要 / 催办 / 比价分析 / 独供风险</b>。'+fbRow();
+  }
+  return h;
+}
+function fbRow(){ return '<div class="fb"><span data-act="fb" data-k="up">👍 有帮助</span><span data-act="fb" data-k="down">👎 答非所问</span><span style="margin-left:auto">EP · L1/L2</span></div>'; }
+function sendChat(){
+  var v = $('drInput').value.trim();
+  if(!v) return;
+  S.chat.push({role:'u', text:v});
+  $('drInput').value='';
+  renderChat();
+  setTimeout(function(){ S.chat.push({role:'a', html:aiReply(v)}); renderChat(); }, 350);
+}
+
+/* ---------- 事件委托 ---------- */
+document.addEventListener('click', function(e){
+  var el = e.target.closest('[data-act]');
+  if(!el) return;
+  var act = el.getAttribute('data-act');
+  var k = el.getAttribute('data-k');
+  var id = el.getAttribute('data-id');
+
+  /* 导航 */
+  if(act==='menu-jump'){ toast('跳转：' + el.getAttribute('data-n') + '（原型示意）'); return; }
+  if(act==='menu'){ return; }
+
+  /* 角色 */
+  if(act==='setrole'){ S.role=k; S.todoMod='all'; S.todoSt='new'; S.todoView='list'; S.exp={}; renderWb(); renderCust(); location.hash='#/proto/'+k; return; }
+
+  /* 预警 */
+  if(act==='alert-x'){ S.dismissed[id]=1; renderWb(); toast('已忽略 · 处理完成后预警自动消失'); return; }
+  if(act==='alert-op'){
+    if(k.indexOf('ai:')===0){ var sk=k.slice(3); openAI(SKILL_PROMPT[sk]||sk, guessAgent(sk), '预警 · '+el.getAttribute('data-t')); return; }
+    if(k==='urgeai'){ urgeModal(); return; }
+    if(k==='urge'){ urgeModal(el.getAttribute('data-t')); return; }
+    toast('跳转单据：' + el.getAttribute('data-t') + '（原型示意）'); return;
+  }
+
+  /* 待办 */
+  if(act==='todo-st'){ S.todoSt=k; renderWb(); return; }
+  if(act==='todo-mod'){ S.todoMod=k; renderWb(); return; }
+  if(act==='todo-view'){ S.todoView=k; renderWb(); return; }
+  if(act==='todo-open'){ toast('打开单据详情 · 详情页顶部带流程节点条（借鉴 NIO：功能模块补充流程节点）'); return; }
+  if(act==='todo-op'){
+    var t = el.getAttribute('data-t');
+    if(k==='pass'){ showModal('审批确认 · ' + t, '<div>通过后单据将流转至下一节点，操作全量留痕。</div>', '通过', function(){ todoDone(id, '已通过：'+findTodo(id).t); }); return; }
+    if(k==='reject'){ var tt=findTodo(id); if(tt){ tt.st='new'; tt.pri='block'; } renderWb(); toast('已驳回 · 该待办升级为「阻塞」并置顶'); return; }
+    if(k==='urge'){ urgeModal(t); return; }
+    if(k==='urgeai'){ urgeModal(); return; }
+    if(k.indexOf('ai:')===0){ var sk2=k.slice(3); openAI(SKILL_PROMPT[sk2]||sk2, guessAgent(sk2), '待办 · '+ (findTodo(id)?findTodo(id).t:'')); return; }
+    toast('跳转：' + t + '（原型示意）'); return;
+  }
+
+  /* 矩阵 */
+  if(act==='mx-st'){
+    var rowId = el.getAttribute('data-row'), node = el.getAttribute('data-node');
+    var row = null; MATRIX.forEach(function(r){ if(r.id===rowId) row=r; });
+    var nd = row ? row.nodes[NODES.indexOf(node)] : null;
+    if(nd && nd.sub){ var key=rowId+node; S.exp[key]=!S.exp[key]; renderWb(); }
+    else if(nd && nd.s==='wait'){ toast(row.pkg + ' · ' + node + ' 尚未发起，前置节点完成后自动点亮'); }
+    else { toast('跳转单据详情：' + row.pkg + ' · ' + node + '（原型示意）'); }
+    return;
+  }
+
+  /* 指标 / 统计 */
+  if(act==='metric'){ toast('下钻明细：' + el.getAttribute('data-n') + ' · 明细列表可导出（原型示意）'); return; }
+
+  /* 消息 */
+  if(act==='msg-tab'){ S.msgTab=k; renderWb(); return; }
+  if(act==='msg-read'){ S.read[id]=1; renderWb(); return; }
+  if(act==='urge-unread'){ urgeModal('RFQ-2026-0042 催办未读', ['李尔','弗迪电池']); return; }
+
+  /* AI */
+  if(act==='skill'){ var s=el.getAttribute('data-s'); openAI(SKILL_PROMPT[s]||s, guessAgent(s), 'skill · '+s); return; }
+  if(act==='agent-task'){ toast('打开 Agent 任务详情：' + el.getAttribute('data-n') + '（原型示意）'); return; }
+  if(act==='open-ai'){ openAI('', S.agent); return; }
+  if(act==='close-ai'){ closeAI(); return; }
+  if(act==='send-chat'){ sendChat(); return; }
+  if(act==='quick'){ $('drInput').value = SKILL_PROMPT[el.getAttribute('data-s')] || el.getAttribute('data-s'); $('drInput').focus(); return; }
+  if(act==='chat-say'){ S.chat.push({role:'u', text:el.getAttribute('data-t')}); renderChat(); setTimeout(function(){ S.chat.push({role:'a', html:aiReply(el.getAttribute('data-t'))}); renderChat(); },300); return; }
+  if(act==='send-urge'){ urgeModal('催办未回标供应商', ['汇川技术','李尔','弗迪电池'], '已发送 3 条催办 · 已读追踪见消息中心'); return; }
+  if(act==='jump-doc'){ toast('打开单据：' + el.getAttribute('data-d') + '（原型示意）'); return; }
+  if(act==='fb'){ toast(k==='up'?'感谢反馈':'已记录，可补充原因：答非所问 / 信息错误 / 来源缺失'); return; }
+
+  /* 收藏 / 最近 */
+  if(act==='fav'){ var i=S.favs.indexOf(k); if(i>=0){S.favs.splice(i,1); toast('已取消收藏');} else {S.favs.push(k); toast('已收藏到顶栏 ★');} renderWb(); return; }
+  if(act==='recent-jump'){ toast('跳转：' + el.getAttribute('data-n') + '（最近访问排最前）'); return; }
+  if(act==='scroll-feed'){ showView('proto'); setTimeout(function(){ var f=document.querySelector('[data-mod="feed"]'); if(f) f.scrollIntoView({behavior:'smooth', block:'center'}); },100); return; }
+
+  /* 自定义 */
+  if(act==='toggle-cust'){ var p=$('custPanel'); p.classList.toggle('open'); if(p.classList.contains('open')) renderCust(); return; }
+  if(act==='reset-cust'){ resetCust(); return; }
+  if(act==='cust-vis'){ var m=getMods(S.role); var idx=parseInt(el.getAttribute('data-i'),10); m[idx].vis=!m[idx].vis; renderWb(); renderCust(); return; }
+  if(act==='cust-col'){ var m2=getMods(S.role); var idx2=parseInt(el.getAttribute('data-i'),10); m2[idx2].col = m2[idx2].col==='main'?'side':'main'; renderWb(); renderCust(); return; }
+  if(act==='cust-mv'){ var m3=getMods(S.role); var i3=parseInt(el.getAttribute('data-i'),10), d=parseInt(el.getAttribute('data-d'),10); var j=i3+d; if(j<0||j>=m3.length) return; var tmp=m3[i3]; m3[i3]=m3[j]; m3[j]=tmp; renderWb(); renderCust(); return; }
+
+  /* 一个流 */
+  if(act==='flow-goto'){ var i4=parseInt(el.getAttribute('data-i'),10); var t4=$('fstep-'+i4); if(t4) t4.scrollIntoView({behavior:'smooth', block:'start'}); return; }
+  if(act==='flow-top'){ window.scrollTo({top:0, behavior:'smooth'}); return; }
+  if(act==='flow-act'){
+    if(k==='urgeai'){ urgeModal(); return; }
+    if(k.indexOf('ai:')===0){ var s3=k.slice(3); openAI(SKILL_PROMPT[s3]||s3, guessAgent(s3), '一个流 · 逆变器壳体'); return; }
+    toast('操作：' + el.getAttribute('data-t') + '（原型示意）'); return;
+  }
+  if(act==='goto-proto'){ showView('proto'); return; }
+});
+function findTodo(id){ var r=null; (TODOS[S.role]||[]).forEach(function(t){ if(t.id===id) r=t; }); return r; }
+function todoDone(id, msg){ var l=TODOS[S.role]; for(var i=0;i<l.length;i++){ if(l[i].id===id){ l.splice(i,1); break; } } renderWb(); toast(msg + ' · 已归档'); }
+function guessAgent(s){
+  if(/定点|比价|独供/.test(s)) return '寻源定点';
+  if(/OnePage|资质|绩效/.test(s)) return '供应商管理';
+  if(/报价|历史价|价格|目标价/.test(s)) return '成本分析';
+  if(/合同|条款|到期合同/.test(s)) return '合同';
+  return '通用效率';
+}
+function urgeModal(title, targets, okMsg){
+  var ts = targets || ['汇川技术','李尔','弗迪电池'];
+  showModal(title || '确认发送催办 · L2 行动需确认',
+    '<div>该动作将以你的名义发送催办消息，抄送 CE，全量审计、可撤回记录。</div>'+
+    '<div class="scope"><b>影响范围：</b>'+ts.join('、')+'（'+ts.length+' 家）<br><b>动作：</b>发送回标催办 · 附 RFQ-2026-0042 截止日 10-14 18:00</div>',
+    '确认发送',
+    function(){ toast(okMsg || ('已向 ' + ts.length + ' 家发送催办 · 已读追踪见消息中心')); });
+}
+
+/* 模态 */
+$('mOk').addEventListener('click', function(){ if(modalOk) modalOk(); closeModal(); });
+
+/* Cmd+K */
+document.addEventListener('keydown', function(e){
+  if((e.metaKey||e.ctrlKey) && e.key.toLowerCase()==='k'){ e.preventDefault(); openAI('', S.agent); }
+  if(e.key==='Escape'){ closeAI(); closeModal(); $('custPanel').classList.remove('open'); }
+});
+$('drInput').addEventListener('keydown', function(e){ if(e.key==='Enter' && !e.shiftKey){ e.preventDefault(); sendChat(); } });
+$('mask').addEventListener('click', closeAI);
+
+/* ---------- 视图切换与深链 ---------- */
+function showView(name){
+  ['plan','proto','flow','comp'].forEach(function(v){
+    $('view-'+v).classList.toggle('on', v===name);
+  });
+  document.querySelectorAll('.dnav-tab').forEach(function(t){ t.classList.toggle('on', t.getAttribute('data-nav')===name); });
+  location.hash = '#/' + name + (name==='proto' ? '/'+S.role : '');
+  window.scrollTo(0,0);
+}
+document.querySelectorAll('.dnav-tab').forEach(function(t){
+  t.addEventListener('click', function(){ showView(t.getAttribute('data-nav')); });
+});
+function route(){
+  var h = (location.hash||'').replace('#/','');
+  var seg = h.split('/');
+  if(seg[0]==='proto'){ S.role = ROLES[seg[1]] ? seg[1] : S.role; showView('proto'); renderWb(); renderCust(); }
+  else if(seg[0]==='flow'){ showView('flow'); }
+  else if(seg[0]==='comp'){ showView('comp'); }
+  else { showView('plan'); }
+}
+window.addEventListener('hashchange', route);
+
+/* ---------- 启动 ---------- */
+renderFlow();
+renderWb();
+renderCust();
+route();
+</script>
+</body>
+</html>

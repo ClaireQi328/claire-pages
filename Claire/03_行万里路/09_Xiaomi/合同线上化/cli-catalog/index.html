@@ -1,0 +1,459 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>合同线上化 · CLI 开发清单（9 个）</title>
+<style>
+  * { margin:0; padding:0; box-sizing:border-box; }
+  body {
+    font-family: 'PingFang SC','Microsoft YaHei',-apple-system,Segoe UI,sans-serif;
+    background:#f5f6fa; color:#1a1b2e; padding:20px 14px 44px;
+  }
+  .wrap { max-width:1120px; margin:0 auto; }
+
+  /* ===== 头部 ===== */
+  .head { text-align:center; margin-bottom:18px; }
+  .head .tag {
+    display:inline-block; font-size:11.5px; letter-spacing:3px; color:#3b6ef5;
+    border:1px solid #c8d6fb; padding:4px 14px; border-radius:999px;
+    background:#eef3ff; margin-bottom:12px;
+  }
+  .head h1 { font-size:26px; font-weight:700; color:#10143a; letter-spacing:1px; }
+  .head .sub { margin-top:8px; font-size:13px; color:#6b7280; line-height:1.7; max-width:720px; margin-left:auto; margin-right:auto; }
+
+  /* ===== 统计条 ===== */
+  .stats { display:flex; gap:12px; margin:16px 0 6px; flex-wrap:wrap; }
+  .stat {
+    flex:1 1 150px; background:#fff; border:1px solid #e6e9f2; border-radius:12px;
+    padding:12px 16px; text-align:center; box-shadow:0 1px 4px rgba(20,30,80,.04);
+  }
+  .stat .v { font-size:22px; font-weight:800; color:#3b6ef5; }
+  .stat .l { font-size:12px; color:#8a92a6; margin-top:3px; }
+
+  /* ===== 筛选 ===== */
+  .filters { display:flex; align-items:center; gap:10px; margin:14px 0 16px; flex-wrap:wrap; }
+  .filters .f-label { font-size:12.5px; color:#6b7280; font-weight:600; }
+  .chip {
+    font-size:12px; color:#374151; background:#fff; border:1px solid #dde2ee;
+    padding:5px 14px; border-radius:999px; cursor:pointer; transition:all .15s;
+  }
+  .chip:hover { border-color:#a5cdf7; color:#0e7fd8; }
+  .chip.on { background:#3b6ef5; border-color:#3b6ef5; color:#fff; font-weight:600; }
+  .search {
+    flex:1 1 220px; min-width:180px; background:#fff; border:1px solid #dde2ee;
+    border-radius:10px; padding:7px 14px; font-size:13px; color:#1a1b2e; outline:none;
+  }
+  .search:focus { border-color:#3b6ef5; box-shadow:0 0 0 3px rgba(59,110,245,.12); }
+
+  /* ===== 分组标题 ===== */
+  .group-title {
+    display:flex; align-items:center; gap:9px; margin:22px 0 12px;
+    font-size:15.5px; font-weight:700; color:#10143a;
+  }
+  .group-title .no {
+    width:24px; height:24px; border-radius:7px; background:#3b6ef5; color:#fff;
+    display:flex; align-items:center; justify-content:center; font-size:13px; font-weight:700;
+  }
+  .group-title .desc { font-size:12px; color:#8a92a6; font-weight:400; }
+
+  /* ===== CLI 卡片 ===== */
+  .cards { display:grid; grid-template-columns:repeat(auto-fill,minmax(340px,1fr)); gap:14px; }
+  .card {
+    background:#fff; border:1px solid #e6e9f2; border-radius:14px;
+    padding:16px 18px 14px; box-shadow:0 1px 4px rgba(20,30,80,.04);
+    display:flex; flex-direction:column; transition:box-shadow .18s, border-color .18s;
+  }
+  .card:hover { box-shadow:0 6px 18px rgba(20,30,80,.08); border-color:#c8d6fb; }
+  .card-head { display:flex; align-items:center; justify-content:space-between; margin-bottom:8px; }
+  .card .idx {
+    font-size:11px; font-weight:700; color:#8a92a6; background:#f3f5fa;
+    border:1px solid #e6e9f2; padding:2px 9px; border-radius:6px;
+  }
+  .badge {
+    font-size:10.5px; padding:2px 10px; border-radius:999px; font-weight:600;
+  }
+  .badge.query { background:#eaf6ff; color:#0e7fd8; }
+  .badge.write { background:#f0f7ec; color:#3f9d24; }
+  .badge.evep  { background:#fdf2e5; color:#c47a12; }
+  .card h3 { font-size:15px; font-weight:700; color:#10143a; margin-bottom:5px; line-height:1.4; }
+  .card .cmd {
+    font-family:'SF Mono',Menlo,Consolas,monospace; font-size:12px; color:#0e2a5c;
+    background:#f0f5ff; border:1px solid #dbe7fb; border-radius:8px;
+    padding:8px 10px; margin:9px 0; line-height:1.6; word-break:break-all;
+  }
+  .card .cmd .prompt { color:#8a92a6; }
+  .card .meta {
+    display:flex; flex-wrap:wrap; gap:6px; margin-bottom:10px;
+  }
+  .card .kv {
+    font-size:11px; color:#4b5563; background:#f8fafd; border:1px solid #eef1f7;
+    padding:3px 9px; border-radius:6px;
+  }
+  .card .kv b { color:#10143a; font-weight:600; }
+  .card .kv .path { font-family:Menlo,Consolas,monospace; color:#0e7fd8; }
+  .card .desc { font-size:12px; color:#4b5563; line-height:1.65; margin-bottom:9px; }
+  .card .sec {
+    font-size:11.5px; font-weight:700; color:#6b7280; margin:8px 0 5px;
+    display:flex; align-items:center; gap:6px;
+  }
+  .card .sec::before { content:''; width:3px; height:11px; border-radius:2px; background:#3b6ef5; }
+  .card table { width:100%; border-collapse:collapse; font-size:11px; }
+  .card th {
+    text-align:left; color:#8a92a6; font-weight:600; padding:3px 5px;
+    border-bottom:1px solid #eef1f7; white-space:nowrap;
+  }
+  .card td {
+    color:#374151; padding:4px 5px; border-bottom:1px solid #f3f5fa; vertical-align:top;
+  }
+  .card tr:last-child td { border-bottom:none; }
+  .card .params { max-height:150px; overflow:auto; margin-bottom:2px; }
+  .card .params::-webkit-scrollbar { width:4px; }
+  .card .params::-webkit-scrollbar-thumb { background:#dde2ee; border-radius:2px; }
+  .card .ret {
+    font-size:11px; color:#4b5563; background:#fafbfe; border-radius:8px;
+    padding:8px 10px; line-height:1.7;
+  }
+  .card .ret code { font-family:Menlo,Consolas,monospace; color:#0e7fd8; font-size:10.5px; }
+  .card .note {
+    margin-top:8px; font-size:10.5px; color:#c47a12; background:#fffaf0;
+    border:1px solid #fbe6c8; border-radius:7px; padding:6px 9px; line-height:1.6;
+  }
+  .card .dim-tbl th:first-child { width:86px; }
+
+  /* ===== 汇总 ===== */
+  .summary {
+    background:#fff; border:1px solid #e6e9f2; border-radius:14px;
+    padding:18px 20px; margin-top:22px; box-shadow:0 1px 4px rgba(20,30,80,.04);
+  }
+  .summary h4 { font-size:14.5px; font-weight:700; color:#10143a; margin-bottom:10px; }
+  .summary table { width:100%; border-collapse:collapse; font-size:12.5px; }
+  .summary th {
+    text-align:left; color:#8a92a6; font-weight:600; padding:7px 10px;
+    border-bottom:1px solid #eef1f7;
+  }
+  .summary td { color:#374151; padding:8px 10px; border-bottom:1px solid #f3f5fa; }
+  .summary tr:last-child td { border-bottom:none; }
+  .summary .hl { color:#0e7fd8; font-weight:700; }
+
+  .empty {
+    display:none; text-align:center; color:#8a92a6; font-size:13px;
+    padding:40px 0;
+  }
+
+  @media (max-width:760px) {
+    .cards { grid-template-columns:1fr; }
+    .head h1 { font-size:21px; }
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <div class="head">
+    <div class="tag">合同线上化 · ATOMIC CAPABILITY</div>
+    <h1>CLI 开发清单（9 个）</h1>
+    <div class="sub">AI 助手与产品功能的原子能力底座 · 接口依据经 EVEP 代码库（evep-master）与合同系统接口文档（oa-contract）双重核实 · 未收录定义一律留空标注，不臆造</div>
+  </div>
+
+  <div class="stats">
+    <div class="stat"><div class="v">9</div><div class="l">CLI 总数</div></div>
+    <div class="stat"><div class="v">7</div><div class="l">查询类 · WAVE 1</div></div>
+    <div class="stat"><div class="v">2</div><div class="l">写入类 · WAVE 2</div></div>
+    <div class="stat"><div class="v">8+1</div><div class="l">oa-contract 封装 + EVEP 并入</div></div>
+  </div>
+
+  <div class="filters">
+    <span class="f-label">筛选：</span>
+    <span class="chip on" data-f="all">全部</span>
+    <span class="chip" data-f="query">查询类（7）</span>
+    <span class="chip" data-f="write">写入类（2）</span>
+    <span class="chip" data-f="evep">EVEP 并入（1）</span>
+    <input class="search" type="text" placeholder="搜索 CLI 名称 / 指令 / 接口路径…">
+  </div>
+
+  <div class="group-title" id="g-query">
+    <div class="no">一</div>查询类 · 7 个
+    <span class="desc">合同数据读取与事件订阅，供 AI 推理与问答</span>
+  </div>
+  <div class="cards" data-group="query">
+
+    <!-- ===== 1. info list ===== -->
+    <div class="card" data-kind="query">
+      <div class="card-head"><span class="idx">01 · 查询</span><span class="badge query">查询</span></div>
+      <h3>合同列表查询</h3>
+      <div class="cmd"><span class="prompt">$ </span>dx-ep contract info list --user-id &lt;userId&gt; [--contract-status &lt;s1,s2&gt;] [--page &lt;n&gt;] [--page-size &lt;n&gt;]</div>
+      <div class="meta">
+        <span class="kv">请求 <b>POST</b></span>
+        <span class="kv">路径 <span class="path">/api/oa/contract/outer/queryUserContract</span></span>
+      </div>
+      <div class="desc">按用户与状态分页查询合同列表（状态过滤），支撑 AI 助手合同状态问答与催办对象识别。</div>
+      <div class="sec">输入参数</div>
+      <div class="params">
+        <table>
+          <tr><th>参数</th><th>类型</th><th>必选</th><th>默认</th><th>校验</th><th>说明</th></tr>
+          <tr><td>--user-id</td><td>string</td><td>是</td><td>-</td><td>NotBlank</td><td>用户 id</td></tr>
+          <tr><td>--contract-status</td><td>string</td><td>否</td><td>全部</td><td>枚举逗号分隔</td><td>ContractStatusEnum 多选</td></tr>
+          <tr><td>--page</td><td>int</td><td>否</td><td>1</td><td>≥1</td><td>当前页数</td></tr>
+          <tr><td>--page-size</td><td>int</td><td>否</td><td>30</td><td>1-30</td><td>每页大小</td></tr>
+        </table>
+      </div>
+      <div class="sec">返回参数（data）= PageInfo&lt;ContractDto&gt;</div>
+      <div class="ret">totalCount（long 记录总数）· size · currentPage · records（List&lt;ContractDto&gt;，含 <code>id / name / code / type / contractStatus / sealStatus / fileStatus / ourOrganizations / otherOrganizations</code>）</div>
+    </div>
+
+    <!-- ===== 2. info detail ===== -->
+    <div class="card" data-kind="query">
+      <div class="card-head"><span class="idx">02 · 查询</span><span class="badge query">查询</span></div>
+      <h3>合同详情查询</h3>
+      <div class="cmd"><span class="prompt">$ </span>dx-ep contract info detail --contract-id &lt;id&gt; --user-id &lt;userId&gt;</div>
+      <div class="meta">
+        <span class="kv">请求 <b>POST</b></span>
+        <span class="kv">路径 <span class="path">/api/oa/contract/outer/contractDetail</span></span>
+      </div>
+      <div class="desc">按合同 id 查完整详情（签署方 / 金额 / 期限 / 条款），支撑语义校验与风险识别。</div>
+      <div class="sec">输入参数</div>
+      <div class="params">
+        <table>
+          <tr><th>参数</th><th>类型</th><th>必选</th><th>默认</th><th>校验</th><th>说明</th></tr>
+          <tr><td>--contract-id</td><td>int</td><td>是</td><td>-</td><td>&gt;0</td><td>合同 id</td></tr>
+          <tr><td>--user-id</td><td>string</td><td>是</td><td>-</td><td>NotBlank</td><td>合同创建人或需求发出人</td></tr>
+        </table>
+      </div>
+      <div class="sec">返回参数（data）= ContractDetailDto</div>
+      <div class="ret"><code>id / code / name / type / expenseType / ourOrganizations / otherOrganizations / attachList / signDescAttachList / outerSignatoryList / innerSignatoryList / hasValidityPeriod / validBeginDate / validEndDate / signOnline / sealNum</code><br>草稿状态仅名称与 id 必返回，其余字段可能为空。</div>
+    </div>
+
+    <!-- ===== 3. attach list ===== -->
+    <div class="card" data-kind="query">
+      <div class="card-head"><span class="idx">03 · 查询</span><span class="badge query">查询</span></div>
+      <h3>签署版附件查询</h3>
+      <div class="cmd"><span class="prompt">$ </span>dx-ep contract attach list --user-id &lt;userId&gt; --attach-ids &lt;id1,id2,…&gt;</div>
+      <div class="meta">
+        <span class="kv">请求 <b>POST</b></span>
+        <span class="kv">路径 <span class="path">/api/oa/contract/outer/queryAttaches</span></span>
+      </div>
+      <div class="desc">按附件 id 批量查签署版文件信息与下载链接（供 AI 语义解析），支撑签署版语义校验。</div>
+      <div class="sec">输入参数</div>
+      <div class="params">
+        <table>
+          <tr><th>参数</th><th>类型</th><th>必选</th><th>默认</th><th>校验</th><th>说明</th></tr>
+          <tr><td>--user-id</td><td>string</td><td>是</td><td>-</td><td>NotBlank</td><td>附件创建用户 id</td></tr>
+          <tr><td>--attach-ids</td><td>string</td><td>是</td><td>-</td><td>逗号分隔 int</td><td>附件 id 列表</td></tr>
+        </table>
+      </div>
+      <div class="sec">返回参数（data）= List&lt;ContractAttachInfoDto&gt;</div>
+      <div class="ret"><code>id / contractId / fileType / pdfFileLink / convertFileLink / signFileLink</code></div>
+    </div>
+
+    <!-- ===== 4. record list ===== -->
+    <div class="card" data-kind="query">
+      <div class="card-head"><span class="idx">04 · 查询</span><span class="badge query">查询</span></div>
+      <h3>合同操作记录查询</h3>
+      <div class="cmd"><span class="prompt">$ </span>dx-ep contract record list --contract-id &lt;id&gt;</div>
+      <div class="meta">
+        <span class="kv">请求 <b>POST</b></span>
+        <span class="kv">路径 <span class="path">/api/oa/contract/outer/queryContractOperateRecord</span></span>
+      </div>
+      <div class="desc">查合同操作时间线（签署 / 审批节点），支撑停滞识别与催办。</div>
+      <div class="sec">输入参数</div>
+      <div class="params">
+        <table>
+          <tr><th>参数</th><th>类型</th><th>必选</th><th>默认</th><th>校验</th><th>说明</th></tr>
+          <tr><td>--contract-id</td><td>int</td><td>是</td><td>-</td><td>&gt;0</td><td>合同 id</td></tr>
+        </table>
+      </div>
+      <div class="sec">返回参数（data）= List&lt;ContractOperateRecordDTO&gt;</div>
+      <div class="ret"><code>contractId / operateType / operateTypeName / operator / detail / extInfo / operateTime（秒级时间戳）</code></div>
+    </div>
+
+    <!-- ===== 5. valid query ===== -->
+    <div class="card" data-kind="query">
+      <div class="card-head"><span class="idx">05 · 查询</span><span class="badge query">查询</span></div>
+      <h3>有效合同查询</h3>
+      <div class="cmd"><span class="prompt">$ </span>dx-ep contract valid query --code &lt;code&gt;</div>
+      <div class="meta">
+        <span class="kv">请求 <b>POST</b></span>
+        <span class="kv">路径 <span class="path">/api/oa/contract/outer/queryFullEffectiveContract</span></span>
+      </div>
+      <div class="desc">按合同编码查有效（已盖章）合同信息，支撑 AI 助手有效合同台账问答。</div>
+      <div class="sec">输入参数</div>
+      <div class="params">
+        <table>
+          <tr><th>参数</th><th>类型</th><th>必选</th><th>默认</th><th>校验</th><th>说明</th></tr>
+          <tr><td>--code</td><td>string</td><td>是</td><td>-</td><td>NotBlank</td><td>合同编码，如 MIXA42020220300002</td></tr>
+        </table>
+      </div>
+      <div class="sec">返回参数（data）= UnifiedContractDto</div>
+      <div class="ret"><code>code / name / typeName / createUser / requirementProposer / contractForm / relatedContract / otherOrganizations / cashPayment / fixedAmount / expenseType</code></div>
+    </div>
+
+    <!-- ===== 6. sign-event watch ===== -->
+    <div class="card" data-kind="query">
+      <div class="card-head"><span class="idx">06 · 查询</span><span class="badge query">查询</span></div>
+      <h3>签署事件订阅</h3>
+      <div class="cmd"><span class="prompt">$ </span>dx-ep contract sign-event watch --contract-id &lt;id&gt; [--duration &lt;s&gt;]</div>
+      <div class="meta">
+        <span class="kv">请求 <b>MQ 消费</b></span>
+        <span class="kv">数据源 <span class="path">contract_sign_event</span></span>
+      </div>
+      <div class="desc">订阅合同签署状态事件（MQ contract_sign_event 封装为查询入口），支撑停滞催办触发。</div>
+      <div class="sec">输入参数</div>
+      <div class="params">
+        <table>
+          <tr><th>参数</th><th>类型</th><th>必选</th><th>默认</th><th>校验</th><th>说明</th></tr>
+          <tr><td>--contract-id</td><td>int</td><td>是</td><td>-</td><td>&gt;0</td><td>合同 id</td></tr>
+          <tr><td>--duration</td><td>int</td><td>否</td><td>300</td><td>&gt;0</td><td>监听时长（秒）</td></tr>
+        </table>
+      </div>
+      <div class="sec">MQ 消息字段（contract_sign_event）</div>
+      <div class="ret"><code>contractId / contractCode / signStatus（SignCenterStatus）/ signFileInfos / extInfo（含 signId、signatoryName）/ timestamp（毫秒）</code></div>
+    </div>
+
+    <!-- ===== 7. contract esign ===== -->
+    <div class="card" data-kind="query evep">
+      <div class="card-head"><span class="idx">07 · 查询</span><span class="badge evep">EVEP 并入</span></div>
+      <h3>电子签进度查询</h3>
+      <div class="cmd"><span class="prompt">$ </span>dx-ep contract esign --scope &lt;vendor|part|project&gt; --id &lt;identifier&gt;</div>
+      <div class="meta">
+        <span class="kv">请求 <b>POST</b></span>
+        <span class="kv">依据 <b>EVEP 代码库 Controller</b></span>
+      </div>
+      <div class="desc">按供应商 / 零件 / 项目维度查电子签进度，支撑 AI 助手电子签进度问答。接口依据经 evep-master 合同模块核实。</div>
+      <div class="sec">输入参数</div>
+      <div class="params">
+        <table>
+          <tr><th>参数</th><th>类型</th><th>必选</th><th>默认</th><th>校验</th><th>说明</th></tr>
+          <tr><td>--scope</td><td>string</td><td>是</td><td>-</td><td>枚举 vendor/part/project</td><td>查询维度：供应商 / 零件 / 项目</td></tr>
+          <tr><td>--id</td><td>string</td><td>是</td><td>-</td><td>NotBlank</td><td>供应商编码 / 零件号 / 项目代号</td></tr>
+        </table>
+      </div>
+      <div class="sec">接口路径与返回参数（按维度）</div>
+      <div class="params dim-tbl">
+        <table>
+          <tr><th>维度</th><th>接口路径（EVEP）</th><th>方法</th><th>返回</th></tr>
+          <tr><td>vendor 供应商</td><td>contractItem/pageContractItem</td><td>pageContractItem(QueryReq)</td><td>R&lt;PageResult&lt;ContractItemDto&gt;&gt;</td></tr>
+          <tr><td>vendor 供应商</td><td>contractSupplier/listContractSupplier</td><td>listContractSupplier(IdReq)</td><td>R&lt;List&lt;ContractSupplierDto&gt;&gt;</td></tr>
+          <tr><td>part 零件</td><td>contractItem/listContractItem</td><td>listContractItem(IdReq)</td><td>R&lt;List&lt;ContractItemDto&gt;&gt;</td></tr>
+          <tr><td>part 零件</td><td>contractItem/detail</td><td>detail(IdReq)</td><td>R&lt;List&lt;ContractItemSupplierDto&gt;&gt;</td></tr>
+          <tr><td>project 项目</td><td>contractApp/pageContractApp</td><td>pageContractApp(QueryReq)</td><td>R&lt;PageResult&lt;ContractAppDto&gt;&gt;</td></tr>
+          <tr><td>project 项目</td><td>contractApp/findById</td><td>findById(IdReq)</td><td>R&lt;ContractAppDto&gt;</td></tr>
+        </table>
+      </div>
+      <div class="sec">返回参数（data）关键字段（真实 DTO）</div>
+      <div class="ret">
+        <b>ContractItemDto</b>：<code>id / contractAppId / contractAppCode / name / contractType / contractTypeName / contractCode / hasValidityPeriod / startDate / endDate / fixedAmount / currency / amount / cashPayment / isEle / versionNo / isLatest / sorCode / sorName / suppliers / contractSuppliers / contractUrl / supplierSignInfo / supplierSignDetail / isActive</code><br>
+        <b>ContractSupplierDto</b>：<code>id / contractAppId / supplierId / isMain / orderNo / orgName / address / employeeName / employeeMobile</code><br>
+        <b>ContractAppDto</b>：<code>id / code / name / projectId / projectName / userId / userName / type / status / statusName / mainName / nomiAppId / nomiAppCode / rfqType / isEle / isMany / isDouble / contractSuppliers / contractItems</code>
+      </div>
+      <div class="note">通用请求类 QueryReq / IdReq 的字段级定义在代码库中未定位到类源文件（依赖自公共包），CLI 入参以维度标识符为准，接口级入参字段待公共包源码补充。</div>
+    </div>
+
+  </div>
+
+  <div class="group-title" id="g-write">
+    <div class="no">二</div>写入类 · 2 个
+    <span class="desc">校验与落库，供 AI 检查后回写</span>
+  </div>
+  <div class="cards" data-group="write">
+
+    <!-- ===== 8. contract check ===== -->
+    <div class="card" data-kind="write">
+      <div class="card-head"><span class="idx">08 · 写入</span><span class="badge write">写入</span></div>
+      <h3>保存前参数检查</h3>
+      <div class="cmd"><span class="prompt">$ </span>dx-ep contract check --save-json &lt;json&gt;</div>
+      <div class="meta">
+        <span class="kv">请求 <b>POST</b></span>
+        <span class="kv">路径 <span class="path">/api/oa/contract/outer/checkCanSaveContract</span></span>
+      </div>
+      <div class="desc">保存 / 发起前校验参数，触发 AI 语义校验前置。</div>
+      <div class="sec">输入参数</div>
+      <div class="params">
+        <table>
+          <tr><th>参数</th><th>类型</th><th>必选</th><th>默认</th><th>校验</th><th>说明</th></tr>
+          <tr><td>--save-json</td><td>string</td><td>是</td><td>-</td><td>JSON 可解析</td><td>与 saveContract 入参一致</td></tr>
+        </table>
+      </div>
+      <div class="sec">返回参数（data）= CommonResponse</div>
+      <div class="ret"><code>success（boolean）/ code / message</code>，非 success 时需解析 message 展示。</div>
+    </div>
+
+    <!-- ===== 9. contract save ===== -->
+    <div class="card" data-kind="write">
+      <div class="card-head"><span class="idx">09 · 写入</span><span class="badge write">写入</span></div>
+      <h3>保存合同</h3>
+      <div class="cmd"><span class="prompt">$ </span>dx-ep contract save --save-json &lt;json&gt;</div>
+      <div class="meta">
+        <span class="kv">请求 <b>POST</b></span>
+        <span class="kv">路径 <span class="path">/api/oa/contract/outer/saveContract</span></span>
+      </div>
+      <div class="desc">新建（id&lt;0）/ 更新（id&gt;0）合同，含幂等，支撑校验后落库。</div>
+      <div class="sec">输入参数</div>
+      <div class="params">
+        <table>
+          <tr><th>参数</th><th>类型</th><th>必选</th><th>默认</th><th>校验</th><th>说明</th></tr>
+          <tr><td>--save-json</td><td>string</td><td>是</td><td>-</td><td>JSON 可解析</td><td>id（int，&lt;0 新建 /&gt;0 更新）、name、type（三级逗号分隔）、expenseType、requirementProposer、createUserId、belongingDeptId、sourcePlatform、ourOrganizations、otherOrganizations、signDescAttachList</td></tr>
+        </table>
+      </div>
+      <div class="sec">返回参数（data）= ContractSaveResult</div>
+      <div class="ret"><code>contractId（int）/ code（String）</code>，统一返回包装 <code>{state, message, data}</code>。</div>
+    </div>
+
+  </div>
+
+  <div class="summary">
+    <h4>开发汇总</h4>
+    <table>
+      <tr><th>开发阶段</th><th>数量</th><th>CLI</th></tr>
+      <tr><td>阶段一 · 查询</td><td>7</td><td>info list / info detail / attach list / record list / valid query / sign-event watch / contract esign</td></tr>
+      <tr><td>阶段二 · 写入</td><td>2</td><td>contract check / contract save</td></tr>
+      <tr><td>合计</td><td><span class="hl">9</span></td><td><span class="hl">8 个合同系统接口（oa-contract）CLI 化封装 + 1 个 EVEP 在研规划并入（contract esign，已按 EVEP 代码库补全接口依据）</span></td></tr>
+    </table>
+  </div>
+
+  <div class="empty" id="empty">没有匹配的 CLI，换个关键词试试。</div>
+
+</div>
+
+<script>
+(function(){
+  var chips = document.querySelectorAll('.chip');
+  var cards = document.querySelectorAll('.card');
+  var search = document.querySelector('.search');
+  var groups = document.querySelectorAll('.cards');
+  var empty = document.getElementById('empty');
+
+  function apply(){
+    var f = document.querySelector('.chip.on').getAttribute('data-f');
+    var q = (search.value||'').trim().toLowerCase();
+    var visible = 0;
+    cards.forEach(function(c){
+      var kinds = (c.getAttribute('data-kind')||'').split(/\s+/);
+      var okF = (f === 'all') || kinds.indexOf(f) > -1;
+      var hay = (c.textContent||'').toLowerCase();
+      var okQ = !q || hay.indexOf(q) > -1;
+      var show = okF && okQ;
+      c.style.display = show ? '' : 'none';
+      if (show) visible++;
+    });
+    groups.forEach(function(g){
+      var any = Array.prototype.some.call(g.querySelectorAll('.card'), function(c){ return c.style.display !== 'none'; });
+      g.style.display = any ? '' : 'none';
+      var gt = g.previousElementSibling;
+      if (gt && gt.classList && gt.classList.contains('group-title')) gt.style.display = any ? '' : 'none';
+    });
+    empty.style.display = visible === 0 ? 'block' : 'none';
+  }
+
+  chips.forEach(function(ch){
+    ch.addEventListener('click', function(){
+      chips.forEach(function(x){ x.classList.remove('on'); });
+      ch.classList.add('on');
+      apply();
+    });
+  });
+  search.addEventListener('input', apply);
+})();
+</script>
+</body>
+</html>

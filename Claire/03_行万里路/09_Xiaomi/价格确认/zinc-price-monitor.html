@@ -1,0 +1,673 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>LME 锌价监控看板</title>
+<script id="zinc-data">
+/* ============================================================
+ * ZINC_DATA — 数据块（唯一编辑入口）
+ * 快照/序列/库存事件/六金属对比/预警阈值
+ * 页面内「✎ 编辑」可修改，保存后写入 localStorage，导出固化 HTML
+ * ============================================================ */
+window.ZINC_DATA = {
+  meta: {
+    dataDate: '2026-08-21',
+    dataNote: '最近完整官方报价日（LME 口径）；8-20 六金属结算价来自中国有色金属工业协会',
+    source: 'LME Official / cnal.com 世铝网 / cnmn.com.cn / thevaultreport',
+    updateTip: 'LME 官网有反爬，日常更新推荐抓 thevaultreport.com/lme/zinc 或国内 SMM / 长江有色 / 世铝网'
+  },
+  snapshot: {
+    cash: 3980,          // Cash 官方结算价 $/t
+    threeM: 3824,        // 3-Month 期货价 $/t
+    spread: 156,         // Cash - 3M（正=backwardation 现货升水）
+    spreadDays: 27,      // 连续 backwardation 交易日
+    stock: 93100,        // LME 库存 mt
+    stock24h: -1.4,      // 24h 库存变化 %
+    stock7d: 7.3,        // 7d 库存变化 %
+    stock30d: -12.0,     // 30d 库存变化 %
+    stock30dLow: 86500,
+    stock30dHigh: 112500
+  },
+  series: [
+    { d: '2026-07-01', cash: 3528.50, threeM: 3511.00 },
+    { d: '2026-07-02', cash: 3474.50, threeM: 3464.50 },
+    { d: '2026-07-03', cash: 3545.00, threeM: 3531.50 },
+    { d: '2026-07-06', cash: 3598.00, threeM: 3581.00 },
+    { d: '2026-07-07', cash: 3559.00, threeM: 3561.00 },
+    { d: '2026-07-08', cash: 3528.00, threeM: 3536.00 },
+    { d: '2026-07-09', cash: 3621.00, threeM: 3614.00 },
+    { d: '2026-07-10', cash: 3601.50, threeM: 3587.00 },
+    { d: '2026-07-13', cash: 3570.75, threeM: 3564.00 },
+    { d: '2026-07-14', cash: 3589.25, threeM: 3586.00 },
+    { d: '2026-07-15', cash: 3553.25, threeM: 3549.50 },
+    { d: '2026-07-16', cash: 3590.00, threeM: 3576.25 },
+    { d: '2026-07-17', cash: 3548.50, threeM: 3528.75 },
+    { d: '2026-07-20', cash: 3574.50, threeM: 3545.25 },
+    { d: '2026-07-21', cash: 3590.50, threeM: 3565.50 },
+    { d: '2026-07-22', cash: 3613.50, threeM: 3582.50 },
+    { d: '2026-07-23', cash: 3652.50, threeM: 3610.50 },
+    { d: '2026-07-24', cash: 3632.00, threeM: 3591.50 },
+    { d: '2026-07-27', cash: 3685.25, threeM: 3620.00 },
+    { d: '2026-07-28', cash: 3631.25, threeM: 3575.50 },
+    { d: '2026-07-29', cash: 3638.75, threeM: 3578.75 },
+    { d: '2026-07-30', cash: 3661.50, threeM: 3600.50 },
+    { d: '2026-07-31', cash: 3710.25, threeM: 3630.50 },
+    { d: '2026-08-19', cash: 3749.75, threeM: 3651.00 },
+    { d: '2026-08-20', cash: 3865.25, threeM: 3742.50 },
+    { d: '2026-08-21', cash: 3980.00, threeM: 3824.00 }
+  ],
+  stockEvents: [
+    { d: '2026-07-31', ev: 'LME 库存跌破 100K mt', tone: 'warn' },
+    { d: '2026-08-19', ev: '库存升破 90K mt', tone: 'info' },
+    { d: '2026-08-20', ev: '库存跌破 95K mt', tone: 'warn' },
+    { d: '2026-08-21', ev: '库存 93.1K mt，30 日 -12%', tone: 'danger' }
+  ],
+  metals: [
+    { name: '铜', settle: 14170, stock: '238.6K', stock30d: -13.8, structure: 'Backwardation', structTone: 'danger' },
+    { name: '铝', settle: 3182,  stock: '246.9K', stock30d: -9.5,  structure: 'Contango',     structTone: 'safe' },
+    { name: '锌', settle: 3865.5, stock: '93.1K', stock30d: -12.0, structure: 'Backwardation', structTone: 'danger' },
+    { name: '铅', settle: 1848,  stock: '416.9K', stock30d: -7.1,  structure: 'Contango',     structTone: 'safe' },
+    { name: '镍', settle: 16660, stock: '268.5K', stock30d: 0.43,  structure: 'Contango',     structTone: 'safe' },
+    { name: '锡', settle: 54850, stock: '5.4K',   stock30d: -24.0, structure: 'Contango',     structTone: 'safe' }
+  ],
+  alerts: {
+    cashUpper: 4100,   // 现货价超过 → 红色预警（成本冲击）
+    cashLower: 3600,   // 现货价低于 → 绿色信号（可谈价/锁量）
+    spreadWarn: 100    // 现货升水超过 → 现货紧张提示
+  }
+};
+</script>
+<style>
+:root{
+  --primary:#1677FF; --primary-bg:#E6F4FF;
+  --success:#52C41A; --success-bg:#F6FFED;
+  --warning:#FAAD14; --warning-bg:#FFFBE6;
+  --danger:#FF4D4F; --danger-bg:#FFF1F0;
+  --purple:#722ED1; --purple-bg:#F9F0FF;
+  --text-1:#1F2329; --text-2:#646A73; --text-3:#8C8C8C;
+  --border:#EBEDF0; --bg:#F5F6F7; --card:#FFFFFF;
+  --radius-sm:6px; --radius-md:8px; --radius-lg:10px;
+  --font: -apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{background:var(--bg);color:var(--text-1);font-family:var(--font);font-size:14px}
+body{padding-bottom:48px}
+/* ---------- 顶栏 44px ---------- */
+.topbar{height:44px;background:var(--card);border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;padding:0 16px;position:sticky;top:0;z-index:10}
+.topbar .title{font-size:14px;font-weight:600;display:flex;align-items:center;gap:8px}
+.topbar .title .dot{width:8px;height:8px;border-radius:50%;background:var(--primary)}
+.topbar .right{display:flex;align-items:center;gap:8px}
+.meta-date{font-size:12px;color:var(--text-3)}
+/* ---------- 按钮 ---------- */
+.btn{height:28px;padding:0 12px;border-radius:var(--radius-sm);border:1px solid var(--border);background:var(--card);color:var(--text-1);font-size:12px;cursor:pointer;display:inline-flex;align-items:center;gap:4px;transition:all .15s}
+.btn:hover{border-color:var(--primary);color:var(--primary)}
+.btn.primary{background:var(--primary);border-color:var(--primary);color:#fff}
+.btn.primary:hover{background:#4096FF;color:#fff}
+.btn:disabled{opacity:.5;cursor:not-allowed}
+/* ---------- 布局 ---------- */
+.page{max-width:1240px;margin:16px auto 0;padding:0 16px;display:grid;grid-template-columns:repeat(12,1fr);gap:12px}
+.card{background:var(--card);border:1px solid var(--border);border-radius:var(--radius-md);padding:12px}
+.card .card-title{font-size:13px;font-weight:600;margin-bottom:8px;display:flex;align-items:center;justify-content:space-between}
+.card .card-title .sub{font-size:11px;font-weight:400;color:var(--text-3)}
+.col-12{grid-column:span 12}.col-8{grid-column:span 8}.col-4{grid-column:span 4}
+.col-6{grid-column:span 6}.col-3{grid-column:span 3}
+@media(max-width:960px){.col-8,.col-4,.col-6,.col-3{grid-column:span 12}}
+/* ---------- KPI ---------- */
+.kpi-row{display:grid;grid-template-columns:repeat(6,1fr);gap:12px;grid-column:span 12}
+@media(max-width:960px){.kpi-row{grid-template-columns:repeat(2,1fr)}}
+.kpi{background:var(--card);border:1px solid var(--border);border-radius:var(--radius-md);padding:10px 12px;position:relative;overflow:hidden}
+.kpi .label{font-size:11px;color:var(--text-3);display:flex;align-items:center;gap:4px}
+.kpi .value{font-size:24px;font-weight:600;line-height:1.3;margin-top:2px;letter-spacing:-.5px}
+.kpi .value .unit{font-size:12px;font-weight:400;color:var(--text-2);margin-left:2px}
+.kpi .delta{font-size:11px;margin-top:2px}
+.kpi .flag{position:absolute;top:10px;right:10px;font-size:10px;padding:1px 6px;border-radius:4px;line-height:16px}
+.up{color:var(--danger)}.down{color:var(--success)}
+.flag.warn{background:var(--warning-bg);color:var(--warning)}
+.flag.danger{background:var(--danger-bg);color:var(--danger)}
+.flag.safe{background:var(--success-bg);color:var(--success)}
+.flag.info{background:var(--primary-bg);color:var(--primary)}
+/* ---------- 表格 ---------- */
+table{width:100%;border-collapse:collapse;font-size:12px}
+th{background:var(--bg);color:var(--text-2);font-weight:500;text-align:left;padding:6px 8px;border-bottom:1px solid var(--border);white-space:nowrap}
+td{padding:6px 8px;border-bottom:1px solid var(--border);color:var(--text-1)}
+tr:last-child td{border-bottom:none}
+td.num{font-variant-numeric:tabular-nums}
+.tag{display:inline-block;padding:1px 6px;border-radius:4px;font-size:11px;line-height:16px}
+.tag.warn{background:var(--warning-bg);color:var(--warning)}
+.tag.danger{background:var(--danger-bg);color:var(--danger)}
+.tag.safe{background:var(--success-bg);color:var(--success)}
+.tag.info{background:var(--primary-bg);color:var(--primary)}
+/* ---------- 时间线 ---------- */
+.tl{position:relative;padding-left:16px}
+.tl::before{content:'';position:absolute;left:4px;top:4px;bottom:4px;width:2px;background:var(--border)}
+.tl-item{position:relative;padding:0 0 10px 8px}
+.tl-item:last-child{padding-bottom:0}
+.tl-item::before{content:'';position:absolute;left:-15px;top:5px;width:8px;height:8px;border-radius:50%;background:var(--primary)}
+.tl-item.warn::before{background:var(--warning)}
+.tl-item.danger::before{background:var(--danger)}
+.tl-item .d{font-size:11px;color:var(--text-3)}
+.tl-item .e{font-size:12px;color:var(--text-1);margin-top:1px}
+/* ---------- 预警 ---------- */
+.alert-bar{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.alert-bar .chip{font-size:12px;padding:4px 10px;border-radius:var(--radius-sm);border:1px solid var(--border);background:var(--bg)}
+.alert-bar input{width:80px;height:24px;border:1px solid var(--border);border-radius:4px;padding:0 6px;font-size:12px;text-align:right}
+.alert-msg{margin-top:8px;font-size:12px;padding:8px 10px;border-radius:var(--radius-sm);display:none}
+.alert-msg.show{display:block}
+.alert-msg.warn{background:var(--warning-bg);color:#AD6800}
+.alert-msg.danger{background:var(--danger-bg);color:#CF1322}
+.alert-msg.safe{background:var(--success-bg);color:#389E0D}
+/* ---------- 分析卡 ---------- */
+.trend-row{display:flex;gap:8px;flex-wrap:wrap}
+.trend-cell{flex:1;min-width:150px;border:1px solid var(--border);border-radius:var(--radius-sm);padding:8px 10px;font-size:12px}
+.trend-cell .t{color:var(--text-3);font-size:11px}
+.trend-cell .v{font-size:16px;font-weight:600;margin-top:2px}
+.suggest{font-size:12px;line-height:1.7;color:var(--text-1);padding:8px 10px;background:var(--primary-bg);border-radius:var(--radius-sm);margin-top:8px}
+/* ---------- 编辑面板 ---------- */
+.drawer-mask{position:fixed;inset:0;background:rgba(0,0,0,.35);z-index:100;display:none}
+.drawer-mask.show{display:block}
+.drawer{position:fixed;top:0;right:-420px;width:420px;height:100%;background:var(--card);z-index:101;box-shadow:-4px 0 16px rgba(0,0,0,.08);transition:right .25s ease;display:flex;flex-direction:column}
+.drawer.show{right:0}
+.drawer .head{height:44px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;padding:0 14px;font-size:13px;font-weight:600}
+.drawer .body{flex:1;overflow-y:auto;padding:12px 14px}
+.drawer .foot{height:48px;border-top:1px solid var(--border);display:flex;align-items:center;justify-content:flex-end;gap:8px;padding:0 14px}
+.field{margin-bottom:10px}
+.field label{display:block;font-size:11px;color:var(--text-3);margin-bottom:4px}
+.field input{width:100%;height:28px;border:1px solid var(--border);border-radius:var(--radius-sm);padding:0 8px;font-size:12px}
+.field input:focus{outline:none;border-color:var(--primary)}
+.series-edit{width:100%;height:120px;border:1px solid var(--border);border-radius:var(--radius-sm);padding:6px 8px;font-size:11px;font-family:Consolas,Menlo,monospace;resize:vertical}
+.series-edit:focus{outline:none;border-color:var(--primary)}
+.note{font-size:11px;color:var(--text-3);margin-top:4px;line-height:1.5}
+/* ---------- 图表 ---------- */
+#trendChart{width:100%;height:300px}
+#stockChart{width:100%;height:220px}
+.src-note{margin-top:8px;font-size:11px;color:var(--text-3);line-height:1.6;border-top:1px dashed var(--border);padding-top:8px}
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <div class="title"><span class="dot"></span>LME 锌价监控看板 <span class="meta-date" id="metaDate"></span></div>
+  <div class="right">
+    <button class="btn" id="btnEdit">✎ 编辑数据</button>
+    <button class="btn" id="btnExport">导出 HTML 固化</button>
+  </div>
+</div>
+
+<div class="page">
+
+  <!-- KPI 区 -->
+  <div class="kpi-row">
+    <div class="kpi"><div class="label">Cash 现货价 <span class="flag info" id="kpi0flag">Backwardation</span></div>
+      <div class="value" id="kpi0val">--<span class="unit">$/t</span></div>
+      <div class="delta" id="kpi0d">现货升水 <b id="kpi0spread">--</b> 连续 <b id="kpi0days">--</b> 日</div></div>
+    <div class="kpi"><div class="label">3-Month 期货价</div>
+      <div class="value" id="kpi1val">--<span class="unit">$/t</span></div>
+      <div class="delta" id="kpi1d">与现货价差 <b id="kpi1spread">--</b></div></div>
+    <div class="kpi"><div class="label">Cash−3M 价差结构</div>
+      <div class="value" id="kpi2val" style="font-size:18px">--</div>
+      <div class="delta" id="kpi2d">现货升水 = 现货紧张</div></div>
+    <div class="kpi"><div class="label">LME 库存</div>
+      <div class="value" id="kpi3val">--<span class="unit">mt</span></div>
+      <div class="delta" id="kpi3d">30 日低 <b id="kpi3low">--</b> / 高 <b id="kpi3high">--</b></div></div>
+    <div class="kpi"><div class="label">库存 30 日变化</div>
+      <div class="value" id="kpi4val">--</div>
+      <div class="delta">24h <b id="kpi4a">--</b> · 7d <b id="kpi4b">--</b></div></div>
+    <div class="kpi"><div class="label">风险等级（波动率）</div>
+      <div class="value" id="kpi5val" style="font-size:18px">--</div>
+      <div class="delta" id="kpi5d">波动率 <b id="kpi5vol">--</b>%（近 26 交易日）</div></div>
+  </div>
+
+  <!-- 图表区 -->
+  <div class="card col-8">
+    <div class="card-title">Cash / 3M 价格趋势 <span class="sub">2026-07-01 至 08-21 · LME Official 均价口径</span></div>
+    <div id="trendChart"></div>
+  </div>
+  <div class="card col-4">
+    <div class="card-title">库存关口时间线 <span class="sub">LME 注册仓单</span></div>
+    <div class="tl" id="stockTimeline"></div>
+    <div class="card-title" style="margin-top:12px">库存 30 日波动</div>
+    <div id="stockChart"></div>
+  </div>
+
+  <!-- 六金属对比 -->
+  <div class="card col-6">
+    <div class="card-title">六种基本金属横向对比 <span class="sub">结算价 08-20 · 库存/价差 08-21</span></div>
+    <table>
+      <thead><tr><th>品种</th><th>结算价 $/t</th><th>LME 库存</th><th>库存 30d</th><th>价差结构</th></tr></thead>
+      <tbody id="metalBody"></tbody>
+    </table>
+    <div class="src-note">锌与铜同为 Backwardation（现货升水），铝/铅/镍/锡为 Contango —— 紧缺集中在锌铜，非金属普涨。</div>
+  </div>
+
+  <!-- 分析区 -->
+  <div class="card col-6">
+    <div class="card-title">趋势与采购建议 <span class="sub">按 commodity-index 分析规则自动计算</span></div>
+    <div class="trend-row">
+      <div class="trend-cell"><div class="t">短期趋势（近 2 交易日）</div><div class="v" id="trend5">--</div></div>
+      <div class="trend-cell"><div class="t">中期趋势（近 20 交易日）</div><div class="v" id="trend20">--</div></div>
+      <div class="trend-cell"><div class="t">20 日高点 / 低点</div><div class="v" id="trendHL" style="font-size:13px">--</div></div>
+      <div class="trend-cell"><div class="t">20 日均价（均衡价）</div><div class="v" id="trendAvg">--</div></div>
+    </div>
+    <div class="suggest" id="suggestBox">--</div>
+  </div>
+
+  <!-- 预警区 -->
+  <div class="card col-12">
+    <div class="card-title">预警阈值 <span class="sub">本地保存，超出阈值在看板亮色提示</span></div>
+    <div class="alert-bar">
+      <span class="chip">现货价上阈 <input id="thUpper" type="number"> $/t</span>
+      <span class="chip">现货价下阈 <input id="thLower" type="number"> $/t</span>
+      <span class="chip">现货升水提示阈 <input id="thSpread" type="number"> $/t</span>
+      <button class="btn" id="btnThSave">保存阈值</button>
+      <button class="btn" id="btnThReset">恢复默认</button>
+    </div>
+    <div class="alert-msg" id="alertMsg"></div>
+  </div>
+
+</div>
+
+<!-- 编辑抽屉 -->
+<div class="drawer-mask" id="drawerMask"></div>
+<div class="drawer" id="drawer">
+  <div class="head">✎ 编辑数据 <span style="font-size:11px;color:var(--text-3)">保存后写 localStorage，可导出固化</span></div>
+  <div class="body">
+    <div class="field"><label>数据日期</label><input id="eDate"></div>
+    <div class="field"><label>Cash 现货价（$/t）</label><input id="eCash" type="number" step="0.5"></div>
+    <div class="field"><label>3-Month 价（$/t）</label><input id="e3M" type="number" step="0.5"></div>
+    <div class="field"><label>Cash−3M 价差（正=现货升水 backwardation）</label><input id="eSpread" type="number" step="1"></div>
+    <div class="field"><label>连续 Backwardation 交易日</label><input id="eDays" type="number"></div>
+    <div class="field"><label>LME 库存（mt）</label><input id="eStock" type="number"></div>
+    <div class="field"><label>库存 30 日变化（%）</label><input id="eStock30" type="number" step="0.1"></div>
+    <div class="field"><label>历史序列（JSON 数组，覆盖式更新，追加行用逗号分隔）</label>
+      <textarea class="series-edit" id="eSeries" spellcheck="false"></textarea>
+      <div class="note">格式：[{d:'2026-08-22', cash:4000, threeM:3850}, ...]。保存后立即重绘图表。新增行会自动参与趋势/波动率计算。</div>
+    </div>
+    <div class="field"><label>数据源说明</label><input id="eSource"></div>
+    <div class="field"><label>更新提示</label><input id="eTip"></div>
+  </div>
+  <div class="foot">
+    <button class="btn" id="btnCancel">取消</button>
+    <button class="btn primary" id="btnSave">保存</button>
+  </div>
+</div>
+
+<script>
+/* ECharts 多源回退加载（国内优先） */
+(function(){
+  var srcs = [
+    'https://registry.npmmirror.com/echarts/5.5.1/files/dist/echarts.min.js',
+    'https://cdn.bootcdn.net/ajax/libs/echarts/5.5.1/echarts.min.js',
+    'https://cdnjs.cloudflare.com/ajax/libs/echarts/5.5.1/echarts.min.js'
+  ];
+  function fail(){
+    if(window.__echartsFail){ window.__echartsFail(); }
+  }
+  function tryLoad(i){
+    if(i >= srcs.length){ fail(); return; }
+    var s = document.createElement('script');
+    s.src = srcs[i];
+    s.onload = function(){ window.echartsLoaded = true; if(window.__afterEcharts){ window.__afterEcharts(); } };
+    s.onerror = function(){ tryLoad(i+1); };
+    document.head.appendChild(s);
+  }
+  tryLoad(0);
+})();
+</script>
+<script>
+(function(){
+'use strict';
+var LS_KEY = 'zincMonitorV1';
+var DATA = loadData();
+
+/* ---------- 数据持久化 ---------- */
+function loadData(){
+  // 导出的固化 HTML 带 data-frozen 标记，永远以内置数据为准（localStorage 可能过期）
+  if(document.body && document.body.getAttribute('data-frozen')) {
+    return JSON.parse(JSON.stringify(window.ZINC_DATA));
+  }
+  try{
+    var raw = localStorage.getItem(LS_KEY);
+    if(raw){ var d = JSON.parse(raw); if(d && d.snapshot) return d; }
+  }catch(e){}
+  return JSON.parse(JSON.stringify(window.ZINC_DATA));
+}
+function persist(){ try{ localStorage.setItem(LS_KEY, JSON.stringify(DATA)); }catch(e){} }
+
+/* ---------- 工具 ---------- */
+function fmt(n, d){ return Number(n).toLocaleString('en-US', {minimumFractionDigits:d||0, maximumFractionDigits:d||0}); }
+function pct(n){ return (n>0?'+':'') + Number(n).toFixed(1) + '%'; }
+function toneFor(v){
+  if(v > 5) return 'danger'; if(v > 2) return 'warn'; return 'safe';
+}
+
+/* ---------- 分析计算 ---------- */
+function calc(){
+  var s = DATA.snapshot, ser = DATA.series, n = ser.length;
+  // 短期：最近2个可得交易日（数据源限制）
+  var d1 = ser[n-1], d2 = ser[n-2];
+  var st5 = d1 && d2 ? (d1.cash - d2.cash)/d2.cash*100 : 0;
+  // 中期：近20交易日（不足则取全部）
+  var win = ser.slice(Math.max(0, n-20));
+  var base = ser[Math.max(0, n-21)];
+  var st20 = base ? (ser[n-1].cash - base.cash)/base.cash*100 : 0;
+  var highs = [], lows = [], sum = 0;
+  win.forEach(function(p){ highs.push(p.cash); lows.push(p.cash); sum += p.cash; });
+  var hi = Math.max.apply(null, highs), lo = Math.min.apply(null, lows);
+  var avg = sum / win.length;
+  var vol = (hi - lo) / avg * 100;
+  return {
+    st5: st5, st20: st20, hi: hi, lo: lo, avg: avg, vol: vol,
+    span: win.length, last5: st5, span5label: '近 ' + Math.min(2, n-1) + ' 交易日'
+  };
+}
+function trendText(r){
+  var t5 = '', t20 = '', c5 = '', c20 = '';
+  if(r.st5 > 1){ t5='📈 上涨 +'+r.st5.toFixed(1)+'%'; c5='danger'; }
+  else if(r.st5 < -1){ t5='📉 下跌 '+r.st5.toFixed(1)+'%'; c5='success'; }
+  else { t5='➡️ 震荡 '+(r.st5>=0?'+':'')+r.st5.toFixed(1)+'%'; c5='text'; }
+  if(r.st20 > 5){ t20='📈📈 强势上涨 +'+r.st20.toFixed(1)+'%'; c20='danger'; }
+  else if(r.st20 > 1){ t20='📈 温和上涨 +'+r.st20.toFixed(1)+'%'; c20='danger'; }
+  else if(r.st20 < -5){ t20='📉📉 加速下跌 '+r.st20.toFixed(1)+'%'; c20='success'; }
+  else if(r.st20 < -1){ t20='📉 温和下跌 '+r.st20.toFixed(1)+'%'; c20='success'; }
+  else { t20='➡️ 横盘整理 '+(r.st20>=0?'+':'')+r.st20.toFixed(1)+'%'; c20='text'; }
+  return { t5:t5, c5:c5, t20:t20, c20:c20 };
+}
+function suggest(r, s){
+  var msgs = [];
+  if(r.st20 > 5) msgs.push('中期加速上涨 → 尽快锁价锁量，减少敞口，分批建仓');
+  else if(r.st20 > 1) msgs.push('中期上涨 → 适当提前采购，锁定当前成本');
+  else if(r.st20 < -5) msgs.push('中期加速下跌 → 推迟非紧急采购，压缩库存，等待企稳');
+  else if(r.st20 < -1) msgs.push('中期下跌 → 观望为主，按需小量采购');
+  else msgs.push('震荡格局 → 按需采购，不囤货');
+  if(s.spread > 0 && s.spread >= (DATA.alerts.spreadWarn||100)) msgs.push('现货升水 $' + fmt(s.spread) + '（Backwardation）→ 现货紧缺，供应商议价空间大，谈判以 LME 月均 + 升贴水为锚');
+  if(s.stock30d < -8) msgs.push('LME 库存 30 日去化 ' + Math.abs(s.stock30d) + '% → 供应收紧，警惕供应商借原料涨提价');
+  if(s.stock30d > 8) msgs.push('LME 库存回升 → 供应边际宽松，可适度压价');
+  return msgs;
+}
+
+/* ---------- 渲染 ---------- */
+function renderKpi(){
+  var s = DATA.snapshot;
+  document.getElementById('metaDate').textContent = '数据日期 ' + (DATA.meta.dataDate || '');
+  // KPI0 cash
+  document.getElementById('kpi0val').innerHTML = fmt(s.cash) + '<span class="unit">$/t</span>';
+  document.getElementById('kpi0flag').textContent = s.spread > 0 ? 'Backwardation' : 'Contango';
+  document.getElementById('kpi0flag').className = 'flag ' + (s.spread > 0 ? 'danger' : 'safe');
+  document.getElementById('kpi0spread').textContent = '$' + fmt(s.spread);
+  document.getElementById('kpi0days').textContent = s.spreadDays;
+  // KPI1 3M
+  document.getElementById('kpi1val').innerHTML = fmt(s.threeM) + '<span class="unit">$/t</span>';
+  var diff = s.cash - s.threeM;
+  document.getElementById('kpi1spread').textContent = (diff>0?'现货升水 $':'现货贴水 $') + fmt(Math.abs(diff));
+  // KPI2 价差结构
+  document.getElementById('kpi2val').innerHTML = (s.spread > 0 ? '现货升水 $' : '现货贴水 $') + fmt(Math.abs(s.spread));
+  document.getElementById('kpi2val').style.color = s.spread > 0 ? 'var(--danger)' : 'var(--success)';
+  // KPI3 库存
+  document.getElementById('kpi3val').innerHTML = fmt(Math.round(s.stock/100)/10) + '<span class="unit">K mt</span>';
+  document.getElementById('kpi3low').textContent = fmt(Math.round(s.stock30dLow/1000)) + 'K';
+  document.getElementById('kpi3high').textContent = fmt(Math.round(s.stock30dHigh/1000)) + 'K';
+  // KPI4 库存变化
+  document.getElementById('kpi4val').innerHTML = pct(s.stock30d);
+  document.getElementById('kpi4val').style.color = s.stock30d < 0 ? 'var(--danger)' : 'var(--success)';
+  document.getElementById('kpi4a').textContent = pct(s.stock24h);
+  document.getElementById('kpi4b').textContent = pct(s.stock7d);
+  // KPI5 风险
+  var r = calc();
+  var t = toneFor(r.vol);
+  document.getElementById('kpi5val').innerHTML = t==='danger' ? '🔴 高风险' : (t==='warn' ? '🟡 中风险' : '🟢 低风险');
+  document.getElementById('kpi5val').style.color = t==='danger' ? 'var(--danger)' : (t==='warn' ? 'var(--warning)' : 'var(--success)');
+  document.getElementById('kpi5vol').textContent = r.vol.toFixed(1);
+  return r;
+}
+
+function renderTrendChart(){
+  var ser = DATA.series;
+  var dates = ser.map(function(p){ return p.d; });
+  var cashLine = ser.map(function(p){ return p.cash; });
+  var threeLine = ser.map(function(p){ return p.threeM; });
+  var el = document.getElementById('trendChart');
+  var chart = echarts.getInstanceByDom(el) || echarts.init(el);
+  chart.setOption({
+    tooltip: { trigger:'axis', valueFormatter: function(v){ return '$' + fmt(v); } },
+    legend: { data:['Cash 现货','3M 期货'], top:0, textStyle:{fontSize:11} },
+    grid: { left:52, right:14, top:28, bottom:24 },
+    xAxis: { type:'category', data:dates, boundaryGap:false, axisLabel:{fontSize:10, color:'#8C8C8C'}, axisLine:{lineStyle:{color:'#EBEDF0'}} },
+    yAxis: { type:'value', scale:true, axisLabel:{fontSize:10, color:'#8C8C8C', formatter:'${value}'}, splitLine:{lineStyle:{color:'#F0F1F3'}} },
+    series: [
+      { name:'Cash 现货', type:'line', data:cashLine, smooth:true, showSymbol:false,
+        lineStyle:{ width:2, color:'#1677FF' }, itemStyle:{color:'#1677FF'},
+        areaStyle:{ color: new echarts.graphic.LinearGradient(0,0,0,1,[{offset:0,color:'rgba(22,119,255,.16)'},{offset:1,color:'rgba(22,119,255,0)'}]) } },
+      { name:'3M 期货', type:'line', data:threeLine, smooth:true, showSymbol:false,
+        lineStyle:{ width:2, color:'#FA8C16' }, itemStyle:{color:'#FA8C16'} }
+    ]
+  });
+}
+
+function renderStockChart(){
+  var s = DATA.snapshot;
+  var el = document.getElementById('stockChart');
+  var chart = echarts.getInstanceByDom(el) || echarts.init(el);
+  chart.setOption({
+    tooltip: { trigger:'axis' },
+    grid: { left:44, right:14, top:18, bottom:20 },
+    xAxis: { type:'category', data:['30 日低','当前','30 日高'], axisLabel:{fontSize:10,color:'#8C8C8C'} },
+    yAxis: { type:'value', axisLabel:{fontSize:10,color:'#8C8C8C', formatter:'{value}K'}, splitLine:{lineStyle:{color:'#F0F1F3'}} },
+    series: [{
+      type:'bar', barWidth:36,
+      data:[
+        { value: Math.round(s.stock30dLow/1000), itemStyle:{color:'#FFD666'} },
+        { value: Math.round(s.stock/1000), itemStyle:{color:'#1677FF'} },
+        { value: Math.round(s.stock30dHigh/1000), itemStyle:{color:'#B7EB8F'} }
+      ],
+      label:{show:true, position:'top', fontSize:10, color:'#646A73', formatter:'{c}K'}
+    }]
+  });
+}
+
+function renderTimeline(){
+  var box = document.getElementById('stockTimeline');
+  box.innerHTML = '';
+  DATA.stockEvents.forEach(function(ev){
+    var div = document.createElement('div');
+    div.className = 'tl-item ' + (ev.tone||'');
+    div.innerHTML = '<div class="d">' + ev.d + '</div><div class="e">' + ev.ev + '</div>';
+    box.appendChild(div);
+  });
+}
+
+function renderMetals(){
+  var tb = document.getElementById('metalBody');
+  tb.innerHTML = '';
+  DATA.metals.forEach(function(m){
+    var tr = document.createElement('tr');
+    var cls = m.stock30d < 0 ? 'up' : 'down';
+    tr.innerHTML = '<td><b>' + m.name + '</b></td>' +
+      '<td class="num">' + fmt(m.settle) + '</td>' +
+      '<td class="num">' + m.stock + '</td>' +
+      '<td class="num ' + cls + '">' + pct(m.stock30d) + '</td>' +
+      '<td><span class="tag ' + (m.structTone||'info') + '">' + m.structure + '</span></td>';
+    tb.appendChild(tr);
+  });
+}
+
+function renderAnalysis(){
+  var r = calc();
+  var t = trendText(r);
+  var d5 = document.getElementById('trend5');
+  var d20 = document.getElementById('trend20');
+  d5.textContent = t.t5; d5.style.color = t.c5==='danger' ? 'var(--danger)' : (t.c5==='success' ? 'var(--success)' : 'var(--text-1)');
+  d20.textContent = t.t20; d20.style.color = t.c20==='danger' ? 'var(--danger)' : (t.c20==='success' ? 'var(--success)' : 'var(--text-1)');
+  document.getElementById('trendHL').innerHTML = '高 $' + fmt(r.hi) + ' / 低 $' + fmt(r.lo);
+  document.getElementById('trendAvg').innerHTML = '$' + fmt(r.avg);
+  var msgs = suggest(r, DATA.snapshot);
+  document.getElementById('suggestBox').innerHTML = '🎯 ' + msgs.join('<br>🎯 ');
+  renderAlert(r);
+}
+
+function renderAlert(r){
+  var s = DATA.snapshot;
+  var msgs = [];
+  var cls = 'warn';
+  if(s.cash >= DATA.alerts.cashUpper){ msgs.push('🔴 现货价 $' + fmt(s.cash) + ' 已达上阈 $' + fmt(DATA.alerts.cashUpper) + ' → 成本冲击预警，尽快锁价或启动套保评估'); cls='danger'; }
+  if(s.cash <= DATA.alerts.cashLower){ msgs.push('🟢 现货价 $' + fmt(s.cash) + ' 已破下阈 $' + fmt(DATA.alerts.cashLower) + ' → 可谈价窗口，考虑锁量'); cls='safe'; }
+  if(msgs.length === 0){
+    var m = document.getElementById('alertMsg');
+    m.className = 'alert-msg'; m.textContent = ''; return;
+  }
+  var el = document.getElementById('alertMsg');
+  el.className = 'alert-msg show ' + cls;
+  el.innerHTML = msgs.join('<br>');
+}
+
+function renderCharts(){
+  if(!window.echarts){ return; }
+  renderTrendChart(); renderStockChart();
+}
+function renderAll(){
+  renderKpi();
+  if(window.echarts){
+    renderCharts();
+  } else {
+    document.getElementById('trendChart').innerHTML = '<div style="color:#8C8C8C;font-size:12px;padding:40px 0;text-align:center" id="chartPending">ECharts 加载中…</div>';
+    document.getElementById('stockChart').innerHTML = '';
+  }
+  renderTimeline(); renderMetals(); renderAnalysis();
+}
+function chartsFail(){
+  ['trendChart','stockChart'].forEach(function(id){
+    var el = document.getElementById(id);
+    if(el){ el.innerHTML = '<div style="color:#8C8C8C;font-size:12px;padding:40px 0;text-align:center">图表组件加载失败（网络受限），KPI / 表格 / 分析仍正常</div>'; }
+  });
+}
+
+/* ---------- 阈值 ---------- */
+function syncThresholds(){
+  document.getElementById('thUpper').value = DATA.alerts.cashUpper;
+  document.getElementById('thLower').value = DATA.alerts.cashLower;
+  document.getElementById('thSpread').value = DATA.alerts.spreadWarn;
+}
+function bindThresholds(){
+  document.getElementById('btnThSave').onclick = function(){
+    DATA.alerts.cashUpper = parseFloat(document.getElementById('thUpper').value) || DATA.alerts.cashUpper;
+    DATA.alerts.cashLower = parseFloat(document.getElementById('thLower').value) || DATA.alerts.cashLower;
+    DATA.alerts.spreadWarn = parseFloat(document.getElementById('thSpread').value) || DATA.alerts.spreadWarn;
+    persist(); renderAnalysis();
+    flash('阈值已保存');
+  };
+  document.getElementById('btnThReset').onclick = function(){
+    DATA.alerts = JSON.parse(JSON.stringify(window.ZINC_DATA.alerts));
+    syncThresholds(); persist(); renderAnalysis();
+    flash('已恢复默认阈值');
+  };
+}
+function flash(msg){
+  var el = document.getElementById('alertMsg');
+  el.className = 'alert-msg show warn'; el.innerHTML = '💾 ' + msg;
+  setTimeout(function(){ if(el.innerHTML.indexOf('💾') === 0){ el.className='alert-msg'; el.textContent=''; } }, 1800);
+}
+
+/* ---------- 编辑抽屉 ---------- */
+function openDrawer(){
+  var s = DATA.snapshot;
+  document.getElementById('eDate').value = DATA.meta.dataDate || '';
+  document.getElementById('eCash').value = s.cash;
+  document.getElementById('e3M').value = s.threeM;
+  document.getElementById('eSpread').value = s.spread;
+  document.getElementById('eDays').value = s.spreadDays;
+  document.getElementById('eStock').value = s.stock;
+  document.getElementById('eStock30').value = s.stock30d;
+  document.getElementById('eSeries').value = JSON.stringify(DATA.series);
+  document.getElementById('eSource').value = DATA.meta.source || '';
+  document.getElementById('eTip').value = DATA.meta.updateTip || '';
+  document.getElementById('drawerMask').classList.add('show');
+  document.getElementById('drawer').classList.add('show');
+}
+function closeDrawer(){
+  document.getElementById('drawerMask').classList.remove('show');
+  document.getElementById('drawer').classList.remove('show');
+}
+function saveDrawer(){
+  var s = DATA.snapshot;
+  DATA.meta.dataDate = document.getElementById('eDate').value || DATA.meta.dataDate;
+  s.cash = parseFloat(document.getElementById('eCash').value) || s.cash;
+  s.threeM = parseFloat(document.getElementById('e3M').value) || s.threeM;
+  s.spread = s.cash - s.threeM;
+  s.spreadDays = parseInt(document.getElementById('eDays').value, 10) || s.spreadDays;
+  s.stock = parseFloat(document.getElementById('eStock').value) || s.stock;
+  s.stock30d = parseFloat(document.getElementById('eStock30').value) || s.stock30d;
+  DATA.meta.source = document.getElementById('eSource').value || DATA.meta.source;
+  DATA.meta.updateTip = document.getElementById('eTip').value || DATA.meta.updateTip;
+  try{
+    var arr = JSON.parse(document.getElementById('eSeries').value);
+    if(Array.isArray(arr) && arr.length){ DATA.series = arr; }
+  }catch(e){ alert('历史序列 JSON 格式错误，未更新：' + e.message); }
+  persist(); closeDrawer(); renderAll();
+}
+function bindDrawer(){
+  document.getElementById('btnEdit').onclick = openDrawer;
+  document.getElementById('btnCancel').onclick = closeDrawer;
+  document.getElementById('drawerMask').onclick = closeDrawer;
+  document.getElementById('btnSave').onclick = saveDrawer;
+}
+
+/* ---------- 导出 HTML 固化 ---------- */
+function bindExport(){
+  document.getElementById('btnExport').onclick = function(){
+    // 把当前 DATA 回写进数据块 script 文本，确保导出文件内嵌最新数据
+    var dataScript = document.getElementById('zinc-data');
+    dataScript.textContent = '\n/* ZINC_DATA — 导出时固化的最新数据快照 */\nwindow.ZINC_DATA = ' + JSON.stringify(DATA, null, 2) + ';';
+    document.body.setAttribute('data-frozen', '1');
+    var html = '<!DOCTYPE html>\n' + document.documentElement.outerHTML;
+    var blob = new Blob([html], {type:'text/html;charset=utf-8'});
+    var a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = 'zinc-price-monitor.html';
+    document.body.appendChild(a); a.click();
+    setTimeout(function(){ URL.revokeObjectURL(a.href); a.remove(); }, 400);
+  };
+}
+
+/* ---------- selftest ---------- */
+function selfTest(){
+  var pass = 0, fail = 0, log = [];
+  function ok(c, m){ if(c){ pass++; log.push('✅ ' + m); } else { fail++; log.push('❌ ' + m); } }
+  var s = DATA.snapshot, r = calc();
+  ok(s.cash === 3980, '快照 Cash=3980');
+  ok(s.threeM === 3824, '快照 3M=3824');
+  ok(s.spread === 156, '价差=156 (backwardation)');
+  ok(s.stock === 93100, '库存=93100');
+  ok(DATA.series.length === 26, '序列 26 个交易日, 实际=' + DATA.series.length);
+  ok(r.vol > 10, '波动率 >10% 高风险, 实际=' + r.vol.toFixed(1) + '%');
+  ok(r.st20 > 5, '中期强势上涨, 实际=' + r.st20.toFixed(2) + '%');
+  ok(DATA.metals.length === 6, '六金属 6 行');
+  ok(document.getElementById('kpi0val').textContent.indexOf('3,980') >= 0, 'KPI Cash 渲染 3,980');
+  ok(document.getElementById('metalBody').children.length === 6, '金属表渲染 6 行');
+  ok(document.getElementById('kpi5val').textContent.indexOf('高风险') >= 0, '风险等级=高风险');
+  ok(document.getElementById('trend5').textContent.length > 0, '短期趋势已渲染');
+  ok(document.getElementById('suggestBox').textContent.indexOf('🎯') >= 0, '采购建议已渲染');
+  if(window.echarts){
+    ok(echarts.getInstanceByDom(document.getElementById('trendChart')) !== null, '趋势图实例存在');
+    ok(echarts.getInstanceByDom(document.getElementById('stockChart')) !== null, '库存图实例存在');
+  } else { ok(true, '离线模式跳过图表断言'); }
+  document.title = 'selftest ' + pass + '/' + (pass+fail) + ' PASS' + (fail ? ' · ' + fail + ' FAIL' : '');
+  console.log(log.join('\n'));
+  return pass + '/' + (pass+fail);
+}
+
+/* ---------- init ---------- */
+function init(){
+  syncThresholds();
+  bindThresholds(); bindDrawer(); bindExport();
+  window.__afterEcharts = function(){ renderCharts(); };
+  window.__echartsFail = function(){ chartsFail(); };
+  renderAll();
+  if(location.search.indexOf('selftest=1') >= 0){
+    setTimeout(function(){ selfTest(); }, 1500);
+  }
+}
+if(document.readyState === 'loading'){ document.addEventListener('DOMContentLoaded', init); } else { init(); }
+})();
+</script>
+</body>
+</html>

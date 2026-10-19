@@ -1,0 +1,184 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>样件订单自动化 Skill 审查报告 · 0917</title>
+<style>
+  :root{
+    --bg:#F6F5F2; --card:#FFFFFF; --ink:#3A3A38; --ink-2:#6B6A66; --line:#E3E0DA;
+    --rose:#C0807E; --tea:#8FA398; --sand:#C4B091; --slate:#8C93A0; --plum:#9C8AA0;
+    --p0:#B4636B; --p1:#C08A5E; --p2:#7E8A6B;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--ink);
+    font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Helvetica Neue",Arial,sans-serif;
+    line-height:1.75;font-size:15px}
+  .wrap{max-width:1080px;margin:0 auto;padding:48px 28px 80px}
+  header{border-bottom:2px solid var(--line);padding-bottom:24px;margin-bottom:32px}
+  h1{font-size:28px;margin:0 0 8px;letter-spacing:.5px}
+  .sub{color:var(--ink-2);font-size:14px}
+  h2{font-size:20px;margin:44px 0 14px;padding-left:12px;border-left:5px solid var(--tea)}
+  h3{font-size:16px;margin:26px 0 10px;color:var(--ink)}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:20px 22px;margin:16px 0}
+  .verdict{background:#FBF7F2;border-left:6px solid var(--rose);padding:18px 22px;border-radius:8px}
+  .verdict b{color:var(--p0)}
+  table{width:100%;border-collapse:collapse;margin:14px 0;font-size:14px;background:var(--card)}
+  th{background:#EFEDE8;text-align:left;padding:10px 12px;border:1px solid var(--line);font-weight:600;white-space:nowrap}
+  td{padding:10px 12px;border:1px solid var(--line);vertical-align:top}
+  td.c,th.c{text-align:center}
+  code{background:#F0EEE9;padding:1px 5px;border-radius:4px;font-size:12.5px;
+    font-family:"SF Mono",Menlo,Consolas,monospace;color:#5C5346}
+  .tag{display:inline-block;padding:2px 8px;border-radius:20px;font-size:12px;font-weight:600;color:#fff;white-space:nowrap}
+  .t-p0{background:var(--p0)} .t-p1{background:var(--p1)} .t-p2{background:var(--p2)}
+  .t-ok{background:var(--tea)}
+  .bad{background:#FBF1F1} .warn{background:#FBF6EC} .good{background:#F1F5F1}
+  ul,ol{margin:8px 0 8px 20px;padding:0}
+  li{margin:5px 0}
+  .kpi{display:flex;gap:14px;flex-wrap:wrap;margin:18px 0}
+  .kpi div{flex:1;min-width:150px;background:var(--card);border:1px solid var(--line);
+    border-radius:10px;padding:14px 16px}
+  .kpi .n{font-size:26px;font-weight:700;display:block}
+  .kpi .l{font-size:12.5px;color:var(--ink-2)}
+  .q{color:var(--ink-2);font-style:normal;border-left:3px solid var(--sand);padding-left:12px;margin:10px 0}
+  footer{margin-top:48px;padding-top:18px;border-top:1px solid var(--line);color:var(--ink-2);font-size:13px}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<header>
+  <h1>🧭 样件订单自动化 Skill · 严谨性与可运行性审查</h1>
+  <div class="sub">审查对象：demand-query-and-order / demand-import / daily-report（0916 版）+ 供应商选择多维表格配置指南 + Agent 系统提示　·　审查日期：2026-09-17　·　方法：静态代码走查 + 解包比对 + 契约层实测</div>
+</header>
+
+<div class="card verdict">
+  <b>结论：不能上线。</b> 三个 Skill 语法全部通过编译、CLI 参数解析正常（<code>--help</code> 冒烟均 OK），但端到端流程存在 <b>7 个 P0 阻断缺陷</b>——其中「人工选择的供应商不生效」和「跨命令状态不落地」两项，直接击穿系统提示里写明的核心原则<b>「人做决策，AI 做执行」</b>：人确实做了选择，但执行环节把它丢了。<br>
+  当前最危险的误解风险是：<b>假绿</b>。日报统计恒为 0 却返回 SUCCESS，preview 有 warning 也能一路走到 create，dry-run 只保护了下单、没保护导入（导入是真导入）。
+</div>
+
+<div class="kpi">
+  <div><span class="n" style="color:var(--p0)">7</span><span class="l">P0 阻断缺陷</span></div>
+  <div><span class="n" style="color:var(--p1)">9</span><span class="l">P1 严重缺陷</span></div>
+  <div><span class="n" style="color:var(--p2)">6</span><span class="l">P2 一致性/工程问题</span></div>
+  <div><span class="n" style="color:var(--slate)">3/3</span><span class="l">脚本可 import、CLI 可解析</span></div>
+</div>
+
+<h2>一、审查范围与已验证的事实</h2>
+<table>
+  <tr><th>检查项</th><th class="c">结果</th><th>说明</th></tr>
+  <tr><td>Python 语法编译（8 个 py / 3 个 Skill）</td><td class="c"><span class="tag t-ok">通过</span></td><td>Python 3.13 下 <code>py_compile</code> 全部 OK</td></tr>
+  <tr><td>CLI 入口可解析</td><td class="c"><span class="tag t-ok">通过</span></td><td>三个主脚本 <code>--help</code> 均正常返回，子命令齐全</td></tr>
+  <tr><td>共享模块一致性</td><td class="c"><span class="tag t-p2">漂移</span></td><td><code>workflow_schema.py</code> / <code>bitable_logger.py</code> / <code>_feishu_mcp.py</code> / <code>SCHEMA.md</code> 三份完全相同（md5 一致）；<b>仅 demand-query-and-order 的 <code>card_sender.py</code> 与其他两个不同</b>（回调按钮被删）</td></tr>
+  <tr><td>输出契约自检</td><td class="c"><span class="tag t-p0">失效</span></td><td>实测：<code>safe_output(details={dict})</code> 被静默改写为 <code>details=[]</code>（见 P0-2）</td></tr>
+  <tr><td>运行时实机（CLI / 飞书 / MCP）</td><td class="c"><span class="tag t-p2">未验证</span></td><td>环境无 dx-ep CLI、无内网 npm registry，见第六节「必须实机确认清单」</td></tr>
+</table>
+
+<h2>二、P0 阻断缺陷（上线前必须修复）</h2>
+
+<h3>1️⃣ 人工选的供应商，根本没被用到</h3>
+<div class="card bad">
+<b>现象：</b>用户在多维表格里选了供应商 A，系统最终按 <code>供应商原始</code> 字段的第一个供应商 B 下单。<br>
+<b>证据：</b><code>create()</code> 声明了形参 <code>supplier_selections</code>，但函数体内一次都没引用（全文只在被调用处出现）：<br>
+<code>query_and_order.py:1364</code> 定义 → <code>:1391-1392</code> 分组只用 <code>order["供应商原始"]</code> → <code>:1404</code> 按 <code>supplier_id|br_no|br_line|buyer</code> 分组 → 全函数无 selections 引用。<br>
+影响链路：无论走 <code>select-supplier</code>(:846) 还是 <code>wait-selection</code>(:1650)，传进去的 choices 都被丢弃。<br>
+<b>为什么危险：</b>它不报错、不发警告，卡片照样显示"订单创建成功"。
+</div>
+
+<h3>2️⃣ 跨命令的状态不落地，<code>create</code> 只能重新拉全量</h3>
+<div class="card bad">
+<b>现象：</b>Agent 按文档分步调用 <code>query → analyze → 确认 → create</code>，每次都是新进程。<code>_query_result</code> / <code>_analysis_result</code> 是内存变量（<code>query_and_order.py:57-58</code>），跨进程必丢。<br>
+<b>后果：</b><code>create</code> 在无状态时回退到 <code>self.query()</code> 全量重查（<code>:1383-1385</code>）→ <b>对全部可下单需求下单</b>，包括用户没确认过的、以及一价多供里用户还没选的那一批。人工确认形同虚设。<br>
+<b>缺失物：</b>没有批次状态文件、没有 `records_out.json` 之类的中间产物契约，<code>run</code> 单次进程能跑通，分步调用跑不通。
+</div>
+
+<h3>3️⃣ <code>wait-selection</code> 永远读不到上一步写入的记录</h3>
+<div class="card bad">
+<b>证据：</b><code>batch_id</code> 在每次进程启动时重新生成（<code>:54</code> <code>ORD{now}</code>），而 <code>_read_supplier_selections_from_bitable</code> 用 <code>工作流ID != self.batch_id → continue</code> 过滤（<code>:1341</code>）。<br>
+<b>推论：</b>新进程的 batch_id 与写入时的必然不同 → 命中率恒为 0 → 永远返回"等待供应商选择"。加上 <code>select-supplier</code> 返回的 <code>record_ids</code> 也没持久化，流程在第三步必然死锁。
+</div>
+
+<h3>4️⃣ 多维表格轮询被嵌套在 <code>if missing:</code> 里</h3>
+<div class="card bad">
+<b>证据：</b><code>query_and_order.py:819-840</code>——轮询块 <code>if record_ids: ... _poll_supplier_selection(...)</code> 缩进在 <code>if missing:</code> 分支内部。<br>
+<b>后果：</b>只有「存在需要手工添加的供应商选项」这种异常情况下才会轮询；正常情况直接 <code>return WAIT_SUPPLIER</code>，文档承诺的「≥5 家自动轮询、全部选完自动继续」实际是<b>逻辑取反</b>。且就算轮询成功，<code>return self.create(...)</code>(:846) 仍走到缺陷 1。
+</div>
+
+<h3>5️⃣ 需求导入不回写状态 → 重复导入；且导入是真跑</h3>
+<div class="card bad">
+<b>重复导入：</b><code>demand_import.py</code> 全文无 <code>update_record</code>（已 grep 确认），导入成功后多维表格「样件导入状态」仍为「待导入」，下次 <code>preview/push</code> 会再导一遍同一批。<br>
+<b>风险不对称：</b><code>create_order_dry_run: true</code>（下单是试运行），但 <code>import.dry_run</code> 键在 config 里<b>不存在</b>，代码默认 False（<code>demand_import.py:860</code>）→ <b>需求导入是真导入</b>。同一套流程里，一半受保护一半裸奔。
+</div>
+
+<h3>6️⃣ 日报数据恒为 0，却返回 SUCCESS（假绿）</h3>
+<div class="card bad">
+两层错位，任一层单独存在就够致命：<br>
+① <b>结构错位</b>：<code>analyze_logs</code> 读 <code>log.get("stage")</code> 等顶层键（<code>daily_report.py:177-230</code>），但 <code>query_records_by_date</code> 返回的是 <code>{record_id, fields:{...}}</code> 原始记录（<code>bitable_logger.py:305-350</code>）→ 所有字段取不到。<br>
+② <b>取值错位</b>：即便拍平，写入时状态已映射为中文「成功/失败」（<code>bitable_logger.py:128-130, 194</code>），比对的是英文 <code>"success"/"failed"</code>（<code>daily_report.py:193-196</code>）→ 命中 0。<br>
+结果：导入数、查询数、订单数全部为 0，但 <code>run()</code> 因无异常返回 <code>status=SUCCESS</code>。
+</div>
+
+<h3>7️⃣ 飞书 app_secret 明文硬编码在三处</h3>
+<div class="card bad">
+<code>demand-import/config.json:6</code>、<code>demand-query-and-order/config.json:6</code>、<code>query_and_order.py:67</code>（兜底配置里又抄了一遍）。<br>
+Skill 包是要分发/入库的——<b>打包即泄露</b>。最小修复：config 只留引用，密钥走环境变量；已泄露的这个 secret 需要在飞书后台轮换。
+</div>
+
+<h2>三、P1 严重缺陷</h2>
+<table>
+  <tr><th class="c">#</th><th>问题</th><th>证据</th><th>影响</th></tr>
+  <tr><td class="c">8</td><td><code>analyze</code> 返回的 <code>details</code> 是 dict，被校验层静默清空</td><td><code>query_and_order.py:741-745</code> dict → <code>workflow_schema.py:199-201</code> 强制转 list；<b>已实测输出 <code>details=[]</code></b></td><td>Agent 按 SKILL.md 取 <code>details.single_price</code> 得到空；明细只能从 <code>extra</code> 拿。且 SKILL.md 示例与 SCHEMA.md「details 必须是 array」自相矛盾</td></tr>
+  <tr><td class="c">9</td><td>订单创建无幂等、无去重、无「已下单」标记</td><td><code>create()</code> 全函数；无任何本地状态表</td><td>dry-run 关闭后，重跑一次 = 重复下单一次</td></tr>
+  <tr><td class="c">10</td><td><code>draft</code> 恒等于 0，草稿/非最低价识别未实现</td><td><code>:1422-1423</code> 初始化后再无赋值，<code>:1510</code> 输出</td><td>系统提示承诺的「订单草稿（非最低价）→ 人工核实」是空头支票</td></tr>
+  <tr><td class="c">11</td><td>卡片交互通路已不存在，文档未同步</td><td>当前 <code>card_sender.py</code> 已删除回调按钮（diff：旧版有 <code>callback_prefix</code>/behaviors callback，新版只有 open_url 跳转）</td><td>系统提示「1-4 个需求走卡片点击选择」无法成立；<code>route</code> 值实际是 <code>bitable_manual/bitable_auto</code>，与文档的 <code>card/bitable</code> 不一致</td></tr>
+  <tr><td class="c">12</td><td>每次多维表格调用都冷启动一个 npx 进程</td><td><code>_feishu_mcp.py</code> <code>__init__</code> 同步 <code>initialize</code>（timeout 180s）；写入 N 条 = N 次冷启动，轮询每 30s 一次</td><td>50 条记录 + 5 分钟轮询 ≈ 数十次握手，耗时与失败率不可控</td></tr>
+  <tr><td class="c">13</td><td><code>requests</code> 缺失 → 动态添加供应商选项静默失效</td><td><code>:1005-1007</code> <code>if requests is None: return False</code>；包内无 requirements.txt</td><td>《配置指南》让用户「Skill 会自动添加选项」，实际必须手工维护且与代码实现相反</td></tr>
+  <tr><td class="c">14</td><td>分页/筛选依赖未验证的 MCP 动作名</td><td><code>bitable_ops</code> + <code>list_fields/search_records/create_record/update_record/list_records</code> 全部未经实机验证</td><td>MCP 工具名或参数契约一旦不符，写表格、轮询、读选择全线静默失败（只打 WARN）</td></tr>
+  <tr><td class="c">15</td><td>导入校验只查「有没有」，不查「对不对」</td><td><code>validate_records</code>（<code>demand_import.py:563-587</code>）</td><td>样件用途不在 A-G → 总账科目空、日期格式错、数量≤0 都能通过 preview，到 EP 侧才报错</td></tr>
+  <tr><td class="c">16</td><td>分批阈值是硬编码猜测，超长单条记录不切分</td><td><code>demand_import.py:826-842</code> <code>max_batch_chars=900</code>；<code>if current_batch and ...</code> 使空批次不触发切分</td><td>备注/地址较长的记录会突破所谓「CLI 1000 字符上限」，且该上限本身无依据</td></tr>
+</table>
+
+<h2>四、P2 一致性与工程问题</h2>
+<table>
+  <tr><th class="c">#</th><th>问题</th><th>说明</th></tr>
+  <tr><td class="c">17</td><td>版本源不明</td><td>output 目录同时存在 <code>xxx-0916.zip</code> 与同名新版两套、再加一个汇总 zip，以及 4 份系统提示（md / txt / 精简版 / 纯文本版）。没有版本注册表，无法判定 Source of Truth</td></tr>
+  <tr><td class="c">18</td><td>日报用错阶段枚举</td><td><code>daily_report.py:434, 468</code> 用 <code>Stage.IMPORT</code>，导致日志里 Skill 字段被映射成「需求导入」（<code>bitable_logger.py:104-113</code>），污染统计</td></tr>
+  <tr><td class="c">19</td><td>健壮性降级未实现</td><td>系统提示承诺「多维表格写入失败→保存本地文件」，代码只有 <code>print WARN</code>，日志直接丢</td></tr>
+  <tr><td class="c">20</td><td><code>--auto-select-supplier</code> 是假开关</td><td>传入后只用于判断是否提前 return（<code>:1586</code>），从不「自动选第一个供应商」，与 SKILL.md 描述不符</td></tr>
+  <tr><td class="c">21</td><td>校验告警污染输出契约</td><td><code>safe_output</code> 会给输出注入 <code>_validation_warnings</code>，SCHEMA.md 未定义该字段</td></tr>
+  <tr><td class="c">22</td><td>约 400 行死代码</td><td><code>_check_cli_login / _auto_login / _refresh_token / _get_device_login_guide</code> 在 demand-import 与 query-and-order 中均只自我引用、从未被调用，与 SKILL.md「不负责登录态检查」直接冲突</td></tr>
+</table>
+
+<h2>五、修复优先级：最小可上线路径</h2>
+<ol>
+  <li><b>引入批次状态文件（解 P0-2/3）</b>：<code>query</code> 成功后把订单明细、batch_id 落盘 <code>state/{batch_id}.json</code>；<code>analyze/select-supplier/create</code> 统一用 <code>--batch-id</code> 读写该文件。这是所有后续修复的地基。</li>
+  <li><b>让选择真正生效（解 P0-1）</b>：<code>create</code> 按 <code>supplier_selections</code> 过滤订单——只处理已选择的零件，且一价多供记录用选中供应商对应的 <code>pr_ids</code> 分组；结构化选项里把 <code>supplier_id</code> 补上（现在恒为空，<code>:1116</code>）。</li>
+  <li><b>修正轮询缩进（解 P0-4）</b>：把轮询块移出 <code>if missing:</code>，并让「缺失选项」只作为发提示卡的条件。</li>
+  <li><b>导入回写 + dry-run 对称（解 P0-5）</b>：<code>push</code> 成功后 update_record 状态为「已导入」并写入 EP 需求编号；config 显式加 <code>import.dry_run</code>，默认 true。</li>
+  <li><b>日报重接（解 P0-6）</b>：<code>analyze_logs</code> 改为读 <code>log["fields"]</code>，并把中英映射统一（推荐：日志表里同时存英文 state 字段，避免再靠 mapping 猜）。</li>
+  <li><b>密钥外置（解 P0-7）</b>：config 只存 <code>${FEISHU_APP_SECRET}</code>，运行时从环境变量读；轮换已泄露的 secret。</li>
+  <li><b>契约层定版（解 P1-8）</b>：二选一并写进 SCHEMA——要么 details 恒为数组（<code>analyze</code> 用 extra 承载分桶），要么允许 dict 并放宽校验。<b>不要两边都留。</b></li>
+  <li><b>MCP 长连接/批处理（解 P1-12）</b>：改为脚本内常驻 MCP 会话，或一次调用批量写多条记录。</li>
+</ol>
+
+<h2>六、必须实机确认的清单（我无法静态验证）</h2>
+<div class="card">
+  审查环境：无 <code>dx-ep</code> CLI、无 <code>~/.dx-garagehub</code>、无小米内网 npm registry（<code>pkgs.d.xiaomi.net</code>），因此以下必须你在 AgentSpace 实机验证并回填答案：<br><br>
+  <b>① CLI 参数契约</b>：<code>query-ready</code> 是否真的支持 <code>--page-index/--page-size</code>？返回结构是 <code>data.content</code> 还是别的？<code>create-order</code> 是否支持 <code>--dry-run</code>，草稿态如何回传？<br>
+  <b>② MCP 工具契约</b>：<code>@mi/feishu-mcp-pro</code> 的实际工具名是不是 <code>bitable_ops</code>？<code>action</code> 取值是否含 <code>list_fields / search_records / create_record / update_record / list_records</code>？<code>search_records</code> 是否支持空 filter 全量拉取？<br>
+  <b>③ 多维表格字段实况</b>：执行日志表、供应商选择表的真实字段名与类型（尤其「时间」是日期还是文本、「选择供应商」是否单选、「工作流ID」是否文本）。写入用的 20 个字段有一半是我按代码反推的，需对照实物。<br>
+  <b>④ 幂等性</b>：EP 侧对同一 <code>pr_ids</code> 重复下单是覆盖、报错还是新建？
+</div>
+
+<div class="q">
+留给你一个问题：<b>这套流程最核心的状态机，现在分别在内存（3 处）、多维表格（4 张表）、飞书群聊（人的脑子）里。</b>如果只做一件事，你会选择把它们收敛到哪里——是「以多维表格为唯一真相源」，还是「以批次状态文件为真相源、多维表格只做留痕」？这个选择会决定后面 7 个 P0 的修法完全不同。
+</div>
+
+<footer>
+审查人：Claudian 🧭　·　方法：解包 → 静态走查 → md5 比对版本漂移 → 契约层实测 → 未完成项显式标注<br>
+未做：未运行任何会触发真实导入/下单/发卡片的命令（避免在生产群与 EP 侧产生副作用）。
+</footer>
+
+</div>
+</body>
+</html>

@@ -1,0 +1,575 @@
+<!DOCTYPE html>
+<html lang="zh-CN"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>迭代-CLI接口 后端权限校验 变更 — UAT 测试验证场景</title>
+<style>
+:root{--bg:#f5f3ef;--card:#fffdf9;--ink:#44403a;--mut:#8a8378;--line:#e7e1d8;--accent:#7c9eb2;--accent2:#b08968;}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:-apple-system,"PingFang SC","Microsoft YaHei",sans-serif;line-height:1.6;}
+.wrap{max-width:1180px;margin:0 auto;padding:32px 24px 64px;}
+header{border-bottom:2px solid var(--line);padding-bottom:18px;margin-bottom:24px;}
+h1{font-size:24px;margin:0 0 6px;color:var(--ink);}
+.sub{color:var(--mut);font-size:13px;}
+.sub a{color:var(--accent);text-decoration:none;}
+h2{font-size:18px;margin:34px 0 12px;padding-left:10px;border-left:4px solid var(--accent);}
+h3{font-size:15px;margin:20px 0 8px;color:var(--accent2);}
+.card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:18px 20px;margin:14px 0;box-shadow:0 1px 3px rgba(0,0,0,.03);}
+.hl{background:linear-gradient(135deg,#fbf7f0,#f3efe7);border:1px solid #e9d9c4;border-left:4px solid var(--accent2);}
+.kpis{display:flex;gap:14px;flex-wrap:wrap;margin:10px 0;}
+.kpi{flex:1;min-width:140px;background:var(--card);border:1px solid var(--line);border-radius:12px;padding:14px 16px;text-align:center;}
+.kpi .n{font-size:26px;font-weight:700;color:var(--accent);}
+.kpi .l{font-size:12px;color:var(--mut);}
+table{width:100%;border-collapse:collapse;font-size:13px;margin:8px 0;}
+th,td{border:1px solid var(--line);padding:8px 10px;vertical-align:top;text-align:left;}
+th{background:#efe9df;color:var(--ink);font-weight:600;}
+tr:nth-child(even) td{background:#faf7f2;}
+code{background:#efe9df;padding:1px 6px;border-radius:5px;font-size:12px;color:#6b5b4a;}
+.func{color:var(--mut);font-size:12px;margin-top:3px;}
+.gw{font-size:12.5px;}
+.sid{font-weight:700;color:var(--accent2);white-space:nowrap;}
+.grp{white-space:nowrap;color:var(--mut);}
+.src{color:var(--mut);font-size:12px;}
+.badge{display:inline-block;color:#fff;font-size:11px;padding:2px 8px;border-radius:20px;font-weight:600;}
+ul{margin:6px 0;padding-left:20px;}
+li{margin:4px 0;}
+.note{font-size:12px;color:var(--mut);margin-top:6px;}
+footer{margin-top:40px;border-top:1px solid var(--line);padding-top:14px;color:var(--mut);font-size:12px;}
+</style></head>
+<body><div class="wrap">
+<header>
+<h1>🔐 迭代-CLI接口 后端权限校验 变更 — UAT 测试验证场景</h1>
+<div class="sub">来源：<a href="https://mi.feishu.cn/wiki/Av33wXtIUiRpmTkaf4KcgqgVnPd">https://mi.feishu.cn/wiki/Av33wXtIUiRpmTkaf4KcgqgVnPd</a> ｜ 负责人：张宁 / 郑佳佳 / 陈千钧 ｜ 生成：2026-08-28 ｜ Claudian (基于飞书 wiki 自动提炼)</div>
+</header>
+
+<div class="card hl">
+<h3 style="margin-top:0">📌 高亮摘要</h3>
+<p>本文档基于飞书 wiki《迭代-CLI接口 后端权限校验 变更》提炼，面向 <b>UAT 用户验收测试</b>。覆盖 <b>41</b> 个测试场景，其中 <b>14</b> 个 P0 致命级、<b>13</b> 个越权/拒绝类场景。核心目标：验证各 CLI 接口在按角色 + 数据权限（All / Owner / 审批流Owner）校验后，<b>有权可见、无权拒绝、非本人数据不泄露</b>。</p>
+<p class="note">⚠️ 文档原文中 4 个供应商查询接口现状“无权限控制（❌）”、部分接口“能点就能查”，属高危越权点，已作为 P0 重点覆盖。统计口径：场景按接口拆分，owner 类接口以“返回数据是否限定本人”为判定核心。</p>
+</div>
+
+<div class="kpis">
+<div class="kpi"><div class="n">41</div><div class="l">UAT 场景总数</div></div>
+<div class="kpi"><div class="n">14</div><div class="l">P0 致命级</div></div>
+<div class="kpi"><div class="n">13</div><div class="l">越权/拒绝类</div></div>
+<div class="kpi"><div class="n">3</div><div class="l">负责人分组</div></div>
+</div>
+
+<h2>1. 测试范围与角色矩阵</h2>
+<div class="card">
+<p>本迭代涉及 3 组负责人、约 25 个 CLI 接口，角色覆盖系统/业务/审计/品类多个维度。下表为 UAT 需覆盖的角色及其数据权限语义：</p>
+<table><thead><tr><th>角色</th><th>数据权限语义</th></tr></thead><tbody><tr><td><b>ADMIN / 系统管理员</b></td><td>最高权限，多数接口看全量(All)</td></tr>
+<tr><td><b>内控</b></td><td>审计/内控视角，多数可读全量</td></tr>
+<tr><td><b>财务CE (FinanceCe)</b></td><td>财务成本视角，可读台账/成本类</td></tr>
+<tr><td><b>ViewAllSOR</b></td><td>可查询所有 SOR 的角色标识</td></tr>
+<tr><td><b>ViewAllRFQ</b></td><td>可查询所有 RFQ 的角色标识</td></tr>
+<tr><td><b>ViewAllCostbook</b></td><td>查询台账角色</td></tr>
+<tr><td><b>ViewAllNomiBusiness</b></td><td>查看价格申请单角色</td></tr>
+<tr><td><b>采购工程师 (buyer)</b></td><td>业务归属人，无全量角色时仅看 Owner 自己数据</td></tr>
+<tr><td><b>采购项目经理 (PPM)</b></td><td>项目维度，部分接口为 All，部分 Owner</td></tr>
+<tr><td><b>研发工程师</b></td><td>SOR 相关，无全量角色时为 Owner</td></tr>
+<tr><td><b>研发经理 / SQE主管</b></td><td>审批流 Owner，仅见审批流中自己相关</td></tr>
+<tr><td><b>SQE工程师</b></td><td>SOR/定点相关，多为 Owner</td></tr>
+<tr><td><b>物流工程师</b></td><td>物流信息仅看自己（量产/售后按业务）</td></tr>
+<tr><td><b>品类管理员 / 品类专家</b></td><td>品类 CLI 接口授权角色</td></tr>
+<tr><td><b>普通采购员</b></td><td>品类列表/变更记录可读，详情/VPPS 不可读</td></tr>
+<tr><td><b>定时任务</b></td><td>品类写类接口的内部调用方</td></tr></tbody></table>
+</div>
+
+<h2>2. 核心权限规则口径</h2>
+<div class="card">
+<p>以下规则提炼自文档，是 UAT 预期结果（Then）的判定基准。口径不清处已在“来源”列标注。</p>
+<table><thead><tr><th>规则域</th><th>规则描述</th><th>来源/备注</th></tr></thead><tbody><tr><td><b>SOR 查询</b></td><td>拥有 ADMIN 或 ViewAllSOR → 全量 SOR；否则仅查询自己（owner）数据。</td><td class='src'>设计文档 image.png 标注</td></tr>
+<tr><td><b>RFQ 查询</b></td><td>拥有 ADMIN 或 ViewAllRFQ → 全量 RFQ；否则限制 buyerId=当前登录人。仅显式传 delayStatus=&quot;all&quot; 才跳过 owner 过滤（关键边界开关）。</td><td class='src'>写在代码内；边界开关易漏测</td></tr>
+<tr><td><b>定点申请单查询</b></td><td>ViewAllRFQ 或 ADMIN → 全部；否则限制 buyerId=当前登录人。</td><td class='src'>nominationAf/find</td></tr>
+<tr><td><b>定点申请单创建</b></td><td>后端需先判断操作角色，非采购工程师应报权限错误（此前后端无限制，仅前端控制）。</td><td class='src'>nominationAf/create · 高风险</td></tr>
+<tr><td><b>物流信息</b></td><td>ADMIN / VIEW_ALL_Logistics+VIEW_ALL_Logistics_AS → 全部；VIEW_ALL_Logistics 仅量产；VIEW_ALL_Logistics_AS 仅售后；物流工程师仅自己。</td><td class='src'>细粒度业务拆分</td></tr>
+<tr><td><b>品类读接口</b></td><td>列表/变更记录：品类管理员/品类专家/ADMIN/普通采购员可读；详情/VPPS：仅管理员/专家/ADMIN。</td><td class='src'>category/*.api</td></tr>
+<tr><td><b>品类写/CLI专用接口</b></td><td>页面不调用，仅 CLI 命令与定时任务使用；品类管理员/ADMIN/定时任务可调用，普通用户必须拒绝。</td><td class='src'>queryMaterialCost/queryBom/queryCategory/updateCategory</td></tr>
+<tr><td><b>供应商类接口（高风险）</b></td><td>文档中 4 个供应商查询接口现状“无权限控制/不区分角色”(标 ❌)，本次需补齐按角色/owner 校验。</td><td class='src'>findAllSupplierList / suplNoncriticalChg / 等</td></tr></tbody></table>
+</div>
+
+<h2>3. UAT 场景明细</h2>
+<div class="card">
+<p>场景按负责人分组（供应商/SOR/RFQ · 询报价 · 品类CLI）。类型：<span class="badge" style="background:#5b8a72">正向</span> 授权可见 ｜ <span class="badge" style="background:#b5654a">越权</span> 应拒绝 ｜ <span class="badge" style="background:#b08968">边界</span> owner/开关细分。优先级 P0&gt;P1&gt;P2。</p>
+<table><thead><tr><th>ID</th><th>分组</th><th>接口 / 功能</th><th>角色</th><th>GIVEN（前置）</th><th>WHEN（操作）</th><th>THEN（预期）</th><th>优先级</th><th>类型</th></tr></thead>
+<tbody><tr>
+<td class='sid'>S01</td>
+<td class='grp'>供应商/SOR/RFQ</td>
+<td><code>/custom/custSupplierManager/findAllSupplierList</code><div class='func'>查询供应商信息列表</div></td>
+<td>供应商管理员（具菜单权限）</td>
+<td class='gw'>用户具供应商管理菜单权限，系统存在多条供应商数据</td>
+<td class='gw'>调用接口不传 owner 过滤</td>
+<td class='gw'>返回供应商列表；若本次已新增角色校验，则按授权角色可见</td>
+<td><span class='badge' style='background:#b5654a'>P0</span></td>
+<td><span class='badge' style='background:#5b8a72'>正向</span></td>
+</tr>
+<tr>
+<td class='sid'>S02</td>
+<td class='grp'>供应商/SOR/RFQ</td>
+<td><code>/custom/custSupplierManager/findAllSupplierList</code><div class='func'>查询供应商信息列表</div></td>
+<td>无供应商管理菜单权限的普通采购员</td>
+<td class='gw'>用户无菜单/角色权限</td>
+<td class='gw'>调用接口</td>
+<td class='gw'>应被拒绝或返回空，不得泄露他人供应商数据（验证 ❌ 缺口已修复）</td>
+<td><span class='badge' style='background:#b5654a'>P0</span></td>
+<td><span class='badge' style='background:#b5654a'>越权</span></td>
+</tr>
+<tr>
+<td class='sid'>S03</td>
+<td class='grp'>供应商/SOR/RFQ</td>
+<td><code>/custom/suplChgKeyAf/find</code><div class='func'>查询供应商变更申请单</div></td>
+<td>供应商管理员</td>
+<td class='gw'>具供应商管理菜单权限</td>
+<td class='gw'>调用接口</td>
+<td class='gw'>可见供应商变更申请单列表</td>
+<td><span class='badge' style='background:#b08968'>P1</span></td>
+<td><span class='badge' style='background:#5b8a72'>正向</span></td>
+</tr>
+<tr>
+<td class='sid'>S04</td>
+<td class='grp'>供应商/SOR/RFQ</td>
+<td><code>/custom/suplNoncriticalChg/compareSupplier</code><div class='func'>查询供应商变更记录列表</div></td>
+<td>无权限的无关角色</td>
+<td class='gw'>用户无供应商相关角色</td>
+<td class='gw'>调用接口</td>
+<td class='gw'>应被拒绝（验证 ❌ 缺口已修复，未补校验前为严重越权）</td>
+<td><span class='badge' style='background:#b5654a'>P0</span></td>
+<td><span class='badge' style='background:#b5654a'>越权</span></td>
+</tr>
+<tr>
+<td class='sid'>S05</td>
+<td class='grp'>供应商/SOR/RFQ</td>
+<td><code>/custom/designReq/find</code><div class='func'>查询SOR基本信息</div></td>
+<td>ADMIN / ViewAllSOR</td>
+<td class='gw'>具 ADMIN 或 ViewAllSOR 角色，存在他人 SOR</td>
+<td class='gw'>调用接口</td>
+<td class='gw'>返回全量 SOR 列表，不限制 owner</td>
+<td><span class='badge' style='background:#b5654a'>P0</span></td>
+<td><span class='badge' style='background:#5b8a72'>正向</span></td>
+</tr>
+<tr>
+<td class='sid'>S06</td>
+<td class='grp'>供应商/SOR/RFQ</td>
+<td><code>/custom/designReq/find</code><div class='func'>查询SOR基本信息</div></td>
+<td>采购工程师（无 ViewAllSOR）</td>
+<td class='gw'>具采购工程师角色且有自身 SOR，存在他人 SOR</td>
+<td class='gw'>调用接口</td>
+<td class='gw'>仅返回当前登录人 owner 的 SOR，他人 SOR 不可见</td>
+<td><span class='badge' style='background:#b5654a'>P0</span></td>
+<td><span class='badge' style='background:#b08968'>边界</span></td>
+</tr>
+<tr>
+<td class='sid'>S07</td>
+<td class='grp'>供应商/SOR/RFQ</td>
+<td><code>/custom/designReqItem/findBicycleMapByProjectSor</code><div class='func'>查询SOR车型信息</div></td>
+<td>系统管理员</td>
+<td class='gw'>All 权限角色</td>
+<td class='gw'>调用接口</td>
+<td class='gw'>返回全部 SOR 车型信息</td>
+<td><span class='badge' style='background:#b08968'>P1</span></td>
+<td><span class='badge' style='background:#5b8a72'>正向</span></td>
+</tr>
+<tr>
+<td class='sid'>S08</td>
+<td class='grp'>供应商/SOR/RFQ</td>
+<td><code>/custom/designReqItem/findBicycleMapByProjectSor</code><div class='func'>查询SOR车型信息</div></td>
+<td>采购工程师</td>
+<td class='gw'>Owner 角色，仅有自身 SOR 车型数据</td>
+<td class='gw'>调用接口</td>
+<td class='gw'>仅返回自己相关的 SOR 车型信息</td>
+<td><span class='badge' style='background:#b08968'>P1</span></td>
+<td><span class='badge' style='background:#b08968'>边界</span></td>
+</tr>
+<tr>
+<td class='sid'>S09</td>
+<td class='grp'>供应商/SOR/RFQ</td>
+<td><code>/custom/designReqItem/findBicycleMapByProjectSor</code><div class='func'>查询SOR车型信息</div></td>
+<td>研发经理 / SQE主管</td>
+<td class='gw'>审批流 Owner 角色</td>
+<td class='gw'>调用接口</td>
+<td class='gw'>仅返回审批流中自己相关的数据（审批流Owner）</td>
+<td><span class='badge' style='background:#b08968'>P1</span></td>
+<td><span class='badge' style='background:#b08968'>边界</span></td>
+</tr>
+<tr>
+<td class='sid'>S10</td>
+<td class='grp'>供应商/SOR/RFQ</td>
+<td><code>/custom/designReqItem/findDesignReqItems</code><div class='func'>查询SOR零件装配比例</div></td>
+<td>采购项目经理</td>
+<td class='gw'>All 权限</td>
+<td class='gw'>调用接口</td>
+<td class='gw'>返回全量装配比例数据</td>
+<td><span class='badge' style='background:#b08968'>P1</span></td>
+<td><span class='badge' style='background:#5b8a72'>正向</span></td>
+</tr>
+<tr>
+<td class='sid'>S11</td>
+<td class='grp'>供应商/SOR/RFQ</td>
+<td><code>/custom/custWorkFlow/findHistoryTasks</code><div class='func'>查询SOR审批历史</div></td>
+<td>SQE主管</td>
+<td class='gw'>审批流 Owner</td>
+<td class='gw'>调用接口</td>
+<td class='gw'>仅返回审批流中自己相关的审批历史</td>
+<td><span class='badge' style='background:#b08968'>P1</span></td>
+<td><span class='badge' style='background:#b08968'>边界</span></td>
+</tr>
+<tr>
+<td class='sid'>S12</td>
+<td class='grp'>供应商/SOR/RFQ</td>
+<td><code>/custom/rfq/find</code><div class='func'>查询零件所在RFQ及RFQ基本信息</div></td>
+<td>ADMIN / ViewAllRFQ</td>
+<td class='gw'>具全量 RFQ 角色，存在他人 RFQ</td>
+<td class='gw'>调用接口</td>
+<td class='gw'>返回全量 RFQ</td>
+<td><span class='badge' style='background:#b5654a'>P0</span></td>
+<td><span class='badge' style='background:#5b8a72'>正向</span></td>
+</tr>
+<tr>
+<td class='sid'>S13</td>
+<td class='grp'>供应商/SOR/RFQ</td>
+<td><code>/custom/rfq/find</code><div class='func'>查询零件所在RFQ及RFQ基本信息</div></td>
+<td>采购工程师</td>
+<td class='gw'>无 ViewAllRFQ，仅有自身 RFQ</td>
+<td class='gw'>调用接口</td>
+<td class='gw'>限制 buyerId=当前登录人，仅见自己 RFQ</td>
+<td><span class='badge' style='background:#b5654a'>P0</span></td>
+<td><span class='badge' style='background:#b08968'>边界</span></td>
+</tr>
+<tr>
+<td class='sid'>S14</td>
+<td class='grp'>供应商/SOR/RFQ</td>
+<td><code>/custom/rfq/find</code><div class='func'>查询零件所在RFQ及RFQ基本信息</div></td>
+<td>采购工程师</td>
+<td class='gw'>无 ViewAllRFQ，存在他人 RFQ</td>
+<td class='gw'>调用接口并显式传 delayStatus=&quot;all&quot;</td>
+<td class='gw'>跳过 owner 过滤返回全部（验证该边界开关按设计生效）</td>
+<td><span class='badge' style='background:#b08968'>P1</span></td>
+<td><span class='badge' style='background:#b08968'>边界</span></td>
+</tr>
+<tr>
+<td class='sid'>S15</td>
+<td class='grp'>询报价</td>
+<td><code>custom/rfqQuotesInfo/findQuotesByRfqIdAndRoundNo</code><div class='func'>查询询报价条目</div></td>
+<td>ADMIN/财务CE/ViewAllRFQ/采购工程师/PPM/ViewAllCostbook</td>
+<td class='gw'>具报价查看相关角色</td>
+<td class='gw'>调用接口</td>
+<td class='gw'>按角色返回对应询报价条目</td>
+<td><span class='badge' style='background:#b5654a'>P0</span></td>
+<td><span class='badge' style='background:#5b8a72'>正向</span></td>
+</tr>
+<tr>
+<td class='sid'>S16</td>
+<td class='grp'>询报价</td>
+<td><code>custom/rfqQuotesInfo/findQuotesByRfqIdAndRoundNo</code><div class='func'>查询询报价条目</div></td>
+<td>无 List 权限但知晓 rfq-id 的无关角色</td>
+<td class='gw'>用户无列表菜单权限，但持有某个 rfq-id</td>
+<td class='gw'>拿 rfq-id 直接调用接口</td>
+<td class='gw'>应被拒绝（文档标注无 List 权限但知晓 id 仍可查 = 越权风险，需验证已修复）</td>
+<td><span class='badge' style='background:#b5654a'>P0</span></td>
+<td><span class='badge' style='background:#b5654a'>越权</span></td>
+</tr>
+<tr>
+<td class='sid'>S17</td>
+<td class='grp'>询报价</td>
+<td><code>/rfqReleaseInfo/doFindByRfqQuotesInfoId</code><div class='func'>查询参与询报价供应商</div></td>
+<td>无关角色</td>
+<td class='gw'>接口前端未暴露、无权限控制</td>
+<td class='gw'>调用接口</td>
+<td class='gw'>应被拒绝（验证 ❌ 类无校验接口已补控权）</td>
+<td><span class='badge' style='background:#b08968'>P1</span></td>
+<td><span class='badge' style='background:#b5654a'>越权</span></td>
+</tr>
+<tr>
+<td class='sid'>S18</td>
+<td class='grp'>询报价</td>
+<td><code>rfqBidderAf/findLatestBySorCode</code><div class='func'>查询预选供应商信息</div></td>
+<td>系统管理员/ViewAllProgram/ViewProject/PPM/审批流程操作人</td>
+<td class='gw'>具项目管理菜单权限</td>
+<td class='gw'>调用接口</td>
+<td class='gw'>返回对应预选供应商信息</td>
+<td><span class='badge' style='background:#b08968'>P1</span></td>
+<td><span class='badge' style='background:#5b8a72'>正向</span></td>
+</tr>
+<tr>
+<td class='sid'>S19</td>
+<td class='grp'>询报价</td>
+<td><code>rfqBidderAf/findLatestBySorCode</code><div class='func'>查询预选供应商信息</div></td>
+<td>无项目管理菜单权限的普通角色</td>
+<td class='gw'>无菜单权限</td>
+<td class='gw'>调用接口</td>
+<td class='gw'>应被拒绝</td>
+<td><span class='badge' style='background:#b08968'>P1</span></td>
+<td><span class='badge' style='background:#b5654a'>越权</span></td>
+</tr>
+<tr>
+<td class='sid'>S20</td>
+<td class='grp'>询报价</td>
+<td><code>/rfqBidderAf/find.api</code><div class='func'>查询BDL</div></td>
+<td>ViewAllRFQ / ADMIN</td>
+<td class='gw'>具全量角色</td>
+<td class='gw'>调用接口</td>
+<td class='gw'>返回全部 BDL 数据</td>
+<td><span class='badge' style='background:#b08968'>P1</span></td>
+<td><span class='badge' style='background:#5b8a72'>正向</span></td>
+</tr>
+<tr>
+<td class='sid'>S21</td>
+<td class='grp'>询报价</td>
+<td><code>/rfqBidderAf/find.api</code><div class='func'>查询BDL</div></td>
+<td>采购工程师</td>
+<td class='gw'>无 ViewAllRFQ</td>
+<td class='gw'>调用接口</td>
+<td class='gw'>仅返回自己相关的 BDL（owner 限制）</td>
+<td><span class='badge' style='background:#b08968'>P1</span></td>
+<td><span class='badge' style='background:#b08968'>边界</span></td>
+</tr>
+<tr>
+<td class='sid'>S22</td>
+<td class='grp'>询报价</td>
+<td><code>rfqQuotesInfo/findRfqRoundSupplierFile</code><div class='func'>查询物流信息</div></td>
+<td>VIEW_ALL_Logistics</td>
+<td class='gw'>仅量产物流全量角色</td>
+<td class='gw'>调用接口</td>
+<td class='gw'>仅返回量产物流信息</td>
+<td><span class='badge' style='background:#b08968'>P1</span></td>
+<td><span class='badge' style='background:#b08968'>边界</span></td>
+</tr>
+<tr>
+<td class='sid'>S23</td>
+<td class='grp'>询报价</td>
+<td><code>rfqQuotesInfo/findRfqRoundSupplierFile</code><div class='func'>查询物流信息</div></td>
+<td>VIEW_ALL_Logistics_AS</td>
+<td class='gw'>仅售后物流全量角色</td>
+<td class='gw'>调用接口</td>
+<td class='gw'>仅返回售后物流信息</td>
+<td><span class='badge' style='background:#b08968'>P1</span></td>
+<td><span class='badge' style='background:#b08968'>边界</span></td>
+</tr>
+<tr>
+<td class='sid'>S24</td>
+<td class='grp'>询报价</td>
+<td><code>rfqQuotesInfo/findRfqRoundSupplierFile</code><div class='func'>查询物流信息</div></td>
+<td>物流工程师</td>
+<td class='gw'>仅自身物流数据</td>
+<td class='gw'>调用接口</td>
+<td class='gw'>仅返回自己负责的物流信息（Owner-量产/售后）</td>
+<td><span class='badge' style='background:#b08968'>P1</span></td>
+<td><span class='badge' style='background:#b08968'>边界</span></td>
+</tr>
+<tr>
+<td class='sid'>S25</td>
+<td class='grp'>询报价</td>
+<td><code>nominationAf/find</code><div class='func'>查询定点申请单</div></td>
+<td>ViewAllRFQ / ADMIN</td>
+<td class='gw'>具全量角色</td>
+<td class='gw'>调用接口（scop 不传或为 mine 之外）</td>
+<td class='gw'>返回全部定点申请单</td>
+<td><span class='badge' style='background:#b5654a'>P0</span></td>
+<td><span class='badge' style='background:#5b8a72'>正向</span></td>
+</tr>
+<tr>
+<td class='sid'>S26</td>
+<td class='grp'>询报价</td>
+<td><code>nominationAf/find</code><div class='func'>查询定点申请单</div></td>
+<td>采购工程师</td>
+<td class='gw'>无 ViewAllRFQ</td>
+<td class='gw'>调用接口</td>
+<td class='gw'>限制 buyerId=当前登录人，仅见自己定点单</td>
+<td><span class='badge' style='background:#b5654a'>P0</span></td>
+<td><span class='badge' style='background:#b08968'>边界</span></td>
+</tr>
+<tr>
+<td class='sid'>S27</td>
+<td class='grp'>询报价</td>
+<td><code>rfqQuotesInfo/findSupplierByCurrentRoundNo</code><div class='func'>查询当前轮次信息</div></td>
+<td>无关角色（知晓定点 id）</td>
+<td class='gw'>接口现状无权限控制</td>
+<td class='gw'>拿定点 id 直接调用</td>
+<td class='gw'>应被拒绝（验证已补控权，文档标注“无权限控制，能点定点就能查”）</td>
+<td><span class='badge' style='background:#b08968'>P1</span></td>
+<td><span class='badge' style='background:#b5654a'>越权</span></td>
+</tr>
+<tr>
+<td class='sid'>S28</td>
+<td class='grp'>询报价</td>
+<td><code>nominationAf/create</code><div class='func'>创建定点申请单</div></td>
+<td>采购工程师</td>
+<td class='gw'>具采购工程师角色且可见定点数据</td>
+<td class='gw'>点击“定点/再次定点”并调用创建</td>
+<td class='gw'>创建成功</td>
+<td><span class='badge' style='background:#b5654a'>P0</span></td>
+<td><span class='badge' style='background:#5b8a72'>正向</span></td>
+</tr>
+<tr>
+<td class='sid'>S29</td>
+<td class='grp'>询报价</td>
+<td><code>nominationAf/create</code><div class='func'>创建定点申请单</div></td>
+<td>研发工程师（非采购工程师）</td>
+<td class='gw'>具定点查看但非采购工程师角色</td>
+<td class='gw'>尝试调用创建接口</td>
+<td class='gw'>后端返回权限错误，拒绝创建（验证“非采购工程师报权限错误”规则生效）</td>
+<td><span class='badge' style='background:#b5654a'>P0</span></td>
+<td><span class='badge' style='background:#b5654a'>越权</span></td>
+</tr>
+<tr>
+<td class='sid'>S30</td>
+<td class='grp'>品类CLI</td>
+<td><code>/custom/category/list.api</code><div class='func'>查询品类列表</div></td>
+<td>品类管理员/品类专家/ADMIN/普通采购员</td>
+<td class='gw'>具品类读角色</td>
+<td class='gw'>调用接口</td>
+<td class='gw'>返回品类列表</td>
+<td><span class='badge' style='background:#b08968'>P1</span></td>
+<td><span class='badge' style='background:#5b8a72'>正向</span></td>
+</tr>
+<tr>
+<td class='sid'>S31</td>
+<td class='grp'>品类CLI</td>
+<td><code>/custom/category/list.api</code><div class='func'>查询品类列表</div></td>
+<td>无品类角色的供应商账号</td>
+<td class='gw'>无品类相关角色</td>
+<td class='gw'>调用接口</td>
+<td class='gw'>应被拒绝</td>
+<td><span class='badge' style='background:#b08968'>P1</span></td>
+<td><span class='badge' style='background:#b5654a'>越权</span></td>
+</tr>
+<tr>
+<td class='sid'>S32</td>
+<td class='grp'>品类CLI</td>
+<td><code>/custom/category/detail.api</code><div class='func'>查询品类详情</div></td>
+<td>品类管理员/品类专家/ADMIN</td>
+<td class='gw'>具详情读角色</td>
+<td class='gw'>调用接口</td>
+<td class='gw'>返回品类详情</td>
+<td><span class='badge' style='background:#b08968'>P1</span></td>
+<td><span class='badge' style='background:#5b8a72'>正向</span></td>
+</tr>
+<tr>
+<td class='sid'>S33</td>
+<td class='grp'>品类CLI</td>
+<td><code>/custom/category/detail.api</code><div class='func'>查询品类详情</div></td>
+<td>普通采购员</td>
+<td class='gw'>仅有列表读权限，无详情权限</td>
+<td class='gw'>调用接口</td>
+<td class='gw'>应被拒绝（详情比列表更严格）</td>
+<td><span class='badge' style='background:#b08968'>P1</span></td>
+<td><span class='badge' style='background:#b5654a'>越权</span></td>
+</tr>
+<tr>
+<td class='sid'>S34</td>
+<td class='grp'>品类CLI</td>
+<td><code>/custom/vpps/find.api</code><div class='func'>查询VPPS绑定列表</div></td>
+<td>品类管理员/品类专家/ADMIN</td>
+<td class='gw'>具角色</td>
+<td class='gw'>调用接口</td>
+<td class='gw'>返回 VPPS 绑定列表</td>
+<td><span class='badge' style='background:#b08968'>P1</span></td>
+<td><span class='badge' style='background:#5b8a72'>正向</span></td>
+</tr>
+<tr>
+<td class='sid'>S35</td>
+<td class='grp'>品类CLI</td>
+<td><code>/custom/vpps/find.api</code><div class='func'>查询VPPS绑定列表</div></td>
+<td>普通采购员</td>
+<td class='gw'>无该角色</td>
+<td class='gw'>调用接口</td>
+<td class='gw'>应被拒绝</td>
+<td><span class='badge' style='background:#b08968'>P1</span></td>
+<td><span class='badge' style='background:#b5654a'>越权</span></td>
+</tr>
+<tr>
+<td class='sid'>S36</td>
+<td class='grp'>品类CLI</td>
+<td><code>/custom/categoryChangeLog/list.api</code><div class='func'>查询品类变更记录</div></td>
+<td>普通采购员</td>
+<td class='gw'>具变更记录读权限</td>
+<td class='gw'>调用接口</td>
+<td class='gw'>返回品类变更记录</td>
+<td><span class='badge' style='background:#8a8a8a'>P2</span></td>
+<td><span class='badge' style='background:#5b8a72'>正向</span></td>
+</tr>
+<tr>
+<td class='sid'>S37</td>
+<td class='grp'>品类CLI</td>
+<td><code>/custom/categoryChangeLog/queryMaterialCost.api</code><div class='func'>查询零件定点供应商</div></td>
+<td>普通页面用户</td>
+<td class='gw'>页面不调用，仅 CLI/定时任务使用</td>
+<td class='gw'>尝试从页面/普通账号调用</td>
+<td class='gw'>应被拒绝（仅 CLI 命令/定时任务/管理员可调用）</td>
+<td><span class='badge' style='background:#b08968'>P1</span></td>
+<td><span class='badge' style='background:#b5654a'>越权</span></td>
+</tr>
+<tr>
+<td class='sid'>S38</td>
+<td class='grp'>品类CLI</td>
+<td><code>/custom/categoryChangeLog/queryBom.api</code><div class='func'>查询零件MBOM结构</div></td>
+<td>定时任务 / 品类管理员</td>
+<td class='gw'>内部调用方</td>
+<td class='gw'>调用接口</td>
+<td class='gw'>返回 MBOM 结构</td>
+<td><span class='badge' style='background:#8a8a8a'>P2</span></td>
+<td><span class='badge' style='background:#5b8a72'>正向</span></td>
+</tr>
+<tr>
+<td class='sid'>S39</td>
+<td class='grp'>品类CLI</td>
+<td><code>/custom/categoryChangeLog/queryCategory.api</code><div class='func'>解析VPPS绑定品类</div></td>
+<td>普通用户</td>
+<td class='gw'>无授权</td>
+<td class='gw'>调用接口</td>
+<td class='gw'>应被拒绝</td>
+<td><span class='badge' style='background:#b08968'>P1</span></td>
+<td><span class='badge' style='background:#b5654a'>越权</span></td>
+</tr>
+<tr>
+<td class='sid'>S40</td>
+<td class='grp'>品类CLI</td>
+<td><code>/custom/categoryChangeLog/updateCategory.api</code><div class='func'>同步定点供应商到品类</div></td>
+<td>定时任务 / 品类管理员</td>
+<td class='gw'>内部写操作调用方</td>
+<td class='gw'>调用接口</td>
+<td class='gw'>同步成功</td>
+<td><span class='badge' style='background:#b08968'>P1</span></td>
+<td><span class='badge' style='background:#5b8a72'>正向</span></td>
+</tr>
+<tr>
+<td class='sid'>S41</td>
+<td class='grp'>品类CLI</td>
+<td><code>/custom/categoryChangeLog/updateCategory.api</code><div class='func'>同步定点供应商到品类</div></td>
+<td>普通用户</td>
+<td class='gw'>无写授权</td>
+<td class='gw'>调用接口</td>
+<td class='gw'>应被拒绝（写操作高风险，必须严格控权）</td>
+<td><span class='badge' style='background:#b5654a'>P0</span></td>
+<td><span class='badge' style='background:#b5654a'>越权</span></td>
+</tr></tbody></table>
+</div>
+
+<h2>4. 测试数据准备</h2>
+<div class="card"><table><thead><tr><th>准备项</th><th>说明</th></tr></thead><tbody><tr><td><b>角色账号</b></td><td>为上述每个角色准备至少 1 个测试账号（ADMIN/内控/财务CE/ViewAllSOR/ViewAllRFQ/采购工程师/研发工程师/PPM/SQE/物流工程师/品类管理员/品类专家/普通采购员/定时任务token）。</td></tr>
+<tr><td><b>供应商数据</b></td><td>准备归属于不同采购工程师的供应商记录，用于验证 owner 过滤与非越权。</td></tr>
+<tr><td><b>SOR 数据</b></td><td>准备多条分属不同 owner 的 SOR（含本人与他人的），覆盖 ADMIN 全量 vs owner 限制。</td></tr>
+<tr><td><b>RFQ 数据</b></td><td>准备多条分属不同 buyer 的 RFQ，含 delayStatus=&quot;all&quot; 开关用例。</td></tr>
+<tr><td><b>定点申请单</b></td><td>准备本人与他人的定点单，用于查询 owner 过滤与创建角色校验。</td></tr>
+<tr><td><b>品类数据</b></td><td>准备品类主数据、VPPS 绑定、品类变更记录；准备一个仅供 CLI/定时任务调用的写场景。</td></tr>
+<tr><td><b>日志与断言</b></td><td>开启后端访问日志，UAT 用例需记录 HTTP 状态码（200 成功 / 403 拒绝）、返回数据条数 owner 命中情况。</td></tr></tbody></table></div>
+
+<h2>5. 通过标准</h2>
+<div class="card hl"><ul><li>所有标注 P0 的场景 100% 通过，无越权成功（即无关角色成功读取他人数据）记为致命失败。</li>
+<li>owner 类接口：非全量角色返回数据条数 = 该登录人 owner 名下数据，不得包含他人数据。</li>
+<li>边界开关 delayStatus=&quot;all&quot; 仅在显式传入时跳过过滤，默认仍按 owner 过滤。</li>
+<li>创建类接口（nominationAf/create）非采购工程师一律拒绝并报权限错误。</li>
+<li>品类写/CLI 专用接口：普通页面用户调用一律 403，仅 CLI/定时任务/授权管理员可成功。</li>
+<li>供应商类 ❌ 缺口接口：补校验后，无权限角色调用返回拒绝（不再裸奔）。</li></ul></div>
+
+<h2>6. 风险与回归关注点</h2>
+<div class="card"><table><thead><tr><th>风险点</th><th>说明 / 建议</th></tr></thead><tbody><tr><td><b>供应商类接口 ❌ 裸奔</b></td><td>4 个供应商查询接口现状无权限控制，是最大越权风险点，必须作为 P0 回归重点。</td></tr>
+<tr><td><b>delayStatus=&quot;all&quot; 越权开关</b></td><td>RFQ 查询的“全量跳过过滤”开关若未校验调用角色，可被普通用户用于看他人 RFQ。</td></tr>
+<tr><td><b>“能点就能查”类接口</b></td><td>查询当前轮次信息等接口依赖前端入口控制，后端无校验，存在 id 遍历越权。</td></tr>
+<tr><td><b>品类 CLI 专用接口暴露</b></td><td>页面不调用的写接口若未限制调用方，存在被普通用户直接调用的写风险。</td></tr>
+<tr><td><b>角色权限灰度</b></td><td>多角色叠加（如采购工程师同时是审批流Owner）时数据范围需明确优先级，避免过宽。</td></tr></tbody></table>
+<p class="note">建议 UAT 执行顺序：先跑全部 P0 越权场景（验证无裸奔）→ 再跑 owner 过滤场景 → 最后跑边界开关与品类 CLI 专用接口。</p>
+</div>
+
+<footer>由 Claudian 基于飞书 wiki 自动提炼生成 ｜ 仅供 UAT 测试验证使用 ｜ 数据口径以原文档与后端实现为准</footer>
+</div></body></html>

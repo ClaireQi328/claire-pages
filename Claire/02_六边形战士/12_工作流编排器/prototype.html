@@ -1,0 +1,697 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>工作流编排器 · 可交互原型</title>
+<link rel="stylesheet" href="https://miaoda.feishu.cn/fonts/css2?family=Noto+Sans+SC:wght@300;400;500;700&display=swap">
+<style>
+:root{
+  --bg:#0f1117;--bg2:#161a24;--bg3:#1e2330;--line:#2a3040;--line2:#363d50;
+  --fg:#e8ecf4;--fg2:#9aa4b8;--fg3:#6b7388;
+  --accent:#4f8cff;--accent2:#36d399;--warn:#f5a524;--danger:#f87272;--purple:#a78bfa;
+  --radius:8px;
+}
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:'Noto Sans SC',-apple-system,BlinkMacSystemFont,sans-serif;background:var(--bg);color:var(--fg);overflow:hidden;height:100vh;display:flex;flex-direction:column}
+
+/* Top bar */
+.topbar{height:52px;background:var(--bg2);border-bottom:1px solid var(--line);display:flex;align-items:center;padding:0 20px;gap:16px;flex-shrink:0}
+.topbar .logo{font-weight:700;font-size:15px;display:flex;align-items:center;gap:8px}
+.topbar .logo .dot{width:8px;height:8px;border-radius:50%;background:var(--accent2)}
+.topbar .sep{width:1px;height:24px;background:var(--line)}
+.topbar .fname{font-size:13px;color:var(--fg2);background:var(--bg3);padding:4px 12px;border-radius:4px;border:1px solid var(--line)}
+.topbar .spacer{flex:1}
+.btn{padding:7px 16px;border-radius:6px;font-size:13px;font-weight:500;cursor:pointer;border:1px solid var(--line2);background:var(--bg3);color:var(--fg);transition:all .15s;display:inline-flex;align-items:center;gap:6px}
+.btn:hover{border-color:var(--accent);color:var(--accent)}
+.btn.primary{background:var(--accent);border-color:var(--accent);color:#fff}
+.btn.primary:hover{background:#3a76e8;color:#fff}
+.btn.success{background:var(--accent2);border-color:var(--accent2);color:#0a0a0a}
+.btn.success:hover{background:#2bb883;color:#0a0a0a}
+.btn.danger{color:var(--danger);border-color:rgba(248,114,114,.3)}
+.btn.danger:hover{background:rgba(248,114,114,.1)}
+.btn:disabled{opacity:.4;cursor:not-allowed}
+
+/* Main layout */
+.main{flex:1;display:flex;overflow:hidden}
+
+/* Left panel - node palette */
+.left-panel{width:240px;background:var(--bg2);border-right:1px solid var(--line);display:flex;flex-direction:column;flex-shrink:0;overflow:hidden}
+.panel-title{padding:14px 16px 10px;font-size:12px;font-weight:700;color:var(--fg3);letter-spacing:1px;text-transform:uppercase}
+.node-groups{flex:1;overflow-y:auto;padding:0 10px 16px}
+.node-group{margin-bottom:14px}
+.node-group .group-label{font-size:11px;color:var(--fg3);padding:6px 6px;font-weight:600;display:flex;align-items:center;gap:6px}
+.node-group .group-label .gline{flex:1;height:1px;background:var(--line)}
+.node-item{display:flex;align-items:center;gap:10px;padding:9px 10px;margin-bottom:4px;border-radius:6px;cursor:grab;background:var(--bg3);border:1px solid transparent;transition:all .15s;user-select:none}
+.node-item:hover{border-color:var(--accent);background:rgba(79,140,255,.08)}
+.node-item:active{cursor:grabbing}
+.node-item .ni-icon{width:28px;height:28px;border-radius:6px;display:flex;align-items:center;justify-content:center;font-size:14px;flex-shrink:0}
+.node-item .ni-name{font-size:13px;font-weight:500}
+.node-item .ni-desc{font-size:11px;color:var(--fg3)}
+
+/* Canvas */
+.canvas-wrap{flex:1;position:relative;overflow:hidden;background:var(--bg);background-image:radial-gradient(circle,var(--line) 1px,transparent 1px);background-size:20px 20px}
+.canvas{position:absolute;width:100%;height:100%;transform-origin:0 0}
+.canvas-svg{position:absolute;top:0;left:0;width:100%;height:100%;pointer-events:none;z-index:1}
+.canvas-svg path{pointer-events:stroke;cursor:pointer}
+
+/* Node on canvas */
+.wf-node{position:absolute;min-width:160px;background:var(--bg2);border:1.5px solid var(--line2);border-radius:8px;z-index:2;cursor:move;user-select:none;transition:border-color .15s,box-shadow .15s}
+.wf-node.selected{border-color:var(--accent);box-shadow:0 0 0 3px rgba(79,140,255,.15)}
+.wf-node.running{border-color:var(--warn);box-shadow:0 0 0 3px rgba(245,165,36,.2);animation:pulse 1s infinite}
+.wf-node.success{border-color:var(--accent2)}
+.wf-node.failed{border-color:var(--danger)}
+.wf-node .node-head{display:flex;align-items:center;gap:8px;padding:8px 12px;border-bottom:1px solid var(--line);font-size:13px;font-weight:600}
+.wf-node .node-head .nh-icon{width:22px;height:22px;border-radius:5px;display:flex;align-items:center;justify-content:center;font-size:12px;flex-shrink:0}
+.wf-node .node-head .nh-status{margin-left:auto;width:8px;height:8px;border-radius:50%;background:var(--fg3);flex-shrink:0}
+.wf-node.running .nh-status{background:var(--warn)}
+.wf-node.success .nh-status{background:var(--accent2)}
+.wf-node.failed .nh-status{background:var(--danger)}
+.wf-node .node-body{padding:8px 12px;font-size:11.5px;color:var(--fg2);line-height:1.5;min-height:20px}
+.wf-node .node-body .config-preview{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:180px}
+
+/* Ports */
+.port{position:absolute;width:12px;height:12px;border-radius:50%;background:var(--bg3);border:2px solid var(--line2);z-index:3;cursor:crosshair;transition:all .15s}
+.port:hover{border-color:var(--accent);background:var(--accent);transform:scale(1.3)}
+.port.in{left:-7px;top:50%;transform:translateY(-50%)}
+.port.in:hover{transform:translateY(-50%) scale(1.3)}
+.port.out{right:-7px;top:50%;transform:translateY(-50%)}
+.port.out:hover{transform:translateY(-50%) scale(1.3)}
+
+/* Right panel - config */
+.right-panel{width:300px;background:var(--bg2);border-left:1px solid var(--line);display:flex;flex-direction:column;flex-shrink:0;overflow:hidden}
+.right-panel .empty{padding:40px 20px;text-align:center;color:var(--fg3);font-size:13px}
+.right-panel .empty .icon{font-size:36px;margin-bottom:12px;opacity:.4}
+.config-header{padding:14px 16px;border-bottom:1px solid var(--line);display:flex;align-items:center;gap:10px}
+.config-header .ch-icon{width:32px;height:32px;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:16px}
+.config-header .ch-title{font-size:14px;font-weight:600}
+.config-header .ch-type{font-size:11px;color:var(--fg3)}
+.config-body{flex:1;overflow-y:auto;padding:16px}
+.form-group{margin-bottom:16px}
+.form-group label{display:block;font-size:12px;font-weight:600;color:var(--fg2);margin-bottom:6px}
+.form-group label .hint{font-weight:400;color:var(--fg3);font-size:11px;margin-left:4px}
+.form-group input,.form-group select,.form-group textarea{width:100%;padding:8px 10px;background:var(--bg3);border:1px solid var(--line2);border-radius:6px;color:var(--fg);font-size:13px;font-family:inherit;outline:none;transition:border-color .15s}
+.form-group input:focus,.form-group select:focus,.form-group textarea:focus{border-color:var(--accent)}
+.form-group textarea{resize:vertical;min-height:60px;font-family:'SF Mono',Menlo,monospace;font-size:12px}
+.form-group .row{display:flex;gap:8px}
+.form-group .row input{flex:1}
+.config-footer{padding:12px 16px;border-top:1px solid var(--line);display:flex;gap:8px}
+
+/* Bottom log panel */
+.log-panel{height:160px;background:var(--bg2);border-top:1px solid var(--line);display:flex;flex-direction:column;flex-shrink:0}
+.log-header{padding:8px 16px;border-bottom:1px solid var(--line);display:flex;align-items:center;gap:10px;font-size:12px;font-weight:600;color:var(--fg2)}
+.log-header .log-dot{width:7px;height:7px;border-radius:50%;background:var(--fg3)}
+.log-header.running .log-dot{background:var(--warn);animation:pulse 1s infinite}
+.log-header.success .log-dot{background:var(--accent2)}
+.log-header .spacer{flex:1}
+.log-header .clear-btn{cursor:pointer;color:var(--fg3);font-size:11px;font-weight:400}
+.log-header .clear-btn:hover{color:var(--danger)}
+.log-body{flex:1;overflow-y:auto;padding:8px 16px;font-family:'SF Mono',Menlo,Consolas,monospace;font-size:11.5px;line-height:1.7}
+.log-line{display:flex;gap:8px;align-items:baseline}
+.log-line .time{color:var(--fg3);flex-shrink:0}
+.log-line .level{flex-shrink:0;width:48px;font-weight:600}
+.log-line .level.info{color:var(--accent)}
+.log-line .level.success{color:var(--accent2)}
+.log-line .level.warn{color:var(--warn)}
+.log-line .level.error{color:var(--danger)}
+.log-line .msg{color:var(--fg2);word-break:break-all}
+
+/* Toast */
+.toast{position:fixed;top:70px;left:50%;transform:translateX(-50%);background:var(--bg3);border:1px solid var(--line2);padding:10px 20px;border-radius:8px;font-size:13px;z-index:999;box-shadow:0 8px 24px rgba(0,0,0,.4);animation:slideDown .2s ease}
+.toast.success{border-color:var(--accent2);color:var(--accent2)}
+.toast.error{border-color:var(--danger);color:var(--danger)}
+
+/* Zoom controls */
+.zoom-ctrl{position:absolute;bottom:16px;right:16px;display:flex;flex-direction:column;gap:4px;z-index:10}
+.zoom-ctrl button{width:32px;height:32px;background:var(--bg2);border:1px solid var(--line2);border-radius:6px;color:var(--fg2);cursor:pointer;font-size:16px;display:flex;align-items:center;justify-content:center}
+.zoom-ctrl button:hover{border-color:var(--accent);color:var(--accent)}
+
+/* Mini hint */
+.canvas-hint{position:absolute;top:16px;left:50%;transform:translateX(-50%);background:rgba(22,26,36,.9);border:1px solid var(--line);padding:6px 14px;border-radius:20px;font-size:12px;color:var(--fg3);z-index:5;pointer-events:none}
+
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}}
+@keyframes slideDown{from{opacity:0;transform:translateX(-50%) translateY(-10px)}to{opacity:1;transform:translateX(-50%) translateY(0)}}
+
+/* Scrollbar */
+::-webkit-scrollbar{width:6px;height:6px}
+::-webkit-scrollbar-track{background:transparent}
+::-webkit-scrollbar-thumb{background:var(--line2);border-radius:3px}
+::-webkit-scrollbar-thumb:hover{background:var(--fg3)}
+</style>
+</head>
+<body>
+
+<!-- Top bar -->
+<div class="topbar">
+  <div class="logo"><span class="dot"></span>Workflow Orchestrator</div>
+  <div class="sep"></div>
+  <div class="fname">供应链订单审批流程</div>
+  <div class="spacer"></div>
+  <button class="btn" onclick="clearCanvas()">🗑 清空</button>
+  <button class="btn" onclick="loadDemo()">📋 加载示例</button>
+  <button class="btn primary" id="runBtn" onclick="runWorkflow()">▶ 运行</button>
+</div>
+
+<!-- Main -->
+<div class="main">
+  <!-- Left: node palette -->
+  <div class="left-panel">
+    <div class="panel-title">节点库</div>
+    <div class="node-groups" id="nodeGroups"></div>
+  </div>
+
+  <!-- Canvas -->
+  <div class="canvas-wrap" id="canvasWrap">
+    <div class="canvas-hint">从左侧拖拽节点到画布，拖动节点右侧圆点连线</div>
+    <div class="canvas" id="canvas">
+      <svg class="canvas-svg" id="svgLayer"></svg>
+    </div>
+    <div class="zoom-ctrl">
+      <button onclick="zoomIn()" title="放大">+</button>
+      <button onclick="zoomOut()" title="缩小">−</button>
+      <button onclick="zoomReset()" title="重置">⟲</button>
+    </div>
+  </div>
+
+  <!-- Right: config panel -->
+  <div class="right-panel" id="rightPanel">
+    <div class="empty">
+      <div class="icon">⚙</div>
+      <div>选中画布中的节点<br>查看和编辑配置</div>
+    </div>
+  </div>
+</div>
+
+<!-- Log panel -->
+<div class="log-panel">
+  <div class="log-header" id="logHeader">
+    <span class="log-dot"></span>
+    <span>执行日志</span>
+    <span class="spacer"></span>
+    <span class="clear-btn" onclick="clearLog()">清空日志</span>
+  </div>
+  <div class="log-body" id="logBody"></div>
+</div>
+
+<script>
+// ============ 节点类型定义 ============
+const NODE_TYPES = {
+  trigger_timer:    {name:'定时触发',icon:'⏰',color:'#4f8cff',group:'trigger',desc:'Cron定时启动',configFields:[{key:'cron',label:'Cron表达式',type:'text',default:'0 9 * * *'},{key:'timezone',label:'时区',type:'text',default:'Asia/Shanghai'}]},
+  trigger_webhook:  {name:'Webhook',icon:'🔗',color:'#4f8cff',group:'trigger',desc:'HTTP回调触发',configFields:[{key:'path',label:'回调路径',type:'text',default:'/webhook/order'},{key:'method',label:'方法',type:'select',options:['POST','GET'],default:'POST'}]},
+  trigger_manual:   {name:'手动触发',icon:'👆',color:'#4f8cff',group:'trigger',desc:'人工点击启动',configFields:[{key:'desc',label:'触发说明',type:'text',default:'手动启动流程'}]},
+
+  data_http:        {name:'HTTP请求',icon:'🌐',color:'#36d399',group:'data',desc:'调用REST API',configFields:[{key:'method',label:'方法',type:'select',options:['GET','POST','PUT','DELETE'],default:'GET'},{key:'url',label:'URL',type:'text',default:'https://api.example.com/orders'},{key:'headers',label:'请求头(JSON)',type:'textarea',default:'{"Content-Type":"application/json"}'},{key:'body',label:'请求体',type:'textarea',default:''}]},
+  data_db:          {name:'数据库查询',icon:'🗄',color:'#36d399',group:'data',desc:'执行SQL查询',configFields:[{key:'datasource',label:'数据源',type:'text',default:'supply_chain_db'},{key:'sql',label:'SQL语句',type:'textarea',default:'SELECT * FROM orders WHERE status = ?'}]},
+  data_transform:   {name:'数据转换',icon:'🔄',color:'#36d399',group:'data',desc:'字段映射/过滤',configFields:[{key:'script',label:'转换脚本(JS)',type:'textarea',default:'return { orderId: input.id, amount: input.total }'}]},
+
+  logic_if:         {name:'条件分支',icon:'🔀',color:'#f5a524',group:'logic',desc:'按条件路由',configFields:[{key:'condition',label:'条件表达式',type:'text',default:'${amount} > 10000'},{key:'trueLabel',label:'真分支标签',type:'text',default:'大额审批'},{key:'falseLabel',label:'假分支标签',type:'text',default:'自动通过'}]},
+  logic_parallel:   {name:'并行网关',icon:'⫴',color:'#f5a524',group:'logic',desc:'并行执行多分支',configFields:[{key:'branches',label:'分支数',type:'text',default:'2'}]},
+
+  action_feishu:    {name:'飞书消息',icon:'💬',color:'#a78bfa',group:'action',desc:'发送飞书通知',configFields:[{key:'webhook',label:'飞书Webhook',type:'text',default:'https://open.feishu.cn/...'},{key:'content',label:'消息内容',type:'textarea',default:'订单${orderId}已创建，金额${amount}'}]},
+  action_dbwrite:   {name:'写数据库',icon:'✏',color:'#a78bfa',group:'action',desc:'写入/更新数据',configFields:[{key:'datasource',label:'数据源',type:'text',default:'supply_chain_db'},{key:'sql',label:'SQL语句',type:'textarea',default:'UPDATE orders SET status = ? WHERE id = ?'}]},
+  action_file:      {name:'生成文件',icon:'📄',color:'#a78bfa',group:'action',desc:'导出Excel/PDF',configFields:[{key:'format',label:'文件格式',type:'select',options:['Excel','PDF','CSV','JSON'],default:'Excel'},{key:'filename',label:'文件名',type:'text',default:'订单报表_${date}.xlsx'}]},
+
+  human_approval:   {name:'人工审批',icon:'✅',color:'#f87272',group:'human',desc:'等待人工审批',configFields:[{key:'approver',label:'审批人',type:'text',default:'供应链主管'},{key:'title',label:'审批标题',type:'text',default:'订单审批：${orderId}'},{key:'timeout',label:'超时(小时)',type:'text',default:'24'}]},
+};
+
+const GROUPS = [
+  {key:'trigger',label:'触发节点',color:'#4f8cff'},
+  {key:'data',label:'数据节点',color:'#36d399'},
+  {key:'logic',label:'逻辑节点',color:'#f5a524'},
+  {key:'action',label:'动作节点',color:'#a78bfa'},
+  {key:'human',label:'人工节点',color:'#f87272'},
+];
+
+// ============ 状态管理 ============
+let nodes = [];       // {id,type,x,y,config,status}
+let edges = [];       // {id,from,to}
+let selectedNodeId = null;
+let nodeIdCounter = 1;
+let zoom = 1;
+let isRunning = false;
+let dragState = null; // {type:'node'|'connect', nodeId, offsetX, offsetY, fromPort, tempLine}
+
+// ============ 初始化节点面板 ============
+function initNodePalette(){
+  const container = document.getElementById('nodeGroups');
+  container.innerHTML = '';
+  GROUPS.forEach(g=>{
+    const groupDiv = document.createElement('div');
+    groupDiv.className = 'node-group';
+    groupDiv.innerHTML = `<div class="group-label"><span style="color:${g.color}">●</span> ${g.label}<span class="gline"></span></div>`;
+    Object.entries(NODE_TYPES).filter(([k,v])=>v.group===g.key).forEach(([typeKey,typeDef])=>{
+      const item = document.createElement('div');
+      item.className = 'node-item';
+      item.draggable = true;
+      item.innerHTML = `<div class="ni-icon" style="background:${typeDef.color}22;color:${typeDef.color}">${typeDef.icon}</div><div><div class="ni-name">${typeDef.name}</div><div class="ni-desc">${typeDef.desc}</div></div>`;
+      item.addEventListener('dragstart',e=>{e.dataTransfer.setData('nodeType',typeKey);});
+      groupDiv.appendChild(item);
+    });
+    container.appendChild(groupDiv);
+  });
+}
+
+// ============ 画布拖放 ============
+const canvasWrap = document.getElementById('canvasWrap');
+const canvas = document.getElementById('canvas');
+
+canvasWrap.addEventListener('dragover',e=>e.preventDefault());
+canvasWrap.addEventListener('drop',e=>{
+  e.preventDefault();
+  const typeKey = e.dataTransfer.getData('nodeType');
+  if(!typeKey) return;
+  const rect = canvasWrap.getBoundingClientRect();
+  const x = (e.clientX - rect.left) / zoom - 80;
+  const y = (e.clientY - rect.top) / zoom - 20;
+  addNode(typeKey, x, y);
+});
+
+// ============ 节点操作 ============
+function addNode(typeKey,x,y){
+  const typeDef = NODE_TYPES[typeKey];
+  const config = {};
+  typeDef.configFields.forEach(f=>config[f.key]=f.default);
+  const node = {id:'n'+(nodeIdCounter++),type:typeKey,x:Math.max(10,x),y:Math.max(10,y),config,status:'idle'};
+  nodes.push(node);
+  renderNode(node);
+  selectNode(node.id);
+  log('info',`添加节点：${typeDef.name}`);
+}
+
+function renderNode(node){
+  const typeDef = NODE_TYPES[node.type];
+  let el = document.getElementById(node.id);
+  if(!el){
+    el = document.createElement('div');
+    el.id = node.id;
+    el.className = 'wf-node';
+    el.innerHTML = `
+      <div class="node-head">
+        <div class="nh-icon" style="background:${typeDef.color}22;color:${typeDef.color}">${typeDef.icon}</div>
+        <span class="nh-name">${typeDef.name}</span>
+        <span class="nh-status"></span>
+      </div>
+      <div class="node-body"><div class="config-preview"></div></div>
+      <div class="port in" data-node="${node.id}" data-port="in"></div>
+      <div class="port out" data-node="${node.id}" data-port="out"></div>
+    `;
+    canvas.appendChild(el);
+    // drag node
+    el.addEventListener('mousedown',e=>{
+      if(e.target.classList.contains('port')) return;
+      e.preventDefault();
+      selectNode(node.id);
+      const rect = el.getBoundingClientRect();
+      dragState = {type:'node',nodeId:node.id,offsetX:e.clientX-rect.left,offsetY:e.clientY-rect.top};
+    });
+    // port events
+    el.querySelectorAll('.port').forEach(port=>{
+      port.addEventListener('mousedown',e=>{
+        e.stopPropagation();
+        if(port.dataset.port==='out'){
+          dragState = {type:'connect',fromNode:node.id,tempLine:null};
+        }
+      });
+      port.addEventListener('mouseup',e=>{
+        e.stopPropagation();
+        if(dragState && dragState.type==='connect' && port.dataset.port==='in' && dragState.fromNode!==node.id){
+          addEdge(dragState.fromNode,node.id);
+        }
+      });
+    });
+  }
+  el.style.left = node.x+'px';
+  el.style.top = node.y+'px';
+  el.className = 'wf-node ' + (node.status==='idle'?'':node.status) + (selectedNodeId===node.id?' selected':'');
+  // preview
+  const preview = el.querySelector('.config-preview');
+  const firstField = typeDef.configFields[0];
+  if(firstField){
+    let val = node.config[firstField.key]||'';
+    if(val.length>30) val = val.substring(0,30)+'...';
+    preview.textContent = `${firstField.label}: ${val}`;
+  }
+}
+
+function selectNode(id){
+  selectedNodeId = id;
+  nodes.forEach(n=>renderNode(n));
+  renderConfigPanel();
+}
+
+function deleteNode(id){
+  nodes = nodes.filter(n=>n.id!==id);
+  edges = edges.filter(e=>e.from!==id && e.to!==id);
+  const el = document.getElementById(id);
+  if(el) el.remove();
+  if(selectedNodeId===id) selectedNodeId=null;
+  renderEdges();
+  renderConfigPanel();
+  log('warn','删除节点');
+}
+
+// ============ 连线 ============
+function addEdge(from,to){
+  if(edges.some(e=>e.from===from && e.to===to)) return;
+  // prevent cycle (simple check)
+  if(hasPath(to,from)){log('error','不能创建循环依赖');return;}
+  edges.push({id:'e'+Date.now(),from,to});
+  renderEdges();
+  log('info',`连线：${NODE_TYPES[nodes.find(n=>n.id===from).type].name} → ${NODE_TYPES[nodes.find(n=>n.id===to).type].name}`);
+}
+
+function hasPath(from,to){
+  const visited = new Set();
+  const stack = [from];
+  while(stack.length){
+    const cur = stack.pop();
+    if(cur===to) return true;
+    if(visited.has(cur)) continue;
+    visited.add(cur);
+    edges.filter(e=>e.from===cur).forEach(e=>stack.push(e.to));
+  }
+  return false;
+}
+
+function renderEdges(){
+  const svg = document.getElementById('svgLayer');
+  svg.innerHTML = '';
+  edges.forEach(edge=>{
+    const fromNode = document.getElementById(edge.from);
+    const toNode = document.getElementById(edge.to);
+    if(!fromNode||!toNode) return;
+    const fromRect = fromNode.getBoundingClientRect();
+    const toRect = toNode.getBoundingClientRect();
+    const canvasRect = canvas.getBoundingClientRect();
+    const x1 = (fromRect.right - canvasRect.left)/zoom;
+    const y1 = (fromRect.top + fromRect.height/2 - canvasRect.top)/zoom;
+    const x2 = (toRect.left - canvasRect.left)/zoom;
+    const y2 = (toRect.top + toRect.height/2 - canvasRect.top)/zoom;
+    const mx = (x1+x2)/2;
+    const path = document.createElementNS('http://www.w3.org/2000/svg','path');
+    path.setAttribute('d',`M ${x1} ${y1} C ${mx} ${y1}, ${mx} ${y2}, ${x2} ${y2}`);
+    path.setAttribute('stroke','#4f8cff');
+    path.setAttribute('stroke-width','2');
+    path.setAttribute('fill','none');
+    path.setAttribute('opacity','0.6');
+    path.style.cursor = 'pointer';
+    path.addEventListener('click',()=>{
+      if(confirm('删除这条连线？')){
+        edges = edges.filter(e=>e.id!==edge.id);
+        renderEdges();
+      }
+    });
+    svg.appendChild(path);
+    // arrow
+    const arrow = document.createElementNS('http://www.w3.org/2000/svg','polygon');
+    const angle = Math.atan2(y2-y1,x2-x1);
+    const ax = x2-4, ay = y2;
+    arrow.setAttribute('points',`${ax},${ay-4} ${ax+8},${ay} ${ax},${ay+4}`);
+    arrow.setAttribute('fill','#4f8cff');
+    arrow.setAttribute('opacity','0.6');
+    svg.appendChild(arrow);
+  });
+}
+
+// ============ 鼠标事件（拖拽节点/连线） ============
+document.addEventListener('mousemove',e=>{
+  if(!dragState) return;
+  if(dragState.type==='node'){
+    const node = nodes.find(n=>n.id===dragState.nodeId);
+    if(!node) return;
+    const rect = canvasWrap.getBoundingClientRect();
+    node.x = (e.clientX - rect.left)/zoom - dragState.offsetX;
+    node.y = (e.clientY - rect.top)/zoom - dragState.offsetY;
+    renderNode(node);
+    renderEdges();
+  } else if(dragState.type==='connect'){
+    // temp line
+    let tempLine = document.getElementById('tempLine');
+    if(!tempLine){
+      tempLine = document.createElementNS('http://www.w3.org/2000/svg','path');
+      tempLine.id = 'tempLine';
+      tempLine.setAttribute('stroke','#4f8cff');
+      tempLine.setAttribute('stroke-width','2');
+      tempLine.setAttribute('stroke-dasharray','5,5');
+      tempLine.setAttribute('fill','none');
+      document.getElementById('svgLayer').appendChild(tempLine);
+    }
+    const fromNode = document.getElementById(dragState.fromNode);
+    const fromRect = fromNode.getBoundingClientRect();
+    const canvasRect = canvas.getBoundingClientRect();
+    const wrapRect = canvasWrap.getBoundingClientRect();
+    const x1 = (fromRect.right - canvasRect.left)/zoom;
+    const y1 = (fromRect.top + fromRect.height/2 - canvasRect.top)/zoom;
+    const x2 = (e.clientX - wrapRect.left)/zoom;
+    const y2 = (e.clientY - wrapRect.top)/zoom;
+    const mx = (x1+x2)/2;
+    tempLine.setAttribute('d',`M ${x1} ${y1} C ${mx} ${y1}, ${mx} ${y2}, ${x2} ${y2}`);
+  }
+});
+
+document.addEventListener('mouseup',()=>{
+  if(dragState && dragState.type==='connect'){
+    const tempLine = document.getElementById('tempLine');
+    if(tempLine) tempLine.remove();
+  }
+  dragState = null;
+});
+
+// 点击画布空白取消选中
+canvasWrap.addEventListener('mousedown',e=>{
+  if(e.target===canvasWrap || e.target===canvas || e.target.tagName==='svg'){
+    selectedNodeId = null;
+    nodes.forEach(n=>renderNode(n));
+    renderConfigPanel();
+  }
+});
+
+// ============ 配置面板 ============
+function renderConfigPanel(){
+  const panel = document.getElementById('rightPanel');
+  if(!selectedNodeId){
+    panel.innerHTML = `<div class="empty"><div class="icon">⚙</div><div>选中画布中的节点<br>查看和编辑配置</div></div>`;
+    return;
+  }
+  const node = nodes.find(n=>n.id===selectedNodeId);
+  if(!node) return;
+  const typeDef = NODE_TYPES[node.type];
+  let fieldsHtml = typeDef.configFields.map(f=>{
+    let inputHtml = '';
+    if(f.type==='select'){
+      inputHtml = `<select data-key="${f.key}">${f.options.map(o=>`<option value="${o}" ${node.config[f.key]===o?'selected':''}>${o}</option>`).join('')}</select>`;
+    } else if(f.type==='textarea'){
+      inputHtml = `<textarea data-key="${f.key}">${node.config[f.key]||''}</textarea>`;
+    } else {
+      inputHtml = `<input type="text" data-key="${f.key}" value="${node.config[f.key]||''}">`;
+    }
+    return `<div class="form-group"><label>${f.label}</label>${inputHtml}</div>`;
+  }).join('');
+
+  panel.innerHTML = `
+    <div class="config-header">
+      <div class="ch-icon" style="background:${typeDef.color}22;color:${typeDef.color}">${typeDef.icon}</div>
+      <div><div class="ch-title">${typeDef.name}</div><div class="ch-type">${typeDef.desc} · ID: ${node.id}</div></div>
+    </div>
+    <div class="config-body">
+      <div class="form-group"><label>节点名称</label><input type="text" data-key="_name" value="${typeDef.name}"></div>
+      ${fieldsHtml}
+      <div class="form-group"><label>超时(ms) <span class="hint">0=不限制</span></label><input type="text" data-key="_timeout" value="${node._timeout||30000}"></div>
+      <div class="form-group"><label>重试次数</label><input type="text" data-key="_retry" value="${node._retry||0}"></div>
+    </div>
+    <div class="config-footer">
+      <button class="btn danger" style="flex:1" onclick="deleteNode('${node.id}')">删除节点</button>
+    </div>
+  `;
+  // bind inputs
+  panel.querySelectorAll('[data-key]').forEach(inp=>{
+    inp.addEventListener('input',()=>{
+      const key = inp.dataset.key;
+      if(key.startsWith('_')){
+        node[key] = inp.value;
+      } else {
+        node.config[key] = inp.value;
+      }
+      renderNode(node);
+    });
+  });
+}
+
+// ============ 运行模拟 ============
+async function runWorkflow(){
+  if(isRunning) return;
+  if(nodes.length===0){toast('请先添加节点','error');return;}
+  // find start nodes (no incoming edges)
+  const startNodes = nodes.filter(n=>!edges.some(e=>e.to===n.id));
+  if(startNodes.length===0){toast('没有起始节点（无入边的节点）','error');return;}
+
+  isRunning = true;
+  document.getElementById('runBtn').disabled = true;
+  document.getElementById('logHeader').classList.add('running');
+  nodes.forEach(n=>{n.status='idle';renderNode(n);});
+  clearLog();
+  log('info','═══════ 工作流开始执行 ═══════');
+  log('info',`共 ${nodes.length} 个节点，${edges.length} 条连线`);
+
+  // topological execution
+  const inDegree = {};
+  nodes.forEach(n=>inDegree[n.id]=0);
+  edges.forEach(e=>inDegree[e.to]++);
+  const queue = startNodes.map(n=>n.id);
+  const completed = new Set();
+
+  while(queue.length>0){
+    const currentId = queue.shift();
+    if(completed.has(currentId)) continue;
+    const node = nodes.find(n=>n.id===currentId);
+    if(!node) continue;
+
+    // check all deps done
+    const deps = edges.filter(e=>e.to===currentId).map(e=>e.from);
+    const allDepsDone = deps.every(d=>completed.has(d));
+    if(!allDepsDone){queue.push(currentId);continue;}
+
+    // execute node
+    node.status = 'running';
+    renderNode(node);
+    const typeDef = NODE_TYPES[node.type];
+    log('info',`▶ 执行节点 [${typeDef.name}]`);
+    await sleep(600 + Math.random()*800);
+
+    // simulate result
+    const fail = node.type==='data_http' && Math.random()<0.15;
+    if(fail && (node._retry||0)>0){
+      log('warn',`  节点失败，重试 1/${node._retry}`);
+      await sleep(500);
+    }
+    if(fail && (node._retry||0)<=0){
+      node.status = 'failed';
+      renderNode(node);
+      log('error',`✗ 节点 [${typeDef.name}] 执行失败：连接超时`);
+      log('error','═══════ 工作流执行失败 ═══════');
+      break;
+    }
+
+    node.status = 'success';
+    renderNode(node);
+    const output = mockOutput(node);
+    log('success',`✓ 节点 [${typeDef.name}] 完成 ${output}`);
+    completed.add(currentId);
+
+    // enqueue next
+    edges.filter(e=>e.from===currentId).forEach(e=>{
+      inDegree[e.to]--;
+      if(inDegree[e.to]<=0) queue.push(e.to);
+    });
+  }
+
+  if(nodes.every(n=>n.status==='success')){
+    log('success','═══════ 工作流执行成功 ═══════');
+    document.getElementById('logHeader').classList.remove('running');
+    document.getElementById('logHeader').classList.add('success');
+  }
+
+  isRunning = false;
+  document.getElementById('runBtn').disabled = false;
+  setTimeout(()=>{
+    document.getElementById('logHeader').classList.remove('running','success');
+  },3000);
+}
+
+function mockOutput(node){
+  switch(node.type){
+    case 'trigger_timer': return '(触发时间: 2026-09-11 09:00:00)';
+    case 'trigger_webhook': return '(收到POST请求，orderId=ORD20260911001)';
+    case 'data_http': return '(返回200，数据量: 1.2KB)';
+    case 'data_db': return '(查询到 156 条记录)';
+    case 'data_transform': return '(字段映射完成)';
+    case 'logic_if': return '(条件为 true，走大额审批分支)';
+    case 'logic_parallel': return '(分叉为 2 个并行分支)';
+    case 'action_feishu': return '(消息已发送)';
+    case 'action_dbwrite': return '(更新 1 行)';
+    case 'action_file': return '(文件已生成: 订单报表.xlsx)';
+    case 'human_approval': return '(审批通过，审批人: 张经理)';
+    default: return '';
+  }
+}
+
+// ============ 工具函数 ============
+function sleep(ms){return new Promise(r=>setTimeout(r,ms));}
+
+function log(level,msg){
+  const body = document.getElementById('logBody');
+  const time = new Date().toLocaleTimeString('zh-CN',{hour12:false});
+  const line = document.createElement('div');
+  line.className = 'log-line';
+  line.innerHTML = `<span class="time">${time}</span><span class="level ${level}">${level.toUpperCase()}</span><span class="msg">${msg}</span>`;
+  body.appendChild(line);
+  body.scrollTop = body.scrollHeight;
+}
+
+function clearLog(){document.getElementById('logBody').innerHTML='';}
+
+function clearCanvas(){
+  if(nodes.length>0 && !confirm('确定清空画布？')) return;
+  nodes = []; edges = []; selectedNodeId = null;
+  canvas.querySelectorAll('.wf-node').forEach(el=>el.remove());
+  renderEdges();
+  renderConfigPanel();
+  log('warn','画布已清空');
+}
+
+function loadDemo(){
+  clearCanvas();
+  // build a demo supply chain workflow
+  addNode('trigger_webhook',60,80);
+  addNode('data_db',280,80);
+  addNode('logic_if',500,80);
+  addNode('human_approval',720,20);
+  addNode('action_feishu',720,160);
+  addNode('action_dbwrite',940,90);
+  addNode('action_file',940,200);
+  // edges
+  setTimeout(()=>{
+    addEdge('n1','n2');
+    addEdge('n2','n3');
+    addEdge('n3','n4');
+    addEdge('n3','n5');
+    addEdge('n4','n6');
+    addEdge('n5','n6');
+    addEdge('n6','n7');
+    selectedNodeId = null;
+    nodes.forEach(n=>renderNode(n));
+    renderConfigPanel();
+    log('info','已加载示例：供应链订单审批流程');
+  },100);
+}
+
+function toast(msg,type='success'){
+  const t = document.createElement('div');
+  t.className = 'toast '+type;
+  t.textContent = msg;
+  document.body.appendChild(t);
+  setTimeout(()=>t.remove(),2000);
+}
+
+// zoom
+function zoomIn(){zoom = Math.min(2,zoom+0.1);applyZoom();}
+function zoomOut(){zoom = Math.max(0.5,zoom-0.1);applyZoom();}
+function zoomReset(){zoom=1;applyZoom();}
+function applyZoom(){
+  canvas.style.transform = `scale(${zoom})`;
+  renderEdges();
+}
+
+// keyboard
+document.addEventListener('keydown',e=>{
+  if(e.key==='Delete' && selectedNodeId && !['INPUT','TEXTAREA','SELECT'].includes(document.activeElement.tagName)){
+    deleteNode(selectedNodeId);
+  }
+});
+
+// ============ 启动 ============
+initNodePalette();
+loadDemo();
+</script>
+</body>
+</html>

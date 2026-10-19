@@ -1,0 +1,971 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>MVPS品类应用 - 小米汽车 SRM</title>
+<style>
+  :root {
+    --primary: #FF6700;
+    --primary-dark: #e55b00;
+    --bg: #f5f6fa;
+    --sidebar-bg: #1a1f36;
+    --sidebar-text: #a4a9c2;
+    --sidebar-active: #FF6700;
+    --card-bg: #fff;
+    --border: #e4e7ed;
+    --text: #303133;
+    --text-secondary: #909399;
+    --success: #67c23a;
+    --warning: #e6a23c;
+    --danger: #f56c6c;
+    --info: #409eff;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", sans-serif; background: var(--bg); color: var(--text); font-size: 14px; }
+
+  /* Top Bar */
+  .topbar { height: 48px; background: #fff; border-bottom: 1px solid var(--border); display: flex; align-items: center; padding: 0 20px; position: fixed; top: 0; left: 0; right: 0; z-index: 100; }
+  .topbar-logo { display: flex; align-items: center; gap: 8px; font-weight: 600; font-size: 15px; color: var(--primary); }
+  .topbar-logo span { color: var(--text); }
+  .topbar-right { margin-left: auto; display: flex; align-items: center; gap: 16px; }
+  .topbar-right a { color: var(--text-secondary); text-decoration: none; font-size: 13px; }
+  .topbar-right a:hover { color: var(--primary); }
+
+  /* Main Content */
+  .main { margin-top: 48px; padding: 20px; min-height: calc(100vh - 48px); }
+
+  /* Page Nav Tabs */
+  .page-nav { display: flex; gap: 0; background: #fff; border-radius: 8px; padding: 4px; margin-bottom: 20px; border: 1px solid var(--border); width: fit-content; }
+  .page-nav-item { padding: 8px 20px; border-radius: 6px; cursor: pointer; font-size: 13px; color: var(--text-secondary); transition: all .2s; }
+  .page-nav-item.active { background: var(--primary); color: #fff; font-weight: 500; }
+  .page-nav-item:hover:not(.active) { background: #f5f7fa; }
+
+  /* Tabs */
+  .tabs { display: flex; gap: 0; border-bottom: 2px solid var(--border); margin-bottom: 20px; }
+  .tab-item { padding: 10px 20px; cursor: pointer; font-size: 14px; color: var(--text-secondary); border-bottom: 2px solid transparent; margin-bottom: -2px; transition: all .2s; }
+  .tab-item.active { color: var(--primary); border-bottom-color: var(--primary); font-weight: 500; }
+  .tab-item:hover:not(.active) { color: var(--text); }
+
+  /* Cards */
+  .card { background: var(--card-bg); border-radius: 8px; border: 1px solid var(--border); margin-bottom: 16px; }
+  .card-header { padding: 14px 20px; border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; }
+  .card-header h3 { font-size: 15px; font-weight: 600; }
+  .card-body { padding: 16px 20px; }
+
+  /* Stat Cards */
+  .stat-row { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; margin-bottom: 20px; }
+  .stat-card { background: #fff; border-radius: 8px; border: 1px solid var(--border); padding: 16px 20px; }
+  .stat-card-label { font-size: 12px; color: var(--text-secondary); margin-bottom: 8px; }
+  .stat-card-value { font-size: 28px; font-weight: 700; color: var(--text); }
+  .stat-card-value .unit { font-size: 14px; font-weight: 400; color: var(--text-secondary); margin-left: 4px; }
+  .stat-card-change { font-size: 12px; color: var(--success); margin-top: 4px; display: flex; align-items: center; gap: 4px; }
+  .stat-card-change.warn { color: var(--warning); }
+
+  /* Filters */
+  .filter-bar { display: flex; flex-wrap: wrap; gap: 12px; align-items: center; margin-bottom: 16px; }
+  .filter-group { display: flex; align-items: center; gap: 6px; }
+  .filter-label { font-size: 13px; color: var(--text-secondary); white-space: nowrap; }
+  .filter-select { padding: 6px 28px 6px 10px; border: 1px solid var(--border); border-radius: 4px; font-size: 13px; color: var(--text); background: #fff; appearance: auto; min-width: 100px; }
+  .filter-input { padding: 6px 10px; border: 1px solid var(--border); border-radius: 4px; font-size: 13px; min-width: 120px; }
+  .filter-tag { padding: 4px 10px; border: 1px solid var(--border); border-radius: 4px; font-size: 12px; cursor: pointer; background: #fff; }
+  .filter-tag.active { border-color: var(--primary); color: var(--primary); background: #fff7f0; }
+
+  /* Buttons */
+  .btn { padding: 7px 16px; border-radius: 4px; font-size: 13px; cursor: pointer; border: 1px solid var(--border); background: #fff; color: var(--text); display: inline-flex; align-items: center; gap: 6px; transition: all .15s; white-space: nowrap; }
+  .btn:hover { border-color: var(--primary); color: var(--primary); }
+  .btn-primary { background: var(--primary); color: #fff; border-color: var(--primary); }
+  .btn-primary:hover { background: var(--primary-dark); border-color: var(--primary-dark); color: #fff; }
+  .btn-success { background: var(--success); color: #fff; border-color: var(--success); }
+  .btn-danger { color: var(--danger); border-color: var(--danger); }
+  .btn-danger:hover { background: #fef0f0; }
+  .btn-text { border: none; background: none; color: var(--info); padding: 4px 8px; }
+  .btn-text:hover { color: var(--primary); }
+  .btn-sm { padding: 4px 10px; font-size: 12px; }
+  .btn-group { display: flex; gap: 8px; flex-wrap: wrap; }
+
+  /* Tables */
+  .table-wrapper { overflow-x: auto; border: 1px solid var(--border); border-radius: 8px; }
+  table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  thead { background: #f8f9fc; }
+  th { padding: 10px 12px; text-align: left; font-weight: 600; color: var(--text-secondary); font-size: 12px; white-space: nowrap; border-bottom: 1px solid var(--border); }
+  td { padding: 10px 12px; border-bottom: 1px solid var(--border); white-space: nowrap; }
+  tr:last-child td { border-bottom: none; }
+  tr:hover { background: #f8f9fc; }
+  .table-footer { padding: 12px 20px; display: flex; justify-content: space-between; align-items: center; border-top: 1px solid var(--border); font-size: 12px; color: var(--text-secondary); }
+
+  /* Badge */
+  .badge { display: inline-block; padding: 2px 8px; border-radius: 10px; font-size: 11px; font-weight: 500; }
+  .badge-success { background: #f0f9eb; color: var(--success); }
+  .badge-warning { background: #fdf6ec; color: var(--warning); }
+  .badge-danger { background: #fef0f0; color: var(--danger); }
+  .badge-info { background: #f4f4f5; color: var(--info); }
+  .badge-primary { background: #fff7f0; color: var(--primary); }
+
+  /* Checkbox */
+  .checkbox { width: 16px; height: 16px; border: 1px solid var(--border); border-radius: 3px; cursor: pointer; display: inline-flex; align-items: center; justify-content: center; }
+  .checkbox.checked { background: var(--primary); border-color: var(--primary); }
+  .checkbox.checked::after { content: '✓'; color: #fff; font-size: 11px; }
+
+  /* Pagination */
+  .pagination { display: flex; align-items: center; gap: 4px; }
+  .pagination button { width: 28px; height: 28px; border: 1px solid var(--border); border-radius: 4px; background: #fff; cursor: pointer; font-size: 12px; display: flex; align-items: center; justify-content: center; }
+  .pagination button.active { background: var(--primary); color: #fff; border-color: var(--primary); }
+  .pagination button:hover:not(.active) { border-color: var(--primary); color: var(--primary); }
+
+  /* Modal / Drawer */
+  .modal-overlay { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.45); z-index: 1000; display: none; align-items: center; justify-content: center; }
+  .modal-overlay.show { display: flex; }
+  .modal { background: #fff; border-radius: 12px; width: 90%; max-width: 960px; max-height: 85vh; overflow-y: auto; box-shadow: 0 20px 60px rgba(0,0,0,0.2); }
+  .modal-header { padding: 20px 24px 14px; border-bottom: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center; position: sticky; top: 0; background: #fff; border-radius: 12px 12px 0 0; z-index: 1; }
+  .modal-header h3 { font-size: 16px; font-weight: 600; }
+  .modal-close { width: 28px; height: 28px; border: none; background: none; cursor: pointer; font-size: 18px; color: var(--text-secondary); border-radius: 4px; display: flex; align-items: center; justify-content: center; }
+  .modal-close:hover { background: #f5f5f5; }
+  .modal-body { padding: 20px 24px; }
+  .modal-footer { padding: 14px 24px; border-top: 1px solid var(--border); display: flex; justify-content: flex-end; gap: 10px; position: sticky; bottom: 0; background: #fff; border-radius: 0 0 12px 12px; }
+
+  /* Drawer */
+  .drawer-overlay { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.35); z-index: 1000; display: none; }
+  .drawer-overlay.show { display: block; }
+  .drawer { position: fixed; top: 0; right: -680px; bottom: 0; width: 680px; background: #fff; z-index: 1001; box-shadow: -4px 0 20px rgba(0,0,0,0.1); transition: right .3s ease; overflow-y: auto; }
+  .drawer.open { right: 0; }
+  .drawer-header { padding: 20px 24px 14px; border-bottom: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center; position: sticky; top: 0; background: #fff; z-index: 1; }
+
+  /* Form */
+  .form-group { margin-bottom: 16px; }
+  .form-label { display: block; font-size: 13px; color: var(--text-secondary); margin-bottom: 6px; }
+  .form-label .required { color: var(--danger); margin-left: 2px; }
+  .form-input { width: 100%; padding: 8px 12px; border: 1px solid var(--border); border-radius: 4px; font-size: 13px; }
+  .form-input:focus { outline: none; border-color: var(--primary); box-shadow: 0 0 0 2px rgba(255,103,0,0.1); }
+  .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+  .form-row-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 16px; }
+  .form-select { width: 100%; padding: 8px 12px; border: 1px solid var(--border); border-radius: 4px; font-size: 13px; appearance: auto; }
+  .form-textarea { width: 100%; padding: 8px 12px; border: 1px solid var(--border); border-radius: 4px; font-size: 13px; resize: vertical; min-height: 60px; }
+  .form-hint { font-size: 11px; color: var(--text-secondary); margin-top: 4px; }
+
+  /* Section */
+  .section-title { font-size: 15px; font-weight: 600; margin-bottom: 14px; padding-bottom: 10px; border-bottom: 1px solid var(--border); display: flex; align-items: center; gap: 8px; }
+  .section-title .dot { width: 6px; height: 16px; background: var(--primary); border-radius: 3px; }
+
+  /* Tag */
+  .tag { display: inline-flex; align-items: center; padding: 2px 8px; border-radius: 4px; font-size: 12px; gap: 4px; }
+  .tag-new { background: var(--primary); color: #fff; font-size: 10px; padding: 1px 6px; border-radius: 3px; }
+
+  /* Step */
+  .steps { display: flex; margin-bottom: 24px; }
+  .step { flex: 1; text-align: center; position: relative; }
+  .step::before { content: ''; position: absolute; top: 14px; left: 50%; width: 100%; height: 2px; background: var(--border); }
+  .step:first-child::before { left: 50%; width: 50%; }
+  .step:last-child::before { width: 50%; left: 0; }
+  .step-num { width: 28px; height: 28px; border-radius: 50%; background: var(--border); color: #fff; display: inline-flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 600; position: relative; z-index: 1; }
+  .step.active .step-num { background: var(--primary); }
+  .step.done .step-num { background: var(--success); }
+  .step.done::before { background: var(--success); }
+  .step-label { font-size: 12px; color: var(--text-secondary); margin-top: 6px; }
+  .step.active .step-label { color: var(--primary); font-weight: 500; }
+
+  /* Collapsible */
+  .collapse-trigger { cursor: pointer; display: flex; align-items: center; gap: 6px; user-select: none; }
+  .collapse-trigger::after { content: '▾'; font-size: 10px; transition: transform .2s; }
+  .collapse-trigger.collapsed::after { transform: rotate(-90deg); }
+  .collapse-body { overflow: hidden; transition: max-height .3s ease; }
+
+  /* Tooltip */
+  .tooltip { position: relative; }
+  .tooltip-text { visibility: hidden; position: absolute; bottom: 100%; left: 50%; transform: translateX(-50%); background: #303133; color: #fff; padding: 4px 8px; border-radius: 4px; font-size: 11px; white-space: nowrap; margin-bottom: 4px; }
+  .tooltip:hover .tooltip-text { visibility: visible; }
+
+  /* Link style */
+  a.link { color: var(--info); text-decoration: none; cursor: pointer; }
+  a.link:hover { color: var(--primary); }
+
+  /* Tree */
+  .tree-node { padding: 4px 0; padding-left: 20px; }
+  .tree-node-root { padding-left: 0; }
+  .tree-toggle { cursor: pointer; display: inline-flex; align-items: center; gap: 4px; }
+  .tree-toggle::before { content: '▶'; font-size: 9px; transition: transform .2s; }
+  .tree-toggle.open::before { transform: rotate(90deg); }
+
+  /* Progress */
+  .progress { height: 6px; background: #ebeef5; border-radius: 3px; overflow: hidden; }
+  .progress-bar { height: 100%; border-radius: 3px; transition: width .3s; }
+  .progress-bar.green { background: var(--success); }
+  .progress-bar.orange { background: var(--warning); }
+
+  /* Chip group */
+  .chip-group { display: flex; flex-wrap: wrap; gap: 6px; }
+  .chip { padding: 4px 12px; border: 1px solid var(--border); border-radius: 16px; font-size: 12px; cursor: pointer; }
+  .chip.active { border-color: var(--primary); color: var(--primary); background: #fff7f0; }
+
+  /* Info box */
+  .info-box { background: #f4f4f5; border-radius: 6px; padding: 12px 16px; font-size: 12px; color: var(--text-secondary); line-height: 1.6; margin: 12px 0; }
+  .info-box strong { color: var(--text); }
+
+  /* Split table */
+  .split-table-wrap { display: grid; grid-template-columns: 1fr 2fr; gap: 0; }
+  .split-left, .split-right { overflow-x: auto; }
+  .split-left { border-right: 2px solid var(--primary); }
+
+  /* Code */
+  .code { font-family: "SF Mono", Monaco, monospace; font-size: 12px; background: #f5f7fa; padding: 2px 6px; border-radius: 3px; }
+
+  /* Empty */
+  .empty-state { text-align: center; padding: 40px 20px; color: var(--text-secondary); }
+  .empty-state .icon { font-size: 48px; margin-bottom: 12px; }
+
+  /* Highlight row */
+  .highlight-row { background: #fffdf5 !important; }
+
+  /* Alert */
+  .alert { padding: 10px 16px; border-radius: 6px; font-size: 13px; margin-bottom: 12px; display: flex; align-items: flex-start; gap: 8px; }
+  .alert-info { background: #ecf5ff; color: var(--info); border: 1px solid #d9ecff; }
+  .alert-warning { background: #fdf6ec; color: var(--warning); border: 1px solid #faecd8; }
+
+  /* Workflow flow */
+  .workflow-steps { display: flex; gap: 0; padding: 12px 0; }
+  .wf-step { display: flex; flex-direction: column; align-items: center; gap: 4px; position: relative; }
+  .wf-step::after { content: ''; position: absolute; top: 14px; left: 36px; width: 80px; height: 2px; background: var(--border); }
+  .wf-step:last-child::after { display: none; }
+  .wf-node { width: 28px; height: 28px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 12px; }
+  .wf-node.active { background: var(--primary); color: #fff; }
+  .wf-node.done { background: var(--success); color: #fff; }
+  .wf-node.pending { background: var(--border); color: var(--text-secondary); }
+  .wf-step-label { font-size: 11px; color: var(--text-secondary); white-space: nowrap; }
+
+  /* Responsive */
+  @media (max-width: 1200px) {
+    .stat-row { grid-template-columns: repeat(2, 1fr); }
+    .form-row { grid-template-columns: 1fr; }
+    .form-row-3 { grid-template-columns: 1fr; }
+  }
+
+  /* Page section transitions */
+  .page-section { display: none; }
+  .page-section.active { display: block; }
+
+  /* Timeline */
+  .timeline { padding-left: 20px; border-left: 2px solid var(--border); }
+  .timeline-item { padding: 0 0 16px 16px; position: relative; }
+  .timeline-item::before { content: ''; position: absolute; left: -7px; top: 4px; width: 10px; height: 10px; border-radius: 50%; background: var(--primary); }
+  .timeline-item .time { font-size: 12px; color: var(--text-secondary); }
+  .timeline-item .content { font-size: 13px; margin-top: 2px; }
+
+  /* Drag handle */
+  .drag-handle { cursor: move; color: var(--text-secondary); }
+
+  /* ====== 策略文档相关样式 ====== */
+  .scheme-tabs { margin-bottom: 16px; }
+  .doc-count-cell { display: inline-flex; align-items: center; justify-content: center; min-width: 42px; height: 24px; padding: 0 10px; border-radius: 4px; font-size: 12px; border: 1px solid var(--border); background: #fff; color: var(--text-secondary); transition: all .15s; }
+  .doc-count-cell.has-doc { background: #fff7f0; border-color: #ffd7b3; color: var(--primary); font-weight: 500; cursor: pointer; }
+  .doc-count-cell.has-doc:hover { background: #ffeed9; }
+  .doc-count-cell.empty { color: #c0c4cc; }
+  .doc-chip { display: inline-flex; align-items: center; gap: 3px; padding: 2px 8px; border-radius: 4px; font-size: 12px; background: #fff7f0; color: var(--primary); cursor: pointer; white-space: nowrap; transition: all .15s; }
+  .doc-chip:hover { background: #ffeed9; }
+  .doc-chip .ext-icon { font-size: 11px; }
+  .doc-more-link { font-size: 11px; color: var(--text-secondary); cursor: pointer; margin-left: 4px; }
+  .doc-more-link:hover { color: var(--primary); }
+  .doc-empty-text { font-size: 12px; color: #c0c4cc; }
+
+  .drawer-doc-list { padding: 20px 24px; }
+  .drawer-doc-item { display: flex; align-items: flex-start; justify-content: space-between; padding: 12px 14px; border: 1px solid var(--border); border-radius: 6px; margin-bottom: 8px; }
+  .drawer-doc-item:hover { background: #fafbfc; }
+  .drawer-doc-item .doc-info { flex: 1; }
+  .drawer-doc-item .doc-name { font-size: 13px; font-weight: 500; color: var(--text); display: flex; align-items: center; gap: 6px; }
+  .drawer-doc-item .doc-name a { color: var(--info); text-decoration: none; }
+  .drawer-doc-item .doc-name a:hover { color: var(--primary); }
+  .drawer-doc-item .doc-meta { font-size: 11px; color: var(--text-secondary); margin-top: 4px; display: flex; gap: 8px; }
+  .drawer-doc-item .doc-actions { display: flex; gap: 6px; flex-shrink: 0; margin-left: 12px; }
+  .drawer-doc-item .doc-actions .btn { padding: 4px 8px; font-size: 12px; }
+
+  .ext-badge { font-size: 10px; padding: 1px 6px; border-radius: 3px; font-weight: 500; }
+  .ext-badge-docx { background: #f0f9eb; color: var(--success); }
+  .ext-badge-sheet { background: #ecf5ff; color: var(--info); }
+  .ext-badge-bitable { background: #f5f0ff; color: #7c3aed; }
+  .ext-badge-wiki { background: #fdf6ec; color: var(--warning); }
+
+  .add-doc-input-row { display: flex; gap: 8px; margin-top: 16px; padding-top: 16px; border-top: 1px solid var(--border); }
+  .add-doc-input-row input { flex: 1; padding: 8px 12px; border: 1px solid var(--border); border-radius: 4px; font-size: 13px; }
+  .add-doc-input-row input:focus { outline: none; border-color: var(--primary); }
+  .add-doc-hint { font-size: 11px; color: var(--text-secondary); margin-top: 6px; }
+
+  /* Modal Tabs */
+  .modal-tabs { display: flex; gap: 0; border-bottom: 2px solid var(--border); margin-bottom: 20px; }
+  .modal-tab { padding: 10px 20px; cursor: pointer; font-size: 14px; color: var(--text-secondary); border-bottom: 2px solid transparent; margin-bottom: -2px; transition: all .2s; }
+  .modal-tab.active { color: var(--primary); border-bottom-color: var(--primary); font-weight: 500; }
+  .modal-tab:hover:not(.active) { color: var(--text); }
+  .modal-tab-panel { display: none; }
+  .modal-tab-panel.active { display: block; }
+</style>
+</head>
+<body>
+
+<!-- Top Bar -->
+<div class="topbar">
+  <div class="topbar-logo">
+    <span style="font-size:20px;">●</span>
+    MVPS品类应用 <span>- 小米汽车</span>
+  </div>
+  <div style="margin-left:12px;color:var(--text-secondary);font-size:12px;">SRM</div>
+  <div class="topbar-right">
+    <a href="#">首页</a>
+    <a href="#">个人中心 ▾</a>
+  </div>
+</div>
+
+<!-- Main Content -->
+<div class="main">
+
+  <!-- Page Navigation -->
+  <div class="page-nav">
+    <div class="page-nav-item active">品类管理</div>
+    <div class="page-nav-item">VPPS绑定品类</div>
+    <div class="page-nav-item">台账管理</div>
+    <div class="page-nav-item">CE审批Demo <span class="tag-new">新</span></div>
+    <div class="page-nav-item">车型项目管理</div>
+    <div class="page-nav-item">路由引擎</div>
+    <div class="page-nav-item">定点申请</div>
+  </div>
+
+  <!-- 原有 Tab 语言承载两种策略文档方案 -->
+  <div class="tabs scheme-tabs">
+    <div class="tab-item active" id="schemeA" onclick="switchApproach('A')">方案一：编辑品类统一维护</div>
+    <div class="tab-item" id="schemeB" onclick="switchApproach('B')">方案二：表格直接管理</div>
+  </div>
+
+  <!-- ============================================ -->
+  <!-- PAGE: 品类管理 -->
+  <!-- ============================================ -->
+  <div class="page-section active" id="page-category">
+
+    <!-- 统计卡片 -->
+    <div class="stat-row">
+      <div class="stat-card">
+        <div class="stat-card-label">品类总数</div>
+        <div class="stat-card-value">50<span class="unit">个</span></div>
+        <div class="stat-card-change">↑ 较上月 +3</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-card-label">已启用</div>
+        <div class="stat-card-value" style="color:var(--success)">42<span class="unit">个</span></div>
+        <div class="stat-card-change">84% 启用率</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-card-label">待完善策略</div>
+        <div class="stat-card-value" style="color:var(--warning)">8<span class="unit">个</span></div>
+        <div class="stat-card-change warn">需尽快完善</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-card-label">已冻结</div>
+        <div class="stat-card-value" style="color:var(--danger)">2<span class="unit">个</span></div>
+        <div class="stat-card-change" style="color:var(--text-secondary)">—</div>
+      </div>
+    </div>
+
+    <!-- 策略文档统计：沿用原统计卡片样式 -->
+    <div class="stat-row">
+      <div class="stat-card">
+        <div class="stat-card-label">品类策略</div>
+        <div class="stat-card-value">38<span class="unit">份</span></div>
+        <div class="stat-card-change">覆盖 42 个品类</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-card-label">平台策略</div>
+        <div class="stat-card-value">29<span class="unit">份</span></div>
+        <div class="stat-card-change">覆盖 35 个品类</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-card-label">技术方案</div>
+        <div class="stat-card-value">24<span class="unit">份</span></div>
+        <div class="stat-card-change">覆盖 30 个品类</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-card-label">价值穿透策略</div>
+        <div class="stat-card-value">18<span class="unit">份</span></div>
+        <div class="stat-card-change">覆盖 22 个品类</div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-body" style="padding-bottom:8px;">
+        <div class="filter-bar">
+          <div class="filter-group">
+            <span class="filter-label">品类编码</span>
+            <input class="filter-input" style="width:120px;" />
+          </div>
+          <div class="filter-group">
+            <span class="filter-label">品类名称</span>
+            <input class="filter-input" style="width:120px;" />
+          </div>
+          <div class="filter-group">
+            <span class="filter-label">VPPS节点</span>
+            <select class="filter-select"><option>请选择</option></select>
+          </div>
+          <div class="filter-group">
+            <span class="filter-label">品类专家</span>
+            <select class="filter-select"><option>请选择</option></select>
+          </div>
+          <div class="filter-group">
+            <span class="filter-label">SQE工程师</span>
+            <select class="filter-select"><option>请选择</option></select>
+          </div>
+          <div class="filter-group">
+            <span class="filter-label">采购工程师</span>
+            <select class="filter-select"><option>请选择</option></select>
+          </div>
+          <div class="filter-group">
+            <span class="filter-label">财务CE</span>
+            <select class="filter-select"><option>请选择</option></select>
+          </div>
+          <div class="filter-group">
+            <span class="filter-label">专业组</span>
+            <div class="chip-group">
+              <span class="chip active">全部</span>
+              <span class="chip">电子架构</span>
+              <span class="chip">机械架构</span>
+              <span class="chip">先进动力</span>
+            </div>
+          </div>
+        </div>
+        <div class="btn-group" style="margin-bottom:14px;">
+          <button class="btn btn-primary" onclick="openModal('modal-edit-category')">+ 新增品类</button>
+          <button class="btn">批量导入</button>
+          <button class="btn">导出</button>
+          <button class="btn">转派</button>
+          <button class="btn btn-danger">冻结</button>
+          <button class="btn">收起</button>
+          <button class="btn">重置</button>
+          <button class="btn btn-primary">查询</button>
+        </div>
+      </div>
+
+      <div class="table-wrapper" style="margin:0 1px 1px;border-radius:0 0 8px 8px;border-left:none;border-right:none;border-top:none;">
+        <table>
+          <thead>
+            <tr>
+              <th style="width:40px;"><div class="checkbox" onclick="toggleCheck(this)"></div></th>
+              <th>品类编码</th>
+              <th>品类名称</th>
+              <th>品类专家</th>
+              <th>品类状态</th>
+              <th>专业组</th>
+              <th>材料品类</th>
+              <th>工艺品类</th>
+              <th>定点供应商</th>
+              <th>品类描述/说明</th>
+              <th>品类策略</th>
+              <th>平台策略</th>
+              <th>技术方案</th>
+              <th>价值穿透策略</th>
+              <th>操作</th>
+              <th>变更记录</th>
+            </tr>
+          </thead>
+          <tbody id="tableBody"></tbody>
+        </table>
+      </div>
+      <div class="table-footer">
+        <span>已选 <strong>0</strong> 条 &nbsp; 共 <strong>50</strong> 条 · 100 条/页</span>
+        <div class="pagination">
+          <button>‹</button>
+          <button class="active">1</button>
+          <button>2</button>
+          <button>›</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<!-- ============================================ -->
+<!-- MODAL: 编辑品类 / 新增品类 — 方案A (Tab式) -->
+<!-- ============================================ -->
+<div class="modal-overlay" id="modal-edit-category" onclick="if(event.target===this)closeModal('modal-edit-category')">
+  <div class="modal">
+    <div class="modal-header">
+      <h3>编辑品类 — CAT-00001 电驱系统</h3>
+      <button class="modal-close" onclick="closeModal('modal-edit-category')">&times;</button>
+    </div>
+    <div class="modal-body">
+      <!-- 方案A: Tab切换 -->
+      <div class="modal-tabs" id="editModalTabs">
+        <div class="modal-tab active" onclick="switchEditTab(0)">基本信息</div>
+        <div class="modal-tab" onclick="switchEditTab(1)">策略文档</div>
+        <div class="modal-tab" onclick="switchEditTab(2)">变更记录</div>
+      </div>
+
+      <!-- Tab 0: 基本信息 -->
+      <div class="modal-tab-panel active" id="editPanel0">
+        <div class="section-title"><div class="dot"></div> 品类信息</div>
+        <div class="form-row-3">
+          <div class="form-group">
+            <label class="form-label">品类编码 <span class="required">*</span></label>
+            <input class="form-input" value="CAT-00001" readonly style="background:#f5f7fa;" />
+          </div>
+          <div class="form-group">
+            <label class="form-label">品类名称 <span class="required">*</span></label>
+            <input class="form-input" value="电驱系统" />
+          </div>
+          <div class="form-group">
+            <label class="form-label">品类状态</label>
+            <select class="form-select">
+              <option selected>已启用</option>
+              <option>草稿</option>
+              <option>已冻结</option>
+            </select>
+          </div>
+        </div>
+        <div class="form-row-3">
+          <div class="form-group">
+            <label class="form-label">品类专家</label>
+            <input class="form-input" value="齐岳" />
+          </div>
+          <div class="form-group">
+            <label class="form-label">SQE工程师</label>
+            <input class="form-input" value="张赫" />
+          </div>
+          <div class="form-group">
+            <label class="form-label">采购工程师</label>
+            <input class="form-input" value="路梦瑶" />
+          </div>
+        </div>
+        <div class="form-row-3">
+          <div class="form-group">
+            <label class="form-label">财务CE</label>
+            <input class="form-input" value="陈兰" />
+          </div>
+          <div class="form-group">
+            <label class="form-label">专业组</label>
+            <select class="form-select">
+              <option selected>电子架构</option>
+              <option>机械架构</option>
+              <option>先进动力</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label class="form-label">VPPS节点</label>
+            <input class="form-input" value="10.01.01" />
+          </div>
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label class="form-label">材料品类</label>
+            <input class="form-input" value="SILICON STEEL" />
+          </div>
+          <div class="form-group">
+            <label class="form-label">工艺品类</label>
+            <input class="form-input" value="冲压" />
+          </div>
+        </div>
+        <div class="form-group">
+          <label class="form-label">定点供应商</label>
+          <input class="form-input" value="上海得力电机" />
+        </div>
+        <div class="form-group">
+          <label class="form-label">品类描述/说明</label>
+          <textarea class="form-textarea">电驱相关零部件品类</textarea>
+        </div>
+      </div>
+
+      <!-- Tab 1: 策略文档 (方案A) -->
+      <div class="modal-tab-panel" id="editPanel1">
+        <!-- 品类策略 -->
+        <div class="section-title"><div class="dot" style="background:var(--success)"></div> 品类策略</div>
+        <div id="docsTab0"></div>
+        <div class="add-doc-input-row">
+          <input type="text" id="tabInput0" placeholder="粘贴飞书云文档链接..." />
+          <button class="btn btn-sm" style="border-color:var(--success);color:var(--success);" onclick="addDocFromTab(0)">+ 添加</button>
+        </div>
+        <div class="add-doc-hint">支持云文档/电子表格/多维表格/知识库链接</div>
+
+        <!-- 平台策略 -->
+        <div class="section-title" style="margin-top:24px;"><div class="dot" style="background:var(--info)"></div> 平台策略</div>
+        <div id="docsTab1"></div>
+        <div class="add-doc-input-row">
+          <input type="text" id="tabInput1" placeholder="粘贴飞书云文档链接..." />
+          <button class="btn btn-sm" style="border-color:var(--info);color:var(--info);" onclick="addDocFromTab(1)">+ 添加</button>
+        </div>
+        <div class="add-doc-hint">支持云文档/电子表格/多维表格/知识库链接</div>
+
+        <!-- 技术方案 -->
+        <div class="section-title" style="margin-top:24px;"><div class="dot" style="background:#7c3aed"></div> 技术方案</div>
+        <div id="docsTab2"></div>
+        <div class="add-doc-input-row">
+          <input type="text" id="tabInput2" placeholder="粘贴飞书云文档链接..." />
+          <button class="btn btn-sm" style="border-color:#7c3aed;color:#7c3aed;" onclick="addDocFromTab(2)">+ 添加</button>
+        </div>
+        <div class="add-doc-hint">支持云文档/电子表格/多维表格/知识库链接</div>
+
+        <!-- 价值穿透策略 -->
+        <div class="section-title" style="margin-top:24px;"><div class="dot" style="background:var(--warning)"></div> 价值穿透策略</div>
+        <div id="docsTab3"></div>
+        <div class="add-doc-input-row">
+          <input type="text" id="tabInput3" placeholder="粘贴飞书云文档链接..." />
+          <button class="btn btn-sm" style="border-color:var(--warning);color:var(--warning);" onclick="addDocFromTab(3)">+ 添加</button>
+        </div>
+        <div class="add-doc-hint">支持云文档/电子表格/多维表格/知识库链接</div>
+      </div>
+
+      <!-- Tab 2: 变更记录 -->
+      <div class="modal-tab-panel" id="editPanel2">
+        <div class="section-title"><div class="dot"></div> 变更记录</div>
+        <div class="timeline">
+          <div class="timeline-item">
+            <div class="time">2026-08-15 14:30:00</div>
+            <div class="content"><strong>齐岳</strong> 修改了品类名称、定点供应商</div>
+          </div>
+          <div class="timeline-item">
+            <div class="time">2026-08-10 09:15:00</div>
+            <div class="content"><strong>李航</strong> 更新了品类描述</div>
+          </div>
+          <div class="timeline-item">
+            <div class="time">2026-08-01 16:00:00</div>
+            <div class="content"><strong>齐岳</strong> 创建了品类，设置状态为已启用</div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+    <div class="modal-footer">
+      <button class="btn" onclick="closeModal('modal-edit-category')">取消</button>
+      <button class="btn btn-primary" onclick="closeModal('modal-edit-category')">保存</button>
+    </div>
+  </div>
+</div>
+
+<!-- ============================================ -->
+<!-- DRAWER: 策略文档管理 — 方案B (侧边抽屉) -->
+<!-- ============================================ -->
+<div class="drawer-overlay" id="drawerOverlay" onclick="if(event.target===this)closeDrawer()">
+  <div class="drawer" id="drawerPanel">
+    <div class="drawer-header">
+      <div>
+        <h3 id="drawerTitle">品类策略</h3>
+        <div style="font-size:12px;color:var(--text-secondary);margin-top:4px;" id="drawerSubTitle">CAT-00001 电驱系统</div>
+      </div>
+      <button class="modal-close" onclick="closeDrawer()">&times;</button>
+    </div>
+    <div class="drawer-doc-list" id="drawerDocList"></div>
+    <div style="padding:0 24px 20px;">
+      <div class="add-doc-input-row" style="border-top:none;padding-top:0;margin-top:0;">
+        <input type="text" id="drawerInput" placeholder="粘贴飞书云文档链接..." />
+        <button class="btn btn-primary" onclick="addDocFromDrawer()">解析添加</button>
+      </div>
+      <div class="add-doc-hint">粘贴链接后自动解析文档真实名称。支持云文档/电子表格/多维表格/知识库等。</div>
+    </div>
+  </div>
+</div>
+
+<script>
+// ============================================
+// DATA
+// ============================================
+const categories = [
+  { code:'CAT-00001', name:'电驱系统', expert:'齐岳', status:'active', group:'电子架构', material:'SILICON STEEL', process:'冲压', supplier:'上海得力电机', desc:'电驱相关零部件品类',
+    docs:[
+      [{name:'电驱品类策略2024',url:'https://xiaomi.feishu.cn/docx/abc123',ext:'docx',updater:'齐岳',time:'2026-08-15 14:30',size:'2.3MB'},
+       {name:'电驱年度规划V2',url:'https://xiaomi.feishu.cn/docx/def456',ext:'docx',updater:'李航',time:'2026-08-10 09:15',size:'1.8MB'}],
+      [{name:'电驱平台选型对比',url:'https://xiaomi.feishu.cn/sheets/ghi789',ext:'sheet',updater:'齐岳',time:'2026-08-12 16:45',size:'856KB'}],
+      [{name:'电驱技术规范书',url:'https://xiaomi.feishu.cn/docx/jkl012',ext:'docx',updater:'张赫',time:'2026-07-28 11:00',size:'4.1MB'}],
+      [{name:'电驱价值穿透Q3',url:'https://xiaomi.feishu.cn/bitable/mno345',ext:'bitable',updater:'路梦瑶',time:'2026-08-14 10:30',size:'1.1MB'}]
+    ]},
+  { code:'CAT-00002', name:'电池模组', expert:'李航', status:'active', group:'先进动力', material:'ALLOY STEEL BAR', process:'装配', supplier:'宁德时代', desc:'电池包及模组相关',
+    docs:[
+      [{name:'电池品类策略',url:'https://xiaomi.feishu.cn/docx/pqr678',ext:'docx',updater:'李航',time:'2026-08-08 10:20',size:'1.5MB'}],
+      [{name:'电池平台架构设计',url:'https://xiaomi.feishu.cn/sheets/stu901',ext:'sheet',updater:'李航',time:'2026-08-05 15:30',size:'620KB'},
+       {name:'CTP技术选型报告',url:'https://xiaomi.feishu.cn/docx/vwx234',ext:'docx',updater:'张赫',time:'2026-07-20 09:00',size:'3.2MB'}],
+      [{name:'电池功能安全方案',url:'https://xiaomi.feishu.cn/docx/yza567',ext:'docx',updater:'齐岳',time:'2026-08-01 14:00',size:'2.8MB'}],
+      [{name:'电池成本穿透分析',url:'https://xiaomi.feishu.cn/bitable/bcd890',ext:'bitable',updater:'路梦瑶',time:'2026-08-14 11:30',size:'980KB'}]
+    ]},
+  { code:'CAT-00003', name:'内饰-座椅', expert:'王芳', status:'active', group:'机械架构', material:'POWDERED METAL', process:'注塑', supplier:'李尔座椅', desc:'座椅总成及零部件',
+    docs:[
+      [{name:'座椅品类策略',url:'https://xiaomi.feishu.cn/docx/efg123',ext:'docx',updater:'王芳',time:'2026-08-11 08:45',size:'1.9MB'}],
+      [],[],[]
+    ]},
+  { code:'CAT-00038', name:'新增1', expert:'—', status:'draft', group:'电子架构', material:'—', process:'—', supplier:'—', desc:'—',
+    docs:[[],[],[],[]]},
+  { code:'CAT-00041', name:'新增411', expert:'—', status:'active', group:'机械架构', material:'—', process:'—', supplier:'—', desc:'—',
+    docs:[[],[],[],[]]},
+  { code:'CAT-00043', name:'发动机总成', expert:'金铃', status:'active', group:'先进动力', material:'CARBON STEEL BAR', process:'机加工', supplier:'潍柴动力', desc:'增程器及发动机总成',
+    docs:[
+      [{name:'发动机品类策略',url:'https://xiaomi.feishu.cn/docx/hij456',ext:'docx',updater:'金铃',time:'2026-08-06 10:00',size:'2.0MB'}],
+      [{name:'发动机平台化方案',url:'https://xiaomi.feishu.cn/sheets/klm789',ext:'sheet',updater:'金铃',time:'2026-08-03 14:30',size:'520KB'}],
+      [],[]
+    ]}
+];
+
+const strategyTypes = ['品类策略','平台策略','技术方案','价值穿透策略'];
+let currentApproach = 'A';
+let currentEditIndex = 0;
+let drawerState = { rowIndex: -1, strategyIndex: -1 };
+
+// ============================================
+// RENDER TABLE
+// ============================================
+function renderTable() {
+  const tbody = document.getElementById('tableBody');
+  tbody.innerHTML = categories.map((cat, i) => {
+    const statusMap = { active: ['badge-success','已启用'], draft: ['badge-warning','草稿'], frozen: ['badge-danger','已冻结'] };
+    const [stCls, stText] = statusMap[cat.status] || ['badge-info','未知'];
+    return `<tr>
+      <td><div class="checkbox" onclick="toggleCheck(this)"></div></td>
+      <td><a class="link" onclick="openCategoryEditor(${i}, 0)">${cat.code}</a></td>
+      <td>${cat.name}</td>
+      <td>${cat.expert}</td>
+      <td><span class="badge ${stCls}">${stText}</span></td>
+      <td>${cat.group}</td>
+      <td>${cat.material}</td>
+      <td>${cat.process}</td>
+      <td>${cat.supplier}</td>
+      <td style="max-width:160px;overflow:hidden;text-overflow:ellipsis;">${cat.desc}</td>
+      ${renderDocCell(cat.docs[0], i, 0)}
+      ${renderDocCell(cat.docs[1], i, 1)}
+      ${renderDocCell(cat.docs[2], i, 2)}
+      ${renderDocCell(cat.docs[3], i, 3)}
+      <td>
+        <a class="link" onclick="openCategoryEditor(${i}, 0)">编辑</a>
+      </td>
+      <td>
+        <a class="link">变更记录</a>
+      </td>
+    </tr>`;
+  }).join('');
+}
+
+function renderDocCell(docs, rowIndex, strategyIndex) {
+  const count = (docs || []).length;
+
+  // 方案一：策略列仅反馈覆盖情况，所有新增、删除和查看均收敛到「编辑品类」。
+  if (currentApproach === 'A') {
+    return `<td>${count
+      ? `<span class="doc-count-cell has-doc" onclick="openCategoryEditor(${rowIndex}, 1)">${count}份</span>`
+      : `<span class="doc-count-cell empty">—</span>`
+    }</td>`;
+  }
+
+  // 方案二：策略列保留文档名称与多文档提示，点击后直接进入侧边抽屉管理。
+  if (count === 0) {
+    return `<td><span class="doc-count-cell has-doc" onclick="openDocDrawer(${rowIndex},${strategyIndex})">添加</span></td>`;
+  }
+  if (count === 1) {
+    return `<td><span class="doc-chip" onclick="openDocDrawer(${rowIndex},${strategyIndex})">${docs[0].name}</span></td>`;
+  }
+  return `<td>
+    <span class="doc-chip" onclick="openDocDrawer(${rowIndex},${strategyIndex})">${docs[0].name}</span>
+    <span class="doc-more-link" onclick="openDocDrawer(${rowIndex},${strategyIndex})">+${count - 1}份</span>
+  </td>`;
+}
+
+
+function getExtBadge(ext) {
+  const map = { docx:['ext-badge-docx','云文档'], sheet:['ext-badge-sheet','电子表格'], bitable:['ext-badge-bitable','多维表格'], wiki:['ext-badge-wiki','知识库'] };
+  const [cls, label] = map[ext] || ['ext-badge-docx','文档'];
+  return `<span class="ext-badge ${cls}">${label}</span>`;
+}
+
+// ============================================
+// MODAL / TAB
+// ============================================
+function openModal(id) {
+  document.getElementById(id).classList.add('show');
+  if (id === 'modal-edit-category') {
+    renderEditDocsTab();
+  }
+}
+
+function openCategoryEditor(rowIndex, tabIndex) {
+  currentEditIndex = rowIndex;
+  const cat = categories[rowIndex];
+  document.querySelector('#modal-edit-category .modal-header h3').textContent = `编辑品类 — ${cat.code} ${cat.name}`;
+  openModal('modal-edit-category');
+  switchEditTab(tabIndex);
+}
+
+function closeModal(id) {
+  document.getElementById(id).classList.remove('show');
+}
+
+function switchEditTab(idx) {
+  document.querySelectorAll('#editModalTabs .modal-tab').forEach((t, i) => t.classList.toggle('active', i === idx));
+  document.getElementById('editPanel0').classList.toggle('active', idx === 0);
+  document.getElementById('editPanel1').classList.toggle('active', idx === 1);
+  document.getElementById('editPanel2').classList.toggle('active', idx === 2);
+}
+
+// ============================================
+// 方案A: 编辑弹窗策略文档 Tab
+// ============================================
+function renderEditDocsTab() {
+  const cat = categories[currentEditIndex];
+  strategyTypes.forEach((type, si) => {
+    const container = document.getElementById('docsTab' + si);
+    const docs = cat.docs[si] || [];
+    if (docs.length === 0) {
+      container.innerHTML = '<div style="padding:12px 0;color:#c0c4cc;font-size:13px;">暂无文档，请在下方粘贴链接添加</div>';
+    } else {
+      container.innerHTML = docs.map((d, di) => `
+        <div class="drawer-doc-item">
+          <div class="doc-info">
+            <div class="doc-name">
+              ${getExtBadge(d.ext)}
+              <a href="${d.url}" target="_blank">${d.name}</a>
+            </div>
+            <div class="doc-meta">
+              <span>更新人: ${d.updater}</span>
+              <span>·</span>
+              <span>${d.time}</span>
+              <span>·</span>
+              <span>${d.size}</span>
+            </div>
+          </div>
+          <div class="doc-actions">
+            <button class="btn btn-sm btn-text" onclick="window.open('${d.url}','_blank')">打开</button>
+            <button class="btn btn-sm btn-text" style="color:var(--danger);" onclick="removeDocTab(${si},${di})">删除</button>
+          </div>
+        </div>
+      `).join('');
+    }
+  });
+}
+
+function addDocFromTab(si) {
+  const input = document.getElementById('tabInput' + si);
+  const link = input.value.trim();
+  if (!link) return;
+
+  const doc = parseFeishuLink(link);
+  categories[currentEditIndex].docs[si].push(doc);
+  renderEditDocsTab();
+  renderTable();
+  input.value = '';
+}
+
+function removeDocTab(si, di) {
+  categories[currentEditIndex].docs[si].splice(di, 1);
+  renderEditDocsTab();
+  renderTable();
+}
+
+// ============================================
+// 方案B: 侧边抽屉
+// ============================================
+function openDocDrawer(rowIndex, strategyIndex) {
+  drawerState = { rowIndex, strategyIndex };
+  const cat = categories[rowIndex];
+  const type = strategyTypes[strategyIndex];
+  document.getElementById('drawerTitle').textContent = type;
+  document.getElementById('drawerSubTitle').textContent = cat.code + ' ' + cat.name;
+  renderDrawerDocs();
+  document.getElementById('drawerOverlay').classList.add('show');
+  setTimeout(() => document.getElementById('drawerPanel').classList.add('open'), 10);
+}
+
+function renderDrawerDocs() {
+  const { rowIndex, strategyIndex } = drawerState;
+  const cat = categories[rowIndex];
+  const docs = cat.docs[strategyIndex] || [];
+  const listEl = document.getElementById('drawerDocList');
+
+  if (docs.length === 0) {
+    listEl.innerHTML = '<div style="padding:20px 0;color:#c0c4cc;text-align:center;">暂无文档，请在下方粘贴链接添加</div>';
+    return;
+  }
+
+  listEl.innerHTML = docs.map((d, i) => `
+    <div class="drawer-doc-item">
+      <div class="doc-info">
+        <div class="doc-name">
+          ${getExtBadge(d.ext)}
+          <a href="${d.url}" target="_blank">${d.name}</a>
+        </div>
+        <div class="doc-meta">
+          <span>更新人: ${d.updater}</span>
+          <span>·</span>
+          <span>${d.time}</span>
+          <span>·</span>
+          <span>${d.size}</span>
+        </div>
+      </div>
+      <div class="doc-actions">
+        <button class="btn btn-sm btn-text" onclick="window.open('${d.url}','_blank')">打开</button>
+        <button class="btn btn-sm btn-text" style="color:var(--danger);" onclick="removeDocDrawer(${i})">删除</button>
+      </div>
+    </div>
+  `).join('');
+}
+
+function addDocFromDrawer() {
+  const input = document.getElementById('drawerInput');
+  const link = input.value.trim();
+  if (!link) return;
+
+  const { rowIndex, strategyIndex } = drawerState;
+  const doc = parseFeishuLink(link);
+  categories[rowIndex].docs[strategyIndex].push(doc);
+  renderDrawerDocs();
+  renderTable();
+  input.value = '';
+}
+
+function removeDocDrawer(di) {
+  const { rowIndex, strategyIndex } = drawerState;
+  categories[rowIndex].docs[strategyIndex].splice(di, 1);
+  renderDrawerDocs();
+  renderTable();
+}
+
+function closeDrawer() {
+  document.getElementById('drawerPanel').classList.remove('open');
+  setTimeout(() => document.getElementById('drawerOverlay').classList.remove('show'), 300);
+}
+
+// ============================================
+// PARSE FEISHU LINK (模拟)
+// ============================================
+function parseFeishuLink(link) {
+  let ext = 'docx';
+  if (link.includes('/sheets/') || link.includes('sheet')) ext = 'sheet';
+  else if (link.includes('/bitable/') || link.includes('base')) ext = 'bitable';
+  else if (link.includes('/wiki/')) ext = 'wiki';
+
+  // 模拟解析文档真实名称
+  const names = [
+    '品类策略分析报告','平台技术选型方案','价值穿透评估表','零部件技术规范书',
+    '供应商准入标准','采购品类年度规划','成本拆解分析','技术路线图'
+  ];
+  const name = names[Math.floor(Math.random() * names.length)];
+
+  return {
+    name: name,
+    url: link,
+    ext: ext,
+    updater: '齐岳',
+    time: '2026-08-17 ' + String(Math.floor(Math.random()*12)+8).padStart(2,'0') + ':' + String(Math.floor(Math.random()*60)).padStart(2,'0'),
+    size: (Math.random() * 4 + 0.5).toFixed(1) + 'MB'
+  };
+}
+
+// ============================================
+// CHECKBOX
+// ============================================
+function toggleCheck(el) {
+  el.classList.toggle('checked');
+}
+
+// ============================================
+// 方案切换
+// ============================================
+function switchApproach(a) {
+  currentApproach = a;
+  document.getElementById('schemeA').classList.toggle('active', a === 'A');
+  document.getElementById('schemeB').classList.toggle('active', a === 'B');
+  renderTable();
+}
+
+// ============================================
+// INIT
+// ============================================
+renderTable();
+</script>
+</body>
+</html>

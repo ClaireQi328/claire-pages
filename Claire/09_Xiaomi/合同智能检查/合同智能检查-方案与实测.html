@@ -1,0 +1,316 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>合同智能检查 · 方案与实测</title>
+<style>
+:root{
+  --ink:#14171a; --ink-2:#4a5157; --ink-3:#7b848c;
+  --line:#dfe3e7; --bg:#ffffff; --bg-2:#f6f7f8;
+  --ok:#127a3f; --ok-bg:#eaf5ee;
+  --diff:#b3261e; --diff-bg:#fbeceb;
+  --unknown:#8a5a00; --unknown-bg:#fdf3e3;
+  --accent:#0b57d0; --accent-bg:#eaf0fb;
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);
+  font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Microsoft YaHei",sans-serif;
+  font-size:17px;line-height:1.75;-webkit-font-smoothing:antialiased}
+.wrap{max-width:1020px;margin:0 auto;padding:56px 28px 96px}
+header{border-bottom:3px solid var(--ink);padding-bottom:28px;margin-bottom:12px}
+.eyebrow{font-size:15px;letter-spacing:.18em;color:var(--ink-3);text-transform:uppercase;margin-bottom:14px}
+h1{font-size:42px;line-height:1.25;margin:0 0 18px;font-weight:700;letter-spacing:-.5px}
+.thesis{font-size:23px;line-height:1.6;color:var(--ink);font-weight:600;margin:0 0 22px}
+.meta{display:flex;flex-wrap:wrap;gap:10px}
+.tag{font-size:15px;padding:6px 14px;border:1px solid var(--line);border-radius:4px;color:var(--ink-2);background:var(--bg-2)}
+.tag.on{border-color:var(--ok);color:var(--ok);background:var(--ok-bg)}
+.tag.wait{border-color:var(--unknown);color:var(--unknown);background:var(--unknown-bg)}
+section{padding:44px 0;border-bottom:1px solid var(--line)}
+h2{font-size:13px;letter-spacing:.16em;color:var(--accent);font-weight:700;margin:0 0 10px}
+h3{font-size:26px;line-height:1.35;margin:0 0 20px;font-weight:700;letter-spacing:-.3px}
+h4{font-size:19px;margin:32px 0 12px;font-weight:650}
+p{margin:0 0 16px;color:var(--ink-2)}
+p.lead{font-size:19px;color:var(--ink)}
+strong{color:var(--ink);font-weight:650}
+ul,ol{margin:0 0 16px;padding-left:22px;color:var(--ink-2)}
+li{margin-bottom:9px}
+table{width:100%;border-collapse:collapse;margin:18px 0 8px;font-size:16px}
+th{text-align:left;font-weight:650;color:var(--ink);border-bottom:2px solid var(--ink);padding:10px 12px;background:var(--bg-2);font-size:15px;letter-spacing:.02em}
+td{border-bottom:1px solid var(--line);padding:13px 12px;vertical-align:top;color:var(--ink-2)}
+td:first-child{color:var(--ink);font-weight:600}
+.num{font-variant-numeric:tabular-nums;white-space:nowrap}
+.lvl{display:inline-block;font-size:14px;font-weight:700;padding:3px 10px;border-radius:3px;white-space:nowrap}
+.lvl.ok{color:var(--ok);background:var(--ok-bg)}
+.lvl.diff{color:var(--diff);background:var(--diff-bg)}
+.lvl.unknown{color:var(--unknown);background:var(--unknown-bg)}
+.callout{border-left:4px solid var(--accent);background:var(--accent-bg);padding:18px 22px;margin:22px 0;border-radius:0 4px 4px 0}
+.callout p{margin:0;color:var(--ink)}
+.evidence{background:var(--bg-2);border:1px solid var(--line);border-radius:4px;padding:14px 16px;margin:10px 0 0;font-size:15px;color:var(--ink-2);font-family:ui-monospace,SFMono-Regular,Menlo,monospace;line-height:1.65}
+.flow{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin:24px 0}
+.step{border:1px solid var(--line);border-radius:4px;padding:16px;background:var(--bg-2)}
+.step b{display:block;font-size:16px;margin-bottom:6px;color:var(--ink)}
+.step span{font-size:15px;color:var(--ink-2);line-height:1.6}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:26px;margin-top:8px}
+.card{border:1px solid var(--line);border-radius:4px;padding:22px 24px}
+.card h5{margin:0 0 12px;font-size:19px;font-weight:650;color:var(--ink)}
+.mono{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:15px;background:var(--bg-2);padding:2px 6px;border-radius:3px;color:var(--ink)}
+.stats{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin:22px 0 8px}
+.stat{border:1px solid var(--line);border-radius:4px;padding:16px 18px;background:var(--bg-2)}
+.stat .n{font-size:34px;font-weight:700;line-height:1.1;font-variant-numeric:tabular-nums;letter-spacing:-1px}
+.stat .l{font-size:15px;color:var(--ink-3);margin-top:6px}
+.stat.ok .n{color:var(--ok)} .stat.diff .n{color:var(--diff)} .stat.unknown .n{color:var(--unknown)}
+footer{padding-top:34px;color:var(--ink-3);font-size:15px}
+.q{color:var(--ink);font-weight:650}
+@media (max-width:760px){.wrap{padding:32px 18px 64px}h1{font-size:31px}.thesis{font-size:20px}
+ .flow,.stats,.grid2{grid-template-columns:1fr}table{font-size:15px}}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<header>
+  <div class="eyebrow">EP 采购 · 合同管理 · AI 增量能力</div>
+  <h1>合同智能检查</h1>
+  <p class="thesis">让合同在提交之前，自己核对一遍自己。</p>
+  <p class="lead">系统里存着同一份合同的两套事实：采购员填进去的字段，和签出来的那份文件。它们各说各话的时候，没有人会发现。智能检查要做的事只有一件——在提交之前把这两套事实对撞一遍，把对不上的地方连页码一起指出来。</p>
+  <div class="meta">
+    <span class="tag on">三层检查已跑通</span>
+    <span class="tag on">离线判定回归 29/29</span>
+    <span class="tag on">真实合同实测完成</span>
+    <span class="tag on">AgentSpace 上架包已备好</span>
+    <span class="tag wait">4 条网关路由待注册</span>
+    <span class="tag wait">检查按钮待前端接入</span>
+  </div>
+</header>
+
+<section>
+  <h2>现状</h2>
+  <h3>test 环境已有合同流程，检查这一环是空的</h3>
+  <p>合同申请单列表、草稿页、供应商补充、电子签配置在 ep-test 已经跑通 408 单真实数据。核对页面后确认三件事：</p>
+  <ul>
+    <li><strong>「智能检查」按钮还没实现。</strong>草稿详情页现有操作只有保存、发送供应商确认、新增合同。</li>
+    <li><strong>PRD 与 AI 清单说的是两件不同的事。</strong>《EP-20260903-合同管理-PRD》§3.5.10 定义的是 12 项必填与联动校验，全部阻断统一发起；《合同线上化 · AI 机会点与 CLI 开发清单》定义的是 7 项签署版与字段的一致性核对，只提示不阻断。两段合起来才是采购员点一下按钮该看到的全部内容。</li>
+    <li><strong>字段核对比预估的做得成。</strong>AI 清单判断合同详情取不到金额，因此金额、税率两项只能标"无法解析"。实测 ep-test 的 <span class="mono">/custom/contractApp/pageContractApp.api</span> 返回的明细里带着 <span class="mono">currency / amount / unTaxAmount / calculatedTaxRate / itemBudgetList</span>，例如一单真实数据是 CNY、含税 1225、未税 1222、推算税率 0。这两项能做实，前提是数据底座选 EP 自己的接口而不是集团合同系统的对外接口。</li>
+  </ul>
+  <div class="callout"><p>数据底座的取舍不是偏好问题：选集团对外接口，7 项核对里有 2 项先天做不了；选 EP 接口，两项都能落地，代价是要新注册 4 条只读路由。</p></div>
+</section>
+
+<section>
+  <h2>方案</h2>
+  <h3>一次点击，三层检查，只有第一层拦人</h3>
+  <div class="flow">
+    <div class="step"><b>一 · 表单检查</b><span>12 项必填与联动<br>确定性规则<br><strong>阻断</strong>发起</span></div>
+    <div class="step"><b>二 · 字段核对</b><span>7 项签署版对系统字段<br>本地解析 + 页码取证<br>只提示</span></div>
+    <div class="step"><b>三 · 待填与偏离</b><span>6 项：空白、模板说明语、必备条款、应挂附件、条款结构<br>只提示</span></div>
+    <div class="step"><b>弹窗回执</b><span>逐项勾选确认<br>点"知道了，继续"回传状态<br>不改变提交结果</span></div>
+  </div>
+
+  <h4>第一层：表单检查（12 项，阻断）</h4>
+  <p>逐条照 PRD §3.5.10 实现：合同申请单名称、关联原合同、境内签约平台、海外签约平台、电子签约方、境内供应商三要素、海外供应商签署要素、合同明细、币种与金额、含税不低于未税、模板同步、签署版上传。这一层不调模型——必填、联动、大小关系是存在性和算术判断，规则跑出来零差错，让模型做反而引入不确定性。</p>
+  <p>分支条件取不到时判「无法判定」并写明缺哪个字段、从哪里能补，<strong>绝不因为没数据就判通过</strong>。这条纪律贯穿三层。</p>
+
+  <h4>第二层：字段核对（7 项，只提示）</h4>
+  <table>
+    <thead><tr><th style="width:150px">核对项</th><th>判定标准</th><th style="width:270px">判定依据怎么取</th></tr></thead>
+    <tbody>
+      <tr><td>签约主体一致性</td><td>系统里的我方、对方主体都要在签署版检出，缺一即差异</td><td>公司名先做归一：去空白、全半角括号统一、剥掉"（简称××）"</td></tr>
+      <tr><td>公司名称前后一致</td><td>出现"像但不是同一个"的主体写法才判差异，例如 湖北中科 / 湖北中科技术</td><td>字符集相似度阈值 0.6；同单声明过的双主体（小米汽车 / 小米景明）不互报</td></tr>
+      <tr><td>文件完整性</td><td>页数大于 0、文字层够厚；每页均字符低于 40 判"文字层过薄"而不是通过</td><td>扫描件自动走本机 macOS Vision OCR，OCR 不可用则明说</td></tr>
+      <tr><td>金额与币种一致性</td><td>系统合同总额要能在签署版检出的金额里找到，容差 1%</td><td>四类候选：带单位数字、关键词邻近数字、中文大写金额、价格表纯数字单元格</td></tr>
+      <tr><td>期限与生效日期</td><td>起止日期都要在签署版检出；系统标"不限定有效期"时判不适用而不是判不了</td><td>年月日多种写法归一</td></tr>
+      <tr><td>含税金额与综合税率</td><td>合同声明税率、系统税率字段、含税未税反算三个数互洽</td><td>反算口径同 PRD：(含税 − 未税) ÷ 未税 × 100%</td></tr>
+      <tr><td>合同形式与原合同</td><td>补充 / 续约 / 终止须在签署版提及关联原合同编号</td><td>支持 EP 的 CT-年月日-四位流水与集团的 MID 编号</td></tr>
+    </tbody>
+  </table>
+
+  <h4>第三层：待填与模板偏离（6 项，只提示）</h4>
+  <ul>
+    <li><strong>待填项与模板说明语</strong>——下划线空白、空括号、模板里留给业务方的填写提示有没有删干净。</li>
+    <li><strong>签署要素完整性</strong>——有签署栏但全文找不到一个具体日期，说明落款日期很可能留空。</li>
+    <li><strong>附件提及与附件实体</strong>——正文写了"详见附件"却没挂附件。</li>
+    <li><strong>必备条款齐备性</strong>——按协议类型画像查该写的主题有没有写。画像取自 EP 侧已有的 42 个协议类型模板库，只取其中的必备条款关键词与应挂附件清单，<strong>不引入它的 43 条风险规则</strong>。关联口径实测得出：EP 的协议类型是编码、画像按名称组织，两者不同源，能对上的是模板名去掉版本后缀（零件价格协议-V1-2-20260417 → 零件价格协议）；匹配不上判"无法判定"，不硬套画像。</li>
+    <li><strong>应挂附件齐备</strong>——画像定义了应挂附件的协议类型（如采购通则要求物流管理协议、质量管理协议、绿电声明、社会承诺、廉洁协议五项），比对实际挂接。</li>
+    <li><strong>与标准模板条款结构偏离</strong>——有基准模板时比对一级条款标题的缺失与新增；没基准时明确标"判不了"，并写清两种补基准的方式。</li>
+  </ul>
+  <p>第三层是与市面产品同题的部分，但走的是不需要外部条款库、不需要联网调模型的路子：拿自己已有的协议类型画像当基线，用占位符特征兜住没填完的稿子。成本低，且打中的正是采购场景里最常见的错。</p>
+  <div class="callout"><p><strong>一个必须说的修正。</strong>画像接进来第一版就把这份零件价格协议判成"缺 零部件、技术开发 两项必备条款"——查了原文，文档里「零件」出现 96 次、「开发费」多处，只是没用这两个复合词，属于字面匹配造成的误报。改法是加一张显式维护的同义词表（零部件→零件、技术开发→开发，共 36 组），并且<strong>命中了哪种写法要在依据里写明</strong>，不静默放过。这条已作为回归用例进判定回归。一项天天要用的检查，误报一次就少一分信任。</p></div>
+</section>
+
+<section>
+  <h2>实测</h2>
+  <h3>一份真实的零件价格协议：25 项检查，4 处差异，4 处待补数据</h3>
+  <p>样本取 ep-test 环境的真实单据 <strong>CT-20261014-0012</strong>（我方 小米汽车科技有限公司，对方 湖北中科有限公司，明细「test」，协议类型 采购通则-零件组件料-价格协议，附件 零件价格协议-V1-2-20260417），签署版文件 13 页、10715 字符，走本地解析，合同内容未出这台机器。</p>
+
+  <div class="stats">
+    <div class="stat ok"><div class="n">17</div><div class="l">一致</div></div>
+    <div class="stat diff"><div class="n">4</div><div class="l">差异</div></div>
+    <div class="stat unknown"><div class="n">4</div><div class="l">待补数据后自动纳入</div></div>
+    <div class="stat"><div class="n">25</div><div class="l">检查项总数</div></div>
+  </div>
+
+  <h4>差异 1：系统填了合同总额，签署版里没有这个数</h4>
+  <p>系统里含税金额 1225 元。签署版正文与价格表一共检出 13 个数字，没有这个数，正文里最接近的是 2026.00。价格表中的 1256、2345、3456 是零件单价、1257.466 与 2346.499 是结算价，都不是合同总额——这份文件里根本没写合同总额。</p>
+  <div class="evidence">系统金额 1225 CNY
+正文金额候选：18.00(P6·带单位)、14.00(P5·带单位)、13.00(P5·关键词邻近)、6.00(P6·关键词邻近)、2.12(P6·带单位)
+表格数字候选 5 个：37001、8043、8042、8041、2026
+币种表述：检出人民币</div>
+  <p>这不是误报，而是提醒采购员一句：合同总额这个数要么写进文件，要么在系统里别填。价格协议本身可以只有单价，那就该把"是否有金额"关掉。</p>
+
+  <h4>差异 2：三个税率互相不打架，只有一个自洽</h4>
+  <div class="evidence">合同声明税率：13%(P3)、13%(P5)、6%(P6)
+系统 calculatedTaxRate：0
+含税 1225 / 未税 1222 反算：0.25%</div>
+  <p>填了含税 1225、未税 1222，差 3 元，反算出来 0.25%；系统税率字段填 0；合同正文写 13% 和 6%。三个数字没有一个对得上，而这单已经走到"待供应商补充信息"。</p>
+
+  <h4>差异 3：这份"签署版"是一份没填完的模板</h4>
+  <p>检出 6 处模板留给业务方的填写提示没有删除、32 处空白待填。举几个原文：</p>
+  <div class="evidence">P3：【关于采购结算方式 - EP 系统的定义应由业务部门在发起合同审查前填写，要求清晰且无疑义】
+P3：【如不涉及请填“/”，如涉及请增加】
+P5：【根据实际情况填写（1）或（2），如不需要请填写“/”】
+P13：【填写具体的车型】
+P5：（4）付款方式：______ %现金，______ %银行承兑汇票（银行承兑汇票期限:【 】个月）
+P5：软模费用总额为_______元（未税）
+P5：支付合同金额（含税）的 ___％，即人民币_______元，（大写）_______元整
+P6：支付开发费总额（含税）的___％，即人民币_______元，（大写）_______元整</div>
+  <p>这一项的价值最直白：这份文件按现状发出去签了章，条款里一半的数是空的。</p>
+
+  <h4>差异 4：全文没有任何日期</h4>
+  <p>13 页里检不出一个具体日期，落款日期栏留空。系统侧标记"不限定有效期"，两边一对照，等于这份合同没有任何时间边界。</p>
+
+  <h4>4 项待补数据：判不了就说判不了</h4>
+  <ul>
+    <li><strong>境内签约平台、海外签约平台、电子签约方</strong>三项——列表接口不返回"是否海外及港澳台地区签约"和电子签约方数量，需要详情接口或草稿页上下文补齐。补齐后自动纳入检查，现在不占通过位。</li>
+    <li><strong>与标准模板条款结构偏离</strong>——本轮没有给基准模板。两种方式可补：从合同平台下载同名模板，或本地放一份用参数指进来。</li>
+  </ul>
+</section>
+
+<section>
+  <h2>交付</h2>
+  <h3>一个 skill 包、五个 CLI 命令、一个 AgentSpace 上架包、一份前端契约</h3>
+  <div class="grid2">
+    <div class="card">
+      <h5>Skill：contract-semantic-check</h5>
+      <ul>
+        <li>入口 <span class="mono">smart_check.py</span> 一次跑完三层，stdout 即前端契约 JSON，<span class="mono">-o</span> 另出 Markdown 报告。</li>
+        <li>判定逻辑分模块：<span class="mono">check_form / check_field / check_clause / textscan / mapping</span>。</li>
+        <li>离线回归 29 条断言，覆盖大写金额换算、表格金额、形近主体降噪、协议画像同义扩展、缺字段不判通过这些真实踩过的坑；不联网即可复跑。</li>
+        <li>本地推理：pypdf + macOS Vision OCR，不调任何云端接口。</li>
+        <li>旧命令名 <span class="mono">field_check.py</span> 保留为兼容入口，内部转第二层结果，前端不改代码也能渲染。</li>
+      </ul>
+    </div>
+    <div class="card">
+      <h5>CLI：dx-ep contract（5 个命令）</h5>
+      <ul>
+        <li><strong>info list</strong> 合同申请单列表 · 接口与出入参已在 ep-test 实测</li>
+        <li><strong>info detail</strong> 详情；<span class="mono">--for-check</span> 直接吐核对 JSON，上游不必重复实现字段映射</li>
+        <li><strong>progress</strong> 签署进度三态（合同 / 签署 / 归档）+ 关键时间</li>
+        <li><strong>attach download</strong> 把签署版落到本地——原清单的核对链路断在最后一公里，这条把它接上</li>
+        <li><strong>fields-map</strong> 打印映射表，与 skill 侧逐行对账</li>
+      </ul>
+      <p style="margin-bottom:0">分工是一条边界：CLI 只负责把数据准确取出来，所有判定都在 skill 里。检查规则写两份必然漂移。</p>
+    </div>
+  </div>
+
+  <h4>已完成的验证</h4>
+  <table>
+    <thead><tr><th style="width:230px">验证项</th><th>做法与结果</th></tr></thead>
+    <tbody>
+      <tr><td>判定回归</td><td><span class="mono">smart_check.py --self-test</span> → 29/29 通过（含画像同义扩展的误报回归）</td></tr>
+      <tr><td>真实合同</td><td>CT-20261014-0012 全量跑通，25 项，结论见上一节；目录版与 AgentSpace 平铺版结果逐项一致</td></tr>
+      <tr><td>CLI 加载</td><td>并入临时副本的 dx-ep-cli，5 命令全部注册，<span class="mono">--dry-run</span> 输出的请求体与实测接口一致</td></tr>
+      <tr><td>参数校验</td><td>缺 <span class="mono">--app-id/--app-code</span> 报校验错；<span class="mono">--page-size 999</span> 被上限拦下</td></tr>
+      <tr><td>两份映射表一致</td><td><span class="mono">fields-map --canonical</span> 与 <span class="mono">mapping.py --canonical</span> 逐行 diff 为空（33 行）</td></tr>
+      <tr><td>两份映射结果一致</td><td>同一份真实数据分别过 JS 与 Python 实现，输出字段级差异 0 处</td></tr>
+    </tbody>
+  </table>
+
+  <h4>前端接线</h4>
+  <p>弹窗收一个 JSON，按 <span class="mono">layers[]</span> 分段渲染，<span class="mono">level</span> 三值（一致 / 差异 / 无法判定）对应固定色与图标，前端不自行映射。<span class="mono">blockingHits</span> 只统计表单检查里确实未通过的项，大于 0 才把「发起内部审批」置灰；<span class="mono">blockingPending</span> 是因字段缺失判不了的项数，只提醒不置灰。其余两层只展示不拦截，勾选项状态随"知道了，继续"回传。每项差异都带页码，点击可跳到签署版对应页。</p>
+</section>
+
+<section>
+  <h2>AgentSpace 部署</h2>
+  <h3>作为独立 skill 上架，与已有的通用审查引擎并存不覆盖</h3>
+  <p>平台现状（实测 <span class="mono">/api/skills?workspace_slug=contract</span>）：合同在线化空间里 code 为 <span class="mono">contract-semantic-check</span>、名字「合同检查」的那个 skill，装的其实是 contract-legal-audit v4 通用审查引擎（29 个文件、要素层 30 项 + 规则层 43 条 + 基线层 24 条 + 法条库 29 条，2026-09-09 上传的 v1），并不是这套提交前检查。两者定位不同，<strong>新建独立 skill 承接，不动旧引擎</strong>。</p>
+  <table>
+    <thead><tr><th style="width:190px">项</th><th>值</th></tr></thead>
+    <tbody>
+      <tr><td>skill code</td><td><span class="mono">contract-smart-check</span>（与旧 code 不冲突）</td></tr>
+      <tr><td>名称 / 描述</td><td>合同智能检查 / 三层 25 项提交前检查，输出前端弹窗契约 JSON</td></tr>
+      <tr><td>包结构</td><td>平铺 16 个文件：入口 <span class="mono">smart_check.py</span> 在根目录（无 <span class="mono">scripts/</span> 前缀），画像在 <span class="mono">templates/</span>，与样件上架包同构</td></tr>
+      <tr><td>上架前证据</td><td>平铺布局下 <span class="mono">python3 smart_check.py --self-test</span> 29/29；真机跑结果与目录版逐项一致（25 项 = 17 一致 / 4 差异 / 4 待补）</td></tr>
+      <tr><td>密钥</td><td>FDS AK/SK 不进包，<span class="mono">config.json</span> 留空字段指向 <span class="mono">~/.fds-upload-config.json</span>。样件那批包把密钥写死在 <span class="mono">config.example.json</span> 里、随约 70 个历史 zip 扩散，这个错不重犯</td></tr>
+      <tr><td>运行环境两条约束</td><td>依赖 <span class="mono">pypdf</span>（容器内先装，见 <span class="mono">requirements.txt</span>）；扫描件 OCR 走 macOS Vision，<strong>Linux 容器跑不了</strong>，扫描件在容器内判"无法判定"并提示改走本机或补 tesseract，文本层 PDF 不受影响</td></tr>
+    </tbody>
+  </table>
+  <h4>内嵌 test 环境的完整链路</h4>
+  <p>test 环境合同草稿页现有操作只有保存、发送供应商确认、新增合同，AI 助手侧栏已有「查询寻源进度 / RFQ响应风险 / 生成报告」三个动作位——检查能力就是往这里加第四个动作，而不是再造一个入口：</p>
+  <div class="flow">
+    <div class="step"><b>① 触点</b><span>草稿页「智能检查」按钮 + 发起内部审批前自动弹出，复用 AI 助手侧栏第四个动作位</span></div>
+    <div class="step"><b>② 取数</b><span>AgentSpace agent 按 code 调 skill；skill 内跑 <span class="mono">dx-ep contract info detail --for-check</span> 拿字段</span></div>
+    <div class="step"><b>③ 取件</b><span>签署版由前端把手上的上传件路径直接传入；脱离前端时走 <span class="mono">attach download</span></span></div>
+    <div class="step"><b>④ 回填</b><span>契约 JSON 回前端渲染弹窗，<span class="mono">blockingHits&gt;0</span> 置灰发起按钮，勾选状态回传</span></div>
+  </div>
+  <p>登录态按样件那套走：CLI 未登录时脚本不自己弹浏览器，把授权链接原样回给调用方，收到"已登录"后重试同一条命令。</p>
+</section>
+
+<section>
+  <h2>对比</h2>
+  <h3>与市面合同 AI 放在一起看</h3>
+  <p>对标只作参照，不构成我们的骨架：市面主流产品的主战场是"帮律师读合同"，我们做的是"帮系统确认自己没记错"。按能力顺序分组：</p>
+
+  <table>
+    <thead><tr><th style="width:170px">能力</th><th>市面做到什么程度</th><th>我们</th></tr></thead>
+    <tbody>
+      <tr><td>表单与流程校验</td><td>多为审批流条件必填，很少做成检查面板；e签宝、契约锁的校验挂在签署环节</td><td class="q">12 项按 PRD 逐条实现，含境内外电子签分支，阻断位明确</td></tr>
+      <tr><td>字段与文档一致性</td><td>Ironclad 的 Focused Verification 方向相反——从文档抽字段再抽人工复核；幂律主打文档与文档比对；未见"系统已填字段 ↔ 签署版"这个定向核对</td><td class="q">这是我们的主场地：7 项定向核对，反向比对</td></tr>
+      <tr><td>证据定位</td><td>头部产品支持命中条款跳转原文；多数只给结论不给位置</td><td class="q">每条差异带页码与原文片段，已实测输出</td></tr>
+      <tr><td>条款级风险审查</td><td>Kira 950+ Smart Fields、Luminance 1000+ 条款类型、幂律 38 维抽取、法大大全链路风险智控</td><td>不做。我们只有与标准模板的条款结构比对，不判断条款好坏</td></tr>
+      <tr><td>缺失条款 / 未填写</td><td>作为卖点普遍宣传，实现靠条款库</td><td class="q">用占位符特征与模板基准实现，不需要条款库、不联网</td></tr>
+      <tr><td>对方主体风险</td><td>企查查、天眼查的企业数据接入成熟，涉诉、被执行、工商变更</td><td>未做，是下一期最便宜的增量</td></tr>
+      <tr><td>数据边界</td><td>以 SaaS 为主，合同文本出企业外网</td><td class="q">全本地推理，合同正文与字段不出机器</td></tr>
+      <tr><td>效果承诺</td><td>普遍给厂商自报数字（省时 95%、人工漏检 80%）</td><td>不承诺风险识别率，只承诺 25 项确定性核对与可复核证据</td></tr>
+    </tbody>
+  </table>
+
+  <div class="callout">
+    <p><strong>为什么不追条款风险审查。</strong>行业公开评测 ContractEval 2025 里最强模型在条款风险识别上 F1 只有 0.644，罕见条款（无限责任这类）召回接近零；独立测试显示法律 AI 工具错误率在 17%–34% 之间。把这个能力放进采购提交弹窗，等于用一半的准确率去打扰每一次提交。我们要的是另一件事：跑二十次都对，且每条都能当场验。</p>
+  </div>
+</section>
+
+<section>
+  <h2>待办与待决策</h2>
+  <h3>上线还差四件事，其中两件需要拍板</h3>
+  <table>
+    <thead><tr><th style="width:60px">#</th><th style="width:290px">事项</th><th>说明</th><th style="width:120px">找谁</th></tr></thead>
+    <tbody>
+      <tr><td>1</td><td>注册 4 条只读网关路由</td><td><span class="mono">pageContractApp / findById / stat / contractItemType.typeList</span>。路由按"方法 + 路径"精确匹配，没命中会报 40300006，那是路由未注册，不是权限不够。</td><td>网关管理员</td></tr>
+      <tr><td>2</td><td>确认详情接口入参键名</td><td><span class="mono">findById</span> 现按 EP 侧 getById 惯例传 <span class="mono">{id}</span>，尚未实测。抓包时列表栅格异常没抓到请求体，所以这条挂"待联调确认"而不是猜一个值。</td><td>EP 后端</td></tr>
+      <tr><td>3</td><td><strong>待决策</strong>：表单检查是否真阻断</td><td>PRD 写 12 项全部阻断统一发起。这单实测的结果是 <strong>0 项确实未通过、3 项因字段缺失判不了</strong>（境内平台、海外平台、电子签约方，列表接口不返回，需要详情接口或草稿页上下文）。<strong>决策点是：判不了的 3 项要不要一并拦下。</strong>拦，上游字段没同步时采购就提交不了；不拦，等于这三项形同不存在。契约里已拆成 <span class="mono">blockingHits</span> 与 <span class="mono">blockingPending</span> 两个数，建议：接口补齐前只提醒，补齐后转拦。</td><td>产品 + 法务</td></tr>
+      <tr><td>4</td><td><strong>待决策</strong>：EP 是否补附件下载接口</td><td>EP 详情只返回附件名字符串，没有下载地址。不补，签署版只能靠前端把手上的文件递给检查（流程内可用，脱离流程就不行）；补一个按 fileId 取地址的只读接口，AI 助手问答与批量核对才成立。建议本期先走前端传路径，接口排下一期。</td><td>产品 + EP 后端</td></tr>
+      <tr><td>5</td><td>检查按钮与弹窗接入</td><td>草稿页现有操作只有保存、发送供应商确认、新增合同，触点从零建。契约与渲染规则已给全。</td><td>前端</td></tr>
+      <tr><td>6</td><td>误报反馈闭环</td><td>弹窗勾选项的回传数据落库，用来调阈值（形近主体的 0.6、金额容差 1%）。没有这一步，阈值只能拍。</td><td>产品 + 数据</td></tr>
+    </tbody>
+  </table>
+</section>
+
+<section style="border-bottom:none">
+  <h2>边界</h2>
+  <h3>这套检查不做什么</h3>
+  <ul>
+    <li>不判断条款效力，不出法律意见。它做的是"两份事实对不对得上"，不是"这份合同能不能签"。</li>
+    <li>不做条款级风险识别，因此不承诺任何风险识别率。</li>
+    <li>除第一层外不拦任何人。第二、三层是提示，采购员可以不理会并提交，责任不在系统。</li>
+    <li>取不到数据时不猜。所有"判不了"都写明缺哪个字段、从哪里补，补上自动纳入检查。</li>
+    <li>不把合同文本送出去。解析与判定全在本地完成。</li>
+  </ul>
+</section>
+
+<footer>
+  <p>数据来源：ep-test 合同管理模块实测（2026-10-14，408 单）、《EP-20260903-合同管理-PRD》§3.5.10、《合同线上化 · AI 机会点与 CLI 开发清单》。样本合同为真实单据与真实签署版文件。</p>
+</footer>
+
+</div>
+</body>
+</html>

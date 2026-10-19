@@ -1,0 +1,672 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>从报表到决策：报价细项拆解分析复盘</title>
+<style>
+:root{
+  --teal:#14B8A6; --amber:#F59E0B; --rose:#FB7185; --indigo:#6366F1;
+  --bg:#f5f7fa; --card:#ffffff; --line:#e9eef4;
+  --t1:#1f2a37; --t2:#5b6573; --t3:#8a94a6;
+}
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:var(--bg);color:var(--t1);font-family:-apple-system,"PingFang SC","Microsoft YaHei",sans-serif;font-size:13px;line-height:1.7}
+.wrap{max-width:1080px;margin:0 auto;padding:28px 20px 60px}
+
+header.hero{background:linear-gradient(135deg,#0f766e 0%,#14B8A6 55%,#0d9488 100%);border-radius:16px;padding:38px 40px 34px;color:#fff;position:relative;overflow:hidden}
+header.hero:after{content:"";position:absolute;right:-60px;top:-60px;width:240px;height:240px;border-radius:50%;background:rgba(255,255,255,.08)}
+header.hero:before{content:"";position:absolute;right:40px;bottom:-90px;width:180px;height:180px;border-radius:50%;background:rgba(255,255,255,.06)}
+header.hero .tag{display:inline-block;background:rgba(255,255,255,.18);border:1px solid rgba(255,255,255,.35);border-radius:20px;padding:2px 14px;font-size:12px;letter-spacing:1px;margin-bottom:14px}
+header.hero h1{font-size:28px;font-weight:800;line-height:1.35;letter-spacing:.5px}
+header.hero .sub{margin-top:10px;font-size:14px;color:rgba(255,255,255,.92)}
+header.hero .meta{margin-top:16px;font-size:12px;color:rgba(255,255,255,.75);display:flex;gap:18px;flex-wrap:wrap}
+
+section.part{background:#fff;border:1px solid var(--line);border-radius:14px;margin-top:24px;padding:28px 32px}
+.part-head{display:flex;align-items:baseline;gap:12px;margin-bottom:6px}
+.part-no{font-size:13px;font-weight:800;color:#fff;background:var(--indigo);border-radius:8px;padding:2px 10px;letter-spacing:1px;flex:none}
+.part-head h2{font-size:19px;font-weight:800;color:var(--t1)}
+.part-sub{font-size:12px;color:var(--t3);margin-bottom:16px}
+h3.blk{font-size:15px;font-weight:800;color:var(--t1);margin:22px 0 8px;display:flex;align-items:center;gap:8px}
+h3.blk:before{content:"";width:4px;height:15px;border-radius:2px;background:var(--teal);flex:none}
+p.body{font-size:13px;color:var(--t2);margin:6px 0}
+p.body b{color:var(--t1)}
+p.body .num{color:#0f766e;font-weight:800}
+
+.callout{background:#f0f9ff;border:1px solid #bae6fd;border-radius:10px;padding:14px 18px;margin:14px 0;font-size:13px;color:#1e3a5f}
+.callout.green{background:#ecfdf8;border-color:#99f6e4;color:#134e4a}
+.callout.amber{background:#fffbeb;border-color:#fde68a;color:#78350f}
+.callout.rose{background:#fff1f2;border-color:#fecdd3;color:#881337}
+.callout .ct{font-weight:800;font-size:13px;margin-bottom:4px}
+.callout .ct .em{font-size:14px}
+
+.dilemma{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin:14px 0}
+.dq{background:#f8fafc;border:1px solid var(--line);border-radius:10px;padding:14px 16px;font-size:12px;color:var(--t2)}
+.dq .who{font-weight:800;color:var(--t1);display:block;margin-bottom:4px}
+.dq .who i{font-style:normal;color:#fff;border-radius:6px;padding:1px 8px;font-size:11px;margin-right:6px}
+.dq.w1 .who i{background:var(--amber)}
+.dq.w2 .who i{background:var(--rose)}
+.dq.w3 .who i{background:var(--indigo)}
+
+.fig{margin:16px 0 6px}
+.fig .cap{font-size:12px;color:var(--t3);text-align:center;margin-top:8px}
+.fig svg{width:100%;height:auto;display:block}
+
+table.tb{width:100%;border-collapse:collapse;margin:12px 0;font-size:12.5px}
+table.tb th{background:#f8fafc;color:var(--t1);font-weight:700;text-align:left;padding:9px 12px;border:1px solid var(--line)}
+table.tb td{padding:9px 12px;border:1px solid var(--line);color:var(--t2);vertical-align:top}
+table.tb td b{color:var(--t1)}
+table.tb tr:hover td{background:#fafcff}
+table.tb .c-num{color:var(--indigo);font-weight:800;font-family:Consolas,monospace}
+
+.lv-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin:14px 0}
+.lv-card{border-radius:10px;padding:14px 12px;border:1px solid var(--line);position:relative;overflow:hidden}
+.lv-card .lv-tag{display:inline-block;font-size:11px;font-weight:800;color:#fff;border-radius:6px;padding:1px 8px;letter-spacing:.5px}
+.lv-card .lv-name{font-size:13px;font-weight:800;color:var(--t1);margin-top:6px}
+.lv-card .lv-desc{font-size:11.5px;color:var(--t2);margin-top:6px;line-height:1.6}
+.lv-card .lv-vis{font-size:11px;color:var(--t3);margin-top:8px;padding-top:8px;border-top:1px dashed var(--line)}
+.lv-card .lv-auth{font-size:11px;margin-top:4px}
+
+.m3{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin:14px 0}
+.m3 .cell{background:#f8fafc;border:1px solid var(--line);border-top:4px solid var(--c,#14B8A6);border-radius:10px;padding:16px 16px 12px}
+.m3 .cell .ic{font-size:22px}
+.m3 .cell .tt{font-size:14px;font-weight:800;color:var(--t1);margin-top:4px}
+.m3 .cell .en{font-size:11px;color:var(--t3);letter-spacing:1px}
+.m3 .cell p{font-size:12px;color:var(--t2);margin-top:8px;line-height:1.65}
+.formula{background:linear-gradient(135deg,#f5f3ff,#eef2ff);border:1px solid #c7d2fe;border-radius:10px;padding:12px 18px;text-align:center;font-size:15px;font-weight:800;color:#3730a3;margin:6px 0 2px}
+.formula .x{color:var(--rose);padding:0 6px}
+.formula .zero{color:var(--rose)}
+
+.tl{position:relative;margin:18px 0 6px;padding-left:26px}
+.tl:before{content:"";position:absolute;left:9px;top:6px;bottom:6px;width:2px;background:linear-gradient(180deg,var(--teal),var(--indigo))}
+.tl .node{position:relative;margin-bottom:18px}
+.tl .node:before{content:"";position:absolute;left:-24px;top:5px;width:12px;height:12px;border-radius:50%;background:var(--c,var(--teal));border:3px solid #fff;box-shadow:0 0 0 2px var(--c,var(--teal))}
+.tl .node .st{font-size:13px;font-weight:800;color:var(--t1)}
+.tl .node .st .step{font-size:11px;color:#fff;background:var(--c,var(--teal));border-radius:6px;padding:1px 8px;margin-right:8px;letter-spacing:.5px}
+.tl .node .ph{font-size:11px;color:var(--t3);margin-left:2px}
+.tl .node p{font-size:12px;color:var(--t2);margin-top:4px;max-width:920px}
+.tl .node .out{display:inline-block;background:#f0fdfa;border:1px solid #99f6e4;color:#115e59;font-size:11px;border-radius:6px;padding:1px 8px;margin-top:4px}
+
+.gap3{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin:12px 0}
+.gap3 .g{border:1px solid var(--line);border-radius:10px;padding:14px 16px;background:#fff}
+.gap3 .g .gt{font-size:12px;font-weight:800;color:var(--t1);margin-bottom:8px;display:flex;align-items:center;gap:6px}
+.gap3 .g .big{font-size:24px;font-weight:800;color:var(--c,var(--rose))}
+.gap3 .g .big small{font-size:12px;color:var(--t3);font-weight:600}
+.gap3 .g p{font-size:11.5px;color:var(--t2);margin-top:4px;line-height:1.6}
+
+.strat{display:grid;grid-template-columns:repeat(2,1fr);gap:12px;margin:12px 0}
+.st{background:#f8fafc;border:1px solid var(--line);border-radius:10px;padding:14px 16px;border-left:4px solid var(--c,var(--teal))}
+.st .no{font-size:12px;font-weight:800;color:var(--c,var(--teal))}
+.st .stt{font-size:13px;font-weight:800;color:var(--t1);margin-top:2px}
+.st p{font-size:12px;color:var(--t2);margin-top:4px}
+
+.pyramid{margin:14px 0}
+.py{display:flex;flex-direction:column;align-items:center}
+.py .prow{width:var(--w,90%);border-radius:8px;padding:10px 16px;margin:4px 0;color:#fff;text-align:center}
+.py .prow .pn{font-size:12.5px;font-weight:800}
+.py .prow .pd{font-size:11.5px;opacity:.92}
+.py .prow.p1{--w:60%;background:var(--indigo)}
+.py .prow.p2{--w:72%;background:#4f46e5}
+.py .prow.p3{--w:84%;background:#7c3aed}
+.py .prow.p4{--w:96%;background:#a855f7}
+
+.ladder{margin:14px 0}
+.lad{display:flex;flex-direction:column;gap:6px}
+.lad .lr{display:grid;grid-template-columns:110px 1fr 200px;align-items:center;background:#f8fafc;border:1px solid var(--line);border-radius:8px;padding:10px 14px;gap:12px}
+.lad .lr .lv{font-size:12px;font-weight:800;color:#fff;border-radius:6px;padding:3px 10px;text-align:center;letter-spacing:1px}
+.lad .lr .lq{font-size:13px;font-weight:800;color:var(--t1)}
+.lad .lr .la{font-size:11.5px;color:var(--t2)}
+.lad .lr .lx{font-size:11.5px;color:var(--t3);text-align:right}
+
+.take{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin:12px 0}
+.tk{background:#f8fafc;border:1px solid var(--line);border-radius:10px;padding:16px;text-align:center}
+.tk .k{font-size:26px}
+.tk .kt{font-size:13.5px;font-weight:800;color:var(--t1);margin-top:6px}
+.tk p{font-size:12px;color:var(--t2);margin-top:6px;line-height:1.6}
+
+.skill-flow{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin:14px 0}
+.sf{background:#f8fafc;border:1px solid var(--line);border-radius:10px;padding:14px 12px;text-align:center}
+.sf .si{font-size:22px}
+.sf .st{font-size:12px;font-weight:800;color:var(--t1);margin-top:4px}
+.sf .sd{font-size:11px;color:var(--t3);margin-top:3px}
+
+.skill-eco{margin:14px 0}
+.skill-eco .se-row{display:grid;grid-template-columns:repeat(2,1fr);gap:10px}
+.skill-eco .se{background:#f8fafc;border:1px solid var(--line);border-radius:10px;padding:14px 16px;border-left:4px solid var(--c,var(--teal))}
+.skill-eco .se .sn{font-size:12px;font-weight:800;color:var(--c,var(--teal))}
+.skill-eco .se .stt{font-size:13px;font-weight:800;color:var(--t1);margin-top:2px}
+.skill-eco .se p{font-size:11.5px;color:var(--t2);margin-top:4px}
+
+.kp-box{background:linear-gradient(135deg,#f0fdfa,#eff6ff);border:1px solid #c7d2fe;border-radius:14px;padding:22px 28px;margin-top:24px}
+.kp-box h2{font-size:16px;font-weight:800;color:var(--t1);margin-bottom:10px}
+.kp-box ul{list-style:none;padding:0}
+.kp-box li{font-size:13px;color:var(--t2);padding:5px 0;padding-left:20px;position:relative}
+.kp-box li:before{content:"";position:absolute;left:0;top:11px;width:6px;height:6px;border-radius:50%;background:var(--teal)}
+.kp-box li b{color:var(--t1)}
+
+.foot-note{margin-top:16px;font-size:11px;color:var(--t3);text-align:center}
+
+@media (max-width:820px){
+  .dilemma,.m3,.gap3,.take,.lv-grid,.skill-flow,.skill-eco .se-row{grid-template-columns:1fr}
+  .strat{grid-template-columns:1fr}
+  .lad .lr{grid-template-columns:80px 1fr}
+  .lad .lr .lx{display:none}
+  header.hero h1{font-size:22px}
+  section.part{padding:20px 18px}
+}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<header class="hero">
+  <span class="tag">数据分析 · 实战复盘</span>
+  <h1>从报表到决策：报价细项拆解分析复盘</h1>
+  <div class="sub">报价细项拆解率分析 × PM 数据指标方法论 × Skill 工程化</div>
+  <div class="meta"><span>2026-05 ~ 2026-08</span><span>案例：报价细项拆解率分析</span><span>数据分析 · 品类管理</span></div>
+</header>
+
+<!-- ================= Part 1: 背景 ================= -->
+<section class="part" id="p1">
+  <div class="part-head"><span class="part-no">PART 1</span><h2>背景：我们在做什么</h2></div>
+  <div class="part-sub">先讲清楚业务场景和拆解层级，再看数据</div>
+
+  <h3 class="blk">业务场景：报价成本透明化</h3>
+  <p class="body">汽车零部件采购中，每个零件需要供应商报价。供应商报回来一个总价，但这个总价是黑盒——材料费多少、制造费多少、利润多少，采购方看不到。</p>
+  <p class="body">如果只看总价比价，采购方处于信息劣势。所以我们需要供应商把报价拆开，让成本结构可见。这就是"报价细项拆解"。</p>
+
+  <div class="callout">
+    <div class="ct"><span class="em">💡</span> 一句话</div>
+    <b>拆解 = 把供应商报的"一口价"变成"看得见的成本结构"</b>。拆得越深，成本越透明，谈判时越有底。
+  </div>
+
+  <h3 class="blk">报价本身有粗细之分</h3>
+  <p class="body">在拆解之前，先要理解一个前提：供应商提交的报价本身就有粒度差异。有些报价只到<b>中粗项</b>（比如只拆到材料费、加工费几个大类），有些能到<b>细项</b>（每个零件、每道工序的成本都列出来）。报价粒度直接决定了能拆到哪个层级——给的是中粗项，L3/L4 就无从谈起。所以拆解率不只是采购方的努力程度，还受限于供应商愿意提供多细的报价。</p>
+
+  <h3 class="blk">L1-L4：拆解的四个层级</h3>
+  <p class="body">拆解是一个从浅到深的渐进过程。我们定义了四个层级：</p>
+
+  <div class="lv-grid">
+    <div class="lv-card" style="background:#fff1f2;border-color:#fecdd3">
+      <span class="lv-tag" style="background:#f43f5e">L1</span>
+      <div class="lv-name">未拆解</div>
+      <div class="lv-desc">供应商只报一个总价。成本黑盒。</div>
+      <div class="lv-vis">材料费 ✕<br>制造费 ✕</div>
+      <div class="lv-auth" style="color:#f43f5e">权威性：无</div>
+    </div>
+    <div class="lv-card" style="background:#fffbeb;border-color:#fde68a">
+      <span class="lv-tag" style="background:#f59e0b">L2</span>
+      <div class="lv-name">EP 自行拆解</div>
+      <div class="lv-desc">采购员在 EP 系统自行拆出<b>材料费</b>。初步透明，但无外部校验。</div>
+      <div class="lv-vis">材料费 ✓<br>制造费 ✕</div>
+      <div class="lv-auth" style="color:#f59e0b">权威性：采购员自报</div>
+    </div>
+    <div class="lv-card" style="background:#f0fdfa;border-color:#99f6e4">
+      <span class="lv-tag" style="background:#14B8A6">L3</span>
+      <div class="lv-name">联动 SVC + 业务审批</div>
+      <div class="lv-desc">联动 SVC 数据，经业务审批确认。<b>权威性更高</b>，但 L3 仍无制造费明细。</div>
+      <div class="lv-vis">材料费 ✓（SVC 校验）<br>制造费 ✕</div>
+      <div class="lv-auth" style="color:#14B8A6">权威性：SVC 联动 + 审批</div>
+    </div>
+    <div class="lv-card" style="background:#eef2ff;border-color:#c7d2fe">
+      <span class="lv-tag" style="background:#6366F1">L4</span>
+      <div class="lv-name">BOM + VSM</div>
+      <div class="lv-desc">BOM + 价值流分析，材料费 + 制造费全透明，可追溯到工序级。</div>
+      <div class="lv-vis">材料费 ✓<br>制造费 ✓<br>工序/价值流 ✓</div>
+      <div class="lv-auth" style="color:#6366F1">权威性：全透明</div>
+    </div>
+  </div>
+
+  <div class="fig">
+    <svg viewBox="0 0 880 210" xmlns="http://www.w3.org/2000/svg">
+      <text x="440" y="24" text-anchor="middle" font-size="14" font-weight="700" fill="#1f2a37">成本透明度与权威性：L1 → L4 的渐进过程</text>
+      <line x1="60" y1="180" x2="820" y2="180" stroke="#d1d5db" stroke-width="1.5"/>
+      <rect x="80" y="140" width="140" height="36" rx="8" fill="#fecdd3"/>
+      <text x="150" y="163" text-anchor="middle" font-size="13" font-weight="800" fill="#881337">L1 黑盒</text>
+      <text x="150" y="196" text-anchor="middle" font-size="11" fill="#8a94a6">只报总价</text>
+      <rect x="250" y="115" width="140" height="61" rx="8" fill="#fde68a"/>
+      <text x="320" y="150" text-anchor="middle" font-size="13" font-weight="800" fill="#78350f">L2 自拆</text>
+      <text x="320" y="196" text-anchor="middle" font-size="11" fill="#8a94a6">EP 自行拆材料费</text>
+      <rect x="420" y="80" width="140" height="96" rx="8" fill="#99f6e4"/>
+      <text x="490" y="130" text-anchor="middle" font-size="13" font-weight="800" fill="#134e4a">L3 SVC 联动</text>
+      <text x="490" y="196" text-anchor="middle" font-size="11" fill="#8a94a6">审批确认·更权威</text>
+      <rect x="590" y="40" width="140" height="136" rx="8" fill="#c7d2fe"/>
+      <text x="660" y="110" text-anchor="middle" font-size="13" font-weight="800" fill="#3730a3">L4 全透明</text>
+      <text x="660" y="196" text-anchor="middle" font-size="11" fill="#8a94a6">BOM+VSM</text>
+      <path d="M225 158 L245 158" stroke="#94a3b8" stroke-width="2" marker-end="url(#arr)"/>
+      <path d="M395 158 L415 158" stroke="#94a3b8" stroke-width="2" marker-end="url(#arr)"/>
+      <path d="M565 158 L585 158" stroke="#94a3b8" stroke-width="2" marker-end="url(#arr)"/>
+      <defs><marker id="arr" markerWidth="8" markerHeight="8" refX="6" refY="4" orient="auto"><path d="M0,0 L8,4 L0,8 z" fill="#94a3b8"/></marker></defs>
+      <text x="770" y="55" font-size="12" font-weight="700" fill="#6366F1">↑ 透明度递增</text>
+      <text x="770" y="73" font-size="11" fill="#8a94a6">权威性也递增</text>
+      <text x="770" y="88" font-size="11" fill="#8a94a6">L2→L3 跃在权威</text>
+      <text x="770" y="103" font-size="11" fill="#8a94a6">L3→L4 跃在深度</text>
+    </svg>
+    <div class="cap">图 1｜L1→L4：L2 到 L3 的跃升在于权威性（SVC 联动 + 审批），L3 到 L4 的跃升在于深度（制造费 + VSM）</div>
+  </div>
+
+  <h3 class="blk">为什么这么定义</h3>
+  <p class="body">四个层级对应两个维度的递进：<b>成本要素的可见度</b>和<b>数据的权威性</b>。</p>
+  <table class="tb">
+    <tr><th style="width:60px">层级</th><th style="width:140px">数据来源</th><th style="width:130px">材料费</th><th style="width:130px">制造费</th><th>权威性</th></tr>
+    <tr><td class="c-num">L1</td><td>供应商报总价</td><td>✕</td><td>✕</td><td>无拆解</td></tr>
+    <tr><td class="c-num">L2</td><td>采购员在 EP 自行拆</td><td>✓（自报）</td><td>✕</td><td>采购员个人判断</td></tr>
+    <tr><td class="c-num">L3</td><td>联动 SVC 数据 + 业务审批</td><td>✓（SVC 校验）</td><td>✕</td><td>经审批，可追溯，权威性高</td></tr>
+    <tr><td class="c-num">L4</td><td>BOM + VSM 全拆解</td><td>✓</td><td>✓</td><td>全透明，工序级可追溯</td></tr>
+  </table>
+
+  <p class="body">L2 和 L3 看到的成本要素一样（都是材料费），区别在<b>权威性</b>：L2 是采购员自己在 EP 里拆的，L3 联动了 SVC 数据并经过业务审批，数据更可信。L3 到 L4 的跨越则在于<b>深度</b>：L4 把制造费也拆开了，还能追溯到工序级。</p>
+
+  <div class="callout">
+    <div class="ct"><span class="em">🏭</span> 链路已经跑通：戈尔德做到了 L4</div>
+    浙江戈尔德智能悬架（减振器供应商）在 RFQ-20260518-001（MX1127B-1 被动减振器）报出了 <b>L4-BOM+VSM</b>，同一报价包里的汇众萨克斯、天纳克还停在 L1。这说明从 L1 黑盒到 L4 全透明，<b>不是画在纸上的理想，是真实能跑通的</b>——供应商肯配合细项报价、CE 做 VSM 分析，这条路就走得通。这是报告里"该做的都能做到"最直接的证据。
+  </div>
+
+  <div class="callout green">
+    <div class="ct"><span class="em">📌</span> 方向是对的，但要多方协调</div>
+    拆解这件事，<b>不是采购员一个人能完成的</b>。L2 需要采购员在 EP 操作；L3 需要联动 SVC 数据、走业务审批流程；L4 需要供应商配合提供细项报价、CE 团队做 VSM 分析。机械架构组已经跑通了整条流程（拆解率 40% + 6 个深度包），试点效果验证了可行性。后续推广需要采购、CE、供应商、EP 系统四方一起配合——<b>方向是对的，配合机制还得慢慢建</b>。
+  </div>
+</section>
+
+<!-- ================= Part 2: 指标怎么定的 ================= -->
+<section class="part" id="p2">
+  <div class="part-head"><span class="part-no">PART 2</span><h2>指标怎么定的：从业务目标到可执行定义</h2></div>
+  <div class="part-sub">指标不是拍出来的，是从业务问题倒推出来的</div>
+
+  <h3 class="blk">第一步：找到北极星</h3>
+  <p class="body">拿到 3 个月报价明细（1209 行、12 列）时，第一件事不是画图，而是问：<b>老板到底想回答什么问题？</b></p>
+  <p class="body">答案不是"拆解率是多少"，而是"报价成本透明化做到哪一步了"。拆解率只是回答这个问题的量化手段。所以北极星指标不是"拆解率"，而是"<b>报价成本透明化程度</b>"——拆解率是它的代理变量。</p>
+
+  <div class="callout green">
+    <div class="ct"><span class="em">💡</span> 这一步为什么重要</div>
+    如果北极星定成"拆解率达到 X%"，团队会为了拆而拆——紧固件也硬拆、胶水也硬拆，数字好看了但没意义。定成"成本透明化"，团队自然会区分"该拆的"和"不该拆的"。
+  </div>
+
+  <h3 class="blk">第二步：指标分层——一个金字塔</h3>
+  <p class="body">有了北极星，往下层层拆解，形成金字塔结构：</p>
+  <div class="pyramid">
+    <div class="py">
+      <div class="prow p1"><div class="pn">北极星</div><div class="pd">报价成本透明化（拆解是手段，不是目的）</div></div>
+      <div class="prow p2"><div class="pn">结果指标</div><div class="pd">拆解率（该拆的都拆了吗）</div></div>
+      <div class="prow p3"><div class="pn">过程指标</div><div class="pd">周新增拆解 · 积压数 · L2→L3+ 转化率</div></div>
+      <div class="prow p4"><div class="pn">个体指标</div><div class="pd">采购组 × 采购员 × 品类 三维交叉</div></div>
+    </div>
+  </div>
+  <p class="body">每一层回答不同问题：北极星回答"方向对不对"，结果指标回答"做到了没有"，过程指标回答"节奏跟上了吗"，个体指标回答"谁落后、哪类特殊"。老板看顶层，采购员看底层，各取所需。</p>
+
+  <p class="body">金字塔是<b>指标</b>的分层；<b>数据本身也要分层看</b>。拆解率把 L2/L3/L4 合并成"已拆解"，是为了给老板一个总数；但每一层的数据我们都能单独拉出来，不是一个聚合口径盖住所有：</p>
+
+  <div class="fig">
+    <svg viewBox="0 0 880 240" xmlns="http://www.w3.org/2000/svg">
+      <text x="440" y="26" text-anchor="middle" font-size="15" font-weight="700" fill="#1f2a37">184 个报价包，四个层级都看得见</text>
+      <text x="440" y="46" text-anchor="middle" font-size="12" fill="#5b6573">聚合口径只回答"合起来多少"；拆开看才知道深度增长的机会在哪</text>
+
+      <text x="96" y="84" text-anchor="end" font-size="13" font-weight="800" fill="#1f2a37">L1 未拆解</text>
+      <rect x="104" y="68" width="512" height="28" rx="6" fill="#94a3b8"/>
+      <text x="628" y="87" font-size="13" font-weight="800" fill="#5b6573">128</text>
+
+      <text x="96" y="124" text-anchor="end" font-size="13" font-weight="800" fill="#1f2a37">L2 自拆</text>
+      <rect x="104" y="108" width="176" height="28" rx="6" fill="#f59e0b"/>
+      <text x="292" y="127" font-size="13" font-weight="800" fill="#b45309">44</text>
+
+      <text x="96" y="164" text-anchor="end" font-size="13" font-weight="800" fill="#1f2a37">L3 SVC</text>
+      <rect x="104" y="148" width="40" height="28" rx="6" fill="#14B8A6"/>
+      <text x="156" y="167" font-size="13" font-weight="800" fill="#0f766e">10</text>
+
+      <text x="96" y="204" text-anchor="end" font-size="13" font-weight="800" fill="#1f2a37">L4 全透明</text>
+      <rect x="104" y="188" width="10" height="28" rx="6" fill="#6366F1"/>
+      <text x="126" y="207" font-size="13" font-weight="800" fill="#3730a3">2</text>
+
+      <line x1="640" y1="60" x2="640" y2="224" stroke="#f59e0b" stroke-width="1.5" stroke-dasharray="4 3"/>
+      <text x="652" y="78" font-size="12" font-weight="700" fill="#1f2a37">聚合口径：已拆解 = 56（L2+L3+L4）</text>
+      <text x="652" y="96" font-size="12" fill="#5b6573">账面拆解率 30.4% 只看这个总数</text>
+      <text x="652" y="122" font-size="12" font-weight="700" fill="#0f766e">分层视角：深度包 = 12（L3+L4）</text>
+      <text x="652" y="140" font-size="12" fill="#5b6573">有效拆解率 34.1% 讲的是"该拆的拆没拆"</text>
+      <text x="652" y="166" font-size="12" font-weight="700" fill="#b45309">下一步的增长点 = L2 的 44 个升 L3</text>
+      <text x="652" y="184" font-size="12" fill="#5b6573">转化率 21.4%：深度没放大</text>
+    </svg>
+    <div class="cap">图 1b｜同一份数据：聚合口径（56）和分层视角（每层各多少）并存，互不冲突</div>
+  </div>
+
+  <table class="tb">
+    <tr><th style="width:80px">层级</th><th style="width:110px">当前包数</th><th>单独看它，回答什么问题</th><th style="width:200px">对应的动作</th></tr>
+    <tr><td class="c-num">L1</td><td>128</td><td>哪些包还没动、卡在谁手里</td><td>派单清积压（92 个超 1 月优先）</td></tr>
+    <tr><td class="c-num">L2</td><td>44</td><td>材料费拆出来了，但没走审批，权威性不够</td><td>推升 L3 的候选池——深度增长就靠这一层</td></tr>
+    <tr><td class="c-num">L3</td><td>10</td><td>过了 SVC 审批，数据可放心用于核价</td><td>作为价格参考，直接支撑 CE 核价</td></tr>
+    <tr><td class="c-num">L4</td><td>2</td><td>全透明标杆，证明这条路可行</td><td>复制做法到同品类（戈尔德模式）</td></tr>
+  </table>
+
+  <p class="body">所以"已拆解 = L2+L3+L4"只是一个<b>聚合口径</b>，它负责让老板一眼看到整体进度；每层的数我们始终单列——<b>L3/L4 才代表深度和权威，是下一步要重点推的</b>。聚合口径为了好懂，分层数据为了好行动，两者并存。</p>
+
+  <h3 class="blk">第三步：定义核心指标——拆解率的三个关键决策</h3>
+  <p class="body">"拆解率"看起来简单，定义过程中有三个关键决策：</p>
+  <table class="tb">
+    <tr><th style="width:34px">#</th><th style="width:180px">决策点</th><th>我们怎么选的</th><th style="width:200px">为什么</th></tr>
+    <tr><td class="c-num">1</td><td><b>分子怎么算</b></td><td>L2 + L3 + L4 都算"已拆解"</td><td>L2 至少拆出了材料费，是及格线；只算 L3/L4 门槛太高，起步阶段没人达标</td></tr>
+    <tr><td class="c-num">2</td><td><b>分母怎么算</b></td><td>按 RFQ 去重，取最高拆解层级</td><td>同一 RFQ 有多轮次、多供应商，不去重会重复统计——一个包算三次，率就虚高</td></tr>
+    <tr><td class="c-num">3</td><td><b>时间窗怎么定</b></td><td>ISO 周归属，OFF=1，剔除当前不完整周</td><td>当周数据不稳定（还在提交中），放进去会误导——宁可少看一周，也不看错一周</td></tr>
+  </table>
+
+  <h3 class="blk">数据背后的两个硬困难：RFQ 是活的，周期又长</h3>
+  <p class="body">定口径之前，先被两个现实问题卡住——它们不解决，所有周趋势都是错的：</p>
+  <table class="tb">
+    <tr><th style="width:34px">#</th><th style="width:150px">困难</th><th>真实现象</th><th style="width:230px">我们的解法</th></tr>
+    <tr><td class="c-num">1</td><td><b>RFQ 是动态变化的</b></td><td>184 个报价包同时存在 5 种状态（已完成 102 / 询价中 63 / ENQUIRING 12 / 未发起询价 6 / 定点中 1）；状态会流转、供应商会增减、提交会跨期——同一批 RFQ，两周前的名单和现在不一样</td><td>锁定<b>周活跃度</b>视角：不按"创建时间"累计，按<b>最新提交时间</b>归周，看"当周有动作的 RFQ"，而不是"当周新建的 RFQ"</td></tr>
+    <tr><td class="c-num">2</td><td><b>RFQ 周期特别长</b></td><td>最早的 RFQ-20230821-004 创建于 2023-08，到 2026-06 还在提交；这 3 个月窗口里活跃的 184 个包，创建时间跨度超过 3 年——按创建时间归周会把老包全算进"历史"，当周永远显示 0</td><td>归周看<b>最新提交时间</b>；<b>剔除当前不完整周</b>（还在提交中的周不进对比）；累计口径统一写"<b>截止本周</b>"（174 → 184 是截止值，不是当周新增）</td></tr>
+  </table>
+  <div class="callout amber">
+    <div class="ct"><span class="em">💡</span> 这两个困难说明一个原则</div>
+    数据对象是<b>活的</b>（RFQ 会变）、<b>生命周期长</b>（跨年），口径就必须回答"每一刻它处于什么状态"。用"最新提交时间"做时间锚点，是我们在"数据在流动"和"报告要稳定"之间找到的平衡——<b>同一份数据，任何时候跑，都得出同一个数</b>。
+  </div>
+
+  <p class="body">这里有一个容易忽略的点：<b>分子把 L2 算进去，意味着"采购员自己拆的"也算达标</b>。这在中早期是合理的——先让数据有起来，再逐步推动从 L2 升到 L3（走 SVC 审批）。如果一上来就只认 L3+，大量 L2 包会变成"不达标"，打击积极性。</p>
+
+  <h3 class="blk">第四步：SMART 自检 + 口径文档化</h3>
+  <p class="body">指标定义完，用 SMART 框架自检：</p>
+  <table class="tb">
+    <tr><th style="width:110px">维度</th><th>报价拆解率是怎么满足的</th></tr>
+    <tr><td><b>S / M 明确</b></td><td>分子 = 已拆解报价包（L2+L3+L4），分母 = 有效报价包，可精确计算，<b>两个人算出同一个数</b></td></tr>
+    <tr><td><b>A 可归因</b></td><td>通过映射表，每个包可归因到采购组、采购员——追责和派单就有着落</td></tr>
+    <tr><td><b>R 对齐业务</b></td><td>指标直接挂钩动作：派单清积压、分层策略、SOP 复制</td></tr>
+    <tr><td><b>T 时间窗</b></td><td>ISO 周归属、OFF=1、剔除当前不完整周——同一周只有一种数法</td></tr>
+    <tr><td><b>口径文档化</b></td><td>口径写成代码常量（EXCLUDE 名单、去重逻辑），可复现、可审计——<b>口径不是口头约定，是版本管理</b></td></tr>
+  </table>
+
+  <div class="callout">
+    <div class="ct"><span class="em">💡</span> 口径文档化的意义</div>
+    早期口径全靠口头约定，"上周 174 个"和这周"184 个"对不上，谁也说不清差在哪。后来把口径写进代码：去重逻辑、周归属规则、不适用品类名单全是常量——<b>数字可以被质疑，但口径必须能辩护</b>。
+  </div>
+</section>
+
+<!-- ================= Part 3: 数字冲突 ================= -->
+<section class="part" id="p3">
+  <div class="part-head"><span class="part-no">PART 3</span><h2>数字对不齐：发现问题</h2></div>
+  <div class="part-sub">指标上了墙，三方声音却对不齐</div>
+
+  <p class="body">第一版拆解率算出来：<b>30.4%</b>（56 个已拆解 ÷ 184 个报价包）。拿着这个数字跟业务过了一遍，结果：</p>
+
+  <div class="dilemma">
+    <div class="dq w1"><span class="who"><i>业务</i>我们很努力了</span>「紧固件怎么拆？胶水怎么拆？我们品类特殊，这个率对我不公平。」</div>
+    <div class="dq w2"><span class="who"><i>老板</i>到底行不行</span>「推了 3 个月，拆解率才 30.4%，剩下的 70% 卡在哪？」</div>
+    <div class="dq w3"><span class="who"><i>数据</i>我不知道</span>「我只知道怎么算，不知道尺子本身对不对——分母里可能混着根本不该算的包。」</div>
+  </div>
+
+  <p class="body">三方盯着同一个数字，谁都不服谁。这时候我们意识到：问题不在执行力，在指标本身。</p>
+
+  <p class="body">做了一件事：把 128 个未拆解的报价包<b>逐个过品类名</b>，跟业务一起识别出 <b>4 类 20 个天然无法拆解的 RFQ</b>（紧固件 / SPR、胶水 / 胶条、色漆 / 颜色开发、软件 / 服务 / 技术要求）。剔除后：</p>
+
+  <div class="fig">
+    <svg viewBox="0 0 880 210" xmlns="http://www.w3.org/2000/svg">
+      <text x="440" y="26" text-anchor="middle" font-size="15" font-weight="700" fill="#1f2a37">同一批数据，两把尺子</text>
+      <text x="80" y="72" font-size="13" font-weight="700" fill="#5b6573">账面拆解率（含不适用品类）</text>
+      <rect x="80" y="84" width="480" height="34" rx="8" fill="#fecdd3"/>
+      <text x="80" y="106" font-size="12" fill="#881337" font-weight="700">30.4% &nbsp;·&nbsp; 56 ÷ 184</text>
+      <text x="576" y="106" font-size="12" fill="#5b6573">分母 184 = 全部报价包</text>
+      <text x="80" y="152" font-size="13" font-weight="700" fill="#0f766e">有效拆解率（剔除不适用品类）</text>
+      <rect x="80" y="164" width="546" height="34" rx="8" fill="#99f6e4"/>
+      <text x="80" y="186" font-size="12" fill="#134e4a" font-weight="700">34.1% &nbsp;·&nbsp; 56 ÷ 164</text>
+      <text x="576" y="186" font-size="12" fill="#5b6573">分母 164 = 184 − 20</text>
+      <line x1="646" y1="101" x2="646" y2="181" stroke="#f59e0b" stroke-width="2" stroke-dasharray="4 3"/>
+      <text x="660" y="146" font-size="12" font-weight="800" fill="#b45309">+3.7pp</text>
+    </svg>
+    <div class="cap">图 2｜账面 vs 有效拆解率：差距 = 20 个"不该算进去"的品类包</div>
+  </div>
+
+  <p class="body">指标第一次能区分"<b>没做</b>"和"<b>不该做</b>"。紧固件、胶水这些品类，物理上无法给出 BOM / VSM 拆解——把它们算进分母，等于让采购员背一个完不成的指标。</p>
+
+  <div class="callout rose">
+    <div class="ct"><span class="em">🔑</span> 教训</div>
+    指标的第一价值不是"好看"，而是<b>公平</b>。一把不公平的尺子，量不出真实的业务，只会让数据与业务互相怀疑。
+  </div>
+</section>
+
+<!-- ================= Part 4: 好指标三要素 ================= -->
+<section class="part" id="p4">
+  <div class="part-head"><span class="part-no">PART 4</span><h2>一个好指标的三要素</h2></div>
+  <div class="part-sub">把踩过的坑，压缩成一个可以复用的判断标准</div>
+
+  <div class="m3">
+    <div class="cell" style="--c:var(--teal)"><div class="ic">🎯</div><div class="tt">业务意义</div><div class="en">BUSINESS MEANING</div>
+      <p>指标必须回答一个<b>业务问题</b>。"拆解率"回答的是：报价成本透明化做到哪一步了？没有业务意义的数字，只是统计。</p></div>
+    <div class="cell" style="--c:var(--indigo)"><div class="ic">📏</div><div class="tt">口径严谨</div><div class="en">RIGOROUS DEFINITION</div>
+      <p>分子分母、去重逻辑、时间窗、边界条件<b>必须可复现、可辩护</b>。同一份数据，两个人必须算出同一个数。</p></div>
+    <div class="cell" style="--c:var(--rose)"><div class="ic">⚡</div><div class="tt">可行动</div><div class="en">ACTIONABLE</div>
+      <p>指标异常时，能直接指出<b>谁、在哪、该做什么</b>。只报"率"不报"谁落后"的报告，没人会用。</p></div>
+  </div>
+
+  <div class="formula">好指标 = 业务意义 <span class="x">×</span> 口径严谨 <span class="x">×</span> 可行动 <span class="zero">（乘法，任一为 0 即失效）</span></div>
+
+  <table class="tb">
+    <tr><th style="width:34px">#</th><th style="width:130px">某一项为 0</th><th>我们在哪踩过</th></tr>
+    <tr><td class="c-num">1</td><td><b>业务意义 = 0</b></td><td>账面 30.4% 把紧固件 / 胶水算进分母——业务不认。数字再准也没用。</td></tr>
+    <tr><td class="c-num">2</td><td><b>口径严谨 = 0</b></td><td>同一 RFQ 多轮次、多供应商重复统计，数出来忽高忽低——数字没人信。</td></tr>
+    <tr><td class="c-num">3</td><td><b>可行动 = 0</b></td><td>早期只报总体率，老板问"那谁负责？"答不上来——报告被丢进抽屉。</td></tr>
+  </table>
+</section>
+
+<!-- ================= Part 5: 五步演进 ================= -->
+<section class="part" id="p5">
+  <div class="part-head"><span class="part-no">PART 5</span><h2>实战复盘：五步演进</h2></div>
+  <div class="part-sub">从"报表"到"决策"，指标是怎么一步步改出来的</div>
+
+  <div class="tl">
+    <div class="node" style="--c:var(--amber)"><div class="st"><span class="step">STEP 1</span>从无到有：先把数据搬上墙 <span class="ph">· 有没有</span></div>
+      <p>拿到 3 个月报价明细。第一件事是定义"数什么"：<b>报价包</b> = RFQ 去重、取最高拆解层级 → <span class="num">184 个</span>；<b>拆解率</b> = 已拆解 ÷ 报价包。产出第一版总览报表。</p>
+      <span class="out">产出：第一个指标"拆解率"</span>
+    </div>
+    <div class="node" style="--c:var(--teal)"><div class="st"><span class="step">STEP 2</span>先把口径做严谨：让数字可信 <span class="ph">· 准不准</span></div>
+      <p>指标上墙后被业务反复挑战。四个坑逐个填：</p>
+      <table class="tb">
+        <tr><th>#</th><th style="width:200px">坑</th><th>问题</th><th>解法</th></tr>
+        <tr><td class="c-num">1</td><td><b>多轮次多供应商</b></td><td>同一 RFQ 多条记录、多个轮次</td><td>RFQ 去重，取最高拆解层级</td></tr>
+        <tr><td class="c-num">2</td><td><b>周归属漂移</b></td><td>跨周提交、当周数据不稳定</td><td>ISO 周、OFF=1、剔除不完整周</td></tr>
+        <tr><td class="c-num">3</td><td><b>组织归属缺失</b></td><td>47 名采购员无组别</td><td>采购员→采购组映射表（7 组）</td></tr>
+        <tr><td class="c-num">4</td><td><b>数据源不可追溯</b></td><td>手工导出 CSV 无元数据</td><td>切飞书表，报告内置数据源链接</td></tr>
+      </table>
+      <span class="out">产出：口径文档化 + 可追溯数据源 + 基线对比</span>
+    </div>
+    <div class="node" style="--c:var(--indigo)"><div class="st"><span class="step">STEP 3</span>指标修正：从"拆没拆"到"该拆的拆没拆" <span class="ph">· 深不深</span></div>
+      <p>业务反复说"品类特殊"。认真验证——把 128 个 L1 未拆解包逐个过品类名，<b>与业务共创</b>识别出 4 类 20 个天然不适合拆解的 RFQ：</p>
+      <div class="fig">
+        <svg viewBox="0 0 880 130" xmlns="http://www.w3.org/2000/svg">
+          <text x="440" y="24" text-anchor="middle" font-size="14" font-weight="700" fill="#1f2a37">20 个不适用拆解品类包（已从分母剔除）</text>
+          <rect x="80" y="48" width="160" height="34" rx="8" fill="#94a3b8"/>
+          <rect x="240" y="48" width="100" height="34" rx="8" fill="#c4b5fd"/>
+          <rect x="340" y="48" width="60" height="34" rx="8" fill="#fcd34d"/>
+          <rect x="400" y="48" width="80" height="34" rx="8" fill="#f9a8d4"/>
+          <text x="440" y="72" text-anchor="middle" font-size="13" font-weight="800" fill="#1f2a37">= 20</text>
+          <g font-size="12" fill="#5b6573">
+            <rect x="80" y="104" width="12" height="12" rx="3" fill="#94a3b8"/><text x="98" y="114">紧固件 / SPR（8）</text>
+            <rect x="250" y="104" width="12" height="12" rx="3" fill="#c4b5fd"/><text x="268" y="114">胶水 / 胶条（5）</text>
+            <rect x="420" y="104" width="12" height="12" rx="3" fill="#fcd34d"/><text x="438" y="114">色漆 / 颜色开发（3）</text>
+            <rect x="600" y="104" width="12" height="12" rx="3" fill="#f9a8d4"/><text x="618" y="114">软件 / 服务 / 技术要求（4）</text>
+          </g>
+        </svg>
+        <div class="cap">图 3｜不适用品类构成：物理上无法给出 BOM / VSM 拆解的品类</div>
+      </div>
+      <p>新指标：<b>有效拆解率 = 已拆解 ÷（报价包 − 不适用品类）= 56 ÷ 164 = <span class="num">34.1%</span></b>。副产品洞察：12 个 L3/L4 深度包<b>全部在 6/16 制造费放开后完成</b>——能报制造费了，深度拆解才成为可能。</p>
+      <span class="out">产出：有效拆解率 + 不适用品类清单（EXCLUDE 常量固化）</span>
+    </div>
+    <div class="node" style="--c:var(--rose)"><div class="st"><span class="step">STEP 4</span>从指标到行动：让老板知道下一步干什么 <span class="ph">· 到行动</span></div>
+      <p>指标最终要能回答老板三个问题：<b>下一步干什么、谁去做、多久见效</b>。给业务的话也定了调——<b>不是考核采购员，是帮大家把活干明白</b>：先肯定成绩（机械架构组已经跑通整条流程），再一起定目标、分任务。</p>
+      <p>目标分两层：<b>总目标</b>——有效拆解率从 <span class="num">34.1%</span> 往 <b>50%</b> 走（半年维度）；<b>分层目标</b>——紧固件 / 胶水 / 色漆等标准件品类报 L2 材料费即达标，BOM+VSM 品类（机械件 / 电子件）要求 L3+，制造费放开后推 L4 试点。标准件和深度品类，不再用一把尺子量。</p>
+      <p>短板按三个维度挖（证据跟业务共创，不点名批评）：</p>
+      <div class="gap3">
+        <div class="g" style="--c:var(--rose)"><div class="gt">🏢 组织维度</div><div class="big">72 <small>个包</small></div><p>车身外饰体量最大，拆解率仅 <b>26.4%</b>、深度包为 <b>0</b>——量最大、却最浅。</p></div>
+        <div class="g" style="--c:var(--amber)"><div class="gt">👤 个人维度</div><div class="big">30.6% <small>欠账占比</small></div><p>仓基伟(14) / 郑雄(11) / 王健(8) 三人 33 个包全 L1，占有效欠账 30.6%。</p></div>
+        <div class="g" style="--c:var(--indigo)"><div class="gt">⏱ 时间维度</div><div class="big">92 <small>个积压</small></div><p>有效欠账 108 个，其中 <b>92 个积压超 1 个月</b>；W31/W32 周率回落至 20% / 23.5%。</p></div>
+      </div>
+      <p>据此输出一张「下一步行动蓝图」——动作、责任人、见效周期、衡量方式全部写死，老板看一眼就知道接下来三周会发生什么：</p>
+      <table class="tb">
+        <tr><th>#</th><th style="width:170px">行动</th><th style="width:180px">谁来做</th><th style="width:80px">见效周期</th><th>怎么衡量</th></tr>
+        <tr><td class="c-num">1</td><td><b>口径正名上线</b></td><td>数据分析 + 采购管理</td><td>1 周</td><td>周会正式切换"有效拆解率"，EXCLUDE 名单公开可查，考核基线锁定</td></tr>
+        <tr><td class="c-num">2</td><td><b>积压清零战</b></td><td>采购员（仓基伟 / 郑雄 / 王健三人大头优先）</td><td>2 周</td><td>92 个超 1 月 L1 消化过半，有效欠账 108 → 50</td></tr>
+        <tr><td class="c-num">3</td><td><b>分层规则落地</b></td><td>采购管理 + EP 系统</td><td>2 周</td><td>标准件报 L2 即达标、深度品类追 L3+，写进 EP 操作指引</td></tr>
+        <tr><td class="c-num">4</td><td><b>标杆复制</b></td><td>机械架构组（输出 SOP）+ 车身外饰 / 电池组（认领试点）</td><td>1 个月</td><td>SOP 分享会落地；车身外饰深度包 0 → 3</td></tr>
+        <tr><td class="c-num">5</td><td><b>周会节奏</b></td><td>全员</td><td>持续</td><td>每周固定时点更新 + 周会过数，异常当周暴露、当周派单</td></tr>
+      </table>
+      <p class="body" style="margin-top:8px">这张表就是给老板的"下一步"：目标（34.1% → 50%）、责任人（派单表）、节奏（周会）都列清楚了，<b>分层规则和口径正名把考核口径也定下来</b>。报告不再停在"情况如何"，直接变成下周的工作安排。</p>
+      <span class="out">产出：Insight 洞察页（先夸 → 再打 → 给方案）+ 行动蓝图（五步）</span>
+    </div>
+    <div class="node" style="--c:var(--indigo)"><div class="st"><span class="step">STEP 5</span>自动化：从"做一次"到"每周做" <span class="ph">· 快不快</span></div>
+      <p>把分析流程<b>封装成 skill</b>：新数据 → 一条命令 → 报告 + 基线自动对比 + 上传固定链接；历史周报归档成附录 tab（W27→W32 每周数据可点击回看）。从"每次分析半天"到"每周 5 分钟"。</p>
+      <span class="out">产出：自动化流程 + 历史归档 + 固定分享链接</span>
+    </div>
+  </div>
+
+  <div class="callout amber">
+    <div class="ct"><span class="em">🔑</span> 最重要的一条</div>
+    分析的终点不是报告，是<b>行动</b>。老板要的不是"情况如何"，而是"下一步怎么办、谁去做、多久见效"。
+  </div>
+</section>
+
+<!-- ================= Part 6: 业务合作 ================= -->
+<section class="part" id="p6">
+  <div class="part-head"><span class="part-no">PART 6</span><h2>与业务合作的三条心法</h2></div>
+  <div class="part-sub">数据不是算出来的，是跟业务"处"出来的</div>
+
+  <table class="tb">
+    <tr><th style="width:34px">#</th><th style="width:170px">心法</th><th>具体怎么做的</th></tr>
+    <tr><td class="c-num">1</td><td><b>指标是共创的</b></td><td>采购员→采购组映射表靠业务提供（47 人→7 组）；20 个不适用品类名单是<b>跟业务一起过的</b>，不是数据人自嗨。业务不认的指标，等于没有指标。</td></tr>
+    <tr><td class="c-num">2</td><td><b>指标要可辩护</b></td><td>"有效拆解率"为什么公平：分母里剔除了物理上无法拆的品类。当业务拿"品类特殊"当借口时，可以拿名单反问：<b>你属于这 4 类里的哪一类？</b></td></tr>
+    <tr><td class="c-num">3</td><td><b>汇报顺序：先夸 → 再打 → 给方案</b></td><td>先肯定：拆解从无到有、12 个深度包、机械架构组 40% 标杆、累计 142 家供应商完成 L2+；再打差距：108 个有效欠账、92 个积压；最后给四条可执行策略。业务从"被考核"变成"一起解问题"。</td></tr>
+  </table>
+
+  <div class="callout green">
+    <div class="ct"><span class="em">💡</span> 多方协调是关键</div>
+    拆解这件事需要四方配合：<b>采购员</b>在 EP 操作 L2 拆解、<b>CE 团队</b>联动 SVC 数据走 L3 审批、<b>供应商</b>提供细项报价支撑 L4、<b>EP 系统</b>提供工具和流程保障。机械架构组能跑通整条流程，就是四方配合到位的结果。后续推广车身外饰、电池组，也要先理清四方各自的职责和卡点。
+  </div>
+</section>
+
+<!-- ================= Part 7: 方法论 ================= -->
+<section class="part" id="p7">
+  <div class="part-head"><span class="part-no">PART 7</span><h2>方法论：PM 视角的两件事</h2></div>
+  <div class="part-sub">把实战经验，还原成可迁移的方法</div>
+
+  <h3 class="blk">① 数据分析方式：四级递进</h3>
+  <p class="body">从"是什么"到"如何持续"，每上一层，离决策近一步：</p>
+  <div class="ladder">
+    <div class="lad">
+      <div class="lr"><span class="lv" style="background:var(--indigo)">L1 描述</span><span class="lq">是什么？</span><span class="la">KPI 总览、周趋势——先看清现状</span><span class="lx">30.4% · 184 包 · 142 家供应商</span></div>
+      <div class="lr"><span class="lv" style="background:#7c3aed">L2 诊断</span><span class="lq">为什么？</span><span class="la">组 / 人 / 品类 / 时间多维下钻</span><span class="lx">车身外饰 26.4% · 三人占 30.6%</span></div>
+      <div class="lr"><span class="lv" style="background:#a855f7">L3 处方</span><span class="lq">怎么办？</span><span class="la">差距定位 → 策略输出（四条）</span><span class="lx">口径正名 · 分层 · 清积压 · 复制标杆</span></div>
+      <div class="lr"><span class="lv" style="background:#d946ef">L4 机制</span><span class="lq">如何持续？</span><span class="la">自动化 + 周会 + SOP 固化</span><span class="lx">skill 一条命令 · 每周更新 · 固定链接</span></div>
+    </div>
+  </div>
+  <p class="body"><b>可视化选型</b>：KPI 卡看现状、趋势图看节奏、堆积柱状看构成、明细表看证据——每种图只回答一个问题，不要一张图塞五个结论。</p>
+
+  <h3 class="blk">② 指标迭代：随业务阶段演进</h3>
+  <p class="body">指标体系不是一天建好的——从"有没有"到"有没有价值"，每一步都比上一步看得更清：</p>
+  <table class="tb">
+    <tr><th>#</th><th style="width:150px">阶段</th><th>要回答的问题</th><th>我们的对应动作</th></tr>
+    <tr><td class="c-num">1</td><td><b>有没有</b></td><td>数据上墙了吗？</td><td>定义报价包与拆解率，第一版报表</td></tr>
+    <tr><td class="c-num">2</td><td><b>准不准</b></td><td>数字经得起挑战吗？</td><td>去重 / 周归属 / 映射 / 数据源四连修</td></tr>
+    <tr><td class="c-num">3</td><td><b>快不快</b></td><td>更新跟得上节奏吗？</td><td>skill 自动化，每周一条命令</td></tr>
+    <tr><td class="c-num">4</td><td><b>深不深</b></td><td>指标能指导业务吗？</td><td>有效拆解率修正 + 洞察策略页</td></tr>
+  </table>
+  <div class="callout amber">
+    <div class="ct"><span class="em">⚠️</span> 敢于推翻自己</div>
+    有效拆解率其实就是推翻了自己上一版的口径（账面拆解率）。指标跟产品一样，也要迭代——如果 3 个月没换过一次口径，要么没在用，要么没在认真用。
+  </div>
+</section>
+
+<!-- ================= Part 8: Skill 建设 ================= -->
+<section class="part" id="p8">
+  <div class="part-head"><span class="part-no">PART 8</span><h2>数据分析 Skill 建设：把方法论变成工具</h2></div>
+  <div class="part-sub">分析流程不封装成工具，就无法持续</div>
+
+  <h3 class="blk">为什么要做 Skill</h3>
+  <p class="body">前几周每次更新报告，流程是：导出 CSV → 手动跑脚本 → 检查数字 → 生成 HTML → 手动上传 FDS → 发链接。一轮下来半小时到一小时，还容易出错（路径拼错、参数漏传、编码炸了）。</p>
+  <p class="body">问题是：<b>分析逻辑每周都一样</b>——去重、周归属、映射、算率、生成报告。既然逻辑不变，就应该固化成工具，让机器去做重复劳动，人只管看数字和下判断。</p>
+
+  <h3 class="blk">Skill 做了什么</h3>
+  <p class="body">把整个分析流程封装成一个 skill（<b>baojia-detail-analysis</b>），一条命令完成从数据到报告的全流程：</p>
+  <div class="skill-flow">
+    <div class="sf"><div class="si">📥</div><div class="st">输入 CSV</div><div class="sd">飞书表导出 12 列原始数据</div></div>
+    <div class="sf"><div class="si">⚙️</div><div class="st">自动处理</div><div class="sd">去重 / 映射 / 周归属 / 算率</div></div>
+    <div class="sf"><div class="si">📊</div><div class="st">生成报告</div><div class="sd">三 Tab HTML + SVG 图表</div></div>
+    <div class="sf"><div class="si">☁️</div><div class="st">上传 FDS</div><div class="sd">固定链接，线上即时可访问</div></div>
+  </div>
+
+  <p class="body">关键设计：<b>口径写在代码里</b>（EXCLUDE 常量、去重逻辑、周归属规则），不是靠人记。每次跑出来的数字可复现、可审计。基线对比也自动化了——传入上一期数据，自动算 delta。</p>
+
+  <h3 class="blk">方向调整：从"全维度轰炸"到"组合图锁定"</h3>
+  <p class="body">Skill 里现在这张报告，不是一次画对的——是跟业务一轮轮磨出来的。最开始分析铺得很开：周维度、采购组维度、供应商维度、项目维度、标杆对比，一张报告塞 3 个模块 3 张图。信息是全，但业务看着累，抓不住重点。</p>
+  <p class="body">跟业务反复对过后收敛成一个原则：<b>每张图只回答一个问题，解决不了决策的图再好看也删</b>。最终锁定的组合图 = <b>KPI 双排</b>（现状一眼看清）+ <b>堆积柱状</b>（层级构成，同色板同叠加结构）+ <b>折线</b>（趋势节奏）+ <b>明细表</b>（证据可下钻）——四件套视觉对齐，各司其职。</p>
+  <p class="body">后面的每一轮沟通，都在往"少而准"收敛：</p>
+  <table class="tb">
+    <tr><th>#</th><th style="width:240px">业务反馈 / 方向调整</th><th>结果</th></tr>
+    <tr><td class="c-num">1</td><td>供应商标杆模块跟当前决策无关</td><td>砍掉，报告瘦身</td></tr>
+    <tr><td class="c-num">2</td><td>供应商与拆解度两列信息重复</td><td>整合成一列，同一报价包其他供应商层级带标签同列展示</td></tr>
+    <tr><td class="c-num">3</td><td>最新一周贡献用图不直观</td><td>改用表格，数字更准、能对上明细</td></tr>
+    <tr><td class="c-num">4</td><td>多张表样式不统一</td><td>表格统一样式，报告整体一致</td></tr>
+    <tr><td class="c-num">5</td><td>老板要看结论和下一步</td><td>加 Insight tab：先夸 → 再打 → 给方案</td></tr>
+    <tr><td class="c-num">6</td><td>历史数据要能回看</td><td>加附录 tab，W27→W32 每周数据可点击</td></tr>
+  </table>
+  <p class="body">这个过程本身就是方法论：<b>先做宽，再收窄</b>——初期用全维度轰炸摸清数据能回答什么问题，中期跟业务确认"哪些图真正驱动决策"，后期只保留这些图并持续打磨。Skill 固化的不是最初的版本，而是收敛后的版本；业务每有新反馈，报告就再改一版。</p>
+
+  <h3 class="blk">Skill 生态</h3>
+  <p class="body">报价细项分析只是一个起点。围绕采购数据分析，已经建了一套 skill 体系：</p>
+  <div class="skill-eco">
+    <div class="se-row">
+      <div class="se" style="--c:var(--teal)"><div class="sn">baojia-detail-analysis</div><div class="stt">报价细项拆解分析</div><p>本周报告的核心 skill。CSV → 三 Tab HTML 报告 + FDS 上传，含 Insight 洞察页和附录归档。</p></div>
+      <div class="se" style="--c:var(--indigo)"><div class="sn">ce-pricing-completion</div><div class="stt">CE 核价完成率分析</div><p>另一条分析线。以"上会"sheet 为基准反向匹配"核价"sheet，统计完成率，输出 HTML 报告。</p></div>
+      <div class="se" style="--c:var(--amber)"><div class="sn">ep-supplier-query</div><div class="stt">EP 供应商查询</div><p>原子 skill，调 dx-ep CLI 查供应商基本信息 / 列表模糊搜 / 变更历史。</p></div>
+      <div class="se" style="--c:var(--rose)"><div class="sn">xiaomi-fds</div><div class="stt">FDS 文件上传</div><p>底层 skill，封装 FDS SDK 上传 + 设公开读 ACL，返回可直接分享的 https 链接。</p></div>
+    </div>
+  </div>
+
+  <p class="body">设计原则：<b>先拆原子 skill，再组合成路由门面</b>。每个 skill 只做一件事，做到稳定，然后用组合的方式构建复杂工作流。比如"报价细项分析"= 数据处理 skill + FDS 上传 skill 的组合。</p>
+
+  <div class="callout green">
+    <div class="ct"><span class="em">💡</span> Skill 建设的价值</div>
+    <b>一致性</b>：口径固化在代码里，不会因为换人跑就变。<br>
+    <b>知识留存</b>：skill 自带文档和参数说明，新人接手不用从头摸索。<br>
+    <b>成本趋零</b>：每周更新从半小时降到 5 分钟，分析成本接近零，精力可以放在看数字和下判断上。<br>
+    <b>可复用</b>：FDS 上传、供应商查询等原子 skill，其他分析场景也能直接调。
+  </div>
+</section>
+
+<!-- ================= Part 9: 还能往哪走 ================= -->
+<section class="part" id="p9">
+  <div class="part-head"><span class="part-no">PART 9</span><h2>还能往哪走：六个提升方向</h2></div>
+  <div class="part-sub">指标、机制、工具都有了，下一步还能做什么</div>
+
+  <div class="m3">
+    <div class="cell" style="--c:var(--rose)"><div class="ic">🎯</div><div class="tt">深度从"点"到"面"</div><div class="en">DEPTH SCALING</div>
+      <p>12 个深度包集中在机械架构（6 个），车身外饰 72 个包深度为 <b>0</b>；L2→L3+ 转化仅 <b>21.4%</b>。下一步把深度拆解做成<b>品类标配</b>，按 BOM+VSM 品类清单逐类覆盖，而不是靠个别包自然生长。</p></div>
+    <div class="cell" style="--c:var(--teal)"><div class="ic">🤝</div><div class="tt">供应商侧协同</div><div class="en">SUPPLIER COLLABORATION</div>
+      <p>报价粒度（中粗项 vs 细项）卡在供应商手里，L4 必须有供应商配合（戈尔德就是例证）。把<b>细项报价要求写进询价单和准入条款</b>，让"配合度"变成可管理、可考核的变量。</p></div>
+    <div class="cell" style="--c:var(--indigo)"><div class="ic">📋</div><div class="tt">口径从人工到系统</div><div class="en">RULE AUTOMATION</div>
+      <p>不适用品类名单（EXCLUDE）目前靠人逐个过品类名识别。下一步<b>固化到品类主数据</b>，新 RFQ 创建时自动打标，不再依赖人肉识别，也不会因换人而漏判。</p></div>
+    <div class="cell" style="--c:var(--amber)"><div class="ic">⚡</div><div class="tt">从周报到实时预警</div><div class="en">REAL-TIME ALERT</div>
+      <p>92 个积压要等每周报告出来才暴露。下一步做成<b>实时监控</b>：积压超阈值、活跃度连续下滑，自动预警、当周派单，把问题消灭在"发生的那一周"而不是"发现的那一周"。</p></div>
+    <div class="cell" style="--c:var(--rose)"><div class="ic">🔮</div><div class="tt">从统计到预测</div><div class="en">FORECAST</div>
+      <p>基于周活跃度趋势<b>预测下周拆解量</b>，反推"50% 目标什么时候能达成"，提前调配资源——而不是等数字落地了才回头解释为什么没达到。</p></div>
+    <div class="cell" style="--c:var(--indigo)"><div class="ic">📊</div><div class="tt">补对比维度</div><div class="en">BENCHMARK</div>
+      <p>现在只有"自己和上周比"。引入<b>同类项目 / 历史同期基准</b>，趋势才有参照系——拆解率 34.1% 在行业里是什么水平，比"比上周高 2pp"更有说服力。</p></div>
+  </div>
+
+  <div class="callout green">
+    <div class="ct"><span class="em">📌</span> 收个尾</div>
+    三个月的复盘，想强调的就一点：<b>指标要可信、口径要公平、工具要能持续跑</b>。六个方向都是往这个目标走——把"该拆的都拆了"，变成"拆得深、拆得快"。
+  </div>
+</section>
+
+<!-- ================= 要点提炼 ================= -->
+<div class="kp-box">
+  <h2>要点提炼</h2>
+  <ul>
+    <li><b>指标是产品，需要迭代</b>——第一版注定不完美，关键是快速暴露问题并修正。账面 30.4% 到有效 34.1% 就是一次推翻重来。</li>
+    <li><b>口径是信任的基石</b>——数字可以被质疑，但口径必须能辩护。写进代码、版本管理，两个人算出同一个数。</li>
+    <li><b>分析的终点是行动</b>——老板要的不是报告，是下一步：谁去做、做什么、多久见效。</li>
+    <li><b>多方协调才能做好</b>——拆解不是采购员一个人的事，需要采购、CE、供应商、EP 系统四方协同。机械架构组跑通了，说明可行。</li>
+    <li><b>把方法论变成工具</b>——分析逻辑不变就封装成 skill，让机器做重复劳动，人只管下判断。</li>
+  </ul>
+</div>
+
+<div class="foot-note">本材料基于报价细项拆解分析（2026-05 至 2026-08，W19–W32）实战复盘整理 · 全部数字可回溯至每周数据归档</div>
+
+</div>
+</body>
+</html>

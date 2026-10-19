@@ -1,0 +1,857 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>EP样件订单自动化 - 项目方案</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', sans-serif; background: #f5f7fa; color: #1f2329; line-height: 1.6; font-size: 14px; }
+  .container { max-width: 1200px; margin: 0 auto; padding: 24px; }
+  
+  /* 头部 */
+  .header { background: linear-gradient(135deg, #1a56db 0%, #3b82f6 100%); color: white; padding: 40px; border-radius: 12px; margin-bottom: 24px; }
+  .header h1 { font-size: 28px; margin-bottom: 8px; }
+  .header .subtitle { font-size: 16px; opacity: 0.9; margin-bottom: 16px; }
+  .header .meta { display: flex; gap: 24px; font-size: 13px; opacity: 0.85; }
+  .header .meta span { display: flex; align-items: center; gap: 6px; }
+  
+  /* 导航 */
+  .nav { background: white; padding: 16px 24px; border-radius: 8px; margin-bottom: 24px; display: flex; gap: 8px; flex-wrap: wrap; box-shadow: 0 1px 3px rgba(0,0,0,0.05); }
+  .nav a { color: #4b5563; text-decoration: none; padding: 6px 14px; border-radius: 6px; font-size: 13px; transition: all 0.2s; }
+  .nav a:hover { background: #eff6ff; color: #1a56db; }
+  .nav a.active { background: #1a56db; color: white; }
+  
+  /* 卡片 */
+  .card { background: white; border-radius: 10px; padding: 24px; margin-bottom: 20px; box-shadow: 0 1px 3px rgba(0,0,0,0.05); }
+  .card h2 { font-size: 20px; color: #1a56db; margin-bottom: 16px; padding-bottom: 12px; border-bottom: 2px solid #e5e7eb; display: flex; align-items: center; gap: 10px; }
+  .card h2 .icon { width: 28px; height: 28px; background: #dbeafe; border-radius: 6px; display: flex; align-items: center; justify-content: center; font-size: 14px; }
+  .card h3 { font-size: 16px; color: #374151; margin: 20px 0 12px; padding-left: 10px; border-left: 3px solid #3b82f6; }
+  .card h4 { font-size: 14px; color: #4b5563; margin: 16px 0 8px; }
+  
+  /* 架构图 */
+  .arch-layer { border: 1px solid #e5e7eb; border-radius: 8px; padding: 16px; margin-bottom: 12px; position: relative; }
+  .arch-layer .layer-title { font-weight: 600; color: #1a56db; margin-bottom: 8px; font-size: 14px; }
+  .arch-layer .layer-desc { font-size: 12px; color: #6b7280; margin-bottom: 10px; }
+  .arch-components { display: flex; gap: 10px; flex-wrap: wrap; }
+  .arch-component { background: #f3f4f6; padding: 8px 14px; border-radius: 6px; font-size: 12px; color: #374151; border: 1px solid #e5e7eb; }
+  .arch-component.highlight { background: #dbeafe; border-color: #93c5fd; color: #1e40af; font-weight: 500; }
+  .arch-arrow { text-align: center; color: #9ca3af; font-size: 18px; margin: 4px 0; }
+  
+  /* 流程 */
+  .flow { position: relative; padding-left: 30px; }
+  .flow::before { content: ''; position: absolute; left: 10px; top: 0; bottom: 0; width: 2px; background: #e5e7eb; }
+  .flow-step { position: relative; margin-bottom: 20px; }
+  .flow-step::before { content: ''; position: absolute; left: -26px; top: 6px; width: 14px; height: 14px; border-radius: 50%; background: #3b82f6; border: 3px solid #dbeafe; }
+  .flow-step.human::before { background: #f59e0b; border-color: #fef3c7; }
+  .flow-step.auto::before { background: #10b981; border-color: #d1fae5; }
+  .flow-step .step-title { font-weight: 600; color: #1f2937; margin-bottom: 6px; font-size: 14px; }
+  .flow-step .step-title .tag { font-size: 11px; padding: 2px 8px; border-radius: 4px; margin-left: 8px; font-weight: normal; }
+  .flow-step .step-title .tag.auto { background: #d1fae5; color: #065f46; }
+  .flow-step .step-title .tag.human { background: #fef3c7; color: #92400e; }
+  .flow-step .step-title .tag.both { background: #dbeafe; color: #1e40af; }
+  .flow-step .step-desc { font-size: 13px; color: #4b5563; margin-bottom: 8px; }
+  .flow-step .step-detail { background: #f9fafb; padding: 10px 14px; border-radius: 6px; font-size: 12px; color: #6b7280; border-left: 3px solid #e5e7eb; }
+  
+  /* 交互点 */
+  .interaction-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(340px, 1fr)); gap: 16px; }
+  .interaction-card { border: 1px solid #e5e7eb; border-radius: 8px; padding: 16px; transition: all 0.2s; }
+  .interaction-card:hover { box-shadow: 0 4px 12px rgba(0,0,0,0.08); transform: translateY(-2px); }
+  .interaction-card .int-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
+  .interaction-card .int-title { font-weight: 600; font-size: 14px; color: #1f2937; }
+  .interaction-card .int-role { font-size: 11px; padding: 3px 10px; border-radius: 12px; background: #eff6ff; color: #1a56db; }
+  .interaction-card .int-channel { display: flex; gap: 6px; margin-bottom: 10px; }
+  .interaction-card .int-channel span { font-size: 11px; padding: 2px 8px; border-radius: 4px; background: #f3f4f6; color: #6b7280; }
+  .interaction-card .int-desc { font-size: 12px; color: #4b5563; margin-bottom: 10px; line-height: 1.5; }
+  .interaction-card .int-flow { font-size: 11px; color: #6b7280; background: #f9fafb; padding: 8px 10px; border-radius: 4px; }
+  .interaction-card .int-flow strong { color: #374151; }
+  
+  /* 角色 */
+  .role-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 16px; }
+  .role-card { border: 1px solid #e5e7eb; border-radius: 8px; padding: 16px; text-align: center; }
+  .role-card .role-icon { width: 48px; height: 48px; border-radius: 50%; margin: 0 auto 10px; display: flex; align-items: center; justify-content: center; font-size: 20px; }
+  .role-card .role-name { font-weight: 600; font-size: 15px; margin-bottom: 6px; }
+  .role-card .role-desc { font-size: 12px; color: #6b7280; margin-bottom: 10px; }
+  .role-card .role-perms { text-align: left; font-size: 11px; color: #4b5563; }
+  .role-card .role-perms li { margin-bottom: 4px; list-style: none; padding-left: 14px; position: relative; }
+  .role-card .role-perms li::before { content: '✓'; position: absolute; left: 0; color: #10b981; }
+  
+  /* 表格 */
+  table { width: 100%; border-collapse: collapse; font-size: 12px; margin: 12px 0; }
+  th { background: #f3f4f6; padding: 10px 12px; text-align: left; font-weight: 600; color: #374151; border-bottom: 2px solid #e5e7eb; }
+  td { padding: 10px 12px; border-bottom: 1px solid #f3f4f6; color: #4b5563; }
+  tr:hover td { background: #f9fafb; }
+  
+  /* 标签 */
+  .badge { display: inline-block; padding: 2px 8px; border-radius: 4px; font-size: 11px; font-weight: 500; }
+  .badge-blue { background: #dbeafe; color: #1e40af; }
+  .badge-green { background: #d1fae5; color: #065f46; }
+  .badge-yellow { background: #fef3c7; color: #92400e; }
+  .badge-red { background: #fee2e2; color: #991b1b; }
+  .badge-gray { background: #f3f4f6; color: #4b5563; }
+  
+  /* 经验 */
+  .lesson-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(340px, 1fr)); gap: 16px; }
+  .lesson-card { border-radius: 8px; padding: 16px; border-left: 4px solid; }
+  .lesson-card.pitfall { background: #fef2f2; border-color: #ef4444; }
+  .lesson-card.insight { background: #f0fdf4; border-color: #22c55e; }
+  .lesson-card.design { background: #eff6ff; border-color: #3b82f6; }
+  .lesson-card .lesson-title { font-weight: 600; font-size: 14px; margin-bottom: 8px; }
+  .lesson-card.pitfall .lesson-title { color: #991b1b; }
+  .lesson-card.insight .lesson-title { color: #166534; }
+  .lesson-card.design .lesson-title { color: #1e40af; }
+  .lesson-card .lesson-content { font-size: 12px; color: #4b5563; line-height: 1.6; }
+  
+  /* 统计 */
+  .stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 12px; margin-bottom: 20px; }
+  .stat-card { background: white; border-radius: 8px; padding: 16px; text-align: center; box-shadow: 0 1px 3px rgba(0,0,0,0.05); }
+  .stat-card .stat-value { font-size: 28px; font-weight: 700; color: #1a56db; }
+  .stat-card .stat-label { font-size: 12px; color: #6b7280; margin-top: 4px; }
+  
+  /* 代码 */
+  code { background: #f3f4f6; padding: 2px 6px; border-radius: 4px; font-size: 12px; font-family: 'SF Mono', Monaco, monospace; }
+  pre { background: #1f2937; color: #e5e7eb; padding: 16px; border-radius: 8px; overflow-x: auto; font-size: 12px; margin: 12px 0; }
+  pre code { background: none; padding: 0; color: inherit; }
+  
+  /* 页脚 */
+  .footer { text-align: center; padding: 24px; color: #9ca3af; font-size: 12px; }
+</style>
+</head>
+<body>
+<div class="container">
+
+<!-- 头部 -->
+<div class="header">
+  <h1>EP样件订单自动化 - 项目方案</h1>
+  <div class="subtitle">基于Agent + Skill原子化能力 + 飞书人机交互的订单全流程自动化</div>
+  <div class="meta">
+    <span>📅 版本：0915</span>
+    <span>🎯 状态：已实现核心流程</span>
+    <span>🔧 技术栈：Python + dx-ep CLI + 飞书开放平台</span>
+  </div>
+</div>
+
+<!-- 导航 -->
+<div class="nav">
+  <a href="#overview" class="active">项目概览</a>
+  <a href="#architecture">整体架构</a>
+  <a href="#workflow">工作流程</a>
+  <a href="#interaction">人机交互</a>
+  <a href="#roles">角色权限</a>
+  <a href="#skills">Skill原子化</a>
+  <a href="#data">数据沉淀</a>
+  <a href="#lessons">经验避雷</a>
+</div>
+
+<!-- 项目概览 -->
+<div class="card" id="overview">
+  <h2><span class="icon">🎯</span>项目概览</h2>
+  
+  <div class="stats-grid">
+    <div class="stat-card"><div class="stat-value">2</div><div class="stat-label">核心Skill</div></div>
+    <div class="stat-card"><div class="stat-value">6</div><div class="stat-label">人机交互点</div></div>
+    <div class="stat-card"><div class="stat-value">4</div><div class="stat-label">业务角色</div></div>
+    <div class="stat-card"><div class="stat-value">136</div><div class="stat-label">日处理订单量</div></div>
+    <div class="stat-card"><div class="stat-value">100%</div><div class="stat-label">执行可追溯</div></div>
+  </div>
+  
+  <h3>项目目标</h3>
+  <p>将EP样件订单从"人工逐单操作"升级为"Agent自动化+关键节点人工确认"的半自动化流程，实现：</p>
+  <ul style="margin: 12px 0; padding-left: 20px; font-size: 13px; color: #4b5563;">
+    <li><strong>效率提升</strong>：需求导入、查询可下单、订单创建全流程自动化，减少人工操作80%</li>
+    <li><strong>风险可控</strong>：关键节点（导入确认、供应商选择、下单确认）保留人工决策权</li>
+    <li><strong>交互友好</strong>：飞书机器人卡片 + 多维表格双通路，适配不同场景</li>
+    <li><strong>全程可追溯</strong>：所有执行记录沉淀在多维表格，支持查询、统计、审计</li>
+  </ul>
+  
+  <h3>核心设计理念</h3>
+  <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin-top: 12px;">
+    <div style="background: #f0fdf4; padding: 14px; border-radius: 8px; border-left: 3px solid #22c55e;">
+      <div style="font-weight: 600; font-size: 13px; color: #166534; margin-bottom: 6px;">🤖 Agent驱动</div>
+      <div style="font-size: 12px; color: #4b5563;">Skill作为原子能力，Agent编排流程，人机协作完成复杂任务</div>
+    </div>
+    <div style="background: #eff6ff; padding: 14px; border-radius: 8px; border-left: 3px solid #3b82f6;">
+      <div style="font-weight: 600; font-size: 13px; color: #1e40af; margin-bottom: 6px;">👆 人机协同</div>
+      <div style="font-size: 12px; color: #4b5563;">自动化执行+关键节点人工确认，既提效又控风险</div>
+    </div>
+    <div style="background: #fefce8; padding: 14px; border-radius: 8px; border-left: 3px solid #eab308;">
+      <div style="font-weight: 600; font-size: 13px; color: #854d0e; margin-bottom: 6px;">📊 数据驱动</div>
+      <div style="font-size: 12px; color: #4b5563;">执行记录全量沉淀，仪表盘实时展示，支持持续优化</div>
+    </div>
+  </div>
+</div>
+
+<!-- 整体架构 -->
+<div class="card" id="architecture">
+  <h2><span class="icon">🏗️</span>整体架构（四层架构）</h2>
+  
+  <div class="arch-layer" style="border-color: #f59e0b; background: #fffbeb;">
+    <div class="layer-title" style="color: #92400e;">🎯 交互层（Interaction Layer）</div>
+    <div class="layer-desc">用户与系统交互的入口，支持多种交互方式，适配不同场景</div>
+    <div class="arch-components">
+      <div class="arch-component highlight">飞书机器人卡片</div>
+      <div class="arch-component highlight">多维表格确认</div>
+      <div class="arch-component">Agent自然语言交互</div>
+      <div class="arch-component">仪表盘可视化</div>
+    </div>
+  </div>
+  
+  <div class="arch-arrow">⬇️</div>
+  
+  <div class="arch-layer" style="border-color: #3b82f6; background: #eff6ff;">
+    <div class="layer-title" style="color: #1e40af;">🤖 编排层（Orchestration Layer）</div>
+    <div class="layer-desc">Agent负责流程编排、状态管理、异常处理，协调各Skill协同工作</div>
+    <div class="arch-components">
+      <div class="arch-component highlight">工作流引擎</div>
+      <div class="arch-component highlight">状态机管理</div>
+      <div class="arch-component">异常重试机制</div>
+      <div class="arch-component">人机协同决策</div>
+    </div>
+  </div>
+  
+  <div class="arch-arrow">⬇️</div>
+  
+  <div class="arch-layer" style="border-color: #10b981; background: #f0fdf4;">
+    <div class="layer-title" style="color: #065f46;">⚡ 能力层（Capability Layer）</div>
+    <div class="layer-desc">Skill作为原子化能力，每个Skill负责一个独立的业务功能，可独立调用、可组合编排</div>
+    <div class="arch-components">
+      <div class="arch-component highlight">demand-import-0915（需求导入）</div>
+      <div class="arch-component highlight">demand-query-and-order-0915（查询并下单）</div>
+      <div class="arch-component">card_sender（飞书卡片）</div>
+      <div class="arch-component">bitable_logger（执行记录）</div>
+      <div class="arch-component">workflow_schema（统一输出）</div>
+    </div>
+  </div>
+  
+  <div class="arch-arrow">⬇️</div>
+  
+  <div class="arch-layer" style="border-color: #6b7280; background: #f9fafb;">
+    <div class="layer-title" style="color: #374151;">🔧 基础设施层（Infrastructure Layer）</div>
+    <div class="layer-desc">底层依赖和数据存储，为上层提供稳定的基础能力</div>
+    <div class="arch-components">
+      <div class="arch-component">dx-ep CLI（EP系统接口）</div>
+      <div class="arch-component">飞书开放平台（机器人/多维表格）</div>
+      <div class="arch-component">多维表格（数据存储）</div>
+      <div class="arch-component">配置中心（config.json）</div>
+    </div>
+  </div>
+  
+  <h3>架构设计要点</h3>
+  <table>
+    <tr><th>设计原则</th><th>实现方式</th><th>价值</th></tr>
+    <tr><td>原子化能力</td><td>每个Skill独立封装一个业务功能，输入输出标准化</td><td>可复用、可测试、可组合</td></tr>
+    <tr><td>人机协同</td><td>关键节点暂停执行，等待人工确认后继续</td><td>既提效又控风险</td></tr>
+    <tr><td>双通路交互</td><td>少量数据用卡片，大量数据用多维表格</td><td>适配不同场景，体验最优</td></tr>
+    <tr><td>全程可追溯</td><td>所有执行记录写入多维表格，含执行人/时间/命令/结果</td><td>可审计、可统计、可优化</td></tr>
+    <tr><td>统一输出格式</td><td>所有Skill遵循workflow_schema，输出summary+details+next_action</td><td>Agent可解析、可编排、可展示</td></tr>
+  </table>
+</div>
+
+<!-- 工作流程 -->
+<div class="card" id="workflow">
+  <h2><span class="icon">🔄</span>工作流程（6阶段+3个人工确认点）</h2>
+  
+  <div class="flow">
+    <div class="flow-step auto">
+      <div class="step-title">阶段1：需求导入前置检查 <span class="tag auto">自动</span></div>
+      <div class="step-desc">从多维表格拉取【待导入】状态的需求记录，执行字段校验、EP账号匹配、样件用途分类、预算一致性检查</div>
+      <div class="step-detail">
+        <strong>校验规则：</strong>必填字段检查（16项）、需求数量>0、EP账号格式校验、行号连续、包内预算一致、样件用途在A-G范围内<br>
+        <strong>输出：</strong>可导入X条 / 异常Y条 / 异常原因列表
+      </div>
+    </div>
+    
+    <div class="flow-step human">
+      <div class="step-title">👉 人工确认点1：需求导入确认 <span class="tag human">人工</span></div>
+      <div class="step-desc">将校验结果推送给【需求导入人】，结构化展示需求关键信息，用户确认后执行导入</div>
+      <div class="step-detail">
+        <strong>推送内容：</strong>可导入总数、零件清单（零件号/名称/供应商/采购员/数量）、异常记录及原因<br>
+        <strong>交互方式：</strong>飞书机器人卡片（汇总+详情+确认按钮）+ Agent自然语言交互<br>
+        <strong>用户动作：</strong>确认导入 / 查看详情 / 取消
+      </div>
+    </div>
+    
+    <div class="flow-step auto">
+      <div class="step-title">阶段2：执行需求导入 <span class="tag auto">自动</span></div>
+      <div class="step-desc">调用 dx-ep CLI import-json 命令，将校验通过的需求批量导入EP系统</div>
+      <div class="step-detail">
+        <strong>CLI命令：</strong><code>dx-ep sapo order import-json --json records.json</code><br>
+        <strong>输出：</strong>成功X条 / 失败Y条 / 失败原因（登录超时/导入失败/字段错误等）<br>
+        <strong>异常处理：</strong>登录超时→报错提示重新登录；导入失败→记录失败原因，跳过继续
+      </div>
+    </div>
+    
+    <div class="flow-step auto">
+      <div class="step-title">阶段3：查询可下单需求 <span class="tag auto">自动</span></div>
+      <div class="step-desc">调用 dx-ep CLI query-ready 命令，分页获取全部可下单需求，自动过滤到货日期太远的需求</div>
+      <div class="step-detail">
+        <strong>CLI命令：</strong><code>dx-ep sapo order query-ready -f json --page-index N --page-size 100</code><br>
+        <strong>分页逻辑：</strong>先获取第一页获知总页数，循环拉取全部数据，安全上限10页<br>
+        <strong>过滤规则：</strong>到货日期超过30天的需求自动过滤<br>
+        <strong>输出：</strong>今日可下单需求清单（零件/供应商/数量/日期），含汇总统计
+      </div>
+    </div>
+    
+    <div class="flow-step human">
+      <div class="step-title">👉 人工确认点2：可下单需求确认 <span class="tag human">人工</span></div>
+      <div class="step-desc">将可下单需求清单推送给【订单管理员】，用户确认后进入供应商选择和下单流程</div>
+      <div class="step-detail">
+        <strong>推送内容：</strong>可下单总数、零件清单（零件号/名称/供应商/采购员/数量/到货日期）、统计汇总<br>
+        <strong>交互方式：</strong>飞书机器人卡片（汇总+详情表格+确认按钮）+ Agent输出<br>
+        <strong>用户动作：</strong>确认下单 / 查看详情 / 取消
+      </div>
+    </div>
+    
+    <div class="flow-step auto">
+      <div class="step-title">阶段4：一价一供/一价多供判断 <span class="tag auto">自动</span></div>
+      <div class="step-desc">分析可下单需求，判断每个零件是一价一供还是一价多供，智能选择交互通路</div>
+      <div class="step-detail">
+        <strong>判断逻辑：</strong>同一零件只有1条记录/1个供应商/1个价格 → 一价一供；同一零件有多条记录/多供应商/多价格 → 一价多供<br>
+        <strong>智能分流：</strong>一价多供 &lt; 5家 → 卡片交互通路；一价多供 ≥ 5家 → 多维表格通路<br>
+        <strong>输出：</strong>一价一供X个零件 / 一价多供Y个零件 / 智能分流路径
+      </div>
+    </div>
+    
+    <div class="flow-step human">
+      <div class="step-title">👉 人工确认点3：供应商选择 <span class="tag human">人工</span></div>
+      <div class="step-desc">一价多供的零件需要用户选择供应商，根据数量智能选择交互方式</div>
+      <div class="step-detail">
+        <strong>卡片通路（&lt;5家）：</strong>飞书卡片展示可选供应商，用户点击选择；Agent支持自然语言交互<br>
+        <strong>多维表格通路（≥5家）：</strong>推送一价一供执行清单+多维表格链接，用户到多维表格批量选择；选择完成后自动切换状态<br>
+        <strong>用户动作：</strong>选择供应商 / 全部确认 / 部分放弃
+      </div>
+    </div>
+    
+    <div class="flow-step auto">
+      <div class="step-title">阶段5：创建订单 <span class="tag auto">自动</span></div>
+      <div class="step-desc">调用 dx-ep CLI create-order 命令，EP系统内部完成价格判断（最新且最低价）与提交/草稿</div>
+      <div class="step-detail">
+        <strong>CLI命令：</strong><code>dx-ep sapo order create-order --args "key=value"</code><br>
+        <strong>价格策略：</strong>EP系统内部判定（最新且最低价），Skill只传数据不判价格<br>
+        <strong>结果分类：</strong>成功/审批中、草稿（非最低价需人工核实）、失败<br>
+        <strong>输出：</strong>成功X条 / 草稿Y条 / 失败Z条 / 订单号列表
+      </div>
+    </div>
+    
+    <div class="flow-step auto">
+      <div class="step-title">阶段6：执行记录沉淀 + 结果通知 <span class="tag auto">自动</span></div>
+      <div class="step-desc">所有执行记录写入多维表格，结果通过飞书机器人卡片通知相关人员</div>
+      <div class="step-detail">
+        <strong>记录字段：</strong>执行人员、执行命令、执行时间、零件号、供应商、数量、用户动作、状态、耗时、摘要、批次号<br>
+        <strong>通知内容：</strong>订单创建结果汇总（成功/草稿/失败）、关键订单信息、后续操作建议<br>
+        <strong>通知对象：</strong>订单管理员、采购员、需求用户（按角色区分可见内容）
+      </div>
+    </div>
+  </div>
+  
+  <h3>流程状态机</h3>
+  <div style="background: #f9fafb; padding: 16px; border-radius: 8px; font-size: 12px; color: #4b5563; line-height: 1.8;">
+    <code>待导入</code> → <code>校验中</code> → <code>待导入确认</code> 👈 → <code>导入中</code> → <code>导入完成</code><br>
+    → <code>查询可下单</code> → <code>待下单确认</code> 👈 → <code>供应商判断</code> → <code>待供应商选择</code> 👈 → <code>创建订单中</code> → <code>订单完成</code><br><br>
+    <span class="badge badge-yellow">👈 人工确认节点</span>
+    <span class="badge badge-green">自动执行节点</span>
+    <span class="badge badge-red">异常节点：登录超时/导入失败/创建失败 → 报错+记录+人工介入</span>
+  </div>
+</div>
+
+<!-- 人机交互 -->
+<div class="card" id="interaction">
+  <h2><span class="icon">👆</span>人机交互设计（6个核心交互点）</h2>
+  
+  <h3>交互设计原则</h3>
+  <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin-bottom: 20px;">
+    <div style="background: #eff6ff; padding: 12px; border-radius: 6px; text-align: center;">
+      <div style="font-size: 20px; margin-bottom: 4px;">📋</div>
+      <div style="font-weight: 600; font-size: 12px; color: #1e40af;">结构化展示</div>
+      <div style="font-size: 11px; color: #6b7280; margin-top: 4px;">关键信息一目了然</div>
+    </div>
+    <div style="background: #f0fdf4; padding: 12px; border-radius: 6px; text-align: center;">
+      <div style="font-size: 20px; margin-bottom: 4px;">⚡</div>
+      <div style="font-weight: 600; font-size: 12px; color: #166534;">低操作成本</div>
+      <div style="font-size: 11px; color: #6b7280; margin-top: 4px;">一键确认/选择</div>
+    </div>
+    <div style="background: #fefce8; padding: 12px; border-radius: 6px; text-align: center;">
+      <div style="font-size: 20px; margin-bottom: 4px;">🔀</div>
+      <div style="font-weight: 600; font-size: 12px; color: #854d0e;">双通路适配</div>
+      <div style="font-size: 11px; color: #6b7280; margin-top: 4px;">卡片/表格智能切换</div>
+    </div>
+    <div style="background: #fdf2f8; padding: 12px; border-radius: 6px; text-align: center;">
+      <div style="font-size: 20px; margin-bottom: 4px;">🔒</div>
+      <div style="font-weight: 600; font-size: 12px; color: #9d174d;">角色可见性</div>
+      <div style="font-size: 11px; color: #6b7280; margin-top: 4px;">不同角色看不同内容</div>
+    </div>
+  </div>
+  
+  <h3>6个核心交互点详解</h3>
+  <div class="interaction-grid">
+    
+    <div class="interaction-card">
+      <div class="int-header">
+        <div class="int-title">① 需求导入确认</div>
+        <div class="int-role">需求导入人</div>
+      </div>
+      <div class="int-channel">
+        <span>飞书卡片</span><span>Agent交互</span>
+      </div>
+      <div class="int-desc">导入前推送校验结果，结构化展示需求关键信息，用户确认后执行导入</div>
+      <div class="int-flow">
+        <strong>卡片内容：</strong>汇总（可导入X条/异常Y条）+ 详情表格（零件/供应商/采购员/数量）+ 异常原因 + 确认按钮<br>
+        <strong>用户动作：</strong>确认导入 / 查看详情 / 取消<br>
+        <strong>触发时机：</strong>校验完成后，导入执行前
+      </div>
+    </div>
+    
+    <div class="interaction-card">
+      <div class="int-header">
+        <div class="int-title">② 导入结果通知</div>
+        <div class="int-role">需求导入人</div>
+      </div>
+      <div class="int-channel">
+        <span>飞书卡片</span><span>Agent输出</span>
+      </div>
+      <div class="int-desc">导入完成后推送结果，包含成功/失败数量和失败原因，双通路兼顾</div>
+      <div class="int-flow">
+        <strong>卡片内容：</strong>成功X条 / 失败Y条 / 失败原因列表（登录超时/字段错误/导入失败）<br>
+        <strong>用户动作：</strong>查看失败详情 / 重新导入 / 忽略<br>
+        <strong>异常处理：</strong>登录超时→提示重新登录；导入失败→记录原因，可重试
+      </div>
+    </div>
+    
+    <div class="interaction-card">
+      <div class="int-header">
+        <div class="int-title">③ 可下单需求确认</div>
+        <div class="int-role">订单管理员</div>
+      </div>
+      <div class="int-channel">
+        <span>飞书卡片</span><span>Agent交互</span>
+      </div>
+      <div class="int-desc">查询到可下单需求后，推送清单给订单管理员确认，进入下单流程</div>
+      <div class="int-flow">
+        <strong>卡片内容：</strong>可下单总数 + 零件清单表格（零件/供应商/数量/到货日期）+ 统计汇总 + 确认按钮<br>
+        <strong>用户动作：</strong>确认下单 / 查看详情 / 取消<br>
+        <strong>触发时机：</strong>query-ready 返回后，供应商判断前
+      </div>
+    </div>
+    
+    <div class="interaction-card">
+      <div class="int-header">
+        <div class="int-title">④ 供应商选择（卡片通路）</div>
+        <div class="int-role">订单管理员</div>
+      </div>
+      <div class="int-channel">
+        <span>飞书卡片</span><span>Agent交互</span>
+      </div>
+      <div class="int-desc">一价多供 &lt; 5家时，卡片展示可选供应商，用户点击选择后执行下单</div>
+      <div class="int-flow">
+        <strong>卡片内容：</strong>零件信息 + 可选供应商列表（名称/价格/交期）+ 选择按钮 + 全部确认<br>
+        <strong>用户动作：</strong>选择供应商 / 全部最低价 / 部分放弃<br>
+        <strong>Agent支持：</strong>自然语言交互，如"全部选最低价"、"P001选供应商A"
+      </div>
+    </div>
+    
+    <div class="interaction-card">
+      <div class="int-header">
+        <div class="int-title">⑤ 供应商选择（多维表格通路）</div>
+        <div class="int-role">订单管理员</div>
+      </div>
+      <div class="int-channel">
+        <span>多维表格</span><span>飞书通知</span>
+      </div>
+      <div class="int-desc">一价多供 ≥ 5家时，推送多维表格链接，用户批量选择，选择完成后自动切换状态</div>
+      <div class="int-flow">
+        <strong>表格内容：</strong>零件号/名称/可选供应商/价格/交期/选择状态/选择人/选择时间<br>
+        <strong>用户动作：</strong>在多维表格中批量选择供应商，状态自动从"待选择"→"已选择"<br>
+        <strong>轮询机制：</strong>Skill轮询表格状态，全部选择完成后自动继续下单流程
+      </div>
+    </div>
+    
+    <div class="interaction-card">
+      <div class="int-header">
+        <div class="int-title">⑥ 订单创建结果通知</div>
+        <div class="int-role">订单管理员/采购员</div>
+      </div>
+      <div class="int-channel">
+        <span>飞书卡片</span><span>Agent输出</span>
+      </div>
+      <div class="int-desc">订单创建完成后推送结果，按角色区分可见内容，执行记录同步沉淀</div>
+      <div class="int-flow">
+        <strong>卡片内容：</strong>成功X条 / 草稿Y条 / 失败Z条 + 关键订单信息 + 后续操作建议<br>
+        <strong>角色可见性：</strong>订单管理员看全部；采购员看自己负责的；需求用户看自己的需求<br>
+        <strong>记录沉淀：</strong>执行记录写入多维表格，含执行人/时间/命令/零件/供应商/数量/结果
+      </div>
+    </div>
+    
+  </div>
+  
+  <h3>智能分流逻辑</h3>
+  <table>
+    <tr><th>场景</th><th>判断条件</th><th>交互通路</th><th>优势</th></tr>
+    <tr>
+      <td>一价一供</td>
+      <td>同一零件只有1个供应商/1个价格</td>
+      <td><span class="badge badge-green">直接执行</span></td>
+      <td>无需人工干预，全自动</td>
+    </tr>
+    <tr>
+      <td>一价多供（少量）</td>
+      <td>一价多供零件数 &lt; 5</td>
+      <td><span class="badge badge-blue">飞书卡片</span></td>
+      <td>交互便捷，一键选择</td>
+    </tr>
+    <tr>
+      <td>一价多供（大量）</td>
+      <td>一价多供零件数 ≥ 5</td>
+      <td><span class="badge badge-yellow">多维表格</span></td>
+      <td>批量操作，视图友好</td>
+    </tr>
+  </table>
+</div>
+
+<!-- 角色权限 -->
+<div class="card" id="roles">
+  <h2><span class="icon">👥</span>角色权限设计（4个业务角色）</h2>
+  
+  <div class="role-grid">
+    <div class="role-card">
+      <div class="role-icon" style="background: #dbeafe;">📥</div>
+      <div class="role-name">需求导入人</div>
+      <div class="role-desc">负责需求数据的导入和校验</div>
+      <ul class="role-perms">
+        <li>查看待导入需求列表</li>
+        <li>确认/取消需求导入</li>
+        <li>查看导入结果（成功/失败）</li>
+        <li>处理导入失败异常</li>
+      </ul>
+    </div>
+    
+    <div class="role-card">
+      <div class="role-icon" style="background: #d1fae5;">📋</div>
+      <div class="role-name">订单管理员</div>
+      <div class="role-desc">负责订单全流程管理和决策</div>
+      <ul class="role-perms">
+        <li>查看可下单需求清单</li>
+        <li>确认/取消下单流程</li>
+        <li>选择供应商（一价多供）</li>
+        <li>查看全部订单创建结果</li>
+        <li>处理订单异常（草稿/失败）</li>
+      </ul>
+    </div>
+    
+    <div class="role-card">
+      <div class="role-icon" style="background: #fef3c7;">🛒</div>
+      <div class="role-name">采购员</div>
+      <div class="role-desc">负责具体采购执行和供应商对接</div>
+      <ul class="role-perms">
+        <li>查看自己负责的订单</li>
+        <li>接收订单创建通知</li>
+        <li>处理草稿订单（价格核实）</li>
+        <li>跟进订单交付状态</li>
+      </ul>
+    </div>
+    
+    <div class="role-card">
+      <div class="role-icon" style="background: #fce7f3;">👤</div>
+      <div class="role-name">需求用户</div>
+      <div class="role-desc">需求提出者，关注自己需求的处理进度</div>
+      <ul class="role-perms">
+        <li>查看自己提交的需求</li>
+        <li>接收需求处理进度通知</li>
+        <li>查看订单创建结果（仅自己的）</li>
+        <li>反馈需求异常</li>
+      </ul>
+    </div>
+  </div>
+  
+  <h3>角色可见性矩阵</h3>
+  <table>
+    <tr><th>信息类型</th><th>需求导入人</th><th>订单管理员</th><th>采购员</th><th>需求用户</th></tr>
+    <tr><td>待导入需求列表</td><td><span class="badge badge-green">全部</span></td><td><span class="badge badge-gray">不可见</span></td><td><span class="badge badge-gray">不可见</span></td><td><span class="badge badge-gray">不可见</span></td></tr>
+    <tr><td>可下单需求清单</td><td><span class="badge badge-gray">不可见</span></td><td><span class="badge badge-green">全部</span></td><td><span class="badge badge-blue">自己负责</span></td><td><span class="badge badge-gray">不可见</span></td></tr>
+    <tr><td>供应商选择</td><td><span class="badge badge-gray">不可见</span></td><td><span class="badge badge-green">全部</span></td><td><span class="badge badge-blue">建议权</span></td><td><span class="badge badge-gray">不可见</span></td></tr>
+    <tr><td>订单创建结果</td><td><span class="badge badge-blue">导入的</span></td><td><span class="badge badge-green">全部</span></td><td><span class="badge badge-blue">自己负责</span></td><td><span class="badge badge-blue">自己的需求</span></td></tr>
+    <tr><td>执行日志/统计</td><td><span class="badge badge-blue">导入相关</span></td><td><span class="badge badge-green">全部</span></td><td><span class="badge badge-blue">自己负责</span></td><td><span class="badge badge-gray">不可见</span></td></tr>
+    <tr><td>仪表盘</td><td><span class="badge badge-blue">导入视图</span></td><td><span class="badge badge-green">全部视图</span></td><td><span class="badge badge-blue">采购视图</span></td><td><span class="badge badge-gray">不可见</span></td></tr>
+  </table>
+</div>
+
+<!-- Skill原子化 -->
+<div class="card" id="skills">
+  <h2><span class="icon">⚡</span>Skill原子化能力（2个核心Skill + 3个共享模块）</h2>
+  
+  <h3>核心Skill</h3>
+  <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 20px;">
+    <div style="border: 1px solid #dbeafe; border-radius: 8px; padding: 16px; background: #f8fafc;">
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+        <div style="font-weight: 600; font-size: 15px; color: #1e40af;">demand-import-0915</div>
+        <span class="badge badge-blue">需求导入</span>
+      </div>
+      <div style="font-size: 12px; color: #4b5563; margin-bottom: 12px;">多维表格【待导入】记录 → 校验 → 人工确认 → EP系统导入</div>
+      <div style="font-size: 11px; color: #6b7280;">
+        <strong>子命令：</strong><br>
+        <code>precheck</code> - 前置依赖检查<br>
+        <code>preview</code> - 校验+预览（不执行导入）<br>
+        <code>build</code> - 生成records JSON<br>
+        <code>push</code> - 调用CLI导入<br>
+        <code>run</code> - 完整流程（preview→确认→push）
+      </div>
+    </div>
+    
+    <div style="border: 1px solid #d1fae5; border-radius: 8px; padding: 16px; background: #f8fafc;">
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+        <div style="font-weight: 600; font-size: 15px; color: #065f46;">demand-query-and-order-0915</div>
+        <span class="badge badge-green">查询并下单</span>
+      </div>
+      <div style="font-size: 12px; color: #4b5563; margin-bottom: 12px;">查询可下单需求 → 人工确认 → 供应商选择 → 创建订单</div>
+      <div style="font-size: 11px; color: #6b7280;">
+        <strong>子命令：</strong><br>
+        <code>precheck</code> - 前置依赖检查<br>
+        <code>query</code> - 分页查询可下单需求<br>
+        <code>analyze</code> - 一价一供/一价多供判断<br>
+        <code>select-supplier</code> - 供应商选择（卡片/表格）<br>
+        <code>create</code> - 调用CLI创建订单<br>
+        <code>run</code> - 完整流程
+      </div>
+    </div>
+  </div>
+  
+  <h3>共享模块（_shared-0915）</h3>
+  <table>
+    <tr><th>模块</th><th>职责</th><th>关键能力</th></tr>
+    <tr>
+      <td><code>card_sender.py</code></td>
+      <td>飞书机器人卡片发送</td>
+      <td>7种业务卡片（导入确认/导入结果/可下单清单/供应商选择/订单结果等），自动降级到lark-cli</td>
+    </tr>
+    <tr>
+      <td><code>bitable_logger.py</code></td>
+      <td>多维表格执行记录</td>
+      <td>执行日志写入（执行人/命令/时间/零件/供应商/数量/用户动作/状态/耗时/摘要/批次号）</td>
+    </tr>
+    <tr>
+      <td><code>workflow_schema.py</code></td>
+      <td>统一输出格式</td>
+      <td>build_output() 标准化输出（version/stage/status/summary/details/next_action/errors/artifacts）</td>
+    </tr>
+    <tr>
+      <td><code>config.json</code></td>
+      <td>全局配置</td>
+      <td>飞书配置/CLI配置/导入配置/查询下单配置/角色配置/通知配置</td>
+    </tr>
+  </table>
+  
+  <h3>统一输出格式（workflow_schema）</h3>
+  <pre><code>{
+  "version": "0915",
+  "stage": "query_ready",           // 阶段标识
+  "status": "success",              // success / failed / partial
+  "timestamp": "2026-09-15T15:32:30",
+  "summary": {                       // 汇总信息（Agent可解析）
+    "total": 136,
+    "parts_count": 64,
+    "suppliers_count": 11,
+    "total_quantity": 1095,
+    "single_price_count": 33,
+    "multi_price_count": 21,
+    "route": "bitable",             // card / bitable
+    "operator": "claire",
+    "batch_id": "ORD20260915153224"
+  },
+  "details": [...],                  // 详情列表（用户可查看）
+  "next_action": "等待用户确认后执行下单",  // 下一步动作
+  "errors": [...],                   // 错误信息
+  "artifacts": [...]                 // 产物文件
+}</code></pre>
+</div>
+
+<!-- 数据沉淀 -->
+<div class="card" id="data">
+  <h2><span class="icon">📊</span>数据沉淀与可视化</h2>
+  
+  <h3>多维表格结构（4张核心表 + 1个仪表盘）</h3>
+  <table>
+    <tr><th>表名</th><th>用途</th><th>核心字段</th><th>记录数</th></tr>
+    <tr>
+      <td><strong>执行日志面板</strong></td>
+      <td>所有Skill执行记录的全量沉淀</td>
+      <td>时间、执行人员、Skill、执行命令、状态、用户动作、零件号、供应商、数量、耗时、摘要、批次号</td>
+      <td>48条</td>
+    </tr>
+    <tr>
+      <td><strong>确认单</strong></td>
+      <td>人工确认节点的记录</td>
+      <td>确认类型、确认人、确认时间、确认结果、关联批次号</td>
+      <td>0条</td>
+    </tr>
+    <tr>
+      <td><strong>工作流汇总</strong></td>
+      <td>按批次汇总工作流执行情况</td>
+      <td>批次号、开始时间、结束时间、执行阶段、成功数、失败数、耗时</td>
+      <td>0条</td>
+    </tr>
+    <tr>
+      <td><strong>订单供应商选择</strong></td>
+      <td>一价多供的供应商选择记录</td>
+      <td>零件号、零件名称、可选供应商、价格、交期、选择状态、选择人、选择时间</td>
+      <td>1条（测试）</td>
+    </tr>
+    <tr>
+      <td><strong>仪表盘</strong></td>
+      <td>数据可视化展示</td>
+      <td>6个指标卡 + 4个图表 + 2个数据表</td>
+      <td>-</td>
+    </tr>
+  </table>
+  
+  <h3>仪表盘组件（10个已配置）</h3>
+  <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-bottom: 16px;">
+    <div style="background: #eff6ff; padding: 10px; border-radius: 6px; font-size: 12px;">
+      <strong style="color: #1e40af;">📈 指标卡（6个）</strong><br>
+      总执行次数(48)、成功(33)、失败(5)、待决策(6)、部分成功(6)、累计耗时(289)
+    </div>
+    <div style="background: #f0fdf4; padding: 10px; border-radius: 6px; font-size: 12px;">
+      <strong style="color: #166534;">📊 图表（4个）</strong><br>
+      按日执行趋势（堆叠柱状图）、状态分布（饼图）、各skill执行次数（横向柱状图）、每日耗时趋势（面积图）
+    </div>
+    <div style="background: #fefce8; padding: 10px; border-radius: 6px; font-size: 12px;">
+      <strong style="color: #854d0e;">📋 数据表（2个）</strong><br>
+      最近执行记录（明细）、订单创建明细（新增，待配置筛选）
+    </div>
+  </div>
+  
+  <h3>执行记录字段说明</h3>
+  <div style="font-size: 12px; color: #4b5563; background: #f9fafb; padding: 12px; border-radius: 6px;">
+    <strong>必填字段：</strong>时间、执行人员、Skill、执行命令、状态、批次号<br>
+    <strong>业务字段：</strong>零件号、供应商、数量、用户动作<br>
+    <strong>性能字段：</strong>耗时（毫秒）<br>
+    <strong>描述字段：</strong>摘要、明细、CLI输出、错误信息<br>
+    <strong>产物字段：</strong>产物路径、产物大小、SHA1<br><br>
+    <span class="badge badge-blue">推荐视图：</span>0915执行日志（表格视图，按时间倒序）、供应商选择卡片（画册视图）
+  </div>
+</div>
+
+<!-- 经验避雷 -->
+<div class="card" id="lessons">
+  <h2><span class="icon">💡</span>经验与避雷</h2>
+  
+  <div class="lesson-grid">
+    
+    <div class="lesson-card pitfall">
+      <div class="lesson-title">❌ 飞书卡片 data_type 兼容性</div>
+      <div class="lesson-content">
+        <strong>问题：</strong>Card 2.0 table 组件的列定义中，<code>data_type: "text"</code> 会导致 HTTP 400 错误<br>
+        <strong>解决：</strong>必须使用 <code>data_type: "string"</code><br>
+        <strong>教训：</strong>飞书卡片组件的参数值必须严格匹配文档，text≠string
+      </div>
+    </div>
+    
+    <div class="lesson-card pitfall">
+      <div class="lesson-title">❌ CLI JSON 解析路径</div>
+      <div class="lesson-content">
+        <strong>问题：</strong>dx-ep CLI 的 JSON 输出格式是 <code>{ok: true, data: {content: [...]}}</code>，不是直觉上的 <code>{orders: [...]}</code><br>
+        <strong>解决：</strong>解析时尝试多种路径（data.content / data.items / orders / items），兼容不同命令的输出格式<br>
+        <strong>教训：</strong>CLI输出格式必须实测后固化，不能凭直觉猜测
+      </div>
+    </div>
+    
+    <div class="lesson-card pitfall">
+      <div class="lesson-title">❌ 供应商名称格式解析</div>
+      <div class="lesson-content">
+        <strong>问题：</strong>CLI返回的供应商字段格式是 <code>id|code|名称12|type</code>，名称后带数字后缀<br>
+        <strong>解决：</strong>新增 <code>_parse_supplier_name()</code> 方法，按 <code>|</code> 分割取第3段，再去掉末尾数字<br>
+        <strong>教训：</strong>外部系统返回的字段格式必须实测，不能假设是纯名称
+      </div>
+    </div>
+    
+    <div class="lesson-card pitfall">
+      <div class="lesson-title">❌ 一价多供判断逻辑</div>
+      <div class="lesson-content">
+        <strong>问题：</strong>最初只判断"同一零件多供应商"，忽略了"同一零件多条记录即使供应商相同也需要用户确认"<br>
+        <strong>解决：</strong>修正判断逻辑：同一零件有多条记录 / 多供应商 / 多价格 → 一价多供<br>
+        <strong>教训：</strong>业务规则必须与业务方确认，不能凭技术直觉判断
+      </div>
+    </div>
+    
+    <div class="lesson-card insight">
+      <div class="lesson-title">✅ 分页获取全部数据</div>
+      <div class="lesson-content">
+        <strong>设计：</strong>先获取第一页获知总页数，再循环拉取全部数据，安全上限10页<br>
+        <strong>效果：</strong>从只获取100条（第一页）提升到获取全部136条，零件从54→64种，供应商从7→11家<br>
+        <strong>价值：</strong>数据完整性是自动化的基础，分页逻辑必须内置
+      </div>
+    </div>
+    
+    <div class="lesson-card insight">
+      <div class="lesson-title">✅ 双通路智能分流</div>
+      <div class="lesson-content">
+        <strong>设计：</strong>一价多供 &lt; 5家用飞书卡片（交互便捷），≥ 5家用多维表格（批量操作）<br>
+        <strong>价值：</strong>不同数据量适配不同交互方式，既保证少量数据的便捷性，又保证大量数据的可操作性<br>
+        <strong>扩展：</strong>阈值可配置，根据业务场景调整
+      </div>
+    </div>
+    
+    <div class="lesson-card design">
+      <div class="lesson-title">🎯 统一输出格式</div>
+      <div class="lesson-content">
+        <strong>设计：</strong>所有Skill遵循 <code>workflow_schema</code>，输出 summary + details + next_action 标准化结构<br>
+        <strong>价值：</strong>Agent可解析、可编排、可展示；用户能看懂关键信息；上下游Skill可无缝衔接<br>
+        <strong>原则：</strong>summary给机器看（结构化字段），details给人看（可读列表），next_action给流程看（明确下一步）
+      </div>
+    </div>
+    
+    <div class="lesson-card design">
+      <div class="lesson-title">🎯 角色可见性设计</div>
+      <div class="lesson-content">
+        <strong>设计：</strong>4个业务角色（需求导入人/订单管理员/采购员/需求用户），不同角色看不同内容<br>
+        <strong>价值：</strong>信息最小化原则，每个人只看到与自己相关的信息，避免信息过载<br>
+        <strong>实现：</strong>飞书卡片按角色推送不同内容；多维表格通过视图权限控制；仪表盘按角色提供不同视图
+      </div>
+    </div>
+    
+    <div class="lesson-card pitfall">
+      <div class="lesson-title">❌ auth_base_url 末尾斜杠</div>
+      <div class="lesson-content">
+        <strong>问题：</strong>settings.json 中 auth_base_url 末尾带斜杠，导致拼接URL时出现 <code>//oauth</code> 双斜杠<br>
+        <strong>解决：</strong>去掉末尾斜杠，或在拼接时自动处理<br>
+        <strong>教训：</strong>配置文件的URL格式必须规范，末尾斜杠是常见坑
+      </div>
+    </div>
+    
+    <div class="lesson-card insight">
+      <div class="lesson-title">✅ 执行记录全程沉淀</div>
+      <div class="lesson-content">
+        <strong>设计：</strong>每个Skill执行后都写入多维表格，含执行人/时间/命令/零件/供应商/数量/结果/耗时<br>
+        <strong>价值：</strong>可审计（谁在什么时候做了什么）、可统计（执行次数/成功率/耗时趋势）、可优化（基于数据持续改进）<br>
+        <strong>原则：</strong>无记录不执行，执行必留痕
+      </div>
+    </div>
+    
+    <div class="lesson-card design">
+      <div class="lesson-title">🎯 人机协同节点设计</div>
+      <div class="lesson-content">
+        <strong>设计：</strong>3个人工确认节点（导入确认/下单确认/供应商选择），其余全自动<br>
+        <strong>原则：</strong>高风险/高成本/不可逆的操作必须人工确认；低风险/可回滚的操作全自动<br>
+        <strong>价值：</strong>既提升效率（80%操作自动化），又控制风险（关键节点人工把关）
+      </div>
+    </div>
+    
+    <div class="lesson-card pitfall">
+      <div class="lesson-title">❌ 字段映射必须实测</div>
+      <div class="lesson-content">
+        <strong>问题：</strong>CLI返回的英文字段（materialNum/materialName/buyer/requiredQuantity/deliveryDate）需要映射到中文字段<br>
+        <strong>解决：</strong>新增 <code>_normalize_cli_order()</code> 方法，完整映射12个字段<br>
+        <strong>教训：</strong>外部系统的字段名必须实测，不能假设是中文或英文；映射关系必须显式定义
+      </div>
+    </div>
+    
+  </div>
+</div>
+
+<!-- 页脚 -->
+<div class="footer">
+  <p>EP样件订单自动化 - 项目方案 | 版本：0915 | 基于Agent + Skill原子化能力 + 飞书人机交互</p>
+  <p style="margin-top: 8px;">多维表格：<a href="https://mi.feishu.cn/base/NPNib5sCaaZ3ivsaFcMcf4KnnYd" style="color: #3b82f6;">样件订单工作台</a> | 飞书机器人：cli_aa14c1a058f8dcc0</p>
+</div>
+
+</div>
+</body>
+</html>
