@@ -1,0 +1,1636 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>小米汽车SRM - 供应商绩效管理（增强版）</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/echarts/5.4.3/echarts.min.js"></script>
+<style>
+:root{
+  --p:#1677ff;--ph:#4096ff;--pl:#e6f4ff;--pa:rgba(22,119,255,.06);
+  --s:#52c41a;--sl:#f6ffed;--sa:rgba(82,196,26,.08);
+  --w:#faad14;--wl:#fffbe6;--wa:rgba(250,173,20,.08);
+  --d:#ff4d4f;--dl:#fff2f0;--da:rgba(255,77,79,.06);
+  --g50:#fafafa;--g100:#f5f5f5;--g200:#e8e8e8;--g300:#d9d9d9;
+  --g400:#bfbfbf;--g500:#8c8c8c;--g600:#595959;--g700:#434343;
+  --g800:#262626;--g900:#1f1f1f;
+  --r:10px;--rs:6px;--rl:14px;
+  --sh:0 1px 3px rgba(0,0,0,.04),0 1px 2px rgba(0,0,0,.06);
+  --shm:0 4px 12px rgba(0,0,0,.07);
+  --shl:0 8px 24px rgba(0,0,0,.09);
+  --tr:all .2s ease;
+  --nav-bg:#001529;--nav-bg-light:#002140;
+  --mi-orange:#ff6700;--mi-orange-l:#fff2e8;
+  --purple:#722ed1;--purple-l:#f9f0ff;
+  --cyan:#13c2c2;--cyan-l:#e6fffb;
+}
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif;background:#f0f2f5;color:var(--g800);line-height:1.6;font-size:13px;min-height:100vh;overflow:hidden}
+
+/* Top Nav */
+.topnav{background:var(--nav-bg);height:48px;display:flex;align-items:center;padding:0 16px;position:fixed;top:0;left:0;right:0;z-index:1000}
+.topnav-logo{display:flex;align-items:center;gap:8px;margin-right:24px;flex-shrink:0}
+.topnav-logo .mi{width:28px;height:28px;background:linear-gradient(135deg,#ff6700,#ff4d00);border-radius:6px;display:flex;align-items:center;justify-content:center;color:#fff;font-size:12px;font-weight:700}
+.topnav-logo span{color:#fff;font-size:14px;font-weight:600;letter-spacing:.5px;white-space:nowrap}
+.topnav-menu{display:flex;align-items:center;gap:0;flex:1;overflow-x:auto;scrollbar-width:none}
+.topnav-menu::-webkit-scrollbar{display:none}
+.topnav-item{padding:0 14px;height:48px;display:flex;align-items:center;color:rgba(255,255,255,.65);font-size:13px;cursor:pointer;white-space:nowrap;transition:all .2s;position:relative}
+.topnav-item:hover{color:#fff;background:rgba(255,255,255,.08)}
+.topnav-item.active{color:#fff;background:rgba(255,255,255,.12)}
+.topnav-item.active::after{content:'';position:absolute;bottom:0;left:8px;right:8px;height:2px;background:var(--p);border-radius:2px 2px 0 0}
+.topnav-right{display:flex;align-items:center;gap:12px;margin-left:auto;flex-shrink:0;padding-left:16px}
+.topnav-right .icon{width:32px;height:32px;border-radius:50%;display:flex;align-items:center;justify-content:center;color:rgba(255,255,255,.65);cursor:pointer;transition:all .2s;font-size:14px;position:relative}
+.topnav-right .icon:hover{background:rgba(255,255,255,.1);color:#fff}
+.topnav-right .icon .dot{position:absolute;top:6px;right:6px;width:7px;height:7px;background:var(--d);border-radius:50%;border:1.5px solid var(--nav-bg)}
+.topnav-user{display:flex;align-items:center;gap:6px;color:rgba(255,255,255,.85);font-size:12px;cursor:pointer}
+.topnav-avatar{width:28px;height:28px;border-radius:50%;background:linear-gradient(135deg,var(--p),#4096ff);display:flex;align-items:center;justify-content:center;color:#fff;font-size:11px;font-weight:600}
+
+/* Layout */
+.srm-layout{display:flex;height:calc(100vh - 48px);margin-top:48px}
+.sidebar{width:220px;background:#fff;border-right:1px solid var(--g200);display:flex;flex-direction:column;flex-shrink:0;overflow:hidden}
+.sidebar-hdr{padding:16px;border-bottom:1px solid var(--g100)}
+.sidebar-hdr h3{font-size:14px;font-weight:700;color:var(--g900);margin-bottom:4px}
+.sidebar-hdr .count{font-size:12px;color:var(--g500)}
+.sidebar-hdr .count strong{color:var(--p);font-weight:600}
+.sp-menu{flex:1;overflow-y:auto;padding:8px 0}
+.sp-menu-group{padding:6px 20px;font-size:10px;color:var(--g400);font-weight:600;letter-spacing:1px;text-transform:uppercase;margin-top:6px}
+.sp-menu-item{display:flex;align-items:center;gap:10px;padding:10px 20px;font-size:13px;color:var(--g600);cursor:pointer;transition:all .15s;border-left:3px solid transparent;position:relative}
+.sp-menu-item:hover{color:var(--p);background:var(--pl)}
+.sp-menu-item.active{color:var(--p);background:var(--pl);font-weight:600;border-left-color:var(--p)}
+.sp-menu-item .mi-icon{width:20px;height:20px;border-radius:4px;display:flex;align-items:center;justify-content:center;font-size:12px;flex-shrink:0}
+.sp-menu-item .mi-icon.blue{background:var(--pl);color:var(--p)}
+.sp-menu-item .mi-icon.green{background:var(--sl);color:var(--s)}
+.sp-menu-item .mi-icon.orange{background:var(--wl);color:#d46b08}
+.sp-menu-item .mi-icon.purple{background:var(--purple-l);color:var(--purple)}
+.sp-menu-item .mi-icon.cyan{background:var(--cyan-l);color:var(--cyan)}
+.sp-menu-item .mi-icon.red{background:var(--dl);color:var(--d)}
+.sp-menu-item .mi-badge{margin-left:auto;font-size:10px;padding:1px 6px;border-radius:8px;background:var(--g100);color:var(--g500);font-weight:500}
+.sp-menu-item.active .mi-badge{background:var(--pl);color:var(--p)}
+
+/* Main Content */
+.main-content{flex:1;overflow-y:auto;background:#f0f2f5}
+.content-header{background:#fff;padding:14px 24px;border-bottom:1px solid var(--g200);position:sticky;top:0;z-index:100}
+.content-title{font-size:16px;font-weight:700;color:var(--g900);margin-bottom:10px;display:flex;align-items:center;gap:10px}
+.content-title .sub{font-size:12px;font-weight:400;color:var(--g500)}
+.content-tabs{display:flex;gap:0;margin-bottom:0}
+.ctab{padding:8px 20px;font-size:13px;color:var(--g600);cursor:pointer;border-bottom:2px solid transparent;transition:var(--tr);display:flex;align-items:center;gap:6px;font-weight:500}
+.ctab:hover{color:var(--p)}
+.ctab.active{color:var(--p);font-weight:600;border-bottom-color:var(--p)}
+
+.tab-panel{display:none;padding:18px 24px}
+.tab-panel.active{display:block}
+
+/* Buttons */
+.btn{border:none;padding:7px 16px;border-radius:var(--rs);font-size:12px;font-weight:500;cursor:pointer;transition:var(--tr);display:inline-flex;align-items:center;gap:5px;white-space:nowrap}
+.btn:active{transform:scale(.97)}
+.btn-p{background:linear-gradient(135deg,var(--p) 0%,#4096ff 100%);color:#fff;box-shadow:0 2px 6px rgba(22,119,255,.25)}
+.btn-p:hover{box-shadow:0 4px 12px rgba(22,119,255,.35);transform:translateY(-1px)}
+.btn-o{background:#fff;color:var(--g700);border:1px solid var(--g300)}.btn-o:hover{color:var(--p);border-color:var(--p);background:var(--pa)}
+.btn-g{background:var(--g50);color:var(--g600);border:1px solid var(--g200)}.btn-g:hover{color:var(--p);border-color:var(--p);background:var(--pa)}
+.btn-s{padding:4px 10px;font-size:11px;border-radius:4px;white-space:nowrap}
+.btn-mi{background:linear-gradient(135deg,#ff6700,#ff4d00);color:#fff;box-shadow:0 2px 6px rgba(255,103,0,.25)}
+.btn-mi:hover{box-shadow:0 4px 12px rgba(255,103,0,.35);transform:translateY(-1px)}
+.btn-d{background:none;color:var(--d);border:none;padding:2px 6px;font-size:11px;cursor:pointer}.btn-d:hover{text-decoration:underline}
+
+/* Summary Cards */
+.summary-row{display:grid;grid-template-columns:repeat(5,1fr);gap:12px;margin-bottom:14px}
+.summary-card{background:#fff;border-radius:var(--r);padding:14px 16px;border:1px solid rgba(0,0,0,.04);box-shadow:var(--sh);transition:var(--tr);position:relative;overflow:hidden}
+.summary-card:hover{box-shadow:var(--shm);transform:translateY(-2px)}
+.summary-card::before{content:'';position:absolute;top:0;left:0;right:0;height:3px}
+.summary-card.blue::before{background:linear-gradient(90deg,var(--p),var(--ph))}
+.summary-card.green::before{background:linear-gradient(90deg,var(--s),#73d13d)}
+.summary-card.orange::before{background:linear-gradient(90deg,var(--w),#ffc53d)}
+.summary-card.red::before{background:linear-gradient(90deg,var(--d),#ff7875)}
+.summary-card.purple::before{background:linear-gradient(90deg,var(--purple),#b37feb)}
+.sc-top{display:flex;align-items:center;justify-content:space-between;margin-bottom:8px}
+.sc-label{font-size:11px;color:var(--g500)}
+.sc-icon{width:32px;height:32px;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:14px}
+.sc-icon.blue{background:var(--pl);color:var(--p)}
+.sc-icon.green{background:var(--sl);color:var(--s)}
+.sc-icon.orange{background:var(--wl);color:var(--w)}
+.sc-icon.red{background:var(--dl);color:var(--d)}
+.sc-icon.purple{background:var(--purple-l);color:var(--purple)}
+.sc-value{font-size:22px;font-weight:700;color:var(--g900);line-height:1.2}
+.sc-sub{font-size:10px;color:var(--g500);margin-top:3px}
+.sc-sub .up{color:var(--d)}
+.sc-sub .down{color:var(--s)}
+
+/* Panels */
+.sp{background:#fff;border-radius:var(--r);box-shadow:var(--sh);margin-bottom:14px;overflow:hidden;border:1px solid rgba(0,0,0,.04);transition:var(--tr)}
+.sp:hover{box-shadow:var(--shm);border-color:rgba(0,0,0,.06)}
+.sp-h{display:flex;align-items:center;justify-content:space-between;padding:12px 18px;border-bottom:1px solid var(--g100)}
+.sp-t{font-size:13px;font-weight:600;display:flex;align-items:center;gap:7px;color:var(--g800)}
+.sp-t .tag-sm{font-size:10px;padding:1px 6px;border-radius:4px;font-weight:500}
+.sp-b{padding:14px 18px}
+
+/* Tables */
+.dt{width:100%;border-collapse:collapse;table-layout:fixed}
+.dt th{background:linear-gradient(180deg,#fafafa,#f5f5f5);color:var(--g700);font-size:11px;font-weight:600;padding:9px 10px;text-align:left;border-bottom:1px solid var(--g200);border-right:1px solid var(--g100);white-space:nowrap}
+.dt td{padding:9px 10px;border-bottom:1px solid var(--g100);border-right:1px solid var(--g100);font-size:12px;vertical-align:middle}
+.dt tbody tr{transition:var(--tr)}
+.dt tbody tr:hover td{background:#f0f7ff}
+.dt .cell-link{color:var(--p);font-weight:500;cursor:pointer}
+.dt .cell-link:hover{text-decoration:underline}
+.dt .cell-bold{font-weight:600;color:var(--g800)}
+
+/* Mini table */
+.mt{width:100%;border-collapse:collapse;font-size:11px}
+.mt th{background:var(--g50);color:var(--g600);font-size:10px;font-weight:600;padding:5px 8px;text-align:left;border:1px solid var(--g200);white-space:nowrap}
+.mt td{padding:5px 8px;border:1px solid var(--g200);color:var(--g700);vertical-align:middle}
+.mt tbody tr:hover{background:var(--pl)}
+
+/* Tags */
+.tag{display:inline-block;font-size:10px;padding:2px 8px;border-radius:4px;font-weight:500;white-space:nowrap}
+.tag-p{background:var(--pl);color:var(--p)}
+.tag-s{background:var(--sl);color:var(--s)}
+.tag-w{background:var(--wl);color:#d46b08}
+.tag-d{background:var(--dl);color:var(--d)}
+.tag-g{background:var(--g100);color:var(--g600)}
+.tag-o{background:#fff7e6;color:#d4380d}
+.tag-purple{background:var(--purple-l);color:var(--purple)}
+.tag-cyan{background:var(--cyan-l);color:var(--cyan)}
+.tag-mi{background:var(--mi-orange-l);color:var(--mi-orange)}
+
+/* Score Bar */
+.score-bar{display:flex;align-items:center;gap:6px}
+.score-bar .bar{flex:1;height:5px;background:var(--g100);border-radius:3px;overflow:hidden;min-width:40px}
+.score-bar .bar-fill{height:100%;border-radius:3px;transition:width .5s ease}
+.score-bar .bar-fill.high{background:linear-gradient(90deg,var(--s),#73d13d)}
+.score-bar .bar-fill.mid{background:linear-gradient(90deg,var(--w),#ffc53d)}
+.score-bar .bar-fill.low{background:linear-gradient(90deg,var(--d),#ff7875)}
+.score-bar .score-val{font-size:11px;font-weight:600;color:var(--g800);min-width:28px;text-align:right}
+
+/* Grade Badge */
+.grade-badge{display:inline-flex;align-items:center;justify-content:center;width:26px;height:26px;border-radius:6px;font-size:12px;font-weight:700;color:#fff}
+.grade-a{background:linear-gradient(135deg,var(--p),#4096ff)}
+.grade-b{background:linear-gradient(135deg,var(--s),#73d13d)}
+.grade-c{background:linear-gradient(135deg,var(--w),#ffc53d)}
+.grade-d{background:linear-gradient(135deg,var(--d),#ff7875)}
+
+/* Toolbar */
+.toolbar{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:12px;flex-wrap:wrap}
+.toolbar-left{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.toolbar-right{display:flex;align-items:center;gap:8px}
+.search-input{width:200px;padding:6px 12px;border:1px solid var(--g300);border-radius:var(--rs);font-size:12px;transition:var(--tr)}
+.search-input:focus{outline:none;border-color:var(--p);box-shadow:0 0 0 3px rgba(22,119,255,.1)}
+.filter-select{padding:6px 28px 6px 10px;border:1px solid var(--g300);border-radius:var(--rs);font-size:12px;color:var(--g700);background:#fff url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M0 0l5 6 5-6z' fill='%238c8c8c'/%3E%3C/svg%3E") no-repeat right 8px center;appearance:none;cursor:pointer;transition:var(--tr)}
+.filter-select:focus{outline:none;border-color:var(--p)}
+
+/* Chart containers */
+.chart-box{width:100%;height:260px}
+.chart-box-sm{width:100%;height:200px}
+.chart-box-lg{width:100%;height:320px}
+
+/* Grid layouts */
+.grid-2{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+.grid-3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:14px}
+.grid-4{display:grid;grid-template-columns:repeat(4,1fr);gap:14px}
+.grid-2-1{display:grid;grid-template-columns:2fr 1fr;gap:14px}
+.grid-1-2{display:grid;grid-template-columns:1fr 2fr;gap:14px}
+.grid-3-2{display:grid;grid-template-columns:3fr 2fr;gap:14px}
+
+/* Alert */
+.alert-banner{padding:10px 14px;border-radius:var(--r);display:flex;align-items:flex-start;gap:8px;font-size:12px;line-height:1.5;margin-bottom:14px}
+.alert-banner.info{background:linear-gradient(135deg,#e6f4ff,#f0f5ff);border:1px solid #91caff;color:#0958d9}
+.alert-banner.warn{background:linear-gradient(135deg,#fff7e6,#fffbe6);border:1px solid #ffd591;color:#ad6800}
+.alert-banner .alert-icon{font-size:14px;flex-shrink:0;margin-top:1px}
+
+/* Pagination */
+.pagination{display:flex;align-items:center;justify-content:flex-end;gap:6px;padding:10px 16px;background:#fff;border-top:1px solid var(--g200);font-size:12px;color:var(--g600)}
+.pagination .pg-btn{width:26px;height:26px;border:1px solid var(--g300);border-radius:4px;display:flex;align-items:center;justify-content:center;cursor:pointer;background:#fff;transition:var(--tr);font-size:11px}
+.pagination .pg-btn:hover{color:var(--p);border-color:var(--p)}
+.pagination .pg-btn.active{background:var(--p);color:#fff;border-color:var(--p)}
+
+/* ===== Template Config ===== */
+.tpl-card{background:#fff;border-radius:var(--r);border:1px solid var(--g200);padding:16px;transition:var(--tr);cursor:pointer;position:relative}
+.tpl-card:hover{box-shadow:var(--shm);border-color:var(--p)}
+.tpl-card.active{border-color:var(--p);box-shadow:0 0 0 2px rgba(22,119,255,.15)}
+.tpl-card .tpl-badge{position:absolute;top:12px;right:12px}
+.tpl-card h4{font-size:13px;font-weight:700;color:var(--g900);margin-bottom:6px}
+.tpl-card .tpl-desc{font-size:11px;color:var(--g500);margin-bottom:10px;line-height:1.5}
+.tpl-card .tpl-meta{display:flex;gap:12px;font-size:10px;color:var(--g500);padding-top:10px;border-top:1px dashed var(--g200)}
+.tpl-card .tpl-meta span strong{color:var(--g700)}
+
+/* Weight config */
+.weight-row{display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid var(--g100)}
+.weight-row:last-child{border-bottom:none}
+.weight-label{width:100px;font-size:12px;font-weight:600;display:flex;align-items:center;gap:6px}
+.weight-bar-wrap{flex:1;display:flex;align-items:center;gap:8px}
+.weight-input{width:60px;padding:4px 8px;border:1px solid var(--g300);border-radius:4px;font-size:12px;text-align:center}
+.weight-slider{flex:1;height:6px;background:var(--g100);border-radius:3px;position:relative;cursor:pointer}
+.weight-slider-fill{height:100%;border-radius:3px}
+
+/* ===== OnePage ===== */
+.op-grid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:14px;align-items:start}
+.op-card{background:#fff;border-radius:var(--r);border:1px solid var(--g200);overflow:hidden;box-shadow:var(--sh);transition:var(--tr);margin-bottom:14px}
+.op-card:hover{box-shadow:var(--shm)}
+.op-card-hdr{padding:10px 14px;border-bottom:1px solid var(--g100);display:flex;align-items:center;justify-content:space-between;background:linear-gradient(180deg,#fafafa,#f8f8f8)}
+.op-card-hdr h3{font-size:12px;font-weight:700;color:var(--g900);display:flex;align-items:center;gap:6px}
+.op-card-hdr h3 .icon{width:18px;height:18px;border-radius:4px;display:flex;align-items:center;justify-content:center;font-size:10px;flex-shrink:0}
+.op-card-hdr h3 .icon.blue{background:var(--pl);color:var(--p)}
+.op-card-hdr h3 .icon.green{background:var(--sl);color:var(--s)}
+.op-card-hdr h3 .icon.orange{background:var(--wl);color:#d46b08}
+.op-card-hdr h3 .icon.purple{background:var(--purple-l);color:var(--purple)}
+.op-card-hdr h3 .icon.cyan{background:var(--cyan-l);color:var(--cyan)}
+.op-card-hdr h3 .icon.red{background:var(--dl);color:var(--d)}
+.op-card-body{padding:12px 14px}
+.op-card-body.compact{padding:8px 10px}
+
+.op-company-hdr{padding:14px;border-bottom:1px solid var(--g100);display:flex;align-items:center;gap:12px}
+.op-company-avatar{width:48px;height:48px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:18px;font-weight:700;color:#fff;flex-shrink:0}
+.op-company-avatar.battery{background:linear-gradient(135deg,var(--p),#4096ff)}
+.op-company-info{flex:1;min-width:0}
+.op-company-name{font-size:14px;font-weight:700;color:var(--g900);margin-bottom:3px}
+.op-company-tags{display:flex;gap:4px;flex-wrap:wrap}
+
+.op-stat-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;text-align:center}
+.op-stat{padding:8px 6px;background:var(--g50);border-radius:var(--rs);border:1px solid var(--g200)}
+.op-stat .val{font-size:16px;font-weight:700;color:var(--g900)}
+.op-stat .val.blue{color:var(--p)}
+.op-stat .val.green{color:var(--s)}
+.op-stat .val.red{color:var(--d)}
+.op-stat .val.orange{color:var(--w)}
+.op-stat .lbl{font-size:9px;color:var(--g500);margin-top:2px}
+
+.op-risk-circles{display:flex;align-items:center;justify-content:center;gap:14px;padding:8px 0}
+.op-risk-circle{width:40px;height:40px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;color:#fff;position:relative}
+.op-risk-circle.high{background:var(--d)}
+.op-risk-circle.mid{background:var(--w)}
+.op-risk-circle.low{background:var(--s)}
+.op-risk-divider{font-size:14px;color:var(--g300);font-weight:300}
+
+/* ===== Category ===== */
+.cat-header{background:linear-gradient(135deg,#001529,#003a70);border-radius:var(--r);padding:20px 24px;color:#fff;margin-bottom:14px;display:flex;align-items:center;justify-content:space-between}
+.cat-header h2{font-size:18px;font-weight:700;margin-bottom:4px}
+.cat-header p{font-size:12px;color:rgba(255,255,255,.7)}
+.cat-selector{display:flex;gap:6px;flex-wrap:wrap}
+.cat-chip{padding:5px 12px;border-radius:14px;font-size:11px;cursor:pointer;transition:var(--tr);background:rgba(255,255,255,.1);color:rgba(255,255,255,.8);border:1px solid rgba(255,255,255,.15)}
+.cat-chip:hover{background:rgba(255,255,255,.2)}
+.cat-chip.active{background:var(--mi-orange);color:#fff;border-color:var(--mi-orange)}
+
+/* ===== Solution Tab ===== */
+.sol-hero{background:linear-gradient(135deg,#001529 0%,#003a70 50%,#1677ff 100%);border-radius:var(--rl);padding:28px 32px;color:#fff;margin-bottom:16px;position:relative;overflow:hidden}
+.sol-hero::before{content:'';position:absolute;top:-50%;right:-10%;width:400px;height:400px;background:radial-gradient(circle,rgba(255,103,0,.15) 0%,transparent 70%);border-radius:50%}
+.sol-hero h1{font-size:22px;font-weight:700;margin-bottom:6px;position:relative}
+.sol-hero p{font-size:12px;color:rgba(255,255,255,.75);max-width:700px;line-height:1.7;position:relative}
+.sol-hero .hero-tags{display:flex;gap:6px;margin-top:12px;position:relative;flex-wrap:wrap}
+.sol-hero .hero-tag{padding:3px 10px;border-radius:10px;font-size:10px;background:rgba(255,255,255,.12);color:rgba(255,255,255,.9);border:1px solid rgba(255,255,255,.2)}
+
+.sol-section{margin-bottom:16px}
+.sol-section-title{font-size:14px;font-weight:700;color:var(--g900);margin-bottom:12px;display:flex;align-items:center;gap:8px;padding-left:10px;border-left:3px solid var(--p)}
+.sol-section-title .num{width:22px;height:22px;border-radius:6px;background:var(--p);color:#fff;font-size:11px;display:flex;align-items:center;justify-content:center;font-weight:700}
+
+.sol-card{background:#fff;border-radius:var(--r);padding:16px;border:1px solid rgba(0,0,0,.04);box-shadow:var(--sh)}
+.sol-card h3{font-size:12px;font-weight:700;color:var(--g900);margin-bottom:8px;display:flex;align-items:center;gap:6px}
+.sol-card p{font-size:11px;color:var(--g600);line-height:1.7}
+
+.ceqds-row{display:grid;grid-template-columns:repeat(5,1fr);gap:10px;margin-bottom:14px}
+.ceqds-card{background:#fff;border-radius:var(--r);padding:14px;text-align:center;border:1px solid rgba(0,0,0,.04);box-shadow:var(--sh);transition:var(--tr)}
+.ceqds-card:hover{transform:translateY(-2px);box-shadow:var(--shm)}
+.ceqds-card .ceqds-letter{width:40px;height:40px;border-radius:10px;margin:0 auto 8px;display:flex;align-items:center;justify-content:center;font-size:18px;font-weight:800;color:#fff}
+.ceqds-card.c .ceqds-letter{background:linear-gradient(135deg,#1677ff,#4096ff)}
+.ceqds-card.e .ceqds-letter{background:linear-gradient(135deg,#722ed1,#b37feb)}
+.ceqds-card.q .ceqds-letter{background:linear-gradient(135deg,#52c41a,#73d13d)}
+.ceqds-card.d .ceqds-letter{background:linear-gradient(135deg,#faad14,#ffc53d)}
+.ceqds-card.s .ceqds-letter{background:linear-gradient(135deg,#13c2c2,#36cfc9)}
+.ceqds-card .ceqds-name{font-size:12px;font-weight:700;color:var(--g900);margin-bottom:2px}
+.ceqds-card .ceqds-score{font-size:18px;font-weight:700;color:var(--p);margin-bottom:2px}
+.ceqds-card .ceqds-desc{font-size:10px;color:var(--g500);line-height:1.4}
+.ceqds-card .ceqds-items{margin-top:8px;padding-top:8px;border-top:1px dashed var(--g200);text-align:left}
+.ceqds-card .ceqds-item{font-size:10px;color:var(--g600);padding:1px 0;display:flex;justify-content:space-between}
+
+.flow-row{display:flex;align-items:stretch;gap:0;margin-bottom:14px;overflow-x:auto;padding-bottom:6px}
+.flow-step{flex:1;min-width:120px;background:#fff;border-radius:var(--r);padding:12px 14px;border:1px solid rgba(0,0,0,.04);box-shadow:var(--sh);position:relative;margin-right:20px}
+.flow-step:last-child{margin-right:0}
+.flow-step::after{content:'';position:absolute;right:-16px;top:50%;transform:translateY(-50%);width:0;height:0;border-left:8px solid var(--g300);border-top:6px solid transparent;border-bottom:6px solid transparent}
+.flow-step:last-child::after{display:none}
+.flow-step .step-num{width:22px;height:22px;border-radius:50%;background:var(--p);color:#fff;font-size:11px;font-weight:700;display:flex;align-items:center;justify-content:center;margin-bottom:6px}
+.flow-step h4{font-size:11px;font-weight:700;color:var(--g900);margin-bottom:3px}
+.flow-step p{font-size:10px;color:var(--g500);line-height:1.4}
+
+.feature-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}
+.feature-item{background:#fff;border-radius:var(--r);padding:14px;border:1px solid rgba(0,0,0,.04);box-shadow:var(--sh);transition:var(--tr)}
+.feature-item:hover{box-shadow:var(--shm);transform:translateY(-2px)}
+.feature-item .fi-icon{width:32px;height:32px;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:14px;margin-bottom:8px}
+.feature-item h4{font-size:12px;font-weight:700;color:var(--g900);margin-bottom:4px}
+.feature-item p{font-size:10px;color:var(--g500);line-height:1.5}
+
+.timeline{position:relative;padding-left:24px}
+.timeline::before{content:'';position:absolute;left:8px;top:4px;bottom:4px;width:2px;background:var(--g200)}
+.tl-item{position:relative;margin-bottom:14px}
+.tl-item:last-child{margin-bottom:0}
+.tl-item::before{content:'';position:absolute;left:-20px;top:3px;width:10px;height:10px;border-radius:50%;background:var(--p);border:2px solid #fff;box-shadow:0 0 0 2px var(--p)}
+.tl-item .tl-phase{font-size:10px;color:var(--p);font-weight:600;margin-bottom:2px}
+.tl-item h4{font-size:12px;font-weight:700;color:var(--g900);margin-bottom:3px}
+.tl-item p{font-size:10px;color:var(--g500);line-height:1.5}
+
+.cmp-table{width:100%;border-collapse:collapse;font-size:11px}
+.cmp-table th{background:linear-gradient(180deg,#fafafa,#f5f5f5);padding:8px 12px;text-align:left;font-weight:600;color:var(--g700);border:1px solid var(--g200);font-size:10px}
+.cmp-table td{padding:8px 12px;border:1px solid var(--g200);color:var(--g600);vertical-align:top}
+.cmp-table tr:hover td{background:var(--pl)}
+.cmp-table .highlight{background:var(--mi-orange-l);color:var(--mi-orange);font-weight:600}
+
+/* Responsive */
+@media(max-width:1400px){.summary-row{grid-template-columns:repeat(3,1fr)}.ceqds-row{grid-template-columns:repeat(3,1fr)}.feature-grid{grid-template-columns:repeat(2,1fr)}.op-grid{grid-template-columns:1fr 1fr}}
+@media(max-width:1100px){.summary-row{grid-template-columns:repeat(2,1fr)}.grid-2,.grid-3,.grid-4,.grid-2-1,.grid-1-2,.grid-3-2{grid-template-columns:1fr}.ceqds-row{grid-template-columns:repeat(2,1fr)}.op-grid{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+
+<!-- ===== Top Nav ===== -->
+<nav class="topnav">
+  <div class="topnav-logo">
+    <div class="mi">MI</div>
+    <span>小米汽车 SRM</span>
+  </div>
+  <div class="topnav-menu">
+    <div class="topnav-item">工作台</div>
+    <div class="topnav-item">供应商管理</div>
+    <div class="topnav-item">寻源管理</div>
+    <div class="topnav-item">品类管理</div>
+    <div class="topnav-item">合同管理</div>
+    <div class="topnav-item">订单管理</div>
+    <div class="topnav-item">质量管理</div>
+    <div class="topnav-item active">绩效管理</div>
+    <div class="topnav-item">报表中心</div>
+  </div>
+  <div class="topnav-right">
+    <div class="icon">🔔<span class="dot"></span></div>
+    <div class="icon">✉️</div>
+    <div class="topnav-user">
+      <div class="topnav-avatar">张</div>
+      <span>张伟</span>
+    </div>
+  </div>
+</nav>
+
+<!-- ===== Layout ===== -->
+<div class="srm-layout">
+  <aside class="sidebar">
+    <div class="sidebar-hdr">
+      <h3>供应商绩效管理</h3>
+      <div class="count">2026 H1 · 共 <strong>186</strong> 家</div>
+    </div>
+    <nav class="sp-menu">
+      <div class="sp-menu-group">绩效运营</div>
+      <div class="sp-menu-item active" onclick="switchSidebar(this,'overview')">
+        <div class="mi-icon blue">📊</div><span>绩效概览</span>
+      </div>
+      <div class="sp-menu-item" onclick="switchSidebar(this,'eval')">
+        <div class="mi-icon green">📋</div><span>绩效评估</span><div class="mi-badge">12</div>
+      </div>
+      <div class="sp-menu-item" onclick="switchSidebar(this,'onepage')">
+        <div class="mi-icon purple">👤</div><span>供应商 OnePage</span>
+      </div>
+      <div class="sp-menu-item" onclick="switchSidebar(this,'category')">
+        <div class="mi-icon cyan">📂</div><span>品类绩效分析</span>
+      </div>
+      <div class="sp-menu-item" onclick="switchSidebar(this,'event')">
+        <div class="mi-icon orange">⚠️</div><span>事件管理</span><div class="mi-badge">5</div>
+      </div>
+      <div class="sp-menu-group">配置管理</div>
+      <div class="sp-menu-item" onclick="switchSidebar(this,'template')">
+        <div class="mi-icon blue">📝</div><span>评估模板配置</span><div class="mi-badge">4</div>
+      </div>
+      <div class="sp-menu-item" onclick="switchSidebar(this,'improve')">
+        <div class="mi-icon red">📈</div><span>改进计划</span><div class="mi-badge">8</div>
+      </div>
+      <div class="sp-menu-item" onclick="switchSidebar(this,'report')">
+        <div class="mi-icon blue">📑</div><span>绩效报告</span>
+      </div>
+    </nav>
+  </aside>
+
+  <main class="main-content">
+    <div class="content-header">
+      <div class="content-title">
+        供应商绩效管理
+        <span class="sub">CEQDS 五维模型 · 模板可配置 · OnePage 全面画像 · 品类深度分析</span>
+      </div>
+      <div class="content-tabs">
+        <div class="ctab active" onclick="switchTab(this,'tab-prototype')">📐 系统原型</div>
+        <div class="ctab" onclick="switchTab(this,'tab-solution')">💡 整体解决方案</div>
+      </div>
+    </div>
+
+    <!-- ===== Tab 1: Prototype ===== -->
+    <div class="tab-panel active" id="tab-prototype">
+
+      <!-- ===== Overview ===== -->
+      <div id="sec-overview">
+        <div class="alert-banner info">
+          <span class="alert-icon">ℹ️</span>
+          <div><strong>2026 H1 绩效评估进行中</strong>：覆盖 186 家活跃供应商，4 套评估模板按品类自动匹配，自动化数据采集占比 78%。评估截止 2026-07-15。</div>
+        </div>
+        <div class="summary-row">
+          <div class="summary-card blue"><div class="sc-top"><span class="sc-label">参评供应商</span><div class="sc-icon blue">🏢</div></div><div class="sc-value">186</div><div class="sc-sub">较上周期 <span class="up">+12</span> 家</div></div>
+          <div class="summary-card green"><div class="sc-top"><span class="sc-label">平均综合得分</span><div class="sc-icon green">⭐</div></div><div class="sc-value">82.4</div><div class="sc-sub">较上周期 <span class="down">+3.2</span></div></div>
+          <div class="summary-card purple"><div class="sc-top"><span class="sc-label">A/B 级占比</span><div class="sc-icon purple">🏆</div></div><div class="sc-value">38.2%</div><div class="sc-sub">战略+核心 71 家</div></div>
+          <div class="summary-card orange"><div class="sc-top"><span class="sc-label">待改进</span><div class="sc-icon orange">⚠️</div></div><div class="sc-value">23</div><div class="sc-sub">C边缘 + D级 12家</div></div>
+          <div class="summary-card red"><div class="sc-top"><span class="sc-label">重大事件</span><div class="sc-icon red">🚨</div></div><div class="sc-value">5</div><div class="sc-sub">质量3 · 交付2</div></div>
+        </div>
+        <div class="grid-2-1">
+          <div class="sp"><div class="sp-h"><div class="sp-t">📈 绩效趋势（近4周期）</div></div><div class="sp-b"><div id="chart-trend" class="chart-box"></div></div></div>
+          <div class="sp"><div class="sp-h"><div class="sp-t">🥧 分级分布</div></div><div class="sp-b"><div id="chart-grade" class="chart-box"></div></div></div>
+        </div>
+        <div class="grid-3">
+          <div class="sp"><div class="sp-h"><div class="sp-t">🎯 CEQDS 维度均分</div></div><div class="sp-b"><div id="chart-ceqds" class="chart-box-sm"></div></div></div>
+          <div class="sp"><div class="sp-h"><div class="sp-t">🔥 事件类型分布</div></div><div class="sp-b"><div id="chart-event" class="chart-box-sm"></div></div></div>
+          <div class="sp"><div class="sp-h"><div class="sp-t">📊 品类绩效对比</div></div><div class="sp-b"><div id="chart-category-overview" class="chart-box-sm"></div></div></div>
+        </div>
+      </div>
+
+      <!-- ===== Evaluation List ===== -->
+      <div id="sec-eval" style="display:none">
+        <div class="toolbar">
+          <div class="toolbar-left">
+            <input class="search-input" placeholder="搜索供应商 / 编码">
+            <select class="filter-select"><option>全部分级</option><option>A-战略</option><option>B-核心</option><option>C-一般</option><option>D-清退</option></select>
+            <select class="filter-select"><option>全部品类</option><option>动力电池</option><option>智能座舱</option><option>底盘系统</option><option>车身内外饰</option><option>电子电器</option></select>
+            <select class="filter-select"><option>全部模板</option><option>整车零部件模板</option><option>电子电器模板</option><option>原材料模板</option><option>服务类模板</option></select>
+            <select class="filter-select"><option>评估状态</option><option>已完成</option><option>评估中</option><option>待启动</option></select>
+          </div>
+          <div class="toolbar-right">
+            <button class="btn btn-g">📥 导出</button>
+            <button class="btn btn-o">⚙️ 批量</button>
+            <button class="btn btn-p">+ 发起评估</button>
+          </div>
+        </div>
+        <div class="sp" style="margin-bottom:0">
+          <table class="dt">
+            <thead><tr>
+              <th style="width:44px">分级</th><th style="width:180px">供应商名称</th><th style="width:80px">品类</th>
+              <th style="width:70px">C商务</th><th style="width:70px">E开发</th><th style="width:70px">Q质量</th>
+              <th style="width:70px">D交付</th><th style="width:70px">S服务</th><th style="width:80px">综合得分</th>
+              <th style="width:60px">事件</th><th style="width:70px">状态</th><th style="width:90px">操作</th>
+            </tr></thead>
+            <tbody id="eval-tbody"></tbody>
+          </table>
+          <div class="pagination">
+            <span>共 186 条</span>
+            <div class="pg-btn">‹</div><div class="pg-btn active">1</div><div class="pg-btn">2</div><div class="pg-btn">3</div><div class="pg-btn">…</div><div class="pg-btn">19</div><div class="pg-btn">›</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ===== Supplier OnePage (全面画像) ===== -->
+      <div id="sec-onepage" style="display:none">
+        <!-- OnePage Header -->
+        <div class="sp" style="margin-bottom:14px">
+          <div class="sp-b" style="padding:16px 20px">
+            <div style="display:flex;align-items:center;gap:14px;margin-bottom:12px;flex-wrap:wrap">
+              <div style="width:52px;height:52px;border-radius:12px;background:linear-gradient(135deg,#1677ff,#4096ff);display:flex;align-items:center;justify-content:center;color:#fff;font-size:20px;font-weight:700;flex-shrink:0">宁</div>
+              <div style="flex:1;min-width:200px">
+                <div style="display:flex;align-items:center;gap:8px;margin-bottom:3px;flex-wrap:wrap">
+                  <span style="font-size:16px;font-weight:700;color:var(--g900)">宁德时代新能源科技股份有限公司</span>
+                  <span class="tag tag-p">A级·战略</span>
+                  <span class="tag tag-s">IATF16949</span>
+                  <span class="tag tag-mi">核心定点</span>
+                  <span class="tag tag-cyan">动力电池</span>
+                  <span class="tag tag-g">量产供货</span>
+                </div>
+                <div style="font-size:11px;color:var(--g500)">SUP-2021-0032 · 福建宁德 · 合作3年 · 采购员：李明 · 模板：整车零部件模板 v2.1</div>
+              </div>
+              <div style="text-align:center;padding:0 16px;border-left:1px solid var(--g200)">
+                <div style="font-size:26px;font-weight:800;color:var(--p)">91.2</div>
+                <div style="font-size:10px;color:var(--g500)">综合得分 / 525制</div>
+              </div>
+              <div style="display:flex;gap:6px">
+                <button class="btn btn-o btn-s">📥 导出</button>
+                <button class="btn btn-o btn-s">📝 编辑</button>
+                <button class="btn btn-p btn-s">📊 评估报告</button>
+              </div>
+            </div>
+            <div style="display:grid;grid-template-columns:repeat(8,1fr);gap:10px;padding-top:12px;border-top:1px solid var(--g100)">
+              <div><div style="font-size:10px;color:var(--g500)">年采购额</div><div style="font-size:15px;font-weight:700;color:var(--g900)">¥12.6亿</div></div>
+              <div><div style="font-size:10px;color:var(--g500)">订单数</div><div style="font-size:15px;font-weight:700;color:var(--g900)">248</div></div>
+              <div><div style="font-size:10px;color:var(--g500)">准时交付率</div><div style="font-size:15px;font-weight:700;color:var(--s)">98.5%</div></div>
+              <div><div style="font-size:10px;color:var(--g500)">PPM</div><div style="font-size:15px;font-weight:700;color:var(--s)">12</div></div>
+              <div><div style="font-size:10px;color:var(--g500)">降本达成</div><div style="font-size:15px;font-weight:700;color:var(--s)">105%</div></div>
+              <div><div style="font-size:10px;color:var(--g500)">供应零件</div><div style="font-size:15px;font-weight:700;color:var(--g900)">12个</div></div>
+              <div><div style="font-size:10px;color:var(--g500)">定点车型</div><div style="font-size:15px;font-weight:700;color:var(--g900)">3款</div></div>
+              <div><div style="font-size:10px;color:var(--g500)">风险等级</div><div style="font-size:15px;font-weight:700;color:var(--s)">低</div></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- OnePage 3-Column Grid -->
+        <div class="op-grid">
+          <!-- LEFT COLUMN -->
+          <div>
+            <!-- 公司基本信息 -->
+            <div class="op-card">
+              <div class="op-card-hdr"><h3><span class="icon blue">🏢</span> 公司基本信息</h3></div>
+              <div class="op-card-body">
+                <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;font-size:11px;color:var(--g600)">
+                  <div>法定代表人：<strong style="color:var(--g800)">曾毓群</strong></div>
+                  <div>成立时间：<strong style="color:var(--g800)">2011年</strong></div>
+                  <div>注册资本：<strong style="color:var(--g800)">24.4亿</strong></div>
+                  <div>员工规模：<strong style="color:var(--g800)">12,000+</strong></div>
+                  <div>企业性质：<strong style="color:var(--g800)">上市公司</strong></div>
+                  <div>行业排名：<strong style="color:var(--g800)">全球第1</strong></div>
+                  <div>统一信用代码：<strong style="color:var(--g800);font-size:10px">9135090058...</strong></div>
+                  <div>合作起始：<strong style="color:var(--g800)">2021-03</strong></div>
+                </div>
+              </div>
+            </div>
+
+            <!-- 资质证书 -->
+            <div class="op-card">
+              <div class="op-card-hdr"><h3><span class="icon green">📜</span> 资质证书</h3><span class="tag tag-s">5项有效</span></div>
+              <div class="op-card-body compact" style="padding:0">
+                <table class="mt">
+                  <thead><tr><th>证书名称</th><th>编号</th><th>有效期</th><th>状态</th></tr></thead>
+                  <tbody>
+                    <tr><td>IATF 16949</td><td style="font-size:10px">0267123</td><td>2027-06</td><td><span class="tag tag-s">有效</span></td></tr>
+                    <tr><td>ISO 14001</td><td style="font-size:10px">EMS-8821</td><td>2026-12</td><td><span class="tag tag-s">有效</span></td></tr>
+                    <tr><td>ISO 45001</td><td style="font-size:10px">OHS-5532</td><td>2027-03</td><td><span class="tag tag-s">有效</span></td></tr>
+                    <tr><td>3C认证</td><td style="font-size:10px">20240112</td><td>2028-01</td><td><span class="tag tag-s">有效</span></td></tr>
+                    <tr><td>CNAS实验室</td><td style="font-size:10px">L12345</td><td>2026-09</td><td><span class="tag tag-w">即将到期</span></td></tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+
+            <!-- 股权结构 -->
+            <div class="op-card">
+              <div class="op-card-hdr"><h3><span class="icon blue">📊</span> 股权结构</h3></div>
+              <div class="op-card-body"><div id="op-chart-equity" class="chart-box-sm"></div></div>
+            </div>
+
+            <!-- 生产场地 -->
+            <div class="op-card">
+              <div class="op-card-hdr"><h3><span class="icon green">🏭</span> 生产场地</h3><span class="tag tag-g">3处供小米</span></div>
+              <div class="op-card-body compact" style="padding:0">
+                <table class="mt">
+                  <thead><tr><th>地址</th><th>产品</th><th>供小米</th></tr></thead>
+                  <tbody>
+                    <tr><td style="font-size:10px">福建宁德蕉城区</td><td>电芯、模组</td><td style="color:var(--s);font-weight:700">✓</td></tr>
+                    <tr><td style="font-size:10px">江苏溧阳</td><td>PACK总成</td><td style="color:var(--s);font-weight:700">✓</td></tr>
+                    <tr><td style="font-size:10px">四川成都</td><td>结构件</td><td style="color:var(--g400)">✗</td></tr>
+                    <tr><td style="font-size:10px">广东肇庆</td><td>电芯</td><td style="color:var(--s);font-weight:700">✓</td></tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+
+            <!-- 财务指标 -->
+            <div class="op-card">
+              <div class="op-card-hdr"><h3><span class="icon purple">💰</span> 重点财务指标</h3></div>
+              <div class="op-card-body"><div id="op-chart-finance" class="chart-box-sm"></div></div>
+            </div>
+          </div>
+
+          <!-- MIDDLE COLUMN -->
+          <div>
+            <!-- CEQDS雷达图 -->
+            <div class="op-card">
+              <div class="op-card-hdr"><h3><span class="icon blue">⭐</span> CEQDS 绩效雷达</h3>
+                <div style="display:flex;gap:4px"><span class="tag tag-s">A</span><span class="tag tag-p">CS1</span></div>
+              </div>
+              <div class="op-card-body"><div id="op-chart-radar" class="chart-box-sm" style="height:240px"></div></div>
+            </div>
+
+            <!-- 综合评分 -->
+            <div class="op-card">
+              <div class="op-card-hdr"><h3><span class="icon blue">📊</span> 综合评分明细</h3></div>
+              <div class="op-card-body">
+                <div class="op-stat-grid" style="grid-template-columns:repeat(3,1fr);margin-bottom:10px">
+                  <div class="op-stat"><div class="val blue">92</div><div class="lbl">C商务</div></div>
+                  <div class="op-stat"><div class="val" style="color:var(--purple)">94</div><div class="lbl">E开发</div></div>
+                  <div class="op-stat"><div class="val green">90</div><div class="lbl">Q质量</div></div>
+                  <div class="op-stat"><div class="val orange">92</div><div class="lbl">D交付</div></div>
+                  <div class="op-stat"><div class="val" style="color:var(--cyan)">94</div><div class="lbl">S服务</div></div>
+                  <div class="op-stat"><div class="val" style="color:var(--mi-orange)">91.2</div><div class="lbl">综合</div></div>
+                </div>
+                <div style="font-size:10px;color:var(--g500);padding-top:8px;border-top:1px dashed var(--g200)">
+                  较上周期：<span style="color:var(--s);font-weight:600">+2.2分</span> · 排名：品类第 <strong style="color:var(--p)">1</strong>/28
+                </div>
+              </div>
+            </div>
+
+            <!-- 风险筛查 -->
+            <div class="op-card">
+              <div class="op-card-hdr"><h3><span class="icon orange">🔍</span> 风险筛查结果</h3></div>
+              <div class="op-card-body">
+                <div class="op-risk-circles">
+                  <div class="op-risk-circle high">高</div>
+                  <span class="op-risk-divider">/</span>
+                  <div class="op-risk-circle mid">中</div>
+                  <span class="op-risk-divider">/</span>
+                  <div class="op-risk-circle low" style="box-shadow:0 0 0 4px rgba(82,196,26,.2)">低</div>
+                </div>
+                <div style="text-align:center;font-size:10px;color:var(--g500);margin-top:4px">当前风险等级：<strong style="color:var(--s)">低风险</strong></div>
+                <div style="margin-top:10px;padding-top:8px;border-top:1px dashed var(--g200)">
+                  <div style="font-size:10px;color:var(--g600);margin-bottom:4px">• 财务风险：<span style="color:var(--s)">低</span>（负债率42%，现金流充足）</div>
+                  <div style="font-size:10px;color:var(--g600);margin-bottom:4px">• 经营风险：<span style="color:var(--s)">低</span>（产能利用率85%）</div>
+                  <div style="font-size:10px;color:var(--g600);margin-bottom:4px">• 合规风险：<span style="color:var(--s)">低</span>（资质齐全）</div>
+                  <div style="font-size:10px;color:var(--g600)">• 地缘风险：<span style="color:var(--w)">中</span>（海外产能占比18%）</div>
+                </div>
+              </div>
+            </div>
+
+            <!-- 合作履历 -->
+            <div class="op-card">
+              <div class="op-card-hdr"><h3><span class="icon green">📋</span> 合作履历</h3></div>
+              <div class="op-card-body compact" style="padding:0">
+                <table class="mt">
+                  <thead><tr><th>SOR</th><th>车型</th><th>TR</th><th>QTR</th><th>定点</th><th>量产</th></tr></thead>
+                  <tbody>
+                    <tr><td>SOR-001</td><td>MS11</td><td style="color:var(--s);font-weight:700">✓</td><td style="color:var(--s);font-weight:700">✓</td><td style="color:var(--s);font-weight:700">✓</td><td style="color:var(--s);font-weight:700">✓</td></tr>
+                    <tr><td>SOR-002</td><td>MX11</td><td style="color:var(--s);font-weight:700">✓</td><td style="color:var(--s);font-weight:700">✓</td><td style="color:var(--g400)">✗</td><td style="color:var(--g400)">—</td></tr>
+                    <tr><td>SOR-003</td><td>MX11</td><td style="color:var(--s);font-weight:700">✓</td><td style="color:var(--s);font-weight:700">✓</td><td style="color:var(--s);font-weight:700">✓</td><td style="color:var(--w)">进行中</td></tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+
+            <!-- CEQDS评分明细 -->
+            <div class="op-card">
+              <div class="op-card-hdr"><h3><span class="icon blue">📝</span> CEQDS 评分明细</h3></div>
+              <div class="op-card-body compact" style="padding:0">
+                <table class="mt">
+                  <thead><tr><th>维度</th><th>评估项</th><th>基准</th><th>得分</th><th>来源</th></tr></thead>
+                  <tbody>
+                    <tr><td style="color:var(--p);font-weight:600">C</td><td>成本竞争力</td><td>20</td><td style="color:var(--s);font-weight:600">18</td><td><span class="tag tag-g">自动</span></td></tr>
+                    <tr><td style="color:var(--p);font-weight:600">C</td><td>降本达成率</td><td>10</td><td style="color:var(--s);font-weight:600">10</td><td><span class="tag tag-g">自动</span></td></tr>
+                    <tr><td style="color:var(--p);font-weight:600">C</td><td>成本透明度</td><td>15</td><td style="color:var(--w);font-weight:600">10</td><td><span class="tag tag-w">手动</span></td></tr>
+                    <tr><td style="color:var(--purple);font-weight:600">E</td><td>开发设计质量</td><td>50</td><td style="color:var(--s);font-weight:600">46</td><td><span class="tag tag-g">自动</span></td></tr>
+                    <tr><td style="color:var(--purple);font-weight:600">E</td><td>验证质量</td><td>50</td><td style="color:var(--s);font-weight:600">48</td><td><span class="tag tag-w">手动</span></td></tr>
+                    <tr><td style="color:var(--s);font-weight:600">Q</td><td>体系保证</td><td>25</td><td style="color:var(--s);font-weight:600">25</td><td><span class="tag tag-g">自动</span></td></tr>
+                    <tr><td style="color:var(--s);font-weight:600">Q</td><td>PPM</td><td>10</td><td style="color:var(--s);font-weight:600">10</td><td><span class="tag tag-g">自动</span></td></tr>
+                    <tr><td style="color:var(--s);font-weight:600">Q</td><td>QR/CR</td><td>20</td><td style="color:var(--w);font-weight:600">15</td><td><span class="tag tag-g">自动</span></td></tr>
+                    <tr><td style="color:var(--w);font-weight:600">D</td><td>交付</td><td>100</td><td style="color:var(--s);font-weight:600">92</td><td><span class="tag tag-g">自动</span></td></tr>
+                    <tr><td style="color:var(--cyan);font-weight:600">S</td><td>诚信/响应</td><td>100</td><td style="color:var(--s);font-weight:600">97</td><td><span class="tag tag-w">手动</span></td></tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+
+          <!-- RIGHT COLUMN -->
+          <div>
+            <!-- 业务金额趋势 -->
+            <div class="op-card">
+              <div class="op-card-hdr"><h3><span class="icon blue">📈</span> 业务金额趋势</h3><span class="tag tag-g">亿元</span></div>
+              <div class="op-card-body"><div id="op-chart-business" class="chart-box-sm"></div></div>
+            </div>
+
+            <!-- 品类占比 -->
+            <div class="op-card">
+              <div class="op-card-hdr"><h3><span class="icon green">📊</span> 供应品类占比</h3></div>
+              <div class="op-card-body"><div id="op-chart-catratio" class="chart-box-sm"></div></div>
+            </div>
+
+            <!-- 供应产品 -->
+            <div class="op-card">
+              <div class="op-card-hdr"><h3><span class="icon orange">📦</span> 供应产品</h3><span class="tag tag-p">12个零件</span></div>
+              <div class="op-card-body compact" style="padding:0">
+                <table class="mt">
+                  <thead><tr><th>零件号</th><th>名称</th><th>单价</th><th>份额</th></tr></thead>
+                  <tbody>
+                    <tr><td style="color:var(--p);font-size:10px">BT-CELL-A01</td><td>方形电芯</td><td>¥0.85/Wh</td><td>45%</td></tr>
+                    <tr><td style="color:var(--p);font-size:10px">BT-MOD-B02</td><td>电池模组</td><td>¥5.2万/组</td><td>45%</td></tr>
+                    <tr><td style="color:var(--p);font-size:10px">BT-PACK-C01</td><td>PACK总成</td><td>¥5.8万/台</td><td>45%</td></tr>
+                    <tr><td style="color:var(--p);font-size:10px">BT-COO-D01</td><td>液冷板</td><td>¥3,200</td><td>45%</td></tr>
+                    <tr><td style="color:var(--p);font-size:10px">BT-BMS-E01</td><td>BMS主控</td><td>¥1,850</td><td>30%</td></tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+
+            <!-- 交易概况 -->
+            <div class="op-card">
+              <div class="op-card-hdr"><h3><span class="icon cyan">💳</span> 交易概况</h3></div>
+              <div class="op-card-body">
+                <div class="op-stat-grid" style="grid-template-columns:1fr 1fr">
+                  <div class="op-stat"><div class="val">¥12.6亿</div><div class="lbl">年度交易额</div></div>
+                  <div class="op-stat"><div class="val">1,286</div><div class="lbl">累计订单</div></div>
+                  <div class="op-stat"><div class="val green">98.2%</div><div class="lbl">准时交付率</div></div>
+                  <div class="op-stat"><div class="val green">0.03%</div><div class="lbl">批次不良率</div></div>
+                  <div class="op-stat"><div class="val">60天</div><div class="lbl">账期</div></div>
+                  <div class="op-stat"><div class="val orange">2次</div><div class="lbl">逾期记录</div></div>
+                </div>
+                <div style="margin-top:10px;padding:8px 10px;background:var(--pl);border-radius:var(--rs);font-size:10px;color:var(--p);text-align:center">付款：70%现金 + 30%承兑</div>
+              </div>
+            </div>
+
+            <!-- 事件记录 -->
+            <div class="op-card">
+              <div class="op-card-hdr"><h3><span class="icon red">⚠️</span> 事件记录</h3><span class="tag tag-g">本周期1件</span></div>
+              <div class="op-card-body compact" style="padding:0">
+                <table class="mt">
+                  <thead><tr><th>事件</th><th>类型</th><th>扣分</th><th>状态</th></tr></thead>
+                  <tbody>
+                    <tr><td style="font-size:10px">1个CR变更请求</td><td><span class="tag tag-w">质量</span></td><td style="color:var(--d);font-weight:700">-5</td><td><span class="tag tag-s">已关闭</span></td></tr>
+                    <tr><td style="font-size:10px">紧急保供支持</td><td><span class="tag tag-s">加分</span></td><td style="color:var(--s);font-weight:700">+50</td><td><span class="tag tag-s">已关闭</span></td></tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+
+            <!-- 改进计划 -->
+            <div class="op-card">
+              <div class="op-card-hdr"><h3><span class="icon purple">📈</span> 改进计划</h3><span class="tag tag-s">无待改进</span></div>
+              <div class="op-card-body">
+                <div style="text-align:center;padding:10px 0;color:var(--g400);font-size:11px">
+                  A级供应商无需强制改进计划<br>
+                  <span style="font-size:10px">建议：提升成本透明度(CBD等级2→1)</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ===== Category Analysis (品类数据全面) ===== -->
+      <div id="sec-category" style="display:none">
+        <!-- Category Header -->
+        <div class="cat-header">
+          <div>
+            <h2>📂 品类绩效分析</h2>
+            <p>覆盖 12 大采购品类 · 186 家供应商 · 多维度绩效/支出/价格/风险分析</p>
+          </div>
+          <div class="cat-selector">
+            <div class="cat-chip active" onclick="switchCategory(this)">全部品类</div>
+            <div class="cat-chip" onclick="switchCategory(this)">动力电池</div>
+            <div class="cat-chip" onclick="switchCategory(this)">智能座舱</div>
+            <div class="cat-chip" onclick="switchCategory(this)">底盘系统</div>
+            <div class="cat-chip" onclick="switchCategory(this)">车身内外饰</div>
+            <div class="cat-chip" onclick="switchCategory(this)">电子电器</div>
+            <div class="cat-chip" onclick="switchCategory(this)">热管理</div>
+          </div>
+        </div>
+
+        <!-- Category KPI -->
+        <div class="summary-row">
+          <div class="summary-card blue"><div class="sc-top"><span class="sc-label">品类供应商数</span><div class="sc-icon blue">🏢</div></div><div class="sc-value">28</div><div class="sc-sub">A级3 · B级8 · C级14 · D级3</div></div>
+          <div class="summary-card green"><div class="sc-top"><span class="sc-label">品类平均得分</span><div class="sc-icon green">⭐</div></div><div class="sc-value">84.6</div><div class="sc-sub">较上周期 <span class="down">+2.8</span></div></div>
+          <div class="summary-card orange"><div class="sc-top"><span class="sc-label">品类年支出</span><div class="sc-icon orange">💰</div></div><div class="sc-value">¥38.2亿</div><div class="sc-sub">占总采购 22.4%</div></div>
+          <div class="summary-card purple"><div class="sc-top"><span class="sc-label">价格指数</span><div class="sc-icon purple">📉</div></div><div class="sc-value">96.3</div><div class="sc-sub">较基准 <span class="down">-3.7%</span></div></div>
+          <div class="summary-card red"><div class="sc-top"><span class="sc-label">品类风险数</span><div class="sc-icon red">⚠️</div></div><div class="sc-value">4</div><div class="sc-sub">高1 · 中2 · 低1</div></div>
+        </div>
+
+        <!-- Category Charts Row 1 -->
+        <div class="grid-2-1">
+          <div class="sp"><div class="sp-h"><div class="sp-t">📊 品类绩效对比（CEQDS雷达）</div></div><div class="sp-b"><div id="cat-chart-radar" class="chart-box"></div></div></div>
+          <div class="sp"><div class="sp-h"><div class="sp-t">🥧 品类支出分布</div></div><div class="sp-b"><div id="cat-chart-spend" class="chart-box"></div></div></div>
+        </div>
+
+        <!-- Category Charts Row 2 -->
+        <div class="grid-3">
+          <div class="sp"><div class="sp-h"><div class="sp-t">📈 品类得分趋势</div></div><div class="sp-b"><div id="cat-chart-trend" class="chart-box-sm"></div></div></div>
+          <div class="sp"><div class="sp-h"><div class="sp-t">🏭 供应商分级分布</div></div><div class="sp-b"><div id="cat-chart-grade" class="chart-box-sm"></div></div></div>
+          <div class="sp"><div class="sp-h"><div class="sp-t">⚠️ 风险分布</div></div><div class="sp-b"><div id="cat-chart-risk" class="chart-box-sm"></div></div></div>
+        </div>
+
+        <!-- Category TOP Suppliers -->
+        <div class="sp">
+          <div class="sp-h"><div class="sp-t">🏆 品类TOP供应商排名</div><div style="display:flex;gap:6px"><select class="filter-select" style="font-size:11px"><option>综合得分</option><option>Q质量</option><option>D交付</option><option>C商务</option></select></div></div>
+          <table class="dt">
+            <thead><tr>
+              <th style="width:40px">排名</th><th style="width:180px">供应商</th><th style="width:60px">分级</th>
+              <th style="width:70px">C商务</th><th style="width:70px">E开发</th><th style="width:70px">Q质量</th>
+              <th style="width:70px">D交付</th><th style="width:70px">S服务</th><th style="width:80px">综合</th>
+              <th style="width:90px">年采购额</th><th style="width:70px">份额</th><th style="width:60px">风险</th>
+            </tr></thead>
+            <tbody>
+              <tr><td><span class="grade-badge grade-a">1</span></td><td><span class="cell-link">宁德时代</span></td><td><span class="tag tag-p">A</span></td><td>92</td><td>94</td><td>90</td><td>92</td><td>94</td><td><div class="score-bar"><div class="bar"><div class="bar-fill high" style="width:91%"></div></div><span class="score-val" style="color:var(--s)">91.2</span></div></td><td>¥12.6亿</td><td>33%</td><td><span class="tag tag-s">低</span></td></tr>
+              <tr><td><span class="grade-badge grade-b">2</span></td><td><span class="cell-link">比亚迪弗迪</span></td><td><span class="tag tag-p">A</span></td><td>88</td><td>90</td><td>88</td><td>86</td><td>90</td><td><div class="score-bar"><div class="bar"><div class="bar-fill high" style="width:88%"></div></div><span class="score-val" style="color:var(--s)">88.5</span></div></td><td>¥8.2亿</td><td>21%</td><td><span class="tag tag-s">低</span></td></tr>
+              <tr><td><span class="grade-badge grade-b">3</span></td><td><span class="cell-link">LG新能源</span></td><td><span class="tag tag-p">B</span></td><td>82</td><td>88</td><td>86</td><td>84</td><td>88</td><td><div class="score-bar"><div class="bar"><div class="bar-fill high" style="width:85%"></div></div><span class="score-val">85.3</span></div></td><td>¥6.8亿</td><td>18%</td><td><span class="tag tag-w">中</span></td></tr>
+              <tr><td>4</td><td><span class="cell-link">中创新航</span></td><td><span class="tag tag-p">B</span></td><td>86</td><td>80</td><td>82</td><td>88</td><td>84</td><td><div class="score-bar"><div class="bar"><div class="bar-fill mid" style="width:84%"></div></div><span class="score-val">83.8</span></div></td><td>¥4.5亿</td><td>12%</td><td><span class="tag tag-s">低</span></td></tr>
+              <tr><td>5</td><td><span class="cell-link">亿纬锂能</span></td><td><span class="tag tag-g">C</span></td><td>80</td><td>78</td><td>80</td><td>82</td><td>80</td><td><div class="score-bar"><div class="bar"><div class="bar-fill mid" style="width:80%"></div></div><span class="score-val">80.2</span></div></td><td>¥3.2亿</td><td>8%</td><td><span class="tag tag-w">中</span></td></tr>
+              <tr><td>6</td><td><span class="cell-link">国轩高科</span></td><td><span class="tag tag-g">C</span></td><td>76</td><td>74</td><td>78</td><td>80</td><td>76</td><td><div class="score-bar"><div class="bar"><div class="bar-fill mid" style="width:77%"></div></div><span class="score-val" style="color:var(--w)">76.8</span></div></td><td>¥1.8亿</td><td>5%</td><td><span class="tag tag-w">中</span></td></tr>
+              <tr><td>7</td><td><span class="cell-link">蜂巢能源</span></td><td><span class="tag tag-d">D</span></td><td>68</td><td>70</td><td>65</td><td>72</td><td>70</td><td><div class="score-bar"><div class="bar"><div class="bar-fill low" style="width:69%"></div></div><span class="score-val" style="color:var(--d)">69.2</span></div></td><td>¥1.1亿</td><td>3%</td><td><span class="tag tag-d">高</span></td></tr>
+            </tbody>
+          </table>
+        </div>
+
+        <!-- Category Improvement Opportunities -->
+        <div class="grid-2">
+          <div class="sp">
+            <div class="sp-h"><div class="sp-t">💡 品类改进机会（AI推荐）</div></div>
+            <div class="sp-b">
+              <div style="display:flex;flex-direction:column;gap:10px">
+                <div style="padding:10px 12px;background:var(--pl);border-radius:var(--rs);border-left:3px solid var(--p)">
+                  <div style="font-size:12px;font-weight:600;color:var(--p);margin-bottom:2px">降本机会：电芯统一规格</div>
+                  <div style="font-size:11px;color:var(--g600)">预计年降本 ¥3,200万 · 涉及3家供应商 · 置信度 85%</div>
+                </div>
+                <div style="padding:10px 12px;background:var(--sl);border-radius:var(--rs);border-left:3px solid var(--s)">
+                  <div style="font-size:12px;font-weight:600;color:var(--s);margin-bottom:2px">质量提升：蜂巢能源PPM改善</div>
+                  <div style="font-size:11px;color:var(--g600)">PPM从180降至80 · 需6个月改进计划 · 预期+5分</div>
+                </div>
+                <div style="padding:10px 12px;background:var(--wl);border-radius:var(--rs);border-left:3px solid var(--w)">
+                  <div style="font-size:12px;font-weight:600;color:#d46b08;margin-bottom:2px">风险预警：国轩高科财务</div>
+                  <div style="font-size:11px;color:var(--g600)">负债率78%偏高 · 建议减少份额至3% · 替代方案：中创新航</div>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="sp">
+            <div class="sp-h"><div class="sp-t">📊 品类价格基准分析</div></div>
+            <div class="sp-b"><div id="cat-chart-price" class="chart-box-sm"></div></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ===== Template Config (绩效模板可配置) ===== -->
+      <div id="sec-template" style="display:none">
+        <div class="alert-banner info">
+          <span class="alert-icon">💡</span>
+          <div><strong>模板可配置能力</strong>：支持多套评估模板并行，每套模板可独立配置维度权重、评分细项、分级阈值，并按品类自动关联。模板变更需审批，历史版本可追溯。</div>
+        </div>
+
+        <!-- Template List -->
+        <div class="sp">
+          <div class="sp-h">
+            <div class="sp-t">📝 评估模板列表</div>
+            <div style="display:flex;gap:6px">
+              <button class="btn btn-o btn-s">📥 导入模板</button>
+              <button class="btn btn-p btn-s">+ 新建模板</button>
+            </div>
+          </div>
+          <div class="sp-b">
+            <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:12px">
+              <div class="tpl-card active" onclick="selectTemplate(this)">
+                <span class="tpl-badge tag tag-s">启用中</span>
+                <h4>整车零部件模板</h4>
+                <div class="tpl-desc">适用于整车零部件类供应商，CEQDS五维525分制，含APQP/PPM等汽车行业专项指标</div>
+                <div class="tpl-meta">
+                  <span>版本 <strong>v2.1</strong></span>
+                  <span>关联 <strong>6品类</strong></span>
+                  <span>供应商 <strong>142</strong></span>
+                </div>
+              </div>
+              <div class="tpl-card" onclick="selectTemplate(this)">
+                <span class="tpl-badge tag tag-s">启用中</span>
+                <h4>电子电器模板</h4>
+                <div class="tpl-desc">适用于电子电器类供应商，强化E开发和Q质量维度，含EMC/可靠性专项</div>
+                <div class="tpl-meta">
+                  <span>版本 <strong>v1.3</strong></span>
+                  <span>关联 <strong>3品类</strong></span>
+                  <span>供应商 <strong>28</strong></span>
+                </div>
+              </div>
+              <div class="tpl-card" onclick="selectTemplate(this)">
+                <span class="tpl-badge tag tag-s">启用中</span>
+                <h4>原材料模板</h4>
+                <div class="tpl-desc">适用于原材料/大宗商品类供应商，强化C商务和D交付，含价格指数联动</div>
+                <div class="tpl-meta">
+                  <span>版本 <strong>v1.0</strong></span>
+                  <span>关联 <strong>2品类</strong></span>
+                  <span>供应商 <strong>12</strong></span>
+                </div>
+              </div>
+              <div class="tpl-card" onclick="selectTemplate(this)">
+                <span class="tpl-badge tag tag-g">草稿</span>
+                <h4>服务类模板</h4>
+                <div class="tpl-desc">适用于物流/咨询/IT服务类供应商，强化S服务和D交付，含SLA指标</div>
+                <div class="tpl-meta">
+                  <span>版本 <strong>v0.2</strong></span>
+                  <span>关联 <strong>1品类</strong></span>
+                  <span>供应商 <strong>4</strong></span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Template Detail Config -->
+        <div class="grid-2">
+          <!-- Dimension Weights -->
+          <div class="sp">
+            <div class="sp-h">
+              <div class="sp-t">⚖️ 维度权重配置</div>
+              <span class="tag tag-p">整车零部件模板 v2.1</span>
+            </div>
+            <div class="sp-b">
+              <div class="weight-row">
+                <div class="weight-label"><span style="color:var(--p)">C</span> 商务支持</div>
+                <div class="weight-bar-wrap">
+                  <div class="weight-slider"><div class="weight-slider-fill" style="width:19%;background:var(--p)"></div></div>
+                  <input class="weight-input" value="100" readonly>
+                </div>
+              </div>
+              <div class="weight-row">
+                <div class="weight-label"><span style="color:var(--purple)">E</span> 开发支持</div>
+                <div class="weight-bar-wrap">
+                  <div class="weight-slider"><div class="weight-slider-fill" style="width:19%;background:var(--purple)"></div></div>
+                  <input class="weight-input" value="100" readonly>
+                </div>
+              </div>
+              <div class="weight-row">
+                <div class="weight-label"><span style="color:var(--s)">Q</span> 质量</div>
+                <div class="weight-bar-wrap">
+                  <div class="weight-slider"><div class="weight-slider-fill" style="width:24%;background:var(--s)"></div></div>
+                  <input class="weight-input" value="125" readonly>
+                </div>
+              </div>
+              <div class="weight-row">
+                <div class="weight-label"><span style="color:var(--w)">D</span> 交付</div>
+                <div class="weight-bar-wrap">
+                  <div class="weight-slider"><div class="weight-slider-fill" style="width:19%;background:var(--w)"></div></div>
+                  <input class="weight-input" value="100" readonly>
+                </div>
+              </div>
+              <div class="weight-row">
+                <div class="weight-label"><span style="color:var(--cyan)">S</span> 服务</div>
+                <div class="weight-bar-wrap">
+                  <div class="weight-slider"><div class="weight-slider-fill" style="width:19%;background:var(--cyan)"></div></div>
+                  <input class="weight-input" value="100" readonly>
+                </div>
+              </div>
+              <div style="text-align:right;padding-top:8px;border-top:1px dashed var(--g200);font-size:11px;color:var(--g500)">
+                总分：<strong style="color:var(--p);font-size:14px">525</strong> 分
+              </div>
+            </div>
+          </div>
+
+          <!-- Grade Thresholds -->
+          <div class="sp">
+            <div class="sp-h"><div class="sp-t">🎯 分级阈值配置</div></div>
+            <div class="sp-b">
+              <table class="mt">
+                <thead><tr><th>等级</th><th>分数区间</th><th>百分比</th><th>目标占比</th><th>策略</th></tr></thead>
+                <tbody>
+                  <tr><td><span class="grade-badge grade-a">A</span> 战略</td><td>≥470分</td><td>≥89.5%</td><td>5-15%</td><td><span class="tag tag-p">优先份额</span></td></tr>
+                  <tr><td><span class="grade-badge grade-b">B</span> 核心</td><td>420-469</td><td>80-89%</td><td>25-35%</td><td><span class="tag tag-s">稳定合作</span></td></tr>
+                  <tr><td><span class="grade-badge grade-c">C</span> 一般</td><td>340-419</td><td>65-79%</td><td>45-55%</td><td><span class="tag tag-w">改进观察</span></td></tr>
+                  <tr><td><span class="grade-badge grade-d">D</span> 清退</td><td>&lt;340</td><td>&lt;65%</td><td>5-15%</td><td><span class="tag tag-d">限期清退</span></td></tr>
+                </tbody>
+              </table>
+              <div style="margin-top:10px;padding:8px 10px;background:var(--g50);border-radius:var(--rs);font-size:10px;color:var(--g500)">
+                阈值调整需审批，变更后新评估周期生效，历史数据不受影响
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Scoring Items + Category Mapping -->
+        <div class="grid-2">
+          <!-- Scoring Items -->
+          <div class="sp">
+            <div class="sp-h">
+              <div class="sp-t">📋 评分细项配置（Q质量维度示例）</div>
+              <span class="tag tag-g">7项 · 125分</span>
+            </div>
+            <div class="sp-b" style="padding:0">
+              <table class="dt" style="font-size:11px">
+                <thead><tr><th>评估项</th><th>基准分</th><th>扣分上限</th><th>数据来源</th><th>操作</th></tr></thead>
+                <tbody>
+                  <tr><td>APQP/PPAP</td><td>20</td><td>-20</td><td><span class="tag tag-g">自动</span></td><td><button class="btn-d">编辑</button></td></tr>
+                  <tr><td>体系保证</td><td>25</td><td>-300</td><td><span class="tag tag-g">自动</span></td><td><button class="btn-d">编辑</button></td></tr>
+                  <tr><td>QR/CR</td><td>20</td><td>-20</td><td><span class="tag tag-g">自动</span></td><td><button class="btn-d">编辑</button></td></tr>
+                  <tr><td>PPM</td><td>10</td><td>-10</td><td><span class="tag tag-g">自动</span></td><td><button class="btn-d">编辑</button></td></tr>
+                  <tr><td>CSL/NBH</td><td>10</td><td>-10</td><td><span class="tag tag-w">手动</span></td><td><button class="btn-d">编辑</button></td></tr>
+                  <tr><td>CCA/PSC/AP/FCIR</td><td>20</td><td>-20</td><td><span class="tag tag-g">自动</span></td><td><button class="btn-d">编辑</button></td></tr>
+                  <tr><td>3MIS/IPTV</td><td>20</td><td>-20</td><td><span class="tag tag-g">自动</span></td><td><button class="btn-d">编辑</button></td></tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          <!-- Category Mapping -->
+          <div class="sp">
+            <div class="sp-h"><div class="sp-t">🔗 品类关联配置</div></div>
+            <div class="sp-b">
+              <div style="font-size:11px;color:var(--g500);margin-bottom:10px">当前模板关联以下品类，供应商按主品类自动匹配模板</div>
+              <div style="display:flex;flex-direction:column;gap:6px">
+                <div style="display:flex;align-items:center;justify-content:space-between;padding:8px 12px;background:var(--g50);border-radius:var(--rs)">
+                  <span style="font-size:12px;font-weight:600">动力电池</span>
+                  <div style="display:flex;gap:6px;align-items:center"><span class="tag tag-p">28家</span><button class="btn-d">移除</button></div>
+                </div>
+                <div style="display:flex;align-items:center;justify-content:space-between;padding:8px 12px;background:var(--g50);border-radius:var(--rs)">
+                  <span style="font-size:12px;font-weight:600">底盘系统</span>
+                  <div style="display:flex;gap:6px;align-items:center"><span class="tag tag-p">32家</span><button class="btn-d">移除</button></div>
+                </div>
+                <div style="display:flex;align-items:center;justify-content:space-between;padding:8px 12px;background:var(--g50);border-radius:var(--rs)">
+                  <span style="font-size:12px;font-weight:600">车身内外饰</span>
+                  <div style="display:flex;gap:6px;align-items:center"><span class="tag tag-p">45家</span><button class="btn-d">移除</button></div>
+                </div>
+                <div style="display:flex;align-items:center;justify-content:space-between;padding:8px 12px;background:var(--g50);border-radius:var(--rs)">
+                  <span style="font-size:12px;font-weight:600">热管理</span>
+                  <div style="display:flex;gap:6px;align-items:center"><span class="tag tag-p">18家</span><button class="btn-d">移除</button></div>
+                </div>
+                <div style="display:flex;align-items:center;justify-content:space-between;padding:8px 12px;background:var(--g50);border-radius:var(--rs)">
+                  <span style="font-size:12px;font-weight:600">制动系统</span>
+                  <div style="display:flex;gap:6px;align-items:center"><span class="tag tag-p">12家</span><button class="btn-d">移除</button></div>
+                </div>
+                <div style="display:flex;align-items:center;justify-content:space-between;padding:8px 12px;background:var(--g50);border-radius:var(--rs)">
+                  <span style="font-size:12px;font-weight:600">转向系统</span>
+                  <div style="display:flex;gap:6px;align-items:center"><span class="tag tag-p">7家</span><button class="btn-d">移除</button></div>
+                </div>
+              </div>
+              <button class="btn btn-o btn-s" style="margin-top:10px;width:100%">+ 关联更多品类</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Version History -->
+        <div class="sp">
+          <div class="sp-h"><div class="sp-t">📜 模板版本历史</div></div>
+          <div class="sp-b" style="padding:0">
+            <table class="dt" style="font-size:11px">
+              <thead><tr><th>版本</th><th>变更内容</th><th>变更人</th><th>变更时间</th><th>状态</th><th>操作</th></tr></thead>
+              <tbody>
+                <tr><td><strong>v2.1</strong></td><td>Q质量维度增加3MIS/IPTV指标，权重从105调整为125</td><td>张伟</td><td>2026-03-15</td><td><span class="tag tag-s">当前版本</span></td><td><button class="btn-d">查看</button></td></tr>
+                <tr><td>v2.0</td><td>新增E开发支持维度，总分从425调整为525</td><td>李明</td><td>2025-12-01</td><td><span class="tag tag-g">已归档</span></td><td><button class="btn-d">查看</button> <button class="btn-d">回滚</button></td></tr>
+                <tr><td>v1.2</td><td>调整分级阈值，A级从≥450调整为≥470</td><td>王芳</td><td>2025-09-20</td><td><span class="tag tag-g">已归档</span></td><td><button class="btn-d">查看</button> <button class="btn-d">回滚</button></td></tr>
+                <tr><td>v1.0</td><td>初始版本，CQDS四维425分制</td><td>系统</td><td>2025-06-01</td><td><span class="tag tag-g">已归档</span></td><td><button class="btn-d">查看</button></td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- ===== Event Management ===== -->
+      <div id="sec-event" style="display:none">
+        <div class="toolbar">
+          <div class="toolbar-left">
+            <input class="search-input" placeholder="搜索事件/供应商">
+            <select class="filter-select"><option>全部类型</option><option>质量事件</option><option>交付事件</option><option>商务事件</option><option>服务事件</option></select>
+            <select class="filter-select"><option>全部等级</option><option>重大</option><option>一般</option><option>轻微</option></select>
+            <select class="filter-select"><option>全部状态</option><option>处理中</option><option>已关闭</option><option>待响应</option></select>
+          </div>
+          <div class="toolbar-right">
+            <button class="btn btn-g">📥 导出</button>
+            <button class="btn btn-p">+ 登记事件</button>
+          </div>
+        </div>
+        <div class="summary-row" style="grid-template-columns:repeat(4,1fr)">
+          <div class="summary-card red"><div class="sc-top"><span class="sc-label">待响应</span><div class="sc-icon red">⏰</div></div><div class="sc-value">3</div><div class="sc-sub">超24h未响应 1件</div></div>
+          <div class="summary-card orange"><div class="sc-top"><span class="sc-label">处理中</span><div class="sc-icon orange">🔄</div></div><div class="sc-value">5</div><div class="sc-sub">平均处理 3.2天</div></div>
+          <div class="summary-card blue"><div class="sc-top"><span class="sc-label">本月新增</span><div class="sc-icon blue">📝</div></div><div class="sc-value">12</div><div class="sc-sub">较上月 <span class="down">-4</span></div></div>
+          <div class="summary-card green"><div class="sc-top"><span class="sc-label">已关闭</span><div class="sc-icon green">✅</div></div><div class="sc-value">86</div><div class="sc-sub">关闭率 92%</div></div>
+        </div>
+        <div class="sp" style="margin-bottom:0">
+          <table class="dt">
+            <thead><tr>
+              <th style="width:80px">事件编号</th><th style="width:60px">等级</th><th style="width:80px">类型</th>
+              <th style="width:160px">供应商</th><th style="width:200px">事件描述</th>
+              <th style="width:60px">扣分</th><th style="width:80px">登记人</th><th style="width:90px">登记时间</th>
+              <th style="width:70px">状态</th><th style="width:80px">操作</th>
+            </tr></thead>
+            <tbody>
+              <tr><td style="color:var(--p);font-weight:500">EVT-2026-0142</td><td><span class="tag tag-d">重大</span></td><td><span class="tag tag-w">质量</span></td><td>蜂巢能源</td><td style="font-size:11px">电芯批次一致性超标，PPM达320</td><td style="color:var(--d);font-weight:700">-30</td><td>质量部-王磊</td><td>2026-06-28</td><td><span class="tag tag-w">处理中</span></td><td><button class="btn btn-p btn-s">处理</button></td></tr>
+              <tr><td style="color:var(--p);font-weight:500">EVT-2026-0141</td><td><span class="tag tag-w">一般</span></td><td><span class="tag tag-o">交付</span></td><td>某内饰件厂</td><td style="font-size:11px">门板总成延迟交付3天，影响产线</td><td style="color:var(--d);font-weight:700">-15</td><td>采购-张伟</td><td>2026-06-25</td><td><span class="tag tag-p">待响应</span></td><td><button class="btn btn-p btn-s">催办</button></td></tr>
+              <tr><td style="color:var(--p);font-weight:500">EVT-2026-0140</td><td><span class="tag tag-g">轻微</span></td><td><span class="tag tag-w">质量</span></td><td>宁德时代</td><td style="font-size:11px">1个CR变更请求，已完成整改</td><td style="color:var(--d);font-weight:700">-5</td><td>质量部-李娜</td><td>2026-06-20</td><td><span class="tag tag-s">已关闭</span></td><td><button class="btn-d">查看</button></td></tr>
+              <tr><td style="color:var(--p);font-weight:500">EVT-2026-0139</td><td><span class="tag tag-w">一般</span></td><td><span class="tag tag-p">商务</span></td><td>某电子件厂</td><td style="font-size:11px">报价与实际结算差异超5%</td><td style="color:var(--d);font-weight:700">-10</td><td>采购-陈静</td><td>2026-06-18</td><td><span class="tag tag-s">已关闭</span></td><td><button class="btn-d">查看</button></td></tr>
+              <tr><td style="color:var(--p);font-weight:500">EVT-2026-0138</td><td><span class="tag tag-s">加分</span></td><td><span class="tag tag-cyan">服务</span></td><td>宁德时代</td><td style="font-size:11px">紧急保供支持，48h内完成调拨</td><td style="color:var(--s);font-weight:700">+50</td><td>采购-李明</td><td>2026-06-15</td><td><span class="tag tag-s">已关闭</span></td><td><button class="btn-d">查看</button></td></tr>
+            </tbody>
+          </table>
+          <div class="pagination">
+            <span>共 98 条</span>
+            <div class="pg-btn">‹</div><div class="pg-btn active">1</div><div class="pg-btn">2</div><div class="pg-btn">3</div><div class="pg-btn">…</div><div class="pg-btn">10</div><div class="pg-btn">›</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ===== Improvement Plan ===== -->
+      <div id="sec-improve" style="display:none">
+        <div class="summary-row" style="grid-template-columns:repeat(4,1fr)">
+          <div class="summary-card orange"><div class="sc-top"><span class="sc-label">进行中</span><div class="sc-icon orange">🔄</div></div><div class="sc-value">8</div><div class="sc-sub">按期率 75%</div></div>
+          <div class="summary-card green"><div class="sc-top"><span class="sc-label">已完成</span><div class="sc-icon green">✅</div></div><div class="sc-value">23</div><div class="sc-sub">平均提升 +6.8分</div></div>
+          <div class="summary-card red"><div class="sc-top"><span class="sc-label">逾期</span><div class="sc-icon red">⚠️</div></div><div class="sc-value">2</div><div class="sc-sub">需升级处理</div></div>
+          <div class="summary-card blue"><div class="sc-top"><span class="sc-label">待启动</span><div class="sc-icon blue">📋</div></div><div class="sc-value">5</div><div class="sc-sub">D级供应商强制</div></div>
+        </div>
+        <div class="sp" style="margin-bottom:0">
+          <div class="sp-h"><div class="sp-t">📈 改进计划列表</div><button class="btn btn-p btn-s">+ 新建计划</button></div>
+          <table class="dt">
+            <thead><tr>
+              <th style="width:80px">计划编号</th><th style="width:160px">供应商</th><th style="width:80px">改进维度</th>
+              <th style="width:200px">改进目标</th><th style="width:80px">当前分</th><th style="width:80px">目标分</th>
+              <th style="width:90px">截止日期</th><th style="width:70px">负责人</th>
+              <th style="width:70px">进度</th><th style="width:70px">状态</th>
+            </tr></thead>
+            <tbody>
+              <tr><td style="color:var(--p)">IMP-2026-008</td><td>蜂巢能源</td><td><span class="tag tag-w">Q质量</span></td><td style="font-size:11px">PPM从180降至80，建立SPC过程控制</td><td>65</td><td style="color:var(--s);font-weight:600">80</td><td>2026-09-30</td><td>王磊</td><td><div class="score-bar"><div class="bar"><div class="bar-fill mid" style="width:45%"></div></div><span class="score-val">45%</span></div></td><td><span class="tag tag-w">进行中</span></td></tr>
+              <tr><td style="color:var(--p)">IMP-2026-007</td><td>国轩高科</td><td><span class="tag tag-p">C商务</span></td><td style="font-size:11px">成本透明度提升，提供BOM拆解</td><td>76</td><td style="color:var(--s);font-weight:600">85</td><td>2026-08-15</td><td>张伟</td><td><div class="score-bar"><div class="bar"><div class="bar-fill low" style="width:30%"></div></div><span class="score-val" style="color:var(--d)">30%</span></div></td><td><span class="tag tag-d">逾期</span></td></tr>
+              <tr><td style="color:var(--p)">IMP-2026-006</td><td>某线束厂</td><td><span class="tag tag-o">D交付</span></td><td style="font-size:11px">准时交付率从88%提升至95%</td><td>72</td><td style="color:var(--s);font-weight:600">88</td><td>2026-07-31</td><td>李明</td><td><div class="score-bar"><div class="bar"><div class="bar-fill high" style="width:80%"></div></div><span class="score-val">80%</span></div></td><td><span class="tag tag-w">进行中</span></td></tr>
+              <tr><td style="color:var(--p)">IMP-2026-005</td><td>某塑料件厂</td><td><span class="tag tag-w">Q质量</span></td><td style="font-size:11px">外观缺陷率从2.5%降至0.5%</td><td>70</td><td style="color:var(--s);font-weight:600">82</td><td>2026-06-30</td><td>李娜</td><td><div class="score-bar"><div class="bar"><div class="bar-fill high" style="width:100%"></div></div><span class="score-val" style="color:var(--s)">100%</span></div></td><td><span class="tag tag-s">已完成</span></td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- ===== Report ===== -->
+      <div id="sec-report" style="display:none">
+        <div class="grid-3">
+          <div class="sp" style="cursor:pointer" onclick="alert('演示：生成季度绩效报告')">
+            <div class="sp-b" style="text-align:center;padding:24px">
+              <div style="font-size:36px;margin-bottom:10px">📊</div>
+              <div style="font-size:14px;font-weight:700;color:var(--g900);margin-bottom:4px">季度绩效报告</div>
+              <div style="font-size:11px;color:var(--g500);margin-bottom:12px">全品类供应商绩效汇总分析</div>
+              <button class="btn btn-p btn-s">生成报告</button>
+            </div>
+          </div>
+          <div class="sp" style="cursor:pointer" onclick="alert('演示：生成供应商评估报告')">
+            <div class="sp-b" style="text-align:center;padding:24px">
+              <div style="font-size:36px;margin-bottom:10px">📋</div>
+              <div style="font-size:14px;font-weight:700;color:var(--g900);margin-bottom:4px">供应商评估报告</div>
+              <div style="font-size:11px;color:var(--g500);margin-bottom:12px">单供应商CEQDS详细评估</div>
+              <button class="btn btn-p btn-s">生成报告</button>
+            </div>
+          </div>
+          <div class="sp" style="cursor:pointer" onclick="alert('演示：生成品类分析报告')">
+            <div class="sp-b" style="text-align:center;padding:24px">
+              <div style="font-size:36px;margin-bottom:10px">📂</div>
+              <div style="font-size:14px;font-weight:700;color:var(--g900);margin-bottom:4px">品类分析报告</div>
+              <div style="font-size:11px;color:var(--g500);margin-bottom:12px">品类绩效/支出/风险综合分析</div>
+              <button class="btn btn-p btn-s">生成报告</button>
+            </div>
+          </div>
+        </div>
+        <div class="sp">
+          <div class="sp-h"><div class="sp-t">📑 历史报告</div></div>
+          <table class="dt">
+            <thead><tr><th>报告名称</th><th>类型</th><th>周期</th><th>生成人</th><th>生成时间</th><th>操作</th></tr></thead>
+            <tbody>
+              <tr><td style="color:var(--p);font-weight:500">2026 Q1 供应商绩效季度报告</td><td><span class="tag tag-p">季度报告</span></td><td>2026 Q1</td><td>张伟</td><td>2026-04-10</td><td><button class="btn-d">下载</button> <button class="btn-d">预览</button></td></tr>
+              <tr><td style="color:var(--p);font-weight:500">宁德时代 2026 H1 评估报告</td><td><span class="tag tag-s">评估报告</span></td><td>2026 H1</td><td>李明</td><td>2026-07-05</td><td><button class="btn-d">下载</button> <button class="btn-d">预览</button></td></tr>
+              <tr><td style="color:var(--p);font-weight:500">动力电池品类分析报告</td><td><span class="tag tag-cyan">品类报告</span></td><td>2026 H1</td><td>王芳</td><td>2026-07-08</td><td><button class="btn-d">下载</button> <button class="btn-d">预览</button></td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+    </div><!-- /tab-prototype -->
+
+    <!-- ===== Tab 2: Solution ===== -->
+    <div class="tab-panel" id="tab-solution">
+      <!-- Hero -->
+      <div class="sol-hero">
+        <h1>小米汽车供应商绩效管理 · 整体解决方案</h1>
+        <p>融合 NIO CEQDS 五维评估模型、Bytedance 全生命周期事件管理机制，结合小米 SRM 设计语言，构建"模板可配置 · OnePage 全面画像 · 品类深度分析"三位一体的供应商绩效体系，驱动采购决策从经验驱动走向数据驱动。</p>
+        <div class="hero-tags">
+          <span class="hero-tag">CEQDS 五维 525 分制</span>
+          <span class="hero-tag">4 套可配置模板</span>
+          <span class="hero-tag">186 家供应商覆盖</span>
+          <span class="hero-tag">12 大品类分析</span>
+          <span class="hero-tag">78% 数据自动化</span>
+          <span class="hero-tag">事件自动扣分联动</span>
+        </div>
+      </div>
+
+      <!-- 1. 方案架构 -->
+      <div class="sol-section">
+        <div class="sol-section-title"><span class="num">1</span> 方案总体架构</div>
+        <div class="grid-3">
+          <div class="sol-card">
+            <h3>🎯 评估层</h3>
+            <p>CEQDS 五维评估模型，支持多模板并行，按品类自动匹配。维度权重、评分细项、分级阈值全可配置，版本管理可追溯。自动化数据采集占比 78%，减少人工评分偏差。</p>
+          </div>
+          <div class="sol-card">
+            <h3>👤 画像层</h3>
+            <p>供应商 OnePage 三栏全面画像：左栏公司信息/资质/股权/生产/财务；中栏绩效雷达/风险筛查/合作履历/评分明细；右栏业务趋势/品类占比/供应产品/交易/事件/改进。</p>
+          </div>
+          <div class="sol-card">
+            <h3>📂 分析层</h3>
+            <p>品类绩效深度分析：品类KPI、CEQDS雷达对比、支出分布、价格基准、供应商排名、风险分布、AI改进机会推荐。支持 12 大品类切换，多维度交叉分析。</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- 2. CEQDS评估模型 -->
+      <div class="sol-section">
+        <div class="sol-section-title"><span class="num">2</span> CEQDS 五维评估模型（源自 NIO）</div>
+        <div class="ceqds-row">
+          <div class="ceqds-card c">
+            <div class="ceqds-letter">C</div>
+            <div class="ceqds-name">商务支持</div>
+            <div class="ceqds-score">100分</div>
+            <div class="ceqds-desc">成本竞争力·降本达成·成本透明度</div>
+            <div class="ceqds-items">
+              <div class="ceqds-item"><span>成本竞争力</span><span>20</span></div>
+              <div class="ceqds-item"><span>降本达成率</span><span>10</span></div>
+              <div class="ceqds-item"><span>成本透明度</span><span>15</span></div>
+              <div class="ceqds-item"><span>商务配合度</span><span>55</span></div>
+            </div>
+          </div>
+          <div class="ceqds-card e">
+            <div class="ceqds-letter">E</div>
+            <div class="ceqds-name">开发支持</div>
+            <div class="ceqds-score">100分</div>
+            <div class="ceqds-desc">开发设计质量·验证质量</div>
+            <div class="ceqds-items">
+              <div class="ceqds-item"><span>开发设计质量</span><span>50</span></div>
+              <div class="ceqds-item"><span>验证质量</span><span>50</span></div>
+            </div>
+          </div>
+          <div class="ceqds-card q">
+            <div class="ceqds-letter">Q</div>
+            <div class="ceqds-name">质量</div>
+            <div class="ceqds-score">125分</div>
+            <div class="ceqds-desc">APQP·体系·QRCR·PPM·3MIS</div>
+            <div class="ceqds-items">
+              <div class="ceqds-item"><span>APQP/PPAP</span><span>20</span></div>
+              <div class="ceqds-item"><span>体系保证</span><span>25</span></div>
+              <div class="ceqds-item"><span>QR/CR</span><span>20</span></div>
+              <div class="ceqds-item"><span>PPM</span><span>10</span></div>
+              <div class="ceqds-item"><span>3MIS/IPTV</span><span>20</span></div>
+              <div class="ceqds-item"><span>其他</span><span>30</span></div>
+            </div>
+          </div>
+          <div class="ceqds-card d">
+            <div class="ceqds-letter">D</div>
+            <div class="ceqds-name">交付</div>
+            <div class="ceqds-score">100分</div>
+            <div class="ceqds-desc">准时交付率·订单满足率</div>
+            <div class="ceqds-items">
+              <div class="ceqds-item"><span>准时交付率</span><span>60</span></div>
+              <div class="ceqds-item"><span>订单满足率</span><span>40</span></div>
+            </div>
+          </div>
+          <div class="ceqds-card s">
+            <div class="ceqds-letter">S</div>
+            <div class="ceqds-name">服务</div>
+            <div class="ceqds-score">100分</div>
+            <div class="ceqds-desc">诚信·响应速度·问题解决</div>
+            <div class="ceqds-items">
+              <div class="ceqds-item"><span>诚信合规</span><span>50</span></div>
+              <div class="ceqds-item"><span>响应速度</span><span>50</span></div>
+            </div>
+          </div>
+        </div>
+        <div class="sol-card" style="margin-top:12px">
+          <h3>📊 分级策略（ABCD 四级）</h3>
+          <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-top:8px">
+            <div style="padding:10px;background:var(--pl);border-radius:var(--rs);text-align:center">
+              <div style="font-size:18px;font-weight:800;color:var(--p)">A 战略</div>
+              <div style="font-size:10px;color:var(--g600)">≥470分 / ≥89.5%</div>
+              <div style="font-size:10px;color:var(--g500);margin-top:4px">占比5-15% · 优先份额</div>
+            </div>
+            <div style="padding:10px;background:var(--sl);border-radius:var(--rs);text-align:center">
+              <div style="font-size:18px;font-weight:800;color:var(--s)">B 核心</div>
+              <div style="font-size:10px;color:var(--g600)">420-469 / 80-89%</div>
+              <div style="font-size:10px;color:var(--g500);margin-top:4px">占比25-35% · 稳定合作</div>
+            </div>
+            <div style="padding:10px;background:var(--wl);border-radius:var(--rs);text-align:center">
+              <div style="font-size:18px;font-weight:800;color:#d46b08">C 一般</div>
+              <div style="font-size:10px;color:var(--g600)">340-419 / 65-79%</div>
+              <div style="font-size:10px;color:var(--g500);margin-top:4px">占比45-55% · 改进观察</div>
+            </div>
+            <div style="padding:10px;background:var(--dl);border-radius:var(--rs);text-align:center">
+              <div style="font-size:18px;font-weight:800;color:var(--d)">D 清退</div>
+              <div style="font-size:10px;color:var(--g600)">&lt;340 / &lt;65%</div>
+              <div style="font-size:10px;color:var(--g500);margin-top:4px">占比5-15% · 限期清退</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 3. 评估流程 -->
+      <div class="sol-section">
+        <div class="sol-section-title"><span class="num">3</span> 绩效评估全流程</div>
+        <div class="flow-row">
+          <div class="flow-step"><div class="step-num">1</div><h4>模板匹配</h4><p>按供应商主品类自动匹配评估模板，支持手动调整</p></div>
+          <div class="flow-step"><div class="step-num">2</div><h4>数据采集</h4><p>78%指标自动采集（QMS/ERP/SRM），22%人工评分</p></div>
+          <div class="flow-step"><div class="step-num">3</div><h4>事件联动</h4><p>质量/交付事件自动扣分，加分事件需审批</p></div>
+          <div class="flow-step"><div class="step-num">4</div><h4>评分计算</h4><p>CEQDS五维加权计算，自动生成分级</p></div>
+          <div class="flow-step"><div class="step-num">5</div><h4>结果校准</h4><p>采购委员会校准，异常值复核</p></div>
+          <div class="flow-step"><div class="step-num">6</div><h4>结果发布</h4><p>发布评估结果，同步供应商门户</p></div>
+          <div class="flow-step"><div class="step-num">7</div><h4>改进闭环</h4><p>C/D级强制改进计划，跟踪验证</p></div>
+        </div>
+      </div>
+
+      <!-- 4. 模板可配置设计 -->
+      <div class="sol-section">
+        <div class="sol-section-title"><span class="num">4</span> 绩效模板可配置设计</div>
+        <div class="grid-2">
+          <div class="sol-card">
+            <h3>🔧 核心配置能力</h3>
+            <p style="margin-bottom:8px"><strong>多模板并行</strong>：整车零部件/电子电器/原材料/服务类 4 套模板，按品类自动关联，不同品类使用不同评估重点。</p>
+            <p style="margin-bottom:8px"><strong>维度权重可调</strong>：CEQDS 五维权重可按模板调整，如电子电器模板 E开发权重提升至 25%。</p>
+            <p style="margin-bottom:8px"><strong>评分细项可配</strong>：每个维度下的评估项、基准分、扣分上限、数据来源（自动/手动）均可配置。</p>
+            <p><strong>分级阈值可调</strong>：ABCD 四级分数区间和目标占比可按模板独立设置。</p>
+          </div>
+          <div class="sol-card">
+            <h3>📜 版本管理与治理</h3>
+            <p style="margin-bottom:8px"><strong>版本追溯</strong>：模板变更生成新版本，历史版本可查看、可回滚，评估结果绑定当时版本。</p>
+            <p style="margin-bottom:8px"><strong>变更审批</strong>：模板权重/阈值变更需采购委员会审批，草稿状态不生效。</p>
+            <p style="margin-bottom:8px"><strong>生效控制</strong>：新版本在新评估周期生效，进行中的评估不受影响，保证数据一致性。</p>
+            <p><strong>导入导出</strong>：支持模板 JSON 导入导出，便于跨组织复用和审计。</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- 5. OnePage全面画像 -->
+      <div class="sol-section">
+        <div class="sol-section-title"><span class="num">5</span> 供应商 OnePage 全面画像设计</div>
+        <div class="grid-3">
+          <div class="sol-card">
+            <h3>📋 左栏 · 企业基本面</h3>
+            <p>• 公司基本信息（法人/注册资本/规模）<br>• 资质证书（IATF16949/ISO等，到期预警）<br>• 股权结构（实际控制人识别）<br>• 生产场地（供小米产线标记）<br>• 财务指标（营收/利润/负债率趋势）</p>
+          </div>
+          <div class="sol-card">
+            <h3>⭐ 中栏 · 绩效与风险</h3>
+            <p>• CEQDS 五维雷达图<br>• 综合评分明细（维度+评估项）<br>• 风险筛查（财务/经营/合规/地缘）<br>• 合作履历（SOR/TR/QTR/定点/量产）<br>• CEQDS 评分明细表（含数据来源）</p>
+          </div>
+          <div class="sol-card">
+            <h3>📈 右栏 · 业务与交易</h3>
+            <p>• 业务金额趋势（近12月）<br>• 供应品类占比<br>• 供应产品清单（零件号/单价/份额）<br>• 交易概况（订单/交付率/不良率/账期）<br>• 事件记录 + 改进计划状态</p>
+          </div>
+        </div>
+        <div class="sol-card" style="margin-top:12px">
+          <h3>💡 设计亮点</h3>
+          <p>OnePage 采用"一屏全景"设计理念，将供应商的<strong>企业资质、绩效表现、风险状况、业务合作</strong>四大维度信息聚合在单一页面，采购人员无需切换多个系统即可完成供应商 360° 评估。顶部 KPI 条展示 8 项核心指标，三栏布局信息密度高且层次清晰，支持从列表一键钻取。</p>
+        </div>
+      </div>
+
+      <!-- 6. 品类数据全面 -->
+      <div class="sol-section">
+        <div class="sol-section-title"><span class="num">6</span> 品类数据全面分析设计</div>
+        <div class="feature-grid">
+          <div class="feature-item"><div class="fi-icon" style="background:var(--pl);color:var(--p)">📊</div><h4>品类绩效概览</h4><p>品类平均得分、分级分布、趋势变化，12大品类一键切换对比</p></div>
+          <div class="feature-item"><div class="fi-icon" style="background:var(--sl);color:var(--s)">🏆</div><h4>供应商排名</h4><p>品类内供应商综合排名，支持按CEQDS各维度排序，TOP/BOTTOM分析</p></div>
+          <div class="feature-item"><div class="fi-icon" style="background:var(--wl);color:#d46b08">💰</div><h4>支出分析</h4><p>品类支出规模、供应商份额集中度、支出趋势，识别单一来源风险</p></div>
+          <div class="feature-item"><div class="fi-icon" style="background:var(--purple-l);color:var(--purple)">📉</div><h4>价格基准</h4><p>品类价格指数、供应商报价对比、降本机会识别，联动成本数据库</p></div>
+          <div class="feature-item"><div class="fi-icon" style="background:var(--dl);color:var(--d)">⚠️</div><h4>风险分布</h4><p>品类风险热力图，高风险供应商预警，地缘/财务/合规多维度风险</p></div>
+          <div class="feature-item"><div class="fi-icon" style="background:var(--cyan-l);color:var(--cyan)">💡</div><h4>AI改进推荐</h4><p>基于绩效+支出+风险数据，AI推荐降本/质量/风险改进机会，附置信度</p></div>
+        </div>
+      </div>
+
+      <!-- 7. 事件管理 -->
+      <div class="sol-section">
+        <div class="sol-section-title"><span class="num">7</span> 事件管理机制（融合 Bytedance）</div>
+        <div class="flow-row">
+          <div class="flow-step"><div class="step-num">1</div><h4>事件登记</h4><p>质量/交付/商务/服务事件，自动从QMS/ERP同步或人工登记</p></div>
+          <div class="flow-step"><div class="step-num">2</div><h4>等级评估</h4><p>重大/一般/轻微三级，自动判定扣分金额</p></div>
+          <div class="flow-step"><div class="step-num">3</div><h4>供应商响应</h4><p>24h响应SLA，超时自动升级，8D报告要求</p></div>
+          <div class="flow-step"><div class="step-num">4</div><h4>整改验证</h4><p>整改措施跟踪，效果验证，关闭需双方确认</p></div>
+          <div class="flow-step"><div class="step-num">5</div><h4>绩效联动</h4><p>事件扣分自动计入当期绩效，加分事件需审批</p></div>
+          <div class="flow-step"><div class="step-num">6</div><h4>复盘归档</h4><p>事件复盘，经验沉淀，同类事件预防</p></div>
+        </div>
+      </div>
+
+      <!-- 8. 三方对比 -->
+      <div class="sol-section">
+        <div class="sol-section-title"><span class="num">8</span> 与 NIO / Bytedance 方案对比</div>
+        <div class="sol-card" style="padding:0;overflow:hidden">
+          <table class="cmp-table">
+            <thead><tr><th style="width:18%">维度</th><th style="width:27%">NIO 方案</th><th style="width:27%">Bytedance 方案</th><th style="width:28%">小米方案（本方案）</th></tr></thead>
+            <tbody>
+              <tr><td><strong>评估模型</strong></td><td>CEQDS 五维 525 分制，汽车行业专项指标</td><td>五维百分制（成本25/技术20/质量20/交付25/售后10）</td><td class="highlight">CEQDS 五维 525 分制 + 多模板可配置，继承NIO汽车行业深度</td></tr>
+              <tr><td><strong>模板灵活性</strong></td><td>单一模板，版本更新慢</td><td>按品类分模板，但配置能力弱</td><td class="highlight">4套模板并行，权重/细项/阈值全可配，版本管理可追溯</td></tr>
+              <tr><td><strong>供应商画像</strong></td><td>评估表为主，信息分散</td><td>事件驱动，画像较薄</td><td class="highlight">OnePage 三栏 360° 画像，12+ 模块聚合</td></tr>
+              <tr><td><strong>品类分析</strong></td><td>基础品类汇总</td><td>服务器整机专项分析</td><td class="highlight">12大品类深度分析，绩效/支出/价格/风险/AI推荐多维</td></tr>
+              <tr><td><strong>事件管理</strong></td><td>QR/CR 机制，扣分联动</td><td>全生命周期事件管理（登记→评估→响应→关闭→复盘）</td><td class="highlight">融合两者：QRCR扣分 + 全生命周期 + 24h SLA + 8D要求</td></tr>
+              <tr><td><strong>数据自动化</strong></td><td>约60%自动采集</td><td>约70%自动采集</td><td class="highlight">78%自动采集，QMS/ERP/SRM三系统打通</td></tr>
+              <tr><td><strong>改进闭环</strong></td><td>C级强制改进</td><td>事件整改跟踪</td><td class="highlight">C/D级强制改进计划 + AI推荐 + 进度跟踪 + 效果验证</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- 9. 实施路线 -->
+      <div class="sol-section">
+        <div class="sol-section-title"><span class="num">9</span> 实施路线图</div>
+        <div class="sol-card">
+          <div class="timeline">
+            <div class="tl-item">
+              <div class="tl-phase">Phase 1 · 2026 Q3</div>
+              <h4>基础搭建</h4>
+              <p>CEQDS 评估模型上线，整车零部件模板配置，186家供应商基础数据导入，绩效概览/评估列表/报告模块上线</p>
+            </div>
+            <div class="tl-item">
+              <div class="tl-phase">Phase 2 · 2026 Q4</div>
+              <h4>能力增强</h4>
+              <p>供应商 OnePage 全面画像上线，事件管理全流程打通，自动扣分联动，电子电器/原材料模板配置</p>
+            </div>
+            <div class="tl-item">
+              <div class="tl-phase">Phase 3 · 2027 Q1</div>
+              <h4>深度分析</h4>
+              <p>品类绩效深度分析上线，12大品类覆盖，价格基准数据库对接，AI改进推荐引擎上线</p>
+            </div>
+            <div class="tl-item">
+              <div class="tl-phase">Phase 4 · 2027 Q2</div>
+              <h4>智能升级</h4>
+              <p>模板自学习优化，绩效预测模型，供应商风险预警，与寻源/合同/订单模块深度联动</p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </div><!-- /tab-solution -->
+  </main>
+</div>
+
+<script>
+// ===== Tab Switch =====
+function switchTab(el, tabId){
+  document.querySelectorAll('.ctab').forEach(t=>t.classList.remove('active'));
+  el.classList.add('active');
+  document.querySelectorAll('.tab-panel').forEach(p=>p.classList.remove('active'));
+  document.getElementById(tabId).classList.add('active');
+  if(tabId==='tab-prototype'){ setTimeout(initCharts,100); }
+}
+
+// ===== Sidebar Switch =====
+function switchSidebar(el, secId){
+  document.querySelectorAll('.sp-menu-item').forEach(i=>i.classList.remove('active'));
+  el.classList.add('active');
+  ['overview','eval','onepage','category','event','template','improve','report'].forEach(id=>{
+    document.getElementById('sec-'+id).style.display = (id===secId)?'block':'none';
+  });
+  setTimeout(initCharts,100);
+}
+
+// ===== Template Select =====
+function selectTemplate(el){
+  document.querySelectorAll('.tpl-card').forEach(c=>c.classList.remove('active'));
+  el.classList.add('active');
+}
+
+// ===== Category Switch =====
+function switchCategory(el){
+  document.querySelectorAll('.cat-chip').forEach(c=>c.classList.remove('active'));
+  el.classList.add('active');
+}
+
+// ===== Eval Table Data =====
+const evalData = [
+  ['A','宁德时代','动力电池',92,94,90,92,94,91.2,0,'已完成'],
+  ['A','比亚迪弗迪','动力电池',88,90,88,86,90,88.5,0,'已完成'],
+  ['B','博世','底盘系统',90,92,96,92,88,91.8,1,'已完成'],
+  ['B','延锋安道拓','车身内外饰',86,88,93,88,85,88.0,0,'已完成'],
+  ['B','采埃孚','底盘系统',85,87,88,82,84,85.2,1,'评估中'],
+  ['B','佛吉亚','车身内外饰',84,86,88,84,82,84.8,0,'已完成'],
+  ['B','LG新能源','动力电池',82,88,86,84,88,85.3,2,'评估中'],
+  ['C','中创新航','动力电池',86,80,82,88,84,83.8,0,'已完成'],
+  ['C','亿纬锂能','动力电池',80,78,80,82,80,80.2,1,'已完成'],
+  ['C','国轩高科','动力电池',76,74,78,80,76,76.8,2,'评估中'],
+  ['C','某线束厂','电子电器',78,80,75,72,80,77.0,1,'已完成'],
+  ['D','蜂巢能源','动力电池',68,70,65,72,70,69.2,3,'已完成'],
+];
+(function fillEvalTable(){
+  const tb = document.getElementById('eval-tbody');
+  if(!tb) return;
+  evalData.forEach((r,i)=>{
+    const gradeClass = r[0]==='A'?'grade-a':r[0]==='B'?'grade-b':r[0]==='C'?'grade-c':'grade-d';
+    const gradeTag = r[0]==='A'?'tag-p':r[0]==='B'?'tag-p':r[0]==='C'?'tag-g':'tag-d';
+    const scoreClass = r[8]>=85?'high':r[8]>=75?'mid':'low';
+    const scoreColor = r[8]>=85?'var(--s)':r[8]>=75?'var(--w)':'var(--d)';
+    const statusTag = r[10]==='已完成'?'tag-s':r[10]==='评估中'?'tag-w':'tag-g';
+    tb.innerHTML += `<tr>
+      <td><span class="grade-badge ${gradeClass}">${r[0]}</span></td>
+      <td><span class="cell-link">${r[1]}</span></td>
+      <td><span class="tag tag-g">${r[2]}</span></td>
+      <td>${r[3]}</td><td>${r[4]}</td><td>${r[5]}</td><td>${r[6]}</td><td>${r[7]}</td>
+      <td><div class="score-bar"><div class="bar"><div class="bar-fill ${scoreClass}" style="width:${r[8]}%"></div></div><span class="score-val" style="color:${scoreColor}">${r[8]}</span></div></td>
+      <td>${r[9]>0?`<span class="tag tag-d">${r[9]}</span>`:'<span style="color:var(--g400)">-</span>'}</td>
+      <td><span class="tag ${statusTag}">${r[10]}</span></td>
+      <td><button class="btn btn-p btn-s">详情</button> <button class="btn-d">历史</button></td>
+    </tr>`;
+  });
+})();
+
+// ===== ECharts =====
+let chartsInited = false;
+function initCharts(){
+  if(typeof echarts==='undefined') return;
+  const common = {textStyle:{fontFamily:'inherit'}};
+
+  // Overview - Trend
+  const c1 = echarts.init(document.getElementById('chart-trend'));
+  c1.setOption({...common, tooltip:{trigger:'axis'}, legend:{data:['平均得分','A级占比','B级占比'],bottom:0,textStyle:{fontSize:11}},
+    grid:{left:40,right:20,top:20,bottom:40},
+    xAxis:{type:'category',data:['2025Q2','2025Q3','2025Q4','2026Q1'],axisLabel:{fontSize:11}},
+    yAxis:[{type:'value',name:'得分',min:70,max:90,axisLabel:{fontSize:10}},{type:'value',name:'占比%',min:0,max:50,axisLabel:{fontSize:10}}],
+    series:[
+      {name:'平均得分',type:'line',data:[76.2,78.5,80.1,82.4],smooth:true,itemStyle:{color:'#1677ff'},areaStyle:{color:'rgba(22,119,255,.1)'},lineStyle:{width:2}},
+      {name:'A级占比',type:'bar',yAxisIndex:1,data:[8,10,12,15],itemStyle:{color:'#52c41a',borderRadius:[3,3,0,0]},barWidth:18},
+      {name:'B级占比',type:'bar',yAxisIndex:1,data:[22,24,26,23],itemStyle:{color:'#73d13d',borderRadius:[3,3,0,0]},barWidth:18},
+    ]});
+
+  // Overview - Grade pie
+  const c2 = echarts.init(document.getElementById('chart-grade'));
+  c2.setOption({...common, tooltip:{trigger:'item'}, legend:{bottom:0,textStyle:{fontSize:11}},
+    series:[{type:'pie',radius:['40%','65%'],center:['50%','45%'],label:{fontSize:11,formatter:'{b}\n{d}%'},
+      data:[{value:28,name:'A级战略',itemStyle:{color:'#1677ff'}},{value:43,name:'B级核心',itemStyle:{color:'#52c41a'}},{value:92,name:'C级一般',itemStyle:{color:'#faad14'}},{value:23,name:'D级清退',itemStyle:{color:'#ff4d4f'}}]}]});
+
+  // Overview - CEQDS
+  const c3 = echarts.init(document.getElementById('chart-ceqds'));
+  c3.setOption({...common, tooltip:{}, radar:{indicator:[{name:'C商务',max:100},{name:'E开发',max:100},{name:'Q质量',max:125},{name:'D交付',max:100},{name:'S服务',max:100}],radius:'60%',axisName:{fontSize:10}},
+    series:[{type:'radar',data:[{value:[82,80,84,85,83],name:'本期',areaStyle:{color:'rgba(22,119,255,.2)'},lineStyle:{color:'#1677ff',width:2},itemStyle:{color:'#1677ff'}},{value:[78,76,80,82,80],name:'上期',areaStyle:{color:'rgba(82,196,26,.1)'},lineStyle:{color:'#52c41a',width:1,type:'dashed'},itemStyle:{color:'#52c41a'}}]}]});
+
+  // Overview - Event
+  const c4 = echarts.init(document.getElementById('chart-event'));
+  c4.setOption({...common, tooltip:{trigger:'axis'}, grid:{left:50,right:15,top:15,bottom:25},
+    xAxis:{type:'category',data:['质量','交付','商务','服务','加分'],axisLabel:{fontSize:10}},
+    yAxis:{type:'value',axisLabel:{fontSize:10}},
+    series:[{type:'bar',data:[{value:42,itemStyle:{color:'#ff4d4f'}},{value:28,itemStyle:{color:'#faad14'}},{value:12,itemStyle:{color:'#1677ff'}},{value:8,itemStyle:{color:'#722ed1'}},{value:6,itemStyle:{color:'#52c41a'}}],barWidth:24,itemStyle:{borderRadius:[4,4,0,0]}}]});
+
+  // Overview - Category
+  const c5 = echarts.init(document.getElementById('chart-category-overview'));
+  c5.setOption({...common, tooltip:{trigger:'axis'}, grid:{left:50,right:15,top:15,bottom:30},
+    xAxis:{type:'category',data:['动力','座舱','底盘','内外饰','电子','热管理'],axisLabel:{fontSize:9,interval:0}},
+    yAxis:{type:'value',min:70,max:90,axisLabel:{fontSize:10}},
+    series:[{type:'bar',data:[84.6,82.1,86.3,80.5,83.8,85.2],itemStyle:{color:function(p){const v=p.value;return v>=85?'#52c41a':v>=80?'#1677ff':'#faad14';},borderRadius:[3,3,0,0]},barWidth:18}]});
+
+  // OnePage - Equity
+  const op1 = document.getElementById('op-chart-equity');
+  if(op1 && op1.offsetParent!==null){
+    echarts.init(op1).setOption({...common, tooltip:{trigger:'item'}, series:[{type:'pie',radius:['35%','60%'],center:['50%','50%'],label:{fontSize:10,formatter:'{b} {d}%'},
+      data:[{value:35,name:'曾毓群',itemStyle:{color:'#1677ff'}},{value:29,name:'香港中央结算',itemStyle:{color:'#4096ff'}},{value:11,name:'李平',itemStyle:{color:'#69b1ff'}},{value:10,name:'宁波联合创新',itemStyle:{color:'#91caff'}},{value:15,name:'其他',itemStyle:{color:'#d9d9d9'}}]}]});
+  }
+
+  // OnePage - Finance
+  const op2 = document.getElementById('op-chart-finance');
+  if(op2 && op2.offsetParent!==null){
+    echarts.init(op2).setOption({...common, tooltip:{trigger:'axis'}, legend:{bottom:0,textStyle:{fontSize:10}}, grid:{left:40,right:15,top:15,bottom:35},
+      xAxis:{type:'category',data:['2022','2023','2024','2025'],axisLabel:{fontSize:10}},
+      yAxis:{type:'value',axisLabel:{fontSize:10}},
+      series:[{name:'营收(亿)',type:'bar',data:[328,400,513,680],itemStyle:{color:'#1677ff',borderRadius:[3,3,0,0]},barWidth:16},{name:'净利率%',type:'line',data:[10.2,12.5,14.8,16.2],itemStyle:{color:'#52c41a'},smooth:true}]});
+  }
+
+  // OnePage - Radar
+  const op3 = document.getElementById('op-chart-radar');
+  if(op3 && op3.offsetParent!==null){
+    echarts.init(op3).setOption({...common, tooltip:{}, radar:{indicator:[{name:'C商务',max:100},{name:'E开发',max:100},{name:'Q质量',max:125},{name:'D交付',max:100},{name:'S服务',max:100}],radius:'62%',axisName:{fontSize:11,fontWeight:600}},
+      series:[{type:'radar',data:[{value:[92,94,90,92,94],name:'宁德时代',areaStyle:{color:'rgba(22,119,255,.25)'},lineStyle:{color:'#1677ff',width:2},itemStyle:{color:'#1677ff'}},{value:[82,80,84,85,83],name:'品类均值',areaStyle:{color:'rgba(82,196,26,.1)'},lineStyle:{color:'#52c41a',width:1,type:'dashed'},itemStyle:{color:'#52c41a'}}]}]});
+  }
+
+  // OnePage - Business
+  const op4 = document.getElementById('op-chart-business');
+  if(op4 && op4.offsetParent!==null){
+    echarts.init(op4).setOption({...common, tooltip:{trigger:'axis'}, grid:{left:40,right:15,top:15,bottom:25},
+      xAxis:{type:'category',data:['1月','2月','3月','4月','5月','6月'],axisLabel:{fontSize:10}},
+      yAxis:{type:'value',axisLabel:{fontSize:10}},
+      series:[{type:'line',data:[0.8,0.9,1.1,1.2,1.0,1.3],smooth:true,itemStyle:{color:'#1677ff'},areaStyle:{color:'rgba(22,119,255,.15)'},lineStyle:{width:2}}]});
+  }
+
+  // OnePage - Category ratio
+  const op5 = document.getElementById('op-chart-catratio');
+  if(op5 && op5.offsetParent!==null){
+    echarts.init(op5).setOption({...common, tooltip:{trigger:'item'}, series:[{type:'pie',radius:['35%','60%'],center:['50%','50%'],label:{fontSize:10,formatter:'{b} {d}%'},
+      data:[{value:65,name:'动力电池',itemStyle:{color:'#1677ff'}},{value:20,name:'储能',itemStyle:{color:'#52c41a'}},{value:10,name:'消费电子',itemStyle:{color:'#faad14'}},{value:5,name:'其他',itemStyle:{color:'#d9d9d9'}}]}]});
+  }
+
+  // Category - Radar
+  const cat1 = document.getElementById('cat-chart-radar');
+  if(cat1 && cat1.offsetParent!==null){
+    echarts.init(cat1).setOption({...common, tooltip:{}, legend:{bottom:0,textStyle:{fontSize:11}},
+      radar:{indicator:[{name:'C商务',max:100},{name:'E开发',max:100},{name:'Q质量',max:125},{name:'D交付',max:100},{name:'S服务',max:100}],radius:'58%',axisName:{fontSize:11}},
+      series:[{type:'radar',data:[
+        {value:[86,88,85,88,86],name:'动力电池',areaStyle:{color:'rgba(22,119,255,.2)'},lineStyle:{color:'#1677ff',width:2},itemStyle:{color:'#1677ff'}},
+        {value:[82,84,80,86,83],name:'智能座舱',areaStyle:{color:'rgba(114,46,209,.15)'},lineStyle:{color:'#722ed1',width:2},itemStyle:{color:'#722ed1'}},
+        {value:[88,85,90,87,84],name:'底盘系统',areaStyle:{color:'rgba(82,196,26,.15)'},lineStyle:{color:'#52c41a',width:2},itemStyle:{color:'#52c41a'}},
+      ]}]});
+  }
+
+  // Category - Spend
+  const cat2 = document.getElementById('cat-chart-spend');
+  if(cat2 && cat2.offsetParent!==null){
+    echarts.init(cat2).setOption({...common, tooltip:{trigger:'item',formatter:'{b}: ¥{c}亿 ({d}%)'}, legend:{bottom:0,textStyle:{fontSize:10}},
+      series:[{type:'pie',radius:['35%','62%'],center:['50%','45%'],label:{fontSize:10,formatter:'{b}\n{d}%'},
+        data:[{value:38.2,name:'动力电池',itemStyle:{color:'#1677ff'}},{value:25.6,name:'智能座舱',itemStyle:{color:'#722ed1'}},{value:22.8,name:'底盘系统',itemStyle:{color:'#52c41a'}},{value:18.5,name:'车身内外饰',itemStyle:{color:'#faad14'}},{value:15.2,name:'电子电器',itemStyle:{color:'#13c2c2'}},{value:12.1,name:'热管理',itemStyle:{color:'#ff4d4f'}},{value:38.6,name:'其他',itemStyle:{color:'#d9d9d9'}}]}]});
+  }
+
+  // Category - Trend
+  const cat3 = document.getElementById('cat-chart-trend');
+  if(cat3 && cat3.offsetParent!==null){
+    echarts.init(cat3).setOption({...common, tooltip:{trigger:'axis'}, legend:{bottom:0,textStyle:{fontSize:10}}, grid:{left:35,right:10,top:10,bottom:35},
+      xAxis:{type:'category',data:['Q2','Q3','Q4','Q1'],axisLabel:{fontSize:10}},
+      yAxis:{type:'value',min:75,max:90,axisLabel:{fontSize:10}},
+      series:[{name:'动力电池',type:'line',data:[80,82,83,84.6],smooth:true,itemStyle:{color:'#1677ff'}},{name:'底盘',type:'line',data:[83,84,85,86.3],smooth:true,itemStyle:{color:'#52c41a'}},{name:'内外饰',type:'line',data:[76,78,79,80.5],smooth:true,itemStyle:{color:'#faad14'}}]});
+  }
+
+  // Category - Grade
+  const cat4 = document.getElementById('cat-chart-grade');
+  if(cat4 && cat4.offsetParent!==null){
+    echarts.init(cat4).setOption({...common, tooltip:{trigger:'axis'}, grid:{left:35,right:10,top:10,bottom:25},
+      xAxis:{type:'category',data:['A级','B级','C级','D级'],axisLabel:{fontSize:10}},
+      yAxis:{type:'value',axisLabel:{fontSize:10}},
+      series:[{type:'bar',data:[3,8,14,3],itemStyle:{color:function(p){return ['#1677ff','#52c41a','#faad14','#ff4d4f'][p.dataIndex];},borderRadius:[4,4,0,0]},barWidth:28}]});
+  }
+
+  // Category - Risk
+  const cat5 = document.getElementById('cat-chart-risk');
+  if(cat5 && cat5.offsetParent!==null){
+    echarts.init(cat5).setOption({...common, tooltip:{trigger:'item'}, series:[{type:'pie',radius:['40%','65%'],center:['50%','45%'],label:{fontSize:10,formatter:'{b} {d}%'},
+      data:[{value:1,name:'高风险',itemStyle:{color:'#ff4d4f'}},{value:2,name:'中风险',itemStyle:{color:'#faad14'}},{value:1,name:'低风险',itemStyle:{color:'#52c41a'}},{value:24,name:'无风险',itemStyle:{color:'#d9d9d9'}}]}]});
+  }
+
+  // Category - Price
+  const cat6 = document.getElementById('cat-chart-price');
+  if(cat6 && cat6.offsetParent!==null){
+    echarts.init(cat6).setOption({...common, tooltip:{trigger:'axis'}, grid:{left:40,right:15,top:15,bottom:25},
+      xAxis:{type:'category',data:['宁德','比亚迪','LG','中创','亿纬','国轩'],axisLabel:{fontSize:9,interval:0}},
+      yAxis:{type:'value',name:'元/Wh',axisLabel:{fontSize:10}},
+      series:[{type:'bar',data:[0.85,0.82,0.90,0.83,0.86,0.88],itemStyle:{color:function(p){return p.value<=0.85?'#52c41a':p.value<=0.88?'#faad14':'#ff4d4f';},borderRadius:[3,3,0,0]},barWidth:18,markLine:{silent:true,data:[{yAxis:0.86,lineStyle:{color:'#ff4d4f',type:'dashed'},label:{formatter:'基准0.86',fontSize:9}}]}}]});
+  }
+
+  chartsInited = true;
+}
+
+// Init on load
+window.addEventListener('load',()=>setTimeout(initCharts,200));
+window.addEventListener('resize',()=>{
+  document.querySelectorAll('[id^="chart-"],[id^="op-chart-"],[id^="cat-chart-"]').forEach(el=>{
+    const inst = echarts.getInstanceByDom(el);
+    if(inst) inst.resize();
+  });
+});
+</script>
+</body>
+</html>
