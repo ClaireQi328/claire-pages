@@ -99,8 +99,9 @@ td{padding:10px 12px;border-bottom:1px solid #fafafa;vertical-align:top}
 <body>
 <div class="top">
   <h1><span class="lg">EP</span>周报中枢</h1>
-  <div style="display:flex;gap:16px;align-items:center">
+  <div style="display:flex;gap:12px;align-items:center">
     <a class="lnk" href="https://mi.feishu.cn/wiki/M1zJw9ncui8jhUkK89qcuX7Anud" target="_blank" style="font-size:13px">原周报 ↗</a>
+    <button id="syncBtn" class="btn" onclick="syncToFeishu()" style="font-size:12px">同步到飞书</button>
     <div class="fnt" id="st"></div>
     <div class="av"><span class="d"></span>路梦瑶 · 齐岳 · 李文俊 · 文飞团队</div>
   </div>
@@ -125,6 +126,7 @@ function nav(){
   document.getElementById("nav").innerHTML=P.map(([k,v])=>
     `<a class="${PAGE===k?"on":""}" onclick="go('${k}')">${v}</a>`).join("");
   document.getElementById("st").textContent=`${HUB.wkA.length} 周全文沉淀`;
+  markSync();
 }
 function go(p){PAGE=p;nav();render()}
 
@@ -138,10 +140,10 @@ function todo(){
   const P0pool=(HUB.pool||[]).filter(x=>x.dec==="P0 立即做");
   const P1pool=(HUB.pool||[]).filter(x=>x.dec==="P1 排期做");
 
-  const box=(title,tag,items)=>`<div class="docard"><div class="h"><b>${title}</b>${tag}</div><div class="b">
+  const box=(title,tag,items,editable)=>`<div class="docard"><div class="h"><b>${title}</b>${tag}</div><div class="b">
   ${items.length?items.map(t=>`<div class="todo${t.done?" done":""}">
     <div class="bx"></div><div class="tx">${t.text}${t.meta?`<span class="m">${t.meta}</span>`:""}</div>
-    ${t.tag||""}</div>`).join(""):'<div class="fnt">无</div>'}</div></div>`;
+    ${t.tag||""}${editable?`<button class="btn" onclick="event.stopPropagation();${editable}(${t.id})">编辑</button>`:""}</div>`).join(""):'<div class="fnt">无</div>'}</div></div>`;
 
   document.getElementById("view").innerHTML=`
   <div class="card"><div class="ch">
@@ -160,17 +162,17 @@ function todo(){
 
   <div class="do">
     ${box("P0 · 本周必须拍板",'<span class="tag bad">阻塞</span>',blk.map(x=>({
-      text:x.item, meta:`${x.plan}　→ ${md(x.due)} 前解决`, tag:`<span class="tag ${x.cat==="阻塞"?"bad":"warn"}">${x.cat}</span>`})))}
+      id:x.id, text:x.item, meta:`${x.plan}　→ ${md(x.due)} 前解决`, tag:`<span class="tag ${x.cat==="阻塞"?"bad":"warn"}">${x.cat}</span>`})),"editRisk")}
     ${box("在途需求",'<span class="tag info">开发中</span>',act.map(x=>({
-      text:x.name, meta:`${x.line}　${x.prog}%　${md(x.start)} → ${md(x.end)}　${[x.biz,x.pm,x.dev].filter(Boolean).join("/")}`,
-      tag:`<span class="tag ${x.health==="阻塞"?"bad":x.health==="有风险"?"warn":"ok"}">${x.stage}</span>`})))}
+      id:x.id, text:x.name, meta:`${x.line}　${x.prog}%　${md(x.start)} → ${md(x.end)}　${[x.biz,x.pm,x.dev].filter(Boolean).join("/")}`,
+      tag:`<span class="tag ${x.health==="阻塞"?"bad":x.health==="有风险"?"warn":"ok"}">${x.stage}</span>`})),"editDem")}
     ${box("即将开始",'<span class="tag">排期</span>',next.map(x=>({
-      text:x.name, meta:`${x.line}　${md(x.start)} 启动　${[x.biz,x.pm,x.dev].filter(Boolean).join("/")}`,
-      tag:`<span class="tag">${x.pri}</span>`})))}
+      id:x.id, text:x.name, meta:`${x.line}　${md(x.start)} 启动　${[x.biz,x.pm,x.dev].filter(Boolean).join("/")}`,
+      tag:`<span class="tag">${x.pri}</span>`})),"editDem")}
     ${box("P0 新需求（业务侧聚类）",'<span class="tag bad">立即做</span>',P0pool.map(x=>({
-      text:x.t, meta:`${x.cl}　${x.md} 人天　${x.how}`, tag:`<span class="tag bad">${x.mod}</span>`})))}
+      id:x.id, text:x.t, meta:`${x.cl}　${x.md} 人天　${x.how}`, tag:`<span class="tag bad">${x.mod}</span>`})),"editPool")}
     ${box("P1 排期需求（业务侧聚类）",'<span class="tag warn">排期做</span>',P1pool.map(x=>({
-      text:x.t, meta:`${x.cl}　${x.md} 人天　${x.how}`, tag:`<span class="tag warn">${x.mod}</span>`})))}
+      id:x.id, text:x.t, meta:`${x.cl}　${x.md} 人天　${x.how}`, tag:`<span class="tag warn">${x.mod}</span>`})),"editPool")}
   </div>
 
   ${w?`<div class="card"><div class="ch"><h3>上周回顾 <span class="s">${w.week} · ${w.start}</span></h3>
@@ -314,23 +316,29 @@ function gantt(){
   <div class="card"><div class="ch"><h3>交付节点清单 <span class="s">按月排，点行看依赖</span></h3>
     <div class="bar"><button class="btn" onclick="gTip()">图例</button></div></div>
   <div class="cb p0"><table style="font-size:12px">
-  <thead><tr><th>必须完成什么</th><th>主线</th><th>窗口</th><th>节点</th><th>前置依赖</th><th>责任人</th><th>状态</th></tr></thead>
+  <thead><tr><th>必须完成什么</th><th>主线</th><th>窗口</th><th>节点</th><th>前置依赖</th><th>责任人</th><th>状态</th><th></th></tr></thead>
   <tbody>${Q.slice().sort((a,b)=>a.start<b.start?-1:a.start>b.start?1:0).map(x=>{
     const dep=DEP[x.name]||"无";
     const ms=MILESTONE[x.name];
     const done=x.stage==="已上线";
     const isLate=new Date(x.end+"T00:00:00")<new Date(TODAY+"T00:00:00")&&!done;
+    const pend=PEND.dem&&PEND.dem[x.id]?"●":""; 
     return `<tr><td><b>${x.name}</b>${x.risk?`<div class="fnt" style="color:#cf1322;margin-top:1px">${x.risk}</div>`:""}</td>
     <td><span class="tag" style="background:${LC[x.line]}18;color:${LC[x.line]};border:1px solid ${LC[x.line]}40">${x.line}</span></td>
     <td style="white-space:nowrap">${md(x.start)} → ${md(x.end)}</td>
     <td>${ms?`<span class="tag info">${ms}</span>`:'<span class="fnt">—</span>'}</td>
     <td class="fnt">${dep}</td>
     <td style="font-size:11px">${[x.biz,x.pm,x.dev].filter(Boolean).join("/")}</td>
-    <td>${done?'<span class="tag ok">已上线</span>':isLate?'<span class="tag bad">已逾期</span>':x.stage==="开发中"?'<span class="tag warn">开发中</span>':'<span class="tag">未开始</span>'}</td></tr>`}).join("")}
+    <td>${done?'<span class="tag ok">已上线</span>':isLate?'<span class="tag bad">已逾期</span>':x.stage==="开发中"?'<span class="tag warn">开发中</span>':'<span class="tag">未开始</span>'}</td>
+    <td><button class="btn" onclick="editDem('${x.id}')">编辑${pend}</button></td></tr>`}).join("")}
   </tbody></table></div></div>`;
 
   document.querySelectorAll(".gbar").forEach(b=>{
-    b.onclick=()=>alert(b.dataset.n+"\n"+b.dataset.d);
+    b.onclick=()=>{
+      const x=Q.find(y=>y.name===b.dataset.n);
+      if(x)editDem(x.id);
+    };
+    b.title=b.dataset.n+"｜"+b.dataset.d+"（点击编辑）";
   });
   const c=document.getElementById("gMs");
   if(c)c.onchange=()=>{document.querySelectorAll(".gbar").forEach(b=>{
@@ -347,8 +355,168 @@ window.gTip=()=>alert(
 "红线 ＝ 今天 2026-10-19\n\n"+
 "顶部「只看里程碑节点」可隐藏非里程碑任务");
 
+/* ── 编辑 + 同步到飞书 ─────────────────────────── */
+const TBL={dem:"tblywdyPpN5zlARw",pool:"tblKSqmYNGqKqEDk",wk:"tblBwCSqSpg7eyXV",
+           wkA:"tblbTXxrDz9L5bOJ",res:"tblTDX6lXui3NkW0",rsk:"tblb3IYnCjC5YAsJ"};
+const API="http://127.0.0.1:8848";
+let PEND={};   // {tableKey: {record_id: {field:val}}}
+
+function pendAdd(tk,rid,f,v){ (PEND[tk]=PEND[tk]||{})[rid]=PEND[tk][rid]||{}; PEND[tk][rid][f]=v; savePend(); markSync(); }
+function savePend(){ localStorage.setItem("ep_pend",JSON.stringify(PEND)); }
+function loadPend(){ try{ PEND=JSON.parse(localStorage.getItem("ep_pend")||"{}") }catch(e){ PEND={} } }
+function pendCount(){ let n=0; for(const t in PEND) for(const r in PEND[t]) n+=Object.keys(PEND[t][r]).length; return n; }
+function markSync(){
+  const b=document.getElementById("syncBtn");
+  if(b){ const n=pendCount(); b.textContent=n?`同步到飞书 (${n})`:"同步到飞书";
+    b.style.background=n?"#fa8c16":"#fff"; b.style.color=n?"#fff":"#595959"; b.style.borderColor=n?"#fa8c16":"#d9d9d9"; }
+}
+
+function editDem(id){
+  const d=HUB.dem.find(x=>x.id===id); if(!d)return;
+  const F=[["需求名称",1,"nm"],["阶段",3,"stage"],["主线",3,"line"],["优先级",3,"pri"],
+    ["健康度",3,"hl"],["开始",5,"st"],["结束",5,"en"],["进度%",2,"pg"],
+    ["风险/卡点",1,"risk"],["本周进展",1,"pnote"],["下周计划",1,"nnext"],["备注",1,"note"]];
+  const m=document.createElement("div");
+  m.style.cssText="position:fixed;inset:0;background:rgba(0,0,0,.45);display:flex;align-items:flex-start;justify-content:center;padding:40px 20px;overflow-y:auto;z-index:99";
+  m.innerHTML=`<div style="background:#fff;border-radius:8px;max-width:620px;width:100%;padding:24px">
+    <h3 style="font-size:16px;font-weight:500;margin-bottom:4px">编辑需求</h3>
+    <div class="fnt" style="margin-bottom:14px">改动会先进入待同步队列，点右上「同步到飞书」才写入</div>
+    ${F.map(([l,t,k])=>{
+      const v=d[{nm:"name",stage:"stage",line:"line",pri:"pri",hl:"health",
+        st:"start",en:"end",pg:"prog",risk:"risk",pnote:"pnote",nnext:"nnext",note:"note"}[k]];
+      if(t===3){const os={stage:["需求澄清","已排期","开发中","测试中","UAT","已上线","已延期","暂停"],
+          line:["车型任务线","成本线","交付线","供应商线","AI/CLI","横向"],
+          pri:["P0","P1","P2","P3"],hl:["正常","有风险","阻塞","已延期"]}[k];
+        if(!os)return "";
+        return `<div style="display:flex;gap:10px;padding:7px 0;border-bottom:1px solid #fafafa;align-items:center">
+          <div style="width:84px;font-size:13px;color:#8c8c8c;flex-shrink:0">${l}</div>
+          <select data-f="${k}" style="flex:1;padding:5px 9px;border:1px solid #d9d9d9;border-radius:6px;font-size:13px;font-family:inherit">
+          ${os.map(o=>`<option ${o===v?"selected":""}>${o}</option>`).join("")}</select></div>`}
+      if(t===5) return `<div style="display:flex;gap:10px;padding:7px 0;border-bottom:1px solid #fafafa;align-items:center">
+        <div style="width:84px;font-size:13px;color:#8c8c8c;flex-shrink:0">${l}</div>
+        <input type="date" data-f="${k}" value="${v||""}" style="flex:1;padding:5px 9px;border:1px solid #d9d9d9;border-radius:6px;font-size:13px;font-family:inherit"></div>`
+      if(t===2) return `<div style="display:flex;gap:10px;padding:7px 0;border-bottom:1px solid #fafafa;align-items:center">
+        <div style="width:84px;font-size:13px;color:#8c8c8c;flex-shrink:0">${l}</div>
+        <input type="number" data-f="${k}" min="0" max="100" value="${v||0}" style="flex:1;padding:5px 9px;border:1px solid #d9d9d9;border-radius:6px;font-size:13px;font-family:inherit"></div>`
+      return `<div style="display:flex;gap:10px;padding:7px 0;border-bottom:1px solid #fafafa;align-items:flex-start">
+        <div style="width:84px;font-size:13px;color:#8c8c8c;flex-shrink:0;padding-top:6px">${l}</div>
+        <textarea data-f="${k}" rows="2" style="flex:1;padding:5px 9px;border:1px solid #d9d9d9;border-radius:6px;font-size:13px;font-family:inherit">${v||""}</textarea></div>`}).join("")}
+    <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:16px">
+      <button id="eCancel" style="padding:5px 13px;border:1px solid #d9d9d9;background:#fff;border-radius:6px;cursor:pointer;font-size:13px">取消</button>
+      <button id="eSave" style="padding:5px 13px;border:1px solid #1677ff;background:#1677ff;color:#fff;border-radius:6px;cursor:pointer;font-size:13px">加入待同步</button>
+    </div></div>`;
+  document.body.appendChild(m);
+  m.onclick=e=>{if(e.target===m)m.remove()};
+  m.querySelector("#eCancel").onclick=()=>m.remove();
+  m.querySelector("#eSave").onclick=()=>{
+    const FKEY={nm:"需求名称",stage:"阶段",line:"主线",pri:"优先级",hl:"健康度",
+      st:"开始",en:"结束",pg:"进度%",risk:"风险/卡点",pnote:"本周进展",nnext:"下周计划",note:"备注"};
+    const DKEY={nm:"name",stage:"stage",line:"line",pri:"pri",hl:"health",
+      st:"start",en:"end",pg:"prog",risk:"risk",pnote:"pnote",nnext:"nnext",note:"note"};
+    m.querySelectorAll("[data-f]").forEach(el=>{
+      const k=el.getAttribute("data-f"); let v=el.value;
+      if(k==="pg") v=+v;
+      d[DKEY[k]]=v;
+      pendAdd("dem",d.id,FKEY[k],v);
+    });
+    m.remove(); render();
+  };
+}
+window.editDem=editDem;
+
+function editPool(id){
+  const d=(HUB.pool||[]).find(x=>x.id===id); if(!d)return;
+  const DEC=["P0 立即做","P1 排期做","P2 顺手做","P3 不做/线下","P3 待评估"];
+  const m=document.createElement("div");
+  m.style.cssText="position:fixed;inset:0;background:rgba(0,0,0,.45);display:flex;align-items:flex-start;justify-content:center;padding:40px 20px;overflow-y:auto;z-index:99";
+  m.innerHTML=`<div style="background:#fff;border-radius:8px;max-width:620px;width:100%;padding:24px">
+    <h3 style="font-size:16px;font-weight:500;margin-bottom:14px">编辑需求池条目</h3>
+    <div style="display:flex;gap:10px;padding:7px 0;border-bottom:1px solid #fafafa;align-items:center">
+      <div style="width:84px;font-size:13px;color:#8c8c8c">建议决策</div>
+      <select data-f="dec" style="flex:1;padding:5px 9px;border:1px solid #d9d9d9;border-radius:6px;font-size:13px;font-family:inherit">
+      ${DEC.map(o=>`<option ${o===d.dec?"selected":""}>${o}</option>`).join("")}</select></div>
+    <div style="display:flex;gap:10px;padding:7px 0;border-bottom:1px solid #fafafa;align-items:center">
+      <div style="width:84px;font-size:13px;color:#8c8c8c">预估人天</div>
+      <input type="number" data-f="md" min="0" value="${d.md||0}" style="flex:1;padding:5px 9px;border:1px solid #d9d9d9;border-radius:6px;font-size:13px;font-family:inherit"></div>
+    <div style="display:flex;gap:10px;padding:7px 0;border-bottom:1px solid #fafafa;align-items:flex-start">
+      <div style="width:84px;font-size:13px;color:#8c8c8c;padding-top:6px">决策理由</div>
+      <textarea data-f="why" rows="2" style="flex:1;padding:5px 9px;border:1px solid #d9d9d9;border-radius:6px;font-size:13px;font-family:inherit">${d.why||""}</textarea></div>
+    <div style="display:flex;gap:10px;padding:7px 0;border-bottom:1px solid #fafafa;align-items:flex-start">
+      <div style="width:84px;font-size:13px;color:#8c8c8c;padding-top:6px">建议做法</div>
+      <textarea data-f="how" rows="3" style="flex:1;padding:5px 9px;border:1px solid #d9d9d9;border-radius:6px;font-size:13px;font-family:inherit">${d.how||""}</textarea></div>
+    <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:16px">
+      <button id="eCancel" style="padding:5px 13px;border:1px solid #d9d9d9;background:#fff;border-radius:6px;cursor:pointer;font-size:13px">取消</button>
+      <button id="eSave" style="padding:5px 13px;border:1px solid #1677ff;background:#1677ff;color:#fff;border-radius:6px;cursor:pointer;font-size:13px">加入待同步</button>
+    </div></div>`;
+  document.body.appendChild(m);
+  m.onclick=e=>{if(e.target===m)m.remove()};
+  m.querySelector("#eCancel").onclick=()=>m.remove();
+  m.querySelector("#eSave").onclick=()=>{
+    const FK={dec:"建议决策",md:"预估人天",why:"决策理由",how:"建议做法"};
+    m.querySelectorAll("[data-f]").forEach(el=>{
+      const k=el.getAttribute("data-f"); let v=el.value; if(k==="md") v=+v;
+      d[k]=v; pendAdd("pool",d.id,FK[k],v);
+    });
+    m.remove(); render();
+  };
+}
+window.editPool=editPool;
+
+async function syncToFeishu(){
+  const tk=Object.keys(PEND).filter(k=>Object.keys(PEND[k]).length);
+  if(!tk.length){alert("没有待同步的改动");return}
+  let total=0, errs=[];
+  for(const t of tk){
+    const changes=Object.entries(PEND[t]).map(([rid,fields])=>({record_id:rid,fields}));
+    try{
+      const r=await fetch(API+"/api/sync",{method:"POST",headers:{"Content-Type":"application/json"},
+        body:JSON.stringify({table:TBL[t],changes})});
+      const j=await r.json();
+      if(j.ok){ total+=j.updated; delete PEND[t]; }
+      else errs.push(j.error||"同步失败");
+    }catch(e){ errs.push(e.message) }
+  }
+  savePend(); markSync(); render();
+  alert(errs.length? `部分成功：已写入 ${total} 条\n失败：${errs.join("; ")}`
+                  : `已同步 ${total} 条改动到飞书多维表格`);
+}
+window.syncToFeishu=syncToFeishu;
+
+function editRisk(id){
+  const d=HUB.rsk.find(x=>x.id===id); if(!d)return;
+  const m=document.createElement("div");
+  m.style.cssText="position:fixed;inset:0;background:rgba(0,0,0,.45);display:flex;align-items:flex-start;justify-content:center;padding:40px 20px;overflow-y:auto;z-index:99";
+  m.innerHTML=`<div style="background:#fff;border-radius:8px;max-width:620px;width:100%;padding:24px">
+    <h3 style="font-size:16px;font-weight:500;margin-bottom:14px">编辑风险</h3>
+    <div style="display:flex;gap:10px;padding:7px 0;border-bottom:1px solid #fafafa;align-items:center">
+      <div style="width:84px;font-size:13px;color:#8c8c8c">状态</div>
+      <select data-f="st" style="flex:1;padding:5px 9px;border:1px solid #d9d9d9;border-radius:6px;font-size:13px;font-family:inherit">
+      ${["待处理","处理中","已解决","已关闭"].map(o=>`<option ${o===d.st?"selected":""}>${o}</option>`).join("")}</select></div>
+    <div style="display:flex;gap:10px;padding:7px 0;border-bottom:1px solid #fafafa;align-items:center">
+      <div style="width:84px;font-size:13px;color:#8c8c8c">等级</div>
+      <select data-f="lv" style="flex:1;padding:5px 9px;border:1px solid #d9d9d9;border-radius:6px;font-size:13px;font-family:inherit">
+      ${["P0","P1","P2"].map(o=>`<option ${o===d.lv?"selected":""}>${o}</option>`).join("")}</select></div>
+    <div style="display:flex;gap:10px;padding:7px 0;border-bottom:1px solid #fafafa;align-items:flex-start">
+      <div style="width:84px;font-size:13px;color:#8c8c8c;padding-top:6px">应对方案</div>
+      <textarea data-f="plan" rows="3" style="flex:1;padding:5px 9px;border:1px solid #d9d9d9;border-radius:6px;font-size:13px;font-family:inherit">${d.plan||""}</textarea></div>
+    <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:16px">
+      <button id="eCancel" style="padding:5px 13px;border:1px solid #d9d9d9;background:#fff;border-radius:6px;cursor:pointer;font-size:13px">取消</button>
+      <button id="eSave" style="padding:5px 13px;border:1px solid #1677ff;background:#1677ff;color:#fff;border-radius:6px;cursor:pointer;font-size:13px">加入待同步</button>
+    </div></div>`;
+  document.body.appendChild(m);
+  m.onclick=e=>{if(e.target===m)m.remove()};
+  m.querySelector("#eCancel").onclick=()=>m.remove();
+  m.querySelector("#eSave").onclick=()=>{
+    const FK={st:"状态",lv:"等级",plan:"应对方案"};
+    m.querySelectorAll("[data-f]").forEach(el=>{const k=el.getAttribute("data-f"); d[k]=el.value; pendAdd("rsk",d.id,FK[k],el.value)});
+    m.remove(); render();
+  };
+}
+window.editRisk=editRisk;
+
 const R={todo,gantt,history};
 function render(){nav();document.getElementById("view").innerHTML="";R[PAGE]()}
+loadPend();
 render();
 </script>
 </body>
