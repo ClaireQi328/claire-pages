@@ -84,6 +84,13 @@ h2.sec .s{font-size:12px;color:#8c8c8c;font-weight:400}
 .tli b{font-size:13px;display:block;margin-bottom:3px}
 .tli .c{font-size:12px;color:#595959;line-height:1.7}
 select{padding:5px 10px;border:1px solid #d9d9d9;border-radius:6px;background:#fff;font-size:13px;font-family:inherit;cursor:pointer}
+.gm{position:relative}
+.gbar{cursor:pointer;transition:opacity .12s}
+.gbar:hover{opacity:1;outline:2px solid #1677ff;outline-offset:1px}
+.bar{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+table{width:100%;border-collapse:collapse;font-size:13px}
+th{background:#fafafa;padding:10px 12px;text-align:left;font-weight:400;color:#595959;font-size:12px;white-space:nowrap;border-bottom:1px solid #f0f0f0}
+td{padding:10px 12px;border-bottom:1px solid #fafafa;vertical-align:top}
 </style>
 </head>
 <body>
@@ -111,7 +118,7 @@ const wkSorted=()=>[...HUB.wkA].sort((a,b)=>a.start<b.start?1:-1);
 const curWeek=()=>wkSorted().find(x=>x.start===WEEK)||wkSorted()[0];
 
 function nav(){
-  const P=[["todo","本周要做"],["history","周报全文"]];
+  const P=[["todo","本周要做"],["gantt","Q4 交付甘特"],["history","周报全文"]];
   document.getElementById("nav").innerHTML=P.map(([k,v])=>
     `<a class="${PAGE===k?"on":""}" onclick="go('${k}')">${v}</a>`).join("");
   document.getElementById("st").textContent=`${HUB.wkA.length} 周全文沉淀`;
@@ -222,7 +229,122 @@ function fmt(s){
   return out.join("");
 }
 
-const R={todo,history};
+/* ── Q4 交付甘特 ─────────────────────────────── */
+const DEP={
+ "物流询报价及成本核算支持":"依赖 物流功能优化+小迭代",
+ "项目进度管理":"依赖 项目管理平台上线",
+ "品类资源池 + 九九格分层分级线上化":"依赖 供应商管理业务模型过会",
+ "供应商与品类 ONEPAGE":"依赖 品类资源池+九宫格",
+ "AI Skill 前台化":"依赖 Skill 可独立暴露给角色",
+};
+const MILESTONE={"物流功能优化 + 小迭代":"10月上线","物流询报价及成本核算支持":"11月初交付",
+ "项目管理平台上线（车型平台）":"11月底上线","项目进度管理":"12月初交付",
+ "供应商主数据建设（含制造地/内容信息重构）":"12月中交付","对接供应商风险筛查信息":"12月中交付",
+ "供应商标签":"12月底交付","供应商绩效线上化（数据收集+数据分析）":"12月底上线",
+ "多角色工作流":"1月底上线","AI Skill 前台化":"1月底上线",
+ "品类资源池 + 九宫格分层分级线上化":"2月中上线","供应商与品类 ONEPAGE":"2月底上线",
+ "报价细项拆解（拆解率 28.3%→50%）":"12月底验收","成本库建设与历史数据导入":"12月中交付",
+ "定点会安排管理":"12月中交付","定点材料自动生成":"12月中交付",
+ "CLI & Agent（覆盖价格、合同、订单）":"1月底交付","品类应用迭代 II 收口（路由引擎、CLI 权限、改前零件推荐）":"10月底收口"};
+const LC={"车型任务线":"#1677ff","成本线":"#13c2c2","交付线":"#fa8c16","供应商线":"#722ed1","AI/CLI":"#eb2f96","横向":"#8c8c8c"};
+
+function gantt(){
+  const Q=HUB.dem.filter(x=>x.start&&x.start>="2026-10-01");
+  if(!Q.length){document.getElementById("view").innerHTML='<div class="card"><div class="empty">暂无排期</div></div>';return}
+  const T0="2026-10-01", T1="2027-02-28";
+  const t0=new Date(T0+"T00:00:00"), t1=new Date(T1+"T00:00:00");
+  const total=Math.round((t1-t0)/864e5);
+  const pos=s=>Math.max(0,Math.round((new Date(s+"T00:00:00")-t0)/864e5))/total*100;
+  const tpos=pos(TODAY);
+  const LINES2=["车型任务线","交付线","成本线","供应商线","AI/CLI","横向"];
+  const months=[];{let d=new Date(t0);while(d<=t1){months.push(`${d.getFullYear()}.${d.getMonth()+1}`);d.setMonth(d.getMonth()+1)}}
+  const monthPos=months.map(m=>pos(`${m.split(".")[0]}-${String(m.split(".")[1]).padStart(2,"0")}-01`));
+  const monthW=months.map((m,i)=>(monthPos[i+1]!==undefined?monthPos[i+1]:100)-monthPos[i]);
+
+  const blk=HUB.rsk.filter(x=>x.lv==="P0"&&x.st!=="已解决"&&x.st!=="已关闭");
+  const late=Q.filter(x=>new Date(x.end+"T00:00:00")<new Date(TODAY+"T00:00:00")&&x.stage!=="已上线");
+
+  document.getElementById("view").innerHTML=`
+  <div class="card"><div class="ch">
+    <h3>Q4 交付甘特 <span class="s">2026.10 – 2027.02　${Q.length} 个交付节点　红线=今天 ${TODAY}</span></h3>
+    <div class="bar">
+      <label class="fnt"><input type="checkbox" id="gMs" checked style="vertical-align:-1px"> 只看里程碑节点</label>
+      <button class="btn" onclick="gTip()">图例</button></div></div>
+  <div class="cb p0" style="overflow-x:auto"><div class="gm" style="min-width:1080px">
+    <div style="position:relative">
+      <div style="display:flex;height:24px;border-bottom:2px solid #e8e8e8;margin-bottom:4px">
+        <div style="width:250px;flex-shrink:0"></div>
+        <div style="flex:1;position:relative">
+          ${months.map((m,i)=>`<div style="position:absolute;left:${monthPos[i]}%;width:${monthW[i]}%;font-size:12px;color:#595959;font-weight:500;padding-left:4px;border-left:1px solid #f0f0f0">${m}</div>`).join("")}
+        </div></div>
+      <div style="display:flex;height:18px;margin-bottom:4px">
+        <div style="width:250px;flex-shrink:0"></div>
+        <div style="flex:1;display:grid;grid-template-columns:repeat(24,1fr);font-size:10px;color:#8c8c8c;text-align:center">
+        ${Array.from({length:24},(_,i)=>`<span>${i%2===0?(i+10):''}</span>`).join("")}</div></div>
+      <div style="position:relative">
+        <div class="gtd" style="position:absolute;top:0;bottom:0;left:calc(250px + ${tpos}% * (100% - 250px)/100);width:1px;background:#ff4d4f;z-index:5"></div>
+        <div class="gtd" style="position:absolute;top:-14px;left:calc(250px + ${tpos}% * (100% - 250px)/100);transform:translateX(-50%);font-size:10px;color:#ff4d4f;background:#fff;padding:0 4px;border-radius:2px;z-index:6">今天</div>
+        ${LINES2.map(l=>{const g=Q.filter(x=>x.line===l);if(!g.length)return "";
+          return `<div style="border-bottom:1px solid #fafafa">
+          <div style="display:flex;align-items:center;height:26px;background:#fafafa;padding-left:10px">
+            <i style="display:inline-block;width:8px;height:8px;border-radius:2px;background:${LC[l]};margin-right:7px"></i>
+            <b style="font-size:13px">${l}</b><span class="fnt" style="margin-left:8px">${g.length} 个节点</span></div>
+          ${g.sort((a,b)=>a.start<b.start?-1:1).map(x=>{
+            const l2=pos(x.start), w=Math.max(1.4,pos(x.end)-l2);
+            const done=x.stage==="已上线", isLate=new Date(x.end+"T00:00:00")<new Date(TODAY+"T00:00:00")&&!done;
+            const ms=MILESTONE[x.name]?"M":"";
+            const col=done?"#52c41a":isLate?"#ff4d4f":LC[l];
+            return `<div style="display:flex;align-items:center;height:28px">
+            <div style="width:250px;flex-shrink:0;padding:0 10px;font-size:12px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${x.name}">
+              ${x.name}</div>
+            <div style="flex:1;position:relative;height:28px">
+              <div class="gbar ${ms?"ms":""}" ${ms?'data-ms="1"':''} data-n="${x.name}" data-d="${x.start} → ${x.end}　${x.prog}%　${[x.biz,x.pm,x.dev].filter(Boolean).join("/")}　${x.line}"
+                title="${x.name}｜${x.start} → ${x.end}｜${x.prog}%｜${x.line}"
+                style="position:absolute;left:${l2}%;width:${w}%;top:8px;height:12px;border-radius:3px;background:${col};opacity:${done?1:.82};box-shadow:${ms?"inset 0 0 0 1.5px rgba(255,255,255,.85)":""}"></div>
+              ${ms?`<span style="position:absolute;left:${l2+w}%;top:7px;font-size:10px;color:${col};font-weight:600;white-space:nowrap;margin-left:3px">${MILESTONE[x.name]}</span>`:""}
+            </div></div>`}).join("")}
+          </div>`}).join("")}
+      </div>
+    </div>
+  </div></div></div>
+
+  <div class="card"><div class="ch"><h3>交付节点清单 <span class="s">按月排，点行看依赖</span></h3>
+    <div class="bar"><button class="btn" onclick="gTip()">图例</button></div></div>
+  <div class="cb p0"><table style="font-size:12px">
+  <thead><tr><th>必须完成什么</th><th>主线</th><th>窗口</th><th>节点</th><th>前置依赖</th><th>责任人</th><th>状态</th></tr></thead>
+  <tbody>${Q.slice().sort((a,b)=>a.start<b.start?-1:a.start>b.start?1:0).map(x=>{
+    const dep=DEP[x.name]||"无";
+    const ms=MILESTONE[x.name];
+    const done=x.stage==="已上线";
+    const isLate=new Date(x.end+"T00:00:00")<new Date(TODAY+"T00:00:00")&&!done;
+    return `<tr><td><b>${x.name}</b>${x.risk?`<div class="fnt" style="color:#cf1322;margin-top:1px">${x.risk}</div>`:""}</td>
+    <td><span class="tag" style="background:${LC[x.line]}18;color:${LC[x.line]};border:1px solid ${LC[x.line]}40">${x.line}</span></td>
+    <td style="white-space:nowrap">${md(x.start)} → ${md(x.end)}</td>
+    <td>${ms?`<span class="tag info">${ms}</span>`:'<span class="fnt">—</span>'}</td>
+    <td class="fnt">${dep}</td>
+    <td style="font-size:11px">${[x.biz,x.pm,x.dev].filter(Boolean).join("/")}</td>
+    <td>${done?'<span class="tag ok">已上线</span>':isLate?'<span class="tag bad">已逾期</span>':x.stage==="开发中"?'<span class="tag warn">开发中</span>':'<span class="tag">未开始</span>'}</td></tr>`}).join("")}
+  </tbody></table></div></div>`;
+
+  document.querySelectorAll(".gbar").forEach(b=>{
+    b.onclick=()=>alert(b.dataset.n+"\n"+b.dataset.d);
+  });
+  const c=document.getElementById("gMs");
+  if(c)c.onchange=()=>{document.querySelectorAll(".gbar").forEach(b=>{
+    if(b.dataset.ms){b.parentElement.style.display=c.checked?"block":"none"}})};
+}
+window.gTip=()=>alert(
+"图例说明\n\n"+
+"颜色＝主线：\n"+
+"  蓝 车型任务线 ｜ 青 成本线 ｜ 橙 交付线\n"+
+"  紫 供应商线 ｜ 粉 AI/CLI ｜ 灰 横向\n\n"+
+"状态覆盖：\n"+
+"  绿色 已上线 ｜ 红色 已逾期\n\n"+
+"白心色块 ＝ 交付里程碑节点（标注了节点名）\n\n"+
+"红线 ＝ 今天 2026-10-19\n\n"+
+"顶部「只看里程碑节点」可隐藏非里程碑任务");
+
+const R={todo,gantt,history};
 function render(){document.getElementById("view").innerHTML="";R[PAGE]()}
 render();
 </script>
