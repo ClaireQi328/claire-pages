@@ -1,0 +1,905 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>报价成本库 · 历史数据导入解析</title>
+<style>
+:root{
+  --navy:#1F4E79; --navy2:#16344F; --blue:#2E75B6; --blue-l:#EBF1F8;
+  --amber:#E8A33D; --amber-l:#FFF7E8;
+  --red:#C0504D; --red-l:#FBEDEB; --green:#2E7D5B; --green-l:#EBF5F0;
+  --ink:#22303F; --mut:#6B7A90; --mut2:#8A94A3;
+  --line:#E3E8EF; --bg:#F4F6F9; --card:#FFFFFF; --soft:#FBFCFE;
+}
+*{box-sizing:border-box}
+html,body{margin:0;padding:0}
+body{
+  background:var(--bg); color:var(--ink);
+  font:13.5px/1.6 -apple-system,BlinkMacSystemFont,"PingFang SC","Microsoft YaHei",sans-serif;
+  -webkit-font-smoothing:antialiased;
+}
+button{font-family:inherit}
+.app{max-width:1440px;margin:0 auto;padding:0 28px 60px}
+
+/* ---------- 顶栏 ---------- */
+.topbar{
+  position:sticky;top:0;z-index:50;background:rgba(255,255,255,.92);
+  backdrop-filter:saturate(180%) blur(12px);border-bottom:1px solid var(--line);
+  margin:0 -28px 22px;padding:0 28px;
+}
+.topbar-in{max-width:1440px;margin:0 auto;display:flex;align-items:center;gap:20px;height:56px}
+.brand{display:flex;align-items:center;gap:9px;font-weight:700;color:var(--navy);font-size:14.5px;letter-spacing:.2px}
+.brand .dot{width:9px;height:9px;border-radius:2px;background:var(--navy);transform:rotate(45deg)}
+.steps{display:flex;align-items:center;gap:0;margin-left:14px}
+.step{display:flex;align-items:center;gap:7px;padding:0 4px;color:var(--mut2);font-size:12.5px;position:relative}
+.step .num{
+  width:20px;height:20px;border-radius:50%;background:#E9EEF4;color:#9AA3AF;
+  display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;
+}
+.step.on{color:var(--navy);font-weight:600}
+.step.on .num{background:var(--navy);color:#fff}
+.step.done .num{background:var(--green);color:#fff}
+.step.done{color:var(--green)}
+.step::after{content:"";width:22px;height:1px;background:#DDE4EC;margin:0 6px}
+.step:last-child::after{display:none}
+.spacer{flex:1}
+.tb-actions{display:flex;gap:8px}
+.btn{
+  border:1px solid var(--line);background:#fff;color:var(--ink);border-radius:8px;
+  padding:7px 14px;font-size:12.5px;cursor:pointer;transition:.15s;font-weight:500;
+}
+.btn:hover{border-color:#C6D3E2;background:#F8FAFD}
+.btn.primary{background:var(--navy);border-color:var(--navy);color:#fff}
+.btn.primary:hover{background:var(--navy2);border-color:var(--navy2)}
+.btn.ghost{background:transparent}
+.btn:disabled{opacity:.45;cursor:not-allowed}
+
+/* ---------- 页头 ---------- */
+.hero{
+  background:linear-gradient(135deg,#FFFFFF 0%,#F7FAFD 100%);
+  border:1px solid var(--line);border-radius:16px;padding:24px 28px;margin-bottom:20px;
+  position:relative;overflow:hidden;
+}
+.hero::after{
+  content:"";position:absolute;right:-60px;top:-80px;width:230px;height:230px;border-radius:50%;
+  background:radial-gradient(circle,rgba(232,163,61,.13),transparent 68%);
+}
+.hero h1{margin:0 0 6px;font-size:23px;color:var(--navy);letter-spacing:-.2px}
+.hero .sub{color:var(--mut);font-size:13px;max-width:900px}
+.hero .chips{display:flex;gap:8px;margin-top:13px;flex-wrap:wrap}
+.hchip{
+  background:#fff;border:1px solid var(--line);border-radius:20px;padding:3px 12px;
+  font-size:11.5px;color:#5A6472;
+}
+.hchip b{color:var(--navy)}
+
+/* ---------- 卡片 ---------- */
+.card{
+  background:var(--card);border:1px solid var(--line);border-radius:14px;
+  padding:20px 22px;margin-bottom:16px;
+}
+.card-h{display:flex;align-items:center;gap:9px;margin-bottom:14px}
+.card-h::before{content:"";width:3px;height:14px;background:var(--amber);border-radius:2px}
+.card-h h2{margin:0;font-size:14.5px;color:var(--navy);font-weight:650}
+.card-h .hint{margin-left:auto;font-size:11.5px;color:var(--mut2);font-weight:400}
+
+/* ---------- 上传区 ---------- */
+.drop{
+  border:2px dashed #CBD8E6;border-radius:13px;background:#FAFCFE;
+  padding:34px 24px;text-align:center;transition:.18s;cursor:pointer;
+}
+.drop:hover,.drop.over{border-color:var(--blue);background:var(--blue-l)}
+.drop .ic{font-size:30px;line-height:1;margin-bottom:9px;opacity:.75}
+.drop .t1{font-size:14px;font-weight:600;color:var(--navy);margin-bottom:4px}
+.drop .t2{font-size:12px;color:var(--mut)}
+.drop .t3{font-size:11.5px;color:var(--mut2);margin-top:10px}
+
+/* ---------- 文件列表 ---------- */
+.flist{margin-top:16px;width:100%}
+.frow{
+  display:flex;width:100%;max-width:100%;overflow:hidden;align-items:center;gap:12px;padding:10px 12px;border-radius:9px;
+  border:1px solid transparent;font-size:12.5px;transition:.13s;
+}
+.frow > .ck{flex:none;width:15px}
+.frow > .fn{flex:1 1 0;min-width:0}
+.frow > .meta{flex:none;width:74px}
+.frow > .meta.w68{width:64px}
+.frow > .tcell{flex:none;width:96px;text-align:right}
+.frow > .meta.w82{width:80px}
+.frow:hover{background:#F7FAFD;border-color:#E8EFF7}
+.frow.on{background:var(--blue-l);border-color:#C9DCF0}
+.frow .ck{
+  width:15px;height:15px;border-radius:4px;border:1.5px solid #C3CFDD;background:#fff;
+  display:flex;align-items:center;justify-content:center;font-size:10px;color:#fff;
+}
+.frow.on .ck{background:var(--navy);border-color:var(--navy)}
+.frow .fn{font-weight:600;color:var(--ink);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0;max-width:100%}
+.frow .fn > span{display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.frow .fn small{display:block;font-weight:400;color:var(--mut2);font-size:11px}
+.frow .meta{font-size:11.5px;color:var(--mut);text-align:right;font-variant-numeric:tabular-nums}
+
+/* ---------- 标签 ---------- */
+.tag{
+  display:inline-block;padding:1.5px 9px;border-radius:9px;font-size:11px;
+  font-weight:600;white-space:nowrap;
+}
+.tag.L2{background:var(--green-l);color:var(--green)}
+.tag.L1{background:var(--blue-l);color:var(--blue)}
+.tag.L0{background:var(--amber-l);color:#A6803A}
+.tag.NA{background:#F0F2F5;color:#8A94A3}
+.tag.ERR{background:var(--red-l);color:var(--red)}
+.tag.sm{padding:1px 7px;font-size:10.5px}
+
+/* ---------- KPI ---------- */
+.kpis{display:grid;grid-template-columns:repeat(6,1fr);gap:11px}
+.kpi{background:var(--soft);border:1px solid #E8EDF3;border-radius:11px;padding:13px 15px}
+.kpi .v{font-size:23px;font-weight:700;color:var(--navy);line-height:1.15;font-variant-numeric:tabular-nums}
+.kpi .k{font-size:11.5px;color:var(--mut);margin-top:3px}
+.kpi.warn .v{color:var(--red)}
+.kpi.ok .v{color:var(--green)}
+
+/* ---------- 解析进度 ---------- */
+.pipe{display:flex;align-items:stretch;gap:0;margin:6px 0 2px}
+.pstep{
+  flex:1;padding:13px 15px;border:1px solid var(--line);background:#fff;
+  position:relative;font-size:12px;
+}
+.pstep:first-child{border-radius:10px 0 0 10px}
+.pstep:last-child{border-radius:0 10px 10px 0}
+.pstep + .pstep{border-left:none}
+.pstep .pn{font-size:10.5px;color:var(--mut2);font-weight:600;letter-spacing:.3px}
+.pstep .pt{font-size:12.5px;font-weight:600;color:var(--navy);margin-top:2px}
+.pstep .pd{font-size:11px;color:var(--mut);margin-top:2px}
+.pstep.done{background:var(--green-l);border-color:#CBE4D6}
+.pstep.done .pt{color:var(--green)}
+.pstep.active{background:var(--blue-l);border-color:#C9DCF0}
+.pstep.active .pt{color:var(--blue)}
+.pstep .pstat{position:absolute;right:11px;top:11px;font-size:10.5px;font-weight:700}
+.pstep.done .pstat{color:var(--green)}
+.pstep.active .pstat{color:var(--blue)}
+
+/* ---------- Sheet 标签 ---------- */
+.stabs{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:14px}
+.stab{
+  padding:6px 13px;border-radius:8px;border:1px solid var(--line);background:#fff;
+  font-size:12px;color:#5A6472;cursor:pointer;transition:.13s;white-space:nowrap;
+}
+.stab:hover{border-color:#C6D3E2;background:#F8FAFD}
+.stab.on{background:var(--navy);border-color:var(--navy);color:#fff;font-weight:600}
+.stab .n{font-size:10.5px;opacity:.75;margin-left:5px}
+
+/* ---------- 映射表 ---------- */
+.mtable{width:100%;border-collapse:collapse;font-size:12.5px}
+.mtable th{
+  background:#F1F5FA;color:var(--navy);font-weight:600;text-align:left;
+  padding:8px 11px;border-bottom:1px solid var(--line);white-space:nowrap;
+  position:sticky;top:56px;z-index:5;font-size:11.5px;
+}
+.mtable td{padding:7px 11px;border-bottom:1px solid #F0F3F7;vertical-align:middle}
+.mtable tr:hover td{background:#FAFCFE}
+.mtable td.src{color:#5A6472;max-width:250px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.mtable td.arrow{color:#C3CFDD;text-align:center;width:34px;font-size:13px}
+.mtable td.tgt{font-weight:600;color:var(--navy);min-width:150px}
+.mtable td.tgt.empty{color:#B0B8C4;font-weight:400;font-style:italic}
+
+/* 置信度条 */
+.conf{display:flex;align-items:center;gap:7px;min-width:112px}
+.conf .bar{flex:1;height:5px;border-radius:3px;background:#EDF1F6;overflow:hidden}
+.conf .fill{height:100%;border-radius:3px}
+.conf .pc{font-size:11px;color:var(--mut);font-variant-numeric:tabular-nums;min-width:30px;text-align:right}
+.c-hi .fill{background:var(--green)}
+.c-md .fill{background:var(--amber)}
+.c-lo .fill{background:var(--red)}
+.c-hi .pc{color:var(--green);font-weight:600}
+.c-md .pc{color:#A6803A;font-weight:600}
+.c-lo .pc{color:var(--red);font-weight:600}
+
+/* 下拉选择 */
+.sel{
+  appearance:none;-webkit-appearance:none;border:1px solid var(--line);border-radius:7px;
+  padding:4px 26px 4px 9px;font-size:12px;background:#fff;color:var(--ink);cursor:pointer;
+  font-family:inherit;width:100%;max-width:210px;
+  background-image:url("data:image/svg+xml;charset=utf-8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M0 0l5 6 5-6z' fill='%238A94A3'/%3E%3C/svg%3E");
+  background-repeat:no-repeat;background-position:right 9px center;
+}
+.sel:focus{outline:none;border-color:var(--blue);box-shadow:0 0 0 3px rgba(46,117,182,.1)}
+.sel.low{border-color:#E5C4C2;background-color:#FEFAF9}
+
+/* 行状态 */
+tr.unmapped td.tgt{background:#FAFBFC}
+tr.lowconf{background:#FFFDF8}
+tr.lowconf:hover td{background:#FFFAF0}
+
+/* ---------- 侧栏参数 ---------- */
+.sidegrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(190px,1fr));gap:9px}
+.sitem{background:var(--soft);border:1px solid #E8EDF3;border-radius:9px;padding:10px 12px}
+.sitem .k{font-size:11px;color:var(--mut)}
+.sitem .v{font-size:15px;font-weight:700;color:var(--navy);margin-top:2px;font-variant-numeric:tabular-nums}
+
+/* ---------- 勾稽 ---------- */
+.chkrow{display:flex;align-items:center;gap:11px;padding:11px 13px;border-radius:9px;margin-bottom:8px;font-size:12.5px}
+.chkrow.ok{background:var(--green-l);border:1px solid #CBE4D6}
+.chkrow.bad{background:var(--red-l);border:1px solid #E8C9C6}
+.chkrow .ci{width:19px;height:19px;border-radius:50%;display:flex;align-items:center;justify-content:center;color:#fff;font-size:11px;font-weight:700;flex:none}
+.chkrow.ok .ci{background:var(--green)}
+.chkrow.bad .ci{background:var(--red)}
+.chkrow .ct{font-weight:600}
+.chkrow .cd{color:var(--mut);font-size:11.5px;margin-left:auto;text-align:right}
+
+/* ---------- 空态 ---------- */
+.empty{text-align:center;padding:44px 20px;color:var(--mut2);font-size:13px}
+.empty .ic{font-size:34px;opacity:.4;margin-bottom:10px}
+
+/* ---------- 提示条 ---------- */
+.tip{
+  display:flex;gap:9px;padding:12px 15px;border-radius:10px;font-size:12.5px;line-height:1.65;
+  background:var(--amber-l);border:1px solid #F0DFB8;color:#7A5E1E;margin-bottom:14px;
+}
+.tip .ti{flex:none;font-weight:700}
+.tip.blue{background:var(--blue-l);border-color:#CFE0F0;color:#2C5378}
+
+/* ---------- 汇总表格 ---------- */
+.stable{width:100%;border-collapse:collapse;font-size:12.5px}
+.stable th{background:var(--navy);color:#fff;text-align:left;padding:9px 11px;font-weight:600;white-space:nowrap;font-size:11.5px}
+.stable th:first-child{border-radius:8px 0 0 0}
+.stable th:last-child{border-radius:0 8px 0 0}
+.stable td{padding:9px 11px;border-bottom:1px solid #EEF2F7;vertical-align:middle}
+.stable tr:hover td{background:#F7FAFD}
+.stable td.n{text-align:right;font-variant-numeric:tabular-nums}
+.stable td.nm{font-weight:600;max-width:330px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.stable .miss{color:#8A6D3B;font-size:11.5px}
+
+/* ---------- 底部 ---------- */
+.foot{text-align:center;color:var(--mut2);font-size:11.5px;margin-top:26px;line-height:1.9}
+
+/* ---------- 视图切换 ---------- */
+.view{display:none}
+.view.on{display:block}
+
+@media(max-width:1200px){
+  .kpis{grid-template-columns:repeat(3,1fr)}
+}
+</style>
+</head>
+<body>
+
+<div class="topbar"><div class="topbar-in">
+  <div class="brand"><span class="dot"></span>EP 报价成本库</div>
+  <div class="steps">
+    <div class="step" id="st1"><span class="num">1</span>导入文件</div>
+    <div class="step" id="st2"><span class="num">2</span>解析识别</div>
+    <div class="step" id="st3"><span class="num">3</span>确认入库</div>
+  </div>
+  <div class="spacer"></div>
+  <div class="tb-actions">
+    <button class="btn" id="btnReset" onclick="resetAll()">重新开始</button>
+    <button class="btn primary" id="btnNext" onclick="nextStep()">开始解析</button>
+  </div>
+</div></div>
+
+<div class="app">
+
+<!-- ================= 视图 1：导入 ================= -->
+<div class="view on" id="v1">
+  <div class="hero">
+    <h1>历史报价数据导入</h1>
+    <div class="sub">
+      线下历史报价文件格式不统一，系统自动识别表头与字段，把它转成成本库的标准结构。
+      解析结果需采购员确认后才入库。
+    </div>
+    <div class="chips">
+      <span class="hchip">支持 <b>.xlsx / .xls / .csv</b></span>
+      <span class="hchip">多 sheet 自动拆分</span>
+      <span class="hchip">字段映射 <b>置信度</b> 可视化</span>
+      <span class="hchip">不确定的会标出来让你确认</span>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-h"><h2>上传文件</h2><span class="hint">拖拽或点击选择，可多选</span></div>
+    <div class="drop" id="drop">
+      <div class="ic">📄</div>
+      <div class="t1">把历史报价文件拖到这里</div>
+      <div class="t2">或点击选择文件</div>
+      <div class="t3">本原型内置 14 份真实历史文件作为演示数据</div>
+    </div>
+
+    <div class="flist" id="flist"></div>
+  </div>
+
+  <div class="card">
+    <div class="card-h"><h2>本次导入范围</h2><span class="hint">按文件统计</span></div>
+    <div class="kpis" id="impKpi"></div>
+  </div>
+</div>
+
+<!-- ================= 视图 2：解析 ================= -->
+<div class="view" id="v2">
+  <div class="hero" style="padding:20px 24px">
+    <h1 style="font-size:20px">解析结果</h1>
+    <div class="sub">已识别表头与字段映射。黄色为置信度偏低，需你确认后才能入库。</div>
+  </div>
+
+  <div class="card">
+    <div class="card-h"><h2>解析流程</h2><span class="hint">5 个环节</span></div>
+    <div class="pipe" id="pipe"></div>
+  </div>
+
+  <div class="card">
+    <div class="card-h"><h2>文件总览</h2><span class="hint">点行查看详情</span></div>
+    <table class="stable">
+      <thead><tr>
+        <th>文件</th><th>可达层级</th><th>Sheet</th><th>数据行</th>
+        <th>成本块</th><th>L2 字段</th><th>待确认</th><th>缺口 / 说明</th>
+      </tr></thead>
+      <tbody id="ovBody"></tbody>
+    </table>
+  </div>
+
+  <div class="card" id="detailCard">
+    <div class="card-h"><h2>文件详情</h2><span class="hint" id="detHint"></span></div>
+    <div class="stabs" id="stabs"></div>
+    <div id="detBody"></div>
+  </div>
+</div>
+
+<!-- ================= 视图 3：确认 ================= -->
+<div class="view" id="v3">
+  <div class="hero" style="padding:20px 24px">
+    <h1 style="font-size:20px">确认入库</h1>
+    <div class="sub">确认后数据写入成本库，并标记来源为「历史导入」。</div>
+  </div>
+
+  <div class="card">
+    <div class="card-h"><h2>入库前检查</h2></div>
+    <div id="chkBody"></div>
+  </div>
+
+  <div class="card">
+    <div class="card-h"><h2>将入库的内容</h2><span class="hint">确认无误后点「确认入库」</span></div>
+    <table class="stable">
+      <thead><tr><th>文件</th><th>层级</th><th>字段数</th><th>数据行</th><th>来源标记</th></tr></thead>
+      <tbody id="finBody"></tbody>
+    </table>
+  </div>
+
+  <div class="card">
+    <div class="card-h"><h2>确认信息</h2></div>
+    <div class="tip">
+      <span class="ti">!</span>
+      <span>
+        入库后该批数据将标记为 <b>数据来源 = 历史导入</b>，与系统内实时报价分开统计。
+        解析结果由 <b>采购员</b> 确认，确认人对数据准确性负责。
+      </span>
+    </div>
+    <div style="display:flex;gap:12px;align-items:center;margin-top:4px">
+      <div style="flex:1">
+        <div style="font-size:11.5px;color:var(--mut);margin-bottom:5px">确认人（当前登录）</div>
+        <input class="sel" style="max-width:260px;background:#F5F7FA;cursor:default" value="齐岳 / 体系运营部" readonly>
+      </div>
+      <div style="flex:1">
+        <div style="font-size:11.5px;color:var(--mut);margin-bottom:5px">入库批次备注</div>
+        <input class="sel" style="max-width:100%;" placeholder="如：2026 上半年历史报价补录">
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="foot">
+  原型基于 14 份真实历史报价文件实测 · 解析规则与置信度为真实计算结果<br>
+  数据源：~/Claire/08_Xiaomi/16-报价细项 · 2026-11-09
+</div>
+
+</div>
+
+<script>
+var POC_DATA=[{"file":"批量导入模板-v6.xlsx","size_kb":28,"status":"ok","tier":"L2","missing":[],"n_cost_blocks":6,"n_l2":31,"n_rows":81,"dim_cols":0,"side_kv":{},"reconcile":{"C1":0,"C2":0,"C3":0},"error":null,"matchSummary":{"need":1,"done":1,"skip":12,"main":6,"outOfScope":4},"sheets":[{"name":"00-说明","n_rows":0,"n_cols":2,"header_rows":3,"dim_cols":0,"side_kv":[],"cols":[{"col":1,"text":"SVC 自动带入","field":null,"conf":0.0,"reason":"unmatched"},{"col":2,"text":"不要手填","field":null,"conf":0.0,"reason":"unmatched"}]},{"name":"01-零件清单","n_rows":11,"n_cols":17,"header_rows":1,"dim_cols":0,"side_kv":[],"cols":[{"col":0,"text":"零件号","field":"part_no","conf":1.0,"reason":"exact"},{"col":1,"text":"零件名称","field":"part_name","conf":1.0,"reason":"exact"},{"col":2,"text":"零件来源","field":"part_source","conf":1.0,"reason":"exact"},{"col":3,"text":"用量","field":"qty","conf":1.0,"reason":"exact"},{"col":4,"text":"VPPS","field":"vpps","conf":1.0,"reason":"exact"},{"col":5,"text":"RFQ号","field":"rfq_no","conf":1.0,"reason":"exact"},{"col":6,"text":"供应商","field":"supplier","conf":1.0,"reason":"exact"},{"col":7,"text":"材料费","field":"cost_material","conf":1.0,"reason":"exact"},{"col":8,"text":"制造费","field":"cost_mfg","conf":1.0,"reason":"exact"},{"col":9,"text":"模具费","field":"cost_tooling","conf":1.0,"reason":"exact"},{"col":10,"text":"开发费","field":"cost_dev","conf":1.0,"reason":"exact"},{"col":11,"text":"物流费","field":"cost_logistics","conf":1.0,"reason":"exact"},{"col":12,"text":"管理费","field":"cost_admin","conf":1.0,"reason":"exact"},{"col":13,"text":"出厂价","field":"price_factory","conf":1.0,"reason":"exact"},{"col":14,"text":"到厂价","field":"price_arrive","conf":1.0,"reason":"exact"},{"col":15,"text":"勾稽","field":"check_ok","conf":1.0,"reason":"exact"},{"col":16,"text":"数据检查","field":null,"conf":0.0,"reason":"unmatched"}]},{"name":"02-BOM明细","n_rows":23,"n_cols":21,"header_rows":2,"dim_cols":0,"side_kv":[],"cols":[{"col":0,"text":"零件号","field":"part_no","conf":1.0,"reason":"exact"},{"col":1,"text":"父级层级","field":"part_level","conf":0.75,"reason":"contains:层级"},{"col":2,"text":"本行序号","field":"seq_no","conf":0.75,"reason":"contains:序号"},{"col":3,"text":"子件零件号","field":"part_no","conf":0.78,"reason":"contains:零件号"},{"col":4,"text":"子件名称","field":"part_name","conf":0.75,"reason":"contains:名称"},{"col":5,"text":"零件来源","field":"part_source","conf":1.0,"reason":"exact"},{"col":6,"text":"数量","field":"qty","conf":1.0,"reason":"exact"},{"col":7,"text":"单位","field":"unit","conf":1.0,"reason":"exact"},{"col":8,"text":"材料名称","field":"mat_name","conf":1.0,"reason":"exact"},{"col":9,"text":"材料牌号","field":"mat_grade","conf":1.0,"reason":"exact"},{"col":10,"text":"材料品类","field":"mat_category","conf":1.0,"reason":"exact"},{"col":11,"text":"净重(kg)","field":"net_weight","conf":1.0,"reason":"exact"},{"col":12,"text":"毛重(kg)","field":"gross_weight","conf":1.0,"reason":"exact"},{"col":13,"text":"材料单价\n元/kg","field":"mat_price","conf":0.77,"reason":"contains:材料单价"},{"col":14,"text":"回收单价\n元/kg","field":"raw_recycle","conf":0.77,"reason":"contains:回收单价"},{"col":15,"text":"子件价格\n元/个","field":"sub_price","conf":1.0,"reason":"exact"},{"col":16,"text":"材料费","field":"cost_material","conf":1.0,"reason":"exact"},{"col":17,"text":"EP标准件号","field":"ep_part_no","conf":1.0,"reason":"exact"},{"col":18,"text":"匹配状态","field":"match_status","conf":1.0,"reason":"exact"},{"col":19,"text":"匹配方式","field":"match_method","conf":1.0,"reason":"exact"},{"col":20,"text":"数据检查","field":null,"conf":0.0,"reason":"unmatched"}]},{"name":"03-工段定义","n_rows":11,"n_cols":14,"header_rows":2,"dim_cols":0,"side_kv":[],"cols":[{"col":0,"text":"工段/线体编号","field":"line_no","conf":1.0,"reason":"exact"},{"col":1,"text":"工段名称","field":"part_name","conf":0.75,"reason":"contains:名称"},{"col":2,"text":"供应商","field":"supplier","conf":1.0,"reason":"exact"},{"col":3,"text":"CT(s)","field":"ct","conf":1.0,"reason":"exact"},{"col":4,"text":"单拍产出","field":"pieces_per_ct","conf":1.0,"reason":"exact"},{"col":5,"text":"OEE(%)","field":"oee","conf":1.0,"reason":"exact"},{"col":6,"text":"设备折旧费","field":"mfg_equip","conf":1.0,"reason":"exact"},{"col":7,"text":"人工费","field":"mfg_labor","conf":1.0,"reason":"exact"},{"col":8,"text":"能耗费","field":"mfg_energy","conf":1.0,"reason":"exact"},{"col":9,"text":"耗材费","field":"mfg_consum","conf":1.0,"reason":"exact"},{"col":10,"text":"场地费","field":"mfg_site","conf":1.0,"reason":"exact"},{"col":11,"text":"报废费","field":"mfg_scrap","conf":1.0,"reason":"exact"},{"col":12,"text":"单件总成本","field":"seg_total","conf":1.0,"reason":"exact"},{"col":13,"text":"数据检查","field":null,"conf":0.0,"reason":"unmatched"}]},{"name":"04-工段-零件","n_rows":11,"n_cols":9,"header_rows":2,"dim_cols":0,"side_kv":[],"cols":[{"col":0,"text":"工段/线体编号","field":"line_no","conf":1.0,"reason":"exact"},{"col":1,"text":"零件号","field":"part_no","conf":1.0,"reason":"exact"},{"col":2,"text":"零件名称","field":"part_name","conf":1.0,"reason":"exact"},{"col":3,"text":"该零件工时(h)","field":"seg_hours","conf":1.0,"reason":"exact"},{"col":4,"text":"该工段总工时(h)","field":"seg_total_hours","conf":1.0,"reason":"exact"},{"col":5,"text":"分摊比例","field":"alloc_ratio","conf":1.0,"reason":"exact"},{"col":6,"text":"工段单件成本","field":"seg_total","conf":1.0,"reason":"exact"},{"col":7,"text":"分摊后制造费","field":"mfg_share","conf":1.0,"reason":"exact"},{"col":8,"text":"备注","field":"note_text","conf":1.0,"reason":"exact"}]},{"name":"05-模具清单","n_rows":3,"n_cols":10,"header_rows":1,"dim_cols":0,"side_kv":[],"cols":[{"col":0,"text":"模具编号","field":"mold_no","conf":1.0,"reason":"exact"},{"col":1,"text":"模具名称","field":"part_name","conf":0.75,"reason":"contains:名称"},{"col":2,"text":"模具制造商","field":"cost_mfg","conf":0.72,"reason":"contains:制造"},{"col":3,"text":"工艺","field":"process_cat","conf":1.0,"reason":"exact"},{"col":4,"text":"型腔数","field":"cavity_n","conf":1.0,"reason":"exact"},{"col":5,"text":"数量(副)","field":"qty","conf":0.72,"reason":"contains:数量"},{"col":6,"text":"模具总额(元)","field":"mold_total_amt","conf":1.0,"reason":"exact"},{"col":7,"text":"生命周期分摊量(件)","field":"mold_life_qty","conf":1.0,"reason":"exact"},{"col":8,"text":"单件分摊(元)","field":"tooling_once","conf":0.84,"reason":"contains:单件分摊额"},{"col":9,"text":"存放地点","field":"store_loc","conf":1.0,"reason":"exact"}]},{"name":"06-模具-零件","n_rows":4,"n_cols":10,"header_rows":1,"dim_cols":0,"side_kv":[],"cols":[{"col":0,"text":"模具编号","field":"mold_no","conf":1.0,"reason":"exact"},{"col":1,"text":"零件号","field":"part_no","conf":1.0,"reason":"exact"},{"col":2,"text":"零件名称","field":"part_name","conf":1.0,"reason":"exact"},{"col":3,"text":"该零件分摊量(件)","field":"part_alloc_qty","conf":1.0,"reason":"exact"},{"col":4,"text":"模具总额(元)","field":"mold_total_amt","conf":1.0,"reason":"exact"},{"col":5,"text":"模具总分摊量(合计)","field":"mold_life_qty","conf":1.0,"reason":"exact"},{"col":6,"text":"单件分摊(元)","field":"tooling_once","conf":0.84,"reason":"contains:单件分摊额"},{"col":7,"text":"该零件模具费(元)","field":"mold_fee_part","conf":1.0,"reason":"exact"},{"col":8,"text":"备注","field":"note_text","conf":1.0,"reason":"exact"},{"col":9,"text":"数据检查","field":null,"conf":0.0,"reason":"unmatched"}]},{"name":"08-子件对照表","n_rows":3,"n_cols":8,"header_rows":1,"dim_cols":0,"side_kv":[],"cols":[{"col":0,"text":"供应商填写（左侧）","field":"supplier","conf":0.7,"reason":"contains:供应商"},{"col":1,"text":"供应商填写（左侧）","field":"supplier","conf":0.7,"reason":"contains:供应商"},{"col":2,"text":"供应商填写（左侧）","field":"supplier","conf":0.7,"reason":"contains:供应商"},{"col":3,"text":"供应商填写（左侧）","field":"supplier","conf":0.7,"reason":"contains:供应商"},{"col":4,"text":"供应商填写（左侧）","field":"supplier","conf":0.7,"reason":"contains:供应商"},{"col":5,"text":"采购员确认（右侧）","field":"buyer","conf":0.7,"reason":"contains:采购员"},{"col":6,"text":"采购员确认（右侧）","field":"buyer","conf":0.7,"reason":"contains:采购员"},{"col":7,"text":"采购员确认（右侧）","field":"buyer","conf":0.7,"reason":"contains:采购员"}]},{"name":"07-参考","n_rows":15,"n_cols":3,"header_rows":1,"dim_cols":0,"side_kv":[],"cols":[{"col":0,"text":"零件来源","field":"part_source","conf":1.0,"reason":"exact"},{"col":1,"text":"材料品类","field":"mat_category","conf":1.0,"reason":"exact"},{"col":2,"text":"工艺","field":"process_cat","conf":1.0,"reason":"exact"}]}],"dupeParts":["EQ77110E","XQ20013","XQ20016","XQ20012","E77110E-1"],"stageIssues":[]},{"file":"5月VS4月采购价对比-MS12&MS11-P-8041.xlsx","size_kb":504,"status":"ok","sheets":[{"name":"Sheet1","n_rows":399,"n_cols":6,"header_rows":1,"dim_cols":0,"side_kv":[],"cols":[{"col":0,"text":"组件编码/作业类型","field":null,"field_cn":null,"conf":0,"dim":null,"reason":"unmatched"},{"col":1,"text":"组件描述/作业描述","field":"desc_text","field_cn":"描述","conf":0.68,"dim":null,"reason":"contains:描述"},{"col":2,"text":"调价原因","field":null,"field_cn":null,"conf":0,"dim":null,"reason":"oos"},{"col":3,"text":"审批单","field":null,"field_cn":null,"conf":0,"dim":null,"reason":"oos"},{"col":4,"text":"关联移地申请单","field":null,"field_cn":null,"conf":0,"dim":null,"reason":"oos"},{"col":5,"text":"关联EWO单","field":null,"field_cn":null,"conf":0,"dim":null,"reason":"oos"}]},{"name":"Sheet2","n_rows":399,"n_cols":13,"header_rows":1,"dim_cols":0,"side_kv":[],"cols":[{"col":0,"text":"零件号","field":"part_no","field_cn":"零件号","conf":1.0,"dim":null,"reason":"exact"},{"col":1,"text":"零件名称","field":"part_name","field_cn":"零件名称","conf":1.0,"dim":null,"reason":"exact"},{"col":2,"text":"工厂","field":"mi_plant","field_cn":"小米工厂","conf":1.0,"dim":null,"reason":"exact"},{"col":3,"text":"供应商编码","field":"supplier_code","field_cn":"供应商代码","conf":1.0,"dim":null,"reason":"exact"},{"col":4,"text":"供应商名称","field":"supplier","field_cn":"供应商名称","conf":1.0,"dim":null,"reason":"exact"},{"col":5,"text":"调价原因","field":null,"field_cn":null,"conf":0,"dim":null,"reason":"oos"},{"col":6,"text":"审批单","field":null,"field_cn":null,"conf":0,"dim":null,"reason":"oos"},{"col":7,"text":"关联移地申请单","field":null,"field_cn":null,"conf":0,"dim":null,"reason":"oos"},{"col":8,"text":"关联EWO单","field":null,"field_cn":null,"conf":0,"dim":null,"reason":"oos"},{"col":9,"text":"版本","field":null,"field_cn":null,"conf":0,"dim":null,"reason":"oos"},{"col":10,"text":"开始时间","field":null,"field_cn":null,"conf":0,"dim":null,"reason":"oos"},{"col":11,"text":"结束时间","field":null,"field_cn":null,"conf":0,"dim":null,"reason":"oos"},{"col":12,"text":"是否有效","field":null,"field_cn":null,"conf":0,"dim":null,"reason":"oos"}]}],"side_kv":{},"tier":"无法入库","missing":["总价缺失（无成本块可推导）"],"n_cost_blocks":0,"n_l2":0,"n_rows":798,"reconcile":{"C1":0,"C2":0,"C3":0}},{"file":"RFQ报价细项_C000006475001_左后高度传感器_20260803003217.xlsx","size_kb":247,"status":"ok","sheets":[{"name":"材料报价","n_rows":5,"n_cols":33,"header_rows":3,"dim_cols":0,"side_kv":[],"cols":[{"col":0,"text":"零件层级","field":"part_level","field_cn":"零件层级","conf":1.0,"dim":null,"reason":"exact"},{"col":1,"text":"零件来源","field":"part_source","field_cn":"零件来源","conf":1.0,"dim":null,"reason":"exact"},{"col":2,"text":"零件号","field":"part_no","field_cn":"零件号","conf":1.0,"dim":null,"reason":"exact"},{"col":3,"text":"零件名称","field":"part_name","field_cn":"零件名称","conf":1.0,"dim":null,"reason":"exact"},{"col":4,"text":"零件沿用新开","field":"part_new","field_cn":"零件沿用新开","conf":1.0,"dim":null,"reason":"exact"},{"col":5,"text":"零件数量","field":"qty","field_cn":"用量","conf":1.0,"dim":null,"reason":"exact"},{"col":6,"text":"长(mm)","field":"part_len","field_cn":"长(mm)","conf":1.0,"dim":null,"reason":"exact"},{"col":7,"text":"宽(mm)","field":"part_wid","field_cn":"宽(mm)","conf":1.0,"dim":null,"reason":"exact"},{"col":8,"text":"高(mm)","field":"part_hgt","field_cn":"高(mm)","conf":1.0,"dim":null,"reason":"exact"},{"col":9,"text":"工艺品类大类","field":"process_major","field_cn":"工艺品类大类","conf":1.0,"dim":null,"reason":"exact"},{"col":10,"text":"工艺品类小类","field":"process_minor","field_cn":"工艺品类小类","conf":1.0,"dim":null,"reason":"exact"},{"col":11,"text":"制造供应商生产地点","field":"sup_site","field_cn":"供应商生产地点","conf":1.0,"dim":null,"reason":"exact"},{"col":12,"text":"质量体系认证","field":"cert","field_cn":"质量体系认证","conf":1.0,"dim":null,"reason":"exact"},{"col":13,"text":"颜色纹理代码","field":"color_code","field_cn":"颜色纹理代码","conf":1.0,"dim":null,"reason":"exact"},{"col":14,"text":"表面处理热处理供应商","field":"supplier","field_cn":"供应商名称","conf":0.69,"dim":null,"reason":"contains:供应商"},{"col":15,"text":"焊接长度涂层表面积表面粗糙度","field":null,"field_cn":null,"conf":0,"dim":null,"reason":"oos"},{"col":16,"text":"备注","field":null,"field_cn":null,"conf":0,"dim":null,"reason":"oos"},{"col":17,"text":"材料名称","field":"mat_name","field_cn":"材料名称","conf":1.0,"dim":null,"reason":"exact"},{"col":18,"text":"材料牌号","field":"mat_grade","field_cn":"材料牌号","conf":1.0,"dim":null,"reason":"exact"},{"col":19,"text":"材料品类大类","field":"mat_category","field_cn":"材料品类","conf":1.0,"dim":null,"reason":"exact"},{"col":20,"text":"材料品类小类","field":"mat_category","field_cn":"材料品类","conf":1.0,"dim":null,"reason":"exact"},{"col":21,"text":"厚度规格","field":"part_thick","field_cn":"厚度/规格","conf":1.0,"dim":null,"reason":"exact"},{"col":22,"text":"执行标准","field":"exec_std","field_cn":"执行标准","conf":1.0,"dim":null,"reason":"exact"},{"col":23,"text":"材料供应商","field":"mat_supplier","field_cn":"材料供应商","conf":1.0,"dim":null,"reason":"exact"},{"col":24,"text":"材料认可方式","field":"mat_approve","field_cn":"材料认可方式","conf":1.0,"dim":null,"reason":"exact"},{"col":25,"text":"净重(KG)","field":"net_weight","field_cn":"净重","conf":1.0,"dim":null,"reason":"exact"},{"col":26,"text":"毛重(KG)","field":"gross_weight","field_cn":"毛重","conf":1.0,"dim":null,"reason":"exact"},{"col":27,"text":"材料利用率","field":"mat_util","field_cn":"材料利用率","conf":1.0,"dim":null,"reason":"exact"},{"col":28,"text":"原材料单价(元/KG)","field":"mat_price","field_cn":"材料单价","conf":1.0,"dim":null,"reason":"exact"},{"col":29,"text":"原材料回收单价(元/KG)","field":"raw_recycle","field_cn":"原材料回收单价","conf":1.0,"dim":null,"reason":"exact"},{"col":30,"text":"外购件价格","field":"buy_price","field_cn":"外购件价格","conf":1.0,"dim":null,"reason":"exact"},{"col":31,"text":"原材料总价","field":"raw_total","field_cn":"原材料总价","conf":1.0,"dim":null,"reason":"exact"},{"col":32,"text":"材料费","field":"cost_material","field_cn":"材料费","conf":1.0,"dim":null,"reason":"exact"}]},{"name":"制造费中粗项","n_rows":1,"n_cols":6,"header_rows":2,"dim_cols":0,"side_kv":[],"cols":[{"col":0,"text":"设备费用","field":"mfg_equip","field_cn":"设备费","conf":0.82,"dim":null,"reason":"contains:设备费"},{"col":1,"text":"人工费用","field":"mfg_labor","field_cn":"人工费","conf":0.82,"dim":null,"reason":"contains:人工费"},{"col":2,"text":"报废费用","field":"mfg_scrap","field_cn":"报废费","conf":0.82,"dim":null,"reason":"contains:报废费"},{"col":3,"text":"能耗费用","field":"mfg_energy","field_cn":"能耗费","conf":0.82,"dim":null,"reason":"contains:能耗费"},{"col":4,"text":"耗材费用","field":"mfg_consum","field_cn":"耗材费","conf":0.82,"dim":null,"reason":"contains:耗材费"},{"col":5,"text":"制造费总价","field":"cost_mfg","field_cn":"制造费","conf":0.78,"dim":null,"reason":"contains:制造费"}]},{"name":"制造费-产线 产能 报废 人员","n_rows":1,"n_cols":21,"header_rows":3,"dim_cols":0,"side_kv":[],"cols":[{"col":0,"text":"零件号","field":"part_no","field_cn":"零件号","conf":1.0,"dim":null,"reason":"exact"},{"col":1,"text":"零件名称","field":"part_name","field_cn":"零件名称","conf":1.0,"dim":null,"reason":"exact"},{"col":2,"text":"工段/线体编号","field":"line_no","field_cn":"工段/线体","conf":1.0,"dim":null,"reason":"exact"},{"col":3,"text":"供应商工厂编号","field":"sup_plant_code","field_cn":"供应商工厂编号","conf":1.0,"dim":null,"reason":"exact"},{"col":4,"text":"供应商工厂名称","field":"sup_site","field_cn":"供应商生产地点","conf":1.0,"dim":null,"reason":"exact"},{"col":6,"text":"工段/线体名称","field":"line_no","field_cn":"工段/线体","conf":1.0,"dim":null,"reason":"exact"},{"col":7,"text":"CT生产节拍(s)","field":"ct","field_cn":"节拍CT","conf":1.0,"dim":null,"reason":"exact"},{"col":8,"text":"单个生产节拍产出数量","field":"qty","field_cn":"用量","conf":0.66,"dim":null,"reason":"contains:数量"},{"col":9,"text":"OEE设计值%","field":"oee","field_cn":"OEE设计值","conf":1.0,"dim":null,"reason":"exact"},{"col":10,"text":"客户每日产能需求LCR","field":"lcr","field_cn":"客户产能LCR","conf":1.0,"dim":null,"reason":"exact"},{"col":11,"text":"计算值,LCR*CT/单节拍产出数量/（OEE/100）","field":"lcr","field_cn":"客户产能LCR","conf":0.64,"dim":null,"reason":"contains:LCR"},{"col":12,"text":"供应商每日总工时(h)","field":"labor_hours","field_cn":"工时","conf":0.71,"dim":null,"reason":"contains:总工时"},{"col":13,"text":"供应商每日承诺工时(h)","field":"supplier","field_cn":"供应商名称","conf":0.7,"dim":null,"reason":"contains:供应商"},{"col":14,"text":"空闲工时(h)","field":"labor_hours","field_cn":"工时","conf":0.75,"dim":null,"reason":"contains:工时"},{"col":16,"text":"产线面积(㎡)","field":"site_area","field_cn":"产线面积","conf":1.0,"dim":null,"reason":"exact"},{"col":17,"text":"厂房单位成本(元/h/m2)","field":"unit","field_cn":"计价单位","conf":0.65,"dim":null,"reason":"contains:单位"},{"col":18,"text":"单个零件占地费分摊(元/EA)","field":"mfg_site","field_cn":"场地费","conf":0.66,"dim":null,"reason":"contains:占地费"},{"col":20,"text":"报废物料成本","field":"scrap_material","field_cn":"报废物料成本","conf":1.0,"dim":null,"reason":"exact"},{"col":21,"text":"本工段合格率(%)","field":"pass_rate","field_cn":"工段合格率","conf":1.0,"dim":null,"reason":"exact"},{"col":22,"text":"报废可回收率(%)","field":"scrap_recovery","field_cn":"报废可回收率","conf":1.0,"dim":null,"reason":"exact"},{"col":23,"text":"报废费","field":"mfg_scrap","field_cn":"报废费","conf":1.0,"dim":null,"reason":"exact"}]},{"name":"制造费-设备","n_rows":1,"n_cols":5,"header_rows":2,"dim_cols":0,"side_kv":[],"cols":[{"col":0,"text":"零件号","field":"part_no","field_cn":"零件号","conf":1.0,"dim":null,"reason":"exact"},{"col":1,"text":"零件名称","field":"part_name","field_cn":"零件名称","conf":1.0,"dim":null,"reason":"exact"},{"col":2,"text":"工段/线体编号","field":"line_no","field_cn":"工段/线体","conf":1.0,"dim":null,"reason":"exact"},{"col":3,"text":"供应商工厂编号","field":"sup_plant_code","field_cn":"供应商工厂编号","conf":1.0,"dim":null,"reason":"exact"},{"col":4,"text":"供应商工厂名称","field":"sup_site","field_cn":"供应商生产地点","conf":1.0,"dim":null,"reason":"exact"}]},{"name":"制造费-能耗","n_rows":1,"n_cols":5,"header_rows":2,"dim_cols":0,"side_kv":[],"cols":[{"col":0,"text":"零件号","field":"part_no","field_cn":"零件号","conf":1.0,"dim":null,"reason":"exact"},{"col":1,"text":"零件名称","field":"part_name","field_cn":"零件名称","conf":1.0,"dim":null,"reason":"exact"},{"col":2,"text":"工段/线体编号","field":"line_no","field_cn":"工段/线体","conf":1.0,"dim":null,"reason":"exact"},{"col":3,"text":"供应商工厂编号","field":"sup_plant_code","field_cn":"供应商工厂编号","conf":1.0,"dim":null,"reason":"exact"},{"col":4,"text":"供应商工厂名称","field":"sup_site","field_cn":"供应商生产地点","conf":1.0,"dim":null,"reason":"exact"}]},{"name":"制造费-耗材","n_rows":0,"n_cols":5,"header_rows":2,"dim_cols":0,"side_kv":[],"cols":[{"col":0,"text":"零件号","field":"part_no","field_cn":"零件号","conf":1.0,"dim":null,"reason":"exact"},{"col":1,"text":"零件名称","field":"part_name","field_cn":"零件名称","conf":1.0,"dim":null,"reason":"exact"},{"col":2,"text":"工段/线体编号","field":"line_no","field_cn":"工段/线体","conf":1.0,"dim":null,"reason":"exact"},{"col":3,"text":"供应商工厂编号","field":"sup_plant_code","field_cn":"供应商工厂编号","conf":1.0,"dim":null,"reason":"exact"},{"col":4,"text":"供应商工厂名称","field":"sup_site","field_cn":"供应商生产地点","conf":1.0,"dim":null,"reason":"exact"}]},{"name":"模具分摊费用","n_rows":1,"n_cols":3,"header_rows":2,"dim_cols":0,"side_kv":[],"cols":[{"col":0,"text":"模具费分摊汇总","field":"tooling_total","field_cn":"模具总额","conf":1.0,"dim":null,"reason":"exact"},{"col":1,"text":"模具分摊数量","field":"tooling_qty","field_cn":"模具分摊量","conf":1.0,"dim":null,"reason":"exact"},{"col":2,"text":"模具分摊单价","field":"tooling_once","field_cn":"模具单件","conf":1.0,"dim":null,"reason":"exact"}]},{"name":"开发分摊费用","n_rows":1,"n_cols":16,"header_rows":3,"dim_cols":0,"side_kv":[],"cols":[{"col":0,"text":"开发费分摊汇总","field":"dev_total","field_cn":"开发总额","conf":1.0,"dim":null,"reason":"exact"},{"col":1,"text":"开发分摊数量","field":"dev_qty","field_cn":"开发分摊量","conf":1.0,"dim":null,"reason":"exact"},{"col":2,"text":"开发分摊单价","field":"dev_once","field_cn":"开发单件","conf":1.0,"dim":null,"reason":"exact"},{"col":4,"text":"岗位职能","field":null,"field_cn":null,"conf":0,"dim":null,"reason":"oos"},{"col":5,"text":"工作内容详述","field":null,"field_cn":null,"conf":0,"dim":null,"reason":"oos"},{"col":6,"text":"人数","field":null,"field_cn":null,"conf":0,"dim":null,"reason":"oos"},{"col":7,"text":"工时(h)","field":"labor_hours","field_cn":"工时","conf":1.0,"dim":null,"reason":"exact"},{"col":8,"text":"总工时(人*h)","field":"labor_hours","field_cn":"工时","conf":1.0,"dim":null,"reason":"exact"},{"col":9,"text":"单价(元/人*h)","field":"price_arrive","field_cn":"到厂价","conf":1.0,"dim":null,"reason":"exact"},{"col":10,"text":"人员费用评估金额(元)","field":null,"field_cn":null,"conf":0,"dim":null,"reason":"oos"},{"col":12,"text":"试验项目","field":"trial_fee","field_cn":"试验费","conf":1.0,"dim":null,"reason":"exact"},{"col":13,"text":"试验方法","field":null,"field_cn":null,"conf":0,"dim":null,"reason":"oos"},{"col":14,"text":"试验方式","field":null,"field_cn":null,"conf":0,"dim":null,"reason":"oos"},{"col":15,"text":"试验次数(次)","field":null,"field_cn":null,"conf":0,"dim":null,"reason":"oos"},{"col":16,"text":"试验单价(元/次)","field":"price_arrive","field_cn":"到厂价","conf":0.68,"dim":null,"reason":"contains:单价"},{"col":17,"text":"试验费用评估金额(元)","field":"trial_fee","field_cn":"试验费","conf":0.75,"dim":null,"reason":"contains:试验费用"}]},{"name":"物流费用","n_rows":3,"n_cols":25,"header_rows":1,"dim_cols":0,"side_kv":[],"cols":[{"col":0,"text":"基本信息","field":null,"field_cn":null,"conf":0,"dim":null,"reason":"oos"},{"col":1,"text":"基本信息","field":null,"field_cn":null,"conf":0,"dim":null,"reason":"oos"},{"col":2,"text":"基本信息","field":null,"field_cn":null,"conf":0,"dim":null,"reason":"oos"},{"col":3,"text":"运输费用","field":"lg_transport_fee","field_cn":"运输费","conf":1.0,"dim":null,"reason":"exact"},{"col":4,"text":"运输费用","field":"lg_transport_fee","field_cn":"运输费","conf":1.0,"dim":null,"reason":"exact"},{"col":5,"text":"运输费用","field":"lg_transport_fee","field_cn":"运输费","conf":1.0,"dim":null,"reason":"exact"},{"col":6,"text":"运输费用","field":"lg_transport_fee","field_cn":"运输费","conf":1.0,"dim":null,"reason":"exact"},{"col":7,"text":"运输费用","field":"lg_transport_fee","field_cn":"运输费","conf":1.0,"dim":null,"reason":"exact"},{"col":8,"text":"包装费用","field":"lg_package_fee","field_cn":"包装费","conf":1.0,"dim":null,"reason":"exact"},{"col":9,"text":"包装费用","field":"lg_package_fee","field_cn":"包装费","conf":1.0,"dim":null,"reason":"exact"},{"col":10,"text":"包装费用","field":"lg_package_fee","field_cn":"包装费","conf":1.0,"dim":null,"reason":"exact"},{"col":11,"text":"包装费用","field":"lg_package_fee","field_cn":"包装费","conf":1.0,"dim":null,"reason":"exact"},{"col":12,"text":"包装费用","field":"lg_package_fee","field_cn":"包装费","conf":1.0,"dim":null,"reason":"exact"},{"col":13,"text":"包装费用","field":"lg_package_fee","field_cn":"包装费","conf":1.0,"dim":null,"reason":"exact"},{"col":14,"text":"包装费用","field":"lg_package_fee","field_cn":"包装费","conf":1.0,"dim":null,"reason":"exact"},{"col":15,"text":"包装费用","field":"lg_package_fee","field_cn":"包装费","conf":1.0,"dim":null,"reason":"exact"},{"col":16,"text":"包装费用","field":"lg_package_fee","field_cn":"包装费","conf":1.0,"dim":null,"reason":"exact"},{"col":17,"text":"包装费用","field":"lg_package_fee","field_cn":"包装费","conf":1.0,"dim":null,"reason":"exact"},{"col":18,"text":"包装费用","field":"lg_package_fee","field_cn":"包装费","conf":1.0,"dim":null,"reason":"exact"},{"col":19,"text":"包装费用","field":"lg_package_fee","field_cn":"包装费","conf":1.0,"dim":null,"reason":"exact"},{"col":20,"text":"中转费用","field":"lg_transfer_fee","field_cn":"中转费","conf":1.0,"dim":null,"reason":"exact"},{"col":21,"text":"中转费用","field":"lg_transfer_fee","field_cn":"中转费","conf":1.0,"dim":null,"reason":"exact"},{"col":22,"text":"中转费用","field":"lg_transfer_fee","field_cn":"中转费","conf":1.0,"dim":null,"reason":"exact"},{"col":23,"text":"排序费用","field":"lg_sort_fee","field_cn":"排序费","conf":1.0,"dim":null,"reason":"exact"},{"col":24,"text":"排序费用","field":"lg_sort_fee","field_cn":"排序费","conf":1.0,"dim":null,"reason":"exact"}]},{"name":"管理费和样件费","n_rows":0,"n_cols":11,"header_rows":3,"dim_cols":9,"side_kv":[],"cols":[{"col":0,"text":"DB管理费率","field":"admin_db","field_cn":"DB管理费","conf":0.85,"dim":"1.0","reason":"contains:db管理费"},{"col":1,"text":"DB管理费","field":"admin_db","field_cn":"DB管理费","conf":1.0,"dim":"1.0","reason":"exact"},{"col":3,"text":"利管率","field":"admin_lm","field_cn":"利管费","conf":1.0,"dim":"1.0","reason":"exact"},{"col":4,"text":"利管费","field":"admin_lm_jg","field_cn":"利管费","conf":1.0,"dim":"1.0","reason":"exact"},{"col":6,"text":"其他费用","field":"cost_other","field_cn":"其他费用","conf":1.0,"dim":"1.0","reason":"exact"},{"col":7,"text":"备注","field":null,"field_cn":null,"conf":0,"dim":null,"reason":"oos"},{"col":9,"text":"汇总","field":"share_total","field_cn":"分摊总额","conf":0.75,"dim":null,"reason":"contains:分摊汇总"},{"col":11,"text":"手工样件倍数","field":"cost_sample","field_cn":"样件费","conf":0.8,"dim":null,"reason":"contains:手工样件"},{"col":12,"text":"手工样件费","field":"cost_sample","field_cn":"样件费","conf":0.84,"dim":"1.0","reason":"contains:手工样件"},{"col":14,"text":"软模样件倍数","field":"cost_sample","field_cn":"样件费","conf":0.8,"dim":null,"reason":"contains:软模样件"},{"col":15,"text":"软模样件费","field":"cost_sample","field_cn":"样件费","conf":0.84,"dim":"1.0","reason":"contains:软模样件"}]},{"name":"参考-包装尺寸库","n_rows":35,"n_cols":5,"header_rows":1,"dim_cols":0,"side_kv":[],"cols":[{"col":0,"text":"入厂包装类型","field":"pack_type","field_cn":"包装类型","conf":1.0,"dim":null,"reason":"exact"},{"col":1,"text":"入厂包装名称","field":"pack_type","field_cn":"包装类型","conf":1.0,"dim":null,"reason":"exact"},{"col":2,"text":"入厂包装长(mm)","field":"lg_package","field_cn":"包装费","conf":0.72,"dim":null,"reason":"contains:包装"},{"col":3,"text":"入厂包装宽(mm)","field":"lg_package","field_cn":"包装费","conf":0.72,"dim":null,"reason":"contains:包装"},{"col":4,"text":"入厂包装高(mm)","field":"lg_package","field_cn":"包装费","conf":0.72,"dim":null,"reason":"contains:包装"}]}],"side_kv":{},"tier":"L2","missing":[],"n_cost_blocks":4,"n_l2":44,"n_rows":49,"reconcile":{"C1":0,"C2":0,"C3":0}},{"file":"RFQ报价细项_P000061896001_左前悬立柱总成_20260609173529(1)(1)(1).xlsx","size_kb":318,"status":"ok","sheets":[{"name":"材料报价","n_rows":61,"n_cols":33,"header_rows":3,"dim_cols":0,"side_kv":[],"cols":[{"col":0,"text":"零件层级","field":"part_level","field_cn":"零件层级","conf":1.0,"dim":null,"reason":"exact"},{"col":1,"text":"零件来源","field":"part_source","field_cn":"零件来源","conf":1.0,"dim":null,"reason":"exact"},{"col":2,"text":"零件号","field":"part_no","field_cn":"零件号","conf":1.0,"dim":null,"reason":"exact"},{"col":3,"text":"零件名称","field":"part_name","field_cn":"零件名称","conf":1.0,"dim":null,"reason":"exact"},{"col":4,"text":"零件沿用新开","field":"part_new","field_cn":"零件沿用新开","conf":1.0,"dim":null,"reason":"exact"},{"col":5,"text":"零件数量","field":"qty","field_cn":"用量","conf":1.0,"dim":null,"reason":"exact"},{"col":6,"text":"长(mm)","field":"part_len","field_cn":"长(mm)","conf":1.0,"dim":null,"reason":"exact"},{"col":7,"text":"宽(mm)","field":"part_wid","field_cn":"宽(mm)","conf":1.0,"dim":null,"reason":"exact"},{"col":8,"text":"高(mm)","field":"part_hgt","field_cn":"高(mm)","conf":1.0,"dim":null,"reason":"exact"},{"col":9,"text":"工艺品类大类","field":"process_major","field_cn":"工艺品类大类","conf":1.0,"dim":null,"reason":"exact"},{"col":10,"text":"工艺品类小类","field":"process_minor","field_cn":"工艺品类小类","conf":1.0,"dim":null,"reason":"exact"},{"col":11,"text":"制造供应商生产地点","field":"sup_site","field_cn":"供应商生产地点","conf":1.0,"dim":null,"reason":"exact"},{"col":12,"text":"质量体系认证","field":"cert","field_cn":"质量体系认证","conf":1.0,"dim":null,"reason":"exact"},{"col":13,"text":"颜色纹理代码","field":"color_code","field_cn":"颜色纹理代码","conf":1.0,"dim":null,"reason":"exact"},{"col":14,"text":"表面处理热处理供应商","field":"supplier","field_cn":"供应商名称","conf":0.69,"dim":null,"reason":"contains:供应商"},{"col":15,"text":"焊接长度涂层表面积表面粗糙度","field":null,"field_cn":null,"conf":0,"dim":null,"reason":"oos"},{"col":16,"text":"备注","field":null,"field_cn":null,"conf":0,"dim":null,"reason":"oos"},{"col":17,"text":"材料名称","field":"mat_name","field_cn":"材料名称","conf":1.0,"dim":null,"reason":"exact"},{"col":18,"text":"材料牌号","field":"mat_grade","field_cn":"材料牌号","conf":1.0,"dim":null,"reason":"exact"},{"col":19,"text":"材料品类大类","field":"mat_category","field_cn":"材料品类","conf":1.0,"dim":null,"reason":"exact"},{"col":20,"text":"材料品类小类","field":"mat_category","field_cn":"材料品类","conf":1.0,"dim":null,"reason":"exact"},{"col":21,"text":"厚度规格","field":"part_thick","field_cn":"厚度/规格","conf":1.0,"dim":null,"reason":"exact"},{"col":22,"text":"执行标准","field":"exec_std","field_cn":"执行标准","conf":1.0,"dim":null,"reason":"exact"},{"col":23,"text":"材料供应商","field":"mat_supplier","field_cn":"材料供应商","conf":1.0,"dim":null,"reason":"exact"},{"col":24,"text":"材料认可方式","field":"mat_approve","field_cn":"材料认可方式","conf":1.0,"dim":null,"reason":"exact"},{"col":25,"text":"净重(KG)","field":"net_weight","field_cn":"净重","conf":1.0,"dim":null,"reason":"exact"},{"col":26,"text":"毛重(KG)","field":"gross_weight","field_cn":"毛重","conf":1.0,"dim":null,"reason":"exact"},{"col":27,"text":"材料利用率","field":"mat_util","field_cn":"材料利用率","conf":1.0,"dim":null,"reason":"exact"},{"col":28,"text":"原材料单价(元/KG)","field":"mat_price","field_cn":"材料单价","conf":1.0,"dim":null,"reason":"exact"},{"col":29,"text":"原材料回收单价(元/KG)","field":"raw_recycle","field_cn":"原材料回收单价","conf":1.0,"dim":null,"reason":"exact"},{"col":30,"text":"外购件价格","field":"buy_price","field_cn":"外购件价格","conf":1.0,"dim":null,"reason":"exact"},{"col":31,"text":"原材料总价","field":"raw_total","field_cn":"原材料总价","conf":1.0,"dim":null,"reason":"exact"},{"col":32,"text":"材料费","field":"cost_material","field_cn":"材料费","conf":1.0,"dim":null,"reason":"exact"}]},{"name":"制造费中粗项","n_rows":0,"n_cols":6,"header_rows":2,"dim_cols":6,"side_kv":[],"cols":[{"col":0,"text":"设备费用","field":"mfg_equip","field_cn":"设备费","conf":0.82,"dim":"0","reason":"contains:设备费"},{"col":1,"text":"人工费用","field":"mfg_labor","field_cn":"人工费","conf":0.82,"dim":"0","reason":"contains:人工费"},{"col":2,"text":"报废费用","field":"mfg_scrap","field_cn":"报废费","conf":0.82,"dim":"0","reason":"contains:报废费"},{"col":3,"text":"能耗费用","field":"mfg_energy","field_cn":"能耗费","conf":0.82,"dim":"0","reason":"contains:能耗费"},{"col":4,"text":"耗材费用","field":"mfg_consum","field_cn":"耗材费","conf":0.82,"dim":"0","reason":"contains:耗材费"},{"col":5,"text":"制造费总价","field":"cost_mfg","field_cn":"制造费","conf":0.78,"dim":"0","reason":"contains:制造费"}]},{"name":"制造费-产线 产能 报废 人员","n_rows":6,"n_cols":21,"header_rows":3,"dim_cols":0,"side_kv":[],"cols":[{"col":0,"text":"零件号","field":"part_no","field_cn":"零件号","conf":1.0,"dim":null,"reason":"exact"},{"col":1,"text":"零件名称","field":"part_name","field_cn":"零件名称","conf":1.0,"dim":null,"reason":"exact"},{"col":2,"text":"工段/线体编号","field":"line_no","field_cn":"工段/线体","conf":1.0,"dim":null,"reason":"exact"},{"col":3,"text":"供应商工厂编号","field":"sup_plant_code","field_cn":"供应商工厂编号","conf":1.0,"dim":null,"reason":"exact"},{"col":4,"text":"供应商工厂名称","field":"sup_site","field_cn":"供应商生产地点","conf":1.0,"dim":null,"reason":"exact"},{"col":6,"text":"工段/线体名称","field":"line_no","field_cn":"工段/线体","conf":1.0,"dim":null,"reason":"exact"},{"col":7,"text":"CT生产节拍(s)","field":"ct","field_cn":"节拍CT","conf":1.0,"dim":null,"reason":"exact"},{"col":8,"text":"单个生产节拍产出数量","field":"qty","field_cn":"用量","conf":0.66,"dim":null,"reason":"contains:数量"},{"col":9,"text":"OEE设计值%","field":"oee","field_cn":"OEE设计值","conf":1.0,"dim":null,"reason":"exact"},{"col":10,"text":"客户每日产能需求LCR","field":"lcr","field_cn":"客户产能LCR","conf":1.0,"dim":null,"reason":"exact"},{"col":11,"text":"计算值,LCR*CT/单节拍产出数量/（OEE/100）","field":"lcr","field_cn":"客户产能LCR","conf":0.64,"dim":null,"reason":"contains:LCR"},{"col":12,"text":"供应商每日总工时(h)","field":"labor_hours","field_cn":"工时","conf":0.71,"dim":null,"reason":"contains:总工时"},{"col":13,"text":"供应商每日承诺工时(h)","field":"supplier","field_cn":"供应商名称","conf":0.7,"dim":null,"reason":"contains:供应商"},{"col":14,"text":"空闲工时(h)","field":"labor_hours","field_cn":"工时","conf":0.75,"dim":null,"reason":"contains:工时"},{"col":16,"text":"产线面积(㎡)","field":"site_area","field_cn":"产线面积","conf":1.0,"dim":null,"reason":"exact"},{"col":17,"text":"厂房单位成本(元/h/m2)","field":"unit","field_cn":"计价单位","conf":0.65,"dim":null,"reason":"contains:单位"},{"col":18,"text":"单个零件占地费分摊(元/EA)","field":"mfg_site","field_cn":"场地费","conf":0.66,"dim":null,"reason":"contains:占地费"},{"col":20,"text":"报废物料成本","field":"scrap_material","field_cn":"报废物料成本","conf":1.0,"dim":null,"reason":"exact"},{"col":21,"text":"本工段合格率(%)","field":"pass_rate","field_cn":"工段合格率","conf":1.0,"dim":null,"reason":"exact"},{"col":22,"text":"报废可回收率(%)","field":"scrap_recovery","field_cn":"报废可回收率","conf":1.0,"dim":null,"reason":"exact"},{"col":23,"text":"报废费","field":"mfg_scrap","field_cn":"报废费","conf":1.0,"dim":null,"reason":"exact"}]},{"name":"制造费-设备","n_rows":4,"n_cols":5,"header_rows":2,"dim_cols":0,"side_kv":[],"cols":[{"col":0,"text":"零件号","field":"part_no","field_cn":"零件号","conf":1.0,"dim":null,"reason":"exact"},{"col":1,"text":"零件名称","field":"part_name","field_cn":"零件名称","conf":1.0,"dim":null,"reason":"exact"},{"col":2,"text":"工段/线体编号","field":"line_no","field_cn":"工段/线体","conf":1.0,"dim":null,"reason":"exact"},{"col":3,"text":"供应商工厂编号","field":"sup_plant_code","field_cn":"供应商工厂编号","conf":1.0,"dim":null,"reason":"exact"},{"col":4,"text":"供应商工厂名称","field":"sup_site","field_cn":"供应商生产地点","conf":1.0,"dim":null,"reason":"exact"}]},{"name":"制造费-能耗","n_rows":0,"n_cols":5,"header_rows":2,"dim_cols":0,"side_kv":[],"cols":[{"col":0,"text":"零件号","field":"part_no","field_cn":"零件号","conf":1.0,"dim":null,"reason":"exact"},{"col":1,"text":"零件名称","field":"part_name","field_cn":"零件名称","conf":1.0,"dim":null,"reason":"exact"},{"col":2,"text":"工段/线体编号","field":"line_no","field_cn":"工段/线体","conf":1.0,"dim":null,"reason":"exact"},{"col":3,"text":"供应商工厂编号","field":"sup_plant_code","field_cn":"供应商工厂编号","conf":1.0,"dim":null,"reason":"exact"},{"col":4,"text":"供应商工厂名称","field":"sup_site","field_cn":"供应商生产地点","conf":1.0,"dim":null,"reason":"exact"}]},{"name":"制造费-耗材","n_rows":0,"n_cols":5,"header_rows":2,"dim_cols":0,"side_kv":[],"cols":[{"col":0,"text":"零件号","field":"part_no","field_cn":"零件号","conf":1.0,"dim":null,"reason":"exact"},{"col":1,"text":"零件名称","field":"part_name","field_cn":"零件名称","conf":1.0,"dim":null,"reason":"exact"},{"col":2,"text":"工段/线体编号","field":"line_no","field_cn":"工段/线体","conf":1.0,"dim":null,"reason":"exact"},{"col":3,"text":"供应商工厂编号","field":"sup_plant_code","field_cn":"供应商工厂编号","conf":1.0,"dim":null,"reason":"exact"},{"col":4,"text":"供应商工厂名称","field":"sup_site","field_cn":"供应商生产地点","conf":1.0,"dim":null,"reason":"exact"}]},{"name":"模具分摊费用","n_rows":1,"n_cols":3,"header_rows":2,"dim_cols":0,"side_kv":[],"cols":[{"col":0,"text":"模具费分摊汇总","field":"tooling_total","field_cn":"模具总额","conf":1.0,"dim":null,"reason":"exact"},{"col":1,"text":"模具分摊数量","field":"tooling_qty","field_cn":"模具分摊量","conf":1.0,"dim":null,"reason":"exact"},{"col":2,"text":"模具分摊单价","field":"tooling_once","field_cn":"模具单件","conf":1.0,"dim":null,"reason":"exact"}]},{"name":"开发分摊费用","n_rows":1,"n_cols":16,"header_rows":3,"dim_cols":0,"side_kv":[],"cols":[{"col":0,"text":"开发费分摊汇总","field":"dev_total","field_cn":"开发总额","conf":1.0,"dim":null,"reason":"exact"},{"col":1,"text":"开发分摊数量","field":"dev_qty","field_cn":"开发分摊量","conf":1.0,"dim":null,"reason":"exact"},{"col":2,"text":"开发分摊单价","field":"dev_once","field_cn":"开发单件","conf":1.0,"dim":null,"reason":"exact"},{"col":4,"text":"岗位职能","field":null,"field_cn":null,"conf":0,"dim":null,"reason":"oos"},{"col":5,"text":"工作内容详述","field":null,"field_cn":null,"conf":0,"dim":null,"reason":"oos"},{"col":6,"text":"人数","field":null,"field_cn":null,"conf":0,"dim":null,"reason":"oos"},{"col":7,"text":"工时(h)","field":"labor_hours","field_cn":"工时","conf":1.0,"dim":null,"reason":"exact"},{"col":8,"text":"总工时(人*h)","field":"labor_hours","field_cn":"工时","conf":1.0,"dim":null,"reason":"exact"},{"col":9,"text":"单价(元/人*h)","field":"price_arrive","field_cn":"到厂价","conf":1.0,"dim":null,"reason":"exact"},{"col":10,"text":"人员费用评估金额(元)","field":null,"field_cn":null,"conf":0,"dim":null,"reason":"oos"},{"col":12,"text":"试验项目","field":"trial_fee","field_cn":"试验费","conf":1.0,"dim":null,"reason":"exact"},{"col":13,"text":"试验方法","field":null,"field_cn":null,"conf":0,"dim":null,"reason":"oos"},{"col":14,"text":"试验方式","field":null,"field_cn":null,"conf":0,"dim":null,"reason":"oos"},{"col":15,"text":"试验次数(次)","field":null,"field_cn":null,"conf":0,"dim":null,"reason":"oos"},{"col":16,"text":"试验单价(元/次)","field":"price_arrive","field_cn":"到厂价","conf":0.68,"dim":null,"reason":"contains:单价"},{"col":17,"text":"试验费用评估金额(元)","field":"trial_fee","field_cn":"试验费","conf":0.75,"dim":null,"reason":"contains:试验费用"}]},{"name":"物流费用","n_rows":1,"n_cols":25,"header_rows":3,"dim_cols":0,"side_kv":[],"cols":[{"col":0,"text":"零件号","field":"part_no","field_cn":"零件号","conf":1.0,"dim":null,"reason":"exact"},{"col":1,"text":"零件名称","field":"part_name","field_cn":"零件名称","conf":1.0,"dim":null,"reason":"exact"},{"col":2,"text":"小米工厂","field":"mi_plant","field_cn":"小米工厂","conf":1.0,"dim":null,"reason":"exact"},{"col":3,"text":"运输模式","field":"transport_mode","field_cn":"运输模式","conf":1.0,"dim":null,"reason":"exact"},{"col":4,"text":"供应商工厂名称","field":"sup_site","field_cn":"供应商生产地点","conf":1.0,"dim":null,"reason":"exact"},{"col":5,"text":"供应商出货地址","field":"supplier","field_cn":"供应商名称","conf":0.73,"dim":null,"reason":"contains:供应商"},{"col":6,"text":"出货地至交货地点距离(公里)","field":"distance","field_cn":"运输距离","conf":1.0,"dim":null,"reason":"exact"},{"col":7,"text":"运输费","field":"lg_transport_fee","field_cn":"运输费","conf":1.0,"dim":null,"reason":"exact"},{"col":8,"text":"包装投入模式","field":"lg_pack_mode","field_cn":"包装投入模式","conf":1.0,"dim":null,"reason":"exact"},{"col":9,"text":"运输包装类型","field":"pack_type","field_cn":"包装类型","conf":1.0,"dim":null,"reason":"exact"},{"col":10,"text":"运输包装名称","field":"part_name","field_cn":"零件名称","conf":0.7,"dim":null,"reason":"contains:名称"},{"col":11,"text":"运输包装长(mm)","field":"lg_package","field_cn":"包装费","conf":0.72,"dim":null,"reason":"contains:包装"},{"col":12,"text":"运输包装宽(mm)","field":"lg_package","field_cn":"包装费","conf":0.72,"dim":null,"reason":"contains:包装"},{"col":13,"text":"运输包装高(mm)","field":"lg_package","field_cn":"包装费","conf":0.72,"dim":null,"reason":"contains:包装"},{"col":14,"text":"运输包装收容数","field":"lg_package","field_cn":"包装费","conf":0.69,"dim":null,"reason":"contains:包装"},{"col":15,"text":"运输包装内衬形式","field":"lg_package","field_cn":"包装费","conf":0.68,"dim":null,"reason":"contains:包装"},{"col":16,"text":"运输包装毛重(kg)","field":"mat_qty","field_cn":"材料用量","conf":0.7,"dim":null,"reason":"contains:毛重"},{"col":17,"text":"周转箱循环周期(小时)","field":"pack_cycle","field_cn":"包装循环周期","conf":1.0,"dim":null,"reason":"exact"},{"col":18,"text":"包装投入数量预估(个)","field":"lg_pack_qty","field_cn":"包装投入数量","conf":1.0,"dim":null,"reason":"exact"},{"col":19,"text":"包装费","field":"lg_package_fee","field_cn":"包装费","conf":1.0,"dim":null,"reason":"exact"},{"col":20,"text":"是否设立中转库","field":"has_warehouse","field_cn":"是否设中转库","conf":1.0,"dim":null,"reason":"exact"},{"col":21,"text":"是否在中转库翻箱","field":"transload","field_cn":"中转库翻箱","conf":1.0,"dim":null,"reason":"exact"},{"col":22,"text":"中转费","field":"lg_transfer_fee","field_cn":"中转费","conf":1.0,"dim":null,"reason":"exact"},{"col":23,"text":"是否排序","field":"sequencing","field_cn":"是否排序","conf":1.0,"dim":null,"reason":"exact"},{"col":24,"text":"排序费","field":"lg_sort_fee","field_cn":"排序费","conf":1.0,"dim":null,"reason":"exact"}]},{"name":"管理费和样件费","n_rows":1,"n_cols":11,"header_rows":3,"dim_cols":0,"side_kv":[],"cols":[{"col":0,"text":"DB管理费率","field":"admin_db","field_cn":"DB管理费","conf":0.85,"dim":null,"reason":"contains:db管理费"},{"col":1,"text":"DB管理费","field":"admin_db","field_cn":"DB管理费","conf":1.0,"dim":null,"reason":"exact"},{"col":3,"text":"利管率","field":"admin_lm","field_cn":"利管费","conf":1.0,"dim":null,"reason":"exact"},{"col":4,"text":"利管费","field":"admin_lm_jg","field_cn":"利管费","conf":1.0,"dim":null,"reason":"exact"},{"col":6,"text":"其他费用","field":"cost_other","field_cn":"其他费用","conf":1.0,"dim":null,"reason":"exact"},{"col":7,"text":"备注","field":null,"field_cn":null,"conf":0,"dim":null,"reason":"oos"},{"col":9,"text":"汇总","field":"share_total","field_cn":"分摊总额","conf":0.75,"dim":null,"reason":"contains:分摊汇总"},{"col":11,"text":"手工样件倍数","field":"cost_sample","field_cn":"样件费","conf":0.8,"dim":null,"reason":"contains:手工样件"},{"col":12,"text":"手工样件费","field":"cost_sample","field_cn":"样件费","conf":0.84,"dim":null,"reason":"contains:手工样件"},{"col":14,"text":"软模样件倍数","field":"cost_sample","field_cn":"样件费","conf":0.8,"dim":null,"reason":"contains:软模样件"},{"col":15,"text":"软模样件费","field":"cost_sample","field_cn":"样件费","conf":0.84,"dim":null,"reason":"contains:软模样件"}]},{"name":"参考-包装尺寸库","n_rows":35,"n_cols":5,"header_rows":1,"dim_cols":0,"side_kv":[],"cols":[{"col":0,"text":"入厂包装类型","field":"pack_type","field_cn":"包装类型","conf":1.0,"dim":null,"reason":"exact"},{"col":1,"text":"入厂包装名称","field":"pack_type","field_cn":"包装类型","conf":1.0,"dim":null,"reason":"exact"},{"col":2,"text":"入厂包装长(mm)","field":"lg_package","field_cn":"包装费","conf":0.72,"dim":null,"reason":"contains:包装"},{"col":3,"text":"入厂包装宽(mm)","field":"lg_package","field_cn":"包装费","conf":0.72,"dim":null,"reason":"contains:包装"},{"col":4,"text":"入厂包装高(mm)","field":"lg_package","field_cn":"包装费","conf":0.72,"dim":null,"reason":"contains:包装"}]}],"side_kv":{},"tier":"L2","missing":[],"n_cost_blocks":4,"n_l2":53,"n_rows":110,"reconcile":{"C1":0,"C2":0,"C3":0}},{"file":"RFQ报价细项_P000063383001_多腔空气弹簧电磁阀_模板.xlsx","size_kb":251,"status":"corrupt","sheets":[],"side_kv":{},"tier":"解析失败","missing":[],"n_cost_blocks":0,"n_l2":0,"n_rows":0,"reconcile":{"C1":0,"C2":0,"C3":0},"error":"不是有效的 xlsx（zip）文件，可能为加密/损坏/伪装扩展名"},{"file":"RFQ采购清单-202607.xlsx","size_kb":18,"status":"ok","sheets":[{"name":"上会定点数据","n_rows":85,"n_cols":10,"header_rows":1,"dim_cols":0,"side_kv":[],"cols":[{"col":0,"text":"单号","field":"rfq_no","field_cn":"RFQ号","conf":0.75,"dim":null,"reason":"contains:询价单号"},{"col":1,"text":"采购","field":"buyer","field_cn":"采购员","conf":1.0,"dim":null,"reason":"exact"},{"col":2,"text":"RFQ","field":"rfq_no","field_cn":"RFQ号","conf":0.82,"dim":null,"reason":"contains:rfq号"},{"col":3,"text":"RFQ名称","field":"part_name","field_cn":"零件名称","conf":0.72,"dim":null,"reason":"contains:名称"},{"col":4,"text":"RFQ编码","field":null,"field_cn":null,"conf":0,"dim":null,"reason":"unmatched"},{"col":5,"text":"供应商","field":"supplier","field_cn":"供应商名称","conf":1.0,"dim":null,"reason":"exact"},{"col":6,"text":"状态","field":"status","field_cn":"状态","conf":1.0,"dim":null,"reason":"exact"},{"col":7,"text":"时间","field":null,"field_cn":null,"conf":0,"dim":null,"reason":"oos"},{"col":8,"text":"时间1","field":null,"field_cn":null,"conf":0,"dim":null,"reason":"unmatched"},{"col":9,"text":"CE核价完成","field":"status","field_cn":"状态","conf":0.8,"dim":null,"reason":"contains:核价完成"}]}],"side_kv":{},"tier":"无法入库","missing":["零件号","总价缺失（无成本块可推导）"],"n_cost_blocks":0,"n_l2":0,"n_rows":85,"reconcile":{"C1":0,"C2":0,"C3":0}},{"file":"报价信息.xlsx","size_kb":322,"status":"ok","sheets":[{"name":"报价信息","n_rows":398,"n_cols":75,"header_rows":1,"dim_cols":56,"side_kv":[],"cols":[{"col":0,"text":"序号","field":"seq_no","field_cn":"序号","conf":1.0,"dim":null,"reason":"exact"},{"col":1,"text":"小米工厂","field":"mi_plant","field_cn":"小米工厂","conf":1.0,"dim":null,"reason":"exact"},{"col":2,"text":"车型项目","field":"project","field_cn":"车型项目","conf":1.0,"dim":null,"reason":"exact"},{"col":3,"text":"供应链组","field":"buyer_org","field_cn":"供应链组","conf":1.0,"dim":null,"reason":"exact"},{"col":4,"text":"采购员","field":"buyer","field_cn":"采购员","conf":1.0,"dim":null,"reason":"exact"},{"col":5,"text":"SOR名称","field":"part_name","field_cn":"零件名称","conf":0.72,"dim":null,"reason":"contains:名称"},{"col":6,"text":"SOR编号","field":"sor_no","field_cn":"SOR编号","conf":1.0,"dim":null,"reason":"exact"},{"col":7,"text":"轮次号","field":"round","field_cn":"轮次","conf":1.0,"dim":null,"reason":"exact"},{"col":8,"text":"零件号","field":"part_no","field_cn":"零件号","conf":1.0,"dim":null,"reason":"exact"},{"col":9,"text":"零部件名称","field":"part_name","field_cn":"零件名称","conf":0.72,"dim":null,"reason":"contains:名称"},{"col":10,"text":"供应商名称","field":"supplier","field_cn":"供应商名称","conf":1.0,"dim":null,"reason":"exact"},{"col":11,"text":"单车用量","field":"qty","field_cn":"用量","conf":1.0,"dim":"MM21R-1","reason":"exact"},{"col":12,"text":"单车用量","field":"qty","field_cn":"用量","conf":1.0,"dim":"MM21R-2","reason":"exact"},{"col":13,"text":"单车用量","field":"qty","field_cn":"用量","conf":1.0,"dim":"MM21R-5","reason":"exact"},{"col":14,"text":"单车用量","field":"qty","field_cn":"用量","conf":1.0,"dim":"MM21R-6","reason":"exact"},{"col":15,"text":"单车用量","field":"qty","field_cn":"用量","conf":1.0,"dim":"MS13-L-5","reason":"exact"},{"col":16,"text":"单车用量","field":"qty","field_cn":"用量","conf":1.0,"dim":"MS13-L1","reason":"exact"},{"col":17,"text":"单车用量","field":"qty","field_cn":"用量","conf":1.0,"dim":"MS15-0","reason":"exact"},{"col":18,"text":"单车用量","field":"qty","field_cn":"用量","conf":1.0,"dim":"MS15-0T","reason":"exact"},{"col":19,"text":"单车用量","field":"qty","field_cn":"用量","conf":1.0,"dim":"MS15-10","reason":"exact"},{"col":20,"text":"单车用量","field":"qty","field_cn":"用量","conf":1.0,"dim":"MS15-12S","reason":"exact"},{"col":21,"text":"单车用量","field":"qty","field_cn":"用量","conf":1.0,"dim":"MS15-2","reason":"exact"},{"col":22,"text":"单车用量","field":"qty","field_cn":"用量","conf":1.0,"dim":"MS15-2ST","reason":"exact"},{"col":23,"text":"单车用量","field":"qty","field_cn":"用量","conf":1.0,"dim":"MS15-5","reason":"exact"},{"col":24,"text":"单车用量","field":"qty","field_cn":"用量","conf":1.0,"dim":"MX14-1","reason":"exact"},{"col":25,"text":"单车用量","field":"qty","field_cn":"用量","conf":1.0,"dim":"MX14-2","reason":"exact"},{"col":26,"text":"单车用量","field":"qty","field_cn":"用量","conf":1.0,"dim":"MX14-2S","reason":"exact"},{"col":27,"text":"单车用量","field":"qty","field_cn":"用量","conf":1.0,"dim":"MX14-5","reason":"exact"},{"col":28,"text":"单车用量","field":"qty","field_cn":"用量","conf":1.0,"dim":"MX14-9","reason":"exact"},{"col":29,"text":"BOM单位","field":"unit","field_cn":"计价单位","conf":0.72,"dim":null,"reason":"contains:单位"},{"col":30,"text":"出厂价(不含分摊)(元)","field":"price_factory","field_cn":"出厂价","conf":0.7,"dim":null,"reason":"contains:出厂价"},{"col":31,"text":"材料费","field":"cost_material","field_cn":"材料费","conf":1.0,"dim":"总费用","reason":"exact"},{"col":32,"text":"材料费","field":"cost_material","field_cn":"材料费","conf":1.0,"dim":"原材料费","reason":"exact"},{"col":33,"text":"材料费","field":"cost_material","field_cn":"材料费","conf":1.0,"dim":"外购费","reason":"exact"},{"col":34,"text":"制造费","field":"cost_mfg","field_cn":"制造费","conf":1.0,"dim":"设备费用","reason":"exact"},{"col":35,"text":"制造费","field":"cost_mfg","field_cn":"制造费","conf":1.0,"dim":"报废费用","reason":"exact"},{"col":36,"text":"制造费","field":"cost_mfg","field_cn":"制造费","conf":1.0,"dim":"耗材费用","reason":"exact"},{"col":37,"text":"制造费","field":"cost_mfg","field_cn":"制造费","conf":1.0,"dim":"能耗费用","reason":"exact"},{"col":38,"text":"制造费","field":"cost_mfg","field_cn":"制造费","conf":1.0,"dim":"人工费用","reason":"exact"},{"col":39,"text":"制造费","field":"cost_mfg","field_cn":"制造费","conf":1.0,"dim":"制造费总价","reason":"exact"},{"col":40,"text":"小米承担","field":"mi_bear","field_cn":"小米承担","conf":1.0,"dim":"包装费(元)(小米)","reason":"exact"},{"col":41,"text":"小米承担","field":"mi_bear","field_cn":"小米承担","conf":1.0,"dim":"运输费(元)(小米)","reason":"exact"},{"col":42,"text":"供应商承担","field":"sup_bear","field_cn":"供应商承担","conf":1.0,"dim":"包装费(元)(供应商)","reason":"exact"},{"col":43,"text":"供应商承担","field":"sup_bear","field_cn":"供应商承担","conf":1.0,"dim":"运输费(元)(供应商)","reason":"exact"},{"col":44,"text":"供应商承担","field":"sup_bear","field_cn":"供应商承担","conf":1.0,"dim":"排序费(元)","reason":"exact"},{"col":45,"text":"供应商承担","field":"sup_bear","field_cn":"供应商承担","conf":1.0,"dim":"中转库(元)","reason":"exact"},{"col":46,"text":"开发费","field":"cost_dev","field_cn":"开发费","conf":1.0,"dim":"分摊额(元)","reason":"exact"},{"col":47,"text":"开发费","field":"cost_dev","field_cn":"开发费","conf":1.0,"dim":"分摊件数(件)","reason":"exact"},{"col":48,"text":"开发费","field":"cost_dev","field_cn":"开发费","conf":1.0,"dim":"分摊金额(元/件)","reason":"exact"},{"col":49,"text":"模具费","field":"cost_tooling","field_cn":"模具费","conf":1.0,"dim":"分摊额(元)","reason":"exact"},{"col":50,"text":"模具费","field":"cost_tooling","field_cn":"模具费","conf":1.0,"dim":"分摊件数(件)","reason":"exact"},{"col":51,"text":"模具费","field":"cost_tooling","field_cn":"模具费","conf":1.0,"dim":"分摊金额(元/件)","reason":"exact"},{"col":52,"text":"供应商到厂价(元)","field":"supplier","field_cn":"供应商名称","conf":0.75,"dim":null,"reason":"contains:供应商"},{"col":53,"text":"管理费","field":"cost_admin","field_cn":"管理费","conf":1.0,"dim":"DB管理费","reason":"exact"},{"col":54,"text":"管理费","field":"cost_admin","field_cn":"管理费","conf":1.0,"dim":"利管费","reason":"exact"},{"col":55,"text":"管理费","field":"cost_admin","field_cn":"管理费","conf":1.0,"dim":"其他管理费","reason":"exact"},{"col":56,"text":"管理费","field":"cost_admin","field_cn":"管理费","conf":1.0,"dim":"管理费汇总","reason":"exact"},{"col":57,"text":"样件价格(量产倍数)","field":"sample_price","field_cn":"样件价格","conf":1.0,"dim":"手工件","reason":"exact"},{"col":58,"text":"样件价格(量产倍数)","field":"sample_price","field_cn":"样件价格","conf":1.0,"dim":"软模件","reason":"exact"},{"col":59,"text":"样件价格(量产倍数)","field":"sample_price","field_cn":"样件价格","conf":1.0,"dim":"硬模件","reason":"exact"},{"col":60,"text":"样件价格","field":"sample_price","field_cn":"样件价格","conf":1.0,"dim":"手工件","reason":"exact"},{"col":61,"text":"样件价格","field":"sample_price","field_cn":"样件价格","conf":1.0,"dim":"软模件","reason":"exact"},{"col":62,"text":"样件价格","field":"sample_price","field_cn":"样件价格","conf":1.0,"dim":"硬模件","reason":"exact"},{"col":63,"text":"结算方式","field":"settle_mode","field_cn":"结算方式","conf":1.0,"dim":null,"reason":"exact"},{"col":64,"text":"量产商务前提","field":"biz_premise","field_cn":"量产商务前提","conf":1.0,"dim":"账期(天)","reason":"exact"},{"col":65,"text":"量产商务前提","field":"biz_premise","field_cn":"量产商务前提","conf":1.0,"dim":"承兑汇票账期(月)","reason":"exact"},{"col":66,"text":"样件商务前提","field":"sample_premise","field_cn":"样件商务前提","conf":1.0,"dim":"账期(天)","reason":"exact"},{"col":67,"text":"样件商务前提","field":"sample_premise","field_cn":"样件商务前提","conf":1.0,"dim":"承兑汇票账期(月)","reason":"exact"},{"col":68,"text":"备注","field":null,"field_cn":null,"conf":0,"dim":null,"reason":"oos"},{"col":69,"text":"设变","field":null,"field_cn":null,"conf":0,"dim":null,"reason":"oos"},{"col":70,"text":"设变","field":null,"field_cn":null,"conf":0,"dim":null,"reason":"oos"},{"col":71,"text":"设变","field":null,"field_cn":null,"conf":0,"dim":null,"reason":"oos"},{"col":72,"text":"供应商编码","field":"supplier_code","field_cn":"供应商代码","conf":1.0,"dim":null,"reason":"exact"},{"col":73,"text":"定点时间","field":"nomination_date","field_cn":"定点时间","conf":1.0,"dim":null,"reason":"exact"},{"col":74,"text":"采购单位","field":"unit","field_cn":"计价单位","conf":0.75,"dim":null,"reason":"contains:单位"}]}],"side_kv":{},"tier":"L1","missing":["L2 细项不足 3 个（当前 0）"],"n_cost_blocks":5,"n_l2":0,"n_rows":398,"reconcile":{"C1":0,"C2":0,"C3":0}},{"file":"报价信息_20260803.xlsx","size_kb":6,"status":"ok","sheets":[{"name":"报价信息","n_rows":2,"n_cols":48,"header_rows":1,"dim_cols":34,"side_kv":[],"cols":[{"col":0,"text":"序号","field":"seq_no","field_cn":"序号","conf":1.0,"dim":null,"reason":"exact"},{"col":1,"text":"小米工厂","field":"mi_plant","field_cn":"小米工厂","conf":1.0,"dim":null,"reason":"exact"},{"col":2,"text":"零件号","field":"part_no","field_cn":"零件号","conf":1.0,"dim":null,"reason":"exact"},{"col":3,"text":"零件名称","field":"part_name","field_cn":"零件名称","conf":1.0,"dim":null,"reason":"exact"},{"col":4,"text":"供应商工厂","field":"sup_site","field_cn":"供应商生产地点","conf":1.0,"dim":null,"reason":"exact"},{"col":5,"text":"供应商代码","field":"supplier_code","field_cn":"供应商代码","conf":1.0,"dim":null,"reason":"exact"},{"col":6,"text":"供应商名称","field":"supplier","field_cn":"供应商名称","conf":1.0,"dim":null,"reason":"exact"},{"col":7,"text":"报价货币","field":"currency","field_cn":"报价货币","conf":1.0,"dim":null,"reason":"exact"},{"col":8,"text":"量产商务前提","field":"biz_premise","field_cn":"量产商务前提","conf":1.0,"dim":"账期","reason":"exact"},{"col":9,"text":"量产商务前提","field":"biz_premise","field_cn":"量产商务前提","conf":1.0,"dim":"承兑汇票账期(月)","reason":"exact"},{"col":10,"text":"到厂价","field":"price_arrive","field_cn":"到厂价","conf":1.0,"dim":null,"reason":"exact"},{"col":11,"text":"出厂价","field":"price_factory","field_cn":"出厂价","conf":1.0,"dim":null,"reason":"exact"},{"col":12,"text":"材料费","field":"cost_material","field_cn":"材料费","conf":1.0,"dim":"总费用","reason":"exact"},{"col":13,"text":"材料费","field":"cost_material","field_cn":"材料费","conf":1.0,"dim":"原材料费","reason":"exact"},{"col":14,"text":"材料费","field":"cost_material","field_cn":"材料费","conf":1.0,"dim":"外购费","reason":"exact"},{"col":15,"text":"制造费","field":"cost_mfg","field_cn":"制造费","conf":1.0,"dim":"制造总费用","reason":"exact"},{"col":16,"text":"制造费","field":"cost_mfg","field_cn":"制造费","conf":1.0,"dim":"设备费","reason":"exact"},{"col":17,"text":"制造费","field":"cost_mfg","field_cn":"制造费","conf":1.0,"dim":"报废费","reason":"exact"},{"col":18,"text":"制造费","field":"cost_mfg","field_cn":"制造费","conf":1.0,"dim":"耗材费","reason":"exact"},{"col":19,"text":"制造费","field":"cost_mfg","field_cn":"制造费","conf":1.0,"dim":"能耗费","reason":"exact"},{"col":20,"text":"制造费","field":"cost_mfg","field_cn":"制造费","conf":1.0,"dim":"人工费","reason":"exact"},{"col":21,"text":"模具费","field":"cost_tooling","field_cn":"模具费","conf":1.0,"dim":"分摊汇总","reason":"exact"},{"col":22,"text":"模具费","field":"cost_tooling","field_cn":"模具费","conf":1.0,"dim":"分摊量","reason":"exact"},{"col":23,"text":"模具费","field":"cost_tooling","field_cn":"模具费","conf":1.0,"dim":"单件分摊额","reason":"exact"},{"col":24,"text":"开发费","field":"cost_dev","field_cn":"开发费","conf":1.0,"dim":"分摊汇总","reason":"exact"},{"col":25,"text":"开发费","field":"cost_dev","field_cn":"开发费","conf":1.0,"dim":"分摊量","reason":"exact"},{"col":26,"text":"开发费","field":"cost_dev","field_cn":"开发费","conf":1.0,"dim":"单件分摊额","reason":"exact"},{"col":27,"text":"包装投入模式","field":"lg_pack_mode","field_cn":"包装投入模式","conf":1.0,"dim":null,"reason":"exact"},{"col":28,"text":"运输模式","field":"transport_mode","field_cn":"运输模式","conf":1.0,"dim":null,"reason":"exact"},{"col":29,"text":"是否设立中转库","field":"has_warehouse","field_cn":"是否设中转库","conf":1.0,"dim":null,"reason":"exact"},{"col":30,"text":"是否排序","field":"sequencing","field_cn":"是否排序","conf":1.0,"dim":null,"reason":"exact"},{"col":31,"text":"物流费","field":"cost_logistics","field_cn":"物流费","conf":1.0,"dim":"总费用","reason":"exact"},{"col":32,"text":"物流费","field":"cost_logistics","field_cn":"物流费","conf":1.0,"dim":"包装费","reason":"exact"},{"col":33,"text":"物流费","field":"cost_logistics","field_cn":"物流费","conf":1.0,"dim":"运输费","reason":"exact"},{"col":34,"text":"物流费","field":"cost_logistics","field_cn":"物流费","conf":1.0,"dim":"排序费","reason":"exact"},{"col":35,"text":"物流费","field":"cost_logistics","field_cn":"物流费","conf":1.0,"dim":"中转库费","reason":"exact"},{"col":36,"text":"管理费","field":"cost_admin","field_cn":"管理费","conf":1.0,"dim":"管理总费用","reason":"exact"},{"col":37,"text":"管理费","field":"cost_admin","field_cn":"管理费","conf":1.0,"dim":"DB管理费","reason":"exact"},{"col":38,"text":"管理费","field":"cost_admin","field_cn":"管理费","conf":1.0,"dim":"利管费","reason":"exact"},{"col":39,"text":"管理费","field":"cost_admin","field_cn":"管理费","conf":1.0,"dim":"其他费用","reason":"exact"},{"col":40,"text":"样件费","field":"sample_price","field_cn":"样件价格","conf":1.0,"dim":"手工样件(倍)","reason":"exact"},{"col":41,"text":"样件费","field":"sample_price","field_cn":"样件价格","conf":1.0,"dim":"软模样件(倍)","reason":"exact"},{"col":42,"text":"样件费","field":"sample_price","field_cn":"样件价格","conf":1.0,"dim":"硬模样件(倍)","reason":"exact"},{"col":43,"text":"样件费","field":"sample_price","field_cn":"样件价格","conf":1.0,"dim":"手工样件价格","reason":"exact"},{"col":44,"text":"样件费","field":"sample_price","field_cn":"样件价格","conf":1.0,"dim":"软模样件价格","reason":"exact"},{"col":45,"text":"样件费","field":"sample_price","field_cn":"样件价格","conf":1.0,"dim":"硬模样件价格","reason":"exact"},{"col":46,"text":"样件商务前提","field":"sample_premise","field_cn":"样件商务前提","conf":1.0,"dim":"账期","reason":"exact"},{"col":47,"text":"样件商务前提","field":"sample_premise","field_cn":"样件商务前提","conf":1.0,"dim":"承兑汇票账期(月)","reason":"exact"}]}],"side_kv":{},"tier":"L2","missing":[],"n_cost_blocks":6,"n_l2":4,"n_rows":2,"reconcile":{"C1":0,"C2":0,"C3":0}},{"file":"报价分析题目示例.xlsx","size_kb":30,"status":"ok","sheets":[{"name":"手改量纲题目","n_rows":10,"n_cols":22,"header_rows":3,"dim_cols":0,"side_kv":[],"cols":[{"col":0,"text":"零件号","field":"part_no","field_cn":"零件号","conf":1.0,"dim":null,"reason":"exact"},{"col":1,"text":"单车用量","field":"qty","field_cn":"用量","conf":1.0,"dim":null,"reason":"exact"},{"col":2,"text":"装配比例","field":"asm_ratio","field_cn":"装配比例","conf":1.0,"dim":null,"reason":"exact"},{"col":3,"text":"单车用量","field":"qty","field_cn":"用量","conf":1.0,"dim":null,"reason":"exact"},{"col":4,"text":"装配比例","field":"asm_ratio","field_cn":"装配比例","conf":1.0,"dim":null,"reason":"exact"},{"col":5,"text":"单车用量","field":"qty","field_cn":"用量","conf":1.0,"dim":null,"reason":"exact"},{"col":6,"text":"装配比例","field":"asm_ratio","field_cn":"装配比例","conf":1.0,"dim":null,"reason":"exact"},{"col":7,"text":"单车用量","field":"qty","field_cn":"用量","conf":1.0,"dim":null,"reason":"exact"},{"col":8,"text":"装配比例","field":"asm_ratio","field_cn":"装配比例","conf":1.0,"dim":null,"reason":"exact"},{"col":9,"text":"出厂价","field":"price_factory","field_cn":"出厂价","conf":1.0,"dim":null,"reason":"exact"},{"col":10,"text":"包装","field":"lg_package","field_cn":"包装费","conf":1.0,"dim":null,"reason":"exact"},{"col":11,"text":"运费","field":"lg_transport_fee","field_cn":"运输费","conf":1.0,"dim":null,"reason":"exact"},{"col":12,"text":"包装","field":"lg_package","field_cn":"包装费","conf":1.0,"dim":null,"reason":"exact"},{"col":13,"text":"运费","field":"lg_transport_fee","field_cn":"运输费","conf":1.0,"dim":null,"reason":"exact"},{"col":14,"text":"中转","field":"lg_other","field_cn":"中转排序费","conf":0.8,"dim":null,"reason":"contains:中转费"},{"col":15,"text":"排序","field":"sequencing","field_cn":"是否排序","conf":1.0,"dim":null,"reason":"exact"},{"col":16,"text":"一次性支付","field":"once_pay","field_cn":"一次性支付","conf":1.0,"dim":null,"reason":"exact"},{"col":17,"text":"分摊总额","field":"share_total","field_cn":"分摊总额","conf":1.0,"dim":null,"reason":"exact"},{"col":18,"text":"分摊量","field":"tooling_qty","field_cn":"模具分摊量","conf":1.0,"dim":null,"reason":"exact"},{"col":19,"text":"一次性支付","field":"once_pay","field_cn":"一次性支付","conf":1.0,"dim":null,"reason":"exact"},{"col":20,"text":"分摊总额","field":"share_total","field_cn":"分摊总额","conf":1.0,"dim":null,"reason":"exact"},{"col":21,"text":"分摊量","field":"tooling_qty","field_cn":"模具分摊量","conf":1.0,"dim":null,"reason":"exact"}]}],"side_kv":{},"tier":"L0","missing":["成本块不足 3 个（当前 0）"],"n_cost_blocks":0,"n_l2":7,"n_rows":10,"reconcile":{"C1":0,"C2":0,"C3":0}},{"file":"物流信息导入模板.xlsx","size_kb":19,"status":"ok","sheets":[{"name":"模板","n_rows":2,"n_cols":25,"header_rows":1,"dim_cols":0,"side_kv":[],"cols":[{"col":0,"text":"NO","field":"rfq_no","field_cn":"RFQ号","conf":0.72,"dim":null,"reason":"contains:rfq no"},{"col":1,"text":"小米工厂","field":"mi_plant","field_cn":"小米工厂","conf":1.0,"dim":null,"reason":"exact"},{"col":2,"text":"零件编号","field":null,"field_cn":null,"conf":0,"dim":null,"reason":"unmatched"},{"col":3,"text":"供应商出货地址","field":"supplier","field_cn":"供应商名称","conf":0.73,"dim":null,"reason":"contains:供应商"},{"col":4,"text":"供应商工厂至交货地点距离(公里)","field":"sup_site","field_cn":"供应商生产地点","conf":0.69,"dim":null,"reason":"contains:供应商工厂"},{"col":5,"text":"距离交货地点运输时间(小时)","field":"distance","field_cn":"运输距离","conf":0.64,"dim":null,"reason":"contains:距离"},{"col":6,"text":"距离小米汽车收货点紧急运输时间(小时)","field":"distance","field_cn":"运输距离","conf":0.63,"dim":null,"reason":"contains:距离"},{"col":7,"text":"运输卡车规格(车厢长度)","field":"part_len","field_cn":"长(mm)","conf":0.65,"dim":null,"reason":"contains:长度"},{"col":8,"text":"入厂包装类型","field":"pack_type","field_cn":"包装类型","conf":1.0,"dim":null,"reason":"exact"},{"col":9,"text":"入厂包装名称","field":"pack_type","field_cn":"包装类型","conf":1.0,"dim":null,"reason":"exact"},{"col":10,"text":"入厂包装长(mm)","field":"lg_package","field_cn":"包装费","conf":0.72,"dim":null,"reason":"contains:包装"},{"col":11,"text":"入厂包装宽(mm)","field":"lg_package","field_cn":"包装费","conf":0.72,"dim":null,"reason":"contains:包装"},{"col":12,"text":"入厂包装高(mm)","field":"lg_package","field_cn":"包装费","conf":0.72,"dim":null,"reason":"contains:包装"},{"col":13,"text":"入厂包装装箱数","field":"lg_package","field_cn":"包装费","conf":0.69,"dim":null,"reason":"contains:包装"},{"col":14,"text":"入厂包装内衬形式","field":"lg_package","field_cn":"包装费","conf":0.68,"dim":null,"reason":"contains:包装"},{"col":15,"text":"入厂包装毛重(KG)","field":"mat_qty","field_cn":"材料用量","conf":0.7,"dim":null,"reason":"contains:毛重"},{"col":16,"text":"周转箱循环周期(小时)","field":"pack_cycle","field_cn":"包装循环周期","conf":1.0,"dim":null,"reason":"exact"},{"col":17,"text":"包装投入数量预估(个)","field":"lg_pack_qty","field_cn":"包装投入数量","conf":1.0,"dim":null,"reason":"exact"},{"col":18,"text":"是否在中转库进行翻箱操作","field":"transload","field_cn":"中转库翻箱","conf":1.0,"dim":null,"reason":"exact"},{"col":19,"text":"翻箱前包装类型","field":"lg_package","field_cn":"包装费","conf":0.69,"dim":null,"reason":"contains:包装"},{"col":20,"text":"翻箱前包装长(mm)","field":"lg_package","field_cn":"包装费","conf":0.7,"dim":null,"reason":"contains:包装"},{"col":21,"text":"翻箱前包装宽(mm)","field":"lg_package","field_cn":"包装费","conf":0.7,"dim":null,"reason":"contains:包装"},{"col":22,"text":"翻箱前包装高(mm)","field":"lg_package","field_cn":"包装费","conf":0.7,"dim":null,"reason":"contains:包装"},{"col":23,"text":"翻箱前包装装箱数","field":"lg_package","field_cn":"包装费","conf":0.68,"dim":null,"reason":"contains:包装"},{"col":24,"text":"翻箱前整包装毛重(kg)","field":"mat_qty","field_cn":"材料用量","conf":0.68,"dim":null,"reason":"contains:毛重"}]},{"name":"示例","n_rows":67,"n_cols":23,"header_rows":1,"dim_cols":0,"side_kv":[],"cols":[{"col":0,"text":"NO","field":"rfq_no","field_cn":"RFQ号","conf":0.72,"dim":null,"reason":"contains:rfq no"},{"col":1,"text":"零件编号","field":null,"field_cn":null,"conf":0,"dim":null,"reason":"unmatched"},{"col":2,"text":"供应商工厂至交货地点距离(公里)","field":"sup_site","field_cn":"供应商生产地点","conf":0.69,"dim":null,"reason":"contains:供应商工厂"},{"col":3,"text":"距离交货地点运输时间(小时)","field":"distance","field_cn":"运输距离","conf":0.64,"dim":null,"reason":"contains:距离"},{"col":4,"text":"距离小米汽车收货点紧急运输时间(小时)","field":"distance","field_cn":"运输距离","conf":0.63,"dim":null,"reason":"contains:距离"},{"col":5,"text":"运输卡车规格(车厢长度)","field":"part_len","field_cn":"长(mm)","conf":0.65,"dim":null,"reason":"contains:长度"},{"col":6,"text":"入厂包装类型","field":"pack_type","field_cn":"包装类型","conf":1.0,"dim":null,"reason":"exact"},{"col":7,"text":"入厂包装名称","field":"pack_type","field_cn":"包装类型","conf":1.0,"dim":null,"reason":"exact"},{"col":8,"text":"入厂包装长(mm)","field":"lg_package","field_cn":"包装费","conf":0.72,"dim":null,"reason":"contains:包装"},{"col":9,"text":"入厂包装宽(mm)","field":"lg_package","field_cn":"包装费","conf":0.72,"dim":null,"reason":"contains:包装"},{"col":10,"text":"入厂包装高(mm)","field":"lg_package","field_cn":"包装费","conf":0.72,"dim":null,"reason":"contains:包装"},{"col":11,"text":"入厂包装装箱数","field":"lg_package","field_cn":"包装费","conf":0.69,"dim":null,"reason":"contains:包装"},{"col":12,"text":"入厂包装内衬形式","field":"lg_package","field_cn":"包装费","conf":0.68,"dim":null,"reason":"contains:包装"},{"col":13,"text":"入厂包装毛重(KG)","field":"mat_qty","field_cn":"材料用量","conf":0.7,"dim":null,"reason":"contains:毛重"},{"col":14,"text":"周转箱循环周期(小时)","field":"pack_cycle","field_cn":"包装循环周期","conf":1.0,"dim":null,"reason":"exact"},{"col":15,"text":"包装投入数量预估(个)","field":"lg_pack_qty","field_cn":"包装投入数量","conf":1.0,"dim":null,"reason":"exact"},{"col":16,"text":"是否在中转库进行翻箱操作","field":"transload","field_cn":"中转库翻箱","conf":1.0,"dim":null,"reason":"exact"},{"col":17,"text":"翻箱前包装类型","field":"lg_package","field_cn":"包装费","conf":0.69,"dim":null,"reason":"contains:包装"},{"col":18,"text":"翻箱前包装长(mm)","field":"lg_package","field_cn":"包装费","conf":0.7,"dim":null,"reason":"contains:包装"},{"col":19,"text":"翻箱前包装宽(mm)","field":"lg_package","field_cn":"包装费","conf":0.7,"dim":null,"reason":"contains:包装"},{"col":20,"text":"翻箱前包装高(mm)","field":"lg_package","field_cn":"包装费","conf":0.7,"dim":null,"reason":"contains:包装"},{"col":21,"text":"翻箱前包装装箱数","field":"lg_package","field_cn":"包装费","conf":0.68,"dim":null,"reason":"contains:包装"},{"col":22,"text":"翻箱前整包装毛重(kg)","field":"mat_qty","field_cn":"材料用量","conf":0.68,"dim":null,"reason":"contains:毛重"}]}],"side_kv":{},"tier":"无法入库","missing":["零件号","总价缺失（无成本块可推导）"],"n_cost_blocks":0,"n_l2":7,"n_rows":69,"reconcile":{"C1":0,"C2":0,"C3":0}},{"file":"物流信息导入模板_报价细项.xlsx","size_kb":19,"status":"ok","sheets":[{"name":"模板","n_rows":12,"n_cols":15,"header_rows":1,"dim_cols":0,"side_kv":[],"cols":[{"col":0,"text":"NO","field":"rfq_no","field_cn":"RFQ号","conf":0.72,"dim":null,"reason":"contains:rfq no"},{"col":1,"text":"小米工厂","field":"mi_plant","field_cn":"小米工厂","conf":1.0,"dim":null,"reason":"exact"},{"col":2,"text":"零件编号","field":null,"field_cn":null,"conf":0,"dim":null,"reason":"unmatched"},{"col":3,"text":"供应商出货地址","field":"supplier","field_cn":"供应商名称","conf":0.73,"dim":null,"reason":"contains:供应商"},{"col":4,"text":"供应商工厂至交货地点距离(公里)","field":"sup_site","field_cn":"供应商生产地点","conf":0.69,"dim":null,"reason":"contains:供应商工厂"},{"col":5,"text":"入厂包装类型","field":"pack_type","field_cn":"包装类型","conf":1.0,"dim":null,"reason":"exact"},{"col":6,"text":"入厂包装名称","field":"pack_type","field_cn":"包装类型","conf":1.0,"dim":null,"reason":"exact"},{"col":7,"text":"入厂包装长(mm)","field":"lg_package","field_cn":"包装费","conf":0.72,"dim":null,"reason":"contains:包装"},{"col":8,"text":"入厂包装宽(mm)","field":"lg_package","field_cn":"包装费","conf":0.72,"dim":null,"reason":"contains:包装"},{"col":9,"text":"入厂包装高(mm)","field":"lg_package","field_cn":"包装费","conf":0.72,"dim":null,"reason":"contains:包装"},{"col":10,"text":"入厂包装装箱数","field":"lg_package","field_cn":"包装费","conf":0.69,"dim":null,"reason":"contains:包装"},{"col":11,"text":"入厂包装内衬形式","field":"lg_package","field_cn":"包装费","conf":0.68,"dim":null,"reason":"contains:包装"},{"col":12,"text":"入厂包装毛重(KG)","field":"mat_qty","field_cn":"材料用量","conf":0.7,"dim":null,"reason":"contains:毛重"},{"col":13,"text":"周转箱循环周期(小时)","field":"pack_cycle","field_cn":"包装循环周期","conf":1.0,"dim":null,"reason":"exact"},{"col":14,"text":"包装投入数量预估(个)","field":"lg_pack_qty","field_cn":"包装投入数量","conf":1.0,"dim":null,"reason":"exact"}]},{"name":"示例","n_rows":67,"n_cols":13,"header_rows":1,"dim_cols":0,"side_kv":[],"cols":[{"col":0,"text":"NO","field":"rfq_no","field_cn":"RFQ号","conf":0.72,"dim":null,"reason":"contains:rfq no"},{"col":1,"text":"零件编号","field":null,"field_cn":null,"conf":0,"dim":null,"reason":"unmatched"},{"col":2,"text":"供应商工厂至交货地点距离(公里)","field":"sup_site","field_cn":"供应商生产地点","conf":0.69,"dim":null,"reason":"contains:供应商工厂"},{"col":3,"text":"入厂包装类型","field":"pack_type","field_cn":"包装类型","conf":1.0,"dim":null,"reason":"exact"},{"col":4,"text":"入厂包装名称","field":"pack_type","field_cn":"包装类型","conf":1.0,"dim":null,"reason":"exact"},{"col":5,"text":"入厂包装长(mm)","field":"lg_package","field_cn":"包装费","conf":0.72,"dim":null,"reason":"contains:包装"},{"col":6,"text":"入厂包装宽(mm)","field":"lg_package","field_cn":"包装费","conf":0.72,"dim":null,"reason":"contains:包装"},{"col":7,"text":"入厂包装高(mm)","field":"lg_package","field_cn":"包装费","conf":0.72,"dim":null,"reason":"contains:包装"},{"col":8,"text":"入厂包装装箱数","field":"lg_package","field_cn":"包装费","conf":0.69,"dim":null,"reason":"contains:包装"},{"col":9,"text":"入厂包装内衬形式","field":"lg_package","field_cn":"包装费","conf":0.68,"dim":null,"reason":"contains:包装"},{"col":10,"text":"入厂包装毛重(KG)","field":"mat_qty","field_cn":"材料用量","conf":0.7,"dim":null,"reason":"contains:毛重"},{"col":11,"text":"周转箱循环周期(小时)","field":"pack_cycle","field_cn":"包装循环周期","conf":1.0,"dim":null,"reason":"exact"},{"col":12,"text":"包装投入数量预估(个)","field":"lg_pack_qty","field_cn":"包装投入数量","conf":1.0,"dim":null,"reason":"exact"}]}],"side_kv":{},"tier":"无法入库","missing":["零件号","总价缺失（无成本块可推导）"],"n_cost_blocks":0,"n_l2":5,"n_rows":79,"reconcile":{"C1":0,"C2":0,"C3":0}},{"file":"B(M1) 充电系统DP转向机总成.xlsx","size_kb":10,"status":"ok","sheets":[{"name":"Sheet1","n_rows":0,"n_cols":78,"header_rows":1,"dim_cols":27,"side_kv":[],"cols":[{"col":2,"text":"零件BOM结构","field":null,"field_cn":null,"conf":0,"dim":null,"reason":"oos"},{"col":3,"text":"结构编号","field":null,"field_cn":null,"conf":0,"dim":null,"reason":"oos"},{"col":4,"text":"行类型","field":null,"field_cn":null,"conf":0,"dim":null,"reason":"oos"},{"col":5,"text":"价值链","field":null,"field_cn":null,"conf":0,"dim":null,"reason":"oos"},{"col":6,"text":"图片","field":null,"field_cn":null,"conf":0,"dim":null,"reason":"oos"},{"col":7,"text":"编码","field":"part_no","field_cn":"零件号","conf":0.75,"dim":null,"reason":"contains:物料编码"},{"col":8,"text":"编码名称","field":"part_name","field_cn":"零件名称","conf":0.75,"dim":null,"reason":"contains:名称"},{"col":9,"text":"描述","field":"desc_text","field_cn":"描述","conf":1.0,"dim":null,"reason":"exact"},{"col":10,"text":"标签","field":null,"field_cn":null,"conf":0,"dim":null,"reason":"oos"},{"col":11,"text":"市场","field":"market","field_cn":"市场","conf":1.0,"dim":"CN","reason":"exact"},{"col":12,"text":"本位币","field":"currency","field_cn":"报价货币","conf":1.0,"dim":"CNY","reason":"exact"},{"col":13,"text":"计算货币","field":"currency","field_cn":"报价货币","conf":0.75,"dim":"CNY","reason":"contains:货币"},{"col":14,"text":"零件数量","field":"qty","field_cn":"用量","conf":1.0,"dim":null,"reason":"exact"},{"col":15,"text":"uuid","field":null,"field_cn":null,"conf":0,"dim":null,"reason":"oos"},{"col":16,"text":"id","field":null,"field_cn":null,"conf":0,"dim":null,"reason":"oos"},{"col":17,"text":"材料管控级别","field":"cost_material","field_cn":"材料费","conf":0.7,"dim":null,"reason":"contains:材料"},{"col":18,"text":"材料修改标记","field":"cost_material","field_cn":"材料费","conf":0.7,"dim":null,"reason":"contains:材料"},{"col":19,"text":"材料净用量","field":"qty","field_cn":"用量","conf":0.72,"dim":null,"reason":"contains:用量"},{"col":20,"text":"原材料单位","field":"unit","field_cn":"计价单位","conf":0.72,"dim":null,"reason":"contains:单位"},{"col":21,"text":"材料利用率%","field":"mat_util","field_cn":"材料利用率","conf":0.85,"dim":null,"reason":"contains:材料利用率"},{"col":22,"text":"原材料用量","field":"qty","field_cn":"用量","conf":0.72,"dim":null,"reason":"contains:用量"},{"col":23,"text":"原材料单价","field":"mat_price","field_cn":"材料单价","conf":1.0,"dim":null,"reason":"exact"},{"col":24,"text":"材料回收单价","field":"raw_recycle","field_cn":"原材料回收单价","conf":0.86,"dim":null,"reason":"contains:原材料回收单价(元/KG)"},{"col":25,"text":"原材料单价默认值","field":"mat_price","field_cn":"材料单价","conf":0.79,"dim":null,"reason":"contains:原材料单价"},{"col":26,"text":"材料回收单价默认值","field":"raw_recycle","field_cn":"原材料回收单价","conf":0.73,"dim":null,"reason":"contains:回收单价"},{"col":27,"text":"材料过程损耗率%","field":"cost_material","field_cn":"材料费","conf":0.68,"dim":null,"reason":"contains:材料"},{"col":28,"text":"工艺过程报废率%","field":"scrap_rate_pr","field_cn":"过程报废率","conf":0.82,"dim":"0","reason":"contains:过程报废率%"},{"col":29,"text":"原材料成本","field":"cost_material","field_cn":"材料费","conf":0.84,"dim":"0","reason":"contains:材料成本"},{"col":30,"text":"原材料成本(MEMO)","field":"cost_material","field_cn":"材料费","conf":0.71,"dim":"0","reason":"contains:材料成本"},{"col":31,"text":"原材料成本合计(自制)","field":"cost_material","field_cn":"材料费","conf":0.71,"dim":null,"reason":"contains:材料成本"},{"col":32,"text":"设备修改标记","field":null,"field_cn":null,"conf":0,"dim":null,"reason":"oos"},{"col":33,"text":"模穴数量","field":"qty","field_cn":"用量","conf":0.75,"dim":null,"reason":"contains:数量"},{"col":34,"text":"人工数量","field":"qty","field_cn":"用量","conf":0.75,"dim":null,"reason":"contains:数量"},{"col":35,"text":"人工分类","field":"labor_type","field_cn":"人工分类","conf":1.0,"dim":null,"reason":"exact"},{"col":36,"text":"生产时长 (s)","field":"prod_time","field_cn":"生产时长","conf":1.0,"dim":null,"reason":"exact"},{"col":37,"text":"每小时生产件数","field":"uph","field_cn":"每小时产量","conf":1.0,"dim":"0","reason":"exact"},{"col":38,"text":"直接人工费率","field":"mfg_labor","field_cn":"人工费","conf":0.8,"dim":null,"reason":"contains:直接人工"},{"col":39,"text":"间接人工比率%","field":"ind_labor_rate","field_cn":"间接人工比率","conf":1.0,"dim":null,"reason":"exact"},{"col":40,"text":"直接人工费率默认值","field":"labor_rate","field_cn":"人工费率","conf":0.73,"dim":null,"reason":"contains:人工费率"},{"col":41,"text":"间接人工比率默认值%","field":"ind_labor_rate","field_cn":"间接人工比率","conf":1.0,"dim":null,"reason":"exact"},{"col":42,"text":"间接人工费率","field":"labor_rate","field_cn":"人工费率","conf":0.8,"dim":null,"reason":"contains:人工费率"},{"col":43,"text":"设备费率(货币/小时)","field":"mfg_equip","field_cn":"设备费","conf":0.69,"dim":null,"reason":"contains:设备费"},{"col":44,"text":"设备费率默认值(货币/小时)","field":"mfg_equip","field_cn":"设备费","conf":0.67,"dim":null,"reason":"contains:设备费"},{"col":45,"text":"人工成本","field":"mfg_labor","field_cn":"人工费","conf":1.0,"dim":"0","reason":"exact"},{"col":46,"text":"人工成本Memo","field":"mfg_labor","field_cn":"人工费","conf":0.75,"dim":"0","reason":"contains:人工成本"},{"col":47,"text":"人工成本汇总(自制)","field":"mfg_labor","field_cn":"人工费","conf":0.72,"dim":"0","reason":"contains:人工成本"},{"col":48,"text":"设备成本","field":"equip_cost","field_cn":"设备成本","conf":1.0,"dim":"0","reason":"exact"},{"col":49,"text":"设备成本Memo","field":"equip_cost","field_cn":"设备成本","conf":1.0,"dim":"0","reason":"exact"},{"col":50,"text":"设备成本汇总(自制)","field":"equip_cost","field_cn":"设备成本","conf":0.72,"dim":"0","reason":"contains:设备成本"},{"col":51,"text":"制程成本","field":"mfg_process","field_cn":"制程成本","conf":1.0,"dim":"0","reason":"exact"},{"col":52,"text":"过程报废率%","field":"scrap_rate_pr","field_cn":"过程报废率","conf":1.0,"dim":null,"reason":"exact"},{"col":53,"text":"停机等待率%","field":"avail_rate","field_cn":"停机等待率","conf":0.85,"dim":null,"reason":"contains:停机等待率"},{"col":54,"text":"制造成本合计(可算零件)","field":"cost_mfg","field_cn":"制造费","conf":0.7,"dim":"0","reason":"contains:制造成本"},{"col":55,"text":"自制MEMO(一口价)","field":"part_source","field_cn":"零件来源","conf":0.66,"dim":null,"reason":"contains:自制"},{"col":56,"text":"自制MEMO合计","field":"part_source","field_cn":"零件来源","conf":0.68,"dim":null,"reason":"contains:自制"},{"col":57,"text":"制造成本合计(自制)","field":"cost_mfg","field_cn":"制造费","conf":0.72,"dim":"0","reason":"contains:制造成本"},{"col":58,"text":"外购MEMO(一口价)","field":"part_source","field_cn":"零件来源","conf":0.66,"dim":null,"reason":"contains:外购"},{"col":59,"text":"外购MEMO合计","field":"part_source","field_cn":"零件来源","conf":0.68,"dim":null,"reason":"contains:外购"},{"col":60,"text":"制造成本合计(外购不可算)","field":"cost_mfg","field_cn":"制造费","conf":0.69,"dim":null,"reason":"contains:制造成本"},{"col":61,"text":"制造成本合计(外购可算)","field":"cost_mfg","field_cn":"制造费","conf":0.7,"dim":"0","reason":"contains:制造成本"},{"col":62,"text":"制造成本合计(外购)","field":"cost_mfg","field_cn":"制造费","conf":0.72,"dim":"0","reason":"contains:制造成本"},{"col":63,"text":"制造成本合计(DB)","field":"cost_mfg","field_cn":"制造费","conf":0.72,"dim":"0","reason":"contains:制造成本"},{"col":64,"text":"制造成本合计(CSMT)","field":"cost_mfg","field_cn":"制造费","conf":0.7,"dim":null,"reason":"contains:制造成本"},{"col":65,"text":"DB利管费率%","field":"admin_lm_jg","field_cn":"利管费","conf":0.73,"dim":null,"reason":"contains:利管费"},{"col":66,"text":"CSMT利管费率%","field":"admin_lm_jg","field_cn":"利管费","conf":0.7,"dim":null,"reason":"contains:利管费"},{"col":67,"text":"二级成品报废率%","field":"scrap_rate_l2","field_cn":"二级成品报废率","conf":1.0,"dim":"0","reason":"exact"},{"col":68,"text":"二级管理费率%","field":"cost_admin","field_cn":"管理费","conf":0.73,"dim":"0","reason":"contains:管理费"},{"col":69,"text":"二级利润率%","field":"admin_lm","field_cn":"利管费","conf":0.7,"dim":"0","reason":"contains:利润"},{"col":70,"text":"二级利管率(外购可算)%","field":"admin_lm","field_cn":"利管费","conf":0.68,"dim":null,"reason":"contains:利管率"},{"col":71,"text":"一级成品报废率%","field":"scrap_rate_l1","field_cn":"一级成品报废率","conf":1.0,"dim":null,"reason":"exact"},{"col":72,"text":"一级管理费率%","field":"cost_admin","field_cn":"管理费","conf":0.73,"dim":null,"reason":"contains:管理费"},{"col":73,"text":"一级利润率%","field":"admin_lm","field_cn":"利管费","conf":0.7,"dim":null,"reason":"contains:利润"},{"col":74,"text":"一级利管率(自制)%","field":"admin_lm","field_cn":"利管费","conf":0.69,"dim":null,"reason":"contains:利管率"},{"col":75,"text":"管理费(DB)","field":"cost_admin","field_cn":"管理费","conf":0.73,"dim":null,"reason":"contains:管理费"},{"col":76,"text":"管理费(CSMT)","field":"cost_admin","field_cn":"管理费","conf":0.7,"dim":null,"reason":"contains:管理费"},{"col":77,"text":"二级利管费(外购可算)","field":"admin_lm_jg","field_cn":"利管费","conf":0.68,"dim":"0","reason":"contains:利管费"},{"col":78,"text":"一级利管费(自制)","field":"admin_lm_jg","field_cn":"利管费","conf":0.7,"dim":"0","reason":"contains:利管费"},{"col":79,"text":"利管费合计","field":"admin_lm_jg","field_cn":"利管费","conf":0.78,"dim":"0","reason":"contains:利管费"}]}],"side_kv":{},"tier":"L2","missing":["总价缺失（可由成本块推导）","总价为推导值，需人工确认"],"n_cost_blocks":3,"n_l2":17,"n_rows":0,"reconcile":{"C1":0,"C2":0,"C3":0}},{"file":"BOM样例-ICMall.xlsx","size_kb":13,"status":"ok","sheets":[{"name":"BOM内容","n_rows":4,"n_cols":10,"header_rows":2,"dim_cols":0,"side_kv":[],"cols":[{"col":0,"text":"说明","field":"desc_text","field_cn":"描述","conf":1.0,"dim":null,"reason":"exact"},{"col":1,"text":"物料编码","field":"part_no","field_cn":"零件号","conf":1.0,"dim":null,"reason":"exact"},{"col":2,"text":"名称","field":"part_name","field_cn":"零件名称","conf":1.0,"dim":null,"reason":"exact"},{"col":3,"text":"规格/参数","field":"material_spec","field_cn":"材料规格","conf":1.0,"dim":null,"reason":"exact"},{"col":4,"text":"型号","field":"material_spec","field_cn":"材料规格","conf":1.0,"dim":null,"reason":"exact"},{"col":5,"text":"品牌","field":"brand","field_cn":"品牌","conf":1.0,"dim":null,"reason":"exact"},{"col":6,"text":"单位","field":"unit","field_cn":"计价单位","conf":1.0,"dim":null,"reason":"exact"},{"col":7,"text":"数量","field":"qty","field_cn":"用量","conf":1.0,"dim":null,"reason":"exact"},{"col":8,"text":"位号","field":null,"field_cn":null,"conf":0,"dim":null,"reason":"unmatched"},{"col":9,"text":"备注","field":null,"field_cn":null,"conf":0,"dim":null,"reason":"oos"}]}],"side_kv":{},"tier":"无法入库","missing":["总价缺失（无成本块可推导）"],"n_cost_blocks":0,"n_l2":0,"n_rows":4,"reconcile":{"C1":0,"C2":0,"C3":0}},{"file":"电芯报价模板.xlsx","size_kb":19,"status":"ok","sheets":[{"name":"电芯报价","n_rows":52,"n_cols":8,"header_rows":1,"dim_cols":0,"side_kv":[{"k":"capacity_year","cn":"年设计产能","v":20000000},{"k":"line_invest","cn":"产线总投资","v":100000000},{"k":"dep_years","cn":"折旧年限","v":10},{"k":"line_power","cn":"产线总功率","v":100},{"k":"direct_labor_n","cn":"产线直接人工","v":48},{"k":"labor_rate","cn":"人工费率","v":100000},{"k":"indirect_labor_n","cn":"产线间接人工","v":30},{"k":"energy_kwh","cn":"产线总电耗","v":10000000},{"k":"energy_price","cn":"电单价","v":0.85},{"k":"water_ton","cn":"产线总水耗","v":100},{"k":"water_price","cn":"水单价","v":5}],"cols":[{"col":1,"text":"分类","field":"labor_type","field_cn":"人工分类","conf":0.75,"dim":null,"reason":"contains:人工分类"},{"col":2,"text":"材料名称","field":"mat_name","field_cn":"材料名称","conf":1.0,"dim":null,"reason":"exact"},{"col":3,"text":"实际用量","field":"mat_qty","field_cn":"材料用量","conf":1.0,"dim":null,"reason":"exact"},{"col":4,"text":"单位","field":"unit","field_cn":"计价单位","conf":1.0,"dim":null,"reason":"exact"},{"col":5,"text":"原材料单价","field":"mat_price","field_cn":"材料单价","conf":1.0,"dim":null,"reason":"exact"},{"col":6,"text":"电芯BOM报价","field":null,"field_cn":null,"conf":0,"dim":null,"reason":"unmatched"},{"col":7,"text":"理论用量","field":"mat_qty","field_cn":"材料用量","conf":1.0,"dim":null,"reason":"exact"},{"col":8,"text":"备注","field":null,"field_cn":null,"conf":0,"dim":null,"reason":"oos"}]}],"side_kv":{"年设计产能":20000000,"产线总投资":100000000,"折旧年限":10,"产线总功率":100,"产线直接人工":48,"人工费率":100000,"产线间接人工":30,"产线总电耗":10000000,"电单价":0.85,"产线总水耗":100,"水单价":5},"tier":"无法入库","missing":["零件号","总价缺失（无成本块可推导）"],"n_cost_blocks":1,"n_l2":6,"n_rows":52,"reconcile":{"C1":0,"C2":0,"C3":0}},{"file":"报价细项列表导出.xlsx","size_kb":15,"status":"ok","sheets":[{"name":"商务前提与价格","n_rows":2,"n_cols":48,"header_rows":2,"dim_cols":0,"side_kv":[],"cols":[{"col":0,"text":"序号","field":"seq_no","field_cn":"序号","conf":1.0,"dim":null,"reason":"exact"},{"col":1,"text":"小米工厂","field":"mi_plant","field_cn":"小米工厂","conf":1.0,"dim":null,"reason":"exact"},{"col":2,"text":"零件号","field":"part_no","field_cn":"零件号","conf":1.0,"dim":null,"reason":"exact"},{"col":3,"text":"零件名称","field":"part_name","field_cn":"零件名称","conf":1.0,"dim":null,"reason":"exact"},{"col":4,"text":"供应商工厂","field":"sup_site","field_cn":"供应商生产地点","conf":1.0,"dim":null,"reason":"exact"},{"col":5,"text":"供应商代码","field":"supplier_code","field_cn":"供应商代码","conf":1.0,"dim":null,"reason":"exact"},{"col":6,"text":"供应商名称","field":"supplier","field_cn":"供应商名称","conf":1.0,"dim":null,"reason":"exact"},{"col":7,"text":"报价货币","field":"currency","field_cn":"报价货币","conf":1.0,"dim":null,"reason":"exact"},{"col":8,"text":"账期","field":"pay_term","field_cn":"账期","conf":1.0,"dim":null,"reason":"exact"},{"col":9,"text":"承兑汇票账期(月)","field":"pay_term","field_cn":"账期","conf":1.0,"dim":null,"reason":"exact"},{"col":10,"text":"到厂总价","field":"price_arrive","field_cn":"到厂价","conf":1.0,"dim":null,"reason":"exact"},{"col":11,"text":"出厂价","field":"price_factory","field_cn":"出厂价","conf":1.0,"dim":null,"reason":"exact"},{"col":12,"text":"总费用","field":null,"field_cn":null,"conf":0,"dim":null,"reason":"unmatched"},{"col":13,"text":"自制件","field":"part_source","field_cn":"零件来源","conf":1.0,"dim":null,"reason":"exact"},{"col":14,"text":"外购件","field":"part_source","field_cn":"零件来源","conf":1.0,"dim":null,"reason":"exact"},{"col":15,"text":"客户指定件","field":"part_cust","field_cn":"客户指定件","conf":1.0,"dim":null,"reason":"exact"},{"col":16,"text":"委外加工件","field":"part_source","field_cn":"零件来源","conf":0.72,"dim":null,"reason":"contains:委外"},{"col":17,"text":"制造总费用","field":"cost_mfg","field_cn":"制造费","conf":0.72,"dim":null,"reason":"contains:制造"},{"col":18,"text":"设备费","field":"mfg_equip","field_cn":"设备费","conf":1.0,"dim":null,"reason":"exact"},{"col":19,"text":"报废费","field":"mfg_scrap","field_cn":"报废费","conf":1.0,"dim":null,"reason":"exact"},{"col":20,"text":"耗材费","field":"mfg_consum","field_cn":"耗材费","conf":1.0,"dim":null,"reason":"exact"},{"col":21,"text":"能耗费","field":"mfg_energy","field_cn":"能耗费","conf":1.0,"dim":null,"reason":"exact"},{"col":22,"text":"人员费","field":"mfg_labor","field_cn":"人工费","conf":1.0,"dim":null,"reason":"exact"},{"col":23,"text":"分摊汇总","field":"share_total","field_cn":"分摊总额","conf":1.0,"dim":null,"reason":"exact"},{"col":24,"text":"分摊量","field":"tooling_qty","field_cn":"模具分摊量","conf":1.0,"dim":null,"reason":"exact"},{"col":25,"text":"单件分摊额","field":"tooling_once","field_cn":"模具单件","conf":1.0,"dim":null,"reason":"exact"},{"col":26,"text":"分摊汇总","field":"share_total","field_cn":"分摊总额","conf":1.0,"dim":null,"reason":"exact"},{"col":27,"text":"分摊量","field":"tooling_qty","field_cn":"模具分摊量","conf":1.0,"dim":null,"reason":"exact"},{"col":28,"text":"单件分摊额","field":"tooling_once","field_cn":"模具单件","conf":1.0,"dim":null,"reason":"exact"},{"col":29,"text":"包装投入模式","field":"lg_pack_mode","field_cn":"包装投入模式","conf":1.0,"dim":null,"reason":"exact"},{"col":30,"text":"运输模式","field":"transport_mode","field_cn":"运输模式","conf":1.0,"dim":null,"reason":"exact"},{"col":31,"text":"是否设立中转库","field":"has_warehouse","field_cn":"是否设中转库","conf":1.0,"dim":null,"reason":"exact"},{"col":32,"text":"是否排序","field":"sequencing","field_cn":"是否排序","conf":1.0,"dim":null,"reason":"exact"},{"col":33,"text":"总费用","field":null,"field_cn":null,"conf":0,"dim":null,"reason":"unmatched"},{"col":34,"text":"包装费","field":"lg_package_fee","field_cn":"包装费","conf":1.0,"dim":null,"reason":"exact"},{"col":35,"text":"运输费","field":"lg_transport_fee","field_cn":"运输费","conf":1.0,"dim":null,"reason":"exact"},{"col":36,"text":"排序费","field":"lg_sort_fee","field_cn":"排序费","conf":1.0,"dim":null,"reason":"exact"},{"col":37,"text":"中转库费","field":"lg_transfer_fee","field_cn":"中转费","conf":1.0,"dim":null,"reason":"exact"},{"col":38,"text":"管理总费用","field":null,"field_cn":null,"conf":0,"dim":null,"reason":"unmatched"},{"col":39,"text":"DB管理费","field":"admin_db","field_cn":"DB管理费","conf":1.0,"dim":null,"reason":"exact"},{"col":40,"text":"利管费","field":"admin_lm_jg","field_cn":"利管费","conf":1.0,"dim":null,"reason":"exact"},{"col":41,"text":"其他管理费","field":"cost_admin","field_cn":"管理费","conf":0.78,"dim":null,"reason":"contains:管理费"},{"col":42,"text":"手工样件(倍)","field":"cost_sample","field_cn":"样件费","conf":0.77,"dim":null,"reason":"contains:手工样件"},{"col":43,"text":"软模样件(倍)","field":"cost_sample","field_cn":"样件费","conf":0.77,"dim":null,"reason":"contains:软模样件"},{"col":44,"text":"硬模样件(倍)","field":"cost_sample","field_cn":"样件费","conf":0.77,"dim":null,"reason":"contains:硬模样件"},{"col":45,"text":"手工样件价格","field":"cost_sample","field_cn":"样件费","conf":0.8,"dim":null,"reason":"contains:手工样件"},{"col":46,"text":"软模样件价格","field":"cost_sample","field_cn":"样件费","conf":0.8,"dim":null,"reason":"contains:软模样件"},{"col":47,"text":"硬模样件价格","field":"cost_sample","field_cn":"样件费","conf":0.8,"dim":null,"reason":"contains:硬模样件"}]}],"side_kv":{},"tier":"L2","missing":[],"n_cost_blocks":3,"n_l2":18,"n_rows":2,"reconcile":{"C1":0,"C2":0,"C3":0}}];
+</script>
+<script>
+/* ================= 工具 ================= */
+var CHK_ROWS = [];
+var ST = { view: 1, selected: {}, activeFile: null, activeSheet: 0, edits: {} };
+var TIER_CLS = { 'L2': 'L2', 'L1': 'L1', 'L0': 'L0', '无法入库': 'NA', '解析失败': 'ERR' };
+var TIER_LABEL = { 'L2': 'L2 细项', 'L1': 'L1 成本块', 'L0': 'L0 总价', '无法入库': '无法入库', '解析失败': '解析失败' };
+
+function esc(s) {
+  return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) {
+    return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c];
+  });
+}
+function fmt(n) { return Number(n || 0).toLocaleString('zh-CN'); }
+function pct(n) { return Math.round(n * 100) + '%'; }
+function confCls(c) { return c >= 0.9 ? 'c-hi' : (c >= 0.7 ? 'c-md' : 'c-lo'); }
+
+/* 统计某文件的待确认列数（置信度 < 0.9 或未映射） */
+function pendingCount(f) {
+  var n = 0;
+  (f.sheets || []).forEach(function (s) {
+    (s.cols || []).forEach(function (c) {
+      if (c.reason === 'noise' || c.reason === 'oos') return;
+      if (!c.field || c.conf < 0.9) n++;
+    });
+  });
+  return n;
+}
+function fieldCount(f) {
+  var set = {};
+  (f.sheets || []).forEach(function (s) {
+    (s.cols || []).forEach(function (c) {
+      if (c.field) set[c.field] = 1;
+    });
+  });
+  return Object.keys(set).length;
+}
+
+/* ================= 视图切换 ================= */
+function setView(v) {
+  ST.view = v;
+  [1, 2, 3].forEach(function (i) {
+    document.getElementById('v' + i).classList.toggle('on', i === v);
+    var st = document.getElementById('st' + i);
+    st.classList.remove('on', 'done');
+    if (i < v) st.classList.add('done');
+    if (i === v) st.classList.add('on');
+  });
+  var btn = document.getElementById('btnNext');
+  if (v === 1) btn.textContent = '开始解析';
+  else if (v === 2) btn.textContent = '确认入库 →';
+  else btn.textContent = '确认入库';
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+function nextStep() {
+  if (ST.view === 1) { setView(2); renderV2(); }
+  else if (ST.view === 2) { setView(3); renderV3(); }
+  else { doImport(); }
+}
+
+function resetAll() {
+  ST.selected = {}; ST.activeFile = null; ST.activeSheet = 0; ST.edits = {};
+  setView(1); renderV1();
+}
+
+/* ================= 视图 1 ================= */
+function renderV1() {
+  var list = document.getElementById('flist');
+  var html = '<div class="frow" style="border:none;padding:4px 12px;color:var(--mut2);font-size:11px;font-weight:600">'
+    + '<div class="ck"></div><div class="fn">文件</div><div class="meta">大小</div><div class="meta w68">行数</div>'
+    + '<div class="tcell">可达层级</div><div class="meta w82">待确认</div></div>';
+  var selN = 0, selFiles = 0, selRows = 0, selSheets = 0;
+  POC_DATA.forEach(function (f, i) {
+    var ok = f.status === 'ok';
+    var on = ST.selected[f.file] !== false;   // 默认全选
+    if (on && ok) { selFiles++; selRows += f.n_rows; selSheets += f.sheets.length; }
+    if (on) selN++;
+    html += '<div class="frow' + (on ? ' on' : '') + '" onclick="toggleFile(\'' + esc(f.file) + '\')">'
+      + '<div class="ck">' + (on ? '✓' : '') + '</div>'
+      + '<div class="fn"><span title="' + esc(f.file) + '">' + esc(f.file) + '</span><small>' + (ok ? (f.sheets.length + ' 个 sheet · ' + f.n_rows + ' 行') : '文件无法读取') + '</small></div>'
+      + '<div class="meta">' + f.size_kb + ' KB</div>'
+      + '<div class="meta w68">' + (ok ? f.n_rows + ' 行' : '—') + '</div>'
+      + '<div class="tcell"><span class="tag ' + TIER_CLS[f.tier] + '">' + TIER_LABEL[f.tier] + '</span></div>'
+      + '<div class="meta w82">' + (ok ? (pendingCount(f) ? '<b style="color:#A6803A">' + pendingCount(f) + '</b>' : '0') + ' 待确认' : '—') + '</div>'
+      + '</div>';
+  });
+  list.innerHTML = html;
+
+  var k = document.getElementById('impKpi');
+  k.innerHTML = [
+    ['选中文件', selFiles + ' 份'],
+    ['Sheet 总数', selSheets + ' 个'],
+    ['数据行', fmt(selRows)],
+    ['可入库', POC_DATA.filter(function (f) { return ST.selected[f.file] !== false && ['L2', 'L1', 'L0'].indexOf(f.tier) >= 0; }).length + ' 份'],
+    ['解析失败', POC_DATA.filter(function (f) { return ST.selected[f.file] !== false && f.tier === '解析失败'; }).length + ' 份'],
+    ['待确认列', fmt(POC_DATA.filter(function (f) { return ST.selected[f.file] !== false && f.status === 'ok'; }).reduce(function (a, f) { return a + pendingCount(f); }, 0)) + ' 列']
+  ].map(function (p) {
+    var warn = p[0] === '解析失败' && parseInt(p[1]) > 0;
+    return '<div class="kpi' + (warn ? ' warn' : '') + '"><div class="v">' + p[1] + '</div><div class="k">' + p[0] + '</div></div>';
+  }).join('');
+}
+
+function toggleFile(name) {
+  ST.selected[name] = ST.selected[name] === false ? true : false;
+  renderV1();
+}
+
+/* ================= 视图 2 ================= */
+function renderV2() {
+  // 流程条
+  var pipe = [
+    { t: '读取文件', d: '修格式 / 解结构', s: 'done' },
+    { t: '识别表头', d: '多行合并 · 侧栏分离', s: 'done' },
+    { t: '字段映射', d: '规则 + 语义', s: 'done' },
+    { t: '分层判定', d: 'L0 / L1 / L2', s: 'done' },
+    { t: '勾稽校验', d: '金额自洽性', s: 'active' }
+  ];
+  document.getElementById('pipe').innerHTML = pipe.map(function (p, i) {
+    return '<div class="pstep ' + p.s + '">'
+      + '<div class="pn">STEP ' + (i + 1) + '</div>'
+      + '<div class="pt">' + p.t + '</div><div class="pd">' + p.d + '</div>'
+      + '<span class="pstat">' + (p.s === 'done' ? '✓' : '…') + '</span></div>';
+  }).join('');
+
+  // 总览表
+  var files = POC_DATA.filter(function (f) { return ST.selected[f.file] !== false; });
+  var rows = '';
+  files.forEach(function (f) {
+    var pc = f.status === 'ok' ? pendingCount(f) : 0;
+    var miss = (f.missing || []).join('；') || (f.error || '—');
+    rows += '<tr style="cursor:pointer" onclick="openFile(\'' + esc(f.file) + '\')">'
+      + '<td class="nm">' + esc(f.file) + '</td>'
+      + '<td><span class="tag ' + TIER_CLS[f.tier] + '">' + TIER_LABEL[f.tier] + '</span></td>'
+      + '<td class="n">' + (f.sheets ? f.sheets.length : 0) + '</td>'
+      + '<td class="n">' + fmt(f.n_rows) + '</td>'
+      + '<td class="n">' + (f.n_cost_blocks || '—') + '</td>'
+      + '<td class="n">' + (f.n_l2 || '—') + '</td>'
+      + '<td class="n">' + (pc ? '<b style="color:#A6803A">' + pc + '</b>' : '—') + '</td>'
+      + '<td class="miss">' + esc(miss) + '</td></tr>';
+  });
+  document.getElementById('ovBody').innerHTML = rows;
+
+  // 默认打开第一个可解析文件
+  if (!ST.activeFile) {
+    // 优先选新的批量模板 v5（多零件+多工段+分摊），否则选字段最丰富的
+    var v5 = files.filter(function (f) { return f.file.indexOf('批量导入模板-v6') >= 0 && f.status === 'ok'; })[0];
+    if (v5) {
+      ST.activeFile = v5.file;
+      // 跳过说明/参考/sheet0，选第一个业务 sheet
+      var idx = (v5.sheets || []).findIndex(function (s) {
+        return !/^(00|07|参考资料|参考)/.test(s.name) && s.n_rows > 0;
+      });
+      ST.activeSheet = idx >= 0 ? idx : 0;
+    } else {
+      var cands = files.filter(function (f) { return f.status === 'ok' && f.sheets.length; });
+      cands.sort(function (a, b) {
+        return (fieldCount(b) + b.sheets.length * 2) - (fieldCount(a) + a.sheets.length * 2);
+      });
+      if (cands[0]) { ST.activeFile = cands[0].file; ST.activeSheet = 0; }
+    }
+  }
+  renderDetail();
+}
+
+function openFile(name) {
+  ST.activeFile = name; ST.activeSheet = 0;
+  renderDetail();
+  document.getElementById('detailCard').scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+
+function renderDetail() {
+  var f = POC_DATA.filter(function (x) { return x.file === ST.activeFile; })[0];
+  var hint = document.getElementById('detHint');
+  var stabs = document.getElementById('stabs');
+  var body = document.getElementById('detBody');
+  if (!f) { hint.textContent = ''; stabs.innerHTML = ''; body.innerHTML = ''; return; }
+
+  if (f.status !== 'ok') {
+    hint.textContent = f.file;
+    stabs.innerHTML = '';
+    body.innerHTML = '<div class="empty"><div class="ic">⚠️</div>'
+      + '<div style="font-weight:600;color:#C0504D;margin-bottom:6px">文件无法读取</div>'
+      + '<div>' + esc(f.error || '文件损坏或加密，需人工另存后重新上传') + '</div></div>';
+    return;
+  }
+
+  hint.textContent = f.file + ' · ' + f.sheets.length + ' 个 sheet';
+  stabs.innerHTML = f.sheets.map(function (s, i) {
+    return '<button class="stab' + (i === ST.activeSheet ? ' on' : '') + '" onclick="switchSheet(' + i + ')">'
+      + esc(s.name) + '<span class="n">' + s.n_rows + '行</span></button>';
+  }).join('');
+  renderSheet();
+}
+
+function switchSheet(i) { ST.activeSheet = i; renderDetail(); }
+
+function renderSheet() {
+  var f = POC_DATA.filter(function (x) { return x.file === ST.activeFile; })[0];
+  if (!f || !f.sheets) return;
+  var s = f.sheets[ST.activeSheet];
+  var body = document.getElementById('detBody');
+  if (!s) { body.innerHTML = ''; return; }
+
+  var html = '';
+
+  // 侧栏参数
+  if (s.side_kv && s.side_kv.length) {
+    html += '<div class="tip blue"><span class="ti">i</span><span>'
+      + '本 sheet 的成本参数在右侧「假设栏」，已单独提取 <b>' + s.side_kv.length + '</b> 项。'
+      + '这类参数不按普通表格解析，否则会全部丢失。</span></div>';
+    html += '<div class="sidegrid" style="margin-bottom:16px">' + s.side_kv.map(function (kv) {
+      return '<div class="sitem"><div class="k">' + esc(kv.cn) + '</div><div class="v">' + esc(kv.v) + '</div></div>';
+    }).join('') + '</div>';
+  }
+
+  // 列映射表
+  var cols = s.cols || [];
+  var mapped = cols.filter(function (c) { return c.reason !== 'noise' && c.reason !== 'oos'; });
+  var need = mapped.filter(function (c) { return !c.field || c.conf < 0.9; });
+
+  html += '<div style="display:flex;gap:14px;align-items:center;margin-bottom:11px;font-size:12.5px;color:var(--mut)">'
+    + '<span>共 <b style="color:var(--navy)">' + mapped.length + '</b> 列待映射</span>'
+    + '<span>·</span>'
+    + '<span>高置信 <b style="color:var(--green)">' + mapped.filter(function (c) { return c.field && c.conf >= 0.9; }).length + '</b></span>'
+    + '<span>·</span>'
+    + '<span>需确认 <b style="color:#A6803A">' + need.length + '</b></span>'
+    + '<span style="margin-left:auto;font-size:11.5px;color:var(--mut2)">' + s.header_rows + ' 行表头 · ' + s.dim_cols + ' 个维度展开列</span>'
+    + '</div>';
+
+  html += '<table class="mtable"><thead><tr>'
+    + '<th style="width:44px">列</th><th>原始表头</th><th style="width:34px"></th>'
+    + '<th>映射到标准字段</th><th style="width:130px">置信度</th><th style="width:120px">处理</th>'
+    + '</tr></thead><tbody>';
+
+  mapped.forEach(function (c) {
+    var low = !c.field || c.conf < 0.9;
+    var selected = ST.edits[ST.activeFile + '|' + s.name + '|' + c.col];
+    var tgt = selected !== undefined ? selected : (c.field || '');
+    html += '<tr class="' + (low ? 'lowconf' : '') + '">'
+      + '<td style="color:var(--mut2)">' + colName(c.col) + '</td>'
+      + '<td class="src" title="' + esc(c.text) + '">' + esc(c.text)
+      + (c.dim ? ' <span class="tag sm" style="background:#EEF4FA;color:#33507A">' + esc(c.dim) + '</span>' : '')
+      + '</td>'
+      + '<td class="arrow">→</td>'
+      + '<td class="tgt' + (tgt ? '' : ' empty') + '">' + (tgt ? esc(fieldLabel(tgt)) : '未映射') + '</td>'
+      + '<td>' + (c.field ? confBar(c.conf) : '<span style="color:#B0B8C4;font-size:11.5px">—</span>') + '</td>'
+      + '<td>' + (low
+        ? '<select class="sel low" onchange="editMap(\'' + esc(s.name) + '\',' + c.col + ',this.value)">'
+          + '<option value="">— 请选择 —</option>' + fieldOptions(tgt) + '</select>'
+        : '<span style="color:var(--green);font-size:11.5px">✓ 自动</span>')
+      + '</td></tr>';
+  });
+  html += '</tbody></table>';
+  body.innerHTML = html;
+}
+
+function colName(i) {
+  var s = '';
+  i = i + 1;
+  while (i > 0) { var m = (i - 1) % 26; s = String.fromCharCode(65 + m) + s; i = Math.floor((i - 1) / 26); }
+  return s;
+}
+
+function confBar(c) {
+  var p = Math.round(c * 100);
+  return '<div class="conf ' + confCls(c) + '"><div class="bar"><div class="fill" style="width:' + p + '%"></div></div>'
+    + '<span class="pc">' + p + '%</span></div>';
+}
+
+/* 标准字段清单（用于下拉） */
+var FIELD_LIST = [
+  ['part_no', '零件号'], ['part_name', '零件名称'], ['supplier', '供应商名称'],
+  ['supplier_code', '供应商代码'], ['mi_plant', '小米工厂'], ['round', '轮次'],
+  ['rfq_no', 'RFQ号'], ['sor_no', 'SOR编号'], ['check_ok', '勾稽校验'],
+  ['vpps', 'VPPS'], ['ep_part_no', 'EP标准件号'], ['match_status', '匹配状态'],
+  ['match_method', '匹配方式'], ['sup_sub_no', '供应商子件号'],
+  ['block_type', '块类型'], ['seg_total', '单件总成本'], ['alloc_ratio', '分摊比例'],
+  ['mold_no', '模具编号'], ['mold_life_qty', '模具总分摊量'], ['part_alloc_qty', '零件分摊量'],
+  ['mold_fee_part', '该零件模具费'], ['seg_hours', '该零件工时'],
+  ['seg_total_hours', '工段总工时'], ['mfg_share', '分摊后制造费'],
+  ['mold_total_amt', '模具总额'], ['sub_price', '子件价格'], ['mold_once', '单件分摊'],
+  ['currency', '报价货币'], ['unit', '计价单位'], ['qty', '用量'],
+  ['price_factory', '出厂价'], ['price_arrive', '到厂价'], ['price_target', '目标价'],
+  ['cost_material', '材料费'], ['cost_mfg', '制造费'], ['cost_tooling', '模具费'],
+  ['cost_dev', '开发费'], ['cost_logistics', '物流费'], ['cost_admin', '管理费'],
+  ['cost_sample', '样件费'], ['cost_other', '其他费用'],
+  ['mat_name', '材料名称'], ['mat_price', '材料单价'], ['mat_qty', '材料用量'], ['mat_fee', '材料小计'],
+  ['mfg_equip', '设备费'], ['mfg_labor', '人工费'], ['mfg_scrap', '报废费'],
+  ['mfg_energy', '能耗费'], ['mfg_consum', '耗材费'], ['mfg_site', '场地费'],
+  ['labor_hours', '工时'], ['labor_rate', '人工费率'],
+  ['tooling_total', '模具总额'], ['tooling_qty', '模具分摊量'], ['tooling_once', '模具单件'],
+  ['dev_total', '开发总额'], ['dev_qty', '开发分摊量'], ['dev_once', '开发单件'],
+  ['lg_transport', '运输费'], ['lg_package', '包装费'], ['admin_db', 'DB管理费'], ['admin_lm', '利管费'],
+  ['part_source', '零件来源'], ['part_level', '零件层级'], ['process_cat', '工艺品类'],
+  ['line_no', '工段/线体'], ['oee', 'OEE设计值'], ['ct', '节拍CT'],
+  ['project', '车型项目'], ['buyer', '采购员'], ['status', '状态'], ['pay_term', '账期'],
+  ['mat_category', '材料品类'], ['mat_grade', '材料牌号'], ['mat_util', '材料利用率'],
+  ['mat_approve', '材料认可方式'], ['mat_supplier', '材料供应商'],
+  ['sup_site', '供应商生产地点'], ['net_weight', '净重'], ['gross_weight', '毛重'],
+  ['part_len', '长(mm)'], ['part_wid', '宽(mm)'], ['part_hgt', '高(mm)'],
+  ['part_thick', '厚度/规格'], ['exec_std', '执行标准'],
+  ['process_major', '工艺品类大类'], ['process_minor', '工艺品类小类'],
+  ['cert', '质量体系认证'], ['color_code', '颜色纹理代码'], ['part_new', '零件沿用新开'],
+  ['oee', 'OEE设计值'], ['ct', '节拍CT'], ['lcr', '客户产能LCR'],
+  ['pass_rate', '工段合格率'], ['line_no', '工段/线体'], ['equip_value', '设备原值'],
+  ['energy_type', '能耗种类'], ['consum_name', '耗材名'], ['transport_mode', '运输模式']
+];
+var FIELD_CN = {};
+FIELD_LIST.forEach(function (p) { FIELD_CN[p[0]] = p[1]; });
+function fieldLabel(k) { return FIELD_CN[k] || k; }
+function fieldOptions(cur) {
+  return FIELD_LIST.map(function (p) {
+    return '<option value="' + p[0] + '"' + (p[0] === cur ? ' selected' : '') + '>' + p[1] + '</option>';
+  }).join('');
+}
+
+function editMap(sheet, col, val) {
+  ST.edits[ST.activeFile + '|' + sheet + '|' + col] = val;
+  // 即时反馈：更新该行置信度显示
+  renderSheet();
+}
+
+/* ================= 视图 3 ================= */
+function renderV3() {
+  var files = POC_DATA.filter(function (f) {
+    return ST.selected[f.file] !== false && f.status === 'ok';
+  });
+  var okFiles = files.filter(function (f) { return ['L2', 'L1', 'L0'].indexOf(f.tier) >= 0; });
+  var badFiles = files.filter(function (f) { return ['L2', 'L1', 'L0'].indexOf(f.tier) < 0; });
+
+  var totalRows = okFiles.reduce(function (a, f) { return a + f.n_rows; }, 0);
+  var totalPend = okFiles.reduce(function (a, f) { return a + pendingCount(f); }, 0);
+  // 统计待匹配子件（02 表匹配状态列）
+  var needMatch = 0, matched = 0, noMatch = 0;
+  okFiles.forEach(function (f) {
+    (f.sheets || []).forEach(function (sh) {
+      if (sh.name.indexOf('BOM') < 0) return;
+      (sh.matchStats || []).forEach(function (s) {});
+    });
+  });
+  // 从 v6 数据里读匹配统计
+  var v6 = POC_DATA.filter(function (f) { return f.file.indexOf('v6') >= 0; })[0];
+  if (v6 && v6.matchSummary) {
+    // need = 需要匹配的总数；done = 已匹配；待处理 = need - done
+    var total = v6.matchSummary.need || 0;
+    matched = v6.matchSummary.done || 0;
+    noMatch = v6.matchSummary.skip || 0;
+    needMatch = Math.max(0, total - matched);
+  }
+
+  // 勾稽检查
+  var chk = '';
+  var c1 = okFiles.reduce(function (a, f) { return a + (f.reconcile.C1 || 0); }, 0);
+  var c2 = okFiles.reduce(function (a, f) { return a + (f.reconcile.C2 || 0); }, 0);
+  var c3 = okFiles.reduce(function (a, f) { return a + (f.reconcile.C3 || 0); }, 0);
+
+  // 父子件重复：从 v6 的 BOM 结构判断（父件 + 子件都在 01 表里）
+  var dupInfo = computeDupParts(v6);
+  // 工段成本结构：某构成项占比过高
+  var stageInfo = computeStageIssues(v6);
+
+  var checks = [
+    { t: '出厂价 = 材料 + 制造 + 管理', d: c1 ? c1 + ' 条不符' : '全部通过', ok: c1 === 0 },
+    { t: '到厂价 = 出厂 + 模具 + 开发 + 物流', d: c2 ? c2 + ' 条不符' : '全部通过', ok: c2 === 0 },
+    { t: '模具费总额 / 单件分摊区分', d: c3 ? c3 + ' 条疑似误判' : '全部通过', ok: c3 === 0 },
+    { t: '字段映射完整性', d: totalPend ? totalPend + ' 列需确认' : '全部已确认', ok: totalPend === 0 },
+    { t: '零件号可识别', d: okFiles.every(function (f) { return f.missing.indexOf('零件号') < 0; }) ? '通过' : '部分文件缺零件号', ok: okFiles.every(function (f) { return f.missing.indexOf('零件号') < 0; }) },
+    { t: '子件匹配（仅 L2 层级）', d: needMatch ? needMatch + ' 个待匹配' : ('✔ ' + matched + ' 个已匹配 · ' + (v6 && v6.matchSummary ? v6.matchSummary.outOfScope : 0) + ' 个超 L2 范围（不处理）'), ok: needMatch === 0,
+      action: needMatch ? 'openMatchQueue()' : null },
+    { t: '父子件重复入样', d: dupInfo.n ? (dupInfo.n + ' 个子件会与父件重复计入因子（父件已含其成本），建议只保留父件') : '无重复',
+      ok: dupInfo.n === 0, action: dupInfo.n ? 'showDupDetail()' : null },
+    { t: '工段成本结构合理性', d: stageInfo.n ? (stageInfo.n + ' 个工段存在单一构成项占比过高（≥80%），疑似期间费用摊到单件') : '结构正常',
+      ok: stageInfo.n === 0, action: stageInfo.n ? 'showStageDetail()' : null }
+  ];
+  chk = checks.map(function (c, i) {
+    var act = '';
+    if (c.action) act = '<button class="btn sm" style="margin-left:10px;padding:2px 10px;font-size:11.5px" onclick="' + c.action + '">查看</button>';
+    var row = '<div class="chkrow ' + (c.ok ? 'ok' : 'bad') + '">'
+      + '<div class="ci">' + (c.ok ? '✓' : '!') + '</div>'
+      + '<div class="ct">' + c.t + '</div>'
+      + '<div class="cd">' + c.d + act + '</div></div>';
+    if (c.action) {
+      row += '<div id="chkExp' + i + '" style="display:none;margin:-4px 0 10px 30px"></div>';
+    }
+    return row;
+  }).join('');
+  document.getElementById('chkBody').innerHTML = chk;
+  CHK_ROWS = checks;
+
+  // 入库清单
+  var fb = '';
+  okFiles.forEach(function (f) {
+    fb += '<tr><td class="nm">' + esc(f.file) + '</td>'
+      + '<td><span class="tag ' + TIER_CLS[f.tier] + '">' + TIER_LABEL[f.tier] + '</span></td>'
+      + '<td class="n">' + fieldCount(f) + '</td>'
+      + '<td class="n">' + fmt(f.n_rows) + '</td>'
+      + '<td><span class="tag sm" style="background:#EEF4FA;color:#33507A">历史导入</span></td></tr>';
+  });
+  if (!okFiles.length) {
+    fb = '<tr><td colspan="5" style="text-align:center;color:var(--mut2);padding:24px">没有可入库的文件</td></tr>';
+  }
+  document.getElementById('finBody').innerHTML = fb;
+}
+
+function doImport() {
+  var files = POC_DATA.filter(function (f) {
+    return ST.selected[f.file] !== false && f.status === 'ok' && ['L2', 'L1', 'L0'].indexOf(f.tier) >= 0;
+  });
+  var btn = document.getElementById('btnNext');
+  btn.disabled = true;
+  btn.textContent = '入库中…';
+  setTimeout(function () {
+    alert('已入库 ' + files.length + ' 份文件，共 ' + files.reduce(function (a, f) { return a + f.n_rows; }, 0)
+      + ' 行数据，已标记来源为「历史导入」。');
+    btn.disabled = false;
+    btn.textContent = '确认入库';
+  }, 600);
+}
+
+/* ================= 初始化 ================= */
+(function () {
+  renderV1();
+  document.getElementById('drop').addEventListener('click', function () {
+    this.animate([{ transform: 'scale(1)' }, { transform: 'scale(0.99)' }, { transform: 'scale(1)' }], { duration: 180 });
+  });
+  ['dragover', 'dragenter'].forEach(function (ev) {
+    document.getElementById('drop').addEventListener(ev, function (e) { e.preventDefault(); this.classList.add('over'); });
+  });
+  ['dragleave', 'drop'].forEach(function (ev) {
+    document.getElementById('drop').addEventListener(ev, function (e) { e.preventDefault(); this.classList.remove('over'); });
+  });
+})();
+
+/* 打子件匹配队列（独立页面） */
+function openMatchQueue() {
+  window.open('../原型-子件匹配/子件匹配队列原型.html', '_blank');
+}
+
+
+/* ========== 父子件重复检测 ========== */
+function computeDupParts(v6) {
+  if (!v6 || !v6.dupeParts) return { n: 0, parts: [] };
+  return { n: v6.dupeParts.length, parts: v6.dupeParts };
+}
+
+function showDupDetail() {
+  var v6 = POC_DATA.filter(function (f) { return f.file.indexOf('v6') >= 0; })[0];
+  var d = computeDupParts(v6);
+  var idx = CHK_ROWS.findIndex(function (c) { return c.t === '父子件重复入样'; });
+  var body = '<div style="font-size:13px;line-height:1.9">'
+    + '<div style="background:#FFF7E6;border:1px solid #FFD591;border-radius:6px;padding:12px 14px;margin-bottom:14px">'
+    + '这些子件的成本<b>已经包含在父件里</b>。如果父子都入因子库，同一笔成本会被算两次，小件还会因为金额小、条数多而放大权重。</div>'
+    + '<table style="width:100%;border-collapse:collapse;font-size:12.5px"><thead><tr>'
+    + '<th style="text-align:left;padding:8px;background:#FAFAFA;border-bottom:1px solid #F0F0F0">重复子件号</th>'
+    + '<th style="text-align:left;padding:8px;background:#FAFAFA;border-bottom:1px solid #F0F0F0">处理建议</th></tr></thead><tbody>';
+  d.parts.forEach(function (p) {
+    body += '<tr><td style="padding:8px;border-bottom:1px solid #F0F0F0;font-family:ui-monospace,monospace">' + esc(p) + '</td>'
+      + '<td style="padding:8px;border-bottom:1px solid #F0F0F0">只保留父件，子件折叠</td></tr>';
+  });
+  body += '</tbody></table></div>';
+  toggleChk(idx, body);
+}
+
+/* ========== 工段成本结构检测 ========== */
+function computeStageIssues(v6) {
+  if (!v6 || !v6.stageIssues) return { n: 0, list: [] };
+  return { n: v6.stageIssues.length, list: v6.stageIssues };
+}
+
+function showStageDetail() {
+  var v6 = POC_DATA.filter(function (f) { return f.file.indexOf('v6') >= 0; })[0];
+  var d = computeStageIssues(v6);
+  var idx = CHK_ROWS.findIndex(function (c) { return c.t === '工段成本结构合理性'; });
+  var body = '<div style="font-size:13px;line-height:1.9">'
+    + '<div style="background:#FFF1F0;border:1px solid #FFA39E;border-radius:6px;padding:12px 14px;margin-bottom:14px">'
+    + '工段里某一项占单件成本 80% 以上、且绝对值超过 50 元，通常意味着<b>把整线期间费用摊到了单件</b>。'
+    + '例如「场地费 735 元/件」——一条线的场地投入不可能由单个零件承担。</div>'
+    + '<table style="width:100%;border-collapse:collapse;font-size:12.5px"><thead><tr>'
+    + '<th style="text-align:left;padding:8px;background:#FAFAFA;border-bottom:1px solid #F0F0F0">工段</th>'
+    + '<th style="text-align:right;padding:8px;background:#FAFAFA;border-bottom:1px solid #F0F0F0">单件成本</th>'
+    + '<th style="text-align:left;padding:8px;background:#FAFAFA;border-bottom:1px solid #F0F0F0">主导项</th>'
+    + '<th style="text-align:right;padding:8px;background:#FAFAFA;border-bottom:1px solid #F0F0F0">金额</th>'
+    + '<th style="text-align:right;padding:8px;background:#FAFAFA;border-bottom:1px solid #F0F0F0">占比</th></tr></thead><tbody>';
+  d.list.forEach(function (x) {
+    body += '<tr><td style="padding:8px;border-bottom:1px solid #F0F0F0;font-family:ui-monospace,monospace">' + esc(x.code) + '</td>'
+      + '<td style="padding:8px;border-bottom:1px solid #F0F0F0;text-align:right">' + Number(x.total).toFixed(2) + '</td>'
+      + '<td style="padding:8px;border-bottom:1px solid #F0F0F0">' + esc(x.item) + '</td>'
+      + '<td style="padding:8px;border-bottom:1px solid #F0F0F0;text-align:right">' + Number(x.val).toFixed(2) + '</td>'
+      + '<td style="padding:8px;border-bottom:1px solid #F0F0F0;text-align:right;color:#CF1322;font-weight:600">' + Number(x.share).toFixed(1) + '%</td></tr>';
+  });
+  body += '</tbody></table></div>';
+  toggleChk(idx, body);
+}
+
+function toggleChk(idx, html) {
+  var el = document.getElementById('chkExp' + idx);
+  if (!el) return;
+  if (el.style.display === 'none' || !el.style.display) {
+    el.innerHTML = html; el.style.display = 'block';
+  } else {
+    el.style.display = 'none';
+  }
+}
+
+</script>
+</body>
+</html>

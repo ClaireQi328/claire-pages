@@ -1,0 +1,303 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>估算 vs 实际 · 偏差看板</title>
+<style>
+*{box-sizing:border-box}
+body{margin:0;background:#fff;color:rgba(0,0,0,.88);
+font:14px/1.5715 -apple-system,BlinkMacSystemFont,"PingFang SC","Segoe UI",sans-serif}
+.wrap{max-width:1320px;margin:0 auto;padding:32px 24px 60px}
+h1{font-size:28px;font-weight:600;margin:0 0 8px}
+.sub{color:rgba(0,0,0,.45);margin-bottom:12px}
+.ver{display:inline-block;font-size:11.5px;color:rgba(0,0,0,.45);background:#fafafa;
+border:1px solid #f0f0f0;border-radius:4px;padding:2px 8px;margin-bottom:22px;
+font-family:ui-monospace,monospace}
+.card{border:1px solid #f0f0f0;border-radius:8px;padding:24px;margin-bottom:16px;
+box-shadow:0 1px 2px rgba(0,0,0,.03)}
+h2{font-size:16px;font-weight:600;margin:0 0 16px;padding-left:10px;border-left:3px solid #1677ff}
+h3{font-size:13.5px;font-weight:600;margin:20px 0 10px;color:rgba(0,0,0,.65)}
+
+.kpis{display:grid;grid-template-columns:repeat(4,1fr);gap:14px}
+.kpi{background:#fafafa;border-radius:6px;padding:16px 18px}
+.kpi .v{font-size:26px;font-weight:600;line-height:1.2;font-variant-numeric:tabular-nums}
+.kpi .v.blue{color:#1677ff}.kpi .v.green{color:#389e0d}.kpi .v.red{color:#cf1322}
+.kpi .k{font-size:12.5px;color:rgba(0,0,0,.45);margin-top:6px;line-height:1.5}
+.kpi .d{font-size:11.5px;margin-top:4px;color:rgba(0,0,0,.35)}
+
+table{width:100%;border-collapse:collapse;font-size:13px}
+th{background:#fafafa;text-align:left;padding:11px 12px;font-weight:600;
+border-bottom:1px solid #f0f0f0;white-space:nowrap;font-size:12.5px}
+td{padding:10px 12px;border-bottom:1px solid #f0f0f0;color:rgba(0,0,0,.65)}
+tr:hover td{background:#fafafa}
+td.n{text-align:right;font-variant-numeric:tabular-nums}
+td.b{font-weight:600;color:rgba(0,0,0,.88)}
+td.mono{font-family:ui-monospace,monospace;font-size:11.5px}
+tr.hl td{background:#f6ffed}
+
+.tag{display:inline-block;padding:0 8px;border-radius:4px;font-size:12px;
+line-height:20px;border:1px solid;white-space:nowrap}
+.tag.blue{color:#1677ff;border-color:#91caff;background:#e6f4ff}
+.tag.green{color:#389e0d;border-color:#b7eb8f;background:#f6ffed}
+.tag.orange{color:#d46b08;border-color:#ffd591;background:#fff7e6}
+.tag.red{color:#cf1322;border-color:#ffa39e;background:#fff1f0}
+.tag.grey{color:rgba(0,0,0,.45);border-color:#d9d9d9;background:#fafafa}
+
+.insight{background:#fffbe6;border:1px solid #ffe58f;border-radius:6px;
+padding:16px 18px;font-size:13px;line-height:1.85;color:rgba(0,0,0,.65)}
+.insight b{color:rgba(0,0,0,.88)}
+.insight .hl{background:#fff1b8;padding:1px 5px;border-radius:3px;font-weight:600}
+.insight .bad{background:#ffccc7;padding:1px 5px;border-radius:3px;font-weight:600}
+.insight>div+div{margin-top:10px}
+
+.warnbox{background:#fff1f0;border:1px solid #ffa39e;border-radius:6px;padding:14px 16px;
+font-size:12.5px;line-height:1.8;color:rgba(0,0,0,.65);margin-bottom:14px}
+.warnbox b{color:#cf1322}
+.infobox{background:#e6f4ff;border:1px solid #91caff;border-radius:6px;padding:14px 16px;
+font-size:12.5px;line-height:1.8;color:rgba(0,0,0,.65);margin-bottom:14px}
+.infobox b{color:#1677ff}
+
+.barcmp{display:flex;align-items:center;gap:10px;margin:7px 0}
+.barcmp .lab{width:82px;font-size:11.5px;color:rgba(0,0,0,.45);flex:none}
+.barcmp .track{flex:1;height:18px;background:#f5f5f5;border-radius:3px;overflow:hidden;position:relative}
+.barcmp .bar{height:100%;border-radius:3px}
+.barcmp .bar.old{background:#ffa39e}
+.barcmp .bar.new{background:#1677ff}
+.barcmp .val{width:64px;text-align:right;font-size:12px;font-variant-numeric:tabular-nums;font-weight:600}
+
+.foot{text-align:center;color:rgba(0,0,0,.25);font-size:12px;margin-top:32px;line-height:1.9}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>估算 vs 实际 · 偏差看板</h1>
+  <div class="sub">用历史报价反推：同一批数据，旧因子和新因子谁算得更准。</div>
+  <div class="ver" id="ver">-</div>
+
+  <div class="card">
+    <h2>结论</h2>
+    <div class="kpis">
+      <div class="kpi"><div class="v red" id="k1">-</div><div class="k">旧因子 MAPE<br><span class="d">材料占比 = 100%</span></div></div>
+      <div class="kpi"><div class="v green" id="k2">-</div><div class="k">新因子 MAPE<br><span class="d">真实拆解 · 留一法验证</span></div></div>
+      <div class="kpi"><div class="v blue" id="k3">-</div><div class="k">误差收敛</div></div>
+      <div class="kpi"><div class="v" id="k4">-</div><div class="k">验证样本<div class="d" id="k4d"></div></div></div>
+    </div>
+    <div class="infobox" style="margin-top:16px;margin-bottom:6px">
+      <b>口径说明（重要）</b>：估算出厂价 = 材料费 ÷ 材料占比。<br>
+      旧因子材料占比 100% ⇒ 估算价 = 材料费，必然低估一个制造费的钱。<br>
+      新因子用<span class="hl">留一法 LOO</span>：算第 i 条时，因子只用其余 n−1 条算，避免「用自己验证自己」。
+    </div>
+    <div class="warnbox" style="margin-bottom:0">
+      <b>⚠ 这只是 L2 留一法，不是外样本</b>：样本来自同一次 RFQ、同一批供应商，
+      所以这是个「同分布内的稳定性」，不是「换个供应商还准吗」。<br>
+      跨供应商验证（L3）见 <b>外样本验证</b> 看板：17 个可验证 VPPS 的中位误差 <b>11.9%</b>。<br>
+      <span style="color:rgba(0,0,0,.45);font-size:11.5px">注：本页 4014/4071 恰好属于迁移性最好的几个（L3 仅 5.3%），不宜与 11.9% 的中位直接相比。</span>
+    </div>
+  </div>
+
+  <div class="card">
+    <h2>根因：因子库被「只报总价」的记录污染</h2>
+    <div class="warnbox">
+      <b>旧因子库「材料占出厂价%」中位数 = 100.0%</b>。不是巧合——历史报价里大量供应商只报总价、不给拆解，
+      系统把总价错当材料费入库。这类记录占比：
+      <b>4014 组 57/74（77%）、4071 组 48/84（57%）</b>。用这种因子做 Should-Cost，等于假设制造不花钱。
+    </div>
+    <div id="rootcause"></div>
+  </div>
+
+  <div class="card">
+    <h2>按 VPPS 对比</h2>
+    <div id="vppscmp"></div>
+  </div>
+
+  <div class="card">
+    <h2>明细 · <span id="detailTitle"></span></h2>
+    <div id="detail"></div>
+  </div>
+
+  <div class="card">
+    <h2>已修清单</h2>
+    <div id="stages"></div>
+  </div>
+
+  <div class="card">
+    <h2>下一步</h2>
+    <div class="insight" id="next"></div>
+  </div>
+
+  <div class="foot">
+    误差 = (估算价 − 实际价) / 实际价；MAPE = 误差绝对值平均；bias = 带符号平均（负=系统性低估）<br>
+    样本口径：材料费、制造费同时 &gt; 0，且 材料+制造+管理 ≤ 出厂价×1.02<br>
+    数据源：成本因子实测 quotes_flat.json（727 条报价，2026-11-09）+ 批量导入模板 v6
+  </div>
+</div>
+<script>
+var DATA={"generated_at":"2026-11-10","method":"正推法：估算出厂价 = 材料费 ÷ 材料占比；旧因子材料占比取 100%（等价于估算价=材料费）","validation":"留一法 LOO（同分布）","vpps":{"4014":{"n":15,"n_raw":15,"f_mat":74.58,"f_mfg":22.3,"med_mat":74.58,"mape_old":24.86,"mape_new":3.28,"bias_old":-24.86,"bias_new":0.76,"n_outlier":1,"rows":[{"part":"P000056524001","name":"中控台装配总成","supplier":"埃驰（上海）汽车零部件技术有限公司","rfq":"RFQ-20260708-004","price":898.3,"material":669.94,"mfg":202.2,"act_mat":74.58,"act_mfg":22.51,"loo_mat":74.58,"old_est":669.94,"new_est":898.3,"old_err":-25.42,"new_err":0.0,"outlier":false,"dev_from_med":0.0},{"part":"P000056525001","name":"中控台装配总成","supplier":"埃驰（上海）汽车零部件技术有限公司","rfq":"RFQ-20260708-004","price":795.18,"material":588.83,"mfg":182.64,"act_mat":74.05,"act_mfg":22.97,"loo_mat":74.66,"old_est":588.83,"new_est":788.65,"old_err":-25.95,"new_err":-0.82,"outlier":false,"dev_from_med":-0.53},{"part":"P000056560001","name":"中控台装配总成","supplier":"埃驰（上海）汽车零部件技术有限公司","rfq":"RFQ-20260708-004","price":859.33,"material":652.95,"mfg":182.64,"act_mat":75.98,"act_mfg":21.25,"loo_mat":74.33,"old_est":652.95,"new_est":878.42,"old_err":-24.02,"new_err":2.22,"outlier":false,"dev_from_med":1.41},{"part":"P000056559001","name":"中控台装配总成","supplier":"埃驰（上海）汽车零部件技术有限公司","rfq":"RFQ-20260708-004","price":898.87,"material":669.94,"mfg":202.2,"act_mat":74.53,"act_mfg":22.49,"loo_mat":74.59,"old_est":669.94,"new_est":898.2,"old_err":-25.47,"new_err":-0.07,"outlier":false,"dev_from_med":-0.04},{"part":"P000063194001","name":"中控台侧盖板本体-右侧","supplier":"埃驰（上海）汽车零部件技术有限公司","rfq":"RFQ-20260708-004","price":86.63,"material":65.96,"mfg":16.55,"act_mat":76.14,"act_mfg":19.1,"loo_mat":74.55,"old_est":65.96,"new_est":88.47,"old_err":-23.86,"new_err":2.13,"outlier":false,"dev_from_med":1.56},{"part":"P000065198001","name":"中控台侧盖板本体-左侧","supplier":"埃驰（上海）汽车零部件技术有限公司","rfq":"RFQ-20260708-004","price":79.61,"material":59.37,"mfg":16.55,"act_mat":74.58,"act_mfg":20.79,"loo_mat":74.58,"old_est":59.37,"new_est":79.61,"old_err":-25.42,"new_err":-0.0,"outlier":false,"dev_from_med":0.0},{"part":"P000065199001","name":"中控台侧盖板本体-右侧","supplier":"埃驰（上海）汽车零部件技术有限公司","rfq":"RFQ-20260708-004","price":88.63,"material":67.96,"mfg":16.55,"act_mat":76.68,"act_mfg":18.67,"loo_mat":74.55,"old_est":67.96,"new_est":91.17,"old_err":-23.32,"new_err":2.86,"outlier":false,"dev_from_med":2.1},{"part":"P000065197001","name":"中控台侧盖板本体-左侧","supplier":"埃驰（上海）汽车零部件技术有限公司","rfq":"RFQ-20260708-004","price":79.61,"material":59.37,"mfg":16.55,"act_mat":74.58,"act_mfg":20.79,"loo_mat":74.58,"old_est":59.37,"new_est":79.61,"old_err":-25.42,"new_err":-0.0,"outlier":false,"dev_from_med":0.0},{"part":"P000065200001","name":"中控台侧盖板本体-右侧","supplier":"埃驰（上海）汽车零部件技术有限公司","rfq":"RFQ-20260708-004","price":88.53,"material":67.86,"mfg":16.55,"act_mat":76.65,"act_mfg":18.69,"loo_mat":74.55,"old_est":67.86,"new_est":91.03,"old_err":-23.35,"new_err":2.82,"outlier":false,"dev_from_med":2.08},{"part":"P000028163001","name":"中控台侧盖板本体-左侧","supplier":"埃驰（上海）汽车零部件技术有限公司","rfq":"RFQ-20260708-004","price":77.61,"material":57.37,"mfg":16.55,"act_mat":73.92,"act_mfg":21.32,"loo_mat":74.59,"old_est":57.37,"new_est":76.92,"old_err":-26.08,"new_err":-0.89,"outlier":false,"dev_from_med":-0.66},{"part":"P000032842001","name":"中控台侧盖板-右侧","supplier":"埃驰（上海）汽车零部件技术有限公司","rfq":"RFQ-20260708-004","price":60.37,"material":41.54,"mfg":15.95,"act_mat":68.81,"act_mfg":26.42,"loo_mat":74.64,"old_est":41.54,"new_est":55.65,"old_err":-31.19,"new_err":-7.81,"outlier":false,"dev_from_med":-5.77},{"part":"P000032841001","name":"中控台侧盖板-左侧","supplier":"埃驰（上海）汽车零部件技术有限公司","rfq":"RFQ-20260708-004","price":60.37,"material":41.54,"mfg":15.95,"act_mat":68.81,"act_mfg":26.42,"loo_mat":74.64,"old_est":41.54,"new_est":55.65,"old_err":-31.19,"new_err":-7.81,"outlier":false,"dev_from_med":-5.77},{"part":"P000032847001","name":"中控台装配总成","supplier":"埃驰（上海）汽车零部件技术有限公司","rfq":"RFQ-20260708-004","price":881.37,"material":652.95,"mfg":202.2,"act_mat":74.08,"act_mfg":22.94,"loo_mat":74.67,"old_est":652.95,"new_est":874.47,"old_err":-25.92,"new_err":-0.78,"outlier":false,"dev_from_med":-0.49},{"part":"P000032838001","name":"中控台前饰板总成","supplier":"埃驰（上海）汽车零部件技术有限公司","rfq":"RFQ-20260708-004","price":19.7,"material":17.66,"mfg":1.09,"act_mat":89.64,"act_mfg":5.53,"loo_mat":74.53,"old_est":17.66,"new_est":23.7,"old_err":-10.36,"new_err":20.29,"outlier":true,"dev_from_med":15.07},{"part":"P000032846001","name":"中控台装配总成","supplier":"埃驰（上海）汽车零部件技术有限公司","rfq":"RFQ-20260708-004","price":795.8,"material":589.87,"mfg":182.64,"act_mat":74.12,"act_mfg":22.95,"loo_mat":74.65,"old_est":589.87,"new_est":790.17,"old_err":-25.88,"new_err":-0.71,"outlier":false,"dev_from_med":-0.45}]},"4071":{"n":12,"n_raw":36,"f_mat":84.59,"f_mfg":13.11,"med_mat":83.04,"mape_old":16.18,"mape_new":5.04,"bias_old":-16.18,"bias_new":-0.88,"n_outlier":0,"rows":[{"part":"P000055657001","name":"主驾座椅安全带总成","supplier":"宁波均胜汽车安全系统有限公司","rfq":"RFQ-20260408-003","price":119.4,"material":102.4,"mfg":14.5,"act_mat":85.76,"act_mfg":12.14,"loo_mat":84.35,"old_est":102.4,"new_est":121.4,"old_err":-14.24,"new_err":1.67,"outlier":false,"dev_from_med":2.72},{"part":"P000055662001","name":"副驾安全带腰带预紧器","supplier":"宁波均胜汽车安全系统有限公司","rfq":"RFQ-20260408-003","price":41.8,"material":33.1,"mfg":7.9,"act_mat":79.19,"act_mfg":18.9,"loo_mat":84.93,"old_est":33.1,"new_est":38.97,"old_err":-20.81,"new_err":-6.77,"outlier":false,"dev_from_med":-3.85},{"part":"P000055664001","name":"副驾座椅安全带锁扣总成","supplier":"宁波均胜汽车安全系统有限公司","rfq":"RFQ-20260408-003","price":31.5,"material":25.3,"mfg":5.5,"act_mat":80.32,"act_mfg":17.46,"loo_mat":84.79,"old_est":25.3,"new_est":29.84,"old_err":-19.68,"new_err":-5.28,"outlier":false,"dev_from_med":-2.72},{"part":"P000055656001","name":"副驾座椅安全带总成","supplier":"宁波均胜汽车安全系统有限公司","rfq":"RFQ-20260408-003","price":119.4,"material":102.4,"mfg":14.5,"act_mat":85.76,"act_mfg":12.14,"loo_mat":84.35,"old_est":102.4,"new_est":121.4,"old_err":-14.24,"new_err":1.67,"outlier":false,"dev_from_med":2.72},{"part":"P000055663001","name":"主驾安全带腰带预紧器","supplier":"宁波均胜汽车安全系统有限公司","rfq":"RFQ-20260408-003","price":41.8,"material":33.1,"mfg":7.9,"act_mat":79.19,"act_mfg":18.9,"loo_mat":84.93,"old_est":33.1,"new_est":38.97,"old_err":-20.81,"new_err":-6.77,"outlier":false,"dev_from_med":-3.85},{"part":"P000055665001","name":"主驾座椅安全带锁扣总成","supplier":"宁波均胜汽车安全系统有限公司","rfq":"RFQ-20260408-003","price":31.5,"material":25.3,"mfg":5.5,"act_mat":80.32,"act_mfg":17.46,"loo_mat":84.79,"old_est":25.3,"new_est":29.84,"old_err":-19.68,"new_err":-5.28,"outlier":false,"dev_from_med":-2.72},{"part":"P000055657001","name":"主驾座椅安全带总成","supplier":"采埃孚汽车安全系统（张家港）有限公司","rfq":"RFQ-20260408-003","price":98.72,"material":85.82,"mfg":10.48,"act_mat":86.93,"act_mfg":10.62,"loo_mat":84.21,"old_est":85.82,"new_est":101.91,"old_err":-13.07,"new_err":3.24,"outlier":false,"dev_from_med":3.89},{"part":"P000055662001","name":"副驾安全带腰带预紧器","supplier":"采埃孚汽车安全系统（张家港）有限公司","rfq":"RFQ-20260408-003","price":35,"material":28,"mfg":6,"act_mat":80.0,"act_mfg":17.14,"loo_mat":84.83,"old_est":28,"new_est":33.01,"old_err":-20.0,"new_err":-5.7,"outlier":false,"dev_from_med":-3.04},{"part":"P000055664001","name":"副驾座椅安全带锁扣总成","supplier":"采埃孚汽车安全系统（张家港）有限公司","rfq":"RFQ-20260408-003","price":24.42,"material":22.16,"mfg":1.6,"act_mat":90.75,"act_mfg":6.55,"loo_mat":84.37,"old_est":22.16,"new_est":26.27,"old_err":-9.25,"new_err":7.56,"outlier":false,"dev_from_med":7.71},{"part":"P000055656001","name":"副驾座椅安全带总成","supplier":"采埃孚汽车安全系统（张家港）有限公司","rfq":"RFQ-20260408-003","price":98.72,"material":85.82,"mfg":10.48,"act_mat":86.93,"act_mfg":10.62,"loo_mat":84.21,"old_est":85.82,"new_est":101.91,"old_err":-13.07,"new_err":3.24,"outlier":false,"dev_from_med":3.89},{"part":"P000055663001","name":"主驾安全带腰带预紧器","supplier":"采埃孚汽车安全系统（张家港）有限公司","rfq":"RFQ-20260408-003","price":35,"material":28,"mfg":6,"act_mat":80.0,"act_mfg":17.14,"loo_mat":84.83,"old_est":28,"new_est":33.01,"old_err":-20.0,"new_err":-5.7,"outlier":false,"dev_from_med":-3.04},{"part":"P000055665001","name":"主驾座椅安全带锁扣总成","supplier":"采埃孚汽车安全系统（张家港）有限公司","rfq":"RFQ-20260408-003","price":24.42,"material":22.16,"mfg":1.6,"act_mat":90.75,"act_mfg":6.55,"loo_mat":84.37,"old_est":22.16,"new_est":26.27,"old_err":-9.25,"new_err":7.56,"outlier":false,"dev_from_med":7.71}]}},"stages":[],"dedupe":{"dropped":5,"total":11,"parts":["EQ77110E","XQ20013","XQ20016","XQ20012","E77110E-1"]},"fixes":[{"item":"03 表场地费口径","before":"735.29 元/件（占单件成本 94.5%）","after":"8.60 元/件","status":"已修模板 v6"},{"item":"03 表结构校验","before":"仅校验负值/重复/为 0","after":"新增「单项 ≥80% 标红、≥60% 标黄」","status":"已修模板 v6"},{"item":"父子件重复入样","before":"未检测","after":"导入原型新增校验项，可展开看明细","status":"已接入原型"},{"item":"因子统计口径","before":"算术平均，大小件等权","after":"金额加权 + 父子件去重","status":"已修脚本"},{"item":"重复报价快照","before":"4071 的 36 条实为 12 条唯一报价","after":"按 零件+供应商+价格 去重，全库剔 94 条","status":"已修脚本"}]};
+</script>
+<script>
+function esc(s){return String(s==null?'':s).replace(/[&<>"']/g,function(c){
+  return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];});}
+function fc(n,d){return Number(n||0).toFixed(d==null?1:d);}
+function pct(n){return (n>0?'+':'')+fc(n,1)+'%';}
+
+function errTag(v){
+  var a=Math.abs(v);
+  var cls = a>15?'red':(a>8?'orange':'green');
+  return '<span class="tag '+cls+'">'+pct(v)+'</span>';
+}
+
+function render(){
+  var vp = Object.keys(DATA.vpps);
+  var totalN = vp.reduce(function(a,k){return a+DATA.vpps[k].n;},0);
+  var allOld=[], allNew=[];
+  vp.forEach(function(k){
+    DATA.vpps[k].rows.forEach(function(r){ allOld.push(Math.abs(r.old_err)); allNew.push(Math.abs(r.new_err)); });
+  });
+  var mOld = allOld.reduce(function(a,b){return a+b;},0)/allOld.length;
+  var mNew = allNew.reduce(function(a,b){return a+b;},0)/allNew.length;
+
+  document.getElementById('ver').textContent =
+    DATA.generated_at + ' · ' + vp.length + ' 个 VPPS · ' + totalN + ' 条真实拆解 · 留一法验证';
+  document.getElementById('k1').textContent = fc(mOld,1)+'%';
+  document.getElementById('k2').textContent = fc(mNew,1)+'%';
+  document.getElementById('k3').textContent = '↓'+fc((1-mNew/mOld)*100,0)+'%';
+  document.getElementById('k4').textContent = totalN+' 条';
+  var rawN = vp.reduce(function(a,k){return a+(DATA.vpps[k].n_raw||DATA.vpps[k].n);},0);
+  document.getElementById('k4d').textContent = (rawN!==totalN) ? ('去重前 '+rawN+' 条') : '去重前后一致';
+
+  // 根因
+  var h='<table><thead><tr><th style="width:150px">因子口径</th><th class="n">4014 材料占比</th>'+
+        '<th class="n">4071 材料占比</th><th>为什么</th></tr></thead><tbody>';
+  h+='<tr><td class="b">旧（中位数）</td><td class="n" style="color:#cf1322">100.0%</td>'+
+     '<td class="n" style="color:#cf1322">100.0%</td><td>只报总价的记录被当成材料费入库</td></tr>';
+  vp.forEach(function(k,i){});
+  h+='<tr class="hl"><td class="b">新（真实拆解）</td><td class="n" style="color:#389e0d">'+
+     fc(DATA.vpps['4014'].f_mat,1)+'%</td><td class="n" style="color:#389e0d">'+
+     fc(DATA.vpps['4071'].f_mat,1)+'%</td><td>剔除未拆解记录，金额加权</td></tr>';
+  h+='</tbody></table>';
+  document.getElementById('rootcause').innerHTML=h;
+
+  // VPPS 对比
+  var v2='<table><thead><tr><th style="width:70px">VPPS</th><th class="n">样本<br><span style="font-weight:400;font-size:10.5px;color:rgba(0,0,0,.35)">去重/原始</span></th>'+
+    '<th class="n">旧·材料占比</th><th class="n">新·材料占比</th><th class="n">新·制造占比</th>'+
+    '<th class="n">旧 MAPE</th><th class="n">新 MAPE</th>'+
+    '<th class="n">旧 bias</th><th class="n">新 bias</th></tr></thead><tbody>';
+  vp.forEach(function(k){
+    var v=DATA.vpps[k];
+    var nTxt = (v.n_raw && v.n_raw!==v.n) ? (v.n+'<span style="color:rgba(0,0,0,.25);font-size:11px"> /'+v.n_raw+'</span>') : v.n;
+    v2+='<tr><td class="b">'+esc(k)+'</td><td class="n">'+nTxt+'</td>'+
+      '<td class="n" style="color:#cf1322">100.0%</td>'+
+      '<td class="n" style="color:#389e0d;font-weight:600">'+fc(v.f_mat,1)+'%</td>'+
+      '<td class="n">'+fc(v.f_mfg,1)+'%</td>'+
+      '<td class="n">'+fc(v.mape_old,1)+'%</td>'+
+      '<td class="n b" style="color:#389e0d">'+fc(v.mape_new,1)+'%</td>'+
+      '<td class="n" style="color:#cf1322">'+pct(v.bias_old)+'</td>'+
+      '<td class="n" style="color:'+(Math.abs(v.bias_new)<3?'#389e0d':'#d46b08')+'">'+pct(v.bias_new)+'</td></tr>';
+  });
+  v2+='</tbody></table>';
+  v2+='<h3>误差分布（越短越好）</h3>';
+  vp.forEach(function(k){
+    var v=DATA.vpps[k];
+    var mx=Math.max(v.mape_old,v.mape_new,1);
+    v2+='<div class="barcmp"><div class="lab">'+esc(k)+' 旧</div>'+
+      '<div class="track"><div class="bar old" style="width:'+(v.mape_old/mx*100)+'%"></div></div>'+
+      '<div class="val" style="color:#cf1322">'+fc(v.mape_old,1)+'%</div></div>';
+    v2+='<div class="barcmp"><div class="lab">'+esc(k)+' 新</div>'+
+      '<div class="track"><div class="bar new" style="width:'+(v.mape_new/mx*100)+'%"></div></div>'+
+      '<div class="val" style="color:#1677ff">'+fc(v.mape_new,1)+'%</div></div>';
+  });
+  var outs=[];
+  vp.forEach(function(k){
+    DATA.vpps[k].rows.forEach(function(r){
+      if(r.outlier) outs.push('VPPS '+k+' 的 '+r.part+'：实际材料占比 '+fc(r.act_mat,1)
+        +'%，比该组样本中位数（'+fc(DATA.vpps[k].med_mat,1)+'%）高 '+fc(r.dev_from_med,1)+' pp');
+    });
+  });
+  if(outs.length){
+    v2+='<div class="infobox" style="margin-top:16px;margin-bottom:0">'
+      +'<b>离群点（'+outs.length+' 条，已在明细中标黄）</b><br>'+outs.join('<br>')
+      +'<br><span style="color:rgba(0,0,0,.45)">这类零件多半工艺特殊或供应商报价结构不同，'
+      +'建议单独维护子品类因子，不要强行并进 VPPS 均值。</span></div>';
+  }
+  document.getElementById('vppscmp').innerHTML=v2;
+
+  // 明细 tabs
+  var tabs='<div style="display:flex;gap:8px;margin-bottom:14px" id="tabs">';
+  vp.forEach(function(k,i){
+    tabs+='<button class="tag '+(i===0?'blue':'grey')+'" style="cursor:pointer;padding:4px 14px;font-size:13px" '+
+      'onclick="switchTab(\''+k+'\',this)">'+esc(k)+' · '+DATA.vpps[k].n+'</button>';
+  });
+  tabs+='</div><div id="tabbody"></div>';
+  document.getElementById('detail').innerHTML=tabs;
+  window.switchTab=function(k,btn){
+    document.querySelectorAll('#tabs button').forEach(function(b){b.className='tag grey';b.style.cursor='pointer';b.style.padding='4px 14px';b.style.fontSize='13px';});
+    btn.className='tag blue';
+    renderDetail(k);
+  };
+  renderDetail(vp[0]);
+
+  // 已修清单
+  var s2='<table><thead><tr><th style="width:150px">问题</th><th>修复前</th><th>修复后</th>'
+    +'<th style="width:110px">状态</th></tr></thead><tbody>';
+  DATA.fixes.forEach(function(x){
+    s2+='<tr><td class="b">'+esc(x.item)+'</td>'
+      +'<td style="font-size:12.5px;color:#cf1322">'+esc(x.before)+'</td>'
+      +'<td style="font-size:12.5px;color:#389e0d">'+esc(x.after)+'</td>'
+      +'<td><span class="tag green">'+esc(x.status)+'</span></td></tr>';
+  });
+  s2+='</tbody></table>';
+  s2+='<div class="infobox" style="margin-top:14px;margin-bottom:0">'
+     +'<b>父子件去重</b>：本次导入 '+DATA.dedupe.total+' 条，其中 '+DATA.dedupe.dropped+' 条是父件已含的子件（'
+     +DATA.dedupe.parts.map(function(p){return '<code style="background:#fff;padding:1px 5px;border-radius:3px;font-size:11px">'+esc(p)+'</code>';}).join(' ')
+     +'）。若不剔除，小件（7.8～54 元）会和总成（365 元）等权平均，把因子带偏。</div>';
+  document.getElementById('stages').innerHTML=s2;
+
+  // 下一步
+  var worst='4014';
+  vp.forEach(function(k){ if(DATA.vpps[k].mape_old>DATA.vpps[worst].mape_old) worst=k; });
+  var w=DATA.vpps[worst];
+  var nx='';
+  nx+='<div><b>1. 估算基线切换</b>：VPPS '+esc(worst)+' 旧口径（材料=总价）MAPE '+fc(w.mape_old,1)
+      +'%，改用真实材料占比后降到 '+fc(w.mape_new,1)+'%。新因子应写入 A2 参数默认值，页面上标注「因子版本 '+esc(DATA.generated_at)+'」。</div>';
+  nx+='<div><b>2. 历史记录打标，不要反推</b>：4014 的 57 条 / 4071 的 48 条「材料费=出厂价」记录，本质是只报总价。'
+      +'标记 <span class="hl">factor_usable=false</span> 从因子统计里排除，不要试图反推它们的拆解。</div>';
+  nx+='<div><b>3. 接入导入链路</b>：<code style="background:#f5f5f5;padding:1px 6px;border-radius:3px">recalc_factors.py</code> '
+      +'已具备「公式自动转值 → 有效拆解过滤 → 父子件去重 → 工段口径门禁 → 金额加权 → 版本快照」全链路，'
+      +'可直接挂到导入确认后的回调。</div>';
+  nx+='<div><b>4. 别再拿 L2 当最终答案</b>：本页是同分布留一法。全库 17 个可验证 VPPS 的跨供应商中位误差是 <b>11.9%</b>，'
+      +'其中 1 个（2031）恶化超过 20pp。产品上应该说「同供应商历史 ±X%，跨供应商 ±Y%」，不要说一个数。</div>';
+  document.getElementById('next').innerHTML=nx;
+
+}
+
+function renderDetail(k){
+  var v=DATA.vpps[k];
+  document.getElementById('detailTitle').textContent='VPPS '+k+'（'+v.n+' 条 · 材料占比 '+fc(v.f_mat,1)
+    +'% · 留一法'+(v.n_outlier?' · '+v.n_outlier+' 条离群':'')+'）';
+  var h='<table><thead><tr><th>零件号</th><th>零件名称</th><th>供应商</th>'+
+    '<th class="n">实际出厂价</th><th class="n">材料费</th><th class="n">实际材料%</th>'+
+    '<th class="n">旧估算</th><th class="n">旧误差</th>'+
+    '<th class="n">新估算(LOO)</th><th class="n">新误差</th></tr></thead><tbody>';
+  v.rows.forEach(function(r){
+    h+='<tr'+(r.outlier?' style="background:#fffbe6"':'')+'>'
+      +'<td class="mono b">'+esc(r.part)+(r.outlier
+         ?'<br><span style="font-size:10.5px;color:#D46B08">离群 '+pct(r.dev_from_med)+'</span>':'')
+      +'</td><td>'+esc(r.name)+'</td>'+
+      '<td style="font-size:11.5px">'+esc(r.supplier)+'</td>'+
+      '<td class="n b">'+fc(r.price,2)+'</td>'+
+      '<td class="n">'+fc(r.material,2)+'</td>'+
+      '<td class="n">'+fc(r.act_mat,1)+'%</td>'+
+      '<td class="n" style="color:#cf1322">'+fc(r.old_est,2)+'</td>'+
+      '<td class="n">'+errTag(r.old_err)+'</td>'+
+      '<td class="n" style="color:#1677ff">'+fc(r.new_est,2)+'</td>'+
+      '<td class="n">'+errTag(r.new_err)+'</td></tr>';
+  });
+  h+='</tbody></table>';
+  document.getElementById('tabbody').innerHTML=h;
+}
+
+render();
+</script>
+</body>
+</html>

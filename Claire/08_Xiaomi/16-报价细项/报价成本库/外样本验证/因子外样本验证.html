@@ -1,0 +1,236 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>因子外样本验证</title>
+<style>
+*{box-sizing:border-box}
+body{margin:0;background:#fff;color:rgba(0,0,0,.88);
+font:14px/1.5715 -apple-system,BlinkMacSystemFont,"PingFang SC","Segoe UI",sans-serif}
+.wrap{max-width:1320px;margin:0 auto;padding:32px 24px 60px}
+h1{font-size:28px;font-weight:600;margin:0 0 8px}
+.sub{color:rgba(0,0,0,.45);margin-bottom:12px}
+.ver{display:inline-block;font-size:11.5px;color:rgba(0,0,0,.45);background:#fafafa;
+border:1px solid #f0f0f0;border-radius:4px;padding:2px 8px;margin-bottom:22px;
+font-family:ui-monospace,monospace}
+.card{border:1px solid #f0f0f0;border-radius:8px;padding:24px;margin-bottom:16px;
+box-shadow:0 1px 2px rgba(0,0,0,.03)}
+h2{font-size:16px;font-weight:600;margin:0 0 16px;padding-left:10px;border-left:3px solid #1677ff}
+h3{font-size:13.5px;font-weight:600;margin:20px 0 10px;color:rgba(0,0,0,.65)}
+.kpis{display:grid;grid-template-columns:repeat(4,1fr);gap:14px}
+.kpi{background:#fafafa;border-radius:6px;padding:16px 18px}
+.kpi .v{font-size:26px;font-weight:600;line-height:1.2;font-variant-numeric:tabular-nums}
+.kpi .v.green{color:#389e0d}.kpi .v.orange{color:#d46b08}.kpi .v.red{color:#cf1322}
+.kpi .k{font-size:12.5px;color:rgba(0,0,0,.45);margin-top:6px;line-height:1.5}
+.kpi .d{font-size:11.5px;margin-top:4px;color:rgba(0,0,0,.35)}
+table{width:100%;border-collapse:collapse;font-size:13px}
+th{background:#fafafa;text-align:left;padding:11px 12px;font-weight:600;
+border-bottom:1px solid #f0f0f0;white-space:nowrap;font-size:12.5px}
+td{padding:10px 12px;border-bottom:1px solid #f0f0f0;color:rgba(0,0,0,.65)}
+tr:hover td{background:#fafafa}
+td.n{text-align:right;font-variant-numeric:tabular-nums}
+td.b{font-weight:600;color:rgba(0,0,0,.88)}
+td.mono{font-family:ui-monospace,monospace;font-size:11.5px}
+.tag{display:inline-block;padding:0 8px;border-radius:4px;font-size:12px;
+line-height:20px;border:1px solid;white-space:nowrap}
+.tag.blue{color:#1677ff;border-color:#91caff;background:#e6f4ff}
+.tag.green{color:#389e0d;border-color:#b7eb8f;background:#f6ffed}
+.tag.orange{color:#d46b08;border-color:#ffd591;background:#fff7e6}
+.tag.red{color:#cf1322;border-color:#ffa39e;background:#fff1f0}
+.tag.grey{color:rgba(0,0,0,.45);border-color:#d9d9d9;background:#fafafa}
+.infobox{background:#e6f4ff;border:1px solid #91caff;border-radius:6px;padding:14px 16px;
+font-size:12.5px;line-height:1.85;color:rgba(0,0,0,.65);margin-bottom:14px}
+.infobox b{color:#1677ff}
+.warnbox{background:#fff1f0;border:1px solid #ffa39e;border-radius:6px;padding:14px 16px;
+font-size:12.5px;line-height:1.85;color:rgba(0,0,0,.65);margin-bottom:14px}
+.warnbox b{color:#cf1322}
+.insight{background:#fffbe6;border:1px solid #ffe58f;border-radius:6px;
+padding:16px 18px;font-size:13px;line-height:1.9;color:rgba(0,0,0,.65)}
+.insight b{color:rgba(0,0,0,.88)}
+.insight .hl{background:#fff1b8;padding:1px 5px;border-radius:3px;font-weight:600}
+.insight .bad{background:#ffccc7;padding:1px 5px;border-radius:3px;font-weight:600}
+.insight>div+div{margin-top:10px}
+.barcmp{display:flex;align-items:center;gap:10px;margin:6px 0}
+.barcmp .lab{width:90px;font-size:11.5px;color:rgba(0,0,0,.45);flex:none}
+.barcmp .track{flex:1;height:16px;background:#f5f5f5;border-radius:3px;overflow:hidden}
+.barcmp .bar{height:100%;border-radius:3px}
+.barcmp .val{width:58px;text-align:right;font-size:12px;font-variant-numeric:tabular-nums;font-weight:600}
+.foot{text-align:center;color:rgba(0,0,0,.25);font-size:12px;margin-top:32px;line-height:1.9}
+.legend{display:flex;gap:18px;font-size:12px;color:rgba(0,0,0,.45);margin-top:10px}
+.legend i{display:inline-block;width:9px;height:9px;border-radius:2px;margin-right:5px}
+details{margin-top:8px}
+summary{cursor:pointer;font-size:12.5px;color:#1677ff;padding:4px 0;user-select:none}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>因子外样本验证</h1>
+  <div class="sub">之前算的 4.4% 是「用自己验证自己」。这次换成真正的跨供应商检验。</div>
+  <div class="ver" id="ver">-</div>
+
+  <div class="card">
+    <h2>结论</h2>
+    <div class="kpis">
+      <div class="kpi"><div class="v green" id="k1">-</div><div class="k">L1 自拟合<br><span class="d">17 个可验证 VPPS</span></div></div>
+      <div class="kpi"><div class="v orange" id="k2">-</div><div class="k">L2 留一法<br><span class="d">同分布，去掉自己</span></div></div>
+      <div class="kpi"><div class="v red" id="k3">-</div><div class="k">L3 跨供应商<br><span class="d">用 A 家估 B 家</span></div></div>
+      <div class="kpi"><div class="v" id="k4">-</div><div class="k">误差放大</div></div>
+    </div>
+    <div class="warnbox" style="margin-top:16px;margin-bottom:0">
+      <b>这才是诚实的数字</b>：自拟合 <span id="wm1">-</span> 看着漂亮，
+      但跨供应商立刻掉到 <span id="wm3">-</span> —— 误差<span class="bad">接近翻倍</span>。
+      说明「按 VPPS 一个因子打天下」并不成立，供应商之间的成本结构差异是真实存在的。<br>
+      <span style="color:rgba(0,0,0,.45);font-size:11.5px">三个数字统一在「可做 L3 的 17 个 VPPS」子集上计算，分母一致才可比。</span>
+    </div>
+  </div>
+
+  <div class="card">
+    <h2>三级验证是什么</h2>
+    <div class="infobox" style="margin-bottom:0">
+      <b>L1 自拟合</b>：因子用全部样本算，再估全部样本。谁都能做，只能当上界。<br>
+      <b>L2 留一法 LOO</b>：算第 i 条时，因子只用其余 n−1 条。检验「同分布下是否稳定」。<br>
+      <b>L3 跨组留一</b>：用 A 供应商的因子去估 B 供应商的报价。这才能回答「换个供应商还准吗」。<br>
+      <span style="color:rgba(0,0,0,.45)">估算口径：出厂价 = 材料费 ÷ 材料占比（正推法）</span>
+    </div>
+  </div>
+
+  <div class="card">
+    <h2>逐 VPPS 明细</h2>
+    <div id="tbl"></div>
+    <div class="legend">
+      <span><i style="background:#52c41a"></i>L1 自拟合</span>
+      <span><i style="background:#faad14"></i>L2 留一</span>
+      <span><i style="background:#ff4d4f"></i>L3 跨组</span>
+    </div>
+  </div>
+
+  <div class="card">
+    <h2>恶化最严重的 3 个</h2>
+    <div id="worst"></div>
+  </div>
+
+  <div class="card">
+    <h2>这意味着什么</h2>
+    <div class="insight" id="insight"></div>
+  </div>
+
+  <div class="foot" id="foot"></div>
+</div>
+<script>
+var DATA={"schema":"validation_dashboard/v1","generated_at":"2026-11-10","source":{"file":"quotes_flat.json","records_raw":727,"records_real_breakdown":417,"records_deduped":323,"dupes_removed":94,"dedupe_rule":"零件+供应商+出厂价 相同视为重复快照"},"min_samples":5,"skipped":{"7016":4,"7014":2,"7012":2,"7013":4,"7011":1,"8012":1,"40A1":1,"8013":4,"5012":2,"9541":3,"8011":1,"8016":1,"9012":2,"1021":4,"4052":1,"8054":1,"2011":4,"4011":1},"rows":[{"vpps":"6013","n":39,"l1":25.91,"l2":26.12,"l3":28.27,"split_by":"供应商","n_groups":6,"pair_min":4.7,"pair_max":45.5,"gap":2.4,"worst_pairs":[{"train":"安徽爱德夏汽车零部件有限公司","test":"阿尔发（广州）汽车配件有限公司","n_train":1,"n_test":12,"mape":45.45,"bias":-45.45},{"train":"安徽爱德夏汽车零部件有限公司","test":"烟台霍富汽车锁有限公司","n_train":1,"n_test":12,"mape":44.4,"bias":-44.4},{"train":"太仓博泽汽车部件有限公司","test":"阿尔发（广州）汽车配件有限公司","n_train":2,"n_test":12,"mape":42.58,"bias":-42.58}],"best_pairs":[{"train":"宁波华德汽车零部件有限公司","test":"伟速达（中国）汽车安全系统有限公司","n_train":6,"n_test":6,"mape":4.68,"bias":4.68},{"train":"太仓博泽汽车部件有限公司","test":"伟速达（中国）汽车安全系统有限公司","n_train":2,"n_test":6,"mape":4.95,"bias":-4.95},{"train":"安徽爱德夏汽车零部件有限公司","test":"太仓博泽汽车部件有限公司","n_train":1,"n_test":2,"mape":5.0,"bias":-5.0}]},{"vpps":"4022","n":34,"l1":10.84,"l2":11.08,"l3":13.12,"split_by":"供应商","n_groups":4,"pair_min":2.2,"pair_max":21.5,"gap":2.3,"worst_pairs":[{"train":"佛吉亚（天津）汽车部件有限公司","test":"宁波继峰汽车零部件股份有限公司","n_train":7,"n_test":9,"mape":21.46,"bias":-20.54},{"train":"常州卓骏汽车系统有限公司","test":"宁波继峰汽车零部件股份有限公司","n_train":7,"n_test":9,"mape":20.92,"bias":-6.06},{"train":"北京北汽李尔汽车系统有限公司","test":"宁波继峰汽车零部件股份有限公司","n_train":11,"n_test":9,"mape":20.47,"bias":-18.24}],"best_pairs":[{"train":"宁波继峰汽车零部件股份有限公司","test":"北京北汽李尔汽车系统有限公司","n_train":9,"n_test":11,"mape":2.16,"bias":2.16},{"train":"佛吉亚（天津）汽车部件有限公司","test":"北京北汽李尔汽车系统有限公司","n_train":7,"n_test":11,"mape":2.82,"bias":-2.82},{"train":"宁波继峰汽车零部件股份有限公司","test":"佛吉亚（天津）汽车部件有限公司","n_train":9,"n_test":7,"mape":11.33,"bias":-1.74}]},{"vpps":"6014","n":27,"l1":7.1,"l2":7.38,"l3":9.76,"split_by":"供应商","n_groups":6,"pair_min":2.2,"pair_max":23.8,"gap":2.7,"worst_pairs":[{"train":"烟台霍富汽车锁有限公司","test":"安徽爱德夏汽车零部件有限公司","n_train":6,"n_test":1,"mape":23.77,"bias":23.77},{"train":"阿尔发（广州）汽车配件有限公司","test":"安徽爱德夏汽车零部件有限公司","n_train":6,"n_test":1,"mape":20.85,"bias":20.85},{"train":"安徽爱德夏汽车零部件有限公司","test":"烟台霍富汽车锁有限公司","n_train":1,"n_test":6,"mape":19.1,"bias":-19.1}],"best_pairs":[{"train":"阿尔发（广州）汽车配件有限公司","test":"烟台霍富汽车锁有限公司","n_train":6,"n_test":6,"mape":2.23,"bias":-2.23},{"train":"宁波华德汽车零部件有限公司","test":"伟速达（中国）汽车安全系统有限公司","n_train":6,"n_test":6,"mape":4.68,"bias":4.68},{"train":"太仓博泽汽车部件有限公司","test":"伟速达（中国）汽车安全系统有限公司","n_train":2,"n_test":6,"mape":4.95,"bias":-4.95}]},{"vpps":"4021","n":18,"l1":4.06,"l2":4.29,"l3":6.48,"split_by":"供应商","n_groups":6,"pair_min":2.1,"pair_max":14.0,"gap":2.4,"worst_pairs":[{"train":"佛吉亚（天津）汽车部件有限公司","test":"安闻汽车技术（天津）有限公司","n_train":4,"n_test":1,"mape":14.04,"bias":14.04},{"train":"常州卓骏汽车系统有限公司","test":"安闻汽车技术（天津）有限公司","n_train":4,"n_test":1,"mape":14.04,"bias":14.04},{"train":"安闻汽车技术（天津）有限公司","test":"常州卓骏汽车系统有限公司","n_train":1,"n_test":4,"mape":13.64,"bias":-13.64}],"best_pairs":[{"train":"武汉华威科智能技术有限公司","test":"北京北汽李尔汽车系统有限公司","n_train":1,"n_test":4,"mape":2.09,"bias":-2.09},{"train":"北京北汽李尔汽车系统有限公司","test":"武汉华威科智能技术有限公司","n_train":4,"n_test":1,"mape":2.13,"bias":2.13},{"train":"宁波继峰汽车零部件股份有限公司","test":"北京北汽李尔汽车系统有限公司","n_train":4,"n_test":4,"mape":3.42,"bias":3.42}]},{"vpps":"8032","n":18,"l1":5.57,"l2":5.87,"l3":null,"split_by":null,"n_groups":0,"pair_min":null,"pair_max":null,"gap":null,"worst_pairs":[],"best_pairs":[]},{"vpps":"4014","n":15,"l1":3.21,"l2":3.28,"l3":null,"split_by":null,"n_groups":0,"pair_min":null,"pair_max":null,"gap":null,"worst_pairs":[],"best_pairs":[]},{"vpps":"7071","n":13,"l1":21.31,"l2":24.34,"l3":23.5,"split_by":"供应商","n_groups":4,"pair_min":5.3,"pair_max":68.5,"gap":2.2,"worst_pairs":[{"train":"泰州特科塑料技术有限公司","test":"欧摩威汽车电子（芜湖）有限公司","n_train":4,"n_test":1,"mape":68.49,"bias":68.49},{"train":"欧摩威汽车电子（芜湖）有限公司","test":"泰州特科塑料技术有限公司","n_train":1,"n_test":4,"mape":40.58,"bias":-40.58},{"train":"神通科技集团股份有限公司","test":"欧摩威汽车电子（芜湖）有限公司","n_train":4,"n_test":1,"mape":39.96,"bias":39.96}],"best_pairs":[{"train":"神通科技集团股份有限公司","test":"天津敏信机械有限公司","n_train":4,"n_test":4,"mape":5.34,"bias":5.34},{"train":"天津敏信机械有限公司","test":"神通科技集团股份有限公司","n_train":4,"n_test":4,"mape":9.09,"bias":-3.72},{"train":"神通科技集团股份有限公司","test":"泰州特科塑料技术有限公司","n_train":4,"n_test":4,"mape":16.84,"bias":-16.84}]},{"vpps":"5021","n":13,"l1":6.61,"l2":7.21,"l3":11.9,"split_by":"供应商","n_groups":3,"pair_min":5.2,"pair_max":23.0,"gap":5.3,"worst_pairs":[{"train":"艾联（上海）汽车零部件有限公司","test":"领科工业（江苏）有限公司","n_train":2,"n_test":2,"mape":22.99,"bias":22.99},{"train":"领科工业（江苏）有限公司","test":"艾联（上海）汽车零部件有限公司","n_train":2,"n_test":2,"mape":18.7,"bias":-18.7},{"train":"领科工业（江苏）有限公司","test":"海程新材料（芜湖）有限公司","n_train":2,"n_test":9,"mape":15.2,"bias":-15.2}],"best_pairs":[{"train":"艾联（上海）汽车零部件有限公司","test":"海程新材料（芜湖）有限公司","n_train":2,"n_test":9,"mape":5.22,"bias":4.3},{"train":"海程新材料（芜湖）有限公司","test":"艾联（上海）汽车零部件有限公司","n_train":9,"n_test":2,"mape":7.9,"bias":-7.9},{"train":"海程新材料（芜湖）有限公司","test":"领科工业（江苏）有限公司","n_train":9,"n_test":2,"mape":13.28,"bias":13.28}]},{"vpps":"4071","n":12,"l1":4.72,"l2":5.03,"l3":5.3,"split_by":"供应商","n_groups":2,"pair_min":4.9,"pair_max":5.7,"gap":0.6,"worst_pairs":[{"train":"宁波均胜汽车安全系统有限公司","test":"采埃孚汽车安全系统（张家港）有限公司","n_train":6,"n_test":6,"mape":5.69,"bias":2.93},{"train":"采埃孚汽车安全系统（张家港）有限公司","test":"宁波均胜汽车安全系统有限公司","n_train":6,"n_test":6,"mape":4.92,"bias":-4.92}],"best_pairs":[{"train":"采埃孚汽车安全系统（张家港）有限公司","test":"宁波均胜汽车安全系统有限公司","n_train":6,"n_test":6,"mape":4.92,"bias":-4.92},{"train":"宁波均胜汽车安全系统有限公司","test":"采埃孚汽车安全系统（张家港）有限公司","n_train":6,"n_test":6,"mape":5.69,"bias":2.93}]},{"vpps":"5022","n":12,"l1":5.48,"l2":5.87,"l3":null,"split_by":null,"n_groups":0,"pair_min":null,"pair_max":null,"gap":null,"worst_pairs":[],"best_pairs":[]},{"vpps":"2022","n":10,"l1":6.66,"l2":7.23,"l3":9.15,"split_by":"供应商","n_groups":6,"pair_min":0.4,"pair_max":21.2,"gap":2.5,"worst_pairs":[{"train":"博格华纳汽车零部件（天津）有限公司","test":"上海汇众萨克斯减振器有限公司","n_train":1,"n_test":1,"mape":21.23,"bias":21.23},{"train":"联合汽车电子有限公司","test":"上海汇众萨克斯减振器有限公司","n_train":1,"n_test":1,"mape":20.74,"bias":20.74},{"train":"苏州慧程智能科技有限公司","test":"上海汇众萨克斯减振器有限公司","n_train":1,"n_test":1,"mape":19.3,"bias":19.3}],"best_pairs":[{"train":"联合汽车电子有限公司","test":"博格华纳汽车零部件（天津）有限公司","n_train":1,"n_test":1,"mape":0.4,"bias":-0.4},{"train":"博格华纳汽车零部件（天津）有限公司","test":"联合汽车电子有限公司","n_train":1,"n_test":1,"mape":0.4,"bias":0.4},{"train":"苏州慧程智能科技有限公司","test":"联合汽车电子有限公司","n_train":1,"n_test":1,"mape":1.19,"bias":-1.19}]},{"vpps":"2031","n":10,"l1":19.98,"l2":22.16,"l3":40.68,"split_by":"供应商","n_groups":2,"pair_min":31.8,"pair_max":46.6,"gap":20.7,"worst_pairs":[{"train":"新昌县恒泰机械有限公司","test":"中信戴卡股份有限公司","n_train":4,"n_test":6,"mape":46.6,"bias":46.6},{"train":"中信戴卡股份有限公司","test":"新昌县恒泰机械有限公司","n_train":6,"n_test":4,"mape":31.8,"bias":-31.8}],"best_pairs":[{"train":"中信戴卡股份有限公司","test":"新昌县恒泰机械有限公司","n_train":6,"n_test":4,"mape":31.8,"bias":-31.8},{"train":"新昌县恒泰机械有限公司","test":"中信戴卡股份有限公司","n_train":4,"n_test":6,"mape":46.6,"bias":46.6}]},{"vpps":"2021","n":8,"l1":7.02,"l2":7.89,"l3":9.13,"split_by":"供应商","n_groups":3,"pair_min":0.4,"pair_max":11.5,"gap":2.1,"worst_pairs":[{"train":"宁波拓普汽车部件有限公司","test":"上海汇众萨克斯减振器有限公司","n_train":2,"n_test":2,"mape":11.52,"bias":11.52},{"train":"上海汇众萨克斯减振器有限公司","test":"浙江戈尔德智能悬架股份有限公司","n_train":2,"n_test":4,"mape":11.26,"bias":-11.26},{"train":"浙江戈尔德智能悬架股份有限公司","test":"上海汇众萨克斯减振器有限公司","n_train":4,"n_test":2,"mape":11.04,"bias":11.04}],"best_pairs":[{"train":"浙江戈尔德智能悬架股份有限公司","test":"宁波拓普汽车部件有限公司","n_train":4,"n_test":2,"mape":0.43,"bias":-0.43},{"train":"宁波拓普汽车部件有限公司","test":"浙江戈尔德智能悬架股份有限公司","n_train":2,"n_test":4,"mape":8.6,"bias":-1.04},{"train":"上海汇众萨克斯减振器有限公司","test":"宁波拓普汽车部件有限公司","n_train":2,"n_test":2,"mape":10.33,"bias":-10.33}]},{"vpps":"8056","n":8,"l1":1.87,"l2":2.16,"l3":2.22,"split_by":"供应商","n_groups":4,"pair_min":0.1,"pair_max":4.2,"gap":0.4,"worst_pairs":[{"train":"河北初光汽车部件有限公司","test":"宣城立讯精密工业有限公司","n_train":2,"n_test":2,"mape":4.24,"bias":4.24},{"train":"河北初光汽车部件有限公司","test":"惠州市华阳多媒体电子有限公司","n_train":2,"n_test":2,"mape":4.11,"bias":4.11},{"train":"宣城立讯精密工业有限公司","test":"河北初光汽车部件有限公司","n_train":2,"n_test":2,"mape":4.08,"bias":-4.08}],"best_pairs":[{"train":"惠州市华阳多媒体电子有限公司","test":"宣城立讯精密工业有限公司","n_train":2,"n_test":2,"mape":0.13,"bias":0.13},{"train":"宣城立讯精密工业有限公司","test":"惠州市华阳多媒体电子有限公司","n_train":2,"n_test":2,"mape":0.23,"bias":-0.13},{"train":"浙江长江汽车电子有限公司","test":"惠州市华阳多媒体电子有限公司","n_train":2,"n_test":2,"mape":0.38,"bias":0.38}]},{"vpps":"4023","n":7,"l1":12.98,"l2":15.04,"l3":18.76,"split_by":"供应商","n_groups":4,"pair_min":6.5,"pair_max":40.2,"gap":5.8,"worst_pairs":[{"train":"佛吉亚（天津）汽车部件有限公司","test":"北京北汽李尔汽车系统有限公司","n_train":1,"n_test":2,"mape":40.19,"bias":40.19},{"train":"常州卓骏汽车系统有限公司","test":"北京北汽李尔汽车系统有限公司","n_train":2,"n_test":2,"mape":28.78,"bias":28.78},{"train":"北京北汽李尔汽车系统有限公司","test":"佛吉亚（天津）汽车部件有限公司","n_train":2,"n_test":1,"mape":28.67,"bias":-28.67}],"best_pairs":[{"train":"宁波继峰汽车零部件股份有限公司","test":"常州卓骏汽车系统有限公司","n_train":2,"n_test":2,"mape":6.55,"bias":-6.55},{"train":"常州卓骏汽车系统有限公司","test":"佛吉亚（天津）汽车部件有限公司","n_train":2,"n_test":1,"mape":8.14,"bias":-8.14},{"train":"佛吉亚（天津）汽车部件有限公司","test":"常州卓骏汽车系统有限公司","n_train":1,"n_test":2,"mape":8.86,"bias":8.86}]},{"vpps":"5032","n":7,"l1":2.01,"l2":2.24,"l3":null,"split_by":null,"n_groups":0,"pair_min":null,"pair_max":null,"gap":null,"worst_pairs":[],"best_pairs":[]},{"vpps":"1022","n":6,"l1":6.52,"l2":7.26,"l3":12.95,"split_by":"供应商","n_groups":4,"pair_min":2.9,"pair_max":25.4,"gap":6.4,"worst_pairs":[{"train":"浙江三花汽零商贸有限公司","test":"索恩格汽车电动系统有限公司","n_train":1,"n_test":3,"mape":25.38,"bias":25.38},{"train":"浙江三花汽零商贸有限公司","test":"盈智热管理科技（嘉兴）有限公司","n_train":1,"n_test":1,"mape":21.73,"bias":21.73},{"train":"索恩格汽车电动系统有限公司","test":"浙江三花汽零商贸有限公司","n_train":3,"n_test":1,"mape":20.2,"bias":-20.2}],"best_pairs":[{"train":"索恩格汽车电动系统有限公司","test":"盈智热管理科技（嘉兴）有限公司","n_train":3,"n_test":1,"mape":2.85,"bias":-2.85},{"train":"盈智热管理科技（嘉兴）有限公司","test":"索恩格汽车电动系统有限公司","n_train":1,"n_test":3,"mape":2.99,"bias":2.99},{"train":"盈智热管理科技（嘉兴）有限公司","test":"四川芯智热控技术有限公司","n_train":1,"n_test":1,"mape":7.89,"bias":-7.89}]},{"vpps":"4051","n":6,"l1":5.93,"l2":7.09,"l3":7.44,"split_by":"供应商","n_groups":3,"pair_min":4.0,"pair_max":10.4,"gap":1.5,"worst_pairs":[{"train":"厦门盈趣汽车电子有限公司","test":"苏州创欣材料科技有限公司","n_train":1,"n_test":3,"mape":10.37,"bias":-8.05},{"train":"宁波祢若电子科技有限公司","test":"苏州创欣材料科技有限公司","n_train":2,"n_test":3,"mape":9.42,"bias":-4.26},{"train":"苏州创欣材料科技有限公司","test":"厦门盈趣汽车电子有限公司","n_train":3,"n_test":1,"mape":8.83,"bias":8.83}],"best_pairs":[{"train":"厦门盈趣汽车电子有限公司","test":"宁波祢若电子科技有限公司","n_train":1,"n_test":2,"mape":3.97,"bias":-3.97},{"train":"宁波祢若电子科技有限公司","test":"厦门盈趣汽车电子有限公司","n_train":2,"n_test":1,"mape":4.13,"bias":4.13},{"train":"苏州创欣材料科技有限公司","test":"宁波祢若电子科技有限公司","n_train":3,"n_test":2,"mape":4.52,"bias":4.52}]},{"vpps":"4034","n":6,"l1":8.11,"l2":9.84,"l3":13.06,"split_by":"供应商","n_groups":3,"pair_min":4.4,"pair_max":21.5,"gap":5.0,"worst_pairs":[{"train":"山东鲁科新材料有限公司","test":"北京市华光胜远贸易有限公司","n_train":2,"n_test":2,"mape":21.5,"bias":21.5},{"train":"北京市华光胜远贸易有限公司","test":"山东鲁科新材料有限公司","n_train":2,"n_test":2,"mape":17.73,"bias":-17.73},{"train":"山东东珩国纤新材料有限公司","test":"北京市华光胜远贸易有限公司","n_train":2,"n_test":2,"mape":16.21,"bias":16.21}],"best_pairs":[{"train":"山东东珩国纤新材料有限公司","test":"山东鲁科新材料有限公司","n_train":2,"n_test":2,"mape":4.36,"bias":-4.36},{"train":"山东鲁科新材料有限公司","test":"山东东珩国纤新材料有限公司","n_train":2,"n_test":2,"mape":4.53,"bias":4.53},{"train":"北京市华光胜远贸易有限公司","test":"山东东珩国纤新材料有限公司","n_train":2,"n_test":2,"mape":14.0,"bias":-14.0}]},{"vpps":"6033","n":5,"l1":10.23,"l2":12.82,"l3":15.76,"split_by":"供应商","n_groups":3,"pair_min":5.7,"pair_max":23.2,"gap":5.5,"worst_pairs":[{"train":"上海恩井汽车科技有限公司","test":"烟台三环锁业集团股份有限公司","n_train":2,"n_test":2,"mape":23.18,"bias":23.18},{"train":"培奇爱汽车配件（太仓）有限公司","test":"烟台三环锁业集团股份有限公司","n_train":1,"n_test":2,"mape":16.55,"bias":16.55},{"train":"烟台三环锁业集团股份有限公司","test":"上海恩井汽车科技有限公司","n_train":2,"n_test":2,"mape":16.53,"bias":-16.53}],"best_pairs":[{"train":"上海恩井汽车科技有限公司","test":"培奇爱汽车配件（太仓）有限公司","n_train":2,"n_test":1,"mape":5.69,"bias":5.69},{"train":"培奇爱汽车配件（太仓）有限公司","test":"上海恩井汽车科技有限公司","n_train":1,"n_test":2,"mape":12.64,"bias":-2.79},{"train":"烟台三环锁业集团股份有限公司","test":"培奇爱汽车配件（太仓）有限公司","n_train":2,"n_test":1,"mape":14.14,"bias":-14.14}]},{"vpps":"3013","n":5,"l1":2.0,"l2":2.51,"l3":3.22,"split_by":"供应商","n_groups":5,"pair_min":0.0,"pair_max":6.9,"gap":1.2,"worst_pairs":[{"train":"孝感华工高理电子有限公司","test":"浙江科博乐新能源科技有限公司","n_train":1,"n_test":1,"mape":6.93,"bias":6.93},{"train":"浙江科博乐新能源科技有限公司","test":"孝感华工高理电子有限公司","n_train":1,"n_test":1,"mape":6.49,"bias":-6.49},{"train":"孝感华工高理电子有限公司","test":"江苏华智新能源科技有限公司","n_train":1,"n_test":1,"mape":6.0,"bias":6.0}],"best_pairs":[{"train":"福州丹诺西诚电子科技有限公司","test":"东莞市赛尔盈电子有限公司","n_train":1,"n_test":1,"mape":0.02,"bias":0.02},{"train":"东莞市赛尔盈电子有限公司","test":"福州丹诺西诚电子科技有限公司","n_train":1,"n_test":1,"mape":0.02,"bias":-0.02},{"train":"浙江科博乐新能源科技有限公司","test":"江苏华智新能源科技有限公司","n_train":1,"n_test":1,"mape":0.87,"bias":-0.87}]},{"vpps":"4015","n":5,"l1":4.59,"l2":5.49,"l3":null,"split_by":null,"n_groups":0,"pair_min":null,"pair_max":null,"gap":null,"worst_pairs":[],"best_pairs":[]}]};
+</script>
+<script>
+function esc(s){return String(s==null?'':s).replace(/[&<>"']/g,function(c){
+  return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];});}
+function fc(n,d){return Number(n||0).toFixed(d==null?1:d);}
+
+function mapeTag(v){
+  if(v==null) return '<span class="tag grey">无数据</span>';
+  var cls = v>20?'red':(v>10?'orange':'green');
+  return '<span class="tag '+cls+'">'+fc(v,1)+'%</span>';
+}
+
+function render(){
+  var rows=DATA.rows;
+  var withL3=rows.filter(function(r){return r.l3!=null;});
+  // 三个中位数统一用「可做 L3 的子集」，否则分母不同不可比
+  var medL1=median(withL3.map(function(r){return r.l1;}));
+  var medL2=median(withL3.map(function(r){return r.l2;}));
+  var medL3=median(withL3.map(function(r){return r.l3;}));
+
+  document.getElementById('ver').textContent =
+    DATA.generated_at+' · '+rows.length+' 个 VPPS（样本 ≥'+DATA.min_samples+'）· '
+    +withL3.length+' 个可做 L3 · 源数据 '+DATA.source.records_raw+' 条 → 去重 '+DATA.source.records_deduped+' 条';
+
+  document.getElementById('k1').textContent = fc(medL1,1)+'%';
+  document.getElementById('k2').textContent = fc(medL2,1)+'%';
+  document.getElementById('k3').textContent = fc(medL3,1)+'%';
+  document.getElementById('k4').textContent = '×'+fc(medL3/medL1,1);
+  document.getElementById('wm1').textContent = fc(medL1,1)+'%';
+  document.getElementById('wm3').textContent = fc(medL3,1)+'%';
+
+  var h='<table><thead><tr><th style="width:64px">VPPS</th><th class="n">样本</th>'
+    +'<th>L1 自拟合</th><th>L2 留一</th><th>L3 跨组</th>'
+    +'<th class="n">L3范围</th><th>分组</th><th>判定</th></tr></thead><tbody>';
+  rows.forEach(function(r){
+    var verdict, vcls;
+    if(r.l3==null){ verdict='样本单一'; vcls='grey'; }
+    else if(r.gap>=10){ verdict='迁移性差'; vcls='red'; }
+    else if(r.gap>=4){ verdict='有衰减'; vcls='orange'; }
+    else { verdict='较稳定'; vcls='green'; }
+    var range = (r.pair_min!=null) ? (fc(r.pair_min,1)+'~'+fc(r.pair_max,1)+'%') : '—';
+    h+='<tr><td class="mono b">'+esc(r.vpps)+'</td><td class="n">'+r.n+'</td>'
+      +'<td>'+mapeTag(r.l1)+'</td><td>'+mapeTag(r.l2)+'</td><td>'+mapeTag(r.l3)+'</td>'
+      +'<td class="n" style="font-size:12px">'+range+'</td>'
+      +'<td style="font-size:11.5px">'+(r.split_by?esc(r.split_by)+'×'+r.n_groups:'—')+'</td>'
+      +'<td><span class="tag '+vcls+'">'+verdict+'</span></td></tr>';
+  });
+  h+='</tbody></table>';
+  h+='<details><summary>看到 L1→L3 的误差柱状对比</summary><div style="margin-top:12px">';
+  rows.slice(0,14).forEach(function(r){
+    var mx=Math.max(r.l1,r.l2,r.l3||0,1);
+    h+='<div style="margin-bottom:10px"><div style="font-size:12px;font-weight:600;margin-bottom:3px">VPPS '+esc(r.vpps)+'</div>';
+    [['L1',r.l1,'#52c41a'],['L2',r.l2,'#faad14'],['L3',r.l3,'#ff4d4f']].forEach(function(x){
+      if(x[1]==null) return;
+      h+='<div class="barcmp"><div class="lab">'+x[0]+'</div>'
+       +'<div class="track"><div class="bar" style="width:'+(x[1]/mx*100)+'%;background:'+x[2]+'"></div></div>'
+       +'<div class="val" style="color:'+x[2]+'">'+fc(x[1],1)+'%</div></div>';
+    });
+    h+='</div>';
+  });
+  h+='</div></details>';
+  document.getElementById('tbl').innerHTML=h;
+
+  // 恶化最严重
+  var worst=withL3.slice().sort(function(a,b){return b.gap-a.gap;}).slice(0,3);
+  var w='';
+  worst.forEach(function(r){
+    w+='<div style="border:1px solid #f0f0f0;border-radius:6px;padding:14px 16px;margin-bottom:12px">';
+    w+='<div style="font-weight:600;margin-bottom:8px">VPPS '+esc(r.vpps)+
+       ' <span class="tag red">+'+fc(r.gap,1)+' pp</span></div>';
+    w+='<div style="font-size:12.5px;color:rgba(0,0,0,.65);line-height:1.8">'
+      +'自拟合 '+fc(r.l1,1)+'% → 留一 '+fc(r.l2,1)+'% → 跨供应商 '+fc(r.l3,1)+'%<br>'
+      +'最差组合：'+esc(r.worst_pairs[0].train.slice(0,18))+' 估 '
+      +esc(r.worst_pairs[0].test.slice(0,18))+' = '+fc(r.worst_pairs[0].mape,1)+'%</div>';
+    w+='</div>';
+  });
+  document.getElementById('worst').innerHTML=w;
+
+  // 洞察
+  var stable=withL3.filter(function(r){return r.gap<4;});
+  var bad=withL3.filter(function(r){return r.gap>=10;});
+  var ins='';
+  ins+='<div><b>1. 自拟合误差是幻觉</b>：L1 中位 '+fc(medL1,1)+'%，看起来可以接受。'
+     +'但这只是「因子记住了这批数据」。换成 L3 立刻变成 '+fc(medL3,1)+'%。</div>';
+  ins+='<div><b>2. 因子可迁移的只有一小半</b>：'+withL3.length+' 个可验证 VPPS 里，'
+     +'只有 <span class="hl">'+stable.length+' 个</span>跨供应商误差增幅 <4pp（'
+     +stable.map(function(r){return esc(r.vpps);}).join('、')+'）；'
+     +'<span class="bad">'+bad.length+' 个</span>增幅 ≥10pp。</div>';
+  ins+='<div><b>3. 真正的粒度应该是供应商 × 品类，不是 VPPS</b>：'
+     +'同一 VPPS 下不同供应商的材料占比能差 2~3pp（如 4071：均胜 83.5% vs 采埃孚 86.0%），'
+     +'乘到价格上就是 5% 的差。一个 VPPS 一个因子必然把两头都估错。</div>';
+  ins+='<div><b>4. 建议的产品结论</b>：估算页面不要只显示一个数，要显示'
+     +'<span class="hl">「区间 + 样本来源」</span>——'
+     +'「同供应商历史 4 条，估 100 元（±3%）；跨供应商 12 条，估 100 元（±12%）」。'
+     +'供应商来报价时，优先匹配他自己的历史。</div>';
+  document.getElementById('insight').innerHTML=ins;
+
+  document.getElementById('foot').innerHTML =
+    '源数据 '+DATA.source.records_raw+' 条 · 真实拆解 '+DATA.source.records_real_breakdown
+    +' 条 · 去重后 '+DATA.source.records_deduped+' 条（剔除 '+DATA.source.dupes_removed+' 条重复快照）<br>'
+    +'去重规则：'+esc(DATA.source.dedupe_rule)+'<br>'
+    +'跳过 '+Object.keys(DATA.skipped).length+' 个样本不足 '+DATA.min_samples+' 条的 VPPS';
+}
+
+function median(a){
+  if(!a.length) return 0;
+  var s=a.slice().sort(function(x,y){return x-y;});
+  var m=Math.floor(s.length/2);
+  return s.length%2 ? s[m] : (s[m-1]+s[m])/2;
+}
+
+render();
+</script>
+</body>
+</html>
