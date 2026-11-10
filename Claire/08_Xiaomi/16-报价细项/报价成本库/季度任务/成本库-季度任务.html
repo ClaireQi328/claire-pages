@@ -1,0 +1,267 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>报价成本库 · 季度任务拆解</title>
+<style>
+*{box-sizing:border-box}
+body{margin:0;background:#fff;color:rgba(0,0,0,.88);
+font:14px/1.5715 -apple-system,BlinkMacSystemFont,"PingFang SC","Segoe UI",sans-serif}
+.wrap{max-width:1420px;margin:0 auto;padding:28px 24px 60px}
+h1{font-size:26px;font-weight:600;margin:0 0 8px}
+.sub{color:rgba(0,0,0,.45);margin-bottom:10px;font-size:13.5px}
+.ver{display:inline-block;font-size:11.5px;color:rgba(0,0,0,.45);background:#fafafa;
+border:1px solid #f0f0f0;border-radius:4px;padding:2px 8px;margin-bottom:20px;font-family:ui-monospace,monospace}
+.card{border:1px solid #f0f0f0;border-radius:8px;padding:22px;margin-bottom:16px;box-shadow:0 1px 2px rgba(0,0,0,.03)}
+h2{font-size:15.5px;font-weight:600;margin:0 0 14px;padding-left:10px;border-left:3px solid #1677ff}
+
+.kpis{display:grid;grid-template-columns:repeat(5,1fr);gap:12px}
+.kpi{background:#fafafa;border-radius:6px;padding:14px 16px}
+.kpi .v{font-size:24px;font-weight:600;line-height:1.2;font-variant-numeric:tabular-nums}
+.kpi .v.blue{color:#1677ff}.kpi .v.red{color:#cf1322}.kpi .v.orange{color:#d46b08}.kpi .v.green{color:#389e0d}
+.kpi .k{font-size:12px;color:rgba(0,0,0,.45);margin-top:5px}
+.kpi .d{font-size:11px;margin-top:3px;color:rgba(0,0,0,.35)}
+
+table{width:100%;border-collapse:collapse;font-size:12.5px}
+th{background:#fafafa;text-align:left;padding:9px 10px;font-weight:600;
+border-bottom:1px solid #f0f0f0;white-space:nowrap;font-size:12px}
+td{padding:9px 10px;border-bottom:1px solid #f5f5f5;color:rgba(0,0,0,.65);vertical-align:top}
+td.n{text-align:right;font-variant-numeric:tabular-nums}
+td.b{font-weight:600;color:rgba(0,0,0,.88)}
+td.mono{font-family:ui-monospace,monospace;font-size:11px}
+tr:hover td{background:#fafafa}
+
+.tag{display:inline-block;padding:0 7px;border-radius:4px;font-size:11.5px;line-height:19px;
+border:1px solid;white-space:nowrap}
+.tag.blue{color:#1677ff;border-color:#91caff;background:#e6f4ff}
+.tag.green{color:#389e0d;border-color:#b7eb8f;background:#f6ffed}
+.tag.orange{color:#d46b08;border-color:#ffd591;background:#fff7e6}
+.tag.red{color:#cf1322;border-color:#ffa39e;background:#fff1f0}
+.tag.grey{color:rgba(0,0,0,.45);border-color:#d9d9d9;background:#fafafa}
+
+.infobox{background:#e6f4ff;border:1px solid #91caff;border-radius:6px;padding:13px 15px;
+font-size:12.5px;line-height:1.85;color:rgba(0,0,0,.65)}
+.infobox b{color:#1677ff}
+.warnbox{background:#fff1f0;border:1px solid #ffa39e;border-radius:6px;padding:13px 15px;
+font-size:12.5px;line-height:1.85;color:rgba(0,0,0,.65)}
+.warnbox b{color:#cf1322}
+.okbox{background:#f6ffed;border:1px solid #b7eb8f;border-radius:6px;padding:13px 15px;
+font-size:12.5px;line-height:1.85;color:rgba(0,0,0,.65)}
+.okbox b{color:#389e0d}
+
+/* 季度泳道 */
+.qblock{margin-bottom:18px}
+.qhead{display:flex;align-items:center;gap:10px;margin-bottom:8px}
+.qhead .qn{font-size:14px;font-weight:600}
+.qhead .qt{font-size:12px;color:rgba(0,0,0,.45)}
+.qhead .qs{margin-left:auto;font-size:11.5px;color:rgba(0,0,0,.45)}
+.qbar{display:flex;height:8px;border-radius:4px;overflow:hidden;margin-bottom:10px;background:#f5f5f5}
+.qbar div{height:100%}
+.qbar .pm{background:#722ed1}.qbar .dv{background:#1677ff}.qbar .fe{background:#52c41a}.qbar .qa{background:#faad14}
+
+.tcard{border:1px solid #f0f0f0;border-radius:6px;padding:12px 14px;margin-bottom:8px;background:#fff}
+.tcard:hover{border-color:#91caff;background:#fafcff}
+.tcard .th{display:flex;align-items:flex-start;gap:8px;margin-bottom:6px}
+.tcard .tid{font-family:ui-monospace,monospace;font-size:11px;color:#1677ff;
+background:#e6f4ff;padding:1px 6px;border-radius:3px;flex:none}
+.tcard .tt{font-weight:600;font-size:13px;flex:1}
+.tcard .td{font-size:11.5px;color:rgba(0,0,0,.45);line-height:1.7;margin-bottom:6px}
+.tcard .tm{display:flex;gap:14px;font-size:11px;color:rgba(0,0,0,.45);flex-wrap:wrap}
+.tcard .tm b{color:rgba(0,0,0,.65);font-variant-numeric:tabular-nums}
+.tcard .trisk{font-size:11px;color:#d46b08;margin-top:6px;padding-top:6px;border-top:1px dashed #f5f5f5}
+
+.foot{text-align:center;color:rgba(0,0,0,.25);font-size:12px;margin-top:28px;line-height:1.8}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>报价成本库 · 季度任务拆解</h1>
+  <div class="sub">11 个任务，跨 4 个季度。先看清楚总量，再决定砍哪些。</div>
+  <div class="ver" id="ver">-</div>
+
+  <div class="card">
+    <h2>先看一个必须面对的数字</h2>
+    <div class="warnbox">
+      现有季度看板里，<b>「5.5 成本因子库雏形」= 10 人周</b>（PM 1 / DEV 6 / FE 2 / QA 1，Q1 穿插）。<br>
+      而这次拆出来的完整范围是 <b><span id="totalW">-</span> 人周</b>——<b>相差 <span id="ratio">-</span> 倍</b>。
+    </div>
+    <div class="infobox" style="margin-top:12px">
+      <b>这不是估多了，是原卡片估少了。</b>原卡片的 desc 只有一句「报价细项沉淀为成本因子库，Q1 穿插推进」，
+      没算导入、解析、确认队列、权限、内嵌比价这些必做项。<br>
+      所以真正要决策的不是「怎么排这 133 人周」，而是<span style="background:#fff1b8;padding:1px 5px;border-radius:3px;font-weight:600">
+      这一季到底做哪几块</span>。
+    </div>
+  </div>
+
+  <div class="card">
+    <h2>总量与分布</h2>
+    <div class="kpis" id="kpis"></div>
+    <div id="qsummary" style="margin-top:16px"></div>
+  </div>
+
+  <div class="card">
+    <h2>分季度任务</h2>
+    <div id="board"></div>
+  </div>
+
+  <div class="card">
+    <h2>三个必须做的取舍</h2>
+    <div id="tradeoffs"></div>
+  </div>
+
+  <div class="card">
+    <h2>最小可交付（如果只能做一季度）</h2>
+    <div id="mvp"></div>
+  </div>
+
+  <div class="foot" id="foot"></div>
+</div>
+<script>
+var DATA={"generated_at":"2026-11-10","tasks":[{"id":"C1","q":"m1112","title":"成本库数据模型与关键要素定义","desc":"三层字段（必填3/建议1/选填8）+ 数据模型 + 与报价细项字段映射；不写代码，先定口径","prio":"P0","pm":1,"dev":4,"fe":0,"qa":1,"dep":"—","risk":"字段口径需与财务、CE 打合；820 报告口径可能不一致","val":"后续所有功能的地基"},{"id":"C2","q":"m1112","title":"个人工作区（我的数据）","desc":"采购员私有区：拖拽上传、解析结果预览、自己的备注标记；不做共享，不做审批","prio":"P0","pm":0.5,"dev":5,"fe":4,"qa":2,"dep":"C1","risk":"解析准确率不足会让采购员放弃；需保留原始文件可回溯","val":"降低导入心理门槛，先让数据进来"},{"id":"C3","q":"m1112","title":"单文件解析与落库","desc":"复用现有 PoC（14 份真实报价实测），支持 xlsx/xls/csv，字段映射 + 勾稽校验 + 落个人库","prio":"P0","pm":0.5,"dev":5,"fe":2,"qa":2,"dep":"C1、C2","risk":"模板千差万别，L0 总价型文件占比高（67%），解析后可用率低","val":"把文件变成结构化数据"},{"id":"C4","q":"q1m","title":"批量导入与人工确认队列","desc":"多零件多工段批量模板（v6 已完成）+ 低置信度字段确认队列 + 入库前 8 项校验","prio":"P0","pm":1,"dev":6,"fe":5,"qa":3,"dep":"C3","risk":"确认队列 129 项会劝退，需按置信度分级 + 批量确认","val":"从「一份一份」到「一批一批」"},{"id":"C5","q":"q1m","title":"品类库聚合与因子计算","desc":"个人库 → 品类库提报；按 VPPS 聚合材料/制造占比；重复快照去重 + 父子件去重 + 金额加权","prio":"P0","pm":1,"dev":6,"fe":2,"qa":2,"dep":"C2、C3","risk":"父子件重复、只报总价的记录会污染因子（已实测 142 条重复）","val":"从「一堆记录」到「可用的因子」"},{"id":"C6","q":"q1m","title":"内嵌 RFQ 比价第三屏","desc":"比价页新增成本库对比：历史材料/制造占比 + 本轮偏离 + 三档结论（不可比/样本不足/可比）","prio":"P0","pm":1,"dev":6,"fe":5,"qa":2,"dep":"C5","risk":"EP 比价页改造成本未知；供应商跨 RFQ 主数据关联待确认","val":"采购员真正用得上的场景"},{"id":"C7","q":"q2","title":"三层权限与数据归属","desc":"个人私有 / 品类共享 / 全库脱敏三层可见性；提报审批流；越权审计日志","prio":"P0","pm":1.5,"dev":8,"fe":3,"qa":3,"dep":"C5","risk":"权限模型与 EP 现有角色体系要对齐；范围界定易扯皮","val":"共享的前提，也是合规底线"},{"id":"C8","q":"q2","title":"品类价差地图与异常清单","desc":"按 VPPS 出价差中位/最大；材料费异常清单；制造费离群预警；支持导出","prio":"P1","pm":1,"dev":5,"fe":4,"qa":2,"dep":"C5、C6","risk":"差异大 ≠ 有水分，需保留「数据不可比」降级路径","val":"品类经理和管理层的抓手"},{"id":"C9","q":"q2","title":"供应商 × 品类因子粒度","desc":"从 VPPS 单因子改为「供应商 × 品类」双维；跨供应商 vs 同供应商分别给区间","prio":"P1","pm":1,"dev":5,"fe":2,"qa":2,"dep":"C5","risk":"信噪比仅 1.2x（实测），粒度细化收益有限，需先验证","val":"把误差从 11.9% 往下压"},{"id":"C10","q":"h2","title":"成交价回写与谈判闭环","desc":"定点后回写成交价与让步项（材料让多少/制造让多少）；形成「报价→成交」对照","prio":"P1","pm":1,"dev":6,"fe":4,"qa":2,"dep":"C6、C7","risk":"成交数据在合同/SAP 侧，需跨系统打通","val":"比任何因子都值钱的一手信息"},{"id":"C11","q":"h2","title":"估算模型接入（Should-Cost）","desc":"参数化估算：从工艺参数（材料/工时/工段）反推价格；因子作为兜底","prio":"P2","pm":1.5,"dev":8,"fe":3,"qa":3,"dep":"C9、C10","risk":"只有 76% 记录有完整拆解，模型覆盖率受限","val":"从「对比」走向「预判」"}],"quarters":[{"id":"m1112","label":"11–12月","theme":"启动期：把数据装进来"},{"id":"q1m","label":"Q1（1–3月）","theme":"成型期：从数据到可用"},{"id":"q2","label":"Q2'27","theme":"扩展期：权限与横向能力"},{"id":"h2","label":"H2'27","theme":"深化期：闭环与预判"}]};
+</script>
+<script>
+function esc(s){return String(s==null?'':s).replace(/[&<>"']/g,function(c){
+  return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];});}
+function fc(n,d){return Number(n||0).toFixed(d==null?1:d);}
+function sum(t){return t.pm+t.dev+t.fe+t.qa;}
+
+function render(){
+  var T=DATA.tasks, Q=DATA.quarters;
+  var total=T.reduce(function(a,t){return a+sum(t);},0);
+  var byQ={};
+  Q.forEach(function(q){ byQ[q.id]={pm:0,dev:0,fe:0,qa:0,n:0,total:0}; });
+  T.forEach(function(t){ var b=byQ[t.q]; if(b){ b.pm+=t.pm;b.dev+=t.dev;b.fe+=t.fe;b.qa+=t.qa;b.n++;b.total+=sum(t);} });
+
+  document.getElementById('ver').textContent =
+    DATA.generated_at+' · '+T.length+' 个任务 · 跨 '+Q.length+' 个季度';
+  document.getElementById('totalW').textContent = fc(total,0);
+  document.getElementById('ratio').textContent = fc(total/10,0);
+
+  // KPI
+  var all=T.reduce(function(a,t){
+    a.pm+=t.pm;a.dev+=t.dev;a.fe+=t.fe;a.qa+=t.qa;return a;}, {pm:0,dev:0,fe:0,qa:0});
+  var kh='';
+  kh+='<div class="kpi"><div class="v blue">'+fc(total,0)+'</div><div class="k">总人周</div>'
+    +'<div class="d">原卡片 10 人周</div></div>';
+  kh+='<div class="kpi"><div class="v">'+T.length+'</div><div class="k">任务数</div>'
+    +'<div class="d">P0 '+T.filter(function(t){return t.prio==='P0';}).length+' 个</div></div>';
+  kh+='<div class="kpi"><div class="v orange">'+fc(byQ['q1m'].total,0)+'</div><div class="k">Q1 负荷</div>'
+    +'<div class="d">最重的一个季度</div></div>';
+  kh+='<div class="kpi"><div class="v red">'+T.filter(function(t){return t.prio==='P0';}).reduce(function(a,t){return a+sum(t);},0).toFixed(0)+'</div>'
+    +'<div class="k">P0 人周</div><div class="d">不可砍的部分</div></div>';
+  kh+='<div class="kpi"><div class="v green">'+fc(all.dev,0)+'</div><div class="k">后端人周</div>'
+    +'<div class="d">占比 '+fc(all.dev/total*100,0)+'%</div></div>';
+  document.getElementById('kpis').innerHTML=kh;
+
+  // 季度汇总
+  var qs='<table><thead><tr><th>季度</th><th>主题</th><th class="n">任务</th>'
+    +'<th class="n">PM</th><th class="n">DEV</th><th class="n">FE</th><th class="n">QA</th><th class="n">合计</th><th>负荷</th></tr></thead><tbody>';
+  var maxQ=Math.max.apply(null, Q.map(function(q){return byQ[q.id].total;}));
+  Q.forEach(function(q){
+    var b=byQ[q.id];
+    var pct=maxQ?b.total/maxQ*100:0;
+    var color=b.total>=maxQ?'#faad14':(b.total>=maxQ*0.7?'#52c41a':'#1677ff');
+    qs+='<tr><td class="b">'+esc(q.label)+'</td><td style="font-size:11.5px">'+esc(q.theme)+'</td>'
+      +'<td class="n">'+b.n+'</td><td class="n">'+fc(b.pm,1)+'</td><td class="n">'+fc(b.dev,1)+'</td>'
+      +'<td class="n">'+fc(b.fe,1)+'</td><td class="n">'+fc(b.qa,1)+'</td>'
+      +'<td class="n b">'+fc(b.total,1)+'</td>'
+      +'<td><div class="qbar" style="width:100px"><div style="width:'+pct+'%;background:'+color+'"></div></div></td></tr>';
+  });
+  qs+='</tbody></table>';
+  qs+='<div style="display:flex;gap:16px;font-size:11.5px;color:rgba(0,0,0,.45);margin-top:10px">'
+    +'<span><i style="display:inline-block;width:9px;height:9px;background:#722ed1;border-radius:2px;margin-right:4px"></i>PM</span>'
+    +'<span><i style="display:inline-block;width:9px;height:9px;background:#1677ff;border-radius:2px;margin-right:4px"></i>DEV</span>'
+    +'<span><i style="display:inline-block;width:9px;height:9px;background:#52c41a;border-radius:2px;margin-right:4px"></i>FE</span>'
+    +'<span><i style="display:inline-block;width:9px;height:9px;background:#faad14;border-radius:2px;margin-right:4px"></i>QA</span></div>';
+  document.getElementById('qsummary').innerHTML=qs;
+
+  // 分季度卡片
+  var bd='';
+  Q.forEach(function(q){
+    var items=T.filter(function(t){return t.q===q.id;});
+    if(!items.length) return;
+    var b=byQ[q.id];
+    bd+='<div class="qblock">';
+    bd+='<div class="qhead"><span class="qn">'+esc(q.label)+'</span>'
+      +'<span class="qt">'+esc(q.theme)+'</span>'
+      +'<span class="qs">'+items.length+' 个任务 · '+fc(b.total,1)+' 人周</span></div>';
+    var tot=b.total||1;
+    bd+='<div class="qbar">'
+      +'<div class="pm" style="width:'+(b.pm/tot*100)+'%"></div>'
+      +'<div class="dv" style="width:'+(b.dev/tot*100)+'%"></div>'
+      +'<div class="fe" style="width:'+(b.fe/tot*100)+'%"></div>'
+      +'<div class="qa" style="width:'+(b.qa/tot*100)+'%"></div></div>';
+    items.forEach(function(t){
+      var pc=t.prio==='P0'?'red':(t.prio==='P1'?'orange':'grey');
+      bd+='<div class="tcard">'
+        +'<div class="th"><span class="tid">'+esc(t.id)+'</span>'
+        +'<span class="tt">'+esc(t.title)+'</span>'
+        +'<span class="tag '+pc+'">'+esc(t.prio)+'</span></div>'
+        +'<div class="td">'+esc(t.desc)+'</div>'
+        +'<div class="tm">'
+        +'<span>PM <b>'+fc(t.pm,1)+'</b></span><span>DEV <b>'+fc(t.dev,1)+'</b></span>'
+        +'<span>FE <b>'+fc(t.fe,1)+'</b></span><span>QA <b>'+fc(t.qa,1)+'</b></span>'
+        +'<span>合计 <b>'+fc(sum(t),1)+'</b> 人周</span>'
+        +'<span>依赖 <b>'+esc(t.dep)+'</b></span></div>'
+        +'<div class="trisk">⚠ '+esc(t.risk)+'</div>'
+        +'</div>';
+    });
+    bd+='</div>';
+  });
+  document.getElementById('board').innerHTML=bd;
+
+  // 取舍
+  var tr='';
+  tr+='<div style="margin-bottom:14px"><b style="font-size:13px">取舍一 · 权限要不要在 Q2 做</b>'
+    +'<div style="font-size:12.5px;line-height:1.8;color:rgba(0,0,0,.65);margin-top:6px">'
+    +'C7 三层权限占 <b>15.5 人周</b>，是 Q2 最重的一块。但如果没有权限，品类库就不能共享，'
+    +'成本库就永远停在「个人私库」，横向对比做不了。<br>'
+    +'<b>建议</b>：Q1 先用「白名单」过渡（指定 3~5 个采购员的数据进品类库），'
+    +'把 C7 推到 Q2 中段，用真实使用反馈来定权限模型，而不是先设计后使用。</div></div>';
+
+  tr+='<div style="margin-bottom:14px"><b style="font-size:13px">取舍二 · 内嵌比价是否要等数据够了再做</b>'
+    +'<div style="font-size:12.5px;line-height:1.8;color:rgba(0,0,0,.65);margin-top:6px">'
+    +'C6 内嵌比价占 <b>14 人周</b>。如果 Q1 只导入不聚合，比价页会显示「样本不足」，反而伤信任。<br>'
+    +'<b>建议</b>：C6 必须排在 C5（品类库聚合）之后，且上线前先验一遍「可比零件数 ≥5」的 VPPS 占比。'
+    +'达不到 60% 就先不上线，只给内部试用。</div></div>';
+
+  tr+='<div><b style="font-size:13px">取舍三 · Should-Cost 要不要现在做</b>'
+    +'<div style="font-size:12.5px;line-height:1.8;color:rgba(0,0,0,.65);margin-top:6px">'
+    +'C11 估算模型占 <b>15.5 人周</b>，是 H2 最大的一块。但实测只有 <b>76%</b> 的记录有完整的人工/设备拆解，'
+    +'且跨供应商误差 <b>11.9%</b>——已经优于报价离散度（27.5%），继续提精度的边际价值很低。<br>'
+    +'<b>建议</b>：C11 降级为 P2 或直接砍掉，把人力放到 C10（成交价回写）。'
+    +'成交数据比估算模型更能指导下一轮谈判。</div></div>';
+  document.getElementById('tradeoffs').innerHTML=tr;
+
+  // MVP
+  var mvpIds=['C1','C2','C3','C5'];
+  var mvp=T.filter(function(t){return mvpIds.indexOf(t.id)>=0;});
+  var mvpW=mvp.reduce(function(a,t){return a+sum(t);},0);
+  var mh='<div class="okbox" style="margin-bottom:14px">'
+    +'<b>最小可交付 = '+mvpIds.join(' + ')+'，共 '+fc(mvpW,1)+' 人周</b>（约为完整范围的 '
+    +fc(mvpW/total*100,0)+'%）<br>'
+    +'做完这四件事，能得到的：采购员可以导入自己的报价 → 数据进入品类库 → 系统能算出 VPPS 因子。<br>'
+    +'<b>不能得到的</b>：还不能在比价页看到横向对比（那要等 C6）。</div>';
+  mh+='<table><thead><tr><th>ID</th><th>任务</th><th class="n">人周</th><th>做完能干什么</th></tr></thead><tbody>';
+  mvp.forEach(function(t){
+    mh+='<tr><td class="mono b">'+esc(t.id)+'</td><td>'+esc(t.title)+'</td>'
+      +'<td class="n b">'+fc(sum(t),1)+'</td><td style="font-size:11.5px">'+esc(t.val)+'</td></tr>';
+  });
+  mh+='</tbody></table>';
+  mh+='<div class="infobox" style="margin-top:14px">'
+    +'<b>为什么这个组合</b>：C1 定口径 → C2 让数据能进来 → C3 让文件变结构化 → C5 让数据变因子。'
+    +'是一条完整的最小链路，中间不缺环。<br>'
+    +'<b>砍掉的是什么</b>：C4 批量导入（先用手工一份份导）、C6 内嵌比价（先看后台数据）、'
+    +'C7 权限（先用白名单）、C8~C11（全部后置）。</div>';
+  document.getElementById('mvp').innerHTML=mh;
+
+  document.getElementById('foot').innerHTML =
+    '人力口径：人周，含 PM/DEV/FE/QA；参照现有季度看板「5.5 成本因子库雏形」的估算粒度<br>'
+    +'风险描述来自实际验证（重复快照 142 条、跨供应商误差 11.9%、完整拆解仅 76%）';
+}
+
+render();
+</script>
+</body>
+</html>
