@@ -1,0 +1,320 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>成本库 × RFQ 比价 · 内嵌方案</title>
+<style>
+*{box-sizing:border-box}
+body{margin:0;background:#fff;color:rgba(0,0,0,.88);
+font:14px/1.5715 -apple-system,BlinkMacSystemFont,"PingFang SC","Segoe UI",sans-serif}
+.wrap{max-width:1400px;margin:0 auto;padding:28px 24px 60px}
+h1{font-size:26px;font-weight:600;margin:0 0 8px}
+.sub{color:rgba(0,0,0,.45);margin-bottom:10px;font-size:13.5px}
+.ver{display:inline-block;font-size:11.5px;color:rgba(0,0,0,.45);background:#fafafa;
+border:1px solid #f0f0f0;border-radius:4px;padding:2px 8px;margin-bottom:20px;
+font-family:ui-monospace,monospace}
+.card{border:1px solid #f0f0f0;border-radius:8px;padding:22px;margin-bottom:16px;
+box-shadow:0 1px 2px rgba(0,0,0,.03)}
+h2{font-size:15.5px;font-weight:600;margin:0 0 14px;padding-left:10px;border-left:3px solid #1677ff}
+h3{font-size:13px;font-weight:600;margin:0 0 8px}
+h4{font-size:12.5px;font-weight:600;margin:14px 0 8px;color:rgba(0,0,0,.65)}
+
+/* 顶栏模拟 */
+.topbar{display:flex;align-items:center;gap:14px;padding:10px 16px;background:#fafafa;
+border:1px solid #f0f0f0;border-radius:8px;margin-bottom:14px;font-size:12.5px}
+.topbar .crumb{color:rgba(0,0,0,.45)}
+.topbar .crumb b{color:rgba(0,0,0,.88)}
+.topbar .badge{margin-left:auto;padding:2px 10px;border-radius:4px;font-size:11.5px;
+background:#fff;border:1px solid #d9d9d9;color:rgba(0,0,0,.45)}
+
+/* 供应商卡片（还原真实比价页） */
+.cards{display:grid;gap:12px;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));align-items:start}
+.qcard{border:1px solid #e8e8e8;border-radius:8px;padding:14px;background:#fff;position:relative}
+.qcard.low{border-color:#b7eb8f;background:#f6ffed}
+.qcard.ce{background:#fffbe6;border-color:#ffe58f}
+.qcard .hd{display:flex;align-items:center;gap:8px;padding-bottom:10px;
+border-bottom:1px dashed #f0f0f0;margin-bottom:10px}
+.qcard .sup{font-weight:600;font-size:12.5px;flex:1}
+.qcard .price{font-size:22px;font-weight:600;color:#1677ff;font-variant-numeric:tabular-nums}
+.qcard.low .price{color:#389e0d}
+.qcard.ce .price{color:#d46b08}
+.qcard .line{display:flex;justify-content:space-between;font-size:12px;padding:3px 0;
+color:rgba(0,0,0,.65)}
+.qcard .line b{font-variant-numeric:tabular-nums;color:rgba(0,0,0,.88)}
+.qcard .line.warn b{color:#cf1322}
+
+/* 成本库面板 */
+.panel{border:1px solid #91caff;border-radius:8px;background:#f7fbff;padding:16px;margin-top:14px}
+.panel .ph{display:flex;align-items:center;gap:8px;margin-bottom:12px}
+.panel .ph .t{font-weight:600;font-size:13px;color:#1677ff}
+.panel .ph .src{font-size:11.5px;color:rgba(0,0,0,.45);margin-left:auto}
+
+.kpis{display:grid;grid-template-columns:repeat(5,1fr);gap:10px;margin-bottom:14px}
+.kpi{background:#fff;border:1px solid #e8e8e8;border-radius:6px;padding:10px 12px}
+.kpi .v{font-size:19px;font-weight:600;line-height:1.2;font-variant-numeric:tabular-nums}
+.kpi .k{font-size:11px;color:rgba(0,0,0,.45);margin-top:3px}
+
+table{width:100%;border-collapse:collapse;font-size:12.5px}
+th{background:#fafafa;text-align:left;padding:9px 10px;font-weight:600;
+border-bottom:1px solid #f0f0f0;white-space:nowrap;font-size:12px}
+td{padding:9px 10px;border-bottom:1px solid #f5f5f5;color:rgba(0,0,0,.65)}
+td.n{text-align:right;font-variant-numeric:tabular-nums}
+td.b{font-weight:600;color:rgba(0,0,0,.88)}
+tr.best td{background:#f6ffed}
+td.mono{font-family:ui-monospace,monospace;font-size:11.5px}
+
+.tag{display:inline-block;padding:0 7px;border-radius:4px;font-size:11.5px;
+line-height:19px;border:1px solid;white-space:nowrap}
+.tag.blue{color:#1677ff;border-color:#91caff;background:#e6f4ff}
+.tag.green{color:#389e0d;border-color:#b7eb8f;background:#f6ffed}
+.tag.orange{color:#d46b08;border-color:#ffd591;background:#fff7e6}
+.tag.red{color:#cf1322;border-color:#ffa39e;background:#fff1f0}
+.tag.grey{color:rgba(0,0,0,.45);border-color:#d9d9d9;background:#fafafa}
+
+.infobox{background:#e6f4ff;border:1px solid #91caff;border-radius:6px;padding:12px 14px;
+font-size:12.5px;line-height:1.8;color:rgba(0,0,0,.65)}
+.infobox b{color:#1677ff}
+.warnbox{background:#fff1f0;border:1px solid #ffa39e;border-radius:6px;padding:12px 14px;
+font-size:12.5px;line-height:1.8;color:rgba(0,0,0,.65)}
+.warnbox b{color:#cf1322}
+.okbox{background:#f6ffed;border:1px solid #b7eb8f;border-radius:6px;padding:12px 14px;
+font-size:12.5px;line-height:1.8;color:rgba(0,0,0,.65)}
+.okbox b{color:#389e0d}
+
+/* 结构条 */
+.sbar{display:flex;height:16px;border-radius:3px;overflow:hidden;background:#f5f5f5}
+.sbar div{height:100%}
+
+/* tab */
+.tabs{display:flex;gap:6px;margin-bottom:14px}
+.tab{padding:7px 16px;border:1px solid #f0f0f0;border-radius:6px;background:#fafafa;
+cursor:pointer;font-size:12.5px;color:rgba(0,0,0,.65)}
+.tab.on{background:#e6f4ff;border-color:#91caff;color:#1677ff;font-weight:600}
+
+.flow{display:flex;align-items:stretch;margin-bottom:6px}
+.fs{flex:1;padding:12px 14px;border:1px solid #f0f0f0;background:#fafafa;position:relative;font-size:12px}
+.fs:first-child{border-radius:8px 0 0 8px}
+.fs:last-child{border-radius:0 8px 8px 0}
+.fs+.fs{border-left:none}
+.fs.on{background:#e6f4ff;border-color:#91caff}
+.fs .n{font-size:10.5px;color:rgba(0,0,0,.35);font-weight:600}
+.fs .t{font-size:13px;font-weight:600;margin:2px 0 3px}
+.fs.on .t{color:#1677ff}
+.fs .d{font-size:11px;color:rgba(0,0,0,.45);line-height:1.5}
+
+.foot{text-align:center;color:rgba(0,0,0,.25);font-size:12px;margin-top:28px;line-height:1.8}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>成本库 × RFQ 比价 · 内嵌方案</h1>
+  <div class="sub">成本库单独存在没有意义。它必须是比价页里的一个抽屉，在采购员看报价的那一刻出现。</div>
+  <div class="ver" id="ver">-</div>
+
+  <div class="card">
+    <h2>嵌入位置：比价页的第三块</h2>
+    <div class="flow">
+      <div class="fs"><div class="n">现有 · 第一屏</div><div class="t">零件 · 车型 · 用量</div><div class="d">这个零件装几台车、年量多少</div></div>
+      <div class="fs"><div class="n">现有 · 第二屏</div><div class="t">供应商报价卡片</div><div class="d">各家报价 + 成本结构 + CE 核价</div></div>
+      <div class="fs on"><div class="n">新增 · 第三屏</div><div class="t">成本库横向对比</div><div class="d">历史同类零件怎么报的、谁高谁低</div></div>
+    </div>
+    <div class="infobox" style="margin-top:14px;margin-bottom:0">
+      <b>为什么放第三屏而不是独立页面</b>：采购员已经在看报了，不需要再切系统。
+      第二屏回答「这一轮谁贵」，第三屏回答<span class="hl">「放到历史上看，这个价合理吗」</span>。
+    </div>
+  </div>
+
+  <div class="card">
+    <h2>实际效果：比价页 + 成本库抽屉</h2>
+    <div class="topbar">
+      <span class="crumb">RFQ 询报价 / <b>MX11 上车体零件报价</b> / 前保险杠本体总成</span>
+      <span class="badge" id="roundBadge">第 2 轮 / 共 3 轮</span>
+    </div>
+    <div class="tabs" id="tabs"></div>
+    <div id="demoBody"></div>
+  </div>
+
+  <div class="card">
+    <h2>成本库独立页：从哪进来</h2>
+    <div id="entry"></div>
+  </div>
+
+  <div class="foot" id="foot"></div>
+</div>
+<script>
+var DATA={"generated_at":"2026-11-10","demos":[{"part":"P000055052001","name":"二排座椅侧扶手总成","vpps":"4022","n_quotes":4,"n_vpps_history":34,"spread":823.0,"matgap":1044.3,"f_mat":80.3,"f_mfg":12.5,"lo":86.83,"hi":801.44,"quotes":[{"sup":"佛吉亚（天津）汽车部件有限公司","price":86.83,"mat":77.4,"mfg":3,"adm":6.43,"mat_pct":89.1,"mfg_pct":3.5,"own_n":7,"own_mat_pct":84.7},{"sup":"常州卓骏汽车系统有限公司","price":97.61,"mat":60.55,"mfg":34.04,"adm":3.02,"mat_pct":62.0,"mfg_pct":34.9,"own_n":7,"own_mat_pct":71.7},{"sup":"北京北汽李尔汽车系统有限公司","price":317.44,"mat":261.33,"mfg":30.79,"adm":25.32,"mat_pct":82.3,"mfg_pct":9.7,"own_n":11,"own_mat_pct":82.3},{"sup":"宁波继峰汽车零部件股份有限公司","price":801.44,"mat":692.94,"mfg":49.16,"adm":59.34,"mat_pct":86.5,"mfg_pct":6.1,"own_n":9,"own_mat_pct":80.6}]},{"part":"P000055768001","name":"惯性测量单元总成","vpps":"9541","n_quotes":3,"n_vpps_history":3,"spread":33.3,"matgap":38.6,"f_mat":80.4,"f_mfg":11.7,"lo":77.6,"hi":103.44,"quotes":[{"sup":"广州导远电子科技有限公司","price":77.6,"mat":59.22,"mfg":11.13,"adm":7.25,"mat_pct":76.3,"mfg_pct":14.3,"own_n":1,"own_mat_pct":76.3},{"sup":"北云科技（湖南）股份有限公司","price":87.87,"mat":74.82,"mfg":10.29,"adm":2.77,"mat_pct":85.1,"mfg_pct":11.7,"own_n":1,"own_mat_pct":85.1},{"sup":"上海华测导航技术股份有限公司","price":103.44,"mat":82.08,"mfg":10.01,"adm":11.35,"mat_pct":79.4,"mfg_pct":9.7,"own_n":1,"own_mat_pct":79.4}]},{"part":"P000055662001","name":"副驾安全带腰带预紧器","vpps":"4071","n_quotes":2,"n_vpps_history":12,"spread":19.4,"matgap":18.2,"f_mat":84.6,"f_mfg":13.1,"lo":35,"hi":41.8,"quotes":[{"sup":"采埃孚汽车安全系统（张家港）有限公司","price":35,"mat":28,"mfg":6,"adm":1,"mat_pct":80.0,"mfg_pct":17.1,"own_n":6,"own_mat_pct":86.0},{"sup":"宁波均胜汽车安全系统有限公司","price":41.8,"mat":33.1,"mfg":7.9,"adm":0.8,"mat_pct":79.2,"mfg_pct":18.9,"own_n":6,"own_mat_pct":83.4}]}]};
+</script>
+<script>
+function esc(s){return String(s==null?'':s).replace(/[&<>"']/g,function(c){
+  return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];});}
+function fc(n,d){return Number(n||0).toFixed(d==null?1:d);}
+function money(n){return Number(n||0).toLocaleString('zh-CN',{minimumFractionDigits:2,maximumFractionDigits:2});}
+
+var CUR=0;
+
+function render(){
+  document.getElementById('ver').textContent =
+    DATA.generated_at+' · 3 个真实案例 · 源数据已去重';
+
+  document.getElementById('tabs').innerHTML = DATA.demos.map(function(d,i){
+    return '<div class="tab'+(i===CUR?' on':'')+'" onclick="pick('+i+')">'
+      + esc(d.name.slice(0,10))+' · '+esc(d.part.slice(0,10))+'</div>';
+  }).join('');
+
+  renderDemo();
+  renderEntry();
+
+  document.getElementById('foot').innerHTML =
+    '数据源：成本因子实测 quotes_flat.json（727 条，去重后 323 条真实拆解）<br>'
+    +'三个案例分别代表：数据可疑 / 样本不足 / 正常可比';
+}
+
+window.pick=function(i){ CUR=i; render(); };
+
+function renderDemo(){
+  var d=DATA.demos[CUR];
+  var h='';
+
+  // 供应商卡片（还原真实比价页布局）
+  h+='<div class="cards">';
+  d.quotes.forEach(function(q,i){
+    var isLow = i===0;
+    h+='<div class="qcard'+(isLow?' low':'')+'">';
+    h+='<div class="hd"><div class="sup">'+esc(q.sup.slice(0,12))+'</div>'
+      +(isLow?'<span class="tag green">最低价</span>':'')+'</div>';
+    h+='<div class="price">¥'+money(q.price)+'</div>';
+    h+='<div style="font-size:11px;color:rgba(0,0,0,.45);margin-bottom:8px">出厂价（元/EA）</div>';
+    h+='<div class="line"><span>材料费</span><b>¥'+money(q.mat)+'</b></div>';
+    var matWarn = q.mat_pct > d.f_mat+8;
+    h+='<div class="line"><span>　材料占比</span><b style="color:'+(matWarn?'#cf1322':'rgba(0,0,0,.65)')+'">'
+      +fc(q.mat_pct,1)+'%</b></div>';
+    h+='<div class="line"><span>制造费</span><b>¥'+money(q.mfg)+'</b></div>';
+    h+='<div class="line"><span>　制造占比</span><b>'+fc(q.mfg_pct,1)+'%</b></div>';
+    h+='<div class="line"><span>管理费</span><b>¥'+money(q.adm)+'</b></div>';
+    h+='</div>';
+  });
+
+  // 成本库卡（第三屏）
+  h+='<div class="qcard ce" style="border-color:#91caff;background:#f7fbff">';
+  h+='<div class="hd"><div class="sup" style="color:#1677ff">📚 成本库参考</div>'
+    +'<span class="tag blue">历史 '+d.n_vpps_history+' 条</span></div>';
+  h+='<div style="font-size:11.5px;color:rgba(0,0,0,.45);margin-bottom:6px">VPPS '+esc(d.vpps)+' 成本结构中位</div>';
+  h+='<div class="line"><span>材料占出厂价</span><b style="color:#1677ff;font-size:15px">'+fc(d.f_mat,1)+'%</b></div>';
+  h+='<div class="line"><span>制造占出厂价</span><b style="color:#1677ff;font-size:15px">'+fc(d.f_mfg,1)+'%</b></div>';
+  h+='<div class="sbar" style="margin:8px 0">'
+    +'<div style="width:'+d.f_mat+'%;background:#1677ff"></div>'
+    +'<div style="width:'+d.f_mfg+'%;background:#faad14"></div>'
+    +'<div style="width:'+Math.max(0,100-d.f_mat-d.f_mfg)+'%;background:#d9d9d9"></div></div>';
+  h+='<div style="font-size:11px;color:rgba(0,0,0,.45);margin-top:8px">'
+    +'<span style="display:inline-block;width:8px;height:8px;background:#1677ff;border-radius:2px;margin-right:4px"></span>材料 '
+    +'<span style="display:inline-block;width:8px;height:8px;background:#faad14;border-radius:2px;margin:0 4px 0 10px"></span>制造</div>';
+  h+='</div>';
+  h+='</div>';
+
+  // 成本库诊断面板
+  h+='<div class="panel">';
+  h+='<div class="ph"><span class="t">📚 成本库横向对比</span>'
+    +'<span class="src">数据来源：历史 '+d.n_vpps_history+' 条真实拆解 · VPPS '+esc(d.vpps)+'</span></div>';
+
+  // KPI
+  h+='<div class="kpis">';
+  h+='<div class="kpi"><div class="v" style="color:#cf1322">'+fc(d.spread,0)+'%</div><div class="k">本轮价差</div></div>';
+  h+='<div class="kpi"><div class="v" style="color:'+(d.matgap>100?'#cf1322':'#d46b08')+'">'+fc(d.matgap,0)+'%</div><div class="k">材料费差异</div></div>';
+  h+='<div class="kpi"><div class="v" style="color:#1677ff">'+fc(d.f_mat,1)+'%</div><div class="k">历史材料占比</div></div>';
+  h+='<div class="kpi"><div class="v" style="color:#1677ff">'+fc(d.f_mfg,1)+'%</div><div class="k">历史制造占比</div></div>';
+  h+='<div class="kpi"><div class="v">'+d.n_vpps_history+'</div><div class="k">可比历史条数</div></div>';
+  h+='</div>';
+
+  // 明细表
+  h+='<table><thead><tr><th>供应商</th><th class="n">报价</th><th class="n">材料费</th>'
+    +'<th class="n">材料占比</th><th class="n">vs 历史</th><th class="n">该供应商历史</th><th>诊断</th></tr></thead><tbody>';
+  d.quotes.forEach(function(q,i){
+    var isLow=i===0;
+    var dev = q.mat_pct - d.f_mat;
+    var devCls = Math.abs(dev)>10?'red':(Math.abs(dev)>5?'orange':'green');
+    var ownTxt = q.own_mat_pct!=null ? (fc(q.own_mat_pct,1)+'%（'+q.own_n+'条）') : '无历史';
+    var diag='', dcls='grey';
+    // 偏离历史 ±8pp 都要标记：高了可能是虚报材料，低了可能是少报材料/转嫁到制造
+    if(Math.abs(dev)>=15){ diag='结构严重偏离'; dcls='red'; }
+    else if(dev>=8){ diag='材料偏高'; dcls='orange'; }
+    else if(dev<=-8){ diag='材料偏低'; dcls='orange'; }
+    else if(isLow){ diag='结构最接近历史'; dcls='green'; }
+    else { diag='结构正常'; }
+    h+='<tr'+(isLow?' class="best"':'')+'><td style="font-size:11.5px">'+esc(q.sup.slice(0,14))+'</td>'
+      +'<td class="n b">'+money(q.price)+'</td><td class="n">'+money(q.mat)+'</td>'
+      +'<td class="n">'+fc(q.mat_pct,1)+'%</td>'
+      +'<td class="n"><span class="tag '+devCls+'">'+(dev>0?'+':'')+fc(dev,1)+'pp</span></td>'
+      +'<td class="n" style="font-size:11.5px">'+ownTxt+'</td>'
+      +'<td><span class="tag '+dcls+'">'+diag+'</span></td></tr>';
+  });
+  h+='</tbody></table>';
+
+  // 结论
+  var lo=d.quotes[0], hi=d.quotes[d.quotes.length-1];
+  var matRatio = lo.mat>0 ? hi.mat/lo.mat : 1;
+  var box, cls;
+
+  if(matRatio>=3){
+    cls='warnbox';
+    box='<b>⚠ 本轮数据不可比，先别谈价</b><br>'
+      +'材料费差 '+fc((matRatio-1)*100,0)+'%（'+money(lo.mat)+' vs '+money(hi.mat)+'），超过 3 倍。'
+      +'同一零件的材料费不可能差这么多，优先排查：<br>'
+      +'① 零件号是否对应了不同规格（高低配/年款）<br>'
+      +'② 是否有供应商把总成报成了零件<br>'
+      +'③ 拆解口径是否一致（自制件材料 vs 含外购件）<br>'
+      +'<b>这三条不确认，任何比价结论都不成立。</b>';
+  } else if(d.n_vpps_history<5){
+    cls='infobox';
+    box='<b>样本不足，只给参考不给结论</b><br>'
+      +'该 VPPS 只有 '+d.n_vpps_history+' 条历史拆解，不足 5 条。'
+      +'本轮价差 '+fc(d.spread,0)+'% 可以参考，但不能据此判断「谁的报价不合理」。<br>'
+      +'建议：先按材料费绝对值横向看（差 '+fc(d.matgap,0)+'%），材料费是客观项，不需要历史样本。';
+  } else {
+    cls='okbox';
+    box='<b>✓ 数据可比，可以进入议价</b><br>'
+      +'历史 '+d.n_vpps_history+' 条拆解，材料占比中位 '+fc(d.f_mat,1)+'%。'
+      +'最低价（'+esc(lo.sup.slice(0,10))+'）材料占比 '+fc(lo.mat_pct,1)+'%，'
+      +'与历史偏差 '+(lo.mat_pct-d.f_mat>0?'+':'')+fc(lo.mat_pct-d.f_mat,1)+'pp，结构合理。';
+    var highDev = d.quotes.filter(function(q){return q.mat_pct > d.f_mat+8;});
+    var lowDev  = d.quotes.filter(function(q){return q.mat_pct < d.f_mat-8;});
+    if(highDev.length){
+      box+='<br><b>材料偏高需核对</b>：'+highDev.map(function(q){
+        return esc(q.sup.slice(0,10))+'（'+fc(q.mat_pct,1)+'%，+'+fc(q.mat_pct-d.f_mat,1)+'pp）';
+      }).join('、')+' — 索要材料牌号、净重、单价三项。';
+    }
+    if(lowDev.length){
+      box+='<br><b>材料偏低也要问</b>：'+lowDev.map(function(q){
+        return esc(q.sup.slice(0,10))+'（'+fc(q.mat_pct,1)+'%，'+fc(q.mat_pct-d.f_mat,1)+'pp）';
+      }).join('、')+' — 可能是少报材料（后续涨价风险），也可能是把成本挪到了制造/管理，需确认口径。';
+    }
+  }
+  h+='<div class="'+cls+'" style="margin-top:12px">'+box+'</div>';
+  h+='</div>';
+
+  document.getElementById('demoBody').innerHTML=h;
+}
+
+function renderEntry(){
+  var h='<table><thead><tr><th style="width:170px">入口</th><th>位置</th><th>看到什么</th><th>谁用</th></tr></thead><tbody>';
+  h+='<tr><td class="b">RFQ 比价页 · 第三屏</td><td>报价卡片右侧，自动展开</td>'
+    +'<td>本轮报价 vs 历史同类零件结构</td><td>采购员（每单必看）</td></tr>';
+  h+='<tr><td class="b">报价行内 · 悬浮卡</td><td>鼠标停在材料费上</td>'
+    +'<td>该供应商历史材料占比 + 同零件其他家对比</td><td>采购员（按需）</td></tr>';
+  h+='<tr><td class="b">成本库独立页</td><td>侧边导航「成本管理 / 报价成本库」</td>'
+    +'<td>全量检索、品类价差地图、异常清单</td><td>成本工程师 / 品类经理</td></tr>';
+  h+='<tr><td class="b">核价工作台</td><td>CE 核价时自动带入</td>'
+    +'<td>该零件历史区间 + 建议目标价</td><td>CE 工程师</td></tr>';
+  h+='</tbody></table>';
+  h+='<div class="infobox" style="margin-top:14px;margin-bottom:0">'
+    +'<b>关键设计</b>：同一个成本库，四个入口，四种视图密度。<br>'
+    +'比价页里只给<span class="hl">3 个数字</span>（历史材料占比、历史制造占比、本轮偏离），'
+    +'不给完整表格——采购员在看报价，不想读报告。<br>'
+    +'完整检索和品类地图放在独立页，只给需要做策略的人。</div>';
+  document.getElementById('entry').innerHTML=h;
+}
+
+render();
+</script>
+</body>
+</html>
