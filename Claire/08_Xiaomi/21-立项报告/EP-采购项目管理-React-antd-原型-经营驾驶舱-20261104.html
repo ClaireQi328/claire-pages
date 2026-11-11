@@ -2977,7 +2977,8 @@ function nomNextId(){ NOM_SEQ=NOM_SEQ+1; return "NPL-"+("00"+NOM_SEQ).slice(-3);
 /* 种子：优先取该项目已有 SOR 回传的数据，再补 2 行尚未关联的占位，体现「先占位后关联」 */
 function nomSeed(proj){
   var out=[];
-  SOR_STORE.filter(function(s){return s.proj===proj;}).forEach(function(s){
+  /* 只回填「已关联/已接收」的 SOR；WAIT_PM 的还没绑品类，不能出现在定点计划里 */
+  SOR_STORE.filter(function(s){return s.proj===proj && s.taskStatus!=="WAIT_PM";}).forEach(function(s){
     out.push({
       id:nomNextId(), cat:s.cat||"（待定品类）", grp:s.grp||"—", buyer:s.buyer||"—",
       planInit:s.plan||"", planDate:s.plan||"", planChanges:0,
@@ -3052,92 +3053,100 @@ function nomMissingOf(r){
    A. 待绑定 SOR 点「绑定」→ SOR 已定，只需选绑到哪一行
    B. 占位行点「关联 SOR」→ 行已定，只需选 SOR
    不提供「不关联」：这个弹窗的目的就是完成关联。 */
+/* ===== 绑定 SOR 到品类 =====
+   绑定对象是「品类」，不是某一行。两种来源都走同一套逻辑：
+   A. 先占位、后关联：品类下已有占位行 → 直接挂到该行的空位
+   B. 先建 SOR、后绑定：品类下没有占位行 → 现场补一条占位行再挂
+   一个 SOR 只挂一行；一个品类可以有多行（分包），但同一 SOR 不会重复出现。 */
 function BrdNomLinkSor(props){
   var proj=props.proj, row=props.row, onClose=props.onClose, onOk=props.onOk;
-  var preset=!!(row&&row.sorCode);
   var rows=props.rows||[];
+  var preset=!!(row&&row.sorCode);   /* 从待绑定队列进入：SOR 已定，只问你绑给哪个品类 */
+
+  /* 已被占用的 SOR（任何一行挂了就不能再挂） */
   var bound={};
   rows.forEach(function(r){ if(r.sorCode) bound[r.sorCode]=1; });
+
   var cands=SOR_STORE.filter(function(s){
     if(s.proj!==proj) return false;
     if(bound[s.code]) return false;
     return s.taskStatus==="WAIT_PM"||s.taskStatus==="WAIT_BUYER"||s.taskStatus==="BUYER_RECEIVED";
   });
-  var free=rows.filter(function(r){ return !r.sorCode; });
 
   var ps=i.useState(preset?(row.sorCode||""):""),pick=ps[0],setPick=ps[1];
-  var chosen=preset?SOR_STORE.filter(function(s){return s.code===row.sorCode;})[0]
-                   :cands.filter(function(s){return s.code===pick;})[0];
-  /* 目标行：preset 模式下必选（"new" = 新建一行） */
-  var guess=free.filter(function(r){ return chosen&&r.cat===chosen.cat; })[0];
-  var ts=i.useState(preset?(guess?guess.id:(free[0]?free[0].id:"new")):(row.id||"")),tgt=ts[0],setTgt=ts[1];
-  var tgtRow=free.filter(function(r){return r.id===tgt;})[0];
-  var needCat=preset&&tgt==="new";
-  var cs=i.useState((tgtRow&&tgtRow.cat)||(preset?(chosen&&chosen.cat)||"":row.cat||"")),cat=cs[0],setCat=cs[1];
-  /* 目标行已带品类 → 直接用，不再问 */
-  var effCat=needCat?cat:((tgtRow&&tgtRow.cat)||row.cat||(preset?(chosen&&chosen.cat):"")||"");
-  var ok=!!pick&&!bound[pick]&&!!effCat&&(!preset||!!tgt);
+  var chosen=preset
+    ?SOR_STORE.filter(function(x){return x.code===row.sorCode;})[0]
+    :cands.filter(function(x){return x.code===pick;})[0];
+
+  /* 该 SOR 已带的品类（研发侧若填过就预选） */
+  var cs=i.useState((chosen&&chosen.cat)||(row&&row.cat)||""),cat=cs[0],setCat=cs[1];
+  /* 只有品类，不带行号：下面按品类找行/补行 */
+  var slots=cat?rows.filter(function(r){return r.cat===cat;}):[];
+  var vacant=slots.filter(function(r){return !r.sorCode;});
+  var needNew=!!cat&&vacant.length===0;
+  var ok=!!pick&&!bound[pick]&&!!cat;
 
   return BRD_E("div",{style:{position:"fixed",inset:0,zIndex:1600,display:"flex",alignItems:"center",justifyContent:"center",background:"rgba(25,28,36,.35)"},onClick:onClose},[
     BRD_E("div",{style:{width:"min(560px,94vw)",maxHeight:"86vh",overflowY:"auto",background:"#fff",borderRadius:10,padding:"18px 20px"},onClick:function(e){e.stopPropagation();}},[
       BRD_E("div",{style:{display:"flex",alignItems:"center",marginBottom:14}},[
-        BRD_E("b",{style:{fontSize:16,color:"#191C24"}},[ "关联 SOR" ]),
+        BRD_E("b",{style:{fontSize:16,color:"#191C24"}},[ "绑定 SOR 到品类" ]),
         BRD_E("span",{style:{fontSize:12,color:"#91959D",marginLeft:8}},[proj]),
         BRD_E("span",{style:{flex:1}}),
         BRD_E("button",{type:"button",style:{fontSize:12,border:"1px solid #E1E3E6",background:"#fff",borderRadius:6,padding:"3px 10px",cursor:"pointer"},onClick:onClose},["关闭"])
       ]),
 
-      /* SOR：预设时只读展示，否则下拉选 */
-      chosen?BRD_E("div",{style:{border:"1px solid #EFF0F1",borderRadius:8,padding:"10px 12px",marginBottom:12,background:"#FAFBFC"}},[
-        BRD_E("div",{style:{fontFamily:"ui-monospace,Menlo,monospace",fontSize:12,color:"#1677FF",marginBottom:4}},[chosen.code]),
-        BRD_E("div",{style:{fontSize:13,color:"#191C24",fontWeight:600,marginBottom:6}},[chosen.name]),
-        BRD_E("div",{style:{display:"flex",gap:16,fontSize:12,color:"#8C8C8C",flexWrap:"wrap"}},[
-          BRD_E("span",{},[ "提交 "+(chosen.submitBy||"—") ]),
-          BRD_E("span",{},[ "要求完成 "+(chosen.planEnd||"—") ]),
-          BRD_E("span",{},[ "零件 "+(chosen.items||[]).length+" 个" ])
-        ])
-      ]):(cands.length?BRD_E("div",{style:{marginBottom:12}},[
-        BRD_E("div",{style:{fontSize:12,color:"#61646D",marginBottom:4}},[ "选择 SOR" ]),
-        BRD_E("select",{style:Object.assign({},BRD_INP,{width:"100%",height:32}),value:pick,onChange:function(e){setPick(e.target.value);}},[
-          BRD_E("option",{value:""},["请选择（本项目 "+cands.length+" 条待绑定）"])
-        ].concat(cands.map(function(s){
-          return BRD_E("option",{key:s.code,value:s.code},[s.code+" · "+s.name]);
-        })))
-      ]):BRD_E("div",{style:{padding:"20px 16px",marginBottom:12,background:"#FAFBFC",border:"1px dashed #E1E3E6",borderRadius:8,textAlign:"center"}},[
-        BRD_E("div",{style:{fontSize:13,color:"#61646D",marginBottom:4}},[ "本项目没有待绑定的 SOR" ]),
-        BRD_E("div",{style:{fontSize:12,color:"#BFBFBF"}},[ "SOR 审批通过后才会出现在这里" ])
-      ])),
+      /* 1. SOR：预设时只读展示，否则下拉选 */
+      chosen
+        ?BRD_E("div",{style:{border:"1px solid #EFF0F1",borderRadius:8,padding:"10px 12px",marginBottom:12,background:"#FAFBFC"}},[
+            BRD_E("div",{style:{fontFamily:"ui-monospace,Menlo,monospace",fontSize:12,color:"#1677FF",marginBottom:4}},[chosen.code]),
+            BRD_E("div",{style:{fontSize:13,color:"#191C24",fontWeight:600,marginBottom:6}},[chosen.name]),
+            BRD_E("div",{style:{display:"flex",gap:16,fontSize:12,color:"#8C8C8C",flexWrap:"wrap"}},[
+              BRD_E("span",{},[ "提交 "+(chosen.submitBy||"—") ]),
+              BRD_E("span",{},[ "要求完成 "+(chosen.planEnd||"—") ]),
+              BRD_E("span",{},[ "零件 "+(chosen.items||[]).length+" 个" ])
+            ])
+          ])
+        :(cands.length
+          ?BRD_E("div",{style:{marginBottom:12}},[
+            BRD_E("div",{style:{fontSize:12,color:"#61646D",marginBottom:4}},[ "选择 SOR" ]),
+            BRD_E("select",{style:Object.assign({},BRD_INP,{width:"100%",height:32}),value:pick,onChange:function(e){setPick(e.target.value);}},[
+              BRD_E("option",{value:""},["请选择（本项目 "+cands.length+" 条待绑定）"])
+            ].concat(cands.map(function(x){
+              return BRD_E("option",{key:x.code,value:x.code},[x.code+" · "+x.name]);
+            })))
+          ])
+          :BRD_E("div",{style:{padding:"20px 16px",marginBottom:12,background:"#FAFBFC",border:"1px dashed #E1E3E6",borderRadius:8,textAlign:"center"}},[
+            BRD_E("div",{style:{fontSize:13,color:"#61646D",marginBottom:4}},[ "本项目没有待绑定的 SOR" ]),
+            BRD_E("div",{style:{fontSize:12,color:"#BFBFBF"}},[ "SOR 审批通过后才会出现在这里" ])
+          ])),
 
-      /* 目标行：预设模式下必须明确选，避免系统猜错 */
-      preset?BRD_E("div",{style:{marginBottom:12}},[
+      /* 2. 品类：唯一绑定对象 */
+      !pick?null:BRD_E("div",{style:{marginBottom:8}},[
         BRD_E("div",{style:{fontSize:12,color:"#61646D",marginBottom:4}},[
-          "绑到哪一行",BRD_E("span",{style:{color:"#FF4D4F",marginLeft:2}},[ "*" ])
+          "绑定到品类",BRD_E("span",{style:{color:"#FF4D4F",marginLeft:2}},[ "*" ])
         ]),
-        BRD_E("select",{style:Object.assign({},BRD_INP,{width:"100%",height:32}),value:tgt,onChange:function(e){setTgt(e.target.value);}},[
-          BRD_E("option",{value:"new"},["新建一行"+(chosen&&chosen.cat?"（"+chosen.cat+"）":"")])
-        ].concat(free.map(function(r){
-          return BRD_E("option",{key:r.id,value:r.id},[r.id+" · "+r.cat+(r.buyer?" · "+r.buyer:"")+"（未关联）"]);
-        })))
-      ]):null,
+        BRD_E("select",{style:Object.assign({},BRD_INP,{width:"100%",height:32}),value:cat,onChange:function(e){setCat(e.target.value);}},
+          [BRD_E("option",{key:"",value:""},["请选择品类"])].concat(SOR_CATS.map(function(c){return BRD_E("option",{key:c,value:c},[c]);})))
+      ]),
 
-      /* 品类：选中 SOR 后才出现；绑到已有行则继承该行品类 */
-      !pick?null:(tgtRow
-        ?BRD_E("div",{style:{marginBottom:4,fontSize:12,color:"#8C8C8C"}},[ "品类 · ",BRD_E("b",{style:{color:"#191C24"}},[tgtRow.cat||"—"]) ])
-        :BRD_E("div",{style:{marginBottom:4}},[
-          BRD_E("div",{style:{fontSize:12,color:"#61646D",marginBottom:4}},[
-            "品类",BRD_E("span",{style:{color:"#FF4D4F",marginLeft:2}},[ "*" ])
-          ]),
-          BRD_E("select",{style:Object.assign({},BRD_INP,{width:"100%",height:32}),value:cat,onChange:function(e){setCat(e.target.value);}},
-            [BRD_E("option",{key:"",value:""},["请选择品类"])].concat(SOR_CATS.map(function(c){return BRD_E("option",{key:c,value:c},[c]);})))
-        ])),
+      /* 3. 结果预览：告诉你会挂到哪，或会补一条占位 */
+      !pick||!cat?null:BRD_E("div",{style:{fontSize:12,lineHeight:1.9,
+        background:needNew?"#FFF7E6":"#F5FAFF",
+        border:"1px solid "+(needNew?"#FFE7BA":"#D6E8FF"),
+        borderRadius:6,padding:"8px 10px",
+        color:needNew?"#AD6800":"#1677FF"}},[
+        needNew
+          ?BRD_E("div",{},[ "品类「"+cat+"」下暂无未关联的占位行，绑定后将自动补一条占位行（无采购员 / 无计划时间，需后续补全）。" ])
+          :BRD_E("div",{},[ "将挂到品类「"+cat+"」下第 1 条未关联的占位行："+vacant[0].id+(vacant[0].buyer?" · "+vacant[0].buyer:" · 待指派采购员") ])
+      ]),
 
       BRD_E("div",{style:{display:"flex",alignItems:"center",gap:8,paddingTop:14,marginTop:8,borderTop:"1px solid #F0F0F0"}},[
-        BRD_E("span",{style:{fontSize:11,color:"#BFBFBF",flex:1}},[ pick?"绑定后自动回传 SOR / RFQ 编号到该行":"" ]),
+        BRD_E("span",{style:{fontSize:11,color:"#BFBFBF",flex:1}},[ pick?"绑定后回传 SOR / RFQ 编号，SOR 转「待采购员接收」":"" ]),
         BRD_E("button",{type:"button",style:{fontSize:12,border:"1px solid #E1E3E6",background:"#fff",borderRadius:6,padding:"5px 14px",cursor:"pointer"},onClick:onClose},[pick?"取消":"关闭"]),
         pick?BRD_E("button",{type:"button",style:{fontSize:12,color:"#fff",background:ok?"#1677FF":"#D9D9D9",border:"1px solid "+(ok?"#1677FF":"#D9D9D9"),borderRadius:6,padding:"5px 16px",cursor:ok?"pointer":"not-allowed"},onClick:function(){
           if(bound[pick]){We.error("该 SOR 已绑定到其他行");return;}
-          if(!effCat){We.error("请选择品类");return;}
-          onOk({code:pick,sor:chosen,cat:effCat,target:preset?tgt:(row.id||"")});
+          if(!cat){We.error("请选择品类");return;}
+          onOk({code:pick,sor:chosen,cat:cat});
         }},["绑定"]):null
       ])
     ])
@@ -3464,45 +3473,40 @@ function BrdWaitQueue(props){
     BRD_E("div",{style:{display:"flex",alignItems:"center",gap:8,padding:"7px 12px",background:"#FFF7F7",borderBottom:"1px solid #FFEEEE"}},[
       BRD_E("span",{style:{width:6,height:6,borderRadius:"50%",background:"#C4382E",flexShrink:0}}),
       BRD_E("b",{style:{fontSize:13,color:"#C4382E"}},[ "待绑定 SOR" ]),
-      BRD_E("span",{style:{fontSize:12,color:"#B0766E"}},[ "审批已通过，选一个 SOR 绑到品类" ]),
+      BRD_E("span",{style:{fontSize:12,color:"#B0766E"}},[ "审批已通过，绑定品类后回写定点计划" ]),
       BRD_E("span",{style:{flex:1}}),
       BRD_E("span",{style:{fontSize:11,color:"#C4382E"}},[ mine.length+" 条" ])
     ]),
     BRD_E("div",{style:{overflowX:"auto"}},[
       BRD_E("table",{style:{width:"100%",borderCollapse:"collapse",background:"#fff"}},[
         BRD_E("thead",{},[BRD_E("tr",{},[
-          th("SOR 编号 / 名称","left","32%"),
+          th("SOR 编号 / 名称","left","34%"),
           th("研发提交","left"),
           th("提交日期","left",92),
           th("要求完成","left",104),
           th("目标价","right",86),
           th("零件","right",58),
-          th("建议供应商","left",124),
           th("","right",84)
         ])]),
         BRD_E("tbody",{},shown.map(function(s){
           var dl=daysTo(s.planEnd);
           var late=dl!=null&&dl<0,soon=dl!=null&&dl>=0&&dl<=14;
           return BRD_E("tr",{key:s.id},[
-            /* 编号 + 名称；技术评审/建议收进 tooltip，保持行高一致 */
             td([
               BRD_E("div",{style:{display:"flex",alignItems:"center",gap:6}},[
                 BRD_E("span",{style:{fontFamily:"ui-monospace,Menlo,monospace",fontSize:11,color:"#1677FF",flexShrink:0}},[s.code]),
-                BRD_E("span",{style:{fontSize:12.5,fontWeight:600,color:"#191C24",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"},title:s.advice||s.name},[s.name]),
-                s.techReview?BRD_E("span",{title:(s.advice||"需技术评审"),style:{fontSize:10,color:"#D46B08",background:"#FFF7E6",border:"1px solid #FFE7BA",borderRadius:3,padding:"0 4px",flexShrink:0,cursor:"help"}},[ "技术评审" ]):null
+                BRD_E("span",{style:{fontSize:12.5,fontWeight:600,color:"#191C24",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"},title:s.name},[s.name])
               ])
             ],{maxWidth:0}),
             td(s.submitBy||"—",{color:"#61646D"}),
             td(s.submitDate||"—",{color:"#8C8C8C",fontVariantNumeric:"tabular-nums"}),
-            /* 要求完成：超期红、临期橙、其余常规 */
             td([
               BRD_E("span",{style:{fontVariantNumeric:"tabular-nums",color:late?"#CF1322":(soon?"#D46B08":"#191C24")}},[s.planEnd||"—"]),
               late?BRD_E("span",{style:{marginLeft:4,fontSize:10,color:"#CF1322"}},[ "超期" ]):(soon?BRD_E("span",{style:{marginLeft:4,fontSize:10,color:"#D46B08"}},[ dl===0?"今天":"剩"+dl+"天" ]):null)
             ]),
             td(s.targetPrice?BRD_E("span",{style:{fontVariantNumeric:"tabular-nums"}},[s.targetPrice]):"—",{textAlign:"right",color:s.targetPrice?"#191C24":"#BFBFBF"}),
             td(String((s.items||[]).length||0),{textAlign:"right",color:"#61646D",fontVariantNumeric:"tabular-nums"}),
-            td(s.supplier?BRD_E("span",{style:{fontSize:11,color:"#61646D"}},[s.supplier]):BRD_E("span",{style:{color:"#D9D9D9"}},[ "—" ])),
-            td(editable?BRD_E("button",{type:"button",style:{fontSize:12,color:"#fff",background:"#C4382E",border:"1px solid #C4382E",borderRadius:4,padding:"2px 12px",cursor:"pointer",whiteSpace:"nowrap"},onClick:function(){onBind(s);}},[ "绑定" ]):null,{textAlign:"right"})
+            td(editable?BRD_E("button",{type:"button",style:{fontSize:12,color:"#fff",background:"#C4382E",border:"1px solid #C4382E",borderRadius:4,padding:"2px 12px",cursor:"pointer",whiteSpace:"nowrap"},onClick:function(){onBind(s);}},[ "绑定品类" ]):null,{textAlign:"right"})
           ]);
         }))
       ])
@@ -3796,26 +3800,26 @@ function BrdNomPlan(props){
       ])
     ]),
     linkRow?a.jsx(BrdNomLinkSor,{key:"lk",proj:proj,row:linkRow,rows:rows,onClose:function(){setLinkRow(null);},onOk:function(res){
-      var id=res.target;
-      if(!id||id==="new"){
+      /* 绑定对象是品类：优先挂到该品类下第一条未关联的占位行；没有就补一条 */
+      var vacant=rows.filter(function(r){ return r.cat===res.cat && !r.sorCode; });
+      var logAt="2026-11-10 16:44";
+      if(vacant.length){
+        var tgt=vacant[0];
+        nomPatch(proj,tgt.id,{sorCode:res.code,sorName:res.sor?res.sor.name:"",rfqCode:(res.sor&&res.sor.rfqCode)||"",linkStatus:"已关联"},
+          {at:logAt,by:"齐岳",act:"绑定 SOR 到品类",detail:res.cat+" · SOR "+res.code});
+        We.success("已把 "+res.code+" 绑定到品类「"+res.cat+"」（"+tgt.id+"）");
+      }else{
         var nid=nomNextId();
         rows.push({id:nid,cat:res.cat,grp:"",buyer:"",note:"",planInit:"",planDate:"",planChanges:0,
           sorCode:res.code,sorName:res.sor?res.sor.name:"",rfqCode:(res.sor&&res.sor.rfqCode)||"",
           nomStatus:"未定点",linkStatus:"已关联",
-          log:[{at:"2026-11-10 16:44",by:"齐岳",act:"关联 SOR",detail:"新建占位行并关联 "+res.code}]});
-        setLinkRow(null);refresh();
-        We.success("已关联 "+res.code+" 并新建占位行，RFQ 待发起");
-      }else{
-        var tgtRow=rows.filter(function(r){return r.id===id;})[0]||{};
-        var old=tgtRow.sorCode||"（空）";
-        nomPatch(proj,id,{sorCode:res.code,sorName:res.sor?res.sor.name:"",rfqCode:(res.sor&&res.sor.rfqCode)||"",linkStatus:"已关联"},
-          {at:"2026-11-10 16:44",by:"齐岳",act:"关联 SOR",detail:"SOR "+old+" → "+res.code});
-        setLinkRow(null);refresh();
-        We.success("已关联 "+res.code+" 到 "+id+"，RFQ 待发起");
+          log:[{at:logAt,by:"齐岳",act:"绑定 SOR 到品类",detail:"品类「"+res.cat+"」下无占位行，自动补行并绑定 "+res.code}]});
+        We.success("已绑定 "+res.code+" 到品类「"+res.cat+"」，并补了一条占位行 "+nid);
       }
-      /* 绑定完成：SOR 从 WAIT_PM 推进到 BUYER_RECEIVED（对齐 EP doPass） */
+      /* SOR 推进：WAIT_PM → BUYER_RECEIVED（对齐 EP doPass） */
       var hit=SOR_STORE.filter(function(x){return x.code===res.code;})[0];
       if(hit){ hit.taskStatus="BUYER_RECEIVED"; hit.cat=res.cat; sorNotify(); }
+      setLinkRow(null);refresh();
     }}):null,
     addOpen?a.jsx(BrdNomAdd,{key:"ao",proj:props.project,rows:rows,mode:addOpen.mode,onClose:function(){setAddOpen(null);},onOk:function(res){
       var now="2026-11-10 17:05";
