@@ -4347,7 +4347,8 @@ function volBuildRows(project,model){
     bases.push({
       code:((project&&project.code)||"MS")+"-"+String(i+1),
       name:((project&&project.name)||"项目")+" "+names[i%names.length],
-      frozen:(h>>i)%7===0?"已冻结":"正常",
+      /* 冻结来自产销规划同步（IS_FROZEN），原型里保证至少一行已冻结以便演示 */
+      frozen:(i===1||(h>>i)%7===0)?"已冻结":"正常",
       plants:prows
     });
   }
@@ -4451,6 +4452,13 @@ function EpVolBoard(props){
   var isOpen=function(code){return open[code]!==false;};
   var toggle=function(code){var o=Object.assign({},open);o[code]=!isOpen(code);setOpen(o);};
 
+  /* 冻结：对应 EP 的 PRDPM_PROJECT_PRODUCT.IS_FROZEN（基础车型级，随保存提交） */
+  var setFrozen=function(code,next2){
+    setMemo(rows.map(function(r){
+      return r.code===code?Object.assign({},r,{frozen:next2?"已冻结":"正常"}):r;
+    }));
+  };
+
   /* ===== 录入模型（定稿）
      工厂行是唯一录入源：PM 逐工厂、逐年填数量
      基础车型行 = 各工厂该年之和（自动相加，只读）
@@ -4475,12 +4483,6 @@ function EpVolBoard(props){
       return c;
     });
     setMemo(next);
-  };
-  /* 冻结 / 解冻：冻结后该基础车型下所有工厂输入框置灰不可改 */
-  var setFrozen=function(code,next2){
-    setMemo(rows.map(function(r){
-      return r.code===code?Object.assign({},r,{frozen:next2?"已冻结":"正常"}):r;
-    }));
   };
 
   /* ===== 汇总（只做提示，不阻断保存） ===== */
@@ -4562,11 +4564,10 @@ function EpVolBoard(props){
   /* 表头：基础信息 + 年份列 + 校验列 */
   var headCells=[
     {k:"idx",n:"#",w:34},
-    {k:"base",n:"基础车型",w:210},
-    {k:"frozen",n:"冻结状态",w:86,al:"center"},
-    {k:"total",n:"合计",w:92,al:"right"}
-  ].concat(years.map(function(y){return {k:String(y),n:String(y),w:80,al:"right",year:true};}))
-;
+    {k:"base",n:"基础车型",w:200},
+    {k:"frozen",n:"冻结",w:64,al:"center"}
+  ].concat(years.map(function(y){return {k:String(y),n:String(y),w:84,al:"right",year:true};}))
+   .concat([{k:"total",n:"合计",w:96,al:"right"}]);
 
   /* 顶部工具栏：年份增删 + 导入导出保存 */
   var head=BRD_E("div",{style:{padding:"10px 14px",borderBottom:"1px solid #EFF0F1"}},[
@@ -4574,7 +4575,7 @@ function EpVolBoard(props){
       BRD_E("b",{style:{fontSize:14,color:"#191C24"}},[ "预测量纲" ]),
       BRD_E("span",{style:{fontSize:12,color:"#91959D"}},[ "涉及工厂 × 基础车型 × 年份" ]),
       BRD_E("span",{style:{flex:1}}),
-      frozenCount?BRD_E("span",{style:{fontSize:11,color:"#61646D",background:"#F5F5F5",border:"1px solid #E1E3E6",borderRadius:10,padding:"1px 9px"}},[ "已冻结 "+frozenCount+" 个基础车型" ]):null
+      frozenCount?BRD_E("span",{style:{fontSize:11,color:"#8C8C8C",background:"#FAFAFA",border:"1px solid #EBEBEB",borderRadius:2,padding:"1px 7px"},title:"对应 EP 产销规划的 IS_FROZEN 字段"},[ "已冻结 "+frozenCount+" 个基础车型" ]):null
     ]),
     BRD_E("div",{style:{display:"flex",alignItems:"center",gap:8,marginTop:10,flexWrap:"wrap"}},[
       /* 年份：一个「+ 加一年」，一个下拉删年 */
@@ -4605,10 +4606,7 @@ function EpVolBoard(props){
     BRD_E("span",{style:{color:"#191C24"}},[ allPlants.join(" / ")||"—" ]),
     BRD_E("span",{style:{color:"#D9D9D9"}},[ "›" ]),
     BRD_E("span",{style:{color:"#191C24"}},[ years[0]+"–"+years[years.length-1] ]),
-    BRD_E("span",{style:{flex:1}}),
-    BRD_E("span",{style:{color:"#91959D"}},[ "总量 " ]),
-    BRD_E("b",{style:{color:"#0958D9",fontSize:12,fontVariantNumeric:"tabular-nums"}},[ totalRow.toLocaleString() ]),
-    BRD_E("span",{style:{color:"#8C8C8C",fontSize:11}},[ "台" ])
+    BRD_E("span",{style:{flex:1}})
   ]);
 
   /* ===== 单元格渲染 ===== */
@@ -4617,8 +4615,10 @@ function EpVolBoard(props){
     var isFocus=focusCell===opt.key;
     return BRD_E("input",{
       type:"number",value:value,
-      onFocus:function(e){setFocusCell(opt.key);try{e.target.select();}catch(_e){}},
-      onBlur:function(){setFocusCell(null);},
+      onFocus:function(e){setFocusCell(opt.key);e.target.style.background="#fff";try{e.target.select();}catch(_e){}},
+      onBlur:function(e){setFocusCell(null);e.target.style.background="#F5F7FA";},
+      onMouseEnter:function(e){if(focusCell!==opt.key) e.target.style.background="#EDF3FF";},
+      onMouseLeave:function(e){if(focusCell!==opt.key) e.target.style.background="#F5F7FA";},
       onChange:function(e){onChange(e.target.value);},
       onKeyDown:function(e){
         if(e.key==="Enter"){e.preventDefault();e.target.blur();}
@@ -4637,9 +4637,11 @@ function EpVolBoard(props){
         }
       },
       "data-vol-cell":opt.col,
-      style:Object.assign({width:opt.w||64,height:24,border:"1px solid "+(isFocus?"#1677FF":(opt.warn?"#FFCCC7":"#E1E3E6")),
-        borderRadius:3,padding:"0 5px",fontSize:12,textAlign:"right",outline:"none",
-        background:isFocus?"#fff":(opt.bg||"#fff"),fontVariantNumeric:"tabular-nums"},opt.style||{})
+      /* 纯输入框：无边框，靠底色区分；聚焦时才描边 */
+      style:Object.assign({width:opt.w||64,height:26,border:"1px solid "+(isFocus?"#1677FF":"transparent"),
+        borderRadius:4,padding:"0 6px",fontSize:12,textAlign:"right",outline:"none",
+        background:isFocus?"#fff":"#F5F7FA",fontVariantNumeric:"tabular-nums",color:"#191C24",
+        transition:"background .12s, border-color .12s"},opt.style||{})
     });
   };
 
@@ -4657,7 +4659,7 @@ function EpVolBoard(props){
       BRD_E("tbody",{},rows.map(function(r,ri){
         var ys=r.years||[];
         var expanded=isOpen(r.code);
-        /* 基础车型行 = 汇总行：只读，数值全部由各工厂自动相加 */
+        /* 基础车型行 = 汇总行：年份与合计全部只读，由工厂自动相加 */
         var locked=!!(r.frozen==="已冻结");
         var mainRow=BRD_E("tr",{key:r.code,style:{background:expanded?"#EFF6FF":"#F7FAFF",borderTop:ri===0?"none":"2px solid #D6E8FF"}},[
           BRD_E("td",{style:Object.assign({},BRD_TD,{color:"#0958D9",padding:"7px 8px",fontSize:11,fontWeight:700,borderBottom:"1px solid #E6F0FF",borderLeft:"3px solid #1677FF"})},[String(ri+1)]),
@@ -4666,52 +4668,56 @@ function EpVolBoard(props){
             BRD_E("span",{style:{fontFamily:"ui-monospace,Menlo,monospace",fontSize:11,color:"#1677FF",marginRight:6}},[r.code]),
             BRD_E("span",{style:{fontSize:12.5,color:"#191C24",fontWeight:600}},[r.name])
           ]),
-          /* 冻结状态：冻结该基础车型下所有工厂的录入 */
-          BRD_E("td",{style:Object.assign({},BRD_TD,{textAlign:"center",padding:"5px 8px",borderBottom:"1px solid #E6F0FF"})},[
-            BRD_E("button",{
-              type:"button",
-              title:locked?"点击解冻，解冻后可继续录入工厂数量":"点击冻结，冻结后各工厂数量不可再改",
+          /* 冻结：口径同 EP（IS_FROZEN，基础车型级，可切换） */
+          BRD_E("td",{style:Object.assign({},BRD_TD,{textAlign:"center",padding:"5px 6px",borderBottom:"1px solid #E6F0FF"})},[
+            BRD_E("span",{
+              title:locked?"已冻结：该基础车型不可改量纲、不参与新 SOR":"未冻结：量纲可修改",
               onClick:function(){
                 setFrozen(r.code,!locked);
                 We.success((r.code||"该行")+(locked?" 已解冻":" 已冻结"));
               },
-              style:{fontSize:10.5,padding:"1px 8px",borderRadius:10,cursor:"pointer",whiteSpace:"nowrap",
-                background:locked?"#F5F5F5":"#fff",
-                border:"1px solid "+(locked?"#D9D9D9":"#ADC6FF"),
-                color:locked?"#8C8C8C":"#1677FF"}
-            },[locked?"🔒 已冻结":"🔓 未冻结"])
-          ]),
-          /* 合计：只读，= 该基础车型各工厂各年之和 */
-          BRD_E("td",{style:Object.assign({},BRD_TD,{textAlign:"right",padding:"5px 8px",borderBottom:"1px solid #E6F0FF",fontSize:12,fontWeight:700,color:"#0958D9",fontVariantNumeric:"tabular-nums"})},[
-            (Number(r.total)||0).toLocaleString()
+              style:{display:"inline-flex",alignItems:"center",gap:5,cursor:"pointer",userSelect:"none"}
+            },[
+              BRD_E("span",{style:{position:"relative",display:"inline-block",width:28,height:16,borderRadius:8,background:locked?"#1677FF":"#BFBFBF",transition:"background .2s",flexShrink:0}},[
+                BRD_E("span",{style:{position:"absolute",top:2,left:locked?14:2,width:12,height:12,borderRadius:"50%",background:"#fff",transition:"left .2s",boxShadow:"0 1px 2px rgba(0,0,0,.2)"}})
+              ]),
+              BRD_E("span",{style:{fontSize:11,color:locked?"#1677FF":"#8C8C8C",whiteSpace:"nowrap"}},[locked?"已冻结":"未冻结"])
+            ])
           ])
         ].concat(years.map(function(y,yi){
-          /* 基础车型年度值：只读浅色，来源 = 各工厂相加 */
-          return BRD_E("td",{key:y,style:Object.assign({},BRD_TD,{textAlign:"right",padding:"5px 8px",fontSize:12,fontWeight:600,color:"#0958D9",fontVariantNumeric:"tabular-nums"})},[
+          /* 年份值：只读文本，来源 = 各工厂该年相加 */
+          return BRD_E("td",{key:y,style:Object.assign({},BRD_TD,{textAlign:"right",padding:"5px 8px",fontSize:12,fontWeight:500,color:"#61646D",fontVariantNumeric:"tabular-nums"})},[
             (Number(ys[yi])||0).toLocaleString()
           ]);
-        })));
+        })).concat([
+          /* 合计：最后一列，置灰只读 */
+          BRD_E("td",{key:"total",style:Object.assign({},BRD_TD,{textAlign:"right",padding:"5px 8px",borderBottom:"1px solid #E6F0FF",fontSize:12,fontWeight:600,color:"#8C8C8C",fontVariantNumeric:"tabular-nums"})},[
+            (Number(r.total)||0).toLocaleString()
+          ])
+        ]));
 
         /* 工厂行 = 唯一录入源：PM 逐年填数量；冻结后置灰只读 */
         var plantRows=expanded?((r.plants||[]).map(function(pr,pi){
           var pYears=years.map(function(y){return Number((pr.ymap||{})[y])||0;});
           var amt=pYears.reduce(function(a,b){return a+b;},0);
-          return BRD_E("tr",{key:r.code+"-p"+pi,style:{background:"#FFFFFF"}},[
+          return BRD_E("tr",{key:r.code+"-p"+pi,style:{background:locked?"#FCFCFC":"#FFFFFF"}},[
             BRD_E("td",{style:Object.assign({},BRD_TD,{padding:"3px 8px",background:"#FAFBFC"})},[""]),
             BRD_E("td",{style:Object.assign({},BRD_TD,{padding:"3px 8px",paddingLeft:30,fontSize:11.5,color:"#61646D"})},[
               BRD_E("span",{style:{color:"#ADC6FF",marginRight:5}},[ "└" ]),
               BRD_E("span",{style:{color:"#91959D",fontSize:10,marginRight:5,background:"#F5F7FA",borderRadius:2,padding:"0 4px"}},[ "工厂" ]),
               BRD_E("span",{style:{color:"#191C24",fontSize:11.5}},[pr.plant||"—"])
             ]),
-            BRD_E("td",{style:Object.assign({},BRD_TD,{padding:"3px 8px"})},[""]),
-            BRD_E("td",{style:Object.assign({},BRD_TD,{textAlign:"right",padding:"3px 8px",fontSize:11.5,color:"#8C8C8C",fontVariantNumeric:"tabular-nums"})},[ amt.toLocaleString() ])
+            BRD_E("td",{style:Object.assign({},BRD_TD,{padding:"3px 6px"})},[""])
           ].concat(years.map(function(y,yi){
             return BRD_E("td",{key:y,style:Object.assign({},BRD_TD,{textAlign:"right",padding:"3px 8px"})},[
               locked
-                ?BRD_E("span",{title:"该基础车型已冻结",style:{display:"inline-block",width:66,textAlign:"right",fontSize:12,color:"#BFBFBF",fontVariantNumeric:"tabular-nums"}},[(pYears[yi]||0).toLocaleString()])
-                :numInput(pYears[yi]||0,function(v){setPlantYear(r.code,pi,yi,v);},{key:r.code+"-p"+pi+"-"+y,col:"py"+yi,w:66})
+                ?BRD_E("span",{title:"该基础车型已冻结，量纲不可修改",style:{display:"inline-block",width:"100%",textAlign:"right",fontSize:12,color:"#C4C4C4",fontVariantNumeric:"tabular-nums",background:"transparent",borderRadius:4,padding:"3px 6px",cursor:"not-allowed"}},[(pYears[yi]||0).toLocaleString()])
+                :numInput(pYears[yi]||0,function(v){setPlantYear(r.code,pi,yi,v);},{key:r.code+"-p"+pi+"-"+y,col:"py"+yi,w:"100%"})
             ]);
-          })));
+          })).concat([
+            /* 工厂行合计：只读灰字 */
+            BRD_E("td",{key:"total",style:Object.assign({},BRD_TD,{textAlign:"right",padding:"3px 8px",fontSize:11.5,color:"#8C8C8C",fontVariantNumeric:"tabular-nums"})},[ amt.toLocaleString() ])
+          ]));
         })):[];
 
         return [mainRow].concat(plantRows);
@@ -4721,11 +4727,12 @@ function EpVolBoard(props){
         BRD_E("tr",{style:{background:"#EAF3FF",position:"sticky",bottom:0}},[
           BRD_E("td",{style:Object.assign({},BRD_TD,{padding:"6px 8px",borderTop:"2px solid #91B0FF",borderBottom:"none"})},[""]),
           BRD_E("td",{style:Object.assign({},BRD_TD,{color:"#0958D9",padding:"6px 8px",fontSize:12,fontWeight:600,borderTop:"2px solid #91B0FF",borderBottom:"none"})},[ "合计" ]),
-          BRD_E("td",{style:Object.assign({},BRD_TD,{textAlign:"center",padding:"6px 8px",color:"#8C8C8C",fontSize:11,borderTop:"2px solid #91B0FF",borderBottom:"none"})},[ frozenCount?("冻结 "+frozenCount):"" ]),
-          BRD_E("td",{style:Object.assign({},BRD_TD,{textAlign:"right",padding:"6px 8px",color:"#0958D9",fontSize:12,fontWeight:600,fontVariantNumeric:"tabular-nums",borderTop:"2px solid #91B0FF",borderBottom:"none"})},[ totalRow.toLocaleString() ])
+          BRD_E("td",{style:Object.assign({},BRD_TD,{padding:"6px 6px",borderTop:"2px solid #91B0FF",borderBottom:"none"})},[""])
         ].concat(years.map(function(y,yi){
           return BRD_E("td",{key:y,style:Object.assign({},BRD_TD,{textAlign:"right",padding:"6px 8px",color:"#0958D9",fontSize:12,fontWeight:600,fontVariantNumeric:"tabular-nums",borderTop:"2px solid #91B0FF",borderBottom:"none"})},[ (yearSum[yi]||0).toLocaleString() ]);
-        })))
+        })).concat([
+          BRD_E("td",{key:"total",style:Object.assign({},BRD_TD,{textAlign:"right",padding:"6px 8px",color:"#0958D9",fontSize:12,fontWeight:700,fontVariantNumeric:"tabular-nums",borderTop:"2px solid #91B0FF",borderBottom:"none"})},[ totalRow.toLocaleString() ])
+        ]))
       ])
     ])
   ]);
@@ -4748,8 +4755,8 @@ function EpVolBoard(props){
 
   var helpBar=showHelp?BRD_E("div",{style:{display:"flex",alignItems:"flex-start",gap:8,padding:"7px 14px",background:"#F5FAFF",borderTop:"1px solid #D6E8FF",fontSize:11,color:"#1677FF",lineHeight:1.8}},[
     BRD_E("div",{style:{flex:1}},[
-      BRD_E("div",{},["· 工厂行是唯一录入源：PM 逐工厂、逐年填数量；基础车型行与合计自动相加，不可编辑"]),
-      BRD_E("div",{},["· 冻结后该基础车型下所有工厂行置灰只读，用于锁住已确认的量纲"]),
+      BRD_E("div",{},["· 工厂行可录入：PM 逐工厂、逐年填数量；基础车型行与合计列自动相加，只读"]),
+      BRD_E("div",{},["· 冻结对应 EP 产销规划的 IS_FROZEN：冻结后该基础车型不可改量纲、不参与新建 SOR"]),
       BRD_E("div",{},["· 年份：点「+ 加一年」追加到下一年；「删除年份」下拉选该年（有数据会确认后清空）"])
     ]),
     BRD_E("span",{style:{cursor:"pointer",color:"#91959D"},onClick:function(){setShowHelp(false);}},[ "收起" ])
