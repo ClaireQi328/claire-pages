@@ -180,6 +180,39 @@ table.ft .zs{font-size:10.5px;color:rgba(0,0,0,.35);padding-left:6px}
 .fdiff{font-size:10.5px;color:#d46b08;background:#fff7e6;border:1px solid #ffe58f;
 border-radius:4px;padding:5px 8px;margin-bottom:6px;line-height:1.6}
 .fdiff .fdtip{display:block;color:rgba(0,0,0,.35);font-size:10px}
+
+/* ===== 对比模式 ===== */
+.cmptool{display:flex;align-items:center;gap:8px;margin-bottom:12px;
+padding:10px 12px;background:#fafafa;border-radius:6px}
+.cmptool .ct{font-size:11.5px;color:rgba(0,0,0,.45);flex:1}
+.cmptool .btn.xs{padding:3px 10px}
+tr.selrow td{background:#e6f4ff}
+.cmpwrap{overflow-x:auto;border:1px solid #f0f0f0;border-radius:6px}
+table.cmpt{border-collapse:separate;border-spacing:0;width:100%;min-width:640px;font-size:12px}
+table.cmpt th{position:sticky;top:0;background:#fafafa;z-index:2;padding:10px 12px;
+border-bottom:1px solid #f0f0f0;text-align:center;vertical-align:top}
+table.cmpt th.fcol,table.cmpt td.fcol{text-align:left;width:120px;position:sticky;left:0;
+background:#fff;z-index:1;font-weight:500;color:rgba(0,0,0,.65)}
+table.cmpt th.fcol{background:#fafafa;z-index:3}
+table.cmpt th.base{background:#f6ffed}
+table.cmpt td.base{background:rgba(82,196,26,.05)}
+.cmpwrap .cn{font-size:10.5px;color:rgba(0,0,0,.45);line-height:1.4;margin-bottom:3px}
+.cmpwrap .cp{font-size:15px;font-weight:600;color:#1677ff;font-variant-numeric:tabular-nums}
+.cmpwrap th.base .cp{color:#389e0d}
+.cmpwrap .cb{font-size:10px;color:#389e0d;margin-top:2px}
+.cmpwrap .cd{font-size:10px;color:#cf1322;margin-top:2px}
+table.cmpt td{padding:7px 12px;border-bottom:1px solid #f7f7f7;text-align:right;
+font-variant-numeric:tabular-nums}
+table.cmpt td.fcol{text-align:left}
+table.cmpt .cv{font-size:12px;color:rgba(0,0,0,.88)}
+table.cmpt .cdt{font-size:10px;margin-top:1px}
+table.cmpt .cdt.up{color:#cf1322}
+table.cmpt .cdt.dn{color:#389e0d}
+table.cmpt .z{color:rgba(0,0,0,.2)}
+tr.grow td{background:#f7f9fc;font-size:11px;font-weight:600;color:rgba(0,0,0,.65);
+padding:5px 12px;border-bottom:1px solid #eef2f7}
+tr.grow td.fcol{background:#f7f9fc}
+tr.zrow td{opacity:.45}
 </style>
 </head>
 <body>
@@ -899,7 +932,7 @@ window.loadDemo=function(){
 document.addEventListener('DOMContentLoaded',init);
 </script>
 <script>/* ===== 品类库：四级下钻 VPPS → 零件 → 报价 → 细项 ===== */
-var CAT={vpps:null,part:null,row:null};
+var CAT={vpps:null,part:null,row:null,mode:'single',sel:{}};
 
 function money(n){return Number(n||0).toLocaleString('zh-CN',{minimumFractionDigits:2,maximumFractionDigits:2});}
 function money0(n){return Number(n||0).toLocaleString('zh-CN',{maximumFractionDigits:0});}
@@ -908,11 +941,12 @@ function esc(s){return String(s==null?'':s).replace(/[&<>"']/g,function(c){
   return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];});}
 
 window.catOpenVpps=function(v){CAT.vpps=v;CAT.part=null;CAT.row=null;renderCategory();};
-window.catOpenPart=function(p){CAT.part=p;CAT.row=null;renderCategory();};
+window.catOpenPart=function(p){CAT.part=p;CAT.row=null;CAT.mode='single';CAT.sel={};renderCategory();};
 window.catOpenRow=function(part,sup){CAT.row={part:part,sup:sup};renderCategory();};
 window.catBack=function(lv){
-  if(lv===1){CAT.part=null;CAT.row=null;}
-  if(lv===2){CAT.row=null;}
+  if(lv===1){CAT.part=null;CAT.row=null;CAT.mode='single';CAT.sel={};}
+  if(lv===2){CAT.row=null;CAT.mode='single';CAT.sel={};}
+  if(lv===3){CAT.row=null;}
   renderCategory();
 };
 
@@ -928,7 +962,9 @@ function renderCategory(){
     crumbs+='<span class="sep">/</span><span class="cb'+(CAT.row?'':' cur')+'" '
       +'onclick="catBack(2)">'+esc(CAT.part)+'</span>';
   }
-  if(CAT.row){
+  if(CAT.mode==='compare'){
+    crumbs+='<span class="sep">/</span><span class="cb cur">对比（'+Object.keys(CAT.sel).length+' 家）</span>';
+  } else if(CAT.row){
     crumbs+='<span class="sep">/</span><span class="cb cur">完整细项</span>';
   }
   crumbs+='</div>';
@@ -936,6 +972,7 @@ function renderCategory(){
   var h=crumbs;
   if(!CAT.vpps) h+=lv1();
   else if(!CAT.part) h+=lv2();
+  else if(CAT.mode==='compare') h+=lvCompare();
   else if(!CAT.row) h+=lv3();
   else h+=lv4();
   box.innerHTML=h;
@@ -1013,34 +1050,208 @@ function lv2(){
   return h;
 }
 
-/* ---- L3：某零件下的报价 ---- */
+/* ---- L3：某零件下的报价（可多选对比） ---- */
 function lv3(){
   var rows=rowsOfVpps(CAT.vpps).filter(function(r){return r.part===CAT.part;});
   rows.sort(function(a,b){return a.pf-b.pf;});
   if(!rows.length)return '<div class="empty">无数据</div>';
   var lo=rows[0];
+  var nSel=Object.keys(CAT.sel).length;
 
   var h='<div class="phead"><div class="pt">'+esc(rows[0].name||CAT.part)+'</div>'
     +'<div class="pm">'+esc(CAT.part)+' · VPPS '+esc(CAT.vpps)+' · '+rows.length+' 家报价</div></div>';
 
-  h+='<div class="hint">点任意一行展开完整报价细项（材料/制造/管理/物流/分摊/样件 全部字段）</div>';
-  h+='<table><thead><tr><th>供应商</th><th class="n">出厂价</th><th class="n">材料费</th>'
-    +'<th class="n">材料%</th><th class="n">制造费</th><th class="n">制造%</th>'
+  // 对比工具条
+  h+='<div class="cmptool">'
+    +'<span class="ct">勾选 2 家以上可并排对比全部细项</span>'
+    +'<button class="btn xs" onclick="catSelAll()">全选</button>'
+    +'<button class="btn xs" onclick="catSelNone()">清空</button>'
+    +'<button class="btn primary xs" id="cmpGo" onclick="catCompare()" '
+    +(nSel>=2?'':'disabled')+'>对比选中的 '+nSel+' 家 →</button>'
+    +'</div>';
+
+  h+='<table><thead><tr><th style="width:34px"></th><th>供应商</th><th class="n">出厂价</th>'
+    +'<th class="n">材料费</th><th class="n">材料%</th><th class="n">制造费</th><th class="n">制造%</th>'
     +'<th class="n">管理费</th><th class="n">vs 最低</th><th></th></tr></thead><tbody>';
-  rows.forEach(function(r){
-    var isLow=(r===lo);
+  rows.forEach(function(r,i){
+    var isLow=(i===0);
     var diff=lo.pf>0?(r.pf-lo.pf)/lo.pf*100:0;
-    h+='<tr class="clickable'+(isLow?' best':'')+'" onclick="catOpenRow(\''+esc(r.part)+'\',\''+esc(r.supplier).replace(/'/g,"\\'")+'\')">'
-      +'<td style="font-size:11.5px"><span class="arw">▸</span> '+esc(r.supplier||'-')+'</td>'
+    var key=esc(r.supplier);
+    var checked=!!CAT.sel[key];
+    h+='<tr class="'+(checked?'selrow ':'')+'clickable">'
+      +'<td onclick="event.stopPropagation();catToggle(\''+key.replace(/'/g,"\\'")+'\')">'
+      +'<input type="checkbox" '+(checked?'checked':'')+' style="cursor:pointer"></td>'
+      +'<td style="font-size:11.5px" onclick="catOpenRow(\''+esc(r.part)+'\',\''+key.replace(/'/g,"\\'")+'\')">'
+      +'<span class="arw">▸</span> '+esc(r.supplier||'-')+'</td>'
       +'<td class="n b">'+money(r.pf)+'</td>'
       +'<td class="n">'+money(r.mat)+'</td><td class="n">'+fc(r.matPct)+'%</td>'
       +'<td class="n">'+money(r.mfg)+'</td><td class="n">'+fc(r.mfgPct)+'%</td>'
       +'<td class="n">'+money(r.admTotal)+'</td>'
       +'<td class="n">'+(isLow?'<span class="tag green">最低</span>'
         :'<span class="tag '+(diff>30?'red':'grey')+'">+'+fc(diff,1)+'%</span>')+'</td>'
-      +'<td style="text-align:right"><button class="btn xs">细项</button></td></tr>';
+      +'<td style="text-align:right"><button class="btn xs" '
+      +'onclick="event.stopPropagation();catOpenRow(\''+esc(r.part)+'\',\''+key.replace(/'/g,"\\'")+'\')">细项</button></td></tr>';
   });
   h+='</tbody></table>';
+  return h;
+}
+
+window.catToggle=function(sup){
+  if(CAT.sel[sup]) delete CAT.sel[sup];
+  else CAT.sel[sup]=1;
+  renderCategory();
+};
+window.catSelAll=function(){
+  var rows=rowsOfVpps(CAT.vpps).filter(function(r){return r.part===CAT.part;});
+  CAT.sel={};
+  rows.forEach(function(r){CAT.sel[r.supplier]=1;});
+  renderCategory();
+};
+window.catSelNone=function(){CAT.sel={};renderCategory();};
+window.catCompare=function(){
+  if(Object.keys(CAT.sel).length<2)return;
+  CAT.mode='compare';CAT.row=null;renderCategory();
+};
+window.catExitCmp=function(){CAT.mode='single';renderCategory();};
+
+/* ---- L3.5：多家并排对比 ---- */
+var CMP_FIELDS=[
+  {g:'报价',items:[
+    ['出厂价','pf'],['到厂价','unitPrice']
+  ]},
+  {g:'材料费',items:[
+    ['材料费','mat'],['原材料','raw'],['外购件','purch']
+  ]},
+  {g:'制造费',items:[
+    ['制造费','mfg'],['设备折旧','equip'],['人工费','labor'],
+    ['报废费','scrap'],['能耗费','energy'],['耗材费','consum']
+  ]},
+  {g:'管理费',items:[
+    ['管理费','admTotal'],['DB 管理费','admDb'],['利润','admProfit']
+  ]},
+  {g:'物流费',items:[
+    ['物流费','logi'],['包装费','pack'],['运输费','transport'],['仓储费','storage']
+  ]},
+  {g:'一次性分摊',items:[
+    ['模具单件','toolUnit'],['开发单件','devUnit']
+  ]},
+];
+
+function lvCompare(){
+  var rows=rowsOfVpps(CAT.vpps).filter(function(r){
+    return r.part===CAT.part && CAT.sel[r.supplier];
+  });
+  if(rows.length<2)return '<div class="empty">请返回选择至少 2 家</div>';
+  rows.sort(function(a,b){return a.pf-b.pf;});
+  var base=rows[0]; // 最低价作基准
+
+  var h='<div class="cmptool">'
+    +'<span class="ct">纵向为细项，横向为供应商。每个格子下方显示「与最低价的差额」</span>'
+    +'<button class="btn xs" onclick="catExitCmp()">← 返回报价列表</button></div>';
+
+  // 表头
+  h+='<div class="cmpwrap"><table class="cmpt">';
+  h+='<thead><tr><th class="fcol">细项</th>';
+  rows.forEach(function(r,i){
+    h+='<th class="'+(i===0?'base':'')+'">'
+      +'<div class="cn">'+esc((r.supplier||'').slice(0,12))+'</div>'
+      +'<div class="cp">¥'+money(r.pf)+'</div>'
+      +(i===0?'<div class="cb">基准（最低价）</div>'
+        :'<div class="cd">+'+fc((r.pf-base.pf)/base.pf*100,1)+'%</div>')
+      +'</th>';
+  });
+  h+='</tr></thead><tbody>';
+
+  var emptyGroups=[];
+  CMP_FIELDS.forEach(function(grp){
+    // 整组都为 0 时折叠，不展示空表格
+    var grpAllZero=grp.items.every(function(it){
+      return rows.every(function(r){return !(Number(r[it[1]])||0);});
+    });
+    if(grpAllZero){ emptyGroups.push(grp.g); return; }
+    h+='<tr class="grow"><td class="fcol" colspan="'+(rows.length+1)+'">'+esc(grp.g)+'</td></tr>';
+    grp.items.forEach(function(it){
+      var label=it[0],key=it[1];
+      // 该行是否所有值都相同（相同则淡化）
+      var vals=rows.map(function(r){return Number(r[key])||0;});
+      var maxv=Math.max.apply(null,vals);
+      var allZero=maxv===0;
+      h+='<tr'+(allZero?' class="zrow"':'')+'><td class="fcol">'+esc(label)+'</td>';
+      vals.forEach(function(v,i){
+        var diff=v-base[key];
+        var diffTxt='';
+        var cls='';
+        if(!allZero&&i>0&&Math.abs(diff)>0.005){
+          if(diff>0){diffTxt='+'+money(diff);cls='up';}
+          else{diffTxt=money(diff);cls='dn';}
+        }
+        // 颜色深浅表示相对最大值
+        var heat=allZero?0:v/maxv;
+        h+='<td class="'+(i===0?'base':'')+' '+(i===0?'heat':'heat')+'" '
+          +'style="background:'+(allZero?'#fafafa':'rgba(22,119,255,'+(heat*0.10).toFixed(3)+')')+'">'
+          +'<div class="cv">'+(allZero?'<span class="z">—</span>':money(v))+'</div>'
+          +(diffTxt?'<div class="cdt '+cls+'">'+diffTxt+'</div>':'')
+          +'</td>';
+      });
+      h+='</tr>';
+    });
+  });
+
+  // 占比行
+  h+='<tr class="grow"><td class="fcol" colspan="'+(rows.length+1)+'">结构占比</td></tr>';
+  [['材料%','matPct'],['制造%','mfgPct'],['管理%','admPct'],['物流%','logiPct']].forEach(function(it){
+    h+='<tr><td class="fcol">'+esc(it[0])+'</td>';
+    rows.forEach(function(r,i){
+      var v=Number(r[it[1]])||0;
+      h+='<td class="'+(i===0?'base':'')+'"><div class="cv">'+fc(v)+'%</div></td>';
+    });
+    h+='</tr>';
+  });
+  h+='</tbody></table></div>';
+
+  // 结论：只看成本构成项，不含总价（总价是结果不是原因）
+  var SKIP=['pf','unitPrice','mat','mfg','admTotal','logi','toolUnit','devUnit'];
+  var gaps=[];
+  CMP_FIELDS.forEach(function(grp){
+    grp.items.forEach(function(it){
+      var key=it[1];
+      if(SKIP.indexOf(key)>=0) return;
+      var vals=rows.map(function(r){return Number(r[key])||0;});
+      var mx=Math.max.apply(null,vals);
+      var mn=Math.min.apply(null,vals);
+      if(mx-mn>0.005) gaps.push({k:it[0],d:mx-mn,pct:(mx-mn)/mx*100,mx:mx});
+    });
+  });
+  gaps.sort(function(a,b){return b.d-a.d;});
+
+  h+='<div class="okbox" style="margin-top:16px"><b>差异来自哪里（只比成本项，不含总价）</b><br>';
+  if(!gaps.length){
+    h+='这几家的成本构成几乎一致，差异主要在总价层面。<br>';
+  } else {
+    gaps.slice(0,3).forEach(function(g,i){
+      h+=(i+1)+'. '+esc(g.k)+'：最大差 <b>¥'+money(g.d)+'</b>，'
+        +'占该项最高值（¥'+money(g.mx)+'）的 '+fc(g.pct,0)+'%<br>';
+    });
+  }
+  h+='<span style="color:rgba(0,0,0,.45)">价差总额 ¥'+money(rows[rows.length-1].pf-base.pf)
+    +'（'+(rows.length-1)+' 家高于最低价）</span>';
+  // 管理费构成差异：有的走 DB、有的走利润，口径不同不能直接比
+  var dbVals=rows.map(function(r){return Number(r.admDb)||0;});
+  var pfVals=rows.map(function(r){return Number(r.admProfit)||0;});
+  var dbMixed=(Math.max.apply(null,dbVals)>0.005 && Math.min.apply(null,dbVals)<0.005);
+  var pfMixed=(Math.max.apply(null,pfVals)>0.005 && Math.min.apply(null,pfVals)<0.005);
+  if(dbMixed||pfMixed){
+    h+='<div style="margin-top:8px;font-size:11px;color:#d46b08">'
+      +'⚠ 管理费口径不一致：'
+      +(dbMixed?'部分供应商把管理费放进「DB 管理费」，部分放在「利润」；':'')
+      +'总额可比，拆分不可比。</div>';
+  }
+  if(emptyGroups.length){
+    h+='<div style="margin-top:8px;font-size:11px;color:rgba(0,0,0,.35)">'
+      +'以下组在这些报价里都没有值，已折叠：'+esc(emptyGroups.join('、'))+'</div>';
+  }
+  h+='</div>';
+
   return h;
 }
 
