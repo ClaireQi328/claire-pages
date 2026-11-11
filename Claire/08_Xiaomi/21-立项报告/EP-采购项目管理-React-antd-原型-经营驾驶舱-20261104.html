@@ -4566,7 +4566,7 @@ function EpVolBoard(props){
     {k:"idx",n:"#",w:34},
     {k:"base",n:"基础车型",w:200},
     {k:"frozen",n:"冻结",w:64,al:"center"}
-  ].concat(years.map(function(y){return {k:String(y),n:String(y),w:84,al:"right",year:true};}))
+  ].concat(years.map(function(y){return {k:String(y),n:String(y),w:88,al:"right",year:true};}))
    .concat([{k:"total",n:"合计",w:96,al:"right"}]);
 
   /* 顶部工具栏：年份增删 + 导入导出保存 */
@@ -4582,14 +4582,6 @@ function EpVolBoard(props){
       BRD_E("span",{style:{fontSize:11,color:"#8C8C8C"}},[ "年份" ]),
       BRD_E("button",{type:"button",title:"在首年之前插入一年",style:{fontSize:12,color:"#1677FF",background:"#fff",border:"1px solid #91B0FF",borderRadius:4,padding:"2px 10px",cursor:"pointer"},onClick:addYearBeforeStart},[ "← 加一年" ]),
       BRD_E("button",{type:"button",title:"在最后一年之后追加一年",style:{fontSize:12,color:"#1677FF",background:"#fff",border:"1px solid #91B0FF",borderRadius:4,padding:"2px 10px",cursor:"pointer"},onClick:addYearAfterEnd},[ "+ 加一年" ]),
-      BRD_E("select",{value:"",style:Object.assign({},BRD_INP,{height:26,width:112}),onChange:function(e){
-        var y=Number(e.target.value);
-        if(y) { removeYear(y); }
-        e.target.value="";
-      }},[
-        BRD_E("option",{value:""},[ "删除年份…" ])
-      ].concat(years.map(function(y){return BRD_E("option",{key:y,value:y},[String(y)]);}))),
-      BRD_E("span",{style:{width:1,height:14,background:"#E1E3E6",margin:"0 4px"}}),
       BRD_E("span",{style:{flex:1}}),
       BRD_E("button",{type:"button",style:{fontSize:12,color:"#61646D",background:"#fff",border:"1px solid #E1E3E6",borderRadius:4,padding:"3px 10px",cursor:"pointer"},onClick:function(){setVolImport(true);}},[ "导入" ]),
       BRD_E("button",{type:"button",style:{fontSize:12,color:"#61646D",background:"#fff",border:"1px solid #E1E3E6",borderRadius:4,padding:"3px 10px",cursor:"pointer"},onClick:function(){We.success("已导出量纲（"+rows.length+" 行 × "+years.length+" 年）");}},[ "导出" ]),
@@ -4654,6 +4646,24 @@ function EpVolBoard(props){
           background:c.year?"#F5F9FF":"#F8F9FA",
           color:c.year?"#1677FF":"#61646D",fontSize:11,padding:"6px 8px"
         });
+        /* 年份列：文字 + 右侧「×」删除；仅剩余 1 年时禁用 */
+        if(c.year){
+          var canDel=years.length>1;
+          return BRD_E("th",{key:c.k,style:Object.assign({},thStyle,{whiteSpace:"nowrap",padding:"6px 6px 6px 6px"})},[
+            BRD_E("span",{style:{display:"inline-flex",alignItems:"center",gap:1}},[
+              BRD_E("span",{style:{fontVariantNumeric:"tabular-nums"}},[c.n]),
+              BRD_E("span",{
+                title:canDel?("删除 "+c.n+" 年"):"至少保留 1 个年份",
+                onClick:function(e){e.stopPropagation();if(canDel) removeYear(Number(c.n));},
+                style:{display:"inline-flex",alignItems:"center",justifyContent:"center",width:13,height:13,
+                  borderRadius:2,fontSize:11,lineHeight:1,flexShrink:0,
+                  color:canDel?"#CBCBCB":"#EEEEEE",
+                  cursor:canDel?"pointer":"not-allowed",
+                  background:"transparent"}
+              },[ "×" ])
+            ])
+          ]);
+        }
         return BRD_E("th",{key:c.k,style:thStyle},[c.n]);
       }))]),
       BRD_E("tbody",{},rows.map(function(r,ri){
@@ -4757,7 +4767,7 @@ function EpVolBoard(props){
     BRD_E("div",{style:{flex:1}},[
       BRD_E("div",{},["· 工厂行可录入：PM 逐工厂、逐年填数量；基础车型行与合计列自动相加，只读"]),
       BRD_E("div",{},["· 冻结对应 EP 产销规划的 IS_FROZEN：冻结后该基础车型不可改量纲、不参与新建 SOR"]),
-      BRD_E("div",{},["· 年份：点「+ 加一年」追加到下一年；「删除年份」下拉选该年（有数据会确认后清空）"])
+      BRD_E("div",{},["· 年份：「← 加一年」在首年前插入，「+ 加一年」在末年后追加；点年份表头右侧 × 删除该年（有数据会确认后清空）"])
     ]),
     BRD_E("span",{style:{cursor:"pointer",color:"#91959D"},onClick:function(){setShowHelp(false);}},[ "收起" ])
   ]):null;
