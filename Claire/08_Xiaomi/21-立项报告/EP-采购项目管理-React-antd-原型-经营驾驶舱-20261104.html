@@ -2798,6 +2798,9 @@ var BRD_CTRL_ROWS=[
  ["MS11", "Modena 28A-G90", "SOR-2027-638", "电驱总成", "电驱", "8043-PWT-0638", "王砚", "电驱组", "孙浩", "陈晨", "", "2027/03/05", "2026/11/02", "950", "300", "已定点", "汇川技术", "2026/11/12", "912", "282", "RFQ-26-118 2轮", "文档链接", "BDL-108 通过", "通过-推荐", "通过-推荐", "SCM2026-101508", "已完成", "已完成", "已签署", "已签署", "签署中"],
  ["MS11", "Modena 27A", "SOR-2027-639", "逆变器壳体", "电驱", "8043-PWT-0639", "王砚", "电驱组", "", "", "", "2027/02/10", "2026/10/08", "420", "330", "询价中", "—", "—", "", "", "RFQ-26-119 3轮", "未归档", "BDL-109 评审中", "通过-推荐", "评审中", "", "已完成", "已完成", "未开始", "未开始", "未开始"],
  ["MS11", "Modena 28A", "SOR-2027-640", "制动卡钳", "底盘", "8043-CHS-0640", "刘五", "底盘组", "李强", "", "", "2027/02/10", "2026/11/02", "560", "560", "未定点", "—", "—", "", "", "—", "未归档", "—", "—", "—", "", "", "", "未开始", "未开始", "未开始"],
+ /* 跨项目共包（SOR-MP）：同一包挂 Modena-U 与 Le Mans 两个项目，全局统计需去重 */
+ ["MS11", "Modena-U", "SOR-MP-BIW-0195", "高强度紧固件", "车身", "8043-BIW-0195", "王健", "车身外饰", "陈锦森", "邓勇", "", "2027/01/20", "2026/10/08", "380", "120", "已定点", "毅结特紧固件系统（太仓）", "2026/11/20", "372", "118", "RFQ-26-195 2轮", "文档链接", "BDL-195 通过", "通过-推荐", "通过-推荐", "SCM2026-101595", "已完成", "已完成", "已签署", "已签署", "签署中"],
+ ["MX11", "Le Mans", "SOR-MP-BIW-0195", "高强度紧固件", "车身", "8041-BIW-0195", "王健", "车身外饰", "陈锦森", "邓勇", "", "2027/01/20", "2026/10/08", "380", "120", "已定点", "毅结特紧固件系统（太仓）", "2026/11/20", "372", "118", "RFQ-26-195 2轮", "文档链接", "BDL-195 通过", "通过-推荐", "通过-推荐", "SCM2026-101595", "已完成", "已完成", "已签署", "已签署", "签署中"],
  ["MS11", "Modena 28C-G2", "SOR-2027-641", "门内饰板", "内饰", "8043-INT-0641", "赵笛", "内外饰组", "孙浩", "", "", "2026/12/28", "2026/11/02", "320", "120", "已定点", "博世苏州", "2026/12/05", "307", "112", "RFQ-26-121 2轮", "文档链接", "BDL-101 通过", "通过-推荐", "通过-推荐", "SCM2026-101511", "已完成", "已完成", "已签署", "签署中", "签署中"],
  ["MS11", "Modena 28A-G91", "SOR-2027-642", "前后保险杠", "内外饰", "8043-EXT-0642", "赵笛", "内外饰组", "", "陈晨", "", "2026/12/15", "2026/10/08", "860", "330", "已定点", "博世苏州", "2026/11/12", "825", "310", "RFQ-26-122 3轮", "文档链接", "BDL-102 通过", "通过-推荐", "通过-推荐", "SCM2026-101512", "已完成", "已完成", "未开始", "未开始", "签署中"],
  ["MS11", "Modena", "SOR-2027-643", "仪表板总成", "内饰", "8043-INT-0643", "张三", "内饰组", "李强", "", "", "2027/04/15", "2026/11/02", "860", "240", "询价中", "—", "—", "", "", "RFQ-26-123 3轮", "未归档", "BDL-103 通过", "评审中", "通过-推荐", "", "已完成", "进行中", "未开始", "未开始", "未开始"],
@@ -3978,6 +3981,29 @@ var BRD_SERIES=BRD_TREE.map(function(s){var nproj=0,nbase=0;s.models.forEach(fun
 /* 车系行：车系名称 / 项目数 / 基础车型数 / 量纲合计
    项目行：项目编号 / 项目名称 / SOR包数 / 进行中阀点 / 基础车型数与台数 / 采购项目经理 */
 
+/* ===== A 路线统计口径（唯一事实源）=====
+   背景：EP 有 6 张多项目中间表（PP_DESIGN_REQ_PROJECT / PP_RFQ_PROJECT / PP_NOMINATION_AF_PROJECT ...），
+        一个 SOR 包可挂多个项目（编号前缀 SOR-MP）。直接按项目累加会重复计数。
+   口径（两种视角，不混用）：
+     · 项目视角（本页 / 项目详情）  = 该项目的全部包，含共包        → sorCount
+     · 汇总视角（工作台 / 看板 / 合计）= 全局按「包」去重，共包只算 1 次 → sorOwn 之和
+   实现：全局去重 = Σ sorOwn（共包只在「归属项目」计一次）
+   注意：本函数只影响统计展示，不改项目主数据、不改 SOR/RFQ 单据 */
+function brdAggSOR(projs,scope){
+  var list=projs||[];
+  var total=0,shared=0,own=0;
+  list.forEach(function(x){
+    var p=(x&&x.p)?x.p:x;
+    var m=brdProjMeta(p);
+    total+=m.sorCount||0;
+    shared+=m.sorShared||0;
+    own+=m.sorOwn||0;
+  });
+  /* scope="project" → 含共包；scope="dedup"（默认）→ 全局去重 */
+  var n=(scope==="project")?total:own;
+  return {count:n, total:total, shared:shared, own:own, dup:total-own};
+}
+
 /* 项目级派生字段（演示态：真实值应从 EP 取） */
 function brdProjMeta(proj){
   var h=0; for(var i=0;i<proj.code.length;i++) h=(h*31+proj.code.charCodeAt(i))>>>0;
@@ -3987,13 +4013,23 @@ function brdProjMeta(proj){
   if(proj._custom){
     return {
       sorCount: 0,
+      sorShared: 0,
+      sorOwn: 0,
       curValve: null,
       volume: 0,
       pm: proj.pm||"齐岳"
     };
   }
+  /* A 路线（只改统计）：SOR 包数分两种口径
+     - sorCount      : 本项目的包数（含跨项目共包，按项目视角计）
+     - sorShared     : 其中「跨项目共包」的条数（SOR-MP，一条包挂多个项目）
+     统计汇总时：全局去重按 sorCount - sorShared 计，项目视角按 sorCount 计 */
+  var total=3+(h%12);
+  var shared=h%5===0?Math.min(2,total):(h%3===0?1:0);   /* 跨项目共包条数 */
   return {
-    sorCount: 3+(h%12),                       /* SOR 包数 */
+    sorCount: total,                          /* SOR 包数（项目视角，含共包） */
+    sorShared: shared,                        /* 其中跨项目共包 */
+    sorOwn: total-shared,                     /* 本项目独占（全局去重用） */
     curValve: valves[curIdx],                 /* 进行中阀点 */
     volume: (8+(h%25))*10000,                 /* 量纲台数 */
     pm: ["齐岳","王强","李敏","张泽宸"][h%4]   /* 采购项目经理 purchasePmId */
@@ -4046,18 +4082,24 @@ function brdSeriesBlock(ser, expanded, setExpanded, setDetail, setDtab, setFocus
     BRD_E("b",{style:{fontSize:14,color:"#191C24",minWidth:64}},[ser.name]),
     BRD_E("span",{style:{fontSize:12,color:"#91959D",fontFamily:"ui-monospace,Menlo,monospace"}},[ser.code]),
     BRD_E("span",{style:{flex:1}}),
-    BRD_E("span",{style:{fontSize:12,color:"#61646D"}},[
-      (filter&&filter.on)?"命中 ":"项目 ",BRD_E("b",{style:{color:"#191C24"}},[String(projs.length)]),
-      " · 基础车型 ",BRD_E("b",{style:{color:"#191C24"}},[String(ser.models.reduce(function(a,m){return a+m.projects.reduce(function(b,p){return b+p.baseCount;},0);},0))]),
-      " · 量纲 ",BRD_E("b",{style:{color:"#191C24"}},[(brdSeriesVolume(ser)/10000).toFixed(1)+" 万台"])
-    ]),
+    /* 车系汇总：SOR 包数用「全局去重」口径（A 路线），并标出被去重的共包数 */
+    (function(){
+      var agg=brdAggSOR(projs);
+      return BRD_E("span",{style:{fontSize:12,color:"#61646D"}},[
+        (filter&&filter.on)?"命中 ":"项目 ",BRD_E("b",{style:{color:"#191C24"}},[String(projs.length)]),
+        " · SOR 包 ",BRD_E("b",{style:{color:"#191C24"}},[String(agg.count)]),
+        agg.dup?BRD_E("span",{title:"含共包共 "+agg.total+" 条，去重后 "+agg.count+" 条（重复 "+agg.dup+" 条）",style:{color:"#8C7AE6",fontSize:11}},[ "（去重 -"+agg.dup+"）" ]):null,
+        " · 基础车型 ",BRD_E("b",{style:{color:"#191C24"}},[String(ser.models.reduce(function(a,m){return a+m.projects.reduce(function(b,p){return b+p.baseCount;},0);},0))]),
+        " · 量纲 ",BRD_E("b",{style:{color:"#191C24"}},[(brdSeriesVolume(ser)/10000).toFixed(1)+" 万台"])
+      ]);
+    })(),
     BRD_E("span",{style:{fontSize:12,color:"#1677FF"}},[sOpen?"收起 ∧":"展开 ∨"])
   ]);
 
   var table = BRD_E("div",{style:{overflowX:"auto"}},[
     BRD_E("table",{style:{width:"100%",borderCollapse:"collapse"}},[
       BRD_E("thead",{},[BRD_E("tr",{},[
-        "项目编号","项目名称","车型","SOR 包数","进行中阀点","基础车型数","量纲（台）","采购项目经理","操作"
+        "项目编号","项目名称","车型","SOR 包数（含共包）","进行中阀点","基础车型数","量纲（台）","采购项目经理","操作"
       ].map(function(h,i){
         return BRD_E("th",{key:i,style:Object.assign({},BRD_TH,{fontSize:12,background:"#fff"})},[h]);
       }))]),
@@ -4067,7 +4109,14 @@ function brdSeriesBlock(ser, expanded, setExpanded, setDetail, setDtab, setFocus
           BRD_E("td",{style:Object.assign({},BRD_TD,{fontFamily:"ui-monospace,Menlo,monospace",color:"#1677FF",fontWeight:500})},[p.code]),
           BRD_E("td",{style:Object.assign({},BRD_TD,{fontWeight:500})},[p.name]),
           BRD_E("td",{style:Object.assign({},BRD_TD,{color:"#61646D"})},[mo.name]),
-          BRD_E("td",{style:BRD_TD},[String(meta.sorCount)]),
+          /* SOR 包数：本包数 + 共包标记（A 路线：项目视角含共包，全局去重需减去共包） */
+          BRD_E("td",{style:BRD_TD},[
+            BRD_E("span",{style:{fontVariantNumeric:"tabular-nums"}},[String(meta.sorCount)]),
+            meta.sorShared?BRD_E("span",{
+              title:"其中 "+meta.sorShared+" 条为跨项目共包（SOR-MP）· 统计汇总去重时按 "+meta.sorOwn+" 计",
+              style:{marginLeft:4,fontSize:10,color:"#7A5AF8",background:"#F3F0FF",border:"1px solid #D9CFFF",borderRadius:3,padding:"0 4px",lineHeight:"15px"}
+            },[ "共"+meta.sorShared ]):null
+          ]),
           BRD_E("td",{style:BRD_TD},[
             meta.curValve
               ? BRD_E("span",{style:{fontSize:12,color:"#1677FF",background:"#E6F0FF",borderRadius:3,padding:"1px 6px"}},[meta.curValve])
@@ -6874,6 +6923,9 @@ function BrdPmHub(props){
    return isNaN(d.getTime())?null:d.getTime();
  };
  var num=function(v){var n=parseFloat(String(v==null?"":v).replace(/[^\d.-]/g,""));return isNaN(n)?0:n;};
+ /* A 路线：SOR 编号以 SOR-MP 开头 = 跨项目共包（一个包挂多个项目）
+    全局统计需去重，项目视角可计入 —— 只打标，不改数据 */
+ var isMultiPack=function(sor){ return /^SOR-MP[-\s]/i.test(String(sor||""))||/^SOR-MP$/i.test(String(sor||"")); };
  var enrich=function(r){
    var planMs=toMs(r[11]);
    var actualMs=toMs(r[17]);
@@ -6881,6 +6933,7 @@ function BrdPmHub(props){
    var delayDays=(actualMs&&planMs)?Math.round((actualMs-planMs)/86400000):(overdue?Math.round((TODAY_MS-planMs)/86400000):0);
    return {
      row:r,
+     multi:isMultiPack(r[2]),   /* 跨项目共包 */
      series:r[0]||"", proj:r[1]||"", sor:r[2]||"", sorName:r[3]||"",
      cat:r[4]||"", mvps:r[5]||"", buyer:r[6]||"", grp:r[7]||"",
      sorPlan:r[10]||"", planDate:r[11]||"", sorActual:r[12]||"",
@@ -7644,17 +7697,24 @@ function BrdPmHub(props){
               ]);
             }
             var _mono=(k===2||k===25);
+            /* A 路线：SOR 编号为 SOR-MP 时标「共包」，提示该包挂多个项目（统计需去重） */
+            var _multi=(k===2&&isMultiPack(v));
             return BRD_E("td",{key:k,style:cellStyle,title:(_doc.tip||"")+(_has?" · 点击进入"+_doc.nav[1]:"")},[
-              BRD_E("span",{
-                style:{
-                  fontSize:12,
-                  color:_has?"#1677FF":(v&&v!=="—"?"#191C24":"#BFBFBF"),
-                  cursor:_has?"pointer":"default",
-                  textDecoration:_has?"underline":"none",
-                  fontFamily:_mono?"ui-monospace,Menlo,monospace":"inherit"
-                },
-                onClick:_has?function(e){e.stopPropagation();onNav(_doc.nav[0],_doc.nav[1]);}:null
-              },[v||"—"])
+              BRD_E("span",{style:{display:"inline-flex",alignItems:"center",gap:4}},[
+                BRD_E("span",{
+                  style:{
+                    fontSize:12,
+                    color:_has?"#1677FF":(v&&v!=="—"?"#191C24":"#BFBFBF"),
+                    cursor:_has?"pointer":"default",
+                    textDecoration:_has?"underline":"none",
+                    fontFamily:_mono?"ui-monospace,Menlo,monospace":"inherit"
+                  },
+                  onClick:_has?function(e){e.stopPropagation();onNav(_doc.nav[0],_doc.nav[1]);}:null
+                },[v||"—"]),
+                _multi?BRD_E("span",{title:"跨项目共包：一个 SOR 包挂多个项目，全局统计按包去重（只计 1 次）",
+                  style:{fontSize:10,color:"#7A5AF8",background:"#F3F0FF",border:"1px solid #D9CFFF",borderRadius:3,padding:"0 3px",lineHeight:"14px",whiteSpace:"nowrap"}}
+                  ,[ "共包" ]):null
+              ])
             ]);
           }
 
@@ -7939,6 +7999,20 @@ var drawer=detail?BRD_E("div",{style:{position:"fixed",inset:0,zIndex:1200,displ
     BRD_E("span",{style:{flex:1}}),
     BRD_E("button",{type:"button",style:{fontSize:12,border:"1px solid #E1E3E6",background:"#fff",borderRadius:6,padding:"5px 12px",cursor:"pointer"},onClick:function(){setDetail(null)}},["关闭"])
    ]),
+   /* A 路线：只改统计口径 —— 项目详情顶部说明本项目 SOR 包的共包情况
+      项目视角 = 全部包；全局汇总去重 = 减去跨项目共包 */
+   (function(){
+     var pm0=brdProjMeta(detail.p);
+     if(!pm0.sorShared) return null;
+     return BRD_E("div",{style:{display:"flex",alignItems:"center",gap:8,padding:"6px 10px",marginBottom:10,
+       background:"#F3F0FF",border:"1px solid #D9CFFF",borderRadius:6,fontSize:12,color:"#5B3FD1"}},[
+       BRD_E("span",{style:{fontWeight:600}},[ "SOR 包 "+pm0.sorCount+" 条" ]),
+       BRD_E("span",{style:{color:"#8C7AE6"}},[ "·" ]),
+       BRD_E("span",{},[ "其中 "+pm0.sorShared+" 条为跨项目共包（SOR-MP）；本项目独占 "+pm0.sorOwn+" 条" ]),
+       BRD_E("span",{style:{flex:1}}),
+       BRD_E("span",{title:"项目视角按全部包计；工作台/看板等全局汇总按去重口径（减去共包）计，避免同一包重复统计",style:{color:"#8C7AE6",cursor:"help",textDecoration:"underline dotted"}},[ "统计口径" ])
+     ]);
+   })(),
    BRD_E("div",{style:{display:"flex",gap:4,borderBottom:"1px solid #EFF0F1",marginBottom:14}},[["base","项目基本信息"],["vol","预测量纲"],["plan","项目定点计划"]].map(function(t){return BRD_E("button",{type:"button",key:t[0],style:{fontSize:14,fontWeight:dtab===t[0]?600:400,color:dtab===t[0]?"#0048FF":"#61646D",background:"none",border:"none",borderBottom:dtab===t[0]?"2px solid #0048FF":"2px solid transparent",padding:"8px 16px",cursor:"pointer"},onClick:function(){setDtab(t[0])}},[t[1]])})),
    dtab==="base"?BRD_E("div",{},[
     BRD_E("div",{style:BRD_CS},[
