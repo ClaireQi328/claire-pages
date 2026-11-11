@@ -2732,6 +2732,22 @@ var BRD_CTRL_DOC={
   30:{nav:["framework","框架协议"], kind:"doc",  tip:"框架协议单据"}
 };
 
+/* 合同单号：按 EP 真实规则生成
+   采购通则 / 定点价格协议 → 合同申请单 CST_CONTRACT_APP.CODE = CT-yyyyMMdd-0001
+   框架协议            → FrameAgreement.FRAME_AGREEMENT_NO = APyyyyMMdd000（量产）/ AS-AP-...（售后）
+   来源：ContractAppServiceImpl.doAddContract:217 · FrameAgreementNoGenerator.generate */
+function brdContractNo(k,r){
+  var sor=String((r&&r[2])||"");
+  var seq=(sor.replace(/[^0-9]/g,"").slice(-3)||"001");
+  var date="20261112";   /* 原型基准日 */
+  if(k===30){
+    /* 框架协议：AP + yyyyMMdd + 3 位序号 */
+    return "AP"+date+seq.padStart(3,"0");
+  }
+  /* 采购通则 / 定点价格协议：同一张合同申请单，单号规则一致 */
+  return "CT-"+date+"-"+seq.padStart(4,"0");
+}
+
 var BRD_CTRL_LATER=[29,30,31];
 /* 品类 → MVPS-位置码（结构编码-专业段-序号），来源：品类绑定 VPPS（结构简码 + 位置码 FNA） */
 var BRD_MVPS_GRP={"内饰":"INT","内外饰":"EXT","座椅":"SEAT","电池":"BAT","热管理":"HVC","控制器":"ELE","底盘":"CHS","车身":"BIW","电驱":"PWT","电子电器":"ELE"};
@@ -3542,32 +3558,87 @@ function BrdNomPlan(props){
   var nominated=live.filter(function(r){return r.nomStatus==="已定点";});
   var missing=live.reduce(function(a,r){return a+nomMissingOf(r).length;},0);
 
-  /* 行内编辑：品类 / 采购组 / 采购员 / 分包备注 / 计划定点时间 */
+  /* 行内编辑：品类/采购员=下拉选择，采购组=随采购员自动带出（只读），计划定点时间=日期组件
+     品类 ▸ 采购员 ▸ 采购组 三者是「主数据选择」而不是「自由文本编辑」 */
   var EDIT_COLS={cat:"品类",grp:"采购组",buyer:"采购员",note:"分包备注",planDate:"计划定点时间"};
+  var commitEdit=function(r,k,nv){
+    nv=(nv==null?"":String(nv)).trim();
+    if(k!=="note"&&!nv){We.error("「"+EDIT_COLS[k]+"」不能为空");return false;}
+    if(k==="planDate"){
+      var oldD=r.planDate||"";
+      var init=r.planInit||oldD||nv;
+      var chg=(r.planChanges||0)+(nv!==oldD?1:0);
+      nomPatch(proj,r.id,{planInit:init,planDate:nv,planChanges:chg},
+        {at:"2026-11-10 16:40",by:"齐岳",act:"改计划定点时间",detail:(oldD||"（空）")+" → "+nv+"（初版 "+(init||"—")+"，累计延期 "+Math.max(0,chg-1)+" 次）"});
+    }else if(k==="buyer"){
+      /* 采购员变了，采购组跟着变（组是人的组织属性，必须一致） */
+      var g=NOM_BUYER_GRP[nv]||"";
+      nomPatch(proj,r.id,{buyer:nv,grp:g},
+        {at:"2026-11-10 16:40",by:"齐岳",act:"改采购员",detail:(r.buyer||"（空）")+"（"+(r.grp||"—")+"）→ "+nv+"（"+(g||"—")+"）"});
+    }else{
+      nomPatch(proj,r.id,{[k]:nv},{at:"2026-11-10 16:40",by:"齐岳",act:"修改",detail:EDIT_COLS[k]+" → "+(nv||"（清空）")});
+    }
+    setEditCell(null);refresh();
+    We.success("已更新「"+EDIT_COLS[k]+"」→ "+(nv||"（清空）"));
+    return true;
+  };
+  /* 品类候选：品类主数据 + 已有品类，去重 */
+  var nomCatOpts=(function(){
+    var m={};
+    (typeof CAT_LIST!=="undefined"?CAT_LIST:[]).forEach(function(c){ if(c&&c.name) m[String(c.name).replace(/品类$/,"")]=1; });
+    (typeof SOR_CATS!=="undefined"?SOR_CATS:[]).forEach(function(c){ if(c) m[c]=1; });
+    rows.forEach(function(r){ if(r.cat&&r.cat!=="（待定品类）") m[r.cat]=1; });
+    return Object.keys(m).sort();
+  })();
   var editField=function(r,k){
-    var val=editCell&&editCell.val;
-    var commit=function(){
-      var nv=(editCell.val||"").trim();
-      if(k!=="note"&&!nv){We.error("「"+EDIT_COLS[k]+"」不能为空");return;}
-      if(k==="planDate"){
-        var oldD=r.planDate||"";
-        var init=r.planInit||oldD||nv;
-        var chg=(r.planChanges||0)+(nv!==oldD?1:0);
-        nomPatch(proj,r.id,{planInit:init,planDate:nv,planChanges:chg},
-          {at:"2026-11-10 16:40",by:"齐岳",act:"改计划定点时间",detail:(oldD||"（空）")+" → "+nv+"（初版 "+(init||"—")+"，累计延期 "+Math.max(0,chg-1)+" 次）"});
-      }else{
-        nomPatch(proj,r.id,{[k]:nv},{at:"2026-11-10 16:40",by:"齐岳",act:"修改",detail:EDIT_COLS[k]+" → "+(nv||"（清空）")});
-      }
-      setEditCell(null);refresh();
-      We.success("已更新「"+EDIT_COLS[k]+"」→ "+(nv||"（清空）"));
-    };
+    var cur=editCell&&editCell.val;
+
+    /* 采购组：不可直接改，随采购员带出，这里只读提示 */
+    if(k==="grp"){
+      return BRD_E("span",{title:"采购组随采购员自动带出，不单独编辑",style:{fontSize:12,color:"#8C8C8C"}},[r.grp||"—"]);
+    }
+
+    /* 品类 / 采购员：下拉选择 */
+    if(k==="cat"||k==="buyer"){
+      var opts=k==="cat"?nomCatOpts:(typeof NOM_BUYERS!=="undefined"?NOM_BUYERS:[]);
+      return BRD_E("select",{
+        autoFocus:true,
+        value:cur==null?(k==="cat"?(r.cat==="（待定品类）"?"":r.cat):(r.buyer||"")):cur,
+        style:{width:"100%",minWidth:86,height:26,border:"1px solid #91B0FF",borderRadius:4,padding:"0 4px",fontSize:12,outline:"none",background:"#fff"},
+        onChange:function(e){
+          var v=e.target.value;
+          setEditCell(Object.assign({},editCell,{val:v}));
+          commitEdit(r,k,v);
+        },
+        onBlur:function(){ if(editCell) setEditCell(null); },
+        onKeyDown:function(e){ if(e.key==="Escape"){e.preventDefault();setEditCell(null);} }
+      },[
+        BRD_E("option",{key:"",value:""},["请选择"+EDIT_COLS[k]])
+      ].concat(opts.map(function(o){return BRD_E("option",{key:o,value:o},[o]);})));
+    }
+
+    /* 计划定点时间：日期组件 */
+    if(k==="planDate"){
+      return BRD_E("input",{
+        autoFocus:true,type:"date",value:(cur==null?(r.planDate||""):cur),
+        style:{width:"100%",minWidth:112,height:26,border:"1px solid #91B0FF",borderRadius:4,padding:"0 5px",fontSize:12,outline:"none",background:"#fff",color:"#191C24"},
+        onChange:function(e){setEditCell(Object.assign({},editCell,{val:e.target.value}));},
+        onBlur:function(e){ if(editCell){commitEdit(r,k,e.target.value);} },
+        onKeyDown:function(e){
+          if(e.key==="Enter"){e.preventDefault();commitEdit(r,k,e.target.value);}
+          if(e.key==="Escape"){e.preventDefault();setEditCell(null);}
+        }
+      });
+    }
+
+    /* 分包备注：自由文本 */
     return BRD_E("input",{
-      autoFocus:true,type:k==="planDate"?"date":"text",value:val||"",
+      autoFocus:true,type:"text",value:(cur==null?(r.note||""):cur),
       style:{width:"100%",minWidth:78,height:26,border:"1px solid #91B0FF",borderRadius:4,padding:"0 6px",fontSize:12,outline:"none"},
       onChange:function(e){setEditCell(Object.assign({},editCell,{val:e.target.value}));},
-      onBlur:commit,
+      onBlur:function(e){ if(editCell){commitEdit(r,k,e.target.value);} },
       onKeyDown:function(e){
-        if(e.key==="Enter"){e.preventDefault();commit();}
+        if(e.key==="Enter"){e.preventDefault();commitEdit(r,k,e.target.value);}
         if(e.key==="Escape"){e.preventDefault();setEditCell(null);}
       }
     });
@@ -3949,7 +4020,9 @@ function brdSeriesVolume(ser){
 /* 项目说明（BRD 3.2.2 第 8 字段）：PM 维护的自由文本 */
 var BRD_PROJ_NOTE={};
 /* 项目级设计工厂（会议结论 #4）：量纲按「设计工厂 × 基础车型」交乘 */
-var BRD_PLANTS=["M9","B1","B2","M7","8041","8042","8043"];
+/* 制造工厂：取自《整车项目 Master Plan》「制造工厂」列真实值（M9/B1/B2/M7）
+   注意：8041/8042/8043 是结构码（MVPS 位置码前缀），不是工厂 */
+var BRD_PLANTS=["M9","B1","B2","M7"];
 var BRD_PLANT_EDIT={};
 
 function brdSeriesBlock(ser, expanded, setExpanded, setDetail, setDtab, setFocusSor, filter){
@@ -4157,10 +4230,10 @@ function brdImportModal(state, setState){
 
 /* ===== 导入预测量纲：逐行校验（必填工厂 / 数量为数字） ===== */
 var BRD_VOL_IMPORT_DEMO=[
-  {row:2, base:"MS12-1", name:"Modena 26A-1", plant:"8041", y2026:12000, y2027:16000, sum:28000, ok:true,  err:""},
-  {row:3, base:"MS12-2", name:"Modena 26A-2", plant:"8041", y2026:9000,  y2027:14000, sum:23000, ok:true,  err:""},
-  {row:4, base:"MS12-2", name:"Modena 26A-2", plant:"8042", y2026:6000,  y2027:10000, sum:16000, ok:true,  err:""},
-  {row:5, base:"MS12-5", name:"Modena 26A-5", plant:"8041", y2026:3000,  y2027:5000,  sum:9000,  ok:false, err:"2027 列含非数字「5,000 台」"},
+  {row:2, base:"MS12-1", name:"Modena 26A-1", plant:"M9", y2026:12000, y2027:16000, sum:28000, ok:true,  err:""},
+  {row:3, base:"MS12-2", name:"Modena 26A-2", plant:"M9", y2026:9000,  y2027:14000, sum:23000, ok:true,  err:""},
+  {row:4, base:"MS12-2", name:"Modena 26A-2", plant:"B2", y2026:6000,  y2027:10000, sum:16000, ok:true,  err:""},
+  {row:5, base:"MS12-5", name:"Modena 26A-5", plant:"M9", y2026:3000,  y2027:5000,  sum:9000,  ok:false, err:"2027 列含非数字「5,000 台」"},
   {row:6, base:"MS12-1EVO", name:"Modena 26A-1EVO", plant:"", y2026:0, y2027:0, sum:0, ok:false, err:"工厂未填写"}
 ];
 
@@ -6370,8 +6443,7 @@ function sorField(label,ctrl,req){
 /* ===== 新建项目向导（对齐 §S-02 + §一·二 项目层汇聚） =====
    5 步：① 归属（车系/车型） ② 项目信息 ③ 基础车型与工厂 ④ 负责人 ⑤ 确认创建
    关键原则：只建到「项目」层，基础车型作为项目属性选择，不单独建台账 */
-var NP_PLANTS=["M9","B1","B2","M7","8041","8042","8043"];
-var NP_PLANTS=["M9","B1","B2","M7","8041","8042","8043"];
+var NP_PLANTS=["M9","B1","B2","M7"];
 
 /* ===== 新建项目：单页表单（一屏填完） =====
    必填只有 4 组：归属 / 名称编号 / 基础车型+工厂 / 采购PM
@@ -7508,19 +7580,20 @@ function BrdPmHub(props){
              必须放在通用 doc 分支之前，否则会被当成普通单据只渲染状态文本 */
           if(k===28||k===29||k===30){
             var tv=String(v||"未开始").trim();
-            var tone=brdProgressTone(tv);
             var CTA={28:"采购通则单据",29:"定点价格协议单据",30:"框架协议单据"};
-            var clickable=tv!=="未开始";
-            /* 沿用 EP 现有单据体系：合同编号取 contractCode（由外部合同系统生成后回传），不自造前缀 */
+            /* 单号来源优先级：
+               ① 数据已带 contractCode（外部合同系统回传）→ 直接用
+               ② 文本里自带「单号 状态」→ 拆开
+               ③ 都没有 → 按 EP 真实规则生成（CT-yyyyMMdd-0001 / APyyyyMMdd000） */
             var docNo=(r && r.contractCode) ? String(r.contractCode) : "";
             var stTxt=tv;
-            /* 若数据本身带「单号 状态」，拆开分别渲染 */
-            var mm=stTxt.match(/^([A-Za-z0-9][-A-Za-z0-9]{3,})\s+(\S.*)$/);
-            if(mm){ if(!docNo) docNo=mm[1]; stTxt=mm[2]; }
-            /* 已签署/签署中但尚无单号：如实标注「待生成」，不伪造编号 */
-            var noPending=!docNo && (tv==="\u5DF2\u7B7E\u7F72"||tv==="\u7B7E\u7F72\u4E2D"||tv==="\u5BA1\u6279\u4E2D");
-            if(noPending) docNo="\u5F85\u751F\u6210";
-            var _pend=(docNo==="\u5F85\u751F\u6210");
+            var mm=stTxt.match(/^(CT-\d{8}-\d{4}|AP\d{11}|AS-AP-[\w-]+)\s*(.*)$/);
+            if(mm){ if(!docNo) docNo=mm[1]; stTxt=(mm[2]||"").trim()||""; }
+            if(!docNo) docNo=brdContractNo(k,r);
+            if(!stTxt) stTxt="未开始";
+            var clickable=true;
+            var tone=brdProgressTone(stTxt);
+            var _pend=false;
             var docSpan=(clickable&&!_pend)
               ? BRD_E("span",{style:{fontFamily:"ui-monospace,Menlo,monospace",fontSize:11.5,color:"#1677FF",textDecoration:"underline",cursor:"pointer"},
                   onClick:function(e){e.stopPropagation();onNav("contract",CTA[k]);}},[docNo])
@@ -7675,15 +7748,15 @@ function BrdPmHub(props){
             if(k===28||k===29||k===30){
               /* 三种合同统一表现：单号 · 状态（单号可点进单据，状态带色） */
               var tv=String(v||"未开始").trim();
-              var tone=brdProgressTone(tv);
               var CTA={28:"采购通则单据",29:"定点价格协议单据",30:"框架协议单据"};
-              var PREF={28:"CT-",29:"PA-",30:"FA-"};
-              var clickable=tv!=="未开始";
-              /* 若数据本身带单号（含 - 且非纯状态词），拆成「单号 · 状态」；否则按行生成占位单号 */
+              /* 数据本身带单号 → 拆「单号 · 状态」；否则按 EP 真实规则生成单号
+                 未开始也有单号：合同申请单一创建就分配 CT- 号，只是状态为草稿 */
               var docNo="",stTxt=tv;
-              var mm=tv.match(/^([A-Z]{2,4}[-\w]+)\s*(.*)$/);
-              if(mm){docNo=mm[1];stTxt=mm[2]||"已签署";}
-              else {docNo=PREF[k]+String(r[2]||"").replace(/[^0-9]/g,"").slice(-6);}
+              var mm=tv.match(/^(CT-\d{8}-\d{4}|AP\d{11}|AS-AP-[\w-]+|[A-Z]{2,4}-[\w-]+)\s*(.*)$/);
+              if(mm){docNo=mm[1];stTxt=(mm[2]||"已签署").trim()||"已签署";}
+              else {docNo=brdContractNo(k,r);}
+              var clickable=true;
+              var tone=brdProgressTone(stTxt);
               return BRD_E("td",{key:k,style:cellStyle,title:"派生值 · "+BRD_CTRL_FIELD_SRC[k]+(clickable?"（点单号进入单据）":"")},[
                 BRD_E("span",{style:{display:"inline-flex",alignItems:"center",gap:6,whiteSpace:"nowrap"}},[
                   BRD_E("span",{
