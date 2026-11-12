@@ -159,6 +159,9 @@ td.num{font-variant-numeric:tabular-nums;text-align:right}
 .note{margin-top:14px;border:1px dashed var(--bd);border-radius:var(--r8);padding:10px 14px;font-size:11.5px;color:var(--t3);line-height:1.75;background:#fff}
 .note b{color:var(--t2);font-weight:600}
 .note code{background:var(--fill);border-radius:3px;padding:1px 4px;font-size:11px;color:#C41D7F;font-family:ui-monospace,Menlo,monospace}
+.c1grid{display:grid;grid-template-columns:0.9fr 1.1fr;gap:2px}
+.c1hint{font-size:10.5px;color:var(--t3);padding:2px 2px 0}
+@media(max-width:1180px){.c1grid{grid-template-columns:1fr}}
 </style>
 </head>
 <body>
@@ -235,30 +238,33 @@ td.num{font-variant-numeric:tabular-nums;text-align:right}
   <div class="grid">
     <div class="card c1">
       <div class="hd">
-        <h3>① SOR 包发布与定点状态 <em>计划 / 已发布 / 已定点 / 占位</em></h3>
+        <h3>① SOR 包发布与定点状态 <em>转化瀑布 + 构成占比</em></h3>
         <div class="right"><span class="pill gray" id="c1Scope">全部车系</span></div>
       </div>
       <div class="bd tight">
-        <div class="plist" id="c1Bars"></div>
-        <div class="chart" id="c1Chart" style="height:236px"></div>
+        <div class="c1grid">
+          <div class="chart" id="c1Flow" style="height:250px"></div>
+          <div class="chart" id="c1Stack" style="height:250px"></div>
+        </div>
+        <div class="c1hint" id="c1Hint"></div>
       </div>
     </div>
 
     <div class="card c2">
       <div class="hd">
-        <h3>② 定点进程与状态 <em>节点数量 / 平均周期</em></h3>
+        <h3>② 定点进程与状态 <em>阶段分布 / 周期箱线</em></h3>
         <div class="right"><span class="pill gray">单位：个 / 天</span></div>
       </div>
       <div class="bd tight">
-        <div class="chart" id="c2Chart" style="height:158px"></div>
-        <div class="chart" id="c2Time" style="height:186px"></div>
+        <div class="chart" id="c2Pipe" style="height:126px"></div>
+        <div class="chart" id="c2Time" style="height:204px"></div>
       </div>
     </div>
 
     <div class="card c3">
       <div class="hd">
-        <h3>③ 定点及时率与合同签署 <em>按采购组 / 车系</em></h3>
-        <div class="right"><span class="seg" id="c3Seg"><span class="on" data-v="time">及时率</span><span data-v="contract">合同</span></span></div>
+        <h3>③ 定点及时率与合同签署 <em>双指标矩阵 / 分组排名</em></h3>
+        <div class="right"><span class="seg" id="c3Seg"><span class="on" data-v="matrix">四象限</span><span data-v="time">及时率</span><span data-v="contract">合同</span></span></div>
       </div>
       <div class="bd tight"><div class="chart" id="c3Chart" style="height:286px"></div>
         <div class="mini" id="c3Mini"></div>
@@ -267,12 +273,12 @@ td.num{font-variant-numeric:tabular-nums;text-align:right}
 
     <div class="card c4">
       <div class="hd">
-        <h3>④ 定点线预警 <em>8 类 · 点行下钻</em></h3>
+        <h3>④ 定点线预警 <em>8 类 × 采购组热力 · 点行下钻</em></h3>
         <div class="right"><span class="tag bad" id="c4Total">— 条</span></div>
       </div>
       <div class="bd tight">
-        <div class="chart" id="c4Chart" style="height:178px"></div>
-        <div class="tblwrap" style="max-height:164px" id="c4Table"></div>
+        <div class="chart" id="c4Chart" style="height:186px"></div>
+        <div class="tblwrap" style="max-height:172px" id="c4Table"></div>
       </div>
     </div>
 
@@ -467,133 +473,335 @@ function renderKpi() {
   document.getElementById('scopeText').textContent = `在管 SOR 包 ${k.pkgs} 个 + 占位品类 ${k.phCat} 个`;
 }
 
-/* ================= 卡片 1 ================= */
+/* ================= 卡片 1：漏斗 + 100% 构成 ================= */
 let drillSeries = null;
 function renderC1() {
   const k = calcKpi(VIEW);
-  const bars = [
-    { l: '计划发布', v: k.pkgs, t: k.pkgs, c: '#D6E4FF', n: `${k.pkgs} 个`, r: '100%' },
-    { l: '已发布', v: k.published, t: k.pkgs, c: '#1677FF', n: `${k.published} 个`, r: p1(pct(k.published, k.pkgs)) + '%' },
-    { l: '已定点', v: k.fixed, t: k.pkgs, c: '#52C41A', n: `${k.fixed} 个`, r: p1(pct(k.fixed, k.pkgs)) + '%' },
-    { l: '占位品类', v: k.phCat, t: k.pkgs, c: '#FAAD14', n: `${k.phCat} 个`, r: p1(pct(k.phCat, k.pkgs)) + '%' }
-  ];
-  document.getElementById('c1Bars').innerHTML = bars.map(b => `
-    <div class="prow">
-      <span class="pl">${b.l}</span>
-      <span class="pt"><i style="width:${Math.min(100, pct(b.v, b.t))}%;background:${b.c}"></i></span>
-      <span class="pv"><b>${b.n}</b> <span>${b.r}</span></span>
-    </div>`).join('');
-
   const scope = drillSeries ? VIEW.filter(r => r['车系'] === drillSeries) : VIEW;
   const seriesInScope = uniq(scope.map(r => r['车系']));
   const singleSeries = !!drillSeries || seriesInScope.length === 1;
   const groupKey = singleSeries ? '项目' : '车系';
   const g = byKey(scope.filter(r => !r.ph), r => r[groupKey]);
   const keys = Object.keys(g).sort();
-  const plan = keys.map(x => g[x].length);
-  const pub = keys.map(x => g[x].filter(r => r.published).length);
-  const fix = keys.map(x => g[x].filter(r => r.fixed).length);
   document.getElementById('c1Scope').textContent = drillSeries ? `${drillSeries} · 按项目（点击返回）`
     : singleSeries ? `${seriesInScope[0]} · 按项目` : '全部车系 · 按车系（点击下钻）';
   document.getElementById('c1Scope').style.cursor = drillSeries ? 'pointer' : 'default';
   document.getElementById('c1Scope').onclick = () => { if (drillSeries) { drillSeries = null; renderC1(); } };
 
-  c1 && c1.dispose();
-  c1 = echarts.init(document.getElementById('c1Chart'));
-  c1.setOption({
-    grid: { left: 4, right: 10, top: 28, bottom: 2, containLabel: true },
+  /* --- 左：真·瀑布图（168 → -13 → 155 → -43 → 112） --- */
+  const f1 = k.pkgs, f2 = k.published, f3 = k.fixed;
+  const lost1 = f1 - f2, lost2 = f2 - f3;
+  const WF = [
+    { name: '计划发布', base: 0, val: f1, type: 'total' },
+    { name: '未发布', base: f2, val: lost1, type: 'loss' },
+    { name: '已发布', base: 0, val: f2, type: 'total' },
+    { name: '未定点', base: f3, val: lost2, type: 'loss' },
+    { name: '已定点', base: 0, val: f3, type: 'total' }
+  ];
+  c1f && c1f.dispose();
+  c1f = echarts.init(document.getElementById('c1Flow'));
+  c1f.setOption({
+    title: { text: '阶段瀑布（个）· 浅红为环节流失', left: 0, top: 0, textStyle: { fontSize: 11.5, fontWeight: 600, color: 'rgba(0,0,0,.65)' } },
+    grid: { left: 4, right: 8, top: 32, bottom: 2, containLabel: true },
     tooltip: {
       trigger: 'axis', axisPointer: { type: 'shadow' }, textStyle: { fontSize: 12 },
       formatter: ps => {
-        const i = ps[0].dataIndex, n = plan[i];
-        return `<b>${keys[i]}</b> · 计划 ${n} 个<br/>` +
-          `已发布 ${pub[i]} 个（${p1(pct(pub[i], n))}%）<br/>` +
-          `已定点 ${fix[i]} 个（${p1(pct(fix[i], n))}%）<br/>` +
-          `<span style="color:#8c8c8c">未发布 ${n - pub[i]} 个</span>`;
+        const i = ps[0].dataIndex, w = WF[i];
+        if (w.type === 'total') {
+          const rate = i === 0 ? '' : i === 2 ? `<br/>计划→已发布 ${p1(pct(f2, f1))}%` : `<br/>已发布→已定点 ${p1(pct(f3, f2))}%`;
+          return `<b>${w.name}</b> ${w.val} 个${rate}`;
+        }
+        return `<b>${w.name}</b><br/><span style="color:#CF1322">流失 ${w.val} 个</span><br/>${i === 1 ? `占计划 ${p1(pct(lost1, f1))}%` : `占已发布 ${p1(pct(lost2, f2))}%`}`;
       }
     },
-    legend: { top: 0, right: 0, itemWidth: 8, itemHeight: 8, textStyle: { fontSize: 11, color: 'rgba(0,0,0,.65)' } },
-    xAxis: { type: 'category', data: keys, axisLine: { lineStyle: { color: '#F0F0F0' } }, axisTick: { show: false }, axisLabel: { fontSize: 11, color: 'rgba(0,0,0,.45)', interval: 0, rotate: keys.length > 6 ? 18 : 0 } },
-    yAxis: { type: 'value', splitLine: { lineStyle: { color: '#F5F5F5' } }, axisLabel: { fontSize: 10, color: 'rgba(0,0,0,.35)' } },
+    xAxis: {
+      type: 'category', data: WF.map(w => w.name),
+      axisLine: { lineStyle: { color: '#F0F0F0' } }, axisTick: { show: false },
+      axisLabel: { fontSize: 10.5, color: 'rgba(0,0,0,.6)', interval: 0 }
+    },
+    yAxis: { type: 'value', max: Math.ceil(f1 * 1.16), splitLine: { lineStyle: { color: '#F5F5F5' } }, axisLabel: { fontSize: 10, color: 'rgba(0,0,0,.35)' } },
     series: [
-      { name: '计划发布', type: 'bar', data: plan, barWidth: 14, barGap: '20%', itemStyle: { color: '#D6E4FF', borderRadius: [2, 2, 0, 0] } },
-      { name: '已发布', type: 'bar', data: pub, barWidth: 14, itemStyle: { color: '#1677FF', borderRadius: [2, 2, 0, 0] } },
-      { name: '已定点', type: 'bar', data: fix, barWidth: 14, itemStyle: { color: '#52C41A', borderRadius: [2, 2, 0, 0] } }
+      {
+        name: '占位', type: 'bar', stack: 'wf', silent: true, tooltip: { show: false },
+        barWidth: 54, itemStyle: { color: 'transparent' },
+        data: WF.map(w => w.base)
+      },
+      {
+        name: '数量', type: 'bar', stack: 'wf', barWidth: 54,
+        data: WF.map((w, i) => ({
+          value: w.val,
+          itemStyle: w.type === 'total'
+            ? { color: i === 4 ? '#1677FF' : '#4096FF', borderRadius: [3, 3, 0, 0] }
+            : { color: '#FFCCC7', borderRadius: 3 }
+        })),
+        label: {
+          show: true, position: 'top', fontSize: 11, fontWeight: 600,
+          formatter: p => {
+            const w = WF[p.dataIndex];
+            return w.type === 'total' ? `${w.val}` : `−${w.val}`;
+          },
+          color: p => WF[p.dataIndex].type === 'total' ? 'rgba(0,0,0,.72)' : '#CF1322'
+        },
+        markLine: {
+          silent: true, symbol: 'none', label: { show: false },
+          lineStyle: { color: '#E8E8E8', type: 'dashed', width: 1 },
+          data: [{ yAxis: f1 }, { yAxis: f2 }, { yAxis: f3 }]
+        }
+      }
     ]
   });
-  window.__c1 = c1;
-  c1.off('click');
-  c1.on('click', p => { if (!drillSeries && !singleSeries) { drillSeries = p.name; renderC1(); } });
+
+  /* --- 右：车系 / 项目 100% 构成条（答案是「每个车系卡在哪） --- */
+  const segs = singleSeries
+    ? ['已定点', '已发布未定点', '未发包']
+    : ['已定点', '已发布未定点', '未发包', '占位'];
+  const data = {};
+  segs.forEach(nm => data[nm] = []);
+  keys.forEach(key => {
+    const all = scope.filter(r => r[groupKey] === key);
+    const pk = all.filter(r => !r.ph);
+    data['已定点'].push(pk.filter(r => r.fixed).length);
+    data['已发布未定点'].push(pk.filter(r => r.published && !r.fixed).length);
+    data['未发包'].push(pk.filter(r => !r.published).length);
+    if (!singleSeries) data['占位'].push(all.filter(r => r.ph).length);
+  });
+  const totals = keys.map((key, i) => segs.reduce((a, nm) => a + data[nm][i], 0));
+  const COLORS = {
+    '已定点': { solid: '#52C41A', light: '#95DE64' },
+    '已发布未定点': { solid: '#1677FF', light: '#4096FF' },
+    '未发包': { solid: '#D9D9D9', light: '#F0F0F0' },
+    '占位': { solid: '#FAAD14', light: '#FFD666' }
+  };
+  c1s && c1s.dispose();
+  c1s = echarts.init(document.getElementById('c1Stack'));
+  c1s.setOption({
+    title: { text: singleSeries ? '项目构成（100%）' : '车系构成（100%）', left: 0, top: 0, textStyle: { fontSize: 11.5, fontWeight: 600, color: 'rgba(0,0,0,.65)' } },
+    grid: { left: 4, right: 12, top: 30, bottom: 2, containLabel: true },
+    tooltip: {
+      trigger: 'axis', axisPointer: { type: 'shadow' }, textStyle: { fontSize: 12 },
+      formatter: ps => {
+        const i = keys.length - 1 - ps[0].dataIndex;
+        let t = `<b>${ps[0].axisValue}</b> · 合计 ${totals[i]} 个<br/>`;
+        ps.forEach(x => { if (x.value) t += `${x.marker}${x.seriesName} ${x.value} 个（${p1(pct(x.value, totals[i]))}%）<br/>`; });
+        return t;
+      }
+    },
+    legend: { top: 0, right: 0, itemWidth: 8, itemHeight: 8, itemGap: 8, textStyle: { fontSize: 10.5, color: 'rgba(0,0,0,.65)' } },
+    xAxis: { type: 'value', max: 100, show: false },
+    yAxis: {
+      type: 'category', data: keys.slice().reverse(),
+      axisLine: { show: false }, axisTick: { show: false },
+      axisLabel: { fontSize: 11, color: 'rgba(0,0,0,.65)' }
+    },
+    series: segs.map((nm, idx) => ({
+      name: nm, type: 'bar', stack: 'total', barWidth: keys.length > 4 ? 16 : 22,
+      data: data[nm].slice().reverse().map((v, ri) => ({
+        value: pct(v, totals[keys.length - 1 - ri]),
+        raw: v,
+        itemStyle: { color: idx === 0 ? COLORS[nm].solid : COLORS[nm].light }
+      })),
+      label: {
+        show: true, fontSize: 10,
+        color: idx === 0 ? '#fff' : 'rgba(0,0,0,.7)',
+        formatter: p => p.data.raw >= 4 ? p.data.raw : ''
+      },
+      emphasis: { focus: 'series' }
+    }))
+  });
+  c1f.off('click'); c1s.off('click');
+  const drill = p => {
+    if (drillSeries || singleSeries) { if (drillSeries) { drillSeries = null; renderC1(); } return; }
+    drillSeries = p.name; renderC1();
+  };
+  c1s.on('click', p => drill({ name: p.name }));
+
+  document.getElementById('c1Hint').innerHTML =
+    `转化率：计划→已发布 <b>${p1(pct(k.published, k.pkgs))}%</b>｜已发布→已定点 <b>${p1(pct(k.fixed, k.published))}%</b>｜另有占位品类 <b>${k.phCat}</b> 个未关联 SOR，单列不进链路`;
 }
 
-/* ================= 卡片 2 ================= */
+/* ================= 卡片 2：阶段 100% 堆叠 + 周期箱线 ================= */
+function quartiles(arr) {
+  const a = arr.filter(v => v != null).slice().sort((x, y) => x - y);
+  if (!a.length) return null;
+  const q = p => { const i = (a.length - 1) * p, lo = Math.floor(i), hi = Math.ceil(i); return a[lo] + (a[hi] - a[lo]) * (i - lo); };
+  return [a[0], q(0.25), q(0.5), q(0.75), a[a.length - 1]];
+}
 function renderC2() {
   const rows = VIEW.filter(r => !r.ph);
-  const cnt = s => rows.filter(r => r.stage === s).length;
-  const stages = [
-    { n: '未发包', v: cnt('未发包'), c: '#BFBFBF' },
-    { n: '已发包待 BDL', v: cnt('已发包待BDL'), c: '#91CAFF' },
-    { n: 'BDL 评审中', v: cnt('BDL评审中'), c: '#4096FF' },
-    { n: 'RFQ 询价中', v: cnt('RFQ询价中'), c: '#FAAD14' },
-    { n: '已定点', v: cnt('已定点'), c: '#52C41A' }
-  ];
+  const stages = ['未发包', '已发包待BDL', 'BDL评审中', 'RFQ询价中', '已定点'];
+  const COLORS = { '未发包': '#D9D9D9', '已发包待BDL': '#BAE0FF', 'BDL评审中': '#4096FF', 'RFQ询价中': '#FAAD14', '已定点': '#52C41A' };
+  const g = byKey(rows, r => r['车系']);
+  const keys = Object.keys(g).sort();
+
   c2 && c2.dispose();
-  c2 = echarts.init(document.getElementById('c2Chart'));
-  const shown = stages.filter(x => x.v > 0);
-  const useStages = shown.length ? shown : stages;
+  c2 = echarts.init(document.getElementById('c2Pipe'));
+  const series = stages.map(st => ({
+    name: st, type: 'bar', stack: 'p', barWidth: 17,
+    data: keys.map(k => {
+      const tot = g[k].length;
+      const v = g[k].filter(r => r.stage === st).length;
+      return { value: pct(v, tot), raw: v, total: tot };
+    }),
+    itemStyle: { color: COLORS[st] },
+    label: { show: true, fontSize: 9.5, color: st === '未发包' || st === '已发包待BDL' ? 'rgba(0,0,0,.65)' : '#fff', formatter: p => (p.data.raw >= 3 && p.value >= 8) ? p.data.raw : '' }
+  }));
   c2.setOption({
-    grid: { left: 4, right: 36, top: 4, bottom: 0, containLabel: true },
-    tooltip: { trigger: 'axis', axisPointer: { type: 'shadow' }, textStyle: { fontSize: 12 }, formatter: p => `${p[0].name}<br/>${p[0].value} 个 · 占 ${p1(pct(p[0].value, rows.length))}%` },
-    xAxis: { type: 'value', show: false, max: Math.max(...useStages.map(s => s.v)) * 1.18 },
-    yAxis: { type: 'category', inverse: true, data: useStages.map(s => s.n), axisLine: { show: false }, axisTick: { show: false }, axisLabel: { fontSize: 11, color: 'rgba(0,0,0,.65)' } },
-    series: [{
-      type: 'bar', barWidth: 13,
-      data: useStages.map(s => ({ value: s.v, itemStyle: { color: s.c, borderRadius: [0, 3, 3, 0] } })),
-      label: { show: true, position: 'right', fontSize: 11, color: 'rgba(0,0,0,.65)' }
-    }]
+    grid: { left: 2, right: 10, top: 22, bottom: 2, containLabel: true },
+    title: { text: '阶段构成（按车系，100%）', left: 0, top: 0, textStyle: { fontSize: 11.5, fontWeight: 600, color: 'rgba(0,0,0,.65)' } },
+    tooltip: {
+      trigger: 'axis', axisPointer: { type: 'shadow' }, textStyle: { fontSize: 12 },
+      formatter: ps => {
+        let t = `<b>${ps[0].axisValue}</b><br/>`;
+        ps.forEach(x => { if (x.data.raw) t += `${x.marker}${x.seriesName} ${x.data.raw} 个（${p1(x.value)}%）<br/>`; });
+        return t;
+      }
+    },
+    legend: { top: 0, right: 0, itemWidth: 7, itemHeight: 7, itemGap: 8, textStyle: { fontSize: 9, color: 'rgba(0,0,0,.6)' } },
+    xAxis: { type: 'value', max: 100, show: false },
+    yAxis: { type: 'category', data: keys.slice().reverse(), axisLine: { show: false }, axisTick: { show: false }, axisLabel: { fontSize: 10.5, color: 'rgba(0,0,0,.65)' } },
+    series: series.map(sr => Object.assign({}, sr, { data: sr.data.slice().reverse() }))
   });
 
-  const avg = f => { const a = rows.map(f).filter(v => v != null); return a.length ? sum(a) / a.length : 0; };
   const cyc = [
-    { n: 'BDL 审批', v: avg(r => r.bdlCycle), t: 20 },
-    { n: 'RFQ 询价', v: avg(r => r.rfqCycle), t: 30 },
-    { n: '定点周期', v: avg(r => r.fixCycle), t: 45 },
-    { n: '合同签署', v: avg(r => r.signCycle), t: 30 }
+    { n: 'BDL 审批', key: 'bdlCycle', t: 20 },
+    { n: 'RFQ 询价', key: 'rfqCycle', t: 30 },
+    { n: '定点周期', key: 'fixCycle', t: 45 },
+    { n: '合同签署', key: 'signCycle', t: 30 }
   ];
+  const boxData = cyc.map(c => quartiles(rows.map(r => r[c.key])));
+  const meanData = cyc.map(c => {
+    const a = rows.map(r => r[c.key]).filter(v => v != null);
+    return a.length ? Math.round(sum(a) / a.length * 10) / 10 : 0;
+  });
   c2t && c2t.dispose();
   c2t = echarts.init(document.getElementById('c2Time'));
   c2t.setOption({
-    grid: { left: 4, right: 46, top: 24, bottom: 0, containLabel: true },
-    title: { text: '节点平均花费时间（天）', left: 0, top: 0, textStyle: { fontSize: 11.5, fontWeight: 600, color: 'rgba(0,0,0,.65)' } },
+    grid: { left: 6, right: 52, top: 26, bottom: 2, containLabel: true },
+    title: { text: '周期分布（箱线：最小 / P25 / 中位 / P75 / 最大）', left: 0, top: 0, textStyle: { fontSize: 11.5, fontWeight: 600, color: 'rgba(0,0,0,.65)' } },
     tooltip: {
-      trigger: 'axis', axisPointer: { type: 'shadow' }, textStyle: { fontSize: 12 },
-      formatter: p => `${p[0].name}<br/>平均 ${p1(p[0].value)} 天 · 阈值 ${p[0].data.t} 天<br/><span style="color:${p[0].value > p[0].data.t ? '#CF1322' : '#389E0D'}">${p[0].value > p[0].data.t ? '超出阈值' : '阈值内'}</span>`
+      trigger: 'item', textStyle: { fontSize: 12 },
+      formatter: p => {
+        if (p.seriesType !== 'boxplot') return `${p.name}<br/>平均 ${p.value} 天`;
+        const v = p.value;
+        return `<b>${cyc[p.dataIndex].n}</b><br/>最小 ${v[1]} 天<br/>P25 ${v[2]} · 中位 ${v[3]}<br/>P75 ${v[4]} · 最大 ${v[5]}<br/><span style="color:#8c8c8c">阈值 ${cyc[p.dataIndex].t} 天</span>`;
+      }
     },
-    xAxis: { type: 'value', splitLine: { lineStyle: { color: '#F5F5F5' } }, axisLabel: { fontSize: 10, color: 'rgba(0,0,0,.35)' } },
-    yAxis: { type: 'category', inverse: true, data: cyc.map(c => c.n), axisLine: { show: false }, axisTick: { show: false }, axisLabel: { fontSize: 11, color: 'rgba(0,0,0,.65)' } },
-    series: [{
-      type: 'bar', barWidth: 14,
-      data: cyc.map(c => ({ value: Math.round(c.v * 10) / 10, t: c.t, itemStyle: { color: c.v > c.t ? '#FF4D4F' : '#1677FF', borderRadius: [0, 3, 3, 0] } })),
-      label: { show: true, position: 'right', fontSize: 10.5, color: 'rgba(0,0,0,.65)', formatter: p => p1(p.value) }
-    }]
+    xAxis: { type: 'value', min: 0, splitLine: { lineStyle: { color: '#F5F5F5' } }, axisLabel: { fontSize: 10, color: 'rgba(0,0,0,.35)', formatter: '{value}d' } },
+    yAxis: { type: 'category', inverse: true, data: cyc.map(c => c.n), axisLine: { show: false }, axisTick: { show: false }, axisLabel: { fontSize: 10.5, color: 'rgba(0,0,0,.65)', margin: 14 } },
+    series: [
+      {
+        name: '周期分布', type: 'boxplot', barWidth: 13,
+        data: boxData.map((v, i) => ({ value: v, itemStyle: { color: '#E6F4FF', borderColor: meanData[i] > cyc[i].t ? '#FF7875' : '#1677FF', borderWidth: 1.2 } })),
+        itemStyle: { color: '#E6F4FF' }
+      },
+      {
+        name: '平均值', type: 'scatter', symbol: 'diamond', symbolSize: 8,
+        data: cyc.map((c, i) => ({ value: [meanData[i], i], itemStyle: { color: meanData[i] > c.t ? '#FF4D4F' : '#0958D9' } })),
+        label: { show: true, position: 'right', fontSize: 10, color: 'rgba(0,0,0,.6)', formatter: p => meanData[p.dataIndex] + 'd' }
+      },
+      {
+        name: '阈值', type: 'scatter', symbol: 'none',
+        data: cyc.map((c, i) => [c.t, i]),
+        markPoint: { silent: true, symbol: 'rect', symbolSize: [1.5, 11], data: cyc.map((c, i) => ({ coord: [c.t, i], itemStyle: { color: '#FFA39E' } })) }
+      }
+    ]
   });
 }
 
-/* ================= 卡片 3 ================= */
-let c3Mode = 'time';
+/* ================= 卡片 3：双指标矩阵（散点+四象限） ================= */
+let c3Mode = 'matrix';
 function renderC3() {
   const rows = VIEW.filter(r => !r.ph);
-  if (c3Mode === 'time') {
-    const g = byKey(rows.filter(r => r.fixed), r => r['采购组']);
-    const keys = Object.keys(g).sort((a, b) => g[b].length - g[a].length);
-    const rate = keys.map(k => Math.round(pct(g[k].filter(r => r.fixDelay != null && r.fixDelay <= 0).length, g[k].length) * 10) / 10);
-    const cnts = keys.map(k => g[k].length);
+  if (c3Mode === 'matrix') {
+    const g = byKey(rows, r => r['采购组']);
+    const pts = Object.keys(g).map(k => {
+      const fixed = g[k].filter(r => r.fixed);
+      const inTime = fixed.filter(r => r.fixDelay != null && r.fixDelay <= 0).length;
+      const signed = fixed.filter(r => r.signed).length;
+      return {
+        name: k.replace('采购组', ''),
+        full: k,
+        n: fixed.length,
+        fixRate: fixed.length ? Math.round(pct(inTime, fixed.length) * 10) / 10 : 0,
+        signRate: fixed.length ? Math.round(pct(signed, fixed.length) * 10) / 10 : 0
+      };
+    }).filter(p => p.n > 0).sort((a, b) => b.fixRate - a.fixRate);
+
     c3 && c3.dispose();
     c3 = echarts.init(document.getElementById('c3Chart'));
     c3.setOption({
-      grid: { left: 4, right: 48, top: 26, bottom: 2, containLabel: true },
-      title: { text: '定点及时率 · 按采购组', left: 0, top: 0, textStyle: { fontSize: 11.5, fontWeight: 600, color: 'rgba(0,0,0,.65)' } },
-      tooltip: { trigger: 'axis', axisPointer: { type: 'shadow' }, textStyle: { fontSize: 12 }, formatter: p => { const i = p[0].dataIndex; return `<b>${keys[i]}</b><br/>定点及时率 ${rate[i]}%<br/>已定点 ${cnts[i]} 个 · 按期 ${g[keys[i]].filter(r => r.fixDelay != null && r.fixDelay <= 0).length} 个`; } },
+      grid: { left: 6, right: 58, top: 30, bottom: 18, containLabel: true },
+      title: {
+        text: '采购组双指标差距（● 定点及时率 → ◆ 合同签署率 · 点间距=差距）', left: 0, top: 0,
+        textStyle: { fontSize: 11.5, fontWeight: 600, color: 'rgba(0,0,0,.65)' }
+      },
+      tooltip: {
+        trigger: 'item', textStyle: { fontSize: 12 },
+        formatter: p => {
+          if (p.seriesType === 'lines') return '';
+          return `<b>${p.data.full}</b><br/>定点及时率 ${p.data.fixRate}%<br/>合同签署率 ${p.data.signRate}%<br/>两者差 ${p1(p.data.signRate - p.data.fixRate)}pt<br/>已定点 ${p.data.n} 个`;
+        }
+      },
+      legend: { top: 0, right: 0, itemWidth: 8, itemHeight: 8, textStyle: { fontSize: 10, color: 'rgba(0,0,0,.6)' } },
+      xAxis: {
+        type: 'value', min: 30, max: 100, splitLine: { lineStyle: { color: '#F5F5F5' } },
+        axisLabel: { fontSize: 10, color: 'rgba(0,0,0,.35)', formatter: '{value}%' }
+      },
+      yAxis: {
+        type: 'category', data: pts.map(p => p.name),
+        axisLine: { show: false }, axisTick: { show: false },
+        axisLabel: { fontSize: 10.5, color: 'rgba(0,0,0,.65)' }
+      },
+      series: [
+        {
+          name: '差距', type: 'lines', coordinateSystem: 'cartesian2d', symbol: 'none', silent: true,
+          lineStyle: { color: '#D9D9D9', width: 5, cap: 'round' },
+          data: pts.map((p, i) => ({ coords: [[p.fixRate, i], [p.signRate, i]] }))
+        },
+        {
+          name: '定点及时率', type: 'scatter', symbolSize: 11, z: 3,
+          itemStyle: { color: '#1677FF' },
+          data: pts.map((p, i) => ({
+            value: [p.fixRate, i], full: p.full, fixRate: p.fixRate, signRate: p.signRate, n: p.n,
+            label: { position: p.fixRate <= p.signRate ? 'left' : 'right' }
+          })),
+          label: { show: true, distance: 7, fontSize: 9.5, color: '#0958D9', formatter: p => p.value[0] + '%' }
+        },
+        {
+          name: '合同签署率', type: 'scatter', symbol: 'diamond', symbolSize: 11, z: 3,
+          itemStyle: { color: '#722ED1' },
+          data: pts.map((p, i) => ({
+            value: [p.signRate, i], full: p.full, fixRate: p.fixRate, signRate: p.signRate, n: p.n,
+            label: { position: p.signRate >= p.fixRate ? 'right' : 'left' }
+          })),
+          label: { show: true, distance: 7, fontSize: 9.5, color: '#531DAB', formatter: p => p.value[0] + '%' }
+        }
+      ],
+
+    });
+
+    const gaps = pts.map(p => p.signRate - p.fixRate);
+    const worst = pts.slice().sort((a, b) => (a.signRate - a.fixRate) - (b.signRate - b.fixRate))[0];
+    document.getElementById('c3Mini').innerHTML = `
+      <div><div class="k">平均差距</div><div class="v">${p1(sum(gaps) / (gaps.length || 1))}<small>pt</small></div></div>
+      <div><div class="k">签署落后最多</div><div class="v" style="color:#CF1322">${worst ? worst.name : '—'}<small>${worst ? p1(worst.signRate - worst.fixRate) + 'pt' : ''}</small></div></div>
+      <div><div class="k">签署反超</div><div class="v" style="color:#389E0D">${gaps.filter(x => x > 0).length}<small>组</small></div></div>`;
+
+  } else if (c3Mode === 'time') {
+    const g = byKey(rows.filter(r => r.fixed), r => r['采购组']);
+    const keys = Object.keys(g).sort((a, b) => g[b].length - g[a].length);
+    const rate = keys.map(k => Math.round(pct(g[k].filter(r => r.fixDelay != null && r.fixDelay <= 0).length, g[k].length) * 10) / 10);
+    const fixedCnt = keys.map(k => g[k].length);
+    c3 && c3.dispose();
+    c3 = echarts.init(document.getElementById('c3Chart'));
+    c3.setOption({
+      grid: { left: 4, right: 52, top: 26, bottom: 2, containLabel: true },
+      title: { text: '定点及时率 · 按采购组（条形排名）', left: 0, top: 0, textStyle: { fontSize: 11.5, fontWeight: 600, color: 'rgba(0,0,0,.65)' } },
+      tooltip: {
+        trigger: 'axis', axisPointer: { type: 'shadow' }, textStyle: { fontSize: 12 },
+        formatter: p => { const i = p[0].dataIndex; const s = g[keys[i]];
+          return `<b>${keys[i]}</b><br/>及时率 ${rate[i]}%<br/>按期 ${s.filter(r => r.fixDelay != null && r.fixDelay <= 0).length} / ${fixedCnt[i]} 包`; }
+      },
       xAxis: { type: 'value', max: 100, splitLine: { lineStyle: { color: '#F5F5F5' } }, axisLabel: { fontSize: 10, color: 'rgba(0,0,0,.35)', formatter: '{value}%' } },
       yAxis: { type: 'category', inverse: true, data: keys, axisLine: { show: false }, axisTick: { show: false }, axisLabel: { fontSize: 11, color: 'rgba(0,0,0,.65)' } },
       series: [{
@@ -605,11 +813,10 @@ function renderC3() {
     });
     const fixedRows = rows.filter(r => r.fixed);
     const inTime = fixedRows.filter(r => r.fixDelay != null && r.fixDelay <= 0).length;
-    const late = fixedRows.length - inTime;
     const delays = fixedRows.filter(r => r.fixDelay > 0).map(r => r.fixDelay);
     document.getElementById('c3Mini').innerHTML = `
       <div><div class="k">按期定点</div><div class="v" style="color:#389E0D">${inTime}<small>个</small></div></div>
-      <div><div class="k">延期定点</div><div class="v" style="color:#CF1322">${late}<small>个</small></div></div>
+      <div><div class="k">延期定点</div><div class="v" style="color:#CF1322">${fixedRows.length - inTime}<small>个</small></div></div>
       <div><div class="k">平均延期</div><div class="v">${p1(delays.length ? sum(delays) / delays.length : 0)}<small>天</small></div></div>`;
   } else {
     const g = byKey(rows, r => r['车系']);
@@ -620,16 +827,26 @@ function renderC3() {
     c3 = echarts.init(document.getElementById('c3Chart'));
     c3.setOption({
       grid: { left: 4, right: 16, top: 26, bottom: 2, containLabel: true },
-      title: { text: '合同签署（已签 / 应签）· 按车系', left: 0, top: 0, textStyle: { fontSize: 11.5, fontWeight: 600, color: 'rgba(0,0,0,.65)' } },
-      tooltip: { trigger: 'axis', axisPointer: { type: 'shadow' }, textStyle: { fontSize: 12 }, formatter: p => { const i = p[0].dataIndex; return `<b>${keys[i]}</b><br/>应签 ${should[i]} 个<br/>已签 ${done[i]} 个（${p1(pct(done[i], should[i]))}%）`; } },
-      legend: { top: 0, right: 0, itemWidth: 8, itemHeight: 8, textStyle: { fontSize: 11, color: 'rgba(0,0,0,.65)' } },
-      xAxis: { type: 'category', data: keys, axisLine: { lineStyle: { color: '#F0F0F0' } }, axisTick: { show: false }, axisLabel: { fontSize: 11, color: 'rgba(0,0,0,.45)' } },
-      yAxis: { type: 'value', splitLine: { lineStyle: { color: '#F5F5F5' } }, axisLabel: { fontSize: 10, color: 'rgba(0,0,0,.35)' } },
-      series: [
-        { name: '应签', type: 'bar', data: should, barWidth: 20, barGap: '30%', itemStyle: { color: '#EFE3FC', borderRadius: [3, 3, 0, 0] } },
-        { name: '已签', type: 'bar', data: done, barWidth: 20, itemStyle: { color: '#722ED1', borderRadius: [3, 3, 0, 0] },
-          label: { show: true, position: 'top', fontSize: 10, color: 'rgba(0,0,0,.55)', formatter: p => p1(pct(done[p.dataIndex], should[p.dataIndex])) + '%' } }
-      ]
+      title: { text: '合同签署完成率 · 按车系（进度环）', left: 0, top: 0, textStyle: { fontSize: 11.5, fontWeight: 600, color: 'rgba(0,0,0,.65)' } },
+      tooltip: {
+        trigger: 'item', textStyle: { fontSize: 12 },
+        formatter: p => `<b>${p.name}</b><br/>应签 ${should[p.dataIndex]} 个<br/>已签 ${done[p.dataIndex]} 个（${p1(pct(done[p.dataIndex], should[p.dataIndex]))}%）`
+      },
+      series: keys.map((k, i) => ({
+        type: 'pie', radius: ['48%', '66%'], center: [`${14 + i * (72 / Math.max(1, keys.length - 1))}%`, '54%'],
+        avoidLabelOverlap: true, label: {
+          show: true, position: 'center',
+          formatter: () => `{a|${p1(pct(done[i], should[i]))}%}\n{b|${k}}`,
+          rich: { a: { fontSize: 12, fontWeight: 600, color: 'rgba(0,0,0,.85)', lineHeight: 16 }, b: { fontSize: 9, color: 'rgba(0,0,0,.45)' } }
+        },
+        labelLine: { show: false },
+        itemStyle: { borderWidth: 0 },
+        data: [
+          { value: done[i], name: '已签', itemStyle: { color: '#722ED1' } },
+          { value: Math.max(0, should[i] - done[i]), name: '未签', itemStyle: { color: '#F0F0F0' } }
+        ]
+      })),
+      legend: { show: false }
     });
     const fixedRows = rows.filter(r => r.fixed);
     const signed = fixedRows.filter(r => r.signed);
@@ -642,25 +859,52 @@ function renderC3() {
   }
 }
 
-/* ================= 卡片 4 ================= */
+/* ================= 卡片 4：预警热力矩阵 ================= */
 const ALERT_DEF = ['未发包预警', '定点申请未发起', 'BDL评审超期', 'RFQ询价超期', 'RFQ超过4轮', '计划连续改期', '合同签署预警', 'BDL单一供应商'];
 function renderC4() {
   const rows = VIEW;
-  const cnt = ALERT_DEF.map(n => rows.filter(r => r.alerts.includes(n)).length);
+  const groups = uniq(rows.map(r => r['采购组'])).sort();
+  const cells = [];
+  let maxV = 1;
+  ALERT_DEF.forEach((a, yi) => {
+    groups.forEach((gr, xi) => {
+      const v = rows.filter(r => r['采购组'] === gr && r.alerts.includes(a)).length;
+      maxV = Math.max(maxV, v);
+      cells.push([xi, yi, v]);
+    });
+  });
   document.getElementById('c4Total').textContent = `${rows.filter(r => r.alerts.length).length} 包 · ${sum(rows, r => r.alerts.length)} 条`;
   c4 && c4.dispose();
   c4 = echarts.init(document.getElementById('c4Chart'));
   c4.setOption({
-    grid: { left: 4, right: 30, top: 2, bottom: 0, containLabel: true },
-    tooltip: { trigger: 'axis', axisPointer: { type: 'shadow' }, textStyle: { fontSize: 12 }, formatter: p => `${p[0].name}<br/>${p[0].value} 个包命中` },
-    xAxis: { type: 'value', show: false, max: Math.max(1, ...cnt) * 1.2 },
-    yAxis: { type: 'category', inverse: true, data: ALERT_DEF, axisLine: { show: false }, axisTick: { show: false }, axisLabel: { fontSize: 10.5, color: 'rgba(0,0,0,.65)', margin: 6 } },
+    grid: { left: 2, right: 8, top: 4, bottom: 34, containLabel: true },
+    tooltip: {
+      trigger: 'item', textStyle: { fontSize: 12 },
+      formatter: p => `<b>${groups[p.value[0]]}</b><br/>${ALERT_DEF[p.value[1]]}<br/>${p.value[2]} 个包命中`
+    },
+    xAxis: {
+      type: 'category', data: groups.map(g => g.replace('采购组', '')),
+      splitArea: { show: false }, axisLine: { show: false }, axisTick: { show: false },
+      axisLabel: { fontSize: 9.5, color: 'rgba(0,0,0,.55)', interval: 0, hideOverlap: false }
+    },
+    yAxis: {
+      type: 'category', inverse: true, data: ALERT_DEF,
+      axisLine: { show: false }, axisTick: { show: false },
+      axisLabel: { fontSize: 10.5, color: 'rgba(0,0,0,.65)' }
+    },
+    visualMap: {
+      min: 0, max: maxV, calculable: false, orient: 'horizontal', left: 'center', bottom: 2,
+      itemWidth: 8, itemHeight: 56, text: ['多', '少'], textStyle: { fontSize: 9, color: 'rgba(0,0,0,.4)' },
+      inRange: { color: ['#F5FAFF', '#BAE0FF', '#69B1FF', '#FAAD14', '#FF7875', '#D4380D'] }
+    },
     series: [{
-      type: 'bar', barWidth: 9,
-      data: cnt.map(v => ({ value: v, itemStyle: { color: v >= 15 ? '#FF4D4F' : v >= 8 ? '#FAAD14' : '#91CAFF', borderRadius: [0, 3, 3, 0] } })),
-      label: { show: true, position: 'right', fontSize: 10.5, color: 'rgba(0,0,0,.65)' }
+      type: 'heatmap', data: cells,
+      label: { show: true, fontSize: 10, color: 'rgba(0,0,0,.75)', formatter: p => p.value[2] || '' },
+      itemStyle: { borderColor: '#fff', borderWidth: 2, borderRadius: 3 },
+      emphasis: { itemStyle: { shadowBlur: 6, shadowColor: 'rgba(0,0,0,.15)' } }
     }]
   });
+
   const risk = rows.filter(r => r.alerts.length).sort((a, b) => b.alerts.length - a.alerts.length).slice(0, 8);
   document.getElementById('c4Table').innerHTML = risk.length ? `
     <table><thead><tr><th style="cursor:default">命中预警</th><th style="cursor:default">SOR 包</th><th style="cursor:default">品类</th><th style="cursor:default">采购员</th><th style="cursor:default">阶段</th><th style="cursor:default;text-align:right">停留 / 偏差</th></tr></thead><tbody>
@@ -857,7 +1101,7 @@ function buildDD() {
 }
 
 /* ================= 交互绑定 ================= */
-let c1, c2, c2t, c3, c4;
+let c1f, c1s, c2, c2t, c3, c4;
 const pageSize = 8;
 
 document.getElementById('btnReset').onclick = () => {
@@ -915,8 +1159,8 @@ function renderAll() {
   VIEW = ROWS.filter(pass);
   if (!VIEW.length) {
     document.getElementById('kpis').innerHTML = '<div class="empty" style="grid-column:span 6">当前筛选无数据，请重置筛选</div>';
-    ['c1Chart', 'c2Chart', 'c2Time', 'c3Chart', 'c4Chart'].forEach(id => { const d = document.getElementById(id); if (d) d.innerHTML = ''; });
-    document.getElementById('c1Bars').innerHTML = '';
+    ['c1Flow', 'c1Stack', 'c2Pipe', 'c2Time', 'c3Chart', 'c4Chart'].forEach(id => { const d = document.getElementById(id); if (d) d.innerHTML = ''; });
+    document.getElementById('c1Hint').innerHTML = '';
     document.getElementById('c3Mini').innerHTML = '';
     document.getElementById('c4Table').innerHTML = '<div class="empty">—</div>';
     document.getElementById('mainTable').innerHTML = '<div class="empty">—</div>';
@@ -924,7 +1168,7 @@ function renderAll() {
   }
   renderKpi(); renderC1(); renderC2(); renderC3(); renderC4(); renderTable();
 }
-window.addEventListener('resize', () => [c1, c2, c2t, c3, c4].forEach(c => c && c.resize()));
+window.addEventListener('resize', () => [c1f, c1s, c2, c2t, c3, c4].forEach(c => c && c.resize()));
 buildDD();
 renderAll();
 document.getElementById('baseDate').textContent = window.__RAW__.meta.today;
