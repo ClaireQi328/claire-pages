@@ -167,6 +167,13 @@ td.num{font-variant-numeric:tabular-nums;text-align:right}
 .sec h2{font-size:14px;font-weight:600;color:var(--t1);letter-spacing:-.1px}
 .sec .hint{font-size:11px;color:var(--t3)}
 .sec::after{content:"";flex:1;height:1px;background:var(--line)}
+.c7{grid-column:span 7}
+.nodata{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.nodata .nd{border:1px dashed var(--bd);border-radius:6px;padding:10px 12px;background:#FCFCFC}
+.nodata .nd .t{font-size:12.5px;font-weight:600;color:var(--t1);display:flex;align-items:center;gap:6px}
+.nodata .nd .d{font-size:11px;color:var(--t3);line-height:1.7;margin-top:4px}
+.nodata .nd .why{font-size:11px;color:#AD6800;background:var(--w1);border-radius:4px;padding:2px 6px;display:inline-block;margin-top:6px}
+@media(max-width:1180px){.nodata{grid-template-columns:1fr}.c7{grid-column:span 12}}
 </style>
 </head>
 <body>
@@ -259,6 +266,17 @@ td.num{font-variant-numeric:tabular-nums;text-align:right}
         <div class="right"><span class="pill gray">四类周期</span></div></div>
       <div class="bd tight"><div class="chart" id="cBox" style="height:236px"></div></div>
     </div>
+    <div class="card c5">
+      <div class="hd"><h3>①b SOR 发布 / 定点状态 <em>BRD 四数并列 · 计划 / 实际发布 / 已定点 / 占位品类</em></h3>
+        <div class="right"><span class="pill gray" id="statusScope">全量</span></div></div>
+      <div class="bd tight"><div class="chart" id="cStatus" style="height:210px"></div>
+        <div class="c1hint" id="statusHint"></div></div>
+    </div>
+    <div class="card c5">
+      <div class="hd"><h3>②b 不同节点数量 <em>BRD 四项并列计数 · 全量与分组</em></h3>
+        <div class="right"><span class="seg" id="nodeSeg"><span class="on" data-v="group">按采购组</span><span data-v="project">按项目</span><span data-v="cat">按品类</span></span></div></div>
+      <div class="bd tight"><div class="chart" id="cNodes" style="height:196px"></div></div>
+    </div>
   </div>
 
   <div class="sec"><span class="no">二</span><h2>项目 · 管理主体</h2><span class="hint">每个项目卡在哪一环、还剩多少</span></div>
@@ -320,15 +338,36 @@ td.num{font-variant-numeric:tabular-nums;text-align:right}
       <div class="bd tight"><div class="chart" id="cAttr" style="height:238px"></div>
         <div class="c1hint" id="attrHint"></div></div>
     </div>
-    <div class="card c4">
-      <div class="hd"><h3>⑫ 预警热力 <em>8 类 × 采购组 · 点格筛选</em></h3>
+    <div class="card c5">
+      <div class="hd"><h3>⑫ 按人（采购员）达成 <em>BRD 第四个维度 · 点条筛人</em></h3>
+        <div class="right"><span class="pill gray">人 × 四率</span></div></div>
+      <div class="bd tight"><div class="chart" id="cBuyer" style="height:300px"></div></div>
+    </div>
+    <div class="card c7">
+      <div class="hd"><h3>⑬ 预警热力 <em>11 类 × 采购组 · 点格筛选</em></h3>
         <div class="right"><span class="tag bad" id="c4Total">— 条</span></div></div>
-      <div class="bd tight"><div class="chart" id="c4Chart" style="height:184px"></div>
-        <div class="tblwrap" style="max-height:150px" id="c4Table"></div></div>
+      <div class="bd tight"><div class="chart" id="c4Chart" style="height:250px"></div>
+        <div class="tblwrap" style="max-height:120px" id="c4Table"></div></div>
     </div>
   </div>
 
-  <div class="sec"><span class="no">五</span><h2>明细</h2><span class="hint">186 行 · 点行看单包时间线</span></div>
+  <div class="sec"><span class="no">五</span><h2>BRD 条目覆盖核对</h2><span class="hint">14 条报表/预警逐项对照</span></div>
+  <div class="grid">
+    <div class="card c5">
+      <div class="bd tight" style="padding:0"><div class="tblwrap" id="coverageTable"></div></div>
+    </div>
+  </div>
+
+  <div class="sec"><span class="no">六</span><h2>BRD 标注「无数据」的两项</h2><span class="hint">不画假图，显式说明缺什么</span></div>
+  <div class="grid">
+    <div class="card" style="grid-column:span 12">
+      <div class="bd tight">
+        <div class="nodata" id="nodataBox"></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="sec"><span class="no">七</span><h2>明细</h2><span class="hint">186 行 · 点行看单包时间线</span></div>
   <div class="grid">
     <div class="card c5">
       <div class="hd">
@@ -414,6 +453,9 @@ const sum = (arr, f) => arr.reduce((s, x) => s + (f ? f(x) : x), 0);
 const uniq = arr => [...new Set(arr)];
 const byKey = (arr, f) => arr.reduce((m, x) => { const k = f(x); (m[k] = m[k] || []).push(x); return m; }, {});
 
+/* BRD 中「>xx」的阈值，业务待确认 */
+const CYCLE_T = { bdl: 32, rfq: 31, fix: 74, sign: 30 };
+
 /* ================= 派生口径 ================= */
 const ROWS = RAW.map((r, i) => {
   const planPub = D(r.计划发包时间), actPub = D(r.实际发包时间);
@@ -433,9 +475,14 @@ const ROWS = RAW.map((r, i) => {
     postpone: Number(r.计划改期次数 || 0),
     pubDelay: dd(actPub, planPub),
     fixDelay: dd(actFix, planFix),
-    bdlCycle: dd(bdlDone, bdlOut),
+    /* BRD 口径：
+       BDL审批周期 = SOR审批完成 → RFQ发出（用实际发包近似 SOR 审批完成）
+       RFQ询价周期 = RFQ首轮发出 → 末轮询价结束
+       定点周期     = SOR审批完成 → SCM审批完成（用实际定点近似）
+       合同签署     = 定点完成 → 合同签署完成 */
+    bdlCycle: dd(rfqIn, actPub),
     rfqCycle: dd(rfqOut, rfqIn),
-    fixCycle: dd(actFix, bdlDone),
+    fixCycle: dd(actFix, actPub),
     signCycle: dd(cSign, actFix),
     bdlLead: dd(TODAY, bdlOut),
     rfqLead: dd(TODAY, rfqIn),
@@ -449,14 +496,26 @@ const ROWS = RAW.map((r, i) => {
   else o.stage = '未发包';
 
   const a = [];
-  if (!ph && !published && planPub && dd(TODAY, planPub) > 14) a.push('未发包预警');
-  if (!ph && !fixed && planFix && planFix < TODAY) a.push('定点申请未发起');
-  if (o.fixed && !o.signed && o.fixOverdue > 30) a.push('合同签署预警');
-  if (o.stage === 'BDL评审中' && o.bdlLead > 30) a.push('BDL评审超期');
-  if (o.stage === 'RFQ询价中' && o.rfqLead > 30) a.push('RFQ询价超期');
-  if (o.rounds > 4) a.push('RFQ超过4轮');
-  if (o.postpone >= 3) a.push('计划连续改期');
+  /* ① SOR发布：计划发包-2周，该品类仍未关联 SOR（占位行） */
+  if (ph && planPub && dd(TODAY, planPub) > 14) a.push('未发包预警');
+  /* ②③④ 采购定点异常：三类周期超阈值 */
+  if (o.bdlCycle != null && o.bdlCycle > CYCLE_T.bdl) a.push('BDL审批周期超期');
+  if (o.rfqCycle != null && o.rfqCycle > CYCLE_T.rfq) a.push('RFQ询价周期超期');
+  if (o.fixCycle != null && o.fixCycle > CYCLE_T.fix) a.push('定点周期超期');
+  /* ⑤ BDL 单一供应商 */
   if (o.fixed && o.supN === 1) a.push('BDL单一供应商');
+  /* ⑥ RFQ 超过 4 轮 */
+  if (o.rounds > 4) a.push('RFQ超过4轮');
+  /* ⑦ RFQ 发出 30 天仍未定点 */
+  if (rfqIn && !fixed && dd(TODAY, rfqIn) > 30) a.push('RFQ询价超期');
+  /* ⑧ BDL 发出 30 天仍未提交评审结果 */
+  if (bdlOut && !bdlDone && dd(TODAY, bdlOut) > 30) a.push('BDL评审超期');
+  /* ⑨ 计划定点时间连续改期 > 3 次 */
+  if (o.postpone > 3) a.push('计划连续改期');
+  /* ⑩ 计划定点已过，定点申请仍未发起 */
+  if (!ph && !fixed && planFix && planFix < TODAY) a.push('定点申请未发起');
+  /* ⑪ 定点申请单完成审批 30 天，仍未发起合同 */
+  if (o.fixed && !cStart && o.fixOverdue > 30) a.push('合同签署预警');
   o.alerts = a;
   return o;
 });
@@ -532,7 +591,6 @@ const PAL = { p: '#1677FF', p2: '#4096FF', p3: '#91CAFF', p4: '#BAE0FF', p5: '#E
   cy: '#13C2C2', gray: '#BFBFBF', gray2: '#D9D9D9' };
 const STAGE_COLOR = { '未发包': '#BFBFBF', '已发包待BDL': '#91CAFF', 'BDL评审中': '#4096FF', 'RFQ询价中': '#FAAD14', '已定点': '#52C41A' };
 const STAGE_ORDER = ['未发包', '已发包待BDL', 'BDL评审中', 'RFQ询价中', '已定点'];
-
 let drillSeries = null, drillProject = null, drillCat = null, ganttMode = 'all';
 
 /* ================= ① 阶段转化瀑布 ================= */
@@ -580,6 +638,52 @@ function renderC1Flow() {
     `转化率：计划→已发布 <b>${p1(pct(k.published, k.pkgs))}%</b>｜已发布→已定点 <b>${p1(pct(k.fixed, k.published))}%</b>｜另有占位品类 <b>${k.phCat}</b> 个未关联 SOR`;
 }
 
+/* ================= ①b SOR 发布 / 定点状态（BRD 四数并列） ================= */
+function renderStatus() {
+  const rows = VIEW;
+  const pkgs = rows.filter(r => !r.ph);
+  const phCats = uniq(rows.filter(r => r.ph).map(r => r['品类']));
+  const published = pkgs.filter(r => r.published).length;
+  const fixed = pkgs.filter(r => r.fixed).length;
+  const total = pkgs.length;
+
+  /* BRD 原文是三个并列计数，不是一个分数的分子分母 —— 用进度条 + 独立刻度呈现 */
+  const items = [
+    { n: '计划发布 SOR 包', v: total, base: total, c: PAL.p4, note: '分母' },
+    { n: '实际已发布', v: published, base: total, c: PAL.p, note: `发布率 ${p1(pct(published, total))}%` },
+    { n: '已定点', v: fixed, base: published, c: PAL.s, note: `占已发布 ${p1(pct(fixed, published))}%（占计划 ${p1(pct(fixed, total))}%）` },
+    { n: '占位品类（待关联）', v: phCats.length, base: total, c: PAL.w, note: '按品类去重 · 与已发布互斥' }
+  ];
+
+  cStatus && cStatus.dispose();
+  cStatus = echarts.init(document.getElementById('cStatus'));
+  cStatus.setOption({
+    grid: { left: 4, right: 128, top: 8, bottom: 4, containLabel: true },
+    tooltip: { trigger: 'axis', axisPointer: { type: 'shadow' }, textStyle: { fontSize: 12 },
+      formatter: ps => {
+        const i = ps[0].dataIndex, it = items[i];
+        return `<b>${it.n}</b><br/>${it.v} 个<br/><span style="color:#8c8c8c">${it.note}</span>`;
+      } },
+    xAxis: { type: 'value', show: false, max: Math.max(total, ...items.map(i => i.v)) * 1.16 },
+    yAxis: { type: 'category', inverse: true, data: items.map(i => i.n),
+      axisLine: { show: false }, axisTick: { show: false },
+      axisLabel: { fontSize: 10.5, color: 'rgba(0,0,0,.65)' } },
+    series: [
+      { name: '底', type: 'bar', barWidth: 15, silent: true, tooltip: { show: false }, z: 1,
+        itemStyle: { color: '#F5F5F5', borderRadius: [0, 3, 3, 0] },
+        data: items.map(i => Math.max(total, ...items.map(x => x.v))) },
+      { name: '值', type: 'bar', barWidth: 15, z: 3,
+        itemStyle: { borderRadius: [0, 3, 3, 0] },
+        data: items.map(i => ({ value: i.v, itemStyle: { color: i.c, borderRadius: [0, 3, 3, 0] } })),
+        label: { show: true, position: 'right', fontSize: 10.5, fontWeight: 600, color: 'rgba(0,0,0,.72)',
+          formatter: p => `${p.value} 个 · ${items[p.dataIndex].note}` } }
+    ]
+  });
+  document.getElementById('statusScope').textContent = `SOR 包 ${total} · 占位品类 ${phCats.length}`;
+  document.getElementById('statusHint').innerHTML =
+    `BRD 原文「已定点 / 已发包 / 占位品类」是三个<b>并列计数</b>，不是一个分数的分子分母；占位品类按品类去重，与已发布互斥。`;
+}
+
 /* ================= ② 周期箱线 ================= */
 function quartiles(arr) {
   const a = arr.filter(v => v != null).slice().sort((x, y) => x - y);
@@ -590,10 +694,10 @@ function quartiles(arr) {
 function renderCBox() {
   const rows = VIEW.filter(r => !r.ph);
   const cyc = [
-    { n: 'BDL 审批', key: 'bdlCycle', t: 20 },
-    { n: 'RFQ 询价', key: 'rfqCycle', t: 30 },
-    { n: '定点周期', key: 'fixCycle', t: 45 },
-    { n: '合同签署', key: 'signCycle', t: 30 }
+    { n: 'BDL 审批', key: 'bdlCycle', t: CYCLE_T.bdl },
+    { n: 'RFQ 询价', key: 'rfqCycle', t: CYCLE_T.rfq },
+    { n: '定点周期', key: 'fixCycle', t: CYCLE_T.fix },
+    { n: '合同签署', key: 'signCycle', t: CYCLE_T.sign }
   ];
   const box = cyc.map(c => quartiles(rows.map(r => r[c.key])));
   const mean = cyc.map(c => { const a = rows.map(r => r[c.key]).filter(v => v != null); return a.length ? Math.round(sum(a) / a.length * 10) / 10 : 0; });
@@ -973,6 +1077,180 @@ function renderCatStage() {
   });
 }
 
+/* ================= ②b 不同节点数量（BRD 四项并列计数） ================= */
+let nodeMode = 'group';
+function renderNodes() {
+  const rows = VIEW.filter(r => !r.ph);
+  const key = nodeMode === 'group' ? '采购组' : nodeMode === 'project' ? '项目' : '品类';
+  const groups = uniq(rows.map(r => r[key])).sort();
+  const defs = [
+    { n: '未发包 SOR', c: PAL.gray, f: rs => rs.filter(r => !r.published).length },
+    { n: '进行中 BDL', c: PAL.p2, f: rs => rs.filter(r => r.bdlOut && !r.bdlDone).length },
+    { n: '询价中 RFQ', c: PAL.w, f: rs => rs.filter(r => r.rfqIn && !r.fixed).length },
+    { n: '已定点', c: PAL.s, f: rs => rs.filter(r => r.fixed).length }
+  ];
+  const seriesData = defs.map(d => groups.map(g => d.f(rows.filter(r => r[key] === g))));
+
+  cNodes && cNodes.dispose();
+  cNodes = echarts.init(document.getElementById('cNodes'));
+  cNodes.setOption({
+    grid: { left: 4, right: 10, top: 30, bottom: 4, containLabel: true },
+    tooltip: { trigger: 'axis', axisPointer: { type: 'shadow' }, textStyle: { fontSize: 12 },
+      formatter: ps => {
+        let t = `<b>${ps[0].axisValue}</b><br/>`;
+        ps.forEach(x => { if (x.value) t += `${x.marker}${x.seriesName} ${x.value} 个<br/>`; });
+        return t;
+      } },
+    legend: { top: 0, left: 0, itemWidth: 8, itemHeight: 8, itemGap: 10,
+      textStyle: { fontSize: 10, color: 'rgba(0,0,0,.62)' } },
+    xAxis: { type: 'category', data: groups.map(g => g.replace('采购组', '')),
+      axisLine: { lineStyle: { color: '#F0F0F0' } }, axisTick: { show: false },
+      axisLabel: { fontSize: 10, color: 'rgba(0,0,0,.55)', interval: 0,
+        rotate: nodeMode === 'cat' ? 40 : 0 } },
+    yAxis: { type: 'value', splitLine: { lineStyle: { color: '#F5F5F5' } },
+      axisLabel: { fontSize: 10, color: 'rgba(0,0,0,.35)' } },
+    series: defs.map((d, i) => ({
+      name: d.n, type: 'bar', barWidth: nodeMode === 'cat' ? 8 : 14,
+      itemStyle: { color: d.c, borderRadius: [2, 2, 0, 0] },
+      data: seriesData[i],
+      label: { show: nodeMode !== 'cat', position: 'top', fontSize: 9, color: 'rgba(0,0,0,.5)',
+        formatter: p => p.value || '' }
+    }))
+  });
+}
+
+/* ================= ⑫ 按人（采购员）达成 ================= */
+function renderBuyer() {
+  const rows = VIEW.filter(r => !r.ph);
+  const buyers = uniq(rows.map(r => r['采购员'])).sort();
+  const data = buyers.map(b => {
+    const rs = rows.filter(r => r['采购员'] === b);
+    const pub = rs.filter(r => r.published), fix = rs.filter(r => r.fixed);
+    const fixIn = fix.filter(r => r.fixDelay != null && r.fixDelay <= 0).length;
+    const sign = fix.filter(r => r.signed).length;
+    return { b, n: rs.length,
+      pubRate: Math.round(pct(pub.length, rs.length) * 10) / 10,
+      fixRate: Math.round(pct(fix.length, pub.length) * 10) / 10,
+      fixInRate: fix.length ? Math.round(pct(fixIn, fix.length) * 10) / 10 : 0,
+      signRate: fix.length ? Math.round(pct(sign, fix.length) * 10) / 10 : 0,
+      alerts: rs.filter(r => r.alerts.length).length };
+  }).sort((a, b) => b.fixInRate - a.fixInRate);
+
+  const dims = [
+    { n: '发布率', key: 'pubRate' }, { n: '定点率', key: 'fixRate' },
+    { n: '定点及时率', key: 'fixInRate' }, { n: '签署率', key: 'signRate' }
+  ];
+  cBuyer && cBuyer.dispose();
+  cBuyer = echarts.init(document.getElementById('cBuyer'));
+  cBuyer.setOption({
+    grid: { left: 4, right: 62, top: 32, bottom: 4, containLabel: true },
+    tooltip: { trigger: 'axis', axisPointer: { type: 'shadow' }, textStyle: { fontSize: 12 },
+      formatter: ps => {
+        const d = data[ps[0].dataIndex];
+        return `<b>${d.b}</b> · 在管 ${d.n} 包<br/>` +
+          dims.map(x => `${x.n} ${d[x.key]}%`).join('<br/>') +
+          `<br/><span style="color:#CF1322">预警 ${d.alerts} 包</span>`;
+      } },
+    legend: { top: 0, left: 0, itemWidth: 8, itemHeight: 8, itemGap: 10,
+      textStyle: { fontSize: 10, color: 'rgba(0,0,0,.62)' } },
+    xAxis: { type: 'value', max: 100, splitLine: { lineStyle: { color: '#F5F5F5' } },
+      axisLabel: { fontSize: 10, color: 'rgba(0,0,0,.35)' } },
+    yAxis: { type: 'category', data: data.map(d => d.b), axisLine: { show: false },
+      axisTick: { show: false }, axisLabel: { fontSize: 10.5, color: 'rgba(0,0,0,.65)' } },
+    series: dims.map((x, i) => ({
+      name: x.n, type: 'scatter', symbolSize: 9, z: 3,
+      itemStyle: { color: [PAL.p, PAL.s, PAL.w, PAL.pu][i] },
+      data: data.map((d, j) => ({ value: [d[x.key], j], buyer: d.b, rate: d[x.key] })),
+      label: { show: i === 2, position: 'right', distance: 6, fontSize: 9,
+        color: 'rgba(0,0,0,.55)', formatter: p => p.value[0] + '%' }
+    }))
+  });
+  cBuyer.off('click');
+  cBuyer.on('click', p => {
+    const b = p.data.buyer;
+    if (!b) return;
+    if (F.buyer.has(b)) F.buyer.clear(); else { F.buyer.clear(); F.buyer.add(b); }
+    const el = document.querySelector('.dd[data-key="buyer"]'); if (el && el._sync) el._sync();
+    VIEW = ROWS.filter(pass); renderAll();
+  });
+}
+
+/* ================= BRD 覆盖核对表 ================= */
+function renderCoverage() {
+  const k = calcKpi(VIEW);
+  const rows = VIEW.filter(r => !r.ph);
+  const cnt = fn => rows.filter(fn).length;
+  const A = {
+    '未发包预警': 0, 'BDL审批周期超期': 0, 'RFQ询价周期超期': 0, '定点周期超期': 0,
+    'BDL单一供应商': 0, 'RFQ超过4轮': 0, 'RFQ询价超期': 0, 'BDL评审超期': 0,
+    '计划连续改期': 0, '定点申请未发起': 0, '合同签署预警': 0
+  };
+  VIEW.forEach(r => r.alerts.forEach(a => A[a] = (A[a] || 0) + 1));
+
+  const COV = [
+    ['SOR 发布状态', '整体状态（实际已发布 / 计划发布）', '报表', '①b SOR 发布 / 定点状态', '✅', `${k.published}/${k.pkgs} = ${p1(pct(k.published, k.pkgs))}%`],
+    ['', '未发包预警', '预警', '⑬ 预警热力 / ①b', '✅', `${A['未发包预警']} 个占位品类超 2 周未关联`],
+    ['', '发包及时率', '报表', '⑨ Bullet（切「发包及时率」）', '✅', `${p1(k.pubInRate)}%`],
+    ['SOR 包定点状态', '整体状态', '报表', '①b SOR 发布 / 定点状态', '✅', `${k.fixed}/${k.published}/${k.pkgs}`],
+    ['定点进程与状态', '不同节点数量', '报表', '②b 不同节点数量', '✅', `未发包 ${cnt(r => !r.published)} / BDL ${cnt(r => r.bdlOut && !r.bdlDone)} / RFQ ${cnt(r => r.rfqIn && !r.fixed)} / 已定点 ${cnt(r => r.fixed)}`],
+    ['', '节点平均花费时间', '报表', '② 周期箱线（均值◆）', '✅', `BDL ${avgOf('bdlCycle')}d · RFQ ${avgOf('rfqCycle')}d · 定点 ${avgOf('fixCycle')}d`],
+    ['', '采购定点异常（三周期超阈值）', '异常预警', '⑬ 预警热力（3 行）', '⚠️', `BDL ${A['BDL审批周期超期']} / RFQ ${A['RFQ询价周期超期']} / 定点 ${A['定点周期超期']}，阈值待业务定`],
+    ['', 'BDL 单一供应商', '异常预警', '⑬ 预警热力', '✅', `${A['BDL单一供应商']} 个包`],
+    ['', 'RFQ 超过 4 轮', '异常预警', '⑬ 预警热力', '✅', `${A['RFQ超过4轮']} 个包`],
+    ['', 'RFQ 询价超期（30 天未定点）', '异常预警', '⑬ 预警热力', '✅', `${A['RFQ询价超期']} 个包`],
+    ['', 'BDL 评审超期（30 天未提交）', '异常预警', '⑬ 预警热力', '✅', `${A['BDL评审超期']} 个包`],
+    ['定点及时率', '计划定点准确率', '报表', '⑨ Bullet / ③ 健康矩阵', '✅', `${p1(k.fixInRate)}%`],
+    ['', '计划定点时间连续改期', '异常预警', '⑬ 预警热力', '✅', `${A['计划连续改期']} 个包（>3 次）`],
+    ['', '系统未完成定点申请单预警', '异常预警', '⑬ 预警热力', '✅', `${A['定点申请未发起']} 个包`],
+    ['合同签署状态', '定点合同签署及时率', '报表', '⑨ Bullet（切「合同签署率」）', '✅', `${p1(k.signRate)}%（30 天内签完 ${pct(rows.filter(r => r.signed && r.signCycle <= 30).length, k.fixed).toFixed(1)}%）`],
+    ['', '合同签署预警（30 天未发起）', '预警', '⑬ 预警热力', '✅', `${A['合同签署预警']} 个包`],
+    ['', '定点节资率', '—', '「无数据」说明卡', '⬜', 'BRD 标注无数据 · 缺首轮报价字段'],
+    ['', 'CE 目标价达成率', '—', '「无数据」说明卡', '⬜', 'BRD 标注无数据 · 缺 SOR↔CE 映射']
+  ];
+  function avgOf(key) {
+    const a = rows.map(r => r[key]).filter(v => v != null);
+    return a.length ? Math.round(sum(a) / a.length * 10) / 10 : 0;
+  }
+  document.getElementById('coverageTable').innerHTML = `
+  <table><thead><tr>
+    <th style="cursor:default;min-width:110px">大类</th><th style="cursor:default;min-width:170px">小类</th>
+    <th style="cursor:default;min-width:62px">形式</th><th style="cursor:default;min-width:170px">落在哪张图</th>
+    <th style="cursor:default;min-width:44px">覆盖</th><th style="cursor:default;min-width:210px">当前值 / 说明</th>
+  </tr></thead><tbody>
+  ${COV.map((r, i) => {
+    const prev = COV[i - 1];
+    const catName = r[0] || (prev ? prev[0] : '');
+    const showCat = !!r[0];
+    const badge = r[4] === '✅' ? '<span class="tag ok">已覆盖</span>'
+      : r[4] === '⚠️' ? '<span class="tag warn">阈值待定</span>'
+      : '<span class="tag gray">无数据</span>';
+    return `<tr style="cursor:default" ${showCat ? 'class="catstart"' : ''}>
+      <td style="font-weight:${showCat ? 600 : 400};color:${showCat ? 'var(--t1)' : 'transparent'};border-top:${showCat ? '2px solid #F0F0F0' : '1px solid #F0F0F0'}">${showCat ? catName : ''}</td>
+      <td>${r[1]}</td><td style="color:var(--t3)">${r[2]}</td><td>${r[3]}</td>
+      <td>${badge}</td><td style="color:var(--t3)">${r[5]}</td></tr>`;
+  }).join('')}
+  </tbody></table>`;
+}
+
+/* ================= 无数据占位 ================= */
+function renderNoData() {
+  document.getElementById('nodataBox').innerHTML = `
+    <div class="nd">
+      <div class="t">定点节资率 <span class="tag gray">BRD 标注「无数据」</span></div>
+      <div class="d">BRD 公式：<b>（首轮报价 − 定点价）/ 首轮报价</b>，按 SOR 包或金额加权两种口径。<br/>
+      缺什么：EP 现有 RFQ 只落「核价完成价」，<b>首轮报价没有结构化字段</b>，线下 Excel 里；核价口径分 CE 目标价 / 供应商报价两条线，未统一。<br/>
+      替代：现在能看的是 ⑤ 的「定点模具费/开发费 vs 预算」，不是节资率。</div>
+      <div class="why">要落地需先补 RFQ 首轮报价字段 + 口径确认</div>
+    </div>
+    <div class="nd">
+      <div class="t">CE 目标价达成率 <span class="tag gray">BRD 标注「无数据」</span></div>
+      <div class="d">BRD 公式：<b>定点价 ≤ CE 目标价 的包数 / 已定点包数</b>。<br/>
+      缺什么：CE 目标价在成本系统（<code>CST_*</code>）有，但<b>与 SOR 包没有稳定主键关联</b>，靠人工匹配；且目标价版本会随设变刷新，需带版本号。<br/>
+      替代：本页已有 ⑨「CE 目标价达成率」占位卡位与阈值配置，等数据通后直接接。</div>
+      <div class="why">要落地需先建 SOR ↔ CE 目标价 的映射表（含版本）</div>
+    </div>`;
+}
+
 /* ================= ⑨ Bullet ================= */
 let bulletMode = 'fix';
 const BULLET_DEF = {
@@ -1112,7 +1390,7 @@ function renderAttr() {
     : `当前口径下所有组均达标，无缺口`;
 }
 /* ================= 卡片 4：预警热力矩阵 ================= */
-const ALERT_DEF = ['未发包预警', '定点申请未发起', 'BDL评审超期', 'RFQ询价超期', 'RFQ超过4轮', '计划连续改期', '合同签署预警', 'BDL单一供应商'];
+const ALERT_DEF = ['未发包预警', 'BDL审批周期超期', 'RFQ询价周期超期', '定点周期超期', 'BDL单一供应商', 'RFQ超过4轮', 'RFQ询价超期', 'BDL评审超期', '计划连续改期', '定点申请未发起', '合同签署预警'];
 function renderC4() {
   const rows = VIEW;
   const groups = uniq(rows.map(r => r['采购组'])).sort();
@@ -1175,7 +1453,7 @@ function renderC4() {
     renderKpi(); renderC1Flow(); renderCBox();
     renderSankey(); renderHealth(); renderGantt();
     renderTree(); renderParallel(); renderCatStage();
-    renderBullet(); renderDumbbell(); renderAttr(); renderC4(); renderTable();
+    renderBullet(); renderDumbbell(); renderAttr(); renderBuyer(); renderC4(); renderNoData(); renderCoverage(); renderTable();
   });
 
   const risk = rows.filter(r => r.alerts.length).sort((a, b) => b.alerts.length - a.alerts.length).slice(0, 8);
@@ -1374,16 +1652,17 @@ function buildDD() {
 }
 
 /* ================= 交互绑定 ================= */
-let c1f, cBox, cSankey, cHealth, cGantt, cTree, cParallel, cCatStage, cBullet, cDumbbell, cAttr, c4;
+let c1f, cStatus, cBox, cNodes, cSankey, cHealth, cGantt, cTree, cParallel, cCatStage, cBullet, cDumbbell, cAttr, cBuyer, c4;
 const pageSize = 8;
 
 document.getElementById('btnReset').onclick = () => {
   Object.keys(F).forEach(k => F[k].clear());
   document.querySelectorAll('.dd').forEach(el => el._sync && el._sync());
-  drillSeries = null; drillProject = null; drillCat = null; ganttMode = 'all';
+  drillSeries = null; drillProject = null; drillCat = null; ganttMode = 'all'; nodeMode = 'group';
   bulletMode = 'fix'; page = 1; sortKey = 'risk'; sortDir = -1; stageFilter = 'all'; query = '';
   document.querySelectorAll('#bulletSeg span').forEach(x => x.classList.toggle('on', x.dataset.v === 'fix'));
   document.querySelectorAll('#ganttSeg span').forEach(x => x.classList.toggle('on', x.dataset.v === 'all'));
+  document.querySelectorAll('#nodeSeg span').forEach(x => x.classList.toggle('on', x.dataset.v === 'group'));
   document.getElementById('q').value = '';
   document.querySelectorAll('#stageSeg span').forEach(x => x.classList.toggle('on', x.dataset.v === 'all'));
   renderAll();
@@ -1393,6 +1672,12 @@ document.getElementById('bulletSeg').onclick = e => {
   bulletMode = sp.dataset.v;
   document.querySelectorAll('#bulletSeg span').forEach(x => x.classList.toggle('on', x === sp));
   renderBullet(); renderAttr();
+};
+document.getElementById('nodeSeg').onclick = e => {
+  const sp = e.target.closest('span[data-v]'); if (!sp) return;
+  nodeMode = sp.dataset.v;
+  document.querySelectorAll('#nodeSeg span').forEach(x => x.classList.toggle('on', x === sp));
+  renderNodes();
 };
 document.getElementById('ganttSeg').onclick = e => {
   const sp = e.target.closest('span[data-v]'); if (!sp) return;
@@ -1439,7 +1724,7 @@ function renderAll() {
   VIEW = ROWS.filter(pass);
   if (!VIEW.length) {
     document.getElementById('kpis').innerHTML = '<div class="empty" style="grid-column:span 6">当前筛选无数据，请重置筛选</div>';
-    ['c1Flow','cBox','cSankey','cHealth','cGantt','cTree','cParallel','cCatStage','cBullet','cDumbbell','cAttr','c4Chart']
+    ['c1Flow','cStatus','cBox','cNodes','cSankey','cHealth','cGantt','cTree','cParallel','cCatStage','cBullet','cDumbbell','cAttr','cBuyer','c4Chart']
       .forEach(id => { const d = document.getElementById(id); if (d) d.innerHTML = ''; });
     document.getElementById('c1Hint').innerHTML = '';
     document.getElementById('c3Mini').innerHTML = '';
@@ -1448,13 +1733,13 @@ function renderAll() {
     return;
   }
   renderKpi();
-  renderC1Flow(); renderCBox();
+  renderC1Flow(); renderStatus(); renderCBox(); renderNodes();
   renderSankey(); renderHealth(); renderGantt();
   renderTree(); renderParallel(); renderCatStage();
-  renderBullet(); renderDumbbell(); renderAttr(); renderC4();
+  renderBullet(); renderDumbbell(); renderAttr(); renderBuyer(); renderC4(); renderNoData(); renderCoverage();
   renderTable();
 }
-const ALL_CHARTS = () => [c1f, cBox, cSankey, cHealth, cGantt, cTree, cParallel, cCatStage, cBullet, cDumbbell, cAttr, c4];
+const ALL_CHARTS = () => [c1f, cStatus, cBox, cNodes, cSankey, cHealth, cGantt, cTree, cParallel, cCatStage, cBullet, cDumbbell, cAttr, cBuyer, c4];
 window.addEventListener('resize', () => ALL_CHARTS().forEach(c => c && c.resize()));
 buildDD();
 renderAll();
