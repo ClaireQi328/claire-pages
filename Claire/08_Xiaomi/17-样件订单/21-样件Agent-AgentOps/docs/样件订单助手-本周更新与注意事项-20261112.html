@@ -53,7 +53,7 @@ hr{border:none;border-top:1px solid #f0f0f0;margin:28px 0}
   <div><div class="n">6</div><div class="l">新增测试文件</div></div>
   <div><div class="n">71</div><div class="l">新增测试用例</div></div>
   <div><div class="n">575</div><div class="l">全量用例（全绿）</div></div>
-  <div><div class="n">2808</div><div class="l">下单台账记录</div></div>
+  <div><div class="n">2808</div><div class="l">下单记录条数</div></div>
 </div>
 
 <h2>一、一品一点 / 一品多点：拆成三个按钮</h2>
@@ -134,7 +134,7 @@ hr{border:none;border-top:1px solid #f0f0f0;margin:28px 0}
 <h3>当前拦截逻辑（三级）</h3>
 <div class="flow">升版需求（operationType=02）
   ├─ ① cantPoReason 非空？        → 拦截
-  ├─ ② 本地下单台账有记录？        → 拦截
+  ├─ ② 本地下单记录有记录？        → 拦截
   └─ ③ 都通过                     → 进可下单池（带 v2 标识）</div>
 
 <p>下单时还有两道闸：默认拦升版；即使加 <code>--allow-upgrade</code>，<code>cantPoReason</code> 非空仍然拦住。</p>
@@ -142,7 +142,7 @@ hr{border:none;border-top:1px solid #f0f0f0;margin:28px 0}
 <div class="card danger">
 <h3>发现的问题：EP 对升版需求不回填 cantPoReason</h3>
 <p>实测 11 条（<code>CGFP202609242352</code> 等）：11-09 下单成功（订单 4900048158），11-10 再查询时 <code>cantPoReason</code> <strong>仍为空</strong>，于是又被当成「可下单」进池。直接调 CLI 复查，至今依然为空。</p>
-<p><strong>所以增加了第二道兜底</strong>：本地持久化下单台账（<code>app/data/order_ledger.jsonl</code>），只要我们自己下过单，一律拦截。</p>
+<p><strong>所以增加了第二道兜底</strong>：本地持久化下单记录（<code>app/data/order_ledger.jsonl</code>），只要我们自己下过单，一律拦截。</p>
 </div>
 
 <h2>四、预算不足：卡片 9 项 + 表格全量</h2>
@@ -199,14 +199,14 @@ hr{border:none;border-top:1px solid #f0f0f0;margin:28px 0}
 <table>
 <tr><th style="width:22%">发什么</th><th style="width:24%">格式</th><th>能查到</th></tr>
 <tr><td>批次号</td><td><code>ORD</code> + 14 位</td><td>这批查了什么、下了什么、剔除/升版挡了多少</td></tr>
-<tr><td>需求号</td><td><code>CGFP</code> / <code>EP</code></td><td>台账有没有单、历史下单几次、EP 现在能不能下</td></tr>
+<tr><td>需求号</td><td><code>CGFP</code> / <code>EP</code></td><td>下单记录里有没有单、历史下单几次、EP 现在能不能下</td></tr>
 <tr><td>订单号</td><td><code>49</code> 开头</td><td>建单状态、草稿原因、失败原文</td></tr>
 </table>
 
 <h3>实际效果</h3>
 <div class="flow">🔍 诊断：CGFP202611100001
 
-📋 本地下单台账
+📋 本地下单记录
 - 已建单：订单 4900048399｜draft｜批次 ORD20261110192234
 
 📤 历史下单记录
@@ -217,7 +217,7 @@ hr{border:none;border-top:1px solid #f0f0f0;margin:28px 0}
 🌐 EP 实时状态
 - 可下单：1 行 PASS，合计 5 件</div>
 
-<p class="muted">一次说清四件事：台账有没有单、历史下了几次、为什么卡住、现在能不能下。</p>
+<p class="muted">一次说清四件事：下单记录里有没有单、历史下了几次、为什么卡住、现在能不能下。</p>
 
 <hr>
 
@@ -239,9 +239,9 @@ hr{border:none;border-top:1px solid #f0f0f0;margin:28px 0}
 </div>
 
 <div class="card danger">
-<h3>4. 已知未修：订单被关闭后，台账仍拦着</h3>
-<p>实测：订单 <code>4900048141</code> / <code>4900048142</code> / <code>4900048158</code> 在 EP 中已被<strong>关闭（CANCEL）</strong>，但台账仍记为「已下单」→ 相关需求（共 229 条）被永久拦住，无法重新下单。</p>
-<p>下一轮要做的改动：台账增加「订单关闭检测」，关闭的自动放行。</p>
+<h3>4. 已知未修：订单被关闭后，下单记录仍拦着</h3>
+<p>实测：订单 <code>4900048141</code> / <code>4900048142</code> / <code>4900048158</code> 在 EP 中已被<strong>关闭（CANCEL）</strong>，但下单记录仍记为「已下单」→ 相关需求（共 229 条）被永久拦住，无法重新下单。</p>
+<p>下一轮要做的改动：下单记录增加「订单关闭检测」，关闭的自动放行。</p>
 </div>
 
 <div class="card warn">
@@ -260,7 +260,7 @@ hr{border:none;border-top:1px solid #f0f0f0;margin:28px 0}
 <table>
 <tr><th style="width:38%">场景</th><th>怎么做</th></tr>
 <tr><td>某批下单条数比预期少</td><td>发批次号诊断 → 看「剔除表排除 N 条」「升版拦截 M 条」</td></tr>
-<tr><td>某条需求没下成</td><td>发需求号诊断 → 看台账/草稿原因/EP 实时状态</td></tr>
+<tr><td>某条需求没下成</td><td>发需求号诊断 → 看下单记录/草稿原因/EP 实时状态</td></tr>
 <tr><td>想知道某单去哪了</td><td>发订单号诊断 → 看状态和失败原文</td></tr>
 <tr><td>预算不足怎么处理</td><td>看结果卡预算段 → 去表格加额度 → 改「处理状态」→ 回来补下单</td></tr>
 <tr><td>多点选好了要下</td><td>查询后点「下单一品多点」，或点「一键全下」</td></tr>
