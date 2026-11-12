@@ -6762,8 +6762,7 @@ function EpNewProject(props){
 
   /* ===== 校验 ===== */
   var errs={};
-  if(!d.code.trim()) errs.code="请填写项目编号";
-  else if(!/^[A-Za-z0-9][A-Za-z0-9\-_]{2,19}$/.test(d.code.trim())) errs.code="3-20 位，仅字母数字与短横线";
+  /* 编号由系统派生，不再校验手工输入 */
   if(!d.name.trim()) errs.name="请填写项目名称";
   if(!d.cat) errs.cat="请选择项目分类";
 
@@ -6772,7 +6771,7 @@ function EpNewProject(props){
     if(!d.series) errs.series="请选择车系";
     if(!d.model) errs.model="请选择车型";
   }
-  if(!d.plant) errs.plant="请选择生产工厂";
+  if(!(d.plants||[]).length) errs.plant="请至少选择 1 个工厂";
   if(!d.pm.trim()) errs.pm="请填写采购项目经理";
 
   if(d.step===2&&isCar){
@@ -6786,6 +6785,21 @@ function EpNewProject(props){
   var step1Valid=!(errs.code||errs.name||errs.cat||errs.bizType||errs.platform||errs.series||errs.model||errs.plant||errs.pm);
   var step2Valid=!(errs.bm);
   var valid=d.step===1?step1Valid:(isCar?step2Valid:true);
+
+  /* ===== 项目编号：由「车型编码 + 变体号」自动派生，不手工填 ===== */
+  var autoProjectCode=(function(){
+    if(!d.model) return "";
+    var sib=(modelObj&&modelObj.projects)||[];
+    var maxN=0, used={};
+    sib.forEach(function(x){
+      used[x.code]=1;
+      var mm=String(x.code||"").match(/-(\d+)$/);
+      if(mm) maxN=Math.max(maxN,parseInt(mm[1],10));
+    });
+    var n=maxN+1, code;
+    do { code=d.model+"-G"+n; n++; } while(used[code]);
+    return code;
+  })();
 
   /* ===== 编号规则示例（Excel 真实口径：车型编码 + 变体后缀）===== */
   var codeRule=(function(){
@@ -6820,7 +6834,7 @@ function EpNewProject(props){
     var plat=PLATFORM_STORE[d.platform]||{};
     var rows=(d.volRows||[]);
     onCreate({
-      code:d.code.trim(), name:d.name.trim(),
+      code:(d.code||autoProjectCode||'').trim(), name:d.name.trim(),
       baseCount:rows.length, validCount:rows.length,
       eea:(modelObj&&modelObj.projects&&modelObj.projects[0]&&modelObj.projects[0].eea)||"",
       plant:d.plant||plants.join(", ")||"—",
@@ -6930,18 +6944,15 @@ function EpNewProject(props){
 
   var gBasic=BRD_E("div",{style:{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:"12px 18px"}},[
     BRD_E("div",{},[
-      lab("项目编号",true,triedFor(1)?errs.code:null,d.autoCode?"EP":null),
-      BRD_E("div",{style:{display:"flex",gap:6}},[
-        BRD_E("input",{"data-field":"code",value:d.code||"",placeholder:"如 PRJ-MS11-019",
-          style:Object.assign({},inpStyle(triedFor(1)?errs.code:null),{flex:1}),
-          onChange:function(e){set({code:e.target.value,autoCode:false});}}),
-        BRD_E("button",{type:"button",style:{fontSize:12,color:"#61646D",background:"#fff",border:"1px solid #E1E3E6",borderRadius:6,padding:"0 10px",cursor:"pointer",whiteSpace:"nowrap"},
-          onClick:function(){
-            var seq=1; var prefix=d.series||"PRJ";
-            var used={}; BRD_TREE.forEach(function(se){se.models.forEach(function(m){m.projects.forEach(function(pp){used[pp.code]=1;});});});
-            while(used[prefix+"-"+("00"+seq).slice(-3)]) seq++;
-            set({code:prefix+"-"+("00"+seq).slice(-3),autoCode:true});
-          }},["自动生成"])
+      lab("项目编号",false,null,"EP"),
+      BRD_E("div",{style:{display:"flex",alignItems:"center",height:32,padding:"0 10px",
+        background:"#F5F5F5",border:"1px solid #E1E3E6",borderRadius:6,
+        fontFamily:"ui-monospace,Menlo,monospace",fontSize:12,
+        color:(d.autoCode||autoProjectCode)?"#191C24":"#BFBFBF"}},[
+        (d.autoCode||autoProjectCode)||"选择车型后自动生成"
+      ]),
+      BRD_E("div",{style:{fontSize:11,color:"#91959D",marginTop:4}},[
+        "由「车型编码 + 变体号」自动生成，创建后不可改"
       ])
     ]),
     BRD_E("div",{},[
@@ -6991,13 +7002,25 @@ function EpNewProject(props){
         :(platChosen?ro("不适用","非整车平台不建车型"):ro("请先选择产品平台","选定平台后自动判断"))
     ]),
     BRD_E("div",{},[
-      lab("生产工厂",true,triedFor(1)?errs.plant:null,"MAN"),
-      BRD_E("select",{"data-field":"plant",style:Object.assign({},inpStyle(triedFor(1)?errs.plant:null),{height:32}),value:d.plant||"",
-        onChange:function(e){set({plant:e.target.value});}},[
-        BRD_E("option",{value:""},["请选择生产工厂"])
-      ].concat(BRD_PLANTS.map(function(c){
-        return BRD_E("option",{key:c,value:c},[(FACTORY_STORE[c]||{}).name+"（"+c+"）"]);
-      })))
+      lab("生产工厂（可多选）",true,triedFor(1)?errs.plant:null,"MAN"),
+      BRD_E("div",{style:{display:"flex",flexWrap:"wrap",gap:6,padding:"6px 8px",border:"1px solid "+(triedFor(1)&&errs.plant?"#FFA39E":"#E1E3E6"),borderRadius:6,minHeight:34,background:"#fff"}},[
+        BRD_PLANTS.map(function(c){
+          var on=(d.plants||[]).indexOf(c)>=0;
+          return BRD_E("span",{key:c,onClick:function(){
+            var cur=(d.plants||[]).slice();
+            var i2=cur.indexOf(c);
+            if(i2>=0) cur.splice(i2,1); else cur.push(c);
+            set({plants:cur,plant:cur[0]||""});
+          },style:{fontSize:11,cursor:"pointer",padding:"2px 9px",borderRadius:4,
+            border:"1px solid "+(on?"#1677FF":"#E1E3E6"),
+            background:on?"#EAF2FF":"#fff",color:on?"#1677FF":"#61646D"}},[
+            (FACTORY_STORE[c]||{}).name+"（"+c+"）"
+          ]);
+        })
+      ]),
+      BRD_E("div",{style:{fontSize:11,color:"#91959D",marginTop:4}},[
+        "选中工厂会与基础车型自动叉乘生成计划量纲，可到项目详情调整"
+      ])
     ])
   ]);
 
@@ -7227,19 +7250,28 @@ function EpNewProject(props){
       ]),
       volTable,
       BRD_E("div",{style:{display:"flex",alignItems:"center",gap:12,marginTop:10,flexWrap:"wrap"}},[
+        BRD_E("button",{type:"button",style:{fontSize:12,color:"#fff",background:"#1677FF",border:"1px solid #1677FF",borderRadius:6,padding:"4px 12px",cursor:"pointer"},
+          onClick:function(){
+            /* 叉乘生成：基础车型 × 已选工厂；保留已填数量 */
+            var plants=(d.plants&&d.plants.length)?d.plants:[d.plant].filter(Boolean);
+            if(!plants.length){We.warning("请先在基本信息中选择生产工厂");return;}
+            var keep={};
+            (volRows||[]).forEach(function(r){ if(r.code&&r.plant) keep[r.code+"|"+r.plant]=r.years||{}; });
+            var next=[];
+            bmPool.forEach(function(bm){
+              plants.forEach(function(pl){
+                next.push({code:bm.code,name:bm.name,plant:pl,years:Object.assign({},keep[bm.code+"|"+pl]||{})});
+              });
+            });
+            if(!next.length){We.warning("该车型下没有基础车型主数据");return;}
+            set({volRows:next});
+            We.success("已生成 "+bmPool.length+" 个基础车型 × "+plants.length+" 个工厂 = "+next.length+" 行量纲");
+          }},["按工厂生成量纲行（"+bmPool.length+" × "+((d.plants&&d.plants.length)||1)+"）"]),
         BRD_E("button",{type:"button",style:{fontSize:12,color:"#1677FF",background:"#fff",border:"1px solid #91B0FF",borderRadius:6,padding:"4px 12px",cursor:"pointer"},
           onClick:function(){
-            var next=volRows.concat([{code:"",name:"",plant:d.plant||"",years:{}}]);
+            var next=volRows.concat([{code:"",name:"",plant:(d.plants&&d.plants[0])||d.plant||"",years:{}}]);
             set({volRows:next});
           }},["＋ 添加量纲行"]),
-        bmPool.length?BRD_E("button",{type:"button",style:{fontSize:12,color:"#61646D",background:"#fff",border:"1px solid #E1E3E6",borderRadius:6,padding:"4px 12px",cursor:"pointer"},
-          onClick:function(){
-            /* 主数据里尚未使用的行，一次性补齐 */
-            var used={}; volRows.forEach(function(r){if(r.code)used[r.code]=1;});
-            var add=bmPool.filter(function(x){return !used[x.code];}).map(function(x){return {code:x.code,name:x.name,plant:d.plant||"",years:{}};});
-            if(!add.length){We.info("主数据中该车型的基础车型已全部加入");return;}
-            set({volRows:volRows.concat(add)}); We.success("已从主数据补齐 "+add.length+" 个基础车型");
-          }},["＋ 从主数据补齐("+bmPool.length+")"]):null,
         BRD_E("span",{style:{fontSize:11,color:"#91959D"}},[ "同一基础车型跨工厂不重复计数；保存后可在详情「预测量纲」继续维护" ])
       ])
     ]):null,
