@@ -1,0 +1,516 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>EP 三角色用户旅程 · 采购员 / 项目管理 / 财务 CE</title>
+<style>
+:root{
+  --blue:#1677FF; --green:#52C41A; --gold:#FAAD14; --red:#FF4D4F;
+  --purple:#722ED1; --cyan:#13C2C2;
+  --bg:#FFFFFF; --fill:#FAFAFA; --line:#F0F0F0; --border:#D9D9D9;
+  --t1:rgba(0,0,0,.88); --t2:rgba(0,0,0,.65); --t3:rgba(0,0,0,.45);
+  --r:6px; --r-lg:8px;
+}
+*{box-sizing:border-box}
+html,body{margin:0;padding:0}
+body{
+  background:var(--bg); color:var(--t1);
+  font:14px/1.5 -apple-system,"PingFang SC","Segoe UI",sans-serif;
+  -webkit-font-smoothing:antialiased;
+}
+button{font-family:inherit}
+.wrap{max-width:1520px;margin:0 auto;padding:20px 24px 40px}
+
+/* ---------- header ---------- */
+header{display:flex;align-items:flex-start;justify-content:space-between;gap:24px;padding-bottom:14px;border-bottom:1px solid var(--line)}
+h1{margin:0;font-size:22px;font-weight:600;letter-spacing:-.2px}
+.sub{margin:6px 0 0;font-size:12px;color:var(--t3)}
+.meta{display:flex;flex-direction:column;align-items:flex-end;gap:4px;font-size:11px;color:var(--t3);text-align:right;white-space:nowrap}
+.meta b{color:var(--t2);font-weight:500}
+
+/* ---------- role summary ---------- */
+.roles{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-top:16px}
+.role{
+  position:relative;background:var(--fill);border:1px solid var(--line);
+  border-radius:var(--r-lg);padding:12px 14px;cursor:pointer;transition:.16s;
+}
+.role:hover{border-color:var(--border)}
+.role.on{background:#fff;border-color:currentColor;box-shadow:0 1px 4px rgba(0,0,0,.06)}
+.role .bar{position:absolute;left:0;top:12px;bottom:12px;width:3px;border-radius:0 3px 3px 0;background:currentColor}
+.role .top{display:flex;align-items:center;gap:8px;padding-left:8px}
+.role .name{font-size:15px;font-weight:600;color:var(--t1)}
+.role .code{font-size:10px;color:var(--t3);font-family:ui-monospace,SFMono-Regular,Menlo,monospace;background:#fff;border:1px solid var(--line);border-radius:3px;padding:1px 5px}
+.role .mission{margin:6px 0 0;padding-left:8px;font-size:12px;color:var(--t2)}
+.role .stats{display:flex;gap:14px;margin-top:8px;padding-left:8px;font-size:11px;color:var(--t3)}
+.role .stats b{font-size:15px;font-weight:600;color:currentColor;margin-right:3px}
+
+/* ---------- toolbar ---------- */
+.bar2{display:flex;align-items:center;justify-content:space-between;gap:16px;margin-top:18px;flex-wrap:wrap}
+.tabs{display:flex;gap:2px;background:var(--fill);padding:3px;border-radius:var(--r)}
+.tab{border:0;background:transparent;color:var(--t2);font-size:13px;padding:6px 14px;border-radius:4px;cursor:pointer;transition:.16s}
+.tab:hover{color:var(--t1)}
+.tab.on{background:#fff;color:var(--blue);font-weight:500;box-shadow:0 1px 2px rgba(0,0,0,.06)}
+.tools{display:flex;align-items:center;gap:14px;font-size:12px;color:var(--t2)}
+.switch{display:inline-flex;align-items:center;gap:7px;cursor:pointer;user-select:none;position:relative}
+.switch input:focus-visible + .sw{outline:2px solid #1677FF;outline-offset:2px}
+.switch input{position:absolute;opacity:0;width:1px;height:1px;margin:0}
+.sw{width:34px;height:18px;background:rgba(0,0,0,.25);border-radius:9px;position:relative;transition:.2s}
+.sw::after{content:"";position:absolute;top:2px;left:2px;width:14px;height:14px;background:#fff;border-radius:50%;transition:.2s}
+.switch input:checked + .sw{background:var(--blue)}
+.switch input:checked + .sw::after{left:18px}
+.reset{border:1px solid var(--border);background:#fff;color:var(--t2);font-size:12px;padding:4px 10px;border-radius:var(--r);cursor:pointer}
+.reset:hover{color:var(--blue);border-color:var(--blue)}
+
+/* ---------- panels ---------- */
+.panel{display:none;margin-top:14px}
+.panel.on{display:block}
+
+/* ---------- swimlane ---------- */
+.grid{display:grid;grid-template-columns:148px repeat(7,minmax(148px,1fr));gap:1px;background:var(--line);border:1px solid var(--line);border-radius:var(--r-lg);overflow:hidden;min-width:1240px}
+.grid-head{background:var(--fill);padding:9px 10px}
+.grid-head .n{font-size:12px;font-weight:600;color:var(--t1);display:flex;align-items:center;gap:5px}
+.grid-head .num{display:inline-flex;align-items:center;justify-content:center;width:16px;height:16px;border-radius:50%;background:var(--blue);color:#fff;font-size:10px;font-weight:600;flex:0 0 auto}
+.grid-head .s{font-size:10px;color:var(--t3);margin-top:1px}
+.corner{background:var(--fill);padding:9px 10px;font-size:11px;color:var(--t3);display:flex;align-items:flex-end}
+.lane-label{background:var(--fill);padding:10px;display:flex;flex-direction:column;justify-content:center;gap:4px;position:relative}
+.lane-label .ln{font-size:13px;font-weight:600;color:var(--t1);display:flex;align-items:center;gap:6px}
+.lane-label .dot{width:7px;height:7px;border-radius:50%;flex:0 0 auto}
+.lane-label .lc{font-size:9.5px;color:var(--t3);font-family:ui-monospace,SFMono-Regular,Menlo,monospace;word-break:break-all}
+.cell{background:#fff;padding:9px 10px;position:relative;cursor:pointer;transition:.14s;min-height:132px;display:flex;flex-direction:column;gap:5px}
+.cell:hover{background:#F5F9FF;z-index:2;box-shadow:inset 0 0 0 1px var(--blue)}
+.cell.none{background:var(--fill);cursor:default}
+.cell.none:hover{background:var(--fill);box-shadow:none}
+.cell.none .act{color:var(--t3);font-size:11.5px;font-style:normal}
+.cell .act{font-size:12px;line-height:1.45;color:var(--t1)}
+.cell .land{margin-top:auto;font-size:10px;color:var(--t3);line-height:1.4;border-top:1px dashed var(--line);padding-top:4px}
+.cell .land b{color:var(--t2);font-weight:500}
+.pain{display:inline-flex;align-items:center;gap:3px;font-size:10px;color:#D48806;background:#FFFBE6;border:1px solid #FFE58F;border-radius:3px;padding:0 4px;line-height:16px;align-self:flex-start}
+.pain.risk{color:#CF1322;background:#FFF1F0;border-color:#FFA39E}
+body.hide-pain .pain{display:none}
+
+/* lane dim：display:contents 无法承接 opacity，改按单元格控制 */
+.lane{display:contents}
+body[data-focus="pm"] .cell:not([data-role="pm"]),
+body[data-focus="pm"] .lane-label:not([data-role="pm"]),
+body[data-focus="buyer"] .cell:not([data-role="buyer"]),
+body[data-focus="buyer"] .lane-label:not([data-role="buyer"]),
+body[data-focus="ce"] .cell:not([data-role="ce"]),
+body[data-focus="ce"] .lane-label:not([data-role="ce"]){opacity:.35}
+body[data-focus="pm"] .cell:hover,
+body[data-focus="buyer"] .cell:hover,
+body[data-focus="ce"] .cell:hover{opacity:1}
+
+/* legend */
+.legend{display:flex;flex-wrap:wrap;gap:16px;margin-top:10px;font-size:11px;color:var(--t3)}
+.legend span{display:inline-flex;align-items:center;gap:5px}
+.lg{width:8px;height:8px;border-radius:2px;display:inline-block}
+
+/* ---------- handoff ---------- */
+.handoffs{display:grid;grid-template-columns:repeat(5,1fr);gap:10px;margin-top:14px}
+.ho{border:1px solid var(--line);border-radius:var(--r-lg);padding:10px 12px;background:#fff;position:relative}
+.ho .flow{display:flex;align-items:center;gap:6px;font-size:11.5px;font-weight:600;color:var(--t1);margin-bottom:6px}
+.ho .arrow{color:var(--blue)}
+.ho .what{font-size:11.5px;color:var(--t2);line-height:1.45}
+.ho .carrier{margin-top:6px;font-size:10px;color:var(--t3);border-top:1px dashed var(--line);padding-top:5px}
+.ho .gap{margin-top:6px;font-size:10.5px;color:#CF1322;background:#FFF1F0;border-radius:3px;padding:3px 5px;line-height:1.4}
+
+/* ---------- table ---------- */
+table{width:100%;border-collapse:collapse;font-size:12.5px}
+th{background:var(--fill);text-align:left;font-weight:600;color:var(--t2);font-size:11.5px;padding:9px 10px;border-bottom:1px solid var(--line);white-space:nowrap}
+td{padding:9px 10px;border-bottom:1px solid var(--line);color:var(--t1);vertical-align:top;line-height:1.5}
+tbody tr:hover{background:#FAFAFA}
+.pill{display:inline-block;font-size:10px;line-height:17px;padding:0 6px;border-radius:3px;border:1px solid;white-space:nowrap}
+.p0{color:#CF1322;background:#FFF1F0;border-color:#FFA39E}
+.p1{color:#D46B08;background:#FFF7E6;border-color:#FFD591}
+.p2{color:var(--t2);background:var(--fill);border-color:var(--border)}
+.mono{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:10.5px;color:var(--t3)}
+.riskbox{border:1px solid #FFA39E;background:#FFF1F0;border-radius:var(--r-lg);padding:12px 14px;margin-top:14px}
+.riskbox h3{margin:0 0 8px;font-size:13px;color:#CF1322;font-weight:600}
+.riskbox ul{margin:0;padding-left:18px;font-size:12px;line-height:1.65;color:var(--t1)}
+.riskbox code{background:rgba(0,0,0,.045);border-radius:3px;padding:1px 4px;font-size:10.5px}
+.note{font-size:11px;color:var(--t3);margin-top:10px;line-height:1.6}
+
+/* ---------- drawer ---------- */
+.mask{position:fixed;inset:0;background:rgba(0,0,0,.25);opacity:0;pointer-events:none;transition:.2s;z-index:40}
+.mask.on{opacity:1;pointer-events:auto}
+.drawer{position:fixed;top:0;right:0;bottom:0;width:392px;max-width:92vw;background:#fff;border-left:1px solid var(--line);box-shadow:-4px 0 16px rgba(0,0,0,.08);transform:translateX(100%);transition:.24s;z-index:50;display:flex;flex-direction:column}
+.drawer.on{transform:none}
+.dh{padding:14px 16px;border-bottom:1px solid var(--line);display:flex;align-items:flex-start;justify-content:space-between;gap:12px}
+.dh .k{font-size:10px;color:var(--t3);letter-spacing:.4px}
+.dh h2{margin:3px 0 0;font-size:16px;font-weight:600}
+.dh .x{border:0;background:transparent;font-size:20px;line-height:1;color:var(--t3);cursor:pointer;padding:0 2px}
+.dh .x:hover{color:var(--t1)}
+.db{padding:14px 16px;overflow:auto;flex:1}
+.blk{margin-bottom:16px}
+.blk .t{font-size:10.5px;color:var(--t3);letter-spacing:.4px;margin-bottom:5px}
+.blk .v{font-size:12.5px;line-height:1.6;color:var(--t1)}
+.blk .v ul{margin:0;padding-left:16px}
+.blk .v li{margin-bottom:5px}
+.tag{display:inline-block;font-size:10px;padding:1px 6px;border-radius:3px;background:var(--fill);border:1px solid var(--line);color:var(--t2);margin:0 4px 4px 0}
+.ev{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:10.5px;color:var(--t3);line-height:1.6;word-break:break-all}
+
+footer{margin-top:26px;padding-top:12px;border-top:1px solid var(--line);font-size:11px;color:var(--t3);display:flex;justify-content:space-between;gap:16px;flex-wrap:wrap}
+@media(max-width:900px){
+  .roles{grid-template-columns:1fr}
+  .handoffs{grid-template-columns:1fr}
+  .grid{min-width:1180px}
+  .scroll{overflow-x:auto}
+}
+</style>
+</head>
+<body data-focus="all">
+<div class="wrap">
+  <header>
+    <div>
+      <h1>EP 三角色用户旅程</h1>
+      <p class="sub">采购员 · 项目管理 · 财务 CE — 同一条定点链上的三个控制点</p>
+    </div>
+    <div class="meta">
+      <span>取证 <b>EVEP DEV-XIAOMI-CE-1026 / 001cba5d69</b></span>
+      <span>口径 <b>代码 + PRD v6.2 + 菜单 seed</b></span>
+      <span>2026-11-17</span>
+    </div>
+  </header>
+
+  <section class="roles" id="roles"></section>
+
+  <div class="bar2">
+    <div class="tabs" role="tablist">
+      <button class="tab on" data-tab="journey" role="tab">旅程视图</button>
+      <button class="tab" data-tab="handoff" role="tab">交接与断点</button>
+      <button class="tab" data-tab="order" role="tab">改造顺序</button>
+    </div>
+    <div class="tools">
+      <label class="switch"><input type="checkbox" id="showPain" checked><span class="sw"></span>显示断点</label>
+      <button class="reset" id="reset">重置视图</button>
+    </div>
+  </div>
+
+  <!-- 旅程 -->
+  <section class="panel on" id="panel-journey">
+    <div class="scroll">
+      <div class="grid" id="grid"></div>
+    </div>
+    <div class="legend">
+      <span><i class="lg" style="background:#722ED1"></i>项目管理</span>
+      <span><i class="lg" style="background:#1677FF"></i>采购员</span>
+      <span><i class="lg" style="background:#13C2C2"></i>财务 CE</span>
+      <span><i class="lg" style="background:#D9D9D9"></i>该阶段无动作</span>
+      <span><i class="lg" style="background:#FAAD14"></i>流程断点</span>
+      <span><i class="lg" style="background:#FF4D4F"></i>代码风险</span>
+      <span>点击任意格子查看动作、系统落点与证据</span>
+    </div>
+  </section>
+
+  <!-- 交接 -->
+  <section class="panel" id="panel-handoff">
+    <div class="handoffs" id="handoffs"></div>
+    <div class="riskbox">
+      <h3>三个代码级风险（与流程无关，建议优先修）</h3>
+      <ul id="risks"></ul>
+    </div>
+    <div style="margin-top:18px">
+      <table>
+        <thead><tr><th style="width:130px">角色</th><th>P0</th><th>P1</th></tr></thead>
+        <tbody id="painTable"></tbody>
+      </table>
+    </div>
+    <p class="note">断点判断依据：菜单 seed 的实际挂载、PRD 中标注“待上线”的列、代码中缺失的校验。未做实机登录验证的项已在正文标注。</p>
+  </section>
+
+  <!-- 顺序 -->
+  <section class="panel" id="panel-order">
+    <table>
+      <thead><tr><th style="width:44px">#</th><th style="width:34%">改什么</th><th style="width:26%">为什么先做</th><th>验证方式</th></tr></thead>
+      <tbody id="orderTable"></tbody>
+    </table>
+    <p class="note">顺序原则：先堵合规风险（1），再一次性解决“看不到”（2），然后补最高频确认动作（3-4），最后打通金额闭环（5）。</p>
+  </section>
+
+  <footer>
+    <span>证据文件：<span class="mono">08_Xiaomi/04-EP系统/EP系统分析/EP用户角色旅程-采购员-项目管理-财务CE-20261117.md</span></span>
+    <span>角色码以 <span class="mono">SysRoleCodeConstant.java</span> 为准</span>
+  </footer>
+</div>
+
+<div class="mask" id="mask"></div>
+<aside class="drawer" id="drawer" aria-hidden="true">
+  <div class="dh">
+    <div><div class="k" id="dK"></div><h2 id="dTitle"></h2></div>
+    <button class="x" id="dClose" aria-label="关闭">×</button>
+  </div>
+  <div class="db">
+    <div class="blk"><div class="t">用户动作</div><div class="v" id="dAct"></div></div>
+    <div class="blk"><div class="t">系统落点</div><div class="v" id="dLand"></div></div>
+    <div class="blk"><div class="t">断点 / 风险</div><div class="v" id="dPain"></div></div>
+    <div class="blk"><div class="t">证据</div><div class="ev" id="dEv"></div></div>
+  </div>
+</aside>
+
+<script>
+(function(){
+  "use strict";
+
+  var STAGES = [
+    {id:"s1", n:"项目定义", s:"立项 / 量纲 / 阀点"},
+    {id:"s2", n:"SOR 下发", s:"派包 / 接单"},
+    {id:"s3", n:"寻源评审", s:"长清单 / BDL"},
+    {id:"s4", n:"询报价", s:"RFQ / 轮次"},
+    {id:"s5", n:"核价", s:"CE 核价 / 审批"},
+    {id:"s6", n:"定点上会", s:"定点 / 比价"},
+    {id:"s7", n:"合同履约", s:"框架 / 合同 / 订单"}
+  ];
+
+  var ROLES = [
+    {id:"pm", name:"项目管理", code:"purchaseProjectManager", color:"#722ED1",
+     mission:"建结构、定节奏：项目 / 量纲 / 阀点 / 定点计划", stages:6, pains:4},
+    {id:"buyer", name:"采购员", code:"buyer", color:"#1677FF",
+     mission:"跑单据、定结果：SOR → BDL → RFQ → 定点 → 合同", stages:6, pains:4},
+    {id:"ce", name:"财务 CE", code:"FinanceCe", color:"#13C2C2",
+     mission:"卡价格合理性：核价 → 审批 → 比价要素", stages:4, pains:4}
+  ];
+
+  var DATA = {
+    pm:{
+      s1:{act:"建车系 → 车型 → 项目 → 基础车型；维护预测量纲；排 12 阀点并挂交付物",
+          land:"项目管理 P01–P06", pain:["阀点码值仅 7 个，缺 VP/PT/PP/SOP+3/EOP","产销规划无工厂列，量纲到不了工厂"],
+          ev:"ProductProjectServiceImpl.java:828-845（创建项目 + 3 年产销规划初始化）；PRD v6.2 风险 B1 / B7"},
+      s2:{act:"按品类建定点占位、指定采购员、绑定待绑定 SOR，然后下发 SOR",
+          land:"P07 定点计划 + SOR 下发", pain:["采购组无一级字段，要三跳推导"],
+          ev:"PRD P07 / ST-08 / ST-09；DesignReqServiceImpl.java:2570（doSendPurchasePmInfo）；PRD 风险 B5"},
+      s3:{act:"只读跟踪定点计划与评审进度，不直接参与 BDL 评审",
+          land:"P08 管控表", pain:[],
+          ev:"PRD P08 全员只读；功能分析报告 2.3 菜单全景"},
+      s4:{act:"只读，等采购员完成询价",
+          land:"—", pain:[], none:true, ev:"PRD 权限矩阵：P01–P08 对 PM 为编辑，但 P04–P08 的询价过程字段只读"},
+      s5:{act:"看核价完成进度（待核价 / 审批中 / 已核价）",
+          land:"管控表第 27 列", pain:["只有三态，看不到核价金额","CE 目标价、财务目标价均“待上线”"],
+          ev:"PRD P08 第 27 列自动回填；第 30-31 列标注“待上线”"},
+      s6:{act:"看定点状态、定点供应商、实际定点时间、模具/开发费",
+          land:"管控表 16–21 列", pain:["定点价格“待上线”，项目层看不到最终价"],
+          ev:"PRD P08 第 16-21 列、第 32 列"},
+      s7:{act:"看合同签署进度（通则 / 协议）",
+          land:"管控表第 29 列", pain:["合同覆盖率口径未定"],
+          ev:"PRD P08 第 29 列；项目 PRD 待确认第 4 项"}
+    },
+    buyer:{
+      s1:{act:"无动作，等待派包",
+          land:"—", pain:[], none:true, ev:"项目 PRD 2.2：采购员过去需要问 PM 才能知道项目情况"},
+      s2:{act:"收到 SOR 下发待办，确认接收；读零件、量纲、目标价",
+          land:"SOR 定点任务 → DesignReq", pain:["量纲靠问 PM，系统不主动给"],
+          ev:"DesignReqServiceImpl.java:311-312（WAIT_BUYER / BUYER_RECEIVED）；项目 PRD 2.2"},
+      s3:{act:"组织长清单、预选评审（BDL）、跟进质量与研发评审结论",
+          land:"RFQ 预选(BDL) / 长清单管理", pain:["评审结果分散在质量、研发两列"],
+          ev:"功能分析报告 2.3 菜单全景；3.3.2-3.3.5"},
+      s4:{act:"建 RFQ、选供应商、发放轮次、催报价与物流确认",
+          land:"询报价 / RFQ 管理列表", pain:["RFQ 列表没有 CE 核价状态列","工作台 AI 入口未落地，响应风险靠人工翻"],
+          ev:"RfqServiceImpl.java:2231（从 SOR 的 financeId 带出 ceUserId）；RfqRoundServiceImpl.java:1136-1146（发放触发核价）；功能分析报告 4.7.1"},
+      s5:{act:"等 CE 核价结果；比价 / 定点前反复确认是否已核价",
+          land:"只能进 CE 核价任务列表看", pain:["CE 状态不在自己的主界面","新轮次会推翻已核价，发放前无提示"],
+          ev:"CePricingTaskServiceImpl.java:320-322（buyer 按 purchaseEngineerId 过滤）；:1018-1025（新轮次重置）"},
+      s6:{act:"发起定点申请、上会、确认定点结果",
+          land:"定点申请单 / 汇总比价", pain:["定点依赖 CE 已核价","新轮次会打断已核价"],
+          ev:"功能分析报告 3.4.3；比价 PRD 7.3（CE 未完成时金额显示 --）"},
+      s7:{act:"框架协议 → 合同 → 订单；处理返利/大宗补差",
+          land:"合同管理 / 订单管理 / 履约管理", pain:["框架协议审批走“采购主管→框架CE/财务CE”，采购员不在审批链"],
+          ev:"菜单 seed V20231108162824__dml_filtermenu_wqk.sql:78-87；DEV-XIAOMI-COST-CENTER-技术方案.md:970"}
+    },
+    ce:{
+      s1:{act:"无动作", land:"—", pain:[], none:true, ev:"CE 在 SOR 阶段不介入；SOR 的 financeId 由财务节点回填"},
+      s2:{act:"系统在后台把 SOR 财务节点的处理人写成 RFQ 的 CE 人员",
+          land:"DesignReq.financeId → Rfq.ceUserId", pain:[], none:false, sys:true,
+          ev:"DesignReqBeforeService.java:92（ST05 财务节点回填 financeId）；RfqServiceImpl.java:2231"},
+      s3:{act:"无动作", land:"—", pain:[], none:true, ev:"核价任务在 RFQ 发放后才生成"},
+      s4:{act:"收到飞书卡片 + 待办；在核价任务列表认领范围内任务",
+          land:"CE 核价任务列表", pain:["任务表没有计划定点时间，无法排优先级","CE 菜单的 seed 位置未找到，需确认是否已入库"],
+          ev:"CePricingTaskServiceImpl.java:588-680（发放自动建任务）、:1036（飞书）、:1076（待办）；:313-319（只看自己的/被指派的）"},
+      s5:{act:"填材料费 / 制造费 / 管理费（可导入）→ 选审批人 → 提交 → 审批人同意/驳回",
+          land:"核价明细 → SUBMIT → COMPLETED", pain:["审批接口不校验审批人身份","存在直通“已核价”的第二个提交入口"],
+          ev:"CePricingItemServiceImpl.java:469-583（保存/提交）、:547-553（审批人必填）、:652-670（审批，无身份校验）；CePricingTaskServiceImpl.java:685-729（直通 COMPLETED，风险）"},
+      s6:{act:"审批通过后，核价结论进入汇总比价卡片与关键报价要素",
+          land:"比价卡片 / QuoteKeyElement", pain:["未审批时比价卡片灰显、金额 --"],
+          ev:"CePricingItemServiceImpl.java:684（doUpdateQuoteKeyElementByCE）；比价 PRD 4.3 / 7.3"},
+      s7:{act:"框架协议价格审批：暂作价更新节点由财务 CE 审批",
+          land:"BPM 审批（采购主管 → 财务CE）", pain:["“框架CE”是否独立角色未在代码中确认"],
+          ev:"DEV-XIAOMI-COST-CENTER-技术方案.md:970（角色权限矩阵）；specs/feature-framework-sign/spec.md:214-215"}
+    }
+  };
+
+  var HANDOFFS = [
+    {from:"项目管理", to:"采购员", what:"定点计划（品类 / 采购员 / 计划定点时间）+ SOR 下发", carrier:"P07 → SOR 任务状态", gap:"采购员默认无项目管理菜单，计划时间看不到"},
+    {from:"采购员", to:"财务 CE", what:"RFQ + CE 核价人员", carrier:"轮次发放自动建任务", gap:"ceUserId 为空则静默跳过，不报错"},
+    {from:"财务 CE", to:"采购员", what:"核价结论", carrier:"汇总比价卡片 / 关键报价要素", gap:"未审批时卡片灰显，采购员只能干等"},
+    {from:"财务 CE", to:"项目管理", what:"核价进度（三态）", carrier:"管控表第 27 列", gap:"无金额、无 CE 目标价，PM 判断不了差距"},
+    {from:"采购员", to:"项目管理", what:"定点结果 + 合同进度", carrier:"管控表 16–29 列", gap:"定点价格待上线，项目层看不到最终价"}
+  ];
+
+  var RISKS = [
+    'CE 审批接口只校验“任务存在”，未校验 <code>approveUserId</code>：任何登录账号都能审批任意任务。<span class="mono">CePricingItemServiceImpl.java:652-670</span>',
+    '任务提交接口 <code>submitPricing()</code> 直接把状态置为 <code>COMPLETED</code>，绕过审批、不写历史、不更新关键比价要素。<span class="mono">CePricingTaskServiceImpl.java:685-729</span>',
+    '项目 <code>create / update / delete</code> 未见角色校验，仅靠菜单与前端控制，后端未按 PM 角色收口。<span class="mono">ProductProjectController.java:149-168</span>'
+  ];
+
+  var PAINS = [
+    {role:"项目管理", p0:"管控表 CE 目标价 / 财务目标价 / 定点价格未上线", p1:"无延期预警；阀点与量纲数据硬阻塞；项目 PM 字段存在空值"},
+    {role:"采购员", p0:"看不到项目节奏（计划定点 / 量纲 / 阀点）；RFQ 无 CE 核价状态列", p1:"新轮次推翻已核价无提示；待办类型不全"},
+    {role:"财务 CE", p0:"审批接口无身份校验；存在绕过审批的提交入口", p1:"任务无项目紧急度；新轮次静默作废在途审批"}
+  ];
+
+  var ORDER = [
+    ["1","CE 审批接口加身份校验；关闭直通 COMPLETED 的入口","合规红线，改动小、风险高","非审批人调 approve 应被拒；submitPricing 不再产生 COMPLETED"],
+    ["2","给 buyer 开项目管理只读菜单","一次配置解决“看不到项目”","采购员登录可见 P01 / P04–P08，无编辑按钮"],
+    ["3","RFQ 列表加 CE 核价状态列","采购员最高频的确认动作","与管控表第 27 列同源，状态一致"],
+    ["4","CE 列表加计划定点时间 / 逾期天数","让 CE 能按项目紧急度排优先级","按逾期天数倒序，空值置底"],
+    ["5","管控表接 CE 目标价","打通“核价结论 → 项目视图”","PM 在 P08 看到的 CE 目标价与核价任务一致"]
+  ];
+
+  var $ = function(s){ return document.querySelector(s); };
+  var store = {
+    get:function(k,d){ try{ var v=localStorage.getItem("ep.journey."+k); return v===null?d:JSON.parse(v); }catch(e){ return d; } },
+    set:function(k,v){ try{ localStorage.setItem("ep.journey."+k, JSON.stringify(v)); }catch(e){} }
+  };
+
+  var state = {
+    tab: store.get("tab","journey"),
+    focus: store.get("focus","all"),
+    showPain: store.get("showPain",true)
+  };
+
+  function statOf(roleId, kind){
+    var d = DATA[roleId], n = 0;
+    for(var k in d){
+      if(!Object.prototype.hasOwnProperty.call(d,k)) continue;
+      if(kind==="stages"){ if(!d[k].none && !d[k].sys) n++; }
+      else { if(d[k].pain) n += d[k].pain.length; }
+    }
+    return n;
+  }
+
+  function renderRoles(){
+    var box = $("#roles");
+    box.innerHTML = ROLES.map(function(r){
+      return '<div class="role'+(state.focus===r.id?' on':'')+'" data-role="'+r.id+'" style="color:'+r.color+'">'+
+        '<i class="bar"></i>'+
+        '<div class="top"><span class="name">'+r.name+'</span><span class="code">'+r.code+'</span></div>'+
+        '<p class="mission">'+r.mission+'</p>'+
+        '<div class="stats"><span><b>'+statOf(r.id,'stages')+'</b>/7 阶段有动作</span><span><b>'+statOf(r.id,'pains')+'</b>个断点</span></div>'+
+      '</div>';
+    }).join("");
+    Array.prototype.forEach.call(box.children,function(el){
+      el.addEventListener("click",function(){
+        var id = el.getAttribute("data-role");
+        setFocus(state.focus===id ? "all" : id);
+      });
+    });
+  }
+
+  function renderGrid(){
+    var g = $("#grid");
+    var html = '<div class="corner">角色 / 阶段</div>';
+    STAGES.forEach(function(st,i){
+      html += '<div class="grid-head"><div class="n"><span class="num">'+(i+1)+'</span>'+st.n+'</div><div class="s">'+st.s+'</div></div>';
+    });
+    ROLES.forEach(function(r){
+      html += '<div class="lane" data-role="'+r.id+'">';
+      html += '<div class="lane-label" data-role="'+r.id+'"><div class="ln"><i class="dot" style="background:'+r.color+'"></i>'+r.name+'</div><div class="lc">'+r.code+'</div></div>';
+      STAGES.forEach(function(st){
+        var c = DATA[r.id][st.id];
+        var cls = "cell"+(c.none?" none":"");
+        var attrs = ' data-role="'+r.id+'" data-stage="'+st.id+'"';
+        var inner = '<div class="act">'+(c.none?"该阶段不介入":c.act)+'</div>';
+        if(c.sys){ inner += '<span class="pain" style="color:#0958D9;background:#E6F4FF;border-color:#91CAFF">系统触发</span>'; }
+        if(c.pain && c.pain.length){
+          var risk = (c.pain[0].indexOf("审批接口")>=0 || c.pain[0].indexOf("直通")>=0);
+          inner += '<span class="pain'+(risk?" risk":"")+'">'+(risk?"! 风险":"! 断点")+' ×'+c.pain.length+'</span>';
+        }
+        inner += '<div class="land"><b>落点</b> '+c.land+'</div>';
+        html += '<div class="'+cls+'"'+attrs+'>'+inner+'</div>';
+      });
+      html += '</div>';
+    });
+    g.innerHTML = html;
+    Array.prototype.forEach.call(g.querySelectorAll(".cell"),function(el){
+      el.addEventListener("click",function(){
+        var role = el.getAttribute("data-role"), stage = el.getAttribute("data-stage");
+        var c = DATA[role][stage];
+        if(c.none && !c.ev){ return; }
+        openDrawer(role, stage, c);
+      });
+    });
+  }
+
+  function renderHandoffs(){
+    $("#handoffs").innerHTML = HANDOFFS.map(function(h){
+      return '<div class="ho"><div class="flow">'+h.from+' <span class="arrow">→</span> '+h.to+'</div>'+
+        '<div class="what">'+h.what+'</div>'+
+        '<div class="carrier">载体：'+h.carrier+'</div>'+
+        '<div class="gap">'+h.gap+'</div></div>';
+    }).join("");
+    $("#risks").innerHTML = RISKS.map(function(r){ return "<li>"+r+"</li>"; }).join("");
+    $("#painTable").innerHTML = PAINS.map(function(p){
+      return "<tr><td><b>"+p.role+"</b></td><td>"+p.p0+"</td><td>"+p.p1+"</td></tr>";
+    }).join("");
+    $("#orderTable").innerHTML = ORDER.map(function(o){
+      return "<tr><td><b>"+o[0]+"</b></td><td>"+o[1]+"</td><td>"+o[2]+"</td><td>"+o[3]+"</td></tr>";
+    }).join("");
+  }
+
+  function openDrawer(role, stage, c){
+    var r = ROLES.filter(function(x){ return x.id===role; })[0];
+    var st = STAGES.filter(function(x){ return x.id===stage; })[0];
+    $("#dK").textContent = r.name + " · " + r.code;
+    $("#dTitle").textContent = stage.replace("s","") + ". " + st.n;
+    $("#dAct").textContent = c.none ? "该阶段不介入" : c.act;
+    $("#dLand").innerHTML = '<span class="tag">'+c.land+'</span>';
+    $("#dPain").innerHTML = (c.pain && c.pain.length)
+      ? "<ul>"+c.pain.map(function(p){ return "<li>"+p+"</li>"; }).join("")+"</ul>"
+      : '<span style="color:var(--t3)">该阶段无已识别断点</span>';
+    $("#dEv").textContent = c.ev || "—";
+    $("#drawer").classList.add("on");
+    $("#drawer").setAttribute("aria-hidden","false");
+    $("#mask").classList.add("on");
+  }
+  function closeDrawer(){
+    $("#drawer").classList.remove("on");
+    $("#drawer").setAttribute("aria-hidden","true");
+    $("#mask").classList.remove("on");
+  }
+
+  function setTab(t){
+    state.tab = t; store.set("tab",t);
+    Array.prototype.forEach.call(document.querySelectorAll(".tab"),function(b){
+      b.classList.toggle("on", b.getAttribute("data-tab")===t);
+    });
+    ["journey","handoff","order"].forEach(function(k){
+      $("#panel-"+k).classList.toggle("on", k===t);
+    });
+  }
+  function setFocus(f){
+    state.focus = f; store.set("focus",f);
+    document.body.setAttribute("data-focus",f);
+    renderRoles();
+  }
+  function setPain(v){
+    state.showPain = v; store.set("showPain",v);
+    document.body.classList.toggle("hide-pain", !v);
+    $("#showPain").checked = v;
+  }
+
+  Array.prototype.forEach.call(document.querySelectorAll(".tab"),function(b){
+    b.addEventListener("click",function(){ setTab(b.getAttribute("data-tab")); });
+  });
+  $("#showPain").addEventListener("change",function(e){ setPain(e.target.checked); });
+  $("#reset").addEventListener("click",function(){
+    setTab("journey"); setFocus("all"); setPain(true); closeDrawer();
+  });
+  $("#dClose").addEventListener("click",closeDrawer);
+  $("#mask").addEventListener("click",closeDrawer);
+  document.addEventListener("keydown",function(e){ if(e.key==="Escape"){ closeDrawer(); } });
+
+  renderRoles(); renderGrid(); renderHandoffs();
+  setTab(state.tab); setFocus(state.focus); setPain(state.showPain);
+})();
+</script>
+</body>
+</html>
