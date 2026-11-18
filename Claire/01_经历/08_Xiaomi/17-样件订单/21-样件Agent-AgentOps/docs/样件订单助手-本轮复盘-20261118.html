@@ -1,0 +1,286 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>样件订单助手 · 本轮复盘（2026-11-18）</title>
+<style>
+:root{--bg:#fff;--ink:rgba(0,0,0,.88);--ink2:rgba(0,0,0,.65);--ink3:rgba(0,0,0,.45);
+--line:#f0f0f0;--bd:#d9d9d9;--blue:#1677ff;--green:#52c41a;--orange:#faad14;--red:#ff4d4f;
+--bg2:#fafafa}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);
+font:14px/1.7 -apple-system,"PingFang SC","Segoe UI",sans-serif;
+-webkit-font-smoothing:antialiased}
+.wrap{max-width:1080px;margin:0 auto;padding:48px 24px 80px}
+h1{font-size:28px;margin:0 0 8px;letter-spacing:-.3px}
+.sub{color:var(--ink2);font-size:14px;margin-bottom:6px}
+.meta{color:var(--ink3);font-size:12px;margin-bottom:40px}
+h2{font-size:20px;margin:48px 0 6px;padding-top:20px;border-top:1px solid var(--line)}
+h2 .n{color:var(--blue);font-weight:600;margin-right:8px}
+.lead{color:var(--ink2);margin:0 0 20px}
+h3{font-size:15px;margin:28px 0 10px}
+.stats{display:grid;grid-template-columns:repeat(4,1fr);gap:1px;background:var(--line);
+border:1px solid var(--line);border-radius:8px;overflow:hidden;margin:24px 0 8px}
+.stat{background:#fff;padding:18px 16px}
+.stat .v{font-size:26px;font-weight:600;letter-spacing:-.5px;line-height:1.2}
+.stat .k{font-size:12px;color:var(--ink3);margin-top:4px}
+table{width:100%;border-collapse:collapse;margin:14px 0;font-size:13px}
+th,td{text-align:left;padding:10px 12px;border-bottom:1px solid var(--line);vertical-align:top}
+th{background:var(--bg2);font-weight:600;color:var(--ink2);font-size:12px;
+letter-spacing:.3px;white-space:nowrap}
+td code{background:var(--bg2);padding:1px 5px;border-radius:3px;font-size:12px;
+font-family:ui-monospace,Menlo,monospace}
+.card{border:1px solid var(--line);border-radius:8px;padding:16px 18px;margin:14px 0}
+.card.warn{border-left:3px solid var(--orange)}
+.card.bad{border-left:3px solid var(--red)}
+.card.good{border-left:3px solid var(--green)}
+.tag{display:inline-block;font-size:11px;padding:1px 7px;border-radius:3px;
+margin-right:6px;font-weight:500;vertical-align:1px}
+.tag.r{background:#fff1f0;color:#cf1322}
+.tag.o{background:#fffbe6;color:#d48806}
+.tag.g{background:#f6ffed;color:#389e0d}
+.tag.b{background:#e6f4ff;color:#0958d9}
+.chain{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin:16px 0;
+padding:16px;background:var(--bg2);border-radius:8px;font-size:13px}
+.chain b{font-weight:600}
+.arrow{color:var(--ink3)}
+.note{color:var(--ink3);font-size:12px;margin-top:6px}
+.quote{border-left:2px solid var(--bd);padding-left:14px;color:var(--ink2);
+margin:14px 0;font-size:13px}
+ul{padding-left:20px;margin:10px 0}
+li{margin:5px 0}
+.hl{background:linear-gradient(180deg,transparent 60%,#fff3b0 60%);font-weight:500}
+@media(max-width:720px){.stats{grid-template-columns:repeat(2,1fr)}
+.wrap{padding:32px 16px 60px}h1{font-size:22px}}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<h1>样件订单助手 · 本轮复盘</h1>
+<div class="sub">2026-11-18 · 单日 27 个提交，从「能跑」到「说得清、查得到」</div>
+<div class="meta">依据：git 提交记录 / 真实批次 JSON / 生产表实测 / 915 项自动化用例</div>
+
+<div class="stats">
+  <div class="stat"><div class="v">27</div><div class="k">单日提交</div></div>
+  <div class="stat"><div class="v">18</div><div class="k">核心模块改动</div></div>
+  <div class="stat"><div class="v">2.4k</div><div class="k">净增代码行</div></div>
+  <div class="stat"><div class="v">915</div><div class="k">用例全通过</div></div>
+</div>
+
+<h2><span class="n">一</span>这轮到底在修什么</h2>
+<p class="lead">
+表面看是一堆零散的体验优化，其实是同一条主线：
+<b>Agent 说出来的话，和它实际做的事，对不上。</b>
+</p>
+
+<div class="chain">
+  <b>用户看到</b><span class="arrow">→</span>「成功 3 条需求」
+  <span class="arrow">│</span>
+  <b>实际发生</b><span class="arrow">→</span>3 张订单 / 1 条需求
+  <span class="arrow">│</span>
+  <b>结论</b><span class="arrow">→</span><span class="hl">单位混用，用户无法对账</span>
+</div>
+
+<p class="lead">所以这轮的修复分三层递进：</p>
+<table>
+<tr><th>层</th><th>问题</th><th>典型表现</th></tr>
+<tr><td><b>看得见</b></td><td>等待期间没有反馈</td><td>查询 40~140 秒，只有一句静态「收到，正在处理」</td></tr>
+<tr><td><b>信得过</b></td><td>说出来的数不对</td><td>「3 张订单（3 条需求）」实际只有 1 条需求</td></tr>
+<tr><td><b>查得到</b></td><td>写进表里的值落错列</td><td>预算表金额写进自建空列，主列恒为空</td></tr>
+</table>
+
+<h2><span class="n">二</span>看得见：把等待变成过程</h2>
+<p class="lead">根因不是「做不了」，是<b>三个环节都没接上</b>。</p>
+
+<table>
+<tr><th>环节</th><th>修复前</th><th>修复后</th></tr>
+<tr><td>飞书桥发文本</td><td>拿到了 <code>message_id</code> 但没传给大脑</td><td>传下去</td></tr>
+<tr><td>大脑请求模型</td><td><code>HandleReq</code> 没有这个字段</td><td>加上</td></tr>
+<tr><td><code>/handle</code></td><td>全程同步，跑完才返回</td><td>慢指令转异步 + 话题卡</td></tr>
+</table>
+
+<div class="card">
+<b>先验证再动手</b>
+<div class="note" style="margin-top:8px">
+飞书话题是否有独立名称字段？我穷举了三种路径：
+<code>GET /threads</code>（404）、<code>PATCH /threads</code>（404）、
+<code>reply</code> 带 <code>thread_title</code>（返回 200 但回读消息顶层 13 个字段里没有）。
+<br><br>
+结论：<b>没有</b>。所以话题名只能取「话题内首条卡片的标题」——
+这不是取巧，是飞书的产品设计。最终标题定为 <code>查询一品一点｜qiyue｜11-18 18:50</code>。
+</div>
+</div>
+
+<h3>顺带解决的一个真 bug</h3>
+<p>卡片上的「🔁 重新查询」按钮写死用「查询可下单需求」调路由。
+但底部入口改了之后，这句话会被路由拦成「请先指定链路」——
+<b>按钮点了不查任何东西</b>。</p>
+<p>修法：查询成功后记住 <code>last_query_path</code>，重试时回放原链路。</p>
+<div class="note">这个 bug 之前的测试没覆盖到，因为测试里 mock 掉了路由。</div>
+
+<h2><span class="n">三</span>信得过：五套口径与七种状态</h2>
+<p class="lead">
+用户问：「m 个需求 / n 个订单 / x 个失败原因，这个逻辑映射清楚了吗？」
+—— 之前<b>没有</b>。现在定义了。
+</p>
+
+<table>
+<tr><th>口径</th><th>定义</th><th>单位</th><th>何时用</th></tr>
+<tr><td>需求数 m</td><td>distinct 需求号</td><td><b>条</b></td><td>用户按单号数</td></tr>
+<tr><td>组数</td><td><code>grouping</code> 长度</td><td>组</td><td>内部概念，不外露</td></tr>
+<tr><td>零件行数</td><td>各组 <code>records</code> 之和</td><td><b>行</b></td><td>只解释拆行时</td></tr>
+<tr><td>订单数 n</td><td><code>summary.order_count</code></td><td><b>张</b></td><td>下单后真实张数</td></tr>
+<tr><td>失败原因 x</td><td>按 reason 归类后类数</td><td><b>类</b></td><td>「失败 3 张，分 2 类」</td></tr>
+</table>
+
+<div class="card bad">
+<b>踩过的坑：<code>success + draft + failed ≠ order_count</code></b>
+<div class="note" style="margin-top:10px">
+实测批次 <code>ORD20261118134311</code>：
+<br>
+<code>order_count = 16</code>　|　
+<code>success 7 + draft 4 + failed 2 = 13</code> ← 差 3 张
+<br><br>
+差的 3 张是 <code>blocked_abnormal</code>（数量≤0 / 金额为负）。
+EP 那边中止后会留下<b>无法删除的订单</b>，所以不下单。
+<br><br>
+<b>只看前三项，必然对不上账</b>——这就是「数字不对」的根源之一。
+</div>
+</div>
+
+<h3>细节：为什么会有 7 种状态</h3>
+<table>
+<tr><th>status</th><th>含义</th><th>计入</th></tr>
+<tr><td><code>submitted</code></td><td>已提交进审批</td><td>summary.success</td></tr>
+<tr><td><code>draft</code></td><td>建单成功但未自动提交（非最低价/预算不足）</td><td>summary.draft</td></tr>
+<tr><td><code>failed</code></td><td>EP 建单失败，单没建出来</td><td>summary.failed</td></tr>
+<tr><td><code>blocked_abnormal</code></td><td>异常拦截（数量≤0/金额为负）</td><td>summary.blocked_abnormal</td></tr>
+<tr><td><code>blocked_system</code></td><td>系统拦截</td><td>summary.blocked_system</td></tr>
+<tr><td><code>blocked_incomplete</code></td><td>数据不全拦截</td><td>summary.blocked_incomplete</td></tr>
+<tr><td><code>skipped_needs_selection</code></td><td>未选供应商</td><td>不进 order_count</td></tr>
+</table>
+
+<h2><span class="n">四</span>查得到：写进表里的值落错了列</h2>
+<p class="lead">
+这是本轮最隐蔽的一个 bug——<b>测试全绿，但生产数据是错的</b>。
+</p>
+
+<table>
+<tr><th>字段</th><th>修复前</th><th>修复后</th></tr>
+<tr><td>订单金额（未税，向上模糊取整）</td><td><span class="tag r">null</span> ← 用户看的那列</td><td>26285.31</td></tr>
+<tr><td>订单金额（未税）</td><td>26285.31（自建列）</td><td>26285.31</td></tr>
+<tr><td>差额</td><td>5901.98</td><td>5901.98</td></tr>
+</table>
+
+<div class="card warn">
+<b>两层原因叠加</b>
+<ul style="margin-top:8px">
+<li>字段规格同时声明了「未税」和「向上取整」两列，自动建列后它们成了真实列</li>
+<li>别名解析是「精确命中优先」，自建列挡住了真正的主列</li>
+</ul>
+<div class="note" style="margin-top:8px">
+第一版修复我改粗了：全局改成「别名优先」，
+结果「差额」被误解析成公式列「不足差额」，5 个测试报错。
+最终方案：<b>只对金额列别名优先</b>。
+</div>
+</div>
+
+<p class="lead" style="margin-top:20px">
+<b>验证方式</b>：真实写入生产表 → 回读核对 → 立即删除。
+确认表回到 15 行、无残留、历史数据完好。
+</p>
+<div class="note">
+顺带发现：机器人应用没有多维表格读取权限（99991672），
+同步器用的是 <code>auth.json</code> 里的用户身份。我第一次验证时用错了身份，结论不可信，重做了。
+</div>
+
+<h2><span class="n">五</span>呈现：从「一坨文字」到「分层信息」</h2>
+<p class="lead">用户的原话：「这些都可以灰色字体，不做重点展示；类似的也一样。」</p>
+
+<table>
+<tr><th>层级</th><th>内容</th><th>处理</th></tr>
+<tr><td><b>操作重点</b></td><td>预计 N 张订单、「点『下单一品一点』」</td><td>正常颜色</td></tr>
+<tr><td><b>需要处理</b></td><td>升版拦截、剔除数量</td><td>正常颜色</td></tr>
+<tr><td><b>辅助信息</b></td><td>数据快照、备份提示、权限说明、口径解释</td><td><b>灰色</b></td></tr>
+</table>
+
+<h3>预算不足：从 5 行文字到 9 列原生表格</h3>
+<table>
+<tr><th>订单号</th><th>预算行</th><th>BR剩余</th><th>本单(未税)</th><th>差额</th><th>需求号</th></tr>
+<tr><td>4900049127</td><td>BR202607290035:244906</td><td>¥20,383.33</td><td>¥26,285.31</td><td><b>¥5,901.98</b></td><td>CGFP…092</td></tr>
+</table>
+<div class="note">正文只留「N 单 + 合计缺口」，明细交给表格——同一批数据不说两遍。</div>
+
+<h3>执行轨迹：可折叠面板</h3>
+<p>主体只显示当前步，已完成的收进折叠面板。最终结果保留完整轨迹 + 灰色耗时行：</p>
+<div class="card">
+<code>`1/4` ✅ 正在读取 EP 需求</code><br>
+<code>`2/4` ✅ 已拉取 3897 条需求</code><br>
+<code>`3/4` ✅ 剔除表排除 536 条</code><br>
+<code>`4/4` ✅ 正在生成确认页（含拆单预演）</code><br>
+<span style="color:var(--ink3)">⏱ 总用时 143.4s · skill 99.2s · 1b_CLI拉取 48.6s</span>
+</div>
+
+<h2><span class="n">六</span>过程本身的教训</h2>
+<p class="lead">这轮最有价值的不是修好了什么，是<b>发现了自己验证方式的漏洞</b>。</p>
+
+<table>
+<tr><th>问题</th><th>证据</th><th>改正</th></tr>
+<tr>
+<td>历史回归脚本有 3 条是源码字符串匹配</td>
+<td><code>"_PHENOMENON" in src</code> 这类断言，代码写反了也能过</td>
+<td>重写为行为级，15 条全部跑真实函数</td>
+</tr>
+<tr>
+<td>测试全绿但生产数据是错的</td>
+<td>金额落错列，905 项测试一条都没拦住</td>
+<td>改为真实写入 → 回读核对</td>
+</tr>
+<tr>
+<td>用错身份验证</td>
+<td>机器人 token 读不了多维表格，返回空让我误判</td>
+<td>改用同步器自己的用户身份</td>
+</tr>
+<tr>
+<td>断言写错还怪代码</td>
+<td>row_key 的候选和值搞混，误报「非候选被选中」</td>
+<td>修正断言，确认函数本身是对的</td>
+</tr>
+</table>
+
+<div class="quote">
+「测试通过」和「功能正确」是两件事。<br>
+前者只证明你想到的场景没坏，后者需要拿真实数据走一遍。
+</div>
+
+<h2><span class="n">七</span>现在的状态</h2>
+<table>
+<tr><th>维度</th><th>状态</th></tr>
+<tr><td>自动化用例</td><td>915 项全通过（含 5 条口径测试 + 4 条 schema 契约）</td></tr>
+<tr><td>历史问题回归</td><td>15/15 行为级验证通过</td></tr>
+<tr><td>Schema 契约</td><td>新增 <code>OrderSummary</code>（26 字段）；4 份副本 MD5 统一</td></tr>
+<tr><td>生产表</td><td>金额落对列；测试数据已清理（15 行，无残留）</td></tr>
+<tr><td>服务</td><td>bot + bridge 已重启，<code>/health</code> ok</td></tr>
+</table>
+
+<div class="card warn" style="margin-top:24px">
+<b>还有一件事没做</b>
+<div class="note" style="margin-top:8px">
+真实的完整下单（创建订单 + 提交审批）没跑，因为会产生真实订单。
+我用 <code>--plan</code> 验证了下单计划和拆单逻辑，用真实写入验证了回写。
+如果要跑一次小批量真实验证，需要你指定单号。
+</div>
+</div>
+
+<div class="note" style="margin-top:48px;padding-top:16px;border-top:1px solid var(--line)">
+数据来源：git 提交记录（149 个提交 / 61 修复 / 31 优化）、
+真实批次 JSON（ORD20261118134311、ORD20261118194332）、
+生产多维表格实测、915 项 pytest 用例。<br>
+复盘时间：2026-11-18
+</div>
+
+</div>
+</body>
+</html>
