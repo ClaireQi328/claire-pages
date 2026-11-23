@@ -1,0 +1,1629 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>产能管理全景 · 阶段 · 测算 · 判据</title>
+<style>
+:root{
+  --p:#1677FF;--p2:#4096FF;--pbg:#F0F7FF;
+  --ok:#52C41A;--okbg:#F6FFED;--warn:#FAAD14;--warnbg:#FFFBE6;
+  --err:#FF4D4F;--errbg:#FFF2F0;--pur:#722ED1;--purbg:#F9F0FF;
+  --bg:#FFF;--fill:#FAFAFA;--line:#F0F0F0;--line2:#D9D9D9;
+  --t1:rgba(0,0,0,.88);--t2:rgba(0,0,0,.65);--t3:rgba(0,0,0,.45);--t4:rgba(0,0,0,.25);
+  --mono:"SF Mono",ui-monospace,Menlo,Consolas,monospace;
+}
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Segoe UI","Microsoft YaHei",sans-serif;
+  font-size:14px;line-height:1.5715;color:var(--t1);background:var(--bg);-webkit-font-smoothing:antialiased}
+a{color:var(--p);text-decoration:none}
+
+/* ---------- 布局 ---------- */
+.shell{display:grid;grid-template-columns:224px minmax(0,1fr);max-width:1440px;margin:0 auto}
+aside{position:sticky;top:0;height:100vh;overflow-y:auto;border-right:1px solid var(--line);
+  padding:24px 0 40px;background:#fff}
+aside::-webkit-scrollbar{width:6px}
+aside::-webkit-scrollbar-thumb{background:var(--line2);border-radius:3px}
+.brand{padding:0 20px 20px;border-bottom:1px solid var(--line);margin-bottom:14px}
+.brand h1{font-size:14px;font-weight:600;letter-spacing:.2px;line-height:1.4}
+.brand p{font-size:11.5px;color:var(--t3);margin-top:4px;line-height:1.5}
+nav{display:flex;flex-direction:column;gap:1px;padding:0 10px}
+nav .grp{font-size:11px;color:var(--t4);font-weight:600;letter-spacing:.6px;
+  padding:14px 10px 6px;text-transform:uppercase}
+nav a{display:flex;align-items:center;gap:9px;padding:7px 10px;border-radius:6px;
+  font-size:13px;color:var(--t2);transition:all .15s;line-height:1.4}
+nav a:hover{background:var(--fill);color:var(--t1)}
+nav a.on{background:var(--pbg);color:var(--p);font-weight:500}
+nav a .idx{flex:0 0 18px;font-size:11px;font-family:var(--mono);color:var(--t4);text-align:center}
+nav a.on .idx{color:var(--p)}
+
+main{padding:0 48px 120px;min-width:0}
+.masthead{padding:40px 0 28px;border-bottom:1px solid var(--line)}
+.masthead .eyebrow{font-size:12px;color:var(--p);font-weight:600;letter-spacing:.8px;margin-bottom:10px}
+.masthead h2{font-size:26px;font-weight:650;letter-spacing:-.4px;line-height:1.35;margin-bottom:12px}
+.masthead .sub{font-size:14.5px;color:var(--t2);max-width:760px;line-height:1.8}
+.masthead .sub b{color:var(--t1);font-weight:600}
+
+/* ---------- 通用块 ---------- */
+section{padding:48px 0;border-bottom:1px solid var(--line);scroll-margin-top:0}
+section:last-of-type{border-bottom:none}
+.sh{display:flex;align-items:baseline;gap:12px;margin-bottom:6px}
+.sh .n{font-family:var(--mono);font-size:12px;color:var(--p);font-weight:600;
+  background:var(--pbg);padding:2px 7px;border-radius:4px}
+.sh h3{font-size:18px;font-weight:620;letter-spacing:-.2px}
+.sh .tagline{font-size:12.5px;color:var(--t3);margin-left:auto;text-align:right}
+.slead{font-size:13.5px;color:var(--t2);line-height:1.75;margin:10px 0 22px;max-width:820px}
+.slead b{color:var(--t1);font-weight:600}
+
+.card{border:1px solid var(--line);border-radius:8px;background:#fff}
+.card.pad{padding:18px 20px}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+.grid3{display:grid;grid-template-columns:repeat(3,1fr);gap:16px}
+.grid4{display:grid;grid-template-columns:repeat(4,1fr);gap:14px}
+
+.kv{font-size:13px}
+.kv .k{font-size:11.5px;color:var(--t3);margin-bottom:6px;letter-spacing:.3px}
+.kv .v{font-size:13.5px;line-height:1.7;color:var(--t1)}
+
+.note{font-size:12.5px;line-height:1.75;border-radius:6px;padding:12px 16px;
+  background:var(--pbg);border:1px solid #D6E4FF;color:var(--t1)}
+.note.warn{background:var(--warnbg);border-color:#FFE58F}
+.note.err{background:var(--errbg);border-color:#FFCCC7}
+.note.ok{background:var(--okbg);border-color:#B7EB8F}
+.note b{font-weight:600}
+
+h4.block{font-size:12px;font-weight:600;color:var(--t3);letter-spacing:.6px;
+  margin:20px 0 10px;text-transform:uppercase}
+h4.block:first-child{margin-top:0}
+
+/* ---------- 全景矩阵 ---------- */
+.pano{border:1px solid var(--line);border-radius:8px;overflow:hidden;margin-top:8px}
+.pano-row{display:grid;grid-template-columns:120px repeat(4,1fr);border-bottom:1px solid var(--line)}
+.pano-row:last-child{border-bottom:none}
+.pano-row.head{background:var(--fill)}
+.pano-h{padding:9px 12px;font-size:11px;color:var(--t3);font-weight:600;letter-spacing:.4px;
+  border-right:1px solid var(--line);display:flex;align-items:center}
+.pano-h:last-child{border-right:none}
+.pano-lbl{padding:14px 12px;border-right:1px solid var(--line);background:var(--fill)}
+.pano-lbl .t{font-size:12.5px;font-weight:600;margin-bottom:3px}
+.pano-lbl .d{font-size:11px;color:var(--t3);line-height:1.45}
+.pano-cell{padding:10px;border-right:1px solid var(--line);display:flex;flex-direction:column;gap:6px}
+.pano-cell:last-child{border-right:none}
+.stage-chip{display:block;padding:8px 10px;border-radius:6px;border:1px solid var(--line2);
+  background:#fff;font-size:12px;line-height:1.4;transition:all .15s;cursor:pointer}
+.stage-chip:hover{border-color:var(--p);background:var(--pbg);transform:translateY(-1px)}
+.stage-chip .nm{font-weight:600;display:block;margin-bottom:2px;font-size:12.5px}
+.stage-chip .tm{font-size:10.5px;color:var(--t3);font-family:var(--mono)}
+.stage-chip.s0{border-left:3px solid var(--pur)}
+.stage-chip.s1{border-left:3px solid #2F54EB}
+.stage-chip.s2{border-left:3px solid var(--p)}
+.stage-chip.s3{border-left:3px solid #13C2C2}
+.stage-chip.s4{border-left:3px solid var(--ok)}
+.stage-chip.s5{border-left:3px solid var(--warn)}
+.stage-chip.s6{border-left:3px solid var(--err)}
+
+/* ---------- 阶段卡 ---------- */
+.stage{border:1px solid var(--line);border-radius:8px;overflow:hidden;margin-bottom:18px}
+.stage-head{display:flex;align-items:flex-start;gap:16px;padding:18px 22px;
+  background:linear-gradient(180deg,#FCFDFF,#fff);border-bottom:1px solid var(--line)}
+.stage-no{flex:0 0 34px;height:34px;border-radius:8px;display:flex;align-items:center;justify-content:center;
+  font-family:var(--mono);font-weight:600;font-size:14px;color:#fff;background:var(--p)}
+.stage-no.s0{background:var(--pur)}.stage-no.s1{background:#2F54EB}
+.stage-no.s3{background:#13C2C2}.stage-no.s4{background:var(--ok)}
+.stage-no.s5{background:var(--warn)}.stage-no.s6{background:var(--err)}
+.stage-ttl{flex:1;min-width:0}
+.stage-ttl h4{font-size:16px;font-weight:620;margin-bottom:3px;letter-spacing:-.1px}
+.stage-ttl .q{font-size:13px;color:var(--p);font-weight:500}
+.stage-meta{flex:0 0 auto;display:flex;gap:20px;text-align:right}
+.stage-meta .m .l{font-size:10.5px;color:var(--t4);letter-spacing:.4px;margin-bottom:2px}
+.stage-meta .m .v{font-size:12.5px;color:var(--t1);font-weight:500;white-space:nowrap}
+.stage-body{padding:20px 22px}
+
+.flow{display:grid;grid-template-columns:1fr 1fr 1fr;gap:0;border:1px solid var(--line);border-radius:6px;overflow:hidden}
+.flow > div{padding:12px 14px;border-right:1px solid var(--line)}
+.flow > div:last-child{border-right:none}
+.flow .fh{font-size:10.5px;color:var(--t4);letter-spacing:.5px;font-weight:600;margin-bottom:7px}
+.flow .fl{font-size:12.5px;line-height:1.7;color:var(--t2)}
+.flow .fl li{list-style:none;padding-left:12px;position:relative}
+.flow .fl li::before{content:"";position:absolute;left:2px;top:8px;width:4px;height:4px;border-radius:50%;background:var(--line2)}
+.flow .in{background:#FCFCFC}
+.flow .ac{background:#fff}
+.flow .out{background:var(--pbg)}
+
+.deaths{margin-top:14px;display:flex;flex-direction:column;gap:7px}
+.death{display:flex;gap:10px;font-size:12.5px;line-height:1.65;color:var(--t2)}
+.death .x{flex:0 0 16px;height:16px;border-radius:50%;background:var(--errbg);color:var(--err);
+  font-size:10px;display:flex;align-items:center;justify-content:center;font-weight:700;margin-top:2px}
+.death b{color:var(--t1);font-weight:600}
+.gate{margin-top:14px;padding:12px 14px;background:var(--okbg);border:1px solid #B7EB8F;border-radius:6px;
+  font-size:12.5px;line-height:1.7}
+.gate b{color:#389E0D;font-weight:600;display:block;margin-bottom:4px;font-size:11px;letter-spacing:.5px}
+
+.formula{background:#FCFCFC;border:1px solid var(--line);border-left:3px solid var(--p);
+  border-radius:6px;padding:13px 16px;font-family:var(--mono);font-size:12px;line-height:1.95;
+  white-space:pre-wrap;word-break:break-word;overflow-x:auto;color:var(--t1)}
+.formula .c{color:var(--t3)}
+
+/* ---------- 测算器 ---------- */
+.calc{border:1px solid var(--line);border-radius:8px;overflow:hidden}
+.calc-in{display:grid;grid-template-columns:repeat(5,1fr);gap:12px;padding:18px;background:var(--fill)}
+.fld label{display:block;font-size:11.5px;color:var(--t2);margin-bottom:5px}
+.fld input,.fld select{width:100%;height:32px;padding:0 9px;border:1px solid var(--line2);border-radius:6px;
+  font-size:13.5px;font-family:inherit;color:var(--t1);background:#fff;outline:none;transition:all .15s}
+.fld input:focus,.fld select:focus{border-color:var(--p);box-shadow:0 0 0 2px rgba(22,119,255,.1)}
+.fld .h{font-size:10.5px;color:var(--t4);margin-top:4px}
+.presets{display:flex;gap:8px;flex-wrap:wrap;padding:0 18px 16px;background:var(--fill);align-items:center}
+.presets .pl{font-size:11.5px;color:var(--t3)}
+
+.kpis{display:grid;grid-template-columns:repeat(4,1fr);gap:1px;background:var(--line);
+  border-top:1px solid var(--line);border-bottom:1px solid var(--line)}
+.kpi{background:#fff;padding:16px 18px}
+.kpi .k{font-size:11.5px;color:var(--t3);margin-bottom:7px}
+.kpi .v{font-size:24px;font-weight:620;font-variant-numeric:tabular-nums;letter-spacing:-.6px;line-height:1.15}
+.kpi .s{font-size:11.5px;color:var(--t4);margin-top:5px;line-height:1.45}
+.kpi.bad .v{color:var(--err)}.kpi.good .v{color:var(--ok)}.kpi.mid .v{color:var(--warn)}
+
+.tw{overflow-x:auto}
+table{width:100%;border-collapse:collapse;font-size:12.5px;font-variant-numeric:tabular-nums}
+th,td{padding:9px 12px;text-align:right;border-bottom:1px solid var(--line);white-space:nowrap}
+th{background:var(--fill);font-weight:600;color:var(--t2);font-size:11px;letter-spacing:.3px}
+th:first-child,td:first-child{text-align:left;font-weight:500}
+tbody tr:hover td{background:#FAFCFF}
+td input{width:70px;height:24px;padding:0 5px;border:1px solid transparent;border-radius:4px;
+  background:transparent;text-align:right;font-size:12.5px;font-family:inherit;color:var(--t1);
+  outline:none;font-variant-numeric:tabular-nums}
+td input:hover{border-color:var(--line2);background:#fff}
+td input:focus{border-color:var(--p);background:#fff;box-shadow:0 0 0 2px rgba(22,119,255,.1)}
+tfoot td{background:var(--fill);font-weight:600;border-top:1px solid var(--line2);border-bottom:none}
+tr.ov td{background:#FFF7F6}
+tr.ov td:first-child{box-shadow:inset 3px 0 0 var(--err)}
+tr.ov:hover td{background:#FFF0EE}
+
+.tag{display:inline-block;padding:0 6px;height:19px;line-height:18px;border-radius:4px;
+  font-size:11px;border:1px solid;white-space:nowrap}
+.tag.red{color:var(--err);background:var(--errbg);border-color:#FFCCC7}
+.tag.org{color:#D46B08;background:var(--warnbg);border-color:#FFD591}
+.tag.grn{color:#389E0D;background:var(--okbg);border-color:#B7EB8F}
+.tag.gry{color:var(--t3);background:var(--fill);border-color:var(--line2)}
+
+/* ---------- 判据 ---------- */
+.checks{display:flex;flex-direction:column;gap:0;border:1px solid var(--line);border-radius:8px;overflow:hidden}
+.chk{display:flex;gap:14px;align-items:flex-start;padding:14px 18px;border-bottom:1px solid var(--line);
+  transition:background .15s}
+.chk:last-child{border-bottom:none}
+.chk:hover{background:#FCFDFF}
+.chk.pass{background:var(--okbg)}
+.chk.fail{background:var(--errbg)}
+.chk .cn{flex:0 0 26px;height:26px;border-radius:6px;background:var(--fill);color:var(--t3);
+  font-size:11.5px;font-family:var(--mono);font-weight:600;display:flex;align-items:center;justify-content:center}
+.chk.pass .cn{background:#D9F7BE;color:#389E0D}
+.chk.fail .cn{background:#FFCCC7;color:#CF1322}
+.chk .cb{flex:1;min-width:0}
+.chk .ct{font-size:13.5px;font-weight:550;margin-bottom:4px}
+.chk .cq{font-size:12.5px;color:var(--t2);line-height:1.7}
+.chk .cq code{background:#F5F5F5;padding:1px 5px;border-radius:3px;font-family:var(--mono);
+  font-size:11.5px;color:#C41D7F}
+.chk .ca{flex:0 0 auto;display:flex;gap:6px;padding-top:2px}
+.pill{height:26px;padding:0 11px;border:1px solid var(--line2);border-radius:13px;background:#fff;
+  font-size:11.5px;cursor:pointer;font-family:inherit;color:var(--t3);transition:all .15s}
+.pill:hover{border-color:var(--p);color:var(--p)}
+.pill.ok.on{background:#D9F7BE;border-color:#95DE64;color:#237804;font-weight:600}
+.pill.no.on{background:#FFCCC7;border-color:#FF7875;color:#A8071A;font-weight:600}
+.scorebar{display:flex;align-items:center;gap:14px;padding:14px 18px;background:var(--fill);
+  border:1px solid var(--line);border-radius:8px;margin-bottom:14px}
+.scorebar .big{font-size:26px;font-weight:650;font-variant-numeric:tabular-nums;line-height:1}
+.scorebar .of{font-size:13px;color:var(--t3)}
+.scorebar .verdict{font-size:12.5px;padding:4px 10px;border-radius:5px;font-weight:500;margin-left:auto}
+.scorebar .verdict.pass{background:var(--okbg);color:#389E0D;border:1px solid #B7EB8F}
+.scorebar .verdict.fail{background:var(--errbg);color:#CF1322;border:1px solid #FFCCC7}
+.bar{flex:1;height:6px;background:#EDEDED;border-radius:3px;overflow:hidden;max-width:280px}
+.bar i{display:block;height:100%;background:var(--p);border-radius:3px;transition:width .3s;width:0}
+
+/* ---------- 术语 ---------- */
+.term-search{display:flex;gap:10px;margin-bottom:16px}
+.term-search input{flex:1;max-width:340px;height:34px;padding:0 12px;border:1px solid var(--line2);
+  border-radius:6px;font-size:13.5px;font-family:inherit;outline:none;transition:all .15s}
+.term-search input:focus{border-color:var(--p);box-shadow:0 0 0 2px rgba(22,119,255,.1)}
+.term-grp{margin-bottom:26px}
+.term-grp > .tg-h{display:flex;align-items:center;gap:10px;margin-bottom:10px}
+.term-grp > .tg-h .dot{width:6px;height:6px;border-radius:50%;background:var(--p)}
+.term-grp > .tg-h .tt{font-size:13px;font-weight:600}
+.term-grp > .tg-h .tc{font-size:11.5px;color:var(--t4)}
+.terms{display:grid;grid-template-columns:repeat(2,1fr);gap:1px;background:var(--line);
+  border:1px solid var(--line);border-radius:8px;overflow:hidden}
+.term{background:#fff;padding:14px 16px;transition:background .15s}
+.term:hover{background:#FCFDFF}
+.term .th{display:flex;align-items:baseline;gap:8px;flex-wrap:wrap;margin-bottom:5px}
+.term .ab{font-family:var(--mono);font-size:13px;font-weight:600;color:var(--p)}
+.term .cn{font-size:13px;font-weight:550}
+.term .en{font-size:10.5px;color:var(--t4);font-family:var(--mono)}
+.term .td{font-size:12.5px;color:var(--t2);line-height:1.7}
+.term .td b{color:var(--t1);font-weight:600}
+.term .warn{display:inline-block;margin-top:6px;font-size:11px;color:#D46B08;
+  background:var(--warnbg);border:1px solid #FFD591;border-radius:4px;padding:1px 6px}
+.term.hide{display:none}
+
+/* ---------- 范式 ---------- */
+.para{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin-bottom:22px}
+.pcard{border:1px solid var(--line);border-radius:8px;overflow:hidden}
+.pcard .ph{padding:14px 16px;border-bottom:1px solid var(--line)}
+.pcard .ph .lb{font-size:10.5px;font-family:var(--mono);font-weight:600;letter-spacing:.6px;
+  color:var(--p);margin-bottom:4px}
+.pcard .ph .nm{font-size:14px;font-weight:620;margin-bottom:3px}
+.pcard .ph .df{font-size:12px;color:var(--t3);line-height:1.55}
+.pcard .pb{padding:14px 16px;display:flex;flex-direction:column;gap:9px}
+.pcard .pb .row{display:flex;gap:8px;font-size:12px;line-height:1.6}
+.pcard .pb .row .lb{flex:0 0 58px;color:var(--t4);font-size:11px;padding-top:1px}
+.pcard .pb .row .vl{flex:1;color:var(--t2)}
+.pcard.p1 .lb{color:#2F54EB}.pcard.p2 .lb{color:#13C2C2}.pcard.p3 .lb{color:var(--pur)}
+
+/* ---------- 表格紧凑 ---------- */
+table.tight{font-size:12px}
+table.tight th,table.tight td{padding:8px 10px}
+
+/* ---------- 响应 ---------- */
+.mobile-only{display:none}
+@media(max-width:1100px){
+  .shell{grid-template-columns:1fr}
+  aside{position:static;height:auto;border-right:none;border-bottom:1px solid var(--line);
+    padding:16px 0}
+  aside .brand{padding:0 16px 12px}
+  nav{flex-direction:row;overflow-x:auto;padding:0 12px;gap:4px}
+  nav .grp{display:none}
+  nav a{white-space:nowrap;font-size:12.5px;padding:6px 10px}
+  main{padding:0 20px 80px}
+  .masthead h2{font-size:21px}
+  .kpis{grid-template-columns:repeat(2,1fr)}
+  .calc-in{grid-template-columns:repeat(2,1fr)}
+  .grid3,.grid4,.para{grid-template-columns:1fr}
+  .terms{grid-template-columns:1fr}
+  .flow{grid-template-columns:1fr}
+  .flow > div{border-right:none;border-bottom:1px solid var(--line)}
+  .pano-row{grid-template-columns:70px repeat(4,1fr);font-size:11px}
+  .stage-meta{display:none}
+}
+</style>
+</head>
+<body>
+<div class="shell">
+
+<aside>
+  <div class="brand">
+    <h1>产能管理全景</h1>
+    <p>一条承诺的生命周期<br>阶段 · 测算 · 判据</p>
+  </div>
+  <nav id="nav">
+    <div class="grp">总览</div>
+    <a href="#pano"><span class="idx">◆</span>全景矩阵</a>
+    <a href="#law"><span class="idx">▲</span>三条基本定律</a>
+
+    <div class="grp">生命周期</div>
+    <a href="#s0"><span class="idx">0</span>战略产能</a>
+    <a href="#s1"><span class="idx">1</span>产能预规划</a>
+    <a href="#s2"><span class="idx">2</span>工装设备制造</a>
+    <a href="#s3"><span class="idx">3</span>安装与验证</a>
+    <a href="#s4"><span class="idx">4</span>SOP 爬坡</a>
+    <a href="#s5"><span class="idx">5</span>稳态运营</a>
+    <a href="#s6"><span class="idx">6</span>切换与退市</a>
+
+    <div class="grp">工具</div>
+    <a href="#calc"><span class="idx">∑</span>产能测算器</a>
+    <a href="#check"><span class="idx">✓</span>提能计划评审</a>
+
+    <div class="grp">框架</div>
+    <a href="#roles"><span class="idx">⤚</span>角色与接口</a>
+    <a href="#para"><span class="idx">≡</span>三范式</a>
+    <a href="#tail"><span class="idx">⌇</span>长尾五型</a>
+
+    <div class="grp">参考</div>
+    <a href="#terms"><span class="idx">A</span>术语总表</a>
+    <a href="#formulas"><span class="idx">ƒ</span>公式总表</a>
+    <a href="#fails"><span class="idx">!</span>十种死法</a>
+  </nav>
+</aside>
+
+<main>
+
+<div class="masthead">
+  <div class="eyebrow">CAPACITY MANAGEMENT · 产能管理</div>
+  <h2>产能不是算一个数，是一组在什么条件下、<br>由谁、在多久内、承诺多少的契约</h2>
+  <p class="sub">
+    这条主线贯穿 <b>7 个阶段</b>：从建厂留接口，到退市收尾件。每个阶段都有专属的输入、动作、产出，
+    也有专属的死法。中间的测算器与评审清单，是把这条主线变成可以当场用的工具。
+  </p>
+</div>
+
+<!-- ============ 全景 ============ -->
+<section id="pano">
+  <div class="sh"><span class="n">◆</span><h3>全景矩阵</h3>
+    <span class="tagline">三层决策 × 七个阶段<br>点击任一阶段跳转</span></div>
+  <p class="slead">
+    横向是时间尺度，纵向是决策层级。<b>越往上，越靠判断和期权；越往下，越靠数据和纠偏。</b>
+    绝大多数产能事故，是把执行层的问题拿到战略层解决（或反过来）。
+  </p>
+  <div class="pano">
+    <div class="pano-row head">
+      <div class="pano-h">层级 / 时间</div>
+      <div class="pano-h">36–60 月</div>
+      <div class="pano-h">12–36 月</div>
+      <div class="pano-h">1–12 月</div>
+      <div class="pano-h">日–周</div>
+    </div>
+    <div class="pano-row">
+      <div class="pano-lbl"><div class="t">战略层</div><div class="d">VP / COO<br>建不建、建多大</div></div>
+      <div class="pano-cell">
+        <a class="stage-chip s0" href="#s0"><span class="nm">0 战略产能</span><span class="tm">选址 · 总图 · CapEx</span></a>
+      </div>
+      <div class="pano-cell">
+        <a class="stage-chip s1" href="#s1"><span class="nm">1 产能预规划</span><span class="tm">产能假设书</span></a>
+      </div>
+      <div class="pano-cell"></div>
+      <div class="pano-cell"></div>
+    </div>
+    <div class="pano-row">
+      <div class="pano-lbl"><div class="t">战术层</div><div class="d">供应链总监<br>给谁做、怎么分配</div></div>
+      <div class="pano-cell"></div>
+      <div class="pano-cell">
+        <a class="stage-chip s2" href="#s2"><span class="nm">2 工装设备制造</span><span class="tm">到货计划 · 缓冲</span></a>
+      </div>
+      <div class="pano-cell">
+        <a class="stage-chip s3" href="#s3"><span class="nm">3 安装与验证</span><span class="tm">Run@Rate · PSW</span></a>
+        <a class="stage-chip s4" href="#s4"><span class="nm">4 SOP 爬坡</span><span class="tm">学习曲线 · 达成率</span></a>
+      </div>
+      <div class="pano-cell">
+        <a class="stage-chip s5" href="#s5"><span class="nm">5 稳态运营</span><span class="tm">OEE · 月度评审</span></a>
+      </div>
+    </div>
+    <div class="pano-row">
+      <div class="pano-lbl"><div class="t">执行层</div><div class="d">厂长 / 计划<br>今天怎么排</div></div>
+      <div class="pano-cell"></div>
+      <div class="pano-cell"></div>
+      <div class="pano-cell">
+        <a class="stage-chip s6" href="#s6"><span class="nm">6 切换与退市</span><span class="tm">尾件 · 产线复用</span></a>
+      </div>
+      <div class="pano-cell">
+        <a class="stage-chip" href="#calc" style="border-left:3px solid var(--p)"><span class="nm">日达成 / 瓶颈负荷</span><span class="tm">测算器 →</span></a>
+      </div>
+    </div>
+  </div>
+  <div class="note" style="margin-top:16px">
+    <b>读法：</b>同一个瓶颈，落在不同层级要用不同语言。<b>战略层说期权，战术层说配额，执行层说节拍。</b>
+    拿执行层的 JPH 去说服 VP 建厂，永远说不通；拿战略层的「未来三年」去催车间今天加产，也永远推不动。
+  </div>
+</section>
+
+<!-- ============ 三定律 ============ -->
+<section id="law">
+  <div class="sh"><span class="n">▲</span><h3>三条基本定律</h3>
+    <span class="tagline">跨行业都成立<br>不因行业而变</span></div>
+  <p class="slead">
+    这三条不是经验，是数学。它们解释了为什么<b>看起来还有余量</b>的产能，交付会突然崩。
+  </p>
+
+  <div class="grid3">
+    <div class="card pad">
+      <div class="kv"><div class="k">第一定律</div>
+        <div class="v"><b style="font-size:14px">瓶颈决定产出，且会漂移</b></div></div>
+      <div class="formula" style="margin-top:12px;border-left-color:#2F54EB">线体 JPH = MIN(各工位 JPH)
+
+解决冲焊(26) 后
+→ 瓶颈迁到装配(26)
+→ 迁到检验
+→ 迁到器具/返空
+→ 迁到排序物流</div>
+      <p style="font-size:12.5px;color:var(--t2);margin-top:10px;line-height:1.7">
+        所以 TOC 五步法的第 5 步是<b>「回到第一步」</b>。不重算全链，等于把堵点往下游推。
+      </p>
+    </div>
+
+    <div class="card pad">
+      <div class="kv"><div class="k">第二定律</div>
+        <div class="v"><b style="font-size:14px">利用率有 85% 的物理天花板</b></div></div>
+      <div class="formula" style="margin-top:12px;border-left-color:#13C2C2">Kingman：E[等待] ∝ ρ/(1−ρ)
+
+ρ      70%   80%   85%   90%   95%
+等待   2.3   4.0   5.7   9.0   19.0  (×基准)</div>
+      <p style="font-size:12.5px;color:var(--t2);margin-top:10px;line-height:1.7">
+        <b>产能只多 12%，等待变 3.4 倍。</b>云上是尾延迟，医院是排队，工厂是缺料停线——同一个数学。
+      </p>
+    </div>
+
+    <div class="card pad">
+      <div class="kv"><div class="k">第三定律</div>
+        <div class="v"><b style="font-size:14px">爬坡靠累计产量，不靠日历</b></div></div>
+      <div class="formula" style="margin-top:12px;border-left-color:#52C41A">T_n = T_1 × n^b
+b = ln(学习率) ÷ ln2
+
+26 → 40 JPH（工时降 35%）需累计产量：
+90%  → 17.0×
+85%  →  6.3×
+80%  →  3.8×</div>
+      <p style="font-size:12.5px;color:var(--t2);margin-top:10px;line-height:1.7">
+        <b>26→40 不可能是「熟练」带来的</b>，必须是设备/工装的能力跃迁。任何把提能归因于员工熟练的计划，都该被质疑。
+      </p>
+    </div>
+  </div>
+</section>
+
+<!-- ============ 阶段 0 ============ -->
+<section id="s0">
+  <div class="sh"><span class="n">0</span><h3>战略产能</h3>
+    <span class="tagline">36–60 月 · VP / COO</span></div>
+  <p class="slead">这一阶段不解决「多少」，只解决<b>「有没有可能」</b>——地、电、水、气、物流通道，能不能支撑未来三代产品。</p>
+
+  <div class="stage">
+    <div class="stage-head">
+      <div class="stage-no s0">0</div>
+      <div class="stage-ttl">
+        <h4>战略产能</h4>
+        <div class="q">未来需要多少产能？建不建？建多大？</div>
+      </div>
+      <div class="stage-meta">
+        <div class="m"><div class="l">时间</div><div class="v">36–60 月</div></div>
+        <div class="m"><div class="l">决策者</div><div class="v">VP / COO</div></div>
+      </div>
+    </div>
+    <div class="stage-body">
+      <div class="flow">
+        <div class="in"><div class="fh">输入</div><ul class="fl">
+          <li>三到五年销量目标（含区间，不是点）</li>
+          <li>产品规划与平台数量</li>
+          <li>资本预算与回报门槛</li>
+          <li>选址候选与公用动力条件</li>
+        </ul></div>
+        <div class="ac"><div class="fh">动作</div><ul class="fl">
+          <li>情景规划（乐观/基准/悲观）</li>
+          <li>产能蓝图分段（一期/二期/三期）</li>
+          <li>预留扩产接口清单</li>
+          <li>实物期权估值</li>
+        </ul></div>
+        <div class="out"><div class="fh">产出</div><ul class="fl">
+          <li>产能路线图（含分期触发条件）</li>
+          <li>CapEx 预算与回收期</li>
+          <li>总图与接口预留方案</li>
+        </ul></div>
+      </div>
+
+      <h4 class="block">这一阶段的算法</h4>
+      <div class="formula">报童临界：F(Q*) = Cu ÷ (Cu + Co)
+  Cu = 产能不足单位损失（丢单毛利 + 罚金 + 信任折价）
+  Co = 产能闲置单位成本（折旧 + 维护 + 机会成本）
+
+回收期 = 投资额 ÷ (增量产能 × 单位利润 × 利用率)
+
+<span class="c">// 速查：Cu:Co = 10:1 → 91% 服务水平（宁可多建）
+//       Cu:Co =  5:1 → 83%（建 + 留接口）
+//       Cu:Co =  2:1 → 67%（宁可少建）</span></div>
+
+      <h4 class="block">这一阶段的死法</h4>
+      <div class="deaths">
+        <div class="death"><span class="x">✕</span><div><b>总图不留接口。</b>二期无地可用、电力容量不够、物流通道被建筑挡住——再多的钱也买不回时间。</div></div>
+        <div class="death"><span class="x">✕</span><div><b>用单点预测做十亿级投资。</b>没有情景规划，等于把公司押在一个数上。</div></div>
+        <div class="death"><span class="x">✕</span><div><b>只算进不算退。</b>需求下滑后产能既不能转租也不能转产，变成纯沉没成本。</div></div>
+      </div>
+
+      <div class="gate"><b>过门条件</b>
+        三档情景的 Cu/Co 都算过；扩产接口清单已进设计院图纸；每一期都写明「什么信号触发下一期」。
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ 阶段 1 ============ -->
+<section id="s1">
+  <div class="sh"><span class="n">1</span><h3>产能预规划</h3>
+    <span class="tagline">12–36 月 · 产品规划 + 制造工程</span></div>
+  <p class="slead">把整车节拍拆成零件 JPH，把 JPH 拆成长周期设备清单。<b>这一步最容易把「年均」当「峰值」。</b></p>
+
+  <div class="stage">
+    <div class="stage-head">
+      <div class="stage-no s1">1</div>
+      <div class="stage-ttl">
+        <h4>产能预规划</h4>
+        <div class="q">整车要多少节拍？零件要多少 JPH？哪些设备要提前 24 个月订？</div>
+      </div>
+      <div class="stage-meta">
+        <div class="m"><div class="l">时间</div><div class="v">12–36 月</div></div>
+        <div class="m"><div class="l">决策者</div><div class="v">产品规划 / 制造工程</div></div>
+      </div>
+    </div>
+    <div class="stage-body">
+      <div class="flow">
+        <div class="in"><div class="fh">输入</div><ul class="fl">
+          <li>整车节拍目标（takt）</li>
+          <li>峰值月需求，不是年均</li>
+          <li>BOM 与单车用量</li>
+          <li>设备 lead time 表</li>
+        </ul></div>
+        <div class="ac"><div class="fh">动作</div><ul class="fl">
+          <li>整车 takt → 零件日需求</li>
+          <li>零件需求 → 资源数量</li>
+          <li>长周期设备提前锁定</li>
+          <li>产能假设书评审</li>
+        </ul></div>
+        <div class="out"><div class="fh">产出</div><ul class="fl">
+          <li>产能假设书（含峰值定义）</li>
+          <li>设备/模具 lead time 清单</li>
+          <li>供应商产能预留需求</li>
+        </ul></div>
+      </div>
+
+      <h4 class="block">这一阶段的算法</h4>
+      <div class="formula">takt        = 可用工时 ÷ 整车需求
+零件日需求  = 整车日产量 × 单车用量 × (1 + 报废率)
+设备台数 N  = ⌈ 需求 ÷ (单台JPH × 可用工时 × OEE × Q) ⌉
+工位数 N    = ⌈ ΣCT ÷ takt ⌉
+
+<span class="c">// 案例：40 JPH → takt = 90 秒/台
+//       869 台/日 × 1 × 1.02 = 886 件/日</span></div>
+
+      <h4 class="block">这一阶段的死法</h4>
+      <div class="deaths">
+        <div class="death"><span class="x">✕</span><div><b>用年均当峰值。</b>全年 60% 负荷看起来富余，但 10 月单月 109%——断供就发生在那个月。</div></div>
+        <div class="death"><span class="x">✕</span><div><b>用目标 OEE 算产能。</b>拿 95% 目标值算出的产能是愿望；用实测 85% 算出来的才是能力。</div></div>
+        <div class="death"><span class="x">✕</span><div><b>漏掉报废率。</b>单件报废 2%，一个月就是 1,700 件的隐性缺口。</div></div>
+      </div>
+
+      <div class="gate"><b>过门条件</b>
+        峰值月的日需求已算出；OEE 与良率用的是同类产线实测值；长周期设备已进入订单。
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ 阶段 2 ============ -->
+<section id="s2">
+  <div class="sh"><span class="n">2</span><h3>工装设备制造</h3>
+    <span class="tagline">12–24 月 · 采购 + 供应商</span></div>
+  <p class="slead">这一阶段看起来是采购问题，其实是<b>计划问题</b>——所有设备都压在同一个月到货，就是自造调试排队。</p>
+
+  <div class="stage">
+    <div class="stage-head">
+      <div class="stage-no" style="background:var(--p)">2</div>
+      <div class="stage-ttl">
+        <h4>工装设备制造</h4>
+        <div class="q">设备什么时候到？到了谁来调？调试排得开吗？</div>
+      </div>
+      <div class="stage-meta">
+        <div class="m"><div class="l">时间</div><div class="v">12–24 月</div></div>
+        <div class="m"><div class="l">决策者</div><div class="v">采购 / SQE</div></div>
+      </div>
+    </div>
+    <div class="stage-body">
+      <div class="flow">
+        <div class="in"><div class="fh">输入</div><ul class="fl">
+          <li>设备与工装清单</li>
+          <li>供应商产能与排产</li>
+          <li>调试人力与场地</li>
+          <li>二级件定点进度</li>
+        </ul></div>
+        <div class="ac"><div class="fh">动作</div><ul class="fl">
+          <li>分批到货（错峰，不压月末）</li>
+          <li>关键设备留 4–6 周缓冲</li>
+          <li>调试资源与到货节奏对齐</li>
+          <li>二级件长周期件提前锁定</li>
+        </ul></div>
+        <div class="out"><div class="fh">产出</div><ul class="fl">
+          <li>设备到货计划（含缓冲）</li>
+          <li>模具/夹具进度表</li>
+          <li>调试排期与责任人</li>
+        </ul></div>
+      </div>
+
+      <h4 class="block">这一阶段的死法</h4>
+      <div class="deaths">
+        <div class="death"><span class="x">✕</span><div><b>四项设备全压 3 月底到位。</b>任一延期，4 月仍是 26 JPH；没有缓冲的计划等于没有计划。</div></div>
+        <div class="death"><span class="x">✕</span><div><b>只盯一级设备，漏二级件。</b>焊接设备到了，焊枪/夹具没到，一样开不了线。</div></div>
+        <div class="death"><span class="x">✕</span><div><b>到货即宣布「产能提升」。</b>没装、没调、没验，JPH 还是原来的 JPH。</div></div>
+      </div>
+
+      <div class="gate"><b>过门条件</b>
+        到货计划已错峰；每台关键设备有独立缓冲；调试人力按周排定；没有「同日到货 3 项以上」的情况。
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ 阶段 3 ============ -->
+<section id="s3">
+  <div class="sh"><span class="n">3</span><h3>安装与验证</h3>
+    <span class="tagline">6–12 月 · SQE + 供应商工艺</span></div>
+  <p class="slead">这是整条线上<b>唯一能把「承诺」变成「证据」</b>的环节。没有 Run@Rate，所有 JPH 都是口头。</p>
+
+  <div class="stage">
+    <div class="stage-head">
+      <div class="stage-no s3">3</div>
+      <div class="stage-ttl">
+        <h4>安装与验证</h4>
+        <div class="q">能不能在 85% 负荷下，连续 8 小时，用量产人员和工装，跑出合格件？</div>
+      </div>
+      <div class="stage-meta">
+        <div class="m"><div class="l">时间</div><div class="v">6–12 月</div></div>
+        <div class="m"><div class="l">决策者</div><div class="v">SQE / 供应商工艺</div></div>
+      </div>
+    </div>
+    <div class="stage-body">
+      <div class="flow">
+        <div class="in"><div class="fh">输入</div><ul class="fl">
+          <li>设备已安装、已单机验收</li>
+          <li>量产工装、量产物料</li>
+          <li>量产人员配置（含新员工）</li>
+          <li>客户节拍要求</li>
+        </ul></div>
+        <div class="ac"><div class="fh">动作</div><ul class="fl">
+          <li>单机 → 联线 → 小批 → 批量</li>
+          <li><b>Run@Rate</b>：85% 负荷 × 8h</li>
+          <li>PPAP 提交、PSW 签署</li>
+          <li>Cpk / MSA 验证</li>
+        </ul></div>
+        <div class="out"><div class="fh">产出</div><ul class="fl">
+          <li>Run@Rate 报告</li>
+          <li>PPAP / PSW</li>
+          <li>产能验证报告（含瓶颈复测）</li>
+        </ul></div>
+      </div>
+
+      <h4 class="block">Run@Rate 的三重判定</h4>
+      <div class="formula">达成率 = 实际合格产出 ÷ (设计JPH × 运行小时 × 85%)
+
+三个条件同时满足才算通过：
+  ① 产出率 ≥ 95%
+  ② FPY ≥ 目标值
+  ③ Cpk ≥ 1.33
+
+必须四项真实：
+  量产人员 · 量产工装 · 量产物料 · 跨换型
+连续时长：8 小时 或 ≥300 件
+
+<span class="c">// 作弊清单：只跑 2 小时（避换型）、只挑好件（避良率）、
+//          用熟手（避学习曲线）、不换色（避换型损失）</span></div>
+
+      <h4 class="block">这一阶段的死法</h4>
+      <div class="deaths">
+        <div class="death"><span class="x">✕</span><div><b>只验「能做出来」，不验「能连续做」。</b>单机 45 JPH，联线 26 JPH——瓶颈从来不在单机。</div></div>
+        <div class="death"><span class="x">✕</span><div><b>用熟手跑验证。</b>量产后新员工上岗，学习曲线立刻吃掉 15–20%。</div></div>
+        <div class="death"><span class="x">✕</span><div><b>PPAP 通过就宣布产能达标。</b>PPAP 验的是质量一致性，不是节拍能力。</div></div>
+      </div>
+
+      <div class="gate"><b>过门条件</b>
+        Run@Rate 报告已签；三个判据全部达标；换型与换色已被纳入测试；瓶颈工位已复测并写入 PPAP。
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ 阶段 4 ============ -->
+<section id="s4">
+  <div class="sh"><span class="n">4</span><h3>SOP 爬坡</h3>
+    <span class="tagline">0–12 月 · 双方项目组</span></div>
+  <p class="slead">爬坡不是「等它变好」，是<b>每天用数据判断它是否在变好</b>。判据是连续 3 周达成率 ≥95%，不是月底累计。</p>
+
+  <div class="stage">
+    <div class="stage-head">
+      <div class="stage-no s4">4</div>
+      <div class="stage-ttl">
+        <h4>SOP 爬坡</h4>
+        <div class="q">这一周比上一周真的进步了吗？瓶颈迁移到哪了？</div>
+      </div>
+      <div class="stage-meta">
+        <div class="m"><div class="l">时间</div><div class="v">0–12 月</div></div>
+        <div class="m"><div class="l">决策者</div><div class="v">双方项目组</div></div>
+      </div>
+    </div>
+    <div class="stage-body">
+      <div class="flow">
+        <div class="in"><div class="fh">输入</div><ul class="fl">
+          <li>Run@Rate 基线</li>
+          <li>日产出与不良数据</li>
+          <li>人员到位与培训进度</li>
+          <li>客户需求版本</li>
+        </ul></div>
+        <div class="ac"><div class="fh">动作</div><ul class="fl">
+          <li>日爬坡会（欠产 ≥5% 触发）</li>
+          <li>用累计产量作横轴看曲线</li>
+          <li>每周复测瓶颈位置</li>
+          <li>人员与产能同图对照</li>
+        </ul></div>
+        <div class="out"><div class="fh">产出</div><ul class="fl">
+          <li>爬坡曲线（周度 + 达成率）</li>
+          <li>瓶颈迁移记录</li>
+          <li>欠产补回方案</li>
+        </ul></div>
+      </div>
+
+      <h4 class="block">爬坡健康度判据</h4>
+      <div class="formula">周达成率 = 实际产出 ÷ 计划产出
+稳定判据 = 连续 3 周达成率 ≥ 95%
+爬坡斜率 = Δ产出 ÷ Δ周（件/周²）
+
+<span class="c">// 用「累计产量」当横轴，不要用「日历周」
+// ——否则看不出爬坡是否真的在进步，只看到时间在过</span></div>
+
+      <h4 class="block">这一阶段的死法</h4>
+      <div class="deaths">
+        <div class="death"><span class="x">✕</span><div><b>用月末累计掩盖周度欠产。</b>月底冲到 98%，但前三周都在 70%——客户已经停线了。</div></div>
+        <div class="death"><span class="x">✕</span><div><b>人员计划与产能计划两张皮。</b>需要 33 人，培训峰值只有 6 人，爬坡曲线必然落空。</div></div>
+        <div class="death"><span class="x">✕</span><div><b>不跟踪瓶颈迁移。</b>解决了冲焊，以为万事大吉，结果卡在装配和器具上。</div></div>
+      </div>
+
+      <div class="gate"><b>过门条件</b>
+        连续 3 周达成率 ≥95%；瓶颈位置已复测两次以上；人员到位表与爬坡曲线同图且对齐。
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ 阶段 5 ============ -->
+<section id="s5">
+  <div class="sh"><span class="n">5</span><h3>稳态运营</h3>
+    <span class="tagline">12 月+ · 计划 + 制造</span></div>
+  <p class="slead">稳态最危险的地方，是<b>所有人都以为它不会变</b>。参数三年不更新，产能就在悄悄流失。</p>
+
+  <div class="stage">
+    <div class="stage-head">
+      <div class="stage-no s5">5</div>
+      <div class="stage-ttl">
+        <h4>稳态运营</h4>
+        <div class="q">OEE 在涨还是跌？换型损失占了多少？器具够不够？</div>
+      </div>
+      <div class="stage-meta">
+        <div class="m"><div class="l">时间</div><div class="v">12 月+</div></div>
+        <div class="m"><div class="l">决策者</div><div class="v">计划 / 制造</div></div>
+      </div>
+    </div>
+    <div class="stage-body">
+      <div class="flow">
+        <div class="in"><div class="fh">输入</div><ul class="fl">
+          <li>MES 实时产出与停机</li>
+          <li>月度需求版本</li>
+          <li>换型/换色记录</li>
+          <li>器具周转与返空数据</li>
+        </ul></div>
+        <div class="ac"><div class="fh">动作</div><ul class="fl">
+          <li>月度产能评审（负荷 &gt;90% 升级）</li>
+          <li>SMED 持续改善</li>
+          <li>瓶颈复测（季度）</li>
+          <li>柔性方案预研</li>
+        </ul></div>
+        <div class="out"><div class="fh">产出</div><ul class="fl">
+          <li>月度产能评审包</li>
+          <li>OEE 趋势与改善清单</li>
+          <li>扩产预警（负荷连续 2 月 &gt;90%）</li>
+        </ul></div>
+      </div>
+
+      <h4 class="block">稳态的四把尺子</h4>
+      <div class="formula">OEE   = A × P × Q            健康值 ≥85%（离散）
+TEEP  = OEE × (计划 ÷ 日历)   双班典型 40–60%
+平衡率 = ΣCT ÷ (瓶颈CT × 工位数)    &lt;75% 先做重排
+换型占比 = 尾部SKU换型 ÷ 总换型    &gt;30% 说明真瓶颈是换型
+
+<span class="c">// SMED 通常比买设备便宜一个数量级
+// 换型 30min → 10min，等于白得 5–8% 产能</span></div>
+
+      <h4 class="block">这一阶段的死法</h4>
+      <div class="deaths">
+        <div class="death"><span class="x">✕</span><div><b>只报 OEE 总分。</b>85% 到底是 A 低还是 Q 低？不拆开就无法定位改善点。</div></div>
+        <div class="death"><span class="x">✕</span><div><b>用加班掩盖能力不足。</b>加班能把平均 JPH 拉上去，但掩盖了真实的瓶颈和 OEE 下滑。</div></div>
+        <div class="death"><span class="x">✕</span><div><b>器具与返空不算产能。</b>日产量翻倍了，器具没翻倍，有产能也发不出货。</div></div>
+      </div>
+
+      <div class="gate"><b>过门条件</b>
+        OEE 三项分开报且为实测；换型时间已量化；器具数量按「日产量 × 周转天数 ÷ 容量 × (1+返空率)」算过。
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ 阶段 6 ============ -->
+<section id="s6">
+  <div class="sh"><span class="n">6</span><h3>切换与退市</h3>
+    <span class="tagline">事件驱动 · 项目 + 采购</span></div>
+  <p class="slead">改款和退市都是<b>产能的二次分配</b>。尾件管理做不好，专用产能会被长期占用，却没人算这笔账。</p>
+
+  <div class="stage">
+    <div class="stage-head">
+      <div class="stage-no s6">6</div>
+      <div class="stage-ttl">
+        <h4>切换与退市</h4>
+        <div class="q">新老产品共线多久？尾件要备多少？专用产线怎么复用？</div>
+      </div>
+      <div class="stage-meta">
+        <div class="m"><div class="l">时间</div><div class="v">事件驱动</div></div>
+        <div class="m"><div class="l">决策者</div><div class="v">项目 / 采购</div></div>
+      </div>
+    </div>
+    <div class="stage-body">
+      <div class="flow">
+        <div class="in"><div class="fh">输入</div><ul class="fl">
+          <li>改款/退市时间表</li>
+          <li>尾件需求量与年限</li>
+          <li>专用工装与模具清单</li>
+          <li>新老产品共线比例</li>
+        </ul></div>
+        <div class="ac"><div class="fh">动作</div><ul class="fl">
+          <li>共线期产能分配方案</li>
+          <li>尾件一次性备库测算</li>
+          <li>工装改制或报废决策</li>
+          <li>产线复用评估</li>
+        </ul></div>
+        <div class="out"><div class="fh">产出</div><ul class="fl">
+          <li>产能切换方案</li>
+          <li>尾件备库计划（含年限）</li>
+          <li>工装处置清单</li>
+        </ul></div>
+      </div>
+
+      <h4 class="block">尾件备库测算</h4>
+      <div class="formula">尾件总量 = 年售后需求 × 供应年限 × (1 + 安全系数)
+备库成本 = 尾件总量 × 单价 × (持有成本率 × 年限 + 报废风险)
+保留产线成本 = 专用产能年固定成本 × 年限
+
+<span class="c">// 判据：备库成本 &lt; 保留产线成本 → 一次性备库
+//       否则 → 保留专线或寻找替代产线</span></div>
+
+      <h4 class="block">这一阶段的死法</h4>
+      <div class="deaths">
+        <div class="death"><span class="x">✕</span><div><b>尾件占用主线产能。</b>为 200 台/年的售后件保留一条专用线，等于每年烧掉一条线的固定成本。</div></div>
+        <div class="death"><span class="x">✕</span><div><b>共线期没做产能分配。</b>新老产品抢同一条线，两边都不达标。</div></div>
+        <div class="death"><span class="x">✕</span><div><b>工装直接报废。</b>没算改制成本 vs 新制成本，也没考虑未来可能的复用。</div></div>
+      </div>
+
+      <div class="gate"><b>过门条件</b>
+        尾件备库 vs 保留产线已做成本对比；共线期产能分配方案已签；工装处置有明确结论和责任人。
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ 测算器 ============ -->
+<section id="calc">
+  <div class="sh"><span class="n">∑</span><h3>产能测算器</h3>
+    <span class="tagline">阶段 1/4/5 都用得到<br>改参数即时重算</span></div>
+  <p class="slead">
+    核心只有一句：<b>逐月算 min(设备, 人员, 班次 × JPH × 天数 × OEE × 良率)</b>，再看哪个月负荷超过 85%。
+    默认数据取自那份提能报告，可以直接看到它的 10 月缺口。
+  </p>
+
+  <div class="calc">
+    <div class="calc-in">
+      <div class="fld"><label for="p-jph">线体 JPH（瓶颈工位）</label>
+        <input type="number" id="p-jph" value="40" min="1" step="1"><div class="h">件/小时</div></div>
+      <div class="fld"><label for="p-shifts">班次数</label>
+        <select id="p-shifts"><option value="1">1 班</option><option value="2" selected>2 班</option><option value="3">3 班</option></select>
+        <div class="h">班/天</div></div>
+      <div class="fld"><label for="p-hours">每班工时</label>
+        <input type="number" id="p-hours" value="10.5" min="1" max="24" step="0.5"><div class="h">含加班，已扣休息</div></div>
+      <div class="fld"><label for="p-oee">OEE</label>
+        <input type="number" id="p-oee" value="100" min="1" max="100" step="1"><div class="h">% = A × P</div></div>
+      <div class="fld"><label for="p-yield">良品率 Q</label>
+        <input type="number" id="p-yield" value="95" min="1" max="100" step="1"><div class="h">% 一次合格率</div></div>
+    </div>
+    <div class="presets">
+      <span class="pl">情景：</span>
+      <button class="pill" data-preset="report">报告口径 40 JPH / OEE100</button>
+      <button class="pill" data-preset="strict">严格口径 40 JPH / OEE85</button>
+      <button class="pill" data-preset="solve">覆盖严格口径 52 JPH</button>
+      <button class="pill" data-preset="cur">当前 26 JPH</button>
+    </div>
+    <div style="padding:0 18px 16px;background:var(--fill)">
+      <div class="note warn" style="font-size:12px">
+        <b>注意 44 与 52 的关系：</b>按 OEE 100% + 良率 95% 算，10 月只需 <b>44 JPH</b>；
+        但 OEE 只要掉到 85%，同样产能下就需要 <b>52 JPH</b>。
+        <b>这 8 个 JPH 的差，就是 OEE 的代价</b>——也是为什么必须用实测 OEE 算产能。
+      </div>
+    </div>
+    <div class="kpis" id="kpis"></div>
+    <div class="tw">
+      <table id="mtbl">
+        <thead><tr><th>月份</th><th>需求（套）</th><th>生产天数</th><th>有效产能</th><th>缺口 / 富余</th><th>负荷率</th><th>判定</th></tr></thead>
+        <tbody></tbody>
+        <tfoot><tr><td>合计</td><td id="f-dem">-</td><td id="f-days">-</td><td id="f-cap">-</td><td id="f-gap">-</td><td id="f-load">-</td><td></td></tr></tfoot>
+      </table>
+    </div>
+    <div style="padding:16px 18px;border-top:1px solid var(--line)">
+      <div class="note" id="advice"></div>
+    </div>
+  </div>
+
+  <h4 class="block" style="margin-top:24px">三种补救方案的对比</h4>
+  <div class="tw">
+    <table class="tight" id="stbl">
+      <thead><tr><th>方案</th><th>JPH</th><th>日产能</th><th>峰值月产能</th><th>峰值月缺口</th><th>结论</th></tr></thead>
+      <tbody></tbody>
+    </table>
+  </div>
+  <div class="note warn" style="margin-top:14px">
+    <b>结论怎么写：</b>三选一——「JPH 提到 44」或「生产日拉到 22 天」或「9 月末备库 1,400 套」。
+    三者都不写，等于把缺口留给客户，而不是留给计划。
+  </div>
+</section>
+
+<!-- ============ 评审 ============ -->
+<section id="check">
+  <div class="sh"><span class="n">✓</span><h3>提能计划评审</h3>
+    <span class="tagline">12 条硬指标<br>任一条不过，不能作保供承诺</span></div>
+  <p class="slead">
+    这 12 条是从那份报告暴露的问题里抽象出来的。<b>顺序不是随意的</b>：先口径，再测算，再验证，最后才是长尾。
+  </p>
+
+  <div class="scorebar">
+    <div class="big" id="score-n">0</div><span class="of">/ 12 通过</span>
+    <div class="bar"><i id="score-bar"></i></div>
+    <span class="verdict fail" id="verdict">不可作为保供承诺</span>
+  </div>
+
+  <div class="checks" id="chk-list"></div>
+
+  <div class="note" style="margin-top:14px">
+    <b>用法：</b>逐条问供应商，答不上来或答不实即判「不通过」。全部通过之前，任何「全年零缺口」的结论都不成立。
+  </div>
+</section>
+
+<!-- ============ 角色 ============ -->
+<section id="roles">
+  <div class="sh"><span class="n">⤚</span><h3>角色与接口</h3>
+    <span class="tagline">五个文件决定成败</span></div>
+  <p class="slead">
+    产能承诺不是一个人的事。<b>信息在四个角色之间流转，每个交接点都可能失真。</b>用文件把交接点钉住。
+  </p>
+
+  <div class="formula" style="border-left-color:var(--pur)">整车产品规划 ──销量/配置/颜色──▶ 整车物流计划 ──N+3 预测──▶ 采购/SQE ──产能承诺──▶ Tier1
+      ▲                                                          │
+      └──────── 月度 S&OP 闭环（需求版本/在库/在制/瓶颈负荷）◀──────┘
+                                                                  │
+                                                          Tier1 ──▶ Tier2 产能与长周期物料</div>
+
+  <h4 class="block">五个必签文件</h4>
+  <div class="tw">
+    <table class="tight">
+      <thead><tr><th style="width:150px">文件</th><th>谁签</th><th>必须包含</th><th>没有会怎样</th></tr></thead>
+      <tbody>
+        <tr><td>产能承诺书</td><td>Tier1 总经理 + 整车采购</td><td>分月/分周 JPH、班次、OEE、良率、人员、工装、器具</td><td>口头承诺，追责无据</td></tr>
+        <tr><td>LTA / 产能预留协议</td><td>双方商务</td><td>预留量、Take-or-Pay、预留费、退出条款</td><td>旺季被别的客户抢产能</td></tr>
+        <tr><td>APQP 产能验证计划</td><td>SQE + 供应商工艺</td><td>Run@Rate 时间、负荷率、连续天数、判定标准</td><td>能做出来 ≠ 能稳定做</td></tr>
+        <tr><td>PPAP / PSW</td><td>质量</td><td>节拍证据、Cpk、MSA</td><td>量产才暴露节拍不达标</td></tr>
+        <tr><td>月度产能评审包</td><td>双方计划</td><td>需求版本、库存、在制、瓶颈负荷、Top5 风险</td><td>第 4 周才发现欠产</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <h4 class="block">RACI（产能承诺流程）</h4>
+  <div class="tw">
+    <table class="tight">
+      <thead><tr><th>活动</th><th>整车产品规划</th><th>整车物流</th><th>整车采购/SQE</th><th>Tier1 销售</th><th>Tier1 工艺/IE</th><th>Tier1 生产</th></tr></thead>
+      <tbody>
+        <tr><td>需求版本</td><td><b>A</b></td><td>R</td><td>I</td><td>I</td><td>I</td><td>I</td></tr>
+        <tr><td>产能测算</td><td>C</td><td>C</td><td>I</td><td>C</td><td><b>R</b></td><td>C</td></tr>
+        <tr><td>承诺签署</td><td>I</td><td>C</td><td><b>A</b></td><td>R</td><td>C</td><td>I</td></tr>
+        <tr><td>Run@Rate 验证</td><td>I</td><td>I</td><td><b>A</b></td><td>C</td><td>R</td><td>R</td></tr>
+        <tr><td>月度监控</td><td>C</td><td><b>R</b></td><td>A</td><td>R</td><td>C</td><td>C</td></tr>
+        <tr><td>异常升级</td><td>I</td><td>C</td><td><b>A</b></td><td>R</td><td>C</td><td>R</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <p style="font-size:12px;color:var(--t3);margin-top:8px">A=批准　R=执行　C=咨询　I=知会</p>
+
+  <h4 class="block">三级会议，各有升级阈值（不能合并成一个周会）</h4>
+  <div class="tw">
+    <table class="tight">
+      <thead><tr><th>层级</th><th>频率</th><th>参与</th><th>议题</th><th>升级条件</th></tr></thead>
+      <tbody>
+        <tr><td>L1 月度 S&amp;OP</td><td>月</td><td>双方管理层</td><td>需求版本、产能匹配、缺口方案</td><td>缺口 &gt; 5%</td></tr>
+        <tr><td>L2 周度瓶颈负荷会</td><td>周</td><td>计划 + 工艺</td><td>Top3 瓶颈负荷、设备/人员到位</td><td>负荷 &gt; 90%</td></tr>
+        <tr><td>L3 日度达成会</td><td>日</td><td>车间 + SQE</td><td>日产出 vs 计划、异常</td><td>欠产 ≥ 5%</td></tr>
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<!-- ============ 三范式 ============ -->
+<section id="para">
+  <div class="sh"><span class="n">≡</span><h3>三范式</h3>
+    <span class="tagline">所有行业的产能只有三种</span></div>
+  <p class="slead">
+    跨行业不是学更多名词，而是<b>认出它在哪一类</b>。范式和决策逻辑是一一对应的，用错范式，方法全错。
+  </p>
+
+  <div class="para">
+    <div class="pcard p1">
+      <div class="ph"><div class="lb">PARADIGM A</div><div class="nm">节拍型</div>
+        <div class="df">串联工序，节拍决定产出</div></div>
+      <div class="pb">
+        <div class="row"><span class="lb">瓶颈</span><span class="vl">最慢工序（takt）</span></div>
+        <div class="row"><span class="lb">核心</span><span class="vl">平衡率、瓶颈漂移、爬坡</span></div>
+        <div class="row"><span class="lb">指标</span><span class="vl">JPH、平衡率、OEE</span></div>
+        <div class="row"><span class="lb">不够时</span><span class="vl">加线 / 加班 / 平衡工序</span></div>
+        <div class="row"><span class="lb">误区</span><span class="vl">把平均 JPH 当瓶颈 JPH</span></div>
+        <div class="row"><span class="lb">行业</span><span class="vl">汽车整车/零部件、家电、3C 组装、服装</span></div>
+      </div>
+    </div>
+    <div class="pcard p2">
+      <div class="ph"><div class="lb">PARADIGM B</div><div class="nm">批量型</div>
+        <div class="df">批量/炉次，切换有成本</div></div>
+      <div class="pb">
+        <div class="row"><span class="lb">瓶颈</span><span class="vl">设备时间 + 换型</span></div>
+        <div class="row"><span class="lb">核心</span><span class="vl">经济批量、切换优化、收率</span></div>
+        <div class="row"><span class="lb">指标</span><span class="vl">收率、换型时间、开工率</span></div>
+        <div class="row"><span class="lb">不够时</span><span class="vl">加大批量 / 减少换型 / 加设备</span></div>
+        <div class="row"><span class="lb">误区</span><span class="vl">用理论收率算产能</span></div>
+        <div class="row"><span class="lb">行业</span><span class="vl">化工、钢铁、注塑、封测、食品、医药</span></div>
+      </div>
+    </div>
+    <div class="pcard p3">
+      <div class="ph"><div class="lb">PARADIGM C</div><div class="nm">分配型</div>
+        <div class="df">稀缺且不可储存，靠排队/配额</div></div>
+      <div class="pb">
+        <div class="row"><span class="lb">瓶颈</span><span class="vl">配额机制</span></div>
+        <div class="row"><span class="lb">核心</span><span class="vl">分配规则、定价、优先级</span></div>
+        <div class="row"><span class="lb">指标</span><span class="vl">利用率、等待时间、尾延迟</span></div>
+        <div class="row"><span class="lb">不够时</span><span class="vl">排队规则 / 配额 / 涨价</span></div>
+        <div class="row"><span class="lb">误区</span><span class="vl">用平均延迟掩盖 P95</span></div>
+        <div class="row"><span class="lb">行业</span><span class="vl">晶圆代工、云/IDC、航空、医院</span></div>
+      </div>
+    </div>
+  </div>
+
+  <h4 class="block">跨行业对照</h4>
+  <div class="tw">
+    <table class="tight">
+      <thead><tr><th>行业</th><th>范式</th><th>产能单位</th><th>计划周期</th><th>核心指标</th><th>长尾形态</th></tr></thead>
+      <tbody>
+        <tr><td>汽车整车</td><td>A</td><td>JPH</td><td>周</td><td>JPH、OTD</td><td>颜色/配置</td></tr>
+        <tr><td>汽车零部件</td><td>A/B</td><td>JPH、模次</td><td>周–月</td><td>OEE、良率、PPM</td><td>颜色、模具</td></tr>
+        <tr><td>半导体前道</td><td>B/C</td><td>wafer starts</td><td>月–季</td><td>Cycle time、良率</td><td>掩膜、工艺角</td></tr>
+        <tr><td>半导体封测</td><td>B</td><td>UPH</td><td>周</td><td>设备利用率</td><td>封装形式</td></tr>
+        <tr><td>动力电池</td><td>A/B</td><td>GWh、良率</td><td>周–月</td><td>直通率、OEE</td><td>化学体系</td></tr>
+        <tr><td>3C 组装</td><td>A</td><td>UPH、人力</td><td>周</td><td>直通率、UPH</td><td>SKU/颜色</td></tr>
+        <tr><td>化工</td><td>B</td><td>开工率、收率</td><td>月</td><td>收率、能耗</td><td>牌号</td></tr>
+        <tr><td>钢铁</td><td>B</td><td>产能利用率</td><td>月</td><td>成材率</td><td>品种/规格</td></tr>
+        <tr><td>快消/食品</td><td>B</td><td>线效率</td><td>周</td><td>OEE、效期</td><td>SKU、口味</td></tr>
+        <tr><td>云/IDC</td><td>C</td><td>GPU/机架/电力</td><td>周–季</td><td>利用率、PUE、尾延迟</td><td>尾延迟、机型</td></tr>
+        <tr><td>航空</td><td>C</td><td>座位</td><td>日</td><td>客座率、RASK</td><td>时段</td></tr>
+        <tr><td>医院</td><td>C</td><td>床位/手术室</td><td>日</td><td>占用率、等待</td><td>病种</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="note" style="margin-top:14px">
+    <b>跨行业通用五条：</b>① 瓶颈永远在最贵且最不可分割的资源上；② 产能单位是「时间 × 良率」不是「台数」；
+    ③ 利用率有 85% 物理上限；④ 长尾靠柔性和分层，不靠预测；⑤ 承诺必须分层（承诺/预留/机会）。
+  </div>
+</section>
+
+<!-- ============ 长尾 ============ -->
+<section id="tail">
+  <div class="sh"><span class="n">⌇</span><h3>长尾五型</h3>
+    <span class="tagline">均值管理必然失败</span></div>
+  <p class="slead">
+    <b>长尾是极值问题，不是均值问题。</b>平均交期 3 天但 P95 是 9 天，客户感受到的是 9 天，不是 3 天。
+  </p>
+
+  <div class="tw">
+    <table class="tight">
+      <thead><tr><th>类型</th><th>表现</th><th>汽车例子</th><th>量化指标</th><th>处理</th></tr></thead>
+      <tbody>
+        <tr><td>需求长尾</td><td>SKU/颜色多、单 SKU 量小</td><td>10 种颜色保险杠</td><td>CV、帕累托、换型时间占比</td><td>延迟差异化、合批、最小起订</td></tr>
+        <tr><td>产能长尾</td><td>末段 90→100% 最慢</td><td>26→40 的最后 4 个 JPH</td><td>学习曲线斜率、爬坡周数</td><td>提前锁瓶颈、并行验证、buffer</td></tr>
+        <tr><td>供应长尾</td><td>Tier-2/3 小件单点断供</td><td>卡扣、簧片、密封条</td><td>影响度 × 概率、单点件数</td><td>分层、安全库存、双源、寄售</td></tr>
+        <tr><td>时间长尾</td><td>均值达标、P95 超标</td><td>平均 3 天，P95 是 9 天</td><td>P95/P99、OTIF</td><td>分位数考核、缓冲、优先级</td></tr>
+        <tr><td>成本长尾</td><td>边际成本递增</td><td>欠产后的空运费</td><td>边际成本曲线</td><td>阶梯定价、配额、提前期管理</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <h4 class="block">三个必算指标</h4>
+  <div class="formula">① 尾部集中度   = 前 20% SKU 产量占比        （&lt;70% 说明尾部重）
+② 换型时间占比 = 尾部SKU换型 ÷ 总换型时间   （&gt;30% 说明真瓶颈是换型）
+③ 服务水平差   = P95 交期 − 平均交期         （&gt;2 倍说明波动主导）
+
+<span class="c">// 一句话判断：换型占比 &gt; 30%，真瓶颈不是 JPH，是换型
+// 此时买设备是最贵的解法，SMED 才是</span></div>
+
+  <h4 class="block">五把刀（按优先级）</h4>
+  <div class="grid3">
+    <div class="card pad"><div class="kv"><div class="k">1 分层</div><div class="v">ABC/XYZ 分类。A 类保交付、C 类保成本，别用一套 KPI 管所有 SKU。</div></div></div>
+    <div class="card pad"><div class="kv"><div class="k">2 延迟差异化</div><div class="v">把颜色推到最后一刻（后喷、贴膜）。把长尾从产能问题变成库存问题。</div></div></div>
+    <div class="card pad"><div class="kv"><div class="k">3 通用化</div><div class="v">10 种颜色 → 3 基色 + 7 后处理，换型损失立刻下降。</div></div></div>
+    <div class="card pad"><div class="kv"><div class="k">4 柔性产能</div><div class="v">弹性班次、共享产线、代工池。柔性价值 = 方差 × 单位缺口成本。</div></div></div>
+    <div class="card pad"><div class="kv"><div class="k">5 定价与配额</div><div class="v">长尾 SKU 加价或设最小起订，用价格把需求推回头部。</div></div></div>
+    <div class="card pad"><div class="kv"><div class="k">配套</div><div class="v">定期复算三个指标，看尾部是否在变重、换型是否在恶化。</div></div></div>
+  </div>
+</section>
+
+<!-- ============ 术语 ============ -->
+<section id="terms">
+  <div class="sh"><span class="n">A</span><h3>术语总表</h3>
+    <span class="tagline">按功能分组，不按字母<br>共 47 条</span></div>
+  <p class="slead">分组顺序和业务顺序一致：<b>先口径，再节拍，再效率，最后承诺与验证。</b></p>
+
+  <div class="term-search">
+    <input id="term-q" type="search" aria-label="搜索术语" placeholder="搜索缩写或中文，如 LCR / 良率 / 爬坡">
+  </div>
+
+  <div class="term-grp">
+    <div class="tg-h"><span class="dot"></span><span class="tt">一 · 口径四层</span><span class="tc">同一个「产能」有四种含义</span></div>
+    <div class="terms" id="g1"></div>
+  </div>
+  <div class="term-grp">
+    <div class="tg-h"><span class="dot"></span><span class="tt">二 · 节拍与能力</span><span class="tc">产线值多少钱，看这组</span></div>
+    <div class="terms" id="g2"></div>
+  </div>
+  <div class="term-grp">
+    <div class="tg-h"><span class="dot"></span><span class="tt">三 · 效率与质量</span><span class="tc">能力折算成合格产出</span></div>
+    <div class="terms" id="g3"></div>
+  </div>
+  <div class="term-grp">
+    <div class="tg-h"><span class="dot"></span><span class="tt">四 · 承诺与交付</span><span class="tc">能卖多少 / 什么时候能交</span></div>
+    <div class="terms" id="g4"></div>
+  </div>
+  <div class="term-grp">
+    <div class="tg-h"><span class="dot"></span><span class="tt">五 · 验证与项目</span><span class="tc">把承诺变成证据</span></div>
+    <div class="terms" id="g5"></div>
+  </div>
+  <div class="term-grp">
+    <div class="tg-h"><span class="dot"></span><span class="tt">六 · 方法论</span><span class="tc">改善与决策工具</span></div>
+    <div class="terms" id="g6"></div>
+  </div>
+</section>
+
+<!-- ============ 公式 ============ -->
+<section id="formulas">
+  <div class="sh"><span class="n">ƒ</span><h3>公式总表</h3>
+    <span class="tagline">12 组 · 可直接抄进 Excel</span></div>
+  <p class="slead">每一组都对应上面某个阶段。<b>公式不难，难的是分母用什么口径。</b></p>
+  <div id="formula-list" style="display:flex;flex-direction:column;gap:16px"></div>
+</section>
+
+<!-- ============ 死法 ============ -->
+<section id="fails">
+  <div class="sh"><span class="n">!</span><h3>十种死法</h3>
+    <span class="tagline">每条都在真实报告里见过</span></div>
+  <p class="slead">这十条不是理论，是从提能报告里逐条抠出来的。<b>能对上几条，就说明这份报告有几处不能信。</b></p>
+  <div class="tw">
+    <table class="tight">
+      <thead><tr><th>#</th><th>死法</th><th>表象</th><th>根因</th><th>处方</th></tr></thead>
+      <tbody>
+        <tr><td>1</td><td>产能 = 需求量</td><td>Gap 全 0</td><td>没做独立测算</td><td>强制 min(设备,人员,班次×JPH×天数×OEE×Q)</td></tr>
+        <tr><td>2</td><td>总量平衡掩盖峰值</td><td>全年 60% 负荷</td><td>用年均代替峰值月</td><td>逐月负荷表 + 峰值月单独审</td></tr>
+        <tr><td>3</td><td>「到位」当「达产」</td><td>3 月底到位 → JPH 40</td><td>缺 Run@Rate</td><td>把 Run@Rate 写进付款节点</td></tr>
+        <tr><td>4</td><td>瓶颈不重算</td><td>解决冲焊后仍不达标</td><td>瓶颈漂移到装配</td><td>每解一个瓶颈重跑全链</td></tr>
+        <tr><td>5</td><td>只用平均 JPH</td><td>「我们 JPH 40」</td><td>口径错</td><td>强制用瓶颈工位 JPH</td></tr>
+        <tr><td>6</td><td>良率无措施</td><td>「预计 95%」</td><td>空头承诺</td><td>三条措施 + 责任人 + 周测</td></tr>
+        <tr><td>7</td><td>人员与产能脱节</td><td>需 33 人，培训峰值 6 人</td><td>两条线各做各的</td><td>逐周到位表与爬坡曲线同图</td></tr>
+        <tr><td>8</td><td>器具/返空不算产能</td><td>排序物流「无瓶颈」</td><td>只算节拍不算物流</td><td>器具 = 日产量×周转÷容量×(1+返空率)</td></tr>
+        <tr><td>9</td><td>换型损失不扣</td><td>多颜色按满产算</td><td>用能力值不用实际值</td><td>实测换色时间 × 换色次数</td></tr>
+        <tr><td>10</td><td>无退出机制</td><td>需求下滑后闲置</td><td>只算进不算退</td><td>决策时同步定义退出路径</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="note err" style="margin-top:16px">
+    <b>最后一句：</b>产能管理的产出不是一个数字，而是<b>一组契约</b>——在什么条件下、由谁、在多久内、承诺多少。
+    任何只给一个数字、不说口径的报告，都不该被接受。
+  </div>
+</section>
+
+</main>
+</div>
+
+<script>
+"use strict";
+
+/* ================= 数据 ================= */
+var MONTHS = ["1月","2月","3月","4月","5月","6月","7月","8月","9月","10月","11月","12月"];
+
+var DEF = {
+  demand: [450,352,2145,6039,7005,6669,10015,9626,12907,17375,17806,16827],
+  days:   [0,10,21,22,22,24,19,22,25,20,24,24],
+  jph: 40, shifts: 2, hours: 10.5, oee: 100, yield: 95
+};
+
+var state = JSON.parse(JSON.stringify(DEF));
+try {
+  var saved = localStorage.getItem("cap-v2");
+  if (saved) { var s = JSON.parse(saved); if (s && s.demand && s.demand.length === 12) state = s; }
+} catch (e) {}
+
+function save() { try { localStorage.setItem("cap-v2", JSON.stringify(state)); } catch (e) {} }
+function num(v, d) { var n = parseFloat(v); return isFinite(n) ? n : d; }
+function fmt(n) { if (!isFinite(n)) return "—"; return Math.round(n).toLocaleString("en-US"); }
+function pct(n) { if (!isFinite(n)) return "—"; return (n * 100).toFixed(1) + "%"; }
+
+function capPerDay(s) {
+  return s.jph * s.shifts * s.hours * (s.oee / 100) * (s.yield / 100);
+}
+
+function computeRows(s) {
+  var cpd = capPerDay(s), rows = [];
+  for (var i = 0; i < 12; i++) {
+    var d = s.demand[i] || 0, day = s.days[i] || 0;
+    var cap = cpd * day;
+    rows.push({ i: i, demand: d, days: day, cap: cap, gap: cap - d,
+      load: cap > 0 ? d / cap : 0, active: day > 0 });
+  }
+  return rows;
+}
+
+function judge(load, active) {
+  if (!active) return { c: "gry", t: "未排产" };
+  if (load > 1.00) return { c: "red", t: "缺口·必断供" };
+  if (load > 0.95) return { c: "org", t: "临界·无缓冲" };
+  if (load > 0.90) return { c: "org", t: "过载" };
+  if (load > 0.85) return { c: "org", t: "紧张" };
+  if (load >= 0.70) return { c: "grn", t: "健康" };
+  return { c: "gry", t: "富余" };
+}
+
+/* ================= 渲染：表格 ================= */
+function renderTable() {
+  var rows = computeRows(state);
+  var tb = document.querySelector("#mtbl tbody");
+  var h = "", tD = 0, tDay = 0, tCap = 0, tGap = 0;
+
+  for (var i = 0; i < rows.length; i++) {
+    var r = rows[i], j = judge(r.load, r.active);
+    tD += r.demand; tDay += r.days; tCap += r.cap; tGap += r.gap;
+    var gapTxt = r.active ? (r.gap >= 0 ? "+" + fmt(r.gap) : "−" + fmt(Math.abs(r.gap))) : "—";
+    h += '<tr class="' + (r.active && r.load > 1 ? "ov" : "") + '">' +
+      "<td>" + MONTHS[i] + "</td>" +
+      '<td><input type="number" name="demand-' + i + '" data-k="demand" data-i="' + i + '" value="' + r.demand + '" min="0" aria-label="' + MONTHS[i] + '需求量"></td>' +
+      '<td><input type="number" name="days-' + i + '" data-k="days" data-i="' + i + '" value="' + r.days + '" min="0" max="31" aria-label="' + MONTHS[i] + '生产天数"></td>' +
+      "<td>" + (r.active ? fmt(r.cap) : "—") + "</td>" +
+      "<td>" + gapTxt + "</td>" +
+      "<td>" + (r.active ? pct(r.load) : "—") + "</td>" +
+      '<td><span class="tag ' + j.c + '">' + j.t + "</span></td></tr>";
+  }
+  tb.innerHTML = h;
+
+  document.getElementById("f-dem").textContent = fmt(tD);
+  document.getElementById("f-days").textContent = fmt(tDay);
+  document.getElementById("f-cap").textContent = fmt(tCap);
+  document.getElementById("f-gap").textContent = (tGap >= 0 ? "+" : "−") + fmt(Math.abs(tGap));
+  document.getElementById("f-load").textContent = tCap > 0 ? pct(tD / tCap) : "—";
+}
+
+/* ================= 渲染：KPI ================= */
+function renderKpis() {
+  var rows = computeRows(state);
+  var cpd = capPerDay(state);
+  var over = 0, tight = 0, active = 0, worst = null;
+
+  for (var i = 0; i < rows.length; i++) {
+    var r = rows[i];
+    if (!r.active) continue;
+    active++;
+    if (r.load > 1) over++;
+    if (r.load > 0.85) tight++;
+    if (!worst || r.gap < worst.gap) worst = r;
+  }
+  var neg = worst && worst.gap < 0 ? worst : null;
+
+  var eff = state.shifts * state.hours * (state.oee / 100) * (state.yield / 100);
+  var needJph = neg ? neg.demand / (eff * neg.days) : 0;
+  var needDay = neg && cpd > 0 ? neg.demand / cpd : 0;
+
+  var h = "";
+  h += '<div class="kpi ' + (over > 0 ? "bad" : "good") + '">' +
+    '<div class="k">超载月份</div><div class="v">' + over + " / " + active + "</div>" +
+    '<div class="s">负荷 &gt; 85%：' + tight + " 个</div></div>";
+  h += '<div class="kpi ' + (neg ? "bad" : "good") + '">' +
+    '<div class="k">最大缺口</div>' +
+    '<div class="v">' + (neg ? "−" + fmt(Math.abs(neg.gap)) : "0") + "</div>" +
+    '<div class="s">' + (neg ? MONTHS[neg.i] + "，需求 " + fmt(neg.demand) : "无缺口") + "</div></div>";
+  h += '<div class="kpi mid"><div class="k">反算所需 JPH</div>' +
+    '<div class="v">' + (neg ? Math.ceil(needJph) : "—") + "</div>" +
+    '<div class="s">按最差月，不是年度平均</div></div>';
+  h += '<div class="kpi"><div class="k">单日有效产能</div><div class="v">' + fmt(cpd) + "</div>" +
+    '<div class="s">' + state.jph + " × " + state.shifts + " 班 × " + state.hours + "h × " +
+    state.oee + "% × " + state.yield + "%</div></div>";
+
+  document.getElementById("kpis").innerHTML = h;
+
+  var adv = document.getElementById("advice");
+  if (!neg) {
+    adv.className = "note ok";
+    adv.innerHTML = "<b>结论：</b>当前参数下各月均无缺口。但仍需核对 OEE 与良率是否为实测值，以及 Run@Rate 是否已通过。";
+  } else {
+    adv.className = "note err";
+    adv.innerHTML = "<b>结论：</b>最差月为 " + MONTHS[neg.i] + "，需求 " + fmt(neg.demand) +
+      "，缺口 " + fmt(Math.abs(neg.gap)) + " 套（负荷 " + pct(neg.load) + "）。三种补法任选其一并写进承诺：" +
+      "① JPH 提到 <b>" + Math.ceil(needJph) + "</b>；" +
+      "② 生产日拉到 <b>" + Math.ceil(needDay) + "</b> 天；" +
+      "③ 上月末备库 <b>" + fmt(Math.abs(neg.gap)) + "</b> 套。" +
+      "三者都不写，等于把缺口留给客户。";
+  }
+}
+
+/* ================= 渲染：方案 ================= */
+function renderScenarios() {
+  var rows = computeRows(state), worst = null;
+  for (var i = 0; i < rows.length; i++) {
+    if (!rows[i].active) continue;
+    if (!worst || rows[i].gap < worst.gap) worst = rows[i];
+  }
+  if (!worst) worst = { demand: 0, days: 1 };
+
+  var eff = state.shifts * state.hours * (state.oee / 100) * (state.yield / 100);
+  var need = worst.days > 0 ? Math.ceil(worst.demand / (eff * worst.days)) : 0;
+
+  var list = [
+    { name: "当前状态", jph: 26 },
+    { name: "报告承诺（双班）", jph: 40 },
+    { name: "反算所需", jph: need }
+  ];
+
+  var h = "";
+  for (var k = 0; k < list.length; k++) {
+    var it = list[k];
+    var cpd = it.jph * state.shifts * state.hours * (state.oee / 100) * (state.yield / 100);
+    var cap = cpd * worst.days;
+    var gap = cap - worst.demand;
+    var load = cap > 0 ? worst.demand / cap : 0;
+    var ok = gap >= 0;
+    h += "<tr><td>" + it.name + "</td><td>" + it.jph + "</td><td>" + fmt(cpd) + "</td>" +
+      "<td>" + fmt(cap) + "</td>" +
+      '<td style="color:' + (ok ? "inherit" : "#FF4D4F") + '">' +
+      (gap >= 0 ? "+" + fmt(gap) : "−" + fmt(Math.abs(gap))) + "</td>" +
+      "<td>" + (ok ? '<span class="tag grn">可满足</span>' : '<span class="tag red">不满足</span>') +
+      ' <span style="color:rgba(0,0,0,.45);font-size:11.5px">' + pct(load) + "</span></td></tr>";
+  }
+  document.querySelector("#stbl tbody").innerHTML = h;
+}
+
+/* ================= 评审 ================= */
+var CHECKS = [
+  { t: "LCR 口径已定义", q: "LCR 是每小时 / 每班 / 每日？按哪个 JPH、多少小时、多少良率算出来的？<code>480 ÷ 12 = 40 JPH</code> 能否对上当前 26 JPH？" },
+  { t: "JPH 用瓶颈工位口径", q: "报的是<b>瓶颈工位 JPH</b>还是<b>平均 JPH</b>？平均口径会把加班、挑单、返工都算进去，通常高估 20–40%。" },
+  { t: "OEE 三项分开报且为实测", q: "A（可用率）/ P（性能）/ Q（良率）分别是多少？是近 3 个月实测均值，还是目标值？" },
+  { t: "良率提升有措施", q: "从 90% 到 95% 是哪三条具体措施？责任人是谁？什么时候用哪批数据验证？" },
+  { t: "逐月独立测算，不是抄需求", q: "每月是否按 <code>min(设备, 人员, 班次 × JPH × 天数 × OEE × 良率)</code> 独立算过？" },
+  { t: "峰值月单独审过", q: "负荷率 &gt; 85% 的月份有几个？最高是哪个月？年度平均负荷会掩盖单月断供。" },
+  { t: "JPH 提升有验证门", q: "是否约定 <b>Run@Rate</b>（≥85% 负荷、连续 8h 或 ≥300 件、量产人员与工装）？判定标准是什么？" },
+  { t: "设备到位 ≠ 达产", q: "是否区分「设备到位 / 调试完成 / PPAP 认可 / Run@Rate 通过」四个节点？只写到「3 月底到位」不算。" },
+  { t: "瓶颈会漂移已重算", q: "解决冲焊（26）后，瓶颈是否迁到装配、检验、器具或排序物流？全链是否重算过？" },
+  { t: "人员逐周到位表", q: "缺口多少人？培训周期多久？焊接等特殊过程是否需要资质认证？培训中人员峰值与爬坡曲线是否对得上？" },
+  { t: "器具与返空已计入", q: "双班后日产量翻倍，器具数量够吗？JIS 的「1 满 1 空」返空率假设多少？返空不达标时产能是多少？" },
+  { t: "换型与长尾已量化", q: "多少种颜色/配置？换色一次损失多少分钟？<code>换型时间占比 = 尾部SKU换型 ÷ 总换型</code> 是否 &gt; 30%？" }
+];
+
+var chkState = {};
+try { var cs = localStorage.getItem("cap-chk-v2"); if (cs) chkState = JSON.parse(cs) || {}; } catch (e) {}
+
+function renderChecks() {
+  var h = "";
+  for (var i = 0; i < CHECKS.length; i++) {
+    var st = chkState[i] || "";
+    h += '<div class="chk ' + (st === "ok" ? "pass" : st === "no" ? "fail" : "") + '">' +
+      '<div class="cn">' + (i + 1) + "</div>" +
+      '<div class="cb"><div class="ct">' + CHECKS[i].t + "</div>" +
+      '<div class="cq">' + CHECKS[i].q + "</div></div>" +
+      '<div class="ca">' +
+      '<button class="pill ok ' + (st === "ok" ? "on" : "") + '" data-c="' + i + '" data-v="ok">通过</button>' +
+      '<button class="pill no ' + (st === "no" ? "on" : "") + '" data-c="' + i + '" data-v="no">不通过</button>' +
+      "</div></div>";
+  }
+  document.getElementById("chk-list").innerHTML = h;
+
+  var pass = 0;
+  for (var k in chkState) { if (chkState[k] === "ok") pass++; }
+  document.getElementById("score-n").textContent = pass;
+  document.getElementById("score-bar").style.width = (pass / 12 * 100) + "%";
+
+  var v = document.getElementById("verdict");
+  if (pass === 12) { v.className = "verdict pass"; v.textContent = "可作为保供承诺"; }
+  else if (pass >= 9) { v.className = "verdict fail"; v.textContent = "接近可用，仍有硬伤"; }
+  else { v.className = "verdict fail"; v.textContent = "不可作为保供承诺"; }
+}
+
+/* ================= 术语 ================= */
+var TERMS = {
+  g1: [
+    { a: "L1", cn: "理论产能", en: "Theoretical", d: "<b>设备数 × (3600 ÷ CT) × 计划工时</b>。取最快节拍、按满工时算，只用于对标。", w: "不能对外承诺" },
+    { a: "L2", cn: "设计 / 额定产能", en: "Rated / Design", d: "L1 × 设计可用率。设备铭牌值，<b>投资测算用它</b>。" },
+    { a: "L3", cn: "有效产能", en: "Effective", d: "L2 × A × P。真实可运行的能力，<b>对内考核用它</b>。" },
+    { a: "L4", cn: "实际合格产出", en: "Actual Good Output", d: "L3 × Q。<b>只有这一层能对外承诺</b>，返工返修不能计入。", w: "对外承诺唯一口径" }
+  ],
+  g2: [
+    { a: "JPH", cn: "每小时台数", en: "Jobs Per Hour", d: "产线能力标准单位。<b>线体 JPH = min(各工位 JPH)</b>，不是平均值。" },
+    { a: "UPH", cn: "每小时件数", en: "Units Per Hour", d: "多用于整机、模组、3C 组装。" },
+    { a: "CT", cn: "节拍 / 循环时间", en: "Cycle Time", d: "单件加工时间（含装卸）。<b>JPH = 3600 ÷ CT(秒)</b>。" },
+    { a: "takt", cn: "客户节拍", en: "Takt Time", d: "<b>可用时间 ÷ 客户需求</b>。客户说了算，CT ≤ takt 才能满足。" },
+    { a: "LCR", cn: "线体产能", en: "Line Capacity Rate", d: "汽车零部件常用，<b>但必须问清是时/班/日</b>。480 若按 12h 算 = 40 JPH。", w: "最易口径打架的词" },
+    { a: "平衡率", cn: "线平衡率", en: "Line Balance", d: "<b>ΣCT ÷ (瓶颈CT × 工位数)</b>。&lt;75% 先做重排，别急着买设备。" }
+  ],
+  g3: [
+    { a: "OEE", cn: "设备综合效率", en: "Overall Equipment Effectiveness", d: "<b>A × P × Q</b>。离散制造健康值 ≥85%。<b>必须分开报三项</b>，只报总分无法定位改善点。" },
+    { a: "A / P / Q", cn: "可用率 / 性能 / 良品率", en: "Availability / Performance / Quality", d: "A = 运行÷计划；P = 理论CT×产出÷运行；Q = 良品÷总产出。" },
+    { a: "TEEP", cn: "总有效设备性能", en: "Total Effective Equipment Performance", d: "<b>OEE × (计划 ÷ 日历)</b>。OEE 90% 但只开一班，TEEP 只有 37.5%。<b>评估要不要开三班看 TEEP</b>。" },
+    { a: "FPY / RTY", cn: "一次通过率 / 全流程通过率", en: "First Pass / Rolled Throughput Yield", d: "<b>RTY = Π FPY</b>。5 道工序各 98%，RTY 只有 90.4%。", w: "每道都 98% ≠ 整体 98%" },
+    { a: "Cpk / Ppk", cn: "过程能力 / 性能指数", en: "Capability Index", d: "Cpk ≥1.33 才算稳定，PPAP 硬门槛。" },
+    { a: "PPM", cn: "百万件不良率", en: "Parts Per Million", d: "质量成本要折算进产能。" }
+  ],
+  g4: [
+    { a: "S&OP", cn: "产销协同", en: "Sales & Operations Planning", d: "月度供需平衡会，是产能承诺的决策场。" },
+    { a: "IBP", cn: "集成业务计划", en: "Integrated Business Planning", d: "S&OP 的升级版，接入财务与战略。" },
+    { a: "MPS", cn: "主生产计划", en: "Master Production Schedule", d: "月/周生产大纲，是产能校验的输入。" },
+    { a: "PSI", cn: "产供销存", en: "Production-Sales-Inventory", d: "进销存平衡表，产能测算的最小闭环。" },
+    { a: "RCCP", cn: "粗能力计划", en: "Rough-Cut Capacity Planning", d: "月级，<b>只算关键资源</b>（瓶颈设备、模具、人力）。" },
+    { a: "CRP", cn: "能力需求计划", en: "Capacity Requirements Planning", d: "周级，<b>算全部工位</b>。" },
+    { a: "APS", cn: "高级计划排程", en: "Advanced Planning & Scheduling", d: "有限产能排程。产能管理说「有多少资源」，APS 说「怎么用」。" },
+    { a: "ATP", cn: "可承诺量", en: "Available To Promise", d: "<b>库存 + 计划产出 − 已确认订单</b>。销售最常用，但只反映库存。" },
+    { a: "CTP", cn: "可承诺交期", en: "Capable To Promise", d: "考虑产能约束后的最早可交日。<b>客户真正要的是这个</b>。" },
+    { a: "LTA", cn: "长期协议", en: "Long Term Agreement", d: "含产能预留条款，通常配 Take-or-Pay。" },
+    { a: "JIT / JIS", cn: "准时化 / 排序供货", en: "Just In Time / Just In Sequence", d: "JIS 依赖器具「1 满 1 空」返空，<b>返空不算产能是常见漏项</b>。" },
+    { a: "OTD / OTIF", cn: "准时交付率 / 准时足量率", en: "On Time Delivery / In Full", d: "客户最认 OTIF。" }
+  ],
+  g5: [
+    { a: "APQP", cn: "产品质量先期策划", en: "Advanced Product Quality Planning", d: "五阶段，产能验证的流程载体。第 3 阶段出产能测算书，第 4 阶段出 Run@Rate。" },
+    { a: "PPAP", cn: "生产件批准程序", en: "Production Part Approval Process", d: "含产能验证要素。<b>PPAP 通过 ≠ 产能达标</b>。" },
+    { a: "PPAP2", cn: "第二阶段 PPAP", en: "—", d: "试生产批准。报告写「4/15 PPAP2」指试生产认可，<b>不是量产能力验证</b>。" },
+    { a: "PSW", cn: "零件提交保证书", en: "Part Submission Warrant", d: "<b>签署即承诺产能</b>，是法律意义上的产能声明。" },
+    { a: "Run@Rate", cn: "产能验证", en: "Run At Rate", d: "量产条件下按客户节拍连续生产。<b>≥85% 负荷、连续 8h 或 ≥300 件</b>。三判据：产出率 ≥95%、FPY 达标、Cpk ≥1.33。", w: "唯一能证明产能的动作" },
+    { a: "SOP / EOP", cn: "量产启动 / 停产", en: "Start / End of Production", d: "爬坡起点与尾件管理起点。" },
+    { a: "NPI", cn: "新产品导入", en: "New Product Introduction", d: "爬坡曲线的上游。" },
+    { a: "MSA", cn: "测量系统分析", en: "Measurement System Analysis", d: "数据可信的前提，GR&amp;R &lt;10%。" },
+    { a: "8D", cn: "八步问题解决法", en: "Eight Disciplines", d: "异常闭环的标准工具。" },
+    { a: "MMOG/LE", cn: "物流管理评估", en: "Materials Mgmt Ops Guideline", d: "供应商物流成熟度，能提前暴露器具、返空、包装类非节拍瓶颈。" }
+  ],
+  g6: [
+    { a: "TOC", cn: "约束理论", en: "Theory of Constraints", d: "五步法：识别 → 挖尽 → 迁就 → 提升 → <b>回到第一步</b>。最后一步最关键，因为瓶颈会漂移。" },
+    { a: "DBR", cn: "鼓-缓冲-绳", en: "Drum-Buffer-Rope", d: "TOC 的排程方法，用瓶颈节奏拉动全链。" },
+    { a: "SMED", cn: "快速换型", en: "Single Minute Exchange of Die", d: "换型 &lt;10 分钟。<b>通常比买设备便宜一个数量级</b>，是被忽视的产能来源。" },
+    { a: "VSM", cn: "价值流图", en: "Value Stream Mapping", d: "找浪费，识别增值/非增值时间。" },
+    { a: "EOQ", cn: "经济订货批量", en: "Economic Order Quantity", d: "<b>√(2DS ÷ H)</b>，D 年需求、S 订货成本、H 单位持有成本。" },
+    { a: "ABC / XYZ", cn: "双维分类", en: "—", d: "价值 × 波动，长尾管理的起点。A 类保交付，C 类保成本。" },
+    { a: "Kingman", cn: "排队近似", en: "Kingman's Formula", d: "<b>等待 ∝ ρ/(1−ρ)</b>。85%→95% 产能只多 12%，等待变 3.4 倍。" },
+    { a: "报童模型", cn: "Newsvendor", en: "Newsvendor Model", d: "<b>F(Q*) = Cu ÷ (Cu + Co)</b>。决定「宁可多建还是少建」。" },
+    { a: "实物期权", cn: "Real Options", en: "—", d: "扩产接口 = Call Option（总投资的 3–8%）；代工 = 短期产能期权；分期投产 = Deferral Option。" }
+  ]
+};
+
+function renderTerms() {
+  for (var g in TERMS) {
+    var el = document.getElementById(g);
+    if (!el) continue;
+    var h = "";
+    for (var i = 0; i < TERMS[g].length; i++) {
+      var t = TERMS[g][i];
+      h += '<div class="term" data-s="' + (t.a + " " + t.cn + " " + t.en).toLowerCase() + '">' +
+        '<div class="th"><span class="ab">' + t.a + '</span>' +
+        '<span class="cn">' + t.cn + '</span>' +
+        '<span class="en">' + t.en + "</span></div>" +
+        '<div class="td">' + t.d + "</div>" +
+        (t.w ? '<span class="warn">' + t.w + "</span>" : "") +
+        "</div>";
+    }
+    el.innerHTML = h;
+  }
+}
+
+/* ================= 公式 ================= */
+var FORMULAS = [
+  { h: "1 · 产能四层（口径）", f: "理论产能 L1 = 设备数 × (3600 ÷ CT) × 计划工时\n设计产能 L2 = L1 × 设计可用率\n有效产能 L3 = L2 × A × P\n合格产出 L4 = L3 × Q        ← 只有这一层能对外承诺" },
+  { h: "2 · 节拍与能力（阶段 1）", f: "单站 JPH   = 3600 ÷ CT(秒)\n线体 JPH   = MIN(各工位 JPH)        ← 正确口径\n平均 JPH   = 总产出 ÷ 总工时         ← 最易注水\ntakt       = 可用时间 ÷ 客户需求\n平衡率     = ΣCT ÷ (瓶颈CT × 工位数)\n工位数 N   = ⌈ΣCT ÷ takt⌉" },
+  { h: "3 · 需求与缺口（阶段 1/2）", f: "日需求   = 月需求 ÷ 月生产天数\n零件日需求 = 整车日产量 × 单车用量 × (1+报废率)\n缺口 Gap = 月需求 − 月产能\n负荷率 ρ = 月需求 ÷ 月产能\n所需JPH* = 月需求 ÷ (工时 × 天数 × OEE × Q)\n所需天数 = 月需求 ÷ (JPH × 工时 × OEE × Q)\n所需备库 = MAX(0, Gap)，且在缺口月之前完成" },
+  { h: "4 · 资源数量（阶段 1/2）", f: "设备台数 N = ⌈ 需求 ÷ (单台JPH × 可用工时 × OEE × Q) ⌉\n人员数   P = 工位数 × 班次 × (1+缺勤率) ÷ 多能工系数\n器具数量   = 日产量 × 周转天数 ÷ 单器具容量 × (1+返空率)" },
+  { h: "5 · 效率（阶段 5）", f: "A   = 运行时间 ÷ 计划生产时间\nP   = (理论CT × 产出数) ÷ 运行时间\nQ   = 良品数 ÷ 总产出\nOEE = A × P × Q\nTEEP = OEE × (计划时间 ÷ 日历时间)\nRTY = Π FPY_i" },
+  { h: "6 · 排队与缓冲（定律二）", f: "Kingman：E[等待] ≈ (ρ/(1−ρ)) × ((Ca²+Cs²)/2) × Te\n\nρ      70%   80%   85%   90%   95%\n相对等待  2.3   4.0   5.7   9.0   19.0\n\n安全库存 SS = z × √(LT×σd² + d²×σLT²)\nz: 95% → 1.65    99% → 2.33" },
+  { h: "7 · 学习曲线（定律三）", f: "T_n = T_1 × n^b,  b = ln(学习率) ÷ ln2\n\n26 → 40 JPH（单件时间降 35%）需累计产量倍数：\n学习率 90% → 17.0×\n学习率 85% →  6.3×\n学习率 80% →  3.8×\n\n结论：必须靠设备/工装跃迁，不能靠「熟练」" },
+  { h: "8 · Run@Rate（阶段 3）", f: "达成率 = 实际合格产出 ÷ (设计JPH × 运行小时 × 85%)\n\n三个条件同时满足才算通过：\n① 产出率 ≥ 95%\n② FPY ≥ 目标值\n③ Cpk ≥ 1.33\n\n必须：量产人员 + 量产工装 + 量产物料 + 跨换型\n连续：8 小时 或 ≥300 件" },
+  { h: "9 · 爬坡健康度（阶段 4）", f: "周达成率 = 实际产出 ÷ 计划产出\n稳定判据 = 连续 3 周达成率 ≥ 95%\n爬坡斜率 = Δ产出 ÷ Δ周（件/周²）\n\n用「累计产量」当横轴，不要用「日历周」" },
+  { h: "10 · 尾件与退市（阶段 6）", f: "尾件总量   = 年售后需求 × 供应年限 × (1+安全系数)\n备库成本   = 尾件总量 × 单价 × (持有成本率×年限 + 报废风险)\n保留产线成本 = 专用产能年固定成本 × 年限\n\n判据：备库成本 < 保留产线成本 → 一次性备库" },
+  { h: "11 · 产能投资（闸门）", f: "报童：F(Q*) = Cu ÷ (Cu + Co)\n  Cu = 产能不足损失（丢单毛利 + 罚金 + 信任折价）\n  Co = 产能闲置成本（折旧 + 维护 + 机会成本）\n\n回收期   = 投资额 ÷ 年增量利润\n年增量利润 = 增量产能 × 单位利润 × 利用率\n\nCu:Co = 10:1 → 91%（宁可多建）\nCu:Co =  5:1 → 83%（建 + 留接口）\nCu:Co =  2:1 → 67%（宁可少建）" },
+  { h: "12 · 长尾三指标", f: "① 尾部集中度   = 前 20% SKU 产量占比        （<70% 说明尾部重）\n② 换型时间占比 = 尾部SKU换型 ÷ 总换型时间   （>30% 说明真瓶颈是换型）\n③ 服务水平差   = P95 交期 − 平均交期         （>2 倍说明波动主导）" }
+];
+
+function renderFormulas() {
+  var h = "";
+  for (var i = 0; i < FORMULAS.length; i++) {
+    h += '<div class="card" style="overflow:hidden">' +
+      '<div style="padding:11px 16px;background:var(--fill);border-bottom:1px solid var(--line);' +
+      'font-size:12.5px;font-weight:600">' + FORMULAS[i].h + "</div>" +
+      '<div style="padding:14px 16px"><div class="formula" style="margin:0;border-left:none">' +
+      FORMULAS[i].f + "</div></div></div>";
+  }
+  document.getElementById("formula-list").innerHTML = h;
+}
+
+/* ================= 事件 ================= */
+var PARAMS = [["p-jph","jph"],["p-shifts","shifts"],["p-hours","hours"],["p-oee","oee"],["p-yield","yield"]];
+
+function syncParams() {
+  for (var i = 0; i < PARAMS.length; i++) {
+    var el = document.getElementById(PARAMS[i][0]);
+    if (el) el.value = state[PARAMS[i][1]];
+  }
+}
+
+function bindParams() {
+  PARAMS.forEach(function (p) {
+    var el = document.getElementById(p[0]);
+    if (!el) return;
+    var handler = function () {
+      state[p[1]] = num(el.value, DEF[p[1]]);
+      save(); renderAll();
+    };
+    el.addEventListener("input", handler);
+    el.addEventListener("change", handler);
+  });
+}
+
+document.addEventListener("click", function (e) {
+  var t = e.target;
+
+  var pre = t.closest("[data-preset]");
+  if (pre) {
+    var v = pre.getAttribute("data-preset");
+    if (v === "report") { state.jph = 40; state.oee = 100; state.yield = 95; }
+    if (v === "strict") { state.jph = 40; state.oee = 85;  state.yield = 95; }
+    if (v === "solve")  { state.jph = 52; state.oee = 85;  state.yield = 95; }
+    if (v === "cur")    { state.jph = 26; state.oee = 100; state.yield = 95; }
+    save(); syncParams(); renderAll();
+    return;
+  }
+
+  var pill = t.closest(".pill[data-c]");
+  if (pill) {
+    var c = pill.getAttribute("data-c"), val = pill.getAttribute("data-v");
+    if (chkState[c] === val) delete chkState[c]; else chkState[c] = val;
+    try { localStorage.setItem("cap-chk-v2", JSON.stringify(chkState)); } catch (err) {}
+    renderChecks();
+  }
+});
+
+document.querySelector("#mtbl tbody").addEventListener("input", function (e) {
+  var t = e.target;
+  if (t.tagName !== "INPUT") return;
+  var k = t.getAttribute("data-k"), i = parseInt(t.getAttribute("data-i"), 10);
+  if (!k || isNaN(i)) return;
+  state[k][i] = num(t.value, 0);
+  save(); renderAll();
+});
+
+/* 术语搜索 */
+document.getElementById("term-q").addEventListener("input", function () {
+  var q = this.value.trim().toLowerCase();
+  var all = document.querySelectorAll(".term");
+  for (var i = 0; i < all.length; i++) {
+    var s = all[i].getAttribute("data-s") || "";
+    all[i].classList.toggle("hide", q !== "" && s.indexOf(q) < 0);
+  }
+  var grps = document.querySelectorAll(".term-grp");
+  for (var j = 0; j < grps.length; j++) {
+    var vis = grps[j].querySelectorAll(".term:not(.hide)").length;
+    grps[j].style.display = vis === 0 ? "none" : "";
+  }
+});
+
+/* 滚动高亮 */
+var navLinks = document.querySelectorAll("#nav a");
+var secs = [];
+navLinks.forEach(function (a) {
+  var id = a.getAttribute("href").slice(1);
+  var el = document.getElementById(id);
+  if (el) secs.push({ a: a, el: el });
+});
+
+function onScroll() {
+  var y = window.scrollY + 120;
+  var cur = secs[0];
+  for (var i = 0; i < secs.length; i++) {
+    if (secs[i].el.offsetTop <= y) cur = secs[i];
+  }
+  navLinks.forEach(function (a) { a.classList.remove("on"); });
+  if (cur) cur.a.classList.add("on");
+}
+window.addEventListener("scroll", onScroll, { passive: true });
+
+/* ================= 启动 ================= */
+function renderAll() { renderTable(); renderKpis(); renderScenarios(); }
+bindParams();
+renderAll();
+renderChecks();
+renderTerms();
+renderFormulas();
+onScroll();
+</script>
+</body>
+</html>
