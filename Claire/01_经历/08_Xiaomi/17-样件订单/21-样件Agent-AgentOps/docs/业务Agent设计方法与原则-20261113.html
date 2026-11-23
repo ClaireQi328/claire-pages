@@ -1,0 +1,240 @@
+<!DOCTYPE html>
+<html lang="zh-CN"><head><meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>做一个"能替人办事"的 Agent · 方法与原则</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:#fff;color:rgba(0,0,0,.88);font:14px/1.8 -apple-system,"PingFang SC","Segoe UI",sans-serif;padding:32px 24px 64px}
+.wrap{max-width:1080px;margin:0 auto}
+header{border-bottom:1px solid #f0f0f0;padding-bottom:18px;margin-bottom:26px}
+h1{font-size:24px;font-weight:600}
+.sub{color:rgba(0,0,0,.45);font-size:13px;margin-top:6px}
+h2{font-size:17px;font-weight:600;margin:38px 0 14px;padding-left:10px;border-left:3px solid #1677ff}
+h3{font-size:14.5px;font-weight:600;margin:22px 0 8px;color:rgba(0,0,0,.85)}
+p{color:rgba(0,0,0,.68);margin:9px 0}
+ul{list-style:none;margin:8px 0}
+li{color:rgba(0,0,0,.72);padding-left:16px;position:relative;margin:6px 0}
+li::before{content:"";position:absolute;left:3px;top:11px;width:5px;height:5px;border-radius:50%;background:#d9d9d9}
+.card{border:1px solid #f0f0f0;border-radius:8px;padding:16px 18px;margin:12px 0;background:#fff}
+.card.principle{background:#f6ffed;border-color:#b7eb8f}
+.card.anti{background:#fff1f0;border-color:#ffccc7}
+.card.note{background:#fafafa}
+.card h3{margin-top:0}
+table{width:100%;border-collapse:collapse;margin:12px 0;font-size:13px}
+th{background:#fafafa;text-align:left;font-weight:600;padding:9px 12px;border-bottom:1px solid #f0f0f0;color:rgba(0,0,0,.72);white-space:nowrap}
+td{padding:9px 12px;border-bottom:1px solid #f5f5f5;color:rgba(0,0,0,.72);vertical-align:top}
+tr:last-child td{border-bottom:none}
+code{background:#f5f5f5;padding:1px 6px;border-radius:3px;font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:12.5px;color:#c41d7f}
+.flow{font-family:ui-monospace,monospace;font-size:12.5px;background:#fafafa;border-radius:6px;padding:14px 16px;color:rgba(0,0,0,.72);overflow-x:auto;white-space:pre;line-height:1.9}
+.muted{color:rgba(0,0,0,.45);font-size:12.5px}
+hr{border:none;border-top:1px solid #f0f0f0;margin:30px 0}
+.q{font-size:15px;font-weight:600;color:#0958d9;margin:26px 0 10px;padding:10px 14px;background:#e6f4ff;border-radius:6px;border-left:3px solid #1677ff}
+.why{font-size:12.5px;color:rgba(0,0,0,.5);margin-top:10px;padding-top:9px;border-top:1px dashed #f0f0f0}
+.why b{color:rgba(0,0,0,.65);font-weight:600}
+.bad{color:#cf1322}.good{color:#389e0d}
+</style></head><body><div class="wrap">
+
+<header>
+<h1>做一个「能替人办事」的 Agent</h1>
+<div class="sub">从样件订单助手提炼的设计方法 · 2026-11-13 · 每条都有实际出处</div>
+</header>
+
+<p>这不是功能清单，是<strong>做决策时的判断依据</strong>。写的时候我一直在问一个问题：如果换一个业务场景，这些原则还成立吗？只写成立的。</p>
+
+<h2>零、先回答一个问题：它到底该做什么</h2>
+
+<div class="q">这个 Agent 是在「替代人的判断」，还是在「替代人的操作」？</div>
+
+<p>这两者的设计完全不同。样件订单这个场景的答案是：<strong>替代操作，不替代判断</strong>。理由很实际——下单涉及钱、涉及供应商、涉及审批流，判断错了追不回来。</p>
+
+<table>
+<tr><th style="width:22%">维度</th><th style="width:39%">替代判断（不该做）</th><th>替代操作（该做）</th></tr>
+<tr><td>供应商选择</td><td class="bad">系统根据价格/账期自动挑</td><td class="good">列出候选，人必须选一个</td></tr>
+<tr><td>剔除范围</td><td class="bad">系统猜"这些应该不用下"</td><td class="good">读人维护的剔除表，严格执行</td></tr>
+<tr><td>预算不足</td><td class="bad">自动跳过或拆分</td><td class="good">停下来，把 BR 号/差额/找谁 说清楚</td></tr>
+<tr><td>数据汇总</td><td class="good">自动算清、自动分组、自动拆单</td><td>—</td></tr>
+</table>
+
+<div class="why"><b>为什么：</b>「替代操作」出错是效率问题，「替代判断」出错是责任问题。前者可以道歉重做，后者没人敢签字。所以边界要划在「人必须做决定的地方」，其他地方越自动越好。</div>
+
+<h2>一、四层结构：每一层只干一件事</h2>
+
+<div class="flow">① 入口层    飞书机器人 / HTTP / A2A / CLI —— 只做协议转换，不含业务
+     ↓
+② 编排层    意图路由 → 动作分发 —— 只决定"做哪件事、能不能做"
+     ↓
+③ 业务层    查询 / 下单 / 日报 —— 只含本领域的规则
+     ↓
+④ 共享层    表格读写 / 渲染 / 凭证 —— 无业务语义的纯工具
+     ↓
+   外部      EP 系统 / 飞书</div>
+
+<div class="card principle">
+<h3>判断标准：这一层能不能独立测试？</h3>
+<p>如果一层的测试必须启动整个系统，说明分层没做对。样件订单的做法是——共享层纯函数、业务层可单独 CLI 调用、编排层用 mock 替掉业务层。</p>
+</div>
+
+<div class="card anti">
+<h3>反例（我们踩过）</h3>
+<p>同一份「剔除表读取」在查询 skill 和工具层各写了一遍，签名还不一样。结果缓存指纹按 A 的签名调 B 的实现，每次 <code>TypeError</code> 被 <code>except</code> 吞掉——缓存从上线起<strong>一次都没命中过</strong>，每次查询白跑 40 秒，没人发现。</p>
+<p><b>规则：跨层共享的逻辑只能有一个物理位置。</b></p>
+</div>
+
+<h2>二、七条设计原则</h2>
+
+<div class="q">原则 1 · 先定「不做什么」，再定「做什么」</div>
+<p>Agent 最容易犯的错是「什么都想接」。用户问「这个单为什么没下成」，Agent 就开始猜原因；用户说「帮我选个供应商」，Agent 就挑一个最便宜的。</p>
+<div class="card principle">
+<p><b>做法</b>：把「不确定就停下、把选择权交回给人」写成硬规则。</p>
+<ul>
+<li>供应商多选 → 必须人点，系统只给候选</li>
+<li>需求不在可下单池 → 列出可能原因，让人去 EP 核对，不猜</li>
+<li>预算不够 → 停下报数，不自动拆分</li>
+</ul>
+<p class="muted">实际实现：<code>read_multi_selected</code> 只返回「用户已选」的行；没选就是 0 条，绝不兜底挑一个。</p>
+</div>
+
+<div class="q">原则 2 · 每个「写操作」都必须有人点的那一下</div>
+<p>「自动下单」听起来很美，但它意味着 Agent 可以在人不知情时花钱。样件订单里所有下单都要用户点卡片按钮，且按钮上有明确的数量。</p>
+<table>
+<tr><th style="width:30%">保护</th><th>机制</th></tr>
+<tr><td>谁点的</td><td>卡片记 <code>operator</code>，别人点会被拒："这张确认卡不是你生成的"</td></tr>
+<tr><td>点几次</td><td>会话级互斥锁，执行中再点回"正在下单中"</td></tr>
+<tr><td>点什么</td><td>pending 落会话，按钮只执行对应那段，不会"点 A 执行 B"</td></tr>
+<tr><td>执行完</td><td>立即清 pending，防重复下单</td></tr>
+</table>
+
+<div class="q">原则 3 · 时间窗口要显式，不要让数据自己「过期」</div>
+<p>「可下单」是一个有时效的判断。今天能下不代表明天能下——需求会被别人下掉、会升版、会超窗口。</p>
+<div class="card principle">
+<p><b>做法</b>：把「这一批」当成一个明确的实体，有批次号，从查询一路传到下单。</p>
+<ul>
+<li>查询产出批次号 → 卡片显示 → 下单时校验批次一致</li>
+<li>跨批次执行会被拒（"确认页是旧批次的快照"）</li>
+<li>待选表按批次清理，不跨批累积</li>
+</ul>
+</div>
+<div class="card anti">
+<h3>我们踩的坑</h3>
+<p>一开始卡片是「读磁盘上最新的文件」，靠 mtime 猜。异步推送和同步查询撞在一起时就会读到上一批——用户看到「本批没有需求」+ 下面列了 12 行物料，自相矛盾。</p>
+<p><b>规则：能透传就别推断。</b>「刚刚这次操作产出的东西」，产出时记下标识，一路传下去。</p>
+</div>
+
+<div class="q">原则 4 · 失败必须能被区分，不能返回"合法的空值"</div>
+<p>这是最隐蔽的一类 bug。看这段真实的代码演进：</p>
+<div class="flow"><span class="bad">错误做法</span>：读剔除表失败 → 返回空集合
+   ↓
+  调用方看到空集合 → 以为"用户没配剔除" → 继续查
+   ↓
+  该剔的全进了可下单池 → 208 条被误下单
+
+<span class="good">正确做法</span>：读失败 → 返回 None（或抛异常）
+   ↓
+  调用方知道"没读到" → 不走缓存、让用户重试
+   ↓
+  宁可查询失败，不给错结果</div>
+<div class="card principle">
+<p><b>规则</b>：一个函数返回「空」时，必须让调用方能分清三种情况——</p>
+<ul>
+<li>查了，确实是空（合法）</li>
+<li>没查到（失败）</li>
+<li>不知道该不该查（参数缺失）</li>
+</ul>
+<p>用一个值表达三种含义，一定会出错。</p>
+</div>
+
+<div class="q">原则 5 · 保护性代码要按正常路径的标准测试</div>
+<p>为「防止出错」写的代码，如果不常跑，就最容易带 bug。样件订单里三个 P0 都出在这种地方：</p>
+<table>
+<tr><th style="width:36%">兜底逻辑</th><th>it 自己出的问题</th></tr>
+<tr><td>剔除表读不到时强制重查</td><td>用了没 import 的 <code>sys</code> → 一触发就报错</td></tr>
+<tr><td>防重复下单的「终态冻结」</td><td>把「EP 重新判定可下单」的需求也冻住了</td></tr>
+<tr><td>防误删的清理逻辑</td><td>遇到空清单时把整张表清空</td></tr>
+</table>
+<div class="card principle">
+<p><b>规则</b>：凡是「只在异常时才跑」的分支，必须有专门的用例触发它。写的时候问一句——<strong>这段代码上次被执行是什么时候？</strong>如果答不上来，就是没测过。</p>
+</div>
+
+<div class="q">原则 6 · 给用户的数字，只能有一个口径</div>
+<p>用户拿去和别的系统对数时，口径不一致比数字错了更麻烦——因为他不确定该信谁。</p>
+<table>
+<tr><th style="width:26%">场景</th><th style="width:30%">曾经的表述</th><th>现在</th></tr>
+<tr><td>下单结果</td><td class="bad">已下单 110 条</td><td class="good">已下单 44 张订单（覆盖 110 条需求）</td></tr>
+<tr><td>多点待选</td><td class="bad">要选 35 条 / 表格 32 行</td><td class="good">35 个需求号（展开 42 行物料）</td></tr>
+<tr><td>预算不足</td><td class="bad">1 张单预算不足</td><td class="good">订单 4900048245｜BR 剩余 ¥3100｜本单 ¥6480｜差 ¥3379.98</td></tr>
+</table>
+<div class="why"><b>怎么判断口径够不够：</b>用户能不能拿这个数去 EP 里搜到对应的东西？搜不到，就是口径不够。</div>
+
+<div class="q">原则 7 · 慢操作要秒回执 + 后台推送</div>
+<p>真实查询要 30~60 秒，飞书回调 3 秒就超时。如果同步跑，用户看到的是「点了没反应」。</p>
+<div class="flow">用户点击
+  → 立刻回执「已收到，正在处理…」（< 1 秒）
+  → 后台线程执行
+  → 结果主动推送到会话
+  → 任何异常都要推送出来，绝不让用户"点了没下文"</div>
+<p class="muted">实现：<code>run_slow_async()</code>，带 inflight 去重（同一 action 不并发跑两遍）。</p>
+
+<h2>三、必须承认做不到的事</h2>
+<p>这一段最容易写得漂亮但空洞。我说点具体的。</p>
+
+<div class="card note">
+<h3>例：预算并发占用，Agent 无法判断</h3>
+<p>EP 的预校验各自都看到余额充足，但真正占用时互相争抢——失败的那部分<strong>不抛错、不回滚</strong>，只静默记账（<code>SaPoServiceImpl.doSynOccupyToEmsForAdd</code> 里 <code>overBudget=true</code> 时只调 <code>doCountBalance</code>）。建单响应里的 <code>isOccupy</code> 又是提交前的快照（实测 41/41 全 false）。</p>
+<p><strong>能做的</strong>：同 BR 强制串行 + 加间隔，把并发窗口收窄；结果卡标「预算占用待确认」并交出 BR 号，让人去核。</p>
+<p><strong>不能做的</strong>：准确判断"到底占上没有"。</p>
+<p class="muted">写文档时我把这段写清楚了，而不是包装成"已解决"。</p>
+</div>
+
+<h2>四、怎么证明它是对的</h2>
+
+<h3>测试分两层，缺一不可</h3>
+<table>
+<tr><th style="width:22%">层</th><th style="width:30%">管什么</th><th>样件订单的做法</th></tr>
+<tr><td>单测</td><td>逻辑正确性</td><td>672 条，mock 掉网络和 CLI</td></tr>
+<tr><td>E2E</td><td>「用户真的能点」</td><td>真实启服务，发真实指令，检查回复和按钮</td></tr>
+</table>
+<div class="card anti">
+<h3>只跑单测会发生什么</h3>
+<p>612 条单测全绿，但跑真实 E2E 第一条指令就崩——<code>name 'sys' is not defined</code>。原因是那个分支只在「剔除表读失败」时触发，所有单测都在正常路径上。</p>
+<p><b>规则：全绿之后必须再跑一遍 E2E，否则等于没验收。</b></p>
+</div>
+
+<h3>修完要反向验证</h3>
+<p>改完 bug，把修复<strong>临时回退</strong>，确认测试真的会变红，再恢复。</p>
+<div class="why"><b>为什么：</b>如果回退后测试还是绿的，说明它根本没测到这段代码——这次修复等于没有保护。样件订单用这个办法发现过两次「测试假绿」（一次是 mock 打空，一次是断言写错位置）。</div>
+
+<h3>测试本身也会有 bug</h3>
+<p>遇到过三种「假绿」：</p>
+<table>
+<tr><th style="width:38%">现象</th><th>真相</th></tr>
+<tr><td>测试通过，但跑 38 秒</td><td><code>importlib</code> 加载的模块没注册到 <code>sys.modules</code> → <code>mock.patch</code> 打空 → 真的在调 CLI</td></tr>
+<tr><td>单独跑过，全量跑挂</td><td>请求级状态（contextvar）跨测试残留</td></tr>
+<tr><td>断言"通过"但没测到</td><td>匹配到了另一处相同文案</td></tr>
+</table>
+
+<h2>五、如果重新做一遍，我会怎么做</h2>
+
+<table>
+<tr><th style="width:6%">#</th><th style="width:32%">做法</th><th>理由</th></tr>
+<tr><td>1</td><td>第一天就建「口径字典」</td><td>「单 / 条 / 组 / 行」这些词一开始就定义清楚，后面所有文案引用它。我们花了三轮才统一。</td></tr>
+<tr><td>2</td><td>先写 E2E，再写单测</td><td>E2E 逼你想清楚「用户从哪进来、看到什么」，单测容易陷入函数细节。</td></tr>
+<tr><td>3</td><td>任何删除/覆写操作先 dry-run</td><td>删 209 行前先落备份、先看清单——这个习惯救过一次（发现要删 64 行而不是预期的 7 行）。</td></tr>
+<tr><td>4</td><td>跨语言/跨模块的字段名，用一处常量</td><td>Python 传 <code>进度节点</code>、JS 读 <code>u.status</code>，静默错了两周。</td></tr>
+<tr><td>5</td><td>把「不知道」写进文案</td><td>「预算占用待确认」比「已下单」诚实，也更实用。</td></tr>
+</table>
+
+<hr>
+
+<h2>一句话收尾</h2>
+<div class="card principle">
+<p style="font-size:15px;line-height:1.9"><b>好的业务 Agent，不是"什么都能做"，而是"知道自己不该做什么，并且让人随时能接手"。</b></p>
+<p>具体到三条：</p>
+<ul>
+<li>不该替人做的判断，坚决不做（供应商、剔除、预算）</li>
+<li>该做好的操作，做到人不用想（分组、拆单、对数、报错）</li>
+<li>做不到的事，明确说清、给出核对路径（并发占用、草稿查询）</li>
+</ul>
+</div>
+
+<p class="muted" style="margin-top:26px">样件订单助手 · 方法与原则 · 2026-11-13 · 每条原则均可在代码中找到对应实现</p>
+</div></body></html>
