@@ -1,0 +1,731 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>做 Agent 的经验教训与避坑指南</title>
+<style>
+:root{
+  --primary:#1677ff; --primary-hover:#4096ff; --primary-bg:#e6f4ff; --primary-border:#91caff;
+  --success:#52c41a; --success-bg:#f6ffed; --success-border:#b7eb8f;
+  --error:#ff4d4f; --error-bg:#fff2f0; --error-border:#ffccc7;
+  --warning:#faad14; --warning-bg:#fffbe6; --warning-border:#ffe58f;
+  --text:rgba(0,0,0,.88); --text2:rgba(0,0,0,.65); --text3:rgba(0,0,0,.45);
+  --border:#f0f0f0; --border2:#d9d9d9; --fill:#fafafa;
+  --radius:8px;
+  --shadow:0 1px 2px 0 rgba(0,0,0,.03),0 1px 6px -1px rgba(0,0,0,.02),0 2px 4px 0 rgba(0,0,0,.02);
+}
+*{box-sizing:border-box}
+html{background:#fff}
+body{margin:0;background:#fff;color:var(--text);font:14px/1.75 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"PingFang SC","Hiragino Sans GB","Microsoft YaHei",sans-serif;-webkit-font-smoothing:antialiased}
+.page{max-width:1080px;margin:0 auto;padding:32px 24px 64px}
+.hero{background:#fff;border:1px solid var(--border);border-radius:12px;padding:30px 32px 28px;position:relative;overflow:hidden;margin-bottom:16px;box-shadow:var(--shadow)}
+.hero::before{content:"";position:absolute;left:0;top:24px;bottom:24px;width:3px;background:var(--primary);border-radius:0 2px 2px 0}
+.hero::after{display:none}
+.hero .eyebrow{display:inline-block;font-size:12px;line-height:22px;color:#0958d9;background:var(--primary-bg);border:1px solid var(--primary-border);border-radius:4px;padding:0 8px;margin-bottom:14px}
+.hero h1{font-size:30px;line-height:1.4;margin:0 0 10px;letter-spacing:.2px;font-weight:600;color:var(--text)}
+.hero .lead{font-size:14px;color:var(--text2);max-width:760px;margin:0}
+.hero .chips{display:flex;gap:8px;flex-wrap:wrap;margin-top:18px}
+.hero .chips span{font-size:12px;line-height:22px;color:var(--text2);background:var(--fill);border:1px solid var(--border2);border-radius:4px;padding:0 8px}
+.hero .chips span:first-child{color:#0958d9;background:var(--primary-bg);border-color:var(--primary-border)}
+.toc{background:var(--fill);border:1px solid var(--border);border-radius:var(--radius);padding:12px 16px;margin-bottom:18px;display:flex;flex-wrap:wrap;gap:5px 14px;align-items:center}
+.toc b{font-size:12px;color:var(--text3);margin-right:4px;font-weight:400}
+.toc a{font-size:12.5px;color:var(--text2);text-decoration:none;white-space:nowrap;transition:color .2s}
+.toc a:hover{color:var(--primary)}
+.summary{background:#fff;border:1px solid var(--border);border-left:3px solid var(--primary);border-radius:var(--radius);padding:16px 20px;margin-bottom:20px;box-shadow:var(--shadow)}
+.summary h2{font-size:16px;margin:0 0 4px;font-weight:600}
+.summary p{margin:0;color:var(--text2);font-size:13.5px}
+.summary strong{color:var(--text)}
+.rules{display:grid;grid-template-columns:repeat(5,1fr);gap:10px;margin:18px 0 26px}
+.rule{background:#fff;border:1px solid var(--border);border-radius:var(--radius);padding:14px;position:relative;transition:all .2s;box-shadow:var(--shadow)}
+.rule::before{display:none}
+.rule:hover{border-color:var(--primary-border);box-shadow:0 3px 12px rgba(22,119,255,.10)}
+.rule .n{display:inline-flex;align-items:center;justify-content:center;min-width:22px;height:22px;padding:0 6px;border-radius:4px;background:var(--primary-bg);color:var(--primary);font-size:12px;font-weight:600;margin-bottom:8px}
+.rule b{display:block;font-size:14px;color:var(--text);margin:0 0 4px;font-weight:600}
+.rule span{display:block;font-size:12px;color:var(--text2);line-height:1.65}
+h2.sec{font-size:20px;margin:32px 0 4px;letter-spacing:.2px;font-weight:600;color:var(--text);display:flex;align-items:center;gap:8px}
+h2.sec em{font-style:normal;font-size:12px;line-height:22px;color:var(--text3);background:var(--fill);border:1px solid var(--border);padding:0 7px;border-radius:4px;letter-spacing:.5px;font-weight:400}
+.sec-lead{color:var(--text3);font-size:12.5px;margin:0 0 14px}
+.lesson{background:#fff;border:1px solid var(--border);border-radius:var(--radius);padding:20px 22px;margin-bottom:12px;box-shadow:var(--shadow);break-inside:avoid}
+.lesson h3{font-size:16px;margin:0 0 4px;display:flex;align-items:center;gap:10px;font-weight:600;color:var(--text)}
+.lesson h3 .num{display:inline-flex;width:28px;height:28px;border-radius:6px;background:var(--primary-bg);color:var(--primary);align-items:center;justify-content:center;font-size:12.5px;font-weight:600;flex:none}
+.lesson .kicker{font-size:12px;color:var(--text3);margin:0 0 12px 38px}
+.lesson .panel{border-radius:6px;padding:11px 14px;margin:8px 0;font-size:13px;line-height:1.75}
+.lesson .pit{background:var(--error-bg);border:1px solid var(--error-border)}
+.lesson .fix{background:var(--success-bg);border:1px solid var(--success-border)}
+.lesson .case{background:var(--fill);border:1px solid var(--border);color:var(--text2);font-size:12.5px}
+.lesson .panel b{font-size:12px;letter-spacing:.2px;margin-right:5px;font-weight:600}
+.lesson .pit b{color:#cf1322}
+.lesson .fix b{color:#389e0d}
+.lesson .case b{color:var(--text2)}
+.lesson p{margin:4px 0}
+.tip{background:var(--primary-bg);border:1px solid var(--primary-border);border-radius:var(--radius);padding:12px 15px;font-size:12.5px;color:#0958d9;margin:10px 0}
+.tip b{color:#003eb3}
+.big-callout{background:#fff;border:1px solid var(--border);border-radius:var(--radius);padding:20px 22px;margin:22px 0;box-shadow:var(--shadow)}
+.big-callout h3{margin:0 0 10px;font-size:16px;font-weight:600}
+.big-callout .line{font-size:13.5px;color:var(--text2);margin:6px 0}
+.big-callout .line b{color:var(--text)}
+.checklist{display:grid;grid-template-columns:1fr 1fr;gap:9px 18px;margin-top:6px}
+.check{display:flex;gap:9px;font-size:13px;color:var(--text2);align-items:flex-start;line-height:1.7}
+.check i{width:16px;height:16px;border:1px solid var(--border2);border-radius:2px;flex:none;margin-top:4px;background:#fff;display:inline-block;transition:all .2s}
+.check:hover i{border-color:var(--primary)}
+.section-note{background:#fff;border:1px solid var(--border);border-radius:var(--radius);padding:14px 17px;color:var(--text2);font-size:12.5px}
+.footer{margin-top:30px;padding-top:14px;border-top:1px solid var(--border);font-size:12px;color:var(--text3);display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap}
+@media(max-width:900px){.rules{grid-template-columns:1fr 1fr}.grid2,.checklist{grid-template-columns:1fr}.hero h1{font-size:24px}.hero{padding:24px 22px 22px}.page{padding:20px 16px 48px}}
+@media print{body{background:#fff}.page{max-width:none;padding:0}.hero,.summary,.lesson,.big-callout{box-shadow:none}.toc{display:none}}
+</style>
+
+<style id="ANT_DESIGN_TOKENS">
+/* Ant Design 5 tokens — auto-injected by antd_migrate.py */
+/* ============================================================
+   Ant Design 5.x Design Tokens — Claire Vault 唯一视觉标准
+   用法：单文件 HTML 内嵌本段（粘贴到 style 标签内开头，勿外链）
+   依据：Ant Design 5 官方 Design Token（seed / map / alias 三层）
+   ============================================================ */
+
+:root {
+  /* ---------- 1. 色彩 Seed ---------- */
+  --ant-color-primary: #1677ff;
+  --ant-color-success: #52c41a;
+  --ant-color-warning: #faad14;
+  --ant-color-error:   #ff4d4f;
+  --ant-color-info:    #1677ff;
+
+  /* ---------- 2. 色彩 Map（功能色 1-10 阶） ---------- */
+  --ant-blue-1: #e6f4ff; --ant-blue-2: #bae0ff; --ant-blue-3: #91caff;
+  --ant-blue-5: #4096ff; --ant-blue-6: #1677ff; --ant-blue-7: #0958d9;
+
+  --ant-green-1: #f6ffed; --ant-green-2: #d9f7be; --ant-green-3: #b7eb8f;
+  --ant-green-6: #52c41a; --ant-green-7: #389e0d;
+
+  --ant-gold-1: #fffbe6; --ant-gold-2: #fff1b8; --ant-gold-3: #ffe58f;
+  --ant-gold-6: #faad14; --ant-gold-7: #d48806;
+
+  --ant-red-1: #fff2f0; --ant-red-2: #ffccc7; --ant-red-3: #ffa39e;
+  --ant-red-6: #ff4d4f; --ant-red-7: #d9363e;
+
+  --ant-purple-1: #f9f0ff; --ant-purple-6: #722ed1;
+  --ant-cyan-1: #e6fffb;   --ant-cyan-6: #13c2c2;
+  --ant-magenta-1: #fff0f6; --ant-magenta-6: #eb2f96;
+
+  /* ---------- 3. 中性色（文字/边框/填充） ---------- */
+  --ant-color-text:            rgba(0, 0, 0, 0.88);
+  --ant-color-text-secondary:  rgba(0, 0, 0, 0.65);
+  --ant-color-text-tertiary:   rgba(0, 0, 0, 0.45);
+  --ant-color-text-quaternary: rgba(0, 0, 0, 0.25);
+
+  --ant-color-border:          #d9d9d9;
+  --ant-color-border-secondary:#f0f0f0;
+  --ant-color-split:           rgba(5, 5, 5, 0.06);
+
+  --ant-color-bg-container:    #ffffff;
+  --ant-color-bg-elevated:     #ffffff;
+  --ant-color-bg-layout:       #f5f5f5;
+  --ant-color-bg-spotlight:    rgba(0, 0, 0, 0.85);
+  --ant-color-fill-secondary:  rgba(0, 0, 0, 0.06);
+  --ant-color-fill-tertiary:   rgba(0, 0, 0, 0.04);
+  --ant-color-fill-quaternary: rgba(0, 0, 0, 0.02);
+
+  /* ---------- 4. 字体 ---------- */
+  --ant-font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
+                     "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei",
+                     "Helvetica Neue", Helvetica, Arial, sans-serif;
+  --ant-font-family-code: "SFMono-Regular", Consolas, "Liberation Mono", Menlo,
+                          Courier, monospace;
+  --ant-font-size: 14px;
+  --ant-font-size-sm: 12px;
+  --ant-font-size-lg: 16px;
+  --ant-font-size-xl: 20px;
+  --ant-font-size-heading-1: 38px;
+  --ant-font-size-heading-2: 30px;
+  --ant-font-size-heading-3: 24px;
+  --ant-font-size-heading-4: 20px;
+  --ant-font-size-heading-5: 16px;
+  --ant-line-height: 1.5714285714285714;
+
+  /* ---------- 5. 圆角 ---------- */
+  --ant-border-radius-sm: 4px;
+  --ant-border-radius:    6px;
+  --ant-border-radius-lg: 8px;
+  --ant-border-radius-xs: 2px;
+
+  /* ---------- 6. 间距（4px 网格） ---------- */
+  --ant-padding-xxs: 4px;  --ant-padding-xs: 8px;
+  --ant-padding-sm: 12px;  --ant-padding: 16px;
+  --ant-padding-md: 20px;  --ant-padding-lg: 24px;
+  --ant-padding-xl: 32px;  --ant-padding-xxl: 48px;
+  --ant-margin-xxs: 4px;   --ant-margin-xs: 8px;
+  --ant-margin-sm: 12px;   --ant-margin: 16px;
+  --ant-margin-md: 20px;   --ant-margin-lg: 24px;
+  --ant-margin-xl: 32px;
+
+  /* ---------- 7. 阴影（三档，克制） ---------- */
+  --ant-box-shadow:            0 1px 2px 0 rgba(0,0,0,0.03),
+                               0 1px 6px -1px rgba(0,0,0,0.02),
+                               0 2px 4px 0 rgba(0,0,0,0.02);
+  --ant-box-shadow-secondary:  0 6px 16px 0 rgba(0,0,0,0.08),
+                               0 3px 6px -4px rgba(0,0,0,0.12),
+                               0 9px 28px 8px rgba(0,0,0,0.05);
+  --ant-box-shadow-tertiary:   0 1px 2px 0 rgba(0,0,0,0.03),
+                               0 1px 6px -1px rgba(0,0,0,0.02);
+
+  /* ---------- 8. 动效 ---------- */
+  --ant-motion-duration-fast: 0.1s;
+  --ant-motion-duration-mid:  0.2s;
+  --ant-motion-duration-slow: 0.3s;
+  --ant-motion-ease: cubic-bezier(0.645, 0.045, 0.355, 1);
+  --ant-motion-ease-in-out: cubic-bezier(0.645, 0.045, 0.355, 1);
+}
+
+/* ============================================================
+   兼容层：把各历史项目常用的变量名映射到 AntD token
+   ============================================================ */
+:root {
+  /* 背景 */
+  --bg: var(--ant-color-bg-container);
+  --background: var(--ant-color-bg-container);
+  --bg-page: var(--ant-color-bg-container);
+  --bg-body: var(--ant-color-bg-container);
+  --bg-card: var(--ant-color-bg-container);
+  --paper: var(--ant-color-bg-container);
+  --panel: var(--ant-color-bg-container);
+  --surface: var(--ant-color-bg-container);
+  --card: var(--ant-color-bg-container);
+  --base: var(--ant-color-bg-container);
+
+  /* 文字 */
+  --text: var(--ant-color-text);
+  --text-1: var(--ant-color-text);
+  --text-primary: var(--ant-color-text);
+  --ink: var(--ant-color-text);
+  --fg: var(--ant-color-text);
+  --color: var(--ant-color-text);
+
+  --text-2: var(--ant-color-text-secondary);
+  --text-secondary: var(--ant-color-text-secondary);
+  --ink-2: var(--ant-color-text-secondary);
+  --muted: var(--ant-color-text-secondary);
+
+  --text-3: var(--ant-color-text-tertiary);
+  --text-tertiary: var(--ant-color-text-tertiary);
+  --ink-3: var(--ant-color-text-tertiary);
+  --muted-2: var(--ant-color-text-tertiary);
+  --light: var(--ant-color-text-tertiary);
+
+  /* 边框 */
+  --border: var(--ant-color-border);
+  --border-light: var(--ant-color-border-secondary);
+  --line: var(--ant-color-border-secondary);
+  --divider: var(--ant-color-border-secondary);
+  --stroke: var(--ant-color-border);
+
+  /* 主色 */
+  --accent: var(--ant-color-primary);
+  --primary: var(--ant-color-primary);
+  --brand: var(--ant-color-primary);
+  --blue: var(--ant-color-primary);
+  --accent-soft: var(--ant-blue-1);
+  --primary-soft: var(--ant-blue-1);
+
+  /* 功能色 */
+  --success: var(--ant-color-success);
+  --green: var(--ant-color-success);
+  --warning: var(--ant-color-warning);
+  --orange: var(--ant-color-warning);
+  --amber: var(--ant-color-warning);
+  --error: var(--ant-color-error);
+  --danger: var(--ant-color-error);
+  --red: var(--ant-color-error);
+  --purple: var(--ant-purple-6);
+  --cyan: var(--ant-cyan-6);
+
+  /* 圆角 */
+  --radius: var(--ant-border-radius-lg);
+  --radius-sm: var(--ant-border-radius);
+  --r: var(--ant-border-radius-lg);
+  --r-sm: var(--ant-border-radius);
+
+  /* 阴影 */
+  --shadow: var(--ant-box-shadow);
+  --shadow-sm: var(--ant-box-shadow-tertiary);
+  --shadow-md: var(--ant-box-shadow);
+  --shadow-lg: var(--ant-box-shadow-secondary);
+}
+
+/* ============================================================
+   基础重置：确保纯白底 + AntD 排版基线
+   ============================================================ */
+html, body {
+  background: var(--ant-color-bg-container) !important;
+  color: var(--ant-color-text);
+  font-family: var(--ant-font-family);
+  font-size: var(--ant-font-size);
+  line-height: var(--ant-line-height);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* 禁用莫兰迪/手账风遗留：纸质纹理与渐变底 */
+[style*="texture"], [style*="noise"] { background-image: none !important; }
+
+/* AntD 排版层级 */
+h1 { font-size: var(--ant-font-size-heading-2); font-weight: 600; line-height: 1.35; margin: 0 0 16px; }
+h2 { font-size: var(--ant-font-size-heading-3); font-weight: 600; line-height: 1.35; margin: 24px 0 12px; }
+h3 { font-size: var(--ant-font-size-heading-4); font-weight: 600; line-height: 1.4;  margin: 20px 0 10px; }
+h4 { font-size: var(--ant-font-size-heading-5); font-weight: 600; line-height: 1.4;  margin: 16px 0 8px; }
+h5 { font-size: var(--ant-font-size);          font-weight: 600; line-height: 1.5;  margin: 12px 0 6px; }
+
+/* 表格：AntD 风格 */
+table { border-collapse: collapse; width: 100%; background: var(--ant-color-bg-container); }
+thead › tr › th {
+  background: #fafafa;
+  color: var(--ant-color-text);
+  font-weight: 600;
+  font-size: var(--ant-font-size);
+  padding: 12px 16px;
+  border-bottom: 1px solid var(--ant-color-border-secondary);
+  text-align: left;
+  white-space: nowrap;
+}
+tbody › tr › td {
+  padding: 12px 16px;
+  border-bottom: 1px solid var(--ant-color-border-secondary);
+  color: var(--ant-color-text);
+  font-size: var(--ant-font-size);
+  vertical-align: top;
+}
+tbody › tr:hover › td { background: #fafafa; }
+table caption { caption-side: bottom; padding-top: 8px; color: var(--ant-color-text-tertiary); font-size: var(--ant-font-size-sm); }
+
+/* 代码 */
+code, pre, kbd, samp { font-family: var(--ant-font-family-code); font-size: 13px; }
+code { background: rgba(150,150,150,0.1); border: 1px solid rgba(100,100,100,0.2); border-radius: 4px; padding: 1px 4px; }
+pre { background: #fafafa; border: 1px solid var(--ant-color-border-secondary); border-radius: var(--ant-border-radius); padding: 16px; overflow: auto; }
+
+/* 链接 */
+a { color: var(--ant-color-primary); text-decoration: none; transition: color var(--ant-motion-duration-mid); }
+a:hover { color: var(--ant-blue-5); }
+
+/* 选中 */
+::selection { background: #bae0ff; color: var(--ant-color-text); }
+
+/* 滚动条（AntD 风） */
+::-webkit-scrollbar { width: 8px; height: 8px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: rgba(0,0,0,0.15); border-radius: 4px; }
+::-webkit-scrollbar-thumb:hover { background: rgba(0,0,0,0.3); }
+
+/* ============================================================
+   深色 Hero / 大面积色块 → AntD 白底规范
+   规则：AntD 不用大面积饱和底。Hero 一律白底 + 细边框 + 主色点缀
+   ============================================================ */
+[class*="hero"], [class*="banner"], [class*="cover"], [class*="masthead"] {
+  background-image: none !important;
+  background: #ffffff !important;
+  color: rgba(0, 0, 0, 0.88) !important;
+  border-bottom: 1px solid #f0f0f0 !important;
+}
+[class*="hero"] h1, [class*="hero"] h2, [class*="hero"] h3,
+[class*="hero"] h4, [class*="hero"] p,
+[class*="hero"] span, [class*="hero"] div {
+  color: inherit;
+}
+[class*="hero"] h1, [class*="hero"] h2 { color: rgba(0, 0, 0, 0.88) !important; }
+[class*="hero"] p, [class*="hero"] .sub, [class*="hero"] .subtitle {
+  color: rgba(0, 0, 0, 0.65) !important;
+}
+[class*="hero"] a { color: #1677ff !important; }
+
+/* KPI / 统计块：白底 + 主色数字（AntD Statistic 风格） */
+[class*="stat"], [class*="kpi"], [class*="metric"] {
+  background-image: none !important;
+}
+[class*="stat"] › *, [class*="kpi"] › * { color: inherit; }
+
+/* 页面顶部通栏禁止深色/彩色大底 */
+body › header, .page-header, .topbar, .site-header {
+  background-image: none !important;
+  background: #ffffff !important;
+  border-bottom: 1px solid #f0f0f0 !important;
+}
+
+/* 导航条：AntD Tabs 风格（白底 + 主色激活） */
+nav[class*="tab"], .tabs, [class*="navbar"] {
+  background: #ffffff !important;
+  border-bottom: 1px solid #f0f0f0 !important;
+}
+nav[class*="tab"] a, .tabs a { color: rgba(0, 0, 0, 0.65) !important; }
+nav[class*="tab"] a[class*="active"], .tabs a[class*="active"],
+nav[class*="tab"] .active, .tabs .active {
+  color: #1677ff !important;
+  border-bottom: 2px solid #1677ff !important;
+}
+
+/* ============================================================
+   可读性兜底：深底白字改白底后必须变深
+   覆盖 rgba(245,241,232,x) / rgba(255,255,255,x) 这类"浅色文字"
+   ============================================================ */
+[class*="hero"] [class*="stat"] [class*="lbl"],
+[class*="hero"] [class*="stat"] [class*="label"],
+[class*="hero"] [class*="stat"] [class*="desc"],
+[class*="hero"] [class*="stat"] small {
+  color: rgba(0, 0, 0, 0.65) !important;
+}
+[class*="hero"] [class*="stat"] [class*="num"],
+[class*="hero"] [class*="stat"] [class*="value"] {
+  color: #1677ff !important;
+}
+/* hero 内的浅色分割线 → AntD 分割线 */
+[class*="hero"] [class*="stat"]s,
+[class*="hero"] [class*="stat"]-stats {
+  background: #f0f0f0 !important;
+  border-color: #f0f0f0 !important;
+}
+
+/* hero 内的深色卡片底 → AntD 白底 + 细边框 */
+[class*="hero"] [class*="stat"],
+[class*="hero"] [class*="kpi"],
+[class*="hero"] [class*="metric"] {
+  background: #ffffff !important;
+  border: 1px solid #f0f0f0 !important;
+}
+[class*="hero"] [class*="stat"]s,
+[class*="hero"] [class*="stat"]-stats {
+  background: transparent !important;
+  border: none !important;
+  gap: 16px !important;
+}
+
+/* ============================================================
+   最终强制层（覆盖各文件自定义样式，保证 AntD 一致性）
+   ============================================================ */
+/* 1) 标题一律无衬线（AntD 不用装饰性衬线体） */
+h1, h2, h3, h4, h5, h6,
+[class*="hero"] h1, [class*="hero"] h2, [class*="hero"] h3,
+[class*="title"], [class*="heading"], .serif,
+[class*="hero"] [class*="title"] {
+  font-family: var(--ant-font-family) !important;
+  letter-spacing: normal !important;
+}
+/* 2) 导航/tab 白底 + AntD 文字层级 */
+.tabbar, [class*="tabbar"], [class*="tab-bar"] {
+  background: #ffffff !important;
+  border-bottom: 1px solid #f0f0f0 !important;
+}
+.tab-btn, [class*="tab-btn"], [class*="tab"] button {
+  color: rgba(0, 0, 0, 0.65) !important;
+  background: transparent !important;
+  border: none !important;
+}
+.tab-btn:hover, [class*="tab-btn"]:hover { color: #1677ff !important; }
+.tab-btn.active, [class*="tab-btn"].active, [class*="tab"] button.active {
+  color: #1677ff !important;
+  font-weight: 500 !important;
+}
+.tab-btn.active::after, [class*="tab-btn"].active::after,
+[class*="tab"] button.active::after {
+  background: #1677ff !important;
+}
+/* 3) 段落/说明文字确保可读 */
+[class*="hero"] p, [class*="hero"] .lead, [class*="hero"] .desc,
+[class*="hero"] .sub, [class*="hero"] .subtitle, [class*="hero"] .intro {
+  color: rgba(0, 0, 0, 0.65) !important;
+}
+/* 4) 深色小标签/徽章 → AntD Tag 风格 */
+[class*="eyebrow"], [class*="kicker"], [class*="overline"] {
+  color: #1677ff !important;
+  letter-spacing: 0.08em !important;
+}
+
+/* 顶栏/侧栏：深色导航 → AntD 白底 + 细边框 */
+.topnav, .topbar, .header, .app-header, .main-header,
+[class*="topnav"], [class*="top-nav"] {
+  background: #ffffff !important;
+  border-bottom: 1px solid #f0f0f0 !important;
+  box-shadow: none !important;
+}
+.topnav-logo span, .topnav-item, [class*="topnav"] span,
+[class*="topnav"] [class*="item"] {
+  color: rgba(0, 0, 0, 0.65) !important;
+}
+.topnav-item.active, [class*="topnav"] [class*="item"].active {
+  color: #1677ff !important;
+  background: #e6f4ff !important;
+  border-radius: 6px !important;
+}
+.topnav-item:hover, [class*="topnav"] [class*="item"]:hover {
+  color: #1677ff !important;
+  background: rgba(0, 0, 0, 0.04) !important;
+}
+
+/* 侧边栏 */
+.sidebar, .side-nav, [class*="sidebar"], [class*="side-nav"] {
+  background: #ffffff !important;
+  border-right: 1px solid #f0f0f0 !important;
+}
+.sidebar *, [class*="sidebar"] * { color: inherit; }
+.sidebar [class*="item"], [class*="side-nav"] [class*="item"] {
+  color: rgba(0, 0, 0, 0.65) !important;
+}
+.sidebar [class*="item"][class*="active"], [class*="side-nav"] [class*="active"] {
+  color: #1677ff !important;
+  background: #e6f4ff !important;
+  border-radius: 6px !important;
+}
+
+/* 表头强制 AntD 规范（防：表头被染成饱和色/深色） */
+/* 表头：同时覆盖 thead 本体（很多页面把渐变写在 thead 上） */
+thead,
+thead › tr,
+thead › tr › th,
+table › thead › tr › th,
+[class*="table"] thead,
+[class*="table"] thead th {
+  background: #fafafa !important;
+  background-image: none !important;
+  color: rgba(0, 0, 0, 0.88) !important;
+  font-weight: 600 !important;
+  border-bottom: 1px solid #f0f0f0 !important;
+}
+thead th, thead td { color: rgba(0, 0, 0, 0.88) !important; }
+
+</style>
+<meta name="design-system" content="antd5-white">
+</head>
+<body>
+<div class="page">
+  <div class="hero">
+    <div class="eyebrow">样件订单 Agent · 实战复盘 · 2026-11-06</div>
+    <h1>做 Agent 的经验教训<br>与避坑指南</h1>
+    <p class="lead">Agent 的难点不在模型，而在口径、权限、外部系统、失败兜底。这四件事没做好，模型再强也会在生产里翻车。</p>
+    <div class="chips">
+      <span>一线实战</span><span>真实事故</span><span>可直接复用</span><span>上线前检查清单</span>
+    </div>
+  </div>
+
+  <div class="toc">
+    <b>目录</b>
+    <a href="#rules">五条铁律</a>
+    <a href="#l1">1 口径先行</a>
+    <a href="#l2">2 权限前置</a>
+    <a href="#l3">3 数据映射</a>
+    <a href="#l4">4 幂等写表</a>
+    <a href="#l5">5 危险动作</a>
+    <a href="#l6">6 异步三段式</a>
+    <a href="#l7">7 错误可行动</a>
+    <a href="#l8">8 Agent 设计</a>
+    <a href="#l9">9 字段服务流程</a>
+    <a href="#l10">10 测试质量</a>
+    <a href="#l11">11 旧链接</a>
+    <a href="#check">上线前 10 问</a>
+  </div>
+
+  <div class="summary">
+    <h2>一句话结论</h2>
+    <p><strong>模型决定上限，工程决定下限。</strong>把权限、口径、幂等、失败兜底、人工闸门做好，Agent 才是可用的系统；否则只是一个会说话的 Demo。</p>
+  </div>
+
+  <h2 class="sec" id="rules"><em>CORE</em>五条铁律</h2>
+  <p class="sec-lead">如果只能记住五件事，记这五件。</p>
+  <div class="rules">
+    <div class="rule"><span class="n">01</span><b>先定口径</b><span>订单、需求、件、组先定义，再写代码。</span></div>
+    <div class="rule"><span class="n">02</span><b>权限前置</b><span>别等点确认才发现账号没权限。</span></div>
+    <div class="rule"><span class="n">03</span><b>映射不猜</b><span>人员/供应商映射歧义时宁可不填。</span></div>
+    <div class="rule"><span class="n">04</span><b>写表幂等</b><span>重跑不重复建行，不覆盖用户选择。</span></div>
+    <div class="rule"><span class="n">05</span><b>人工闸门</b><span>高风险动作必须有人确认 + 留审计。</span></div>
+  </div>
+
+  <h2 class="sec" id="l1"><em>01</em>先定口径，再写代码</h2>
+  <p class="sec-lead">同一个数出现三种说法，比没有数更危险。</p>
+  <div class="lesson">
+    <h3><span class="num">01</span>订单、需求、件、组，先定义再开发</h3>
+    <p class="kicker">口径是所有页面、卡片、报表的共同语言。</p>
+    <div class="panel pit"><b>坑：</b>同一个批次，卡片写「58 组」，页面写「531 张订单」，用户不知道哪个是订单。</div>
+    <div class="panel fix"><b>做法：</b>所有出口统一「订单=张、需求=条、升版=条」；卡片、页面、工作台、仪表盘逐一对账。</div>
+    <div class="panel case"><b>本项目：</b>最终统一为：一品一点报「73 张订单（试制 55 / 散件 18）」，一品多点报「179 条需求」。</div>
+  </div>
+
+  <div class="lesson">
+    <h3><span class="num">02</span>同一事实多视角，必须做一致性检查</h3>
+    <p class="kicker">接口返回正确，不等于用户看到的正确。</p>
+    <div class="panel pit"><b>坑：</b>查询卡写「升版 82 条」，核对页写「31 张」；两个数都“对”，但用户以为系统在乱报。</div>
+    <div class="panel fix"><b>做法：</b>把「卡片 / 页面 / 工作台 / 仪表盘 / 结果」列成视角矩阵，每个数字问三遍：单位是什么、和谁对齐、与哪个批次对齐。</div>
+    <div class="panel case"><b>本项目：</b>升版统一为「82 条（涉及 32 张订单）」；核对页指标从「需求组数/数量总量」改为「订单/需求/升版」。</div>
+  </div>
+
+  <div class="lesson">
+    <h3><span class="num">03</span>会议和需求里最贵的是细节</h3>
+    <p class="kicker">“大概按这个改”通常意味着后面还要返工。</p>
+    <div class="panel pit"><b>坑：</b>会上说「失败要一条一条列」「换行」「预算不足给我订单号/BR/剩余」，如果只记“优化失败展示”，最后一定漏字段。</div>
+    <div class="panel fix"><b>做法：</b>会后把需求拆成可验收的 checklist：字段、单位、顺序、换行、按钮文案、不要做什么；逐条回读确认。</div>
+    <div class="panel case"><b>本项目：</b>预算不足最终逐需求输出「订单号 / BR号:行 / 剩余 / 需求号 / 零件号 / 需求人 / 总价 / 差额」，就是逐条回读出来的。</div>
+  </div>
+
+  <h2 class="sec" id="l2"><em>02</em>权限和身份要前置，不要等最后一步</h2>
+  <p class="sec-lead">权限问题发现得越晚，代价越大。</p>
+  <div class="lesson">
+    <h3><span class="num">04</span>执行前预检角色，不要等 EP 报 403</h3>
+    <p class="kicker">“能不能点”与“能不能成”是两件事。</p>
+    <div class="panel pit"><b>坑：</b>用户点完确认、等了 1.4 秒，才收到英文报错 <span style="font-family:monospace">Forbidden: insufficient role for B level API</span>。</div>
+    <div class="panel fix"><b>做法：</b>下单前读 EP 令牌 <span style="font-family:monospace">ep-route</span>；viewer:A 直接中文提示，不调用 EP、不产生半成品订单。</div>
+    <div class="panel case"><b>本项目：</b>qiyue 是 <span style="font-family:monospace">viewer:A</span>，fanxueting 是 <span style="font-family:monospace">editor:A,B</span>；预检上线后，qiyue 直接收到「无下单权限，订单未创建」。</div>
+  </div>
+
+  <div class="lesson">
+    <h3><span class="num">05</span>权限错误要翻译成用户动作</h3>
+    <p class="kicker">用户不需要知道 HTTP 403，只需要知道下一步找谁。</p>
+    <div class="panel fix"><b>做法：</b>错误文案四件套：<b>是什么错 + 影响什么 + 下一步做什么 + 不要做什么。</b></div>
+    <div class="panel case"><b>本项目：</b>「当前账号权限不足：创建订单需要 B 级编辑权限（editor:A,B），当前令牌角色为 viewer:A；本次订单未创建。请换有权限账号，或找 EP/GarageHub 管理员开通后重新登录。」</div>
+  </div>
+
+  <h2 class="sec" id="l3"><em>03</em>外部系统的数据映射不能想当然</h2>
+  <p class="sec-lead">人员、组织、供应商，是最容易“看起来有值、其实是空”的地方。</p>
+  <div class="lesson">
+    <h3><span class="num">06</span>人员映射：同名、外包、别名，一个都不能猜</h3>
+    <p class="kicker">飞书搜索不是精确查询，EP 登录名也不一定等于飞书登录名。</p>
+    <div class="panel pit"><b>坑：</b>王龙生同时命中 <span style="font-family:monospace">wanglongsheng</span> 和外包账号 <span style="font-family:monospace">v-wanglongsheng</span>，旧逻辑要求唯一命中，结果 61 行采购员为空；另有 1 行 EP 别名 <span style="font-family:monospace">yixing</span> 搜不到，真实登录是 <span style="font-family:monospace">chengang26</span>。</div>
+    <div class="panel fix"><b>做法：</b>优先按唯一 user_id/精确登录名匹配；排除 <span style="font-family:monospace">v-</span> 外包账号；歧义时用中文姓名精确唯一兜底；仍然不确定就留空并告警，绝不猜人。</div>
+    <div class="panel case"><b>本项目：</b>修复后 179/179 条需求采购员全部有值；空值从 62 行降到 0 行。</div>
+  </div>
+
+  <div class="lesson">
+    <h3><span class="num">07</span>字段映射失败要“显性失败”，不要静默留空</h3>
+    <p class="kicker">空字段比错误字段更难发现。</p>
+    <div class="panel fix"><b>做法：</b>同步结束输出「解析成功/失败数量」；失败名单落日志；页面上给出「未解析」标记或文本兜底。</div>
+  </div>
+
+  <h2 class="sec" id="l4"><em>04</em>写外部系统要幂等、可重跑、保护用户数据</h2>
+  <p class="sec-lead">一次重跑就把用户选择清空，是 Agent 最致命的体验事故之一。</p>
+  <div class="lesson">
+    <h3><span class="num">08</span>字段 PUT 可能是整体替换，不是增量修改</h3>
+    <p class="kicker">API 文档里一个“更新”，可能把你没传的选项全删掉。</p>
+    <div class="panel pit"><b>坑：</b>改多维表格单选字段时只传了新选项，历史选项被整体覆盖，历史行值被清空。</div>
+    <div class="panel fix"><b>做法：</b>改字段前先 GET 全量选项，合并后再 PUT；改类型前备份数据；改完回灌并核对。</div>
+  </div>
+
+  <div class="lesson">
+    <h3><span class="num">09</span>同步必须幂等，且区分“系统写的”和“用户写的”</h3>
+    <p class="kicker">系统只能写候选，不能覆盖用户的选择。</p>
+    <div class="panel fix"><b>做法：</b>按唯一业务键去重；重复跑只更新不新建；用户选择字段同步时永不覆盖；大表用 batch_update，不逐行 PUT。</div>
+    <div class="panel case"><b>本项目：</b>「候选供应商」由系统同步，「选择供应商」只由人选；机器人执行时只读选择，并由后端校验必须在候选范围。</div>
+  </div>
+
+  <h2 class="sec" id="l5"><em>05</em>危险动作必须有闸门</h2>
+  <p class="sec-lead">只要按钮能造成真实后果，它就不是普通按钮。</p>
+  <div class="lesson">
+    <h3><span class="num">10</span>全量确认按钮，本身就是风险入口</h3>
+    <div class="panel pit"><b>坑：</b>测试时为了看效果点「确认执行 · N 张订单」，可能真的下一批单。</div>
+    <div class="panel fix"><b>做法：</b>测试用 1 条需求/工作台选 1 行；生产按钮明确写「全量」；只下部分走「下单 &lt;需求号&gt;」；确认后置灰 + 幂等锁。</div>
+  </div>
+
+  <div class="lesson">
+    <h3><span class="num">11</span>规则不能只在入口检查一次</h3>
+    <p class="kicker">预演到确认之间，世界会变。</p>
+    <div class="panel pit"><b>坑：</b>剔除表只在查询/预演时过滤；用户预演后新增剔除，确认时仍可能把已剔除需求下掉。</div>
+    <div class="panel fix"><b>做法：</b>执行前再读一次剔除表/权限/批次；任何一条不一致就中止并提示重新查询。</div>
+    <div class="panel case"><b>本项目遗留：</b>剔除表执行前复查尚未补，已列入 P1。</div>
+  </div>
+
+  <h2 class="sec" id="l6"><em>06</em>异步链路必须三段式：回执、结果、失败兜底</h2>
+  <p class="sec-lead">用户点完确认后没有反馈，就会重复点；后台失败没有兜底，就会变成“黑盒”。</p>
+  <div class="lesson">
+    <h3><span class="num">12</span>回执要快，结果要主动推</h3>
+    <div class="panel fix"><b>做法：</b>① 立即回执「已收到确认，正在下单中」；② 后台执行完成主动推结果卡片；③ 失败也要推，不能只写日志。</div>
+    <div class="panel pit"><b>坑：</b>订单创建完成但没推飞书卡片，用户以为没执行，反复操作。</div>
+  </div>
+
+  <div class="lesson">
+    <h3><span class="num">13</span>结果要区分成功、草稿、创建失败</h3>
+    <div class="panel fix"><b>做法：</b>成功=已提交审批；草稿=创建成功但自动提交失败；失败=订单根本没建出来。三种处理方式完全不同，绝不能混成「failed」。</div>
+    <div class="panel case"><b>本项目：</b>卡片标题按结果变色；全部失败改「❌ 下单失败」；草稿提示去 EP「我的草稿」，不要整批重下。</div>
+  </div>
+
+  <h2 class="sec" id="l7"><em>07</em>错误信息要能指导下一步</h2>
+  <p class="sec-lead">好的错误提示，是产品能力的一部分。</p>
+  <div class="lesson">
+    <h3><span class="num">14</span>报错四件套：是什么 + 影响 + 下一步 + 不要做什么</h3>
+    <div class="panel fix"><b>示例：</b>「当前账号无下单权限（viewer:A）→ 订单未创建 → 换有 B 级权限账号或找管理员开通 → 不要重复点击」。</div>
+    <div class="panel case"><b>本项目：</b>预算不足逐需求输出订单号、BR号:行、BR剩余、需求号、零件号、需求人、订单总价、差额，用户可以直接对单处理。</div>
+  </div>
+
+  <h2 class="sec" id="l8"><em>08</em>Agent 设计：能确定性就不要交给模型自由发挥</h2>
+  <p class="sec-lead">LLM 适合理解与表达，不适合绕过规则执行。</p>
+  <div class="lesson">
+    <h3><span class="num">15</span>高风险动作走确定性链路</h3>
+    <div class="panel fix"><b>做法：</b>意图识别可以用 LLM；下单、权限、金额、审批必须走规则 + CLI/API + 人工确认。所有动作留审计：谁、何时、什么批次、做了什么、结果如何。</div>
+    <div class="panel case"><b>本项目：</b>路由确定、工具确定、执行 CLI 确定；LLM 只负责理解和解释，不直接下单。</div>
+  </div>
+
+  <div class="lesson">
+    <h3><span class="num">16</span>人工确认是产品能力，不是流程累赘</h3>
+    <div class="panel fix"><b>做法：</b>高风险 Agent 至少保留一次人工闸门；确认前展示「范围 + 数量 + 供应商/需求明细」；确认后原卡置灰，避免重复。</div>
+  </div>
+
+  <h2 class="sec" id="l9"><em>09</em>UI 和字段设计要服务流程，不是服务“看起来规范”</h2>
+  <p class="sec-lead">最规范的数据模型，不一定是最好用的操作界面。</p>
+  <div class="lesson">
+    <h3><span class="num">17</span>原子候选行看起来精确，实际把用户逼疯</h3>
+    <div class="panel pit"><b>坑：</b>「1 需求 × 1 候选 = 1 行」让同一需求出现多行，用户不知道勾哪行，还要自己判断供应商范围。</div>
+    <div class="panel fix"><b>做法：</b>改回「一需求一行 + 候选多选 + 选择单选」；范围由后端校验，界面保持简单。</div>
+    <div class="panel case"><b>本项目：</b>最终定为「一品多点待选」一需求一行，候选人选、选择单选、历史参考。</div>
+  </div>
+
+  <div class="lesson">
+    <h3><span class="num">18</span>有限项用下拉、人员用人员字段，但后端仍要校验</h3>
+    <div class="panel fix"><b>做法：</b>状态/类型/项目用单选，人员用 User；下拉是全局的，不代表范围正确——后端必须校验「选择必须在候选范围」。</div>
+  </div>
+
+  <div class="lesson">
+    <h3><span class="num">19</span>API 做不了的，要明确写成「手工配置」</h3>
+    <div class="panel fix"><b>做法：</b>飞书视图分组、隐藏列、Base 仪表盘组件这类 UI 配置，API 往往做不了；写成一次性手工清单，不要假装自动完成。</div>
+  </div>
+
+  <h2 class="sec" id="l10"><em>10</em>测试数量不等于质量</h2>
+  <p class="sec-lead">363 项测试全绿，仍然漏掉了「卡片 82 条 vs 核对页 31 张」。</p>
+  <div class="lesson">
+    <h3><span class="num">20</span>要专门测「用户看到的界面」</h3>
+    <div class="panel fix"><b>做法：</b>除接口测试外，增加：跨视角数字/单位一致性、人员解析、失败明细字段、全失败卡片、旧链接、空值/重复数据。</div>
+    <div class="panel case"><b>本项目：</b>补了核对页口径测试、预算不足六字段测试；JS 工作台动作仍缺自动化，是后续风险。</div>
+  </div>
+
+  <div class="lesson">
+    <h3><span class="num">21</span>真实数据永远比测试夹具脏</h3>
+    <div class="panel fix"><b>做法：</b>用真实批次做抽样：重复 PR、数组长度不一致、别名账号、空采购员、历史草稿；每个异常都要有降级展示。</div>
+  </div>
+
+  <h2 class="sec" id="l11"><em>11</em>旧链接、旧文档、旧配置是「活代码」</h2>
+  <p class="sec-lead">用户不会区分“代码”和“欢迎语里的链接”。</p>
+  <div class="lesson">
+    <h3><span class="num">22</span>改表后要全量搜旧 table_id / 旧链接 / 旧文案</h3>
+    <div class="panel pit"><b>坑：</b>新工作台上线后，欢迎语仍指向已归档的旧表，用户点进去看到旧数据。</div>
+    <div class="panel fix"><b>做法：</b>改表、改视图、改字段后，全仓搜旧 ID/旧 URL/旧字段名；欢迎语、帮助、文档、卡片链接都算产品面。</div>
+  </div>
+
+  <div class="lesson">
+    <h3><span class="num">23</span>文档要跟着功能一起发版</h3>
+    <div class="panel fix"><b>做法：</b>操作指引、验收表、仪表盘同一次更新、同一次上传；版本日期写清楚；文档里保留“什么时候看什么”的入口。</div>
+  </div>
+
+  <div class="big-callout" id="check">
+    <h3>✅ 上线前 10 问</h3>
+    <div class="checklist">
+      <div class="check"><i></i><span>这个动作会不会真实下单/扣钱/发消息？</span></div>
+      <div class="check"><i></i><span>谁有权限做？没权限时提示清楚吗？</span></div>
+      <div class="check"><i></i><span>同一事实在所有页面单位一致吗？</span></div>
+      <div class="check"><i></i><span>重复点击会不会重复执行？</span></div>
+      <div class="check"><i></i><span>执行到一半失败，用户知道吗？</span></div>
+      <div class="check"><i></i><span>外部系统异常，能翻译成用户动作吗？</span></div>
+      <div class="check"><i></i><span>数据映射（人员/供应商/组织）会不会猜错人？</span></div>
+      <div class="check"><i></i><span>规则是在入口检查一次，还是执行前又检查一次？</span></div>
+      <div class="check"><i></i><span>旧链接、旧表、旧文档清理了吗？</span></div>
+      <div class="check"><i></i><span>有没有一条“用户视角”的端到端验收，而不只是接口测试？</span></div>
+    </div>
+  </div>
+
+  <div class="footer">
+    <span>做 Agent 的经验教训与避坑指南 · 2026-11-06</span>
+    <span>样件订单 Agent 实战复盘 · 模型决定上限，工程决定下限</span>
+  </div>
+</div>
+</body>
+</html>
