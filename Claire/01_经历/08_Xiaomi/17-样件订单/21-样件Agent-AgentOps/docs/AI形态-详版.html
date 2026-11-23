@@ -1,0 +1,987 @@
+<!DOCTYPE html>
+<html lang="zh-CN"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>EP 采购 AI · 分层架构与场景（人话版）</title>
+<style>
+:root{--bg:#ffffff;--line:#e3e8f0;--ink:#1f2933;--ink2:#5b6b7f;--ink3:#8a94a6;
+--l1:#eaf2ff;--l1f:#2f6fed;--l2:#f3eefd;--l2f:#7c5cbf;--l3:#e9f8f0;--l3f:#1a9e5c;--l4:#fff4e5;--l4f:#d97706;
+--ok:#1a9e5c;--warn:#d97706;--bad:#d64545;--off:#8a94a6}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{margin:0;background:var(--bg);color:var(--ink);font:13px/1.6 -apple-system,"PingFang SC","Microsoft YaHei",sans-serif}
+.wrap{max-width:1440px;margin:0 auto;padding:16px 16px 60px}
+/* 吸顶导航 */
+.znav{position:sticky;top:0;z-index:20;background:rgba(255,255,255,.94);backdrop-filter:blur(8px);
+border:1px solid var(--line);border-radius:12px;padding:6px 10px;margin-bottom:12px;display:flex;gap:6px;flex-wrap:wrap;box-shadow:0 1px 6px rgba(31,41,51,.06)}
+.znav a{font-size:12px;color:var(--ink2);text-decoration:none;padding:4px 12px;border-radius: 8px;border:1px solid transparent}
+.znav a:hover{background:var(--l1);color:var(--l1f);border-color:#cfe2ff}
+.znav .sep{width:1px;background:var(--line);margin:2px 2px}
+/* 分区卡片 */
+.zone{background:#fff;border:1px solid var(--line);border-radius: 8px;overflow:hidden;box-shadow:0 1px 4px rgba(31,41,51,.05);margin-bottom:14px;scroll-margin-top:52px}
+.zone-hd{padding:12px 20px 10px;border-bottom:1px solid var(--line);background:linear-gradient(180deg,#fbfcfe,#fff);display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.zone-hd .no{width:22px;height:22px;border-radius:7px;background:var(--l1);color:var(--l1f);font-size:11.5px;font-weight:800;display:flex;align-items:center;justify-content:center;flex:0 0 auto}
+.zone-hd h2{font-size:15px;margin:0;font-weight:800}
+.zone-hd .zsub{font-size:11px;color:var(--ink3);flex:1 1 100%;margin-left:32px;margin-top:-6px}
+/* 头部区 */
+.hd{padding:16px 20px 12px}
+.hd h1{margin:0 0 8px;font-size:19px;letter-spacing:.5px}
+.hd h1 .sub{font-size:12px;color:var(--ink2);font-weight:400;margin-left:10px}
+.guide{border:1px solid #d6e4ff;background:#f4f8ff;border-radius:12px;padding:9px 16px;margin-bottom:10px;font-size:13px;line-height:1.8;color:var(--ink)}
+.guide b{color:var(--l1f)}
+.guide .arrow{color:var(--ink3);margin:0 6px}
+.legend{display:flex;gap:14px;flex-wrap:wrap;font-size:11px;color:var(--ink2);align-items:center;margin-bottom:10px}
+.legend .lg{display:inline-flex;align-items:center;gap:6px}
+.legend .sw{width:22px;height:0;border-top:2px solid var(--ink2)}
+.legend .sw.dash{border-top-style:dashed}
+/* 紧凑四阶段步进 */
+.evo{display:flex;align-items:stretch;gap:0;margin-bottom:10px}
+.evo .st{flex:1;background:#fafbfd;border:1px solid var(--line);padding:7px 12px;position:relative}
+.evo .st:first-child{border-radius:10px 0 0 10px}
+.evo .st:last-child{border-radius:0 10px 10px 0}
+.evo .st+.st::before{content:'→';position:absolute;left:-11px;top:50%;transform:translateY(-50%);color:var(--ink3);z-index:2;background:#fff;padding:0 1px;font-size:12px}
+.evo .st b{font-size:12px;display:block}
+.evo .st .d{color:var(--ink2);font-size:10.8px;line-height:1.45}
+.evo .st .ia,.evo .st .pm{font-size:10.6px;color:var(--ink2);line-height:1.5;margin-top:3px;display:flex;gap:4px;align-items:baseline}
+.evo .st .ia i,.evo .st .pm i{flex:0 0 auto;font-style:normal;font-size:9px;font-weight:700;color:#fff;border-radius:4px;padding:0 5px;letter-spacing:.5px}
+.evo .st .ia i{background:var(--l1f)}
+.evo .st .pm i{background:var(--warn)}
+.evo-cap{font-size:11px;color:var(--ink3);margin:4px 0 6px}
+.evo-cap b{color:var(--l1f)}
+.evo .st.cur{background:var(--l1);border-color:var(--l1f)}
+.evo .st .badge{position:absolute;top:-8px;right:8px;font-size:10px;padding:1px 8px;border-radius: 8px;color:#fff;font-weight:700}
+.evo .st:nth-child(1) .badge{background:var(--off)}
+.evo .st:nth-child(2) .badge{background:var(--l2f)}
+.evo .st:nth-child(3) .badge{background:var(--l1f)}
+.evo .st:nth-child(4) .badge{background:var(--ok)}
+.anchor{font-size:12px;color:var(--ink2);background:#f7f9fc;border-left:3px solid var(--l1f);padding:7px 12px;border-radius:0 8px 8px 0}
+/* 逐层行：左场景 | 中层 | 右未来 */
+.lrow{display:grid;grid-template-columns:232px 1fr 232px;gap:0}
+.lrow+.contract,.contract+.lrow{margin-top:0}
+.lrow .side{padding:10px 12px;background:#fbfcfe}
+.lrow .side.l{border-right:1px solid var(--line)}
+.lrow .side.r{border-left:1px solid var(--line)}
+.side .sh{font-size:11px;font-weight:800;color:var(--ink3);margin-bottom:6px;letter-spacing:.5px}
+.side .sh .shl{color:var(--l1f)}
+.r2 .side .shl{color:var(--l2f)}.r3 .side .shl{color:var(--l3f)}.r4 .side .shl{color:var(--l4f)}
+.use{border-left:3px solid var(--l1f);background:#fff;border-radius:0 8px 8px 0;border-top:1px solid var(--line);border-right:1px solid var(--line);border-bottom:1px solid var(--line);padding:6px 9px;margin-bottom:6px}
+.r2 .use{border-left-color:var(--l2f)}.r3 .use{border-left-color:var(--l3f)}.r4 .use{border-left-color:var(--l4f)}
+.use .u-h{font-size:11px;font-weight:700;color:var(--ink);margin-bottom:1px}
+.use .u-d{font-size:10.6px;color:var(--ink2);line-height:1.5}
+.fut-card{border:1px dashed var(--l3f);background:#fff;border-radius:8px;padding:6px 9px;margin-bottom:6px}
+.fut-card.solid{border-style:solid}
+.fut-card .f-h{font-size:11px;font-weight:700;display:flex;align-items:center;gap:5px}
+.fut-card .f-tag{font-size:9.5px;padding:0 6px;border-radius: 8px;color:#fff;font-weight:700;flex:0 0 auto}
+.fut-card .f-tag.plan{background:var(--off)}
+.fut-card .f-tag.now{background:var(--l3f)}
+.fut-card .f-d{font-size:10.6px;color:var(--ink2);line-height:1.5;margin-top:2px}
+.fut-card .f-d .reuse{color:var(--l1f);font-weight:600}
+/* 行间契约条 */
+.contract{display:flex;align-items:center;gap:10px;margin:0;padding:0 12px;border-top:1px solid var(--line);border-bottom:1px solid var(--line);background:#ffffff}
+.contract .arr{flex:0 0 auto;color:var(--ink3);font-size:14px;padding-left:2px}
+.contract .body{padding:5px 12px;flex:1;font-size:11.5px;color:var(--ink2);line-height:1.6}
+.contract .body b{color:var(--ink)}
+/* 层卡片 */
+.layer{border:0;margin:0;padding:10px 14px 12px;background:#fff}
+.layer .lh{padding:7px 12px;display:flex;align-items:baseline;gap:10px;flex-wrap:wrap;border-radius:10px 10px 0 0;margin-bottom:0}
+.layer .lh .ln{font-size:13px;font-weight:800}
+.layer .lh .human{font-size:13.5px;font-weight:800}
+.layer .lh .role{font-size:10.8px;color:var(--ink2);flex:1 1 100%}
+.l1 .lh{background:var(--l1)}.l1 .lh .ln{color:var(--l1f)}.l1 .lh .human{color:var(--l1f)}
+.l2 .lh{background:var(--l2)}.l2 .lh .ln{color:var(--l2f)}.l2 .lh .human{color:var(--l2f)}
+.l3 .lh{background:var(--l3)}.l3 .lh .ln{color:var(--l3f)}.l3 .lh .human{color:var(--l3f)}
+.l4 .lh{background:var(--l4)}.l4 .lh .ln{color:var(--l4f)}.l4 .lh .human{color:var(--l4f)}
+.bands{display:grid;grid-template-columns:repeat(3,1fr);border:1px solid var(--line);border-radius:0 0 10px 10px;border-top:0}
+.band{padding:8px 11px;border-left:1px dashed var(--line);background:#fff}
+.band:first-child{border-left:0}
+.band .bt{font-size:10.8px;font-weight:700;color:var(--ink3);margin-bottom:5px;letter-spacing:.5px}
+.talk{border:1px solid var(--line);border-radius:8px;padding:5px 8px;margin:3px 0;background:#fff}
+.talk.dashed{border-style:dashed;background:#fcfcff}
+.talk .tk-t{font-size:11.5px;font-weight:700;line-height:1.4}
+.talk .tk-t .tk-en{font-weight:400;font-size:10px;color:var(--ink3);margin-left:3px}
+.talk .tk-d{font-size:10.6px;color:var(--ink2);line-height:1.5;margin-top:1px}
+.talk.dashed .tk-t::before{content:'◌ ';color:var(--ink3);font-weight:400}
+.tag{display:inline-block;font-size:9.5px;padding:0 6px;border-radius: 8px;margin-left:4px;vertical-align:1px;font-weight:600}
+.tag-done{background:#e7f7ef;color:var(--ok)}
+.tag-now{background:var(--l1);color:var(--l1f)}
+.tag-future{background:#fff4e5;color:var(--warn)}
+/* 横切条 */
+.cross{display:flex;align-items:center;gap:10px;padding:0 12px;border-top:1px solid var(--line);background:#fff}
+.cross .arr{color:var(--ink3);font-size:14px}
+.cross .body{padding:7px 12px;flex:1;font-size:11.5px;color:var(--ink2);line-height:1.7}
+.cross .body b{color:var(--ink)}
+/* 三条路线 */
+.routes{padding:12px 20px;display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
+.rt{background:#fafbfd;border:1px solid var(--line);border-radius:10px;padding:8px 12px}
+.rt .rt-t{font-size:11.5px;font-weight:800;margin-bottom:4px}
+.rt .rt-t.ro{color:var(--l3f)}.rt .rt-t.rw{color:var(--warn)}.rt .rt-t.rc{color:var(--l1f)}
+.rt .rt-c{font-size:10.6px;color:var(--ink2);line-height:1.7}
+.rt .rt-c .g{color:var(--warn);font-weight:700}
+.rt .rt-c .c{color:var(--l2f);font-weight:700}
+.rt .rt-n{font-size:10.4px;color:var(--ink3);margin-top:3px}
+/* 风险区 */
+.risk-zone{padding:12px 20px 14px}
+.risk-zone .st{font-size:11.5px;color:var(--ink3);font-weight:700;margin-bottom:6px}
+.risks{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.risk{border:1px solid #ffe1b8;border-radius:8px;padding:6px 10px;background:#fffaf5}
+.risk .rn{font-size:10px;font-weight:800;color:var(--warn)}
+.risk .rt{font-size:12px;font-weight:700;margin:1px 0}
+.risk .rd{font-size:10.6px;color:var(--ink2);line-height:1.5}
+.risk .rc{margin-top:3px;font-size:10px;color:var(--bad);font-weight:600}
+.risk-note{font-size:11.5px;color:var(--ink2);margin-top:8px;background:#fff8ee;border-radius:8px;padding:6px 12px;line-height:1.7}
+.ctl{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:10px}
+.ctl .c{border:1px solid var(--line);border-radius:8px;padding:6px 10px;background:#fafbfd;font-size:11px}
+.ctl .c b{display:block;font-size:11.5px;color:var(--ink)}
+.ctl .c .l{color:var(--l1f);font-weight:600;font-size:10.5px}
+.ctl .c .d{color:var(--ink2);line-height:1.5;margin-top:2px}
+/* 折叠 */
+.details{border-top:1px solid var(--line)}
+details{border-bottom:1px solid var(--line)}
+details:last-child{border-bottom:0}
+summary{cursor:pointer;padding:11px 22px;font-size:13px;font-weight:700;color:var(--ink2);background:#fbfcfe;list-style:none}
+summary::-webkit-details-marker{display:none}
+summary::after{content:'▾';float:right;color:var(--ink3)}
+details[open] summary::after{content:'▴'}
+details[open] summary{color:var(--ink)}
+.qbody{padding:6px 22px 14px;background:#fff}
+.tbl{width:100%;border-collapse:collapse;font-size:11.5px;margin:6px 0}
+.tbl th{background:#f1f4f9;text-align:left;padding:6px 9px;border:1px solid var(--line);white-space:nowrap}
+.tbl td{padding:6px 9px;border:1px solid var(--line);vertical-align:top;line-height:1.55}
+.summary-box{background:#f7f9fc;border-left:3px solid var(--l1f);padding:9px 14px;border-radius:0 8px 8px 0;margin:10px 0;font-size:12.5px;color:var(--ink2);line-height:1.7}
+/* 历史 */
+.hist{padding:14px 20px}
+.hist .hsub{font-size:11px;color:var(--ink3);margin:0 0 10px}
+.phase-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
+.phase{border:1px solid var(--line);border-radius:10px;background:#fff;overflow:hidden}
+.phase .ph{display:flex;align-items:center;gap:8px;padding:8px 12px;background:#f7f9fc;border-bottom:1px solid var(--line)}
+.phase .ph .num{flex:0 0 auto;width:20px;height:20px;border-radius:50%;background:var(--l1);color:var(--l1f);font-size:11px;font-weight:800;display:flex;align-items:center;justify-content:center}
+.phase .ph .pt{font-weight:700;font-size:12.5px}
+.phase .ph .pd{margin-left:auto;font-size:10.5px;color:var(--ink3);white-space:nowrap}
+.phase details{border-bottom:1px dashed var(--line)}
+.phase details:last-child{border-bottom:0}
+.phase summary{font-size:11.5px;padding:6px 12px;cursor:pointer;color:var(--ink);font-weight:600;background:transparent}
+.phase summary::after{content:none}
+.phase summary::before{content:'▸ ';color:var(--ink3);font-weight:400}
+.phase details[open] summary::before{content:'▾ '}
+.phase details[open] summary{color:var(--l1f)}
+.phase .sd{font-size:11px;color:var(--ink2);padding:0 12px 8px 26px;line-height:1.55}
+.footnote{font-size:11px;color:var(--ink3);margin-top:10px;line-height:1.6}
+.foot{text-align:center;color:var(--ink3);font-size:11px;padding:14px 0 4px}
+/* 终局全景图 */
+.pano{padding:14px 20px 16px}
+.pano-h{font-size:12px;font-weight:800;color:var(--ink);margin:12px 0 8px;display:flex;align-items:center;gap:8px}
+.pano-h:first-child{margin-top:0}
+.pano-h .qn{flex:0 0 auto;width:18px;height:18px;border-radius:6px;background:var(--l3);color:var(--l3f);font-size:10.5px;font-weight:800;display:flex;align-items:center;justify-content:center}
+.pano-h .qd{font-weight:400;font-size:11px;color:var(--ink3)}
+.pano-flow{display:grid;grid-template-columns:200px 30px 1fr 30px 170px;gap:0;align-items:center;margin:2px 0 4px}
+.pano-ents{display:flex;flex-direction:column;gap:6px}
+.pano-ent{border:1px solid var(--line);border-radius:10px;padding:8px 12px;background:#fafbfd}
+.pano-ent.primary{border-color:var(--l1f);background:var(--l1)}
+.pano-ent.endgame{border-color:var(--l3f);background:var(--l3)}
+.pano-ent .e-t{font-size:12px;font-weight:800}
+.pano-ent .e-t .et{font-size:9px;padding:0 7px;border-radius: 8px;color:#fff;font-weight:700;margin-left:5px;vertical-align:1px}
+.pano-ent.primary .et{background:var(--l1f)}
+.pano-ent.endgame .et{background:var(--l3f)}
+.pano-ent .e-r{font-size:10.5px;color:var(--ink2);margin-top:2px;line-height:1.5}
+.pano-arrow{text-align:center;color:var(--ink3);font-size:16px}
+.pano-core{border:2px solid var(--l3f);border-radius:12px;background:var(--l3);padding:10px 14px}
+.pano-core .c-t{font-size:13px;font-weight:800;color:var(--l3f);margin-bottom:4px}
+.pano-core .c-t .ai{font-size:9.5px;background:var(--l3f);color:#fff;padding:1px 8px;border-radius: 8px;margin-left:6px;vertical-align:2px}
+.pano-core .c-s{font-size:10.8px;color:var(--ink2);line-height:1.65}
+.pano-core .c-s b{color:var(--ink)}
+.pano-ep{border:1px solid var(--line);border-radius:10px;background:#f2f3f5;padding:10px 12px;text-align:center}
+.pano-ep .e-t{font-size:12px;font-weight:800}
+.pano-ep .e-r{font-size:10.5px;color:var(--ink2);margin-top:3px;line-height:1.5}
+.deps{display:grid;grid-template-columns:repeat(4,1fr);gap:8px}
+.dep{border:1px solid var(--line);border-radius:8px;padding:7px 10px;background:#fafbfd}
+.dep .d-t{font-size:11.5px;font-weight:700}
+.dep .d-t .d-role{font-size:9.5px;color:var(--ink3);font-weight:400;margin-left:4px}
+.dep .d-v{font-size:10.5px;color:var(--ink2);line-height:1.5;margin-top:2px}
+.dep .d-v b{color:var(--ink)}
+.gap-tbl{width:100%;border-collapse:collapse;font-size:11.5px}
+.gap-tbl th{background:#f1f4f9;text-align:left;padding:6px 10px;border:1px solid var(--line);white-space:nowrap}
+.gap-tbl td{padding:6px 10px;border:1px solid var(--line);vertical-align:top;line-height:1.55}
+.gap-tbl td.dim{font-weight:700;white-space:nowrap}
+.gap-tbl td.end{color:var(--l3f);font-weight:600;white-space:nowrap}
+.gap-tbl td.now{color:var(--ink2)}
+.gap-tbl td.now b{color:var(--bad)}
+@media(max-width:1100px){.pano-flow{grid-template-columns:1fr;gap:6px}.pano-arrow{transform:rotate(90deg)}.deps{grid-template-columns:repeat(2,1fr)}}
+/* 三幕故事线 */
+.act-hd{display:flex;align-items:center;gap:12px;padding:14px 20px 10px;border-bottom:1px solid var(--line);background:linear-gradient(180deg,#fbfcfe,#fff)}
+.act-hd .act-no{flex:0 0 auto;font-size:11px;font-weight:800;padding:3px 12px;border-radius: 8px;color:#fff;letter-spacing:1px}
+.act-hd.why .act-no{background:var(--bad)}
+.act-hd.how .act-no{background:var(--l1f)}
+.act-hd.where .act-no{background:var(--ok)}
+.act-hd h2{font-size:16px;margin:0}
+.act-hd .act-sub{font-size:11.5px;color:var(--ink3);flex:1 1 100%;margin-left:0;margin-top:-4px}
+.act-narr{font-size:12px;color:var(--ink2);line-height:1.8;padding:8px 20px 0}
+.act-narr b{color:var(--ink)}
+.act-narr .hl2{background:linear-gradient(transparent 60%,#ffe9a8 60%);font-weight:700;color:var(--ink)}
+/* 划重点 Highlight */
+.hl{background:linear-gradient(135deg,#fffbeb,#fff7d6);border:1px solid #f5e08a;border-radius:12px;padding:12px 18px;margin-bottom:12px}
+.hl .hl-t{font-size:13px;font-weight:800;color:#b45309;margin-bottom:8px;letter-spacing:.5px}
+.hl-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:6px 16px}
+.hl-item{display:flex;align-items:baseline;gap:8px;font-size:12px;line-height:1.55}
+.hl-item .q{flex:0 0 auto;font-size:10px;font-weight:800;padding:1px 7px;border-radius:6px;background:#fff;border:1px solid #f0d67c;color:#b45309;letter-spacing:.5px}
+.hl-item .qa{color:var(--ink)}
+.hl-item .qa b{color:#b45309}
+@media(max-width:900px){.hl-grid{grid-template-columns:1fr}}
+/* 核心三问（紧凑 · 同设计语言） */
+.q3-wrap{padding:12px 20px 14px}
+.q3-h{font-size:12px;font-weight:800;color:var(--ink);margin:10px 0 6px;display:flex;align-items:center;gap:8px}
+.q3-h .qn{flex:0 0 auto;width:18px;height:18px;border-radius:6px;background:var(--l1);color:var(--l1f);font-size:10.5px;font-weight:800;display:flex;align-items:center;justify-content:center}
+.q3-h .qd{font-weight:400;font-size:11px;color:var(--ink3)}
+.q3-grid2{display:grid;grid-template-columns:repeat(2,1fr);gap:8px}
+.q3-grid3{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.q3-p{border:1px solid var(--line);border-radius:8px;padding:7px 11px;background:#fafbfd}
+.q3-p .p-h{font-size:12px;font-weight:700;margin-bottom:2px;color:var(--ink)}
+.q3-p .p-h .en{font-size:10px;color:var(--ink3);font-weight:400;margin-left:4px}
+.q3-p .p-d{font-size:11px;color:var(--ink2);line-height:1.55}
+.q3-p .p-d b{color:var(--ink)}
+.q3-c{border:1px solid var(--line);border-radius:8px;overflow:hidden;background:#fafbfd}
+.q3-c .c-h{padding:5px 11px;font-size:11.5px;font-weight:800;color:#fff}
+.q3-c.api .c-h{background:var(--l1f)}
+.q3-c.cli .c-h{background:var(--l4f)}
+.q3-c.mcp .c-h{background:var(--l2f)}
+.q3-c .c-b{padding:7px 11px;font-size:11px;color:var(--ink2);line-height:1.6}
+.q3-c .c-b .row{margin:2px 0}
+.q3-c .c-b .row b{color:var(--ink)}
+.q3-c .c-b .st{display:inline-block;font-size:9.5px;padding:0 7px;border-radius: 8px;background:#e7f7ef;color:var(--ok);font-weight:700;margin-top:2px}
+.q3-c.mcp .c-b .st{background:#fff4e5;color:var(--warn)}
+.q3-perm{border:1px solid var(--line);border-radius:8px;overflow:hidden;background:#fafbfd}
+.q3-perm .p-h{padding:5px 11px;font-size:11.5px;font-weight:800;color:#fff;background:var(--off)}
+.q3-perm.cli .p-h{background:var(--l4f)}
+.q3-perm.gw .p-h{background:#64748b}
+.q3-perm.gh .p-h{background:#0891b2}
+.q3-perm .p-b{padding:7px 11px;font-size:11px;color:var(--ink2);line-height:1.6}
+.q3-perm .p-b .row{margin:2px 0}
+.q3-perm .p-b .row b{color:var(--ink)}
+.q3-perm .p-b .cap{display:inline-block;font-size:9.5px;padding:0 7px;border-radius: 8px;background:#f2f3f5;color:var(--off);font-weight:700;margin-top:3px}
+.q3-concl{margin-top:10px;background:var(--l3);border:1px solid var(--l3f);border-radius:10px;padding:9px 14px;font-size:12px;line-height:1.75;color:var(--ink)}
+.q3-concl b{color:var(--l3f)}
+@media(max-width:1100px){
+.lrow{grid-template-columns:1fr}
+.lrow .side.l{border-right:0;border-bottom:1px solid var(--line)}
+.lrow .side.r{border-left:0;border-top:1px solid var(--line)}
+.bands{grid-template-columns:1fr}.band{border-left:0;border-top:1px dashed var(--line)}
+.band:first-child{border-top:0}
+.risks{grid-template-columns:1fr}.ctl{grid-template-columns:1fr}
+.q3-grid2{grid-template-columns:1fr}.q3-grid3{grid-template-columns:1fr}
+.phase-grid{grid-template-columns:1fr}.routes{grid-template-columns:1fr}
+.evo{flex-direction:column;gap:4px}.evo .st{border-radius:10px!important}
+.evo .st+.st::before{content:none}
+}
+</style>
+<style id="ANT_DESIGN_TOKENS">
+/* Ant Design 5 tokens — auto-injected by antd_migrate.py */
+/* ============================================================
+   Ant Design 5.x Design Tokens — Claire Vault 唯一视觉标准
+   用法：单文件 HTML 内嵌本段（粘贴到 style 标签内开头，勿外链）
+   依据：Ant Design 5 官方 Design Token（seed / map / alias 三层）
+   ============================================================ */
+
+:root {
+  /* ---------- 1. 色彩 Seed ---------- */
+  --ant-color-primary: #1677ff;
+  --ant-color-success: #52c41a;
+  --ant-color-warning: #faad14;
+  --ant-color-error:   #ff4d4f;
+  --ant-color-info:    #1677ff;
+
+  /* ---------- 2. 色彩 Map（功能色 1-10 阶） ---------- */
+  --ant-blue-1: #e6f4ff; --ant-blue-2: #bae0ff; --ant-blue-3: #91caff;
+  --ant-blue-5: #4096ff; --ant-blue-6: #1677ff; --ant-blue-7: #0958d9;
+
+  --ant-green-1: #f6ffed; --ant-green-2: #d9f7be; --ant-green-3: #b7eb8f;
+  --ant-green-6: #52c41a; --ant-green-7: #389e0d;
+
+  --ant-gold-1: #fffbe6; --ant-gold-2: #fff1b8; --ant-gold-3: #ffe58f;
+  --ant-gold-6: #faad14; --ant-gold-7: #d48806;
+
+  --ant-red-1: #fff2f0; --ant-red-2: #ffccc7; --ant-red-3: #ffa39e;
+  --ant-red-6: #ff4d4f; --ant-red-7: #d9363e;
+
+  --ant-purple-1: #f9f0ff; --ant-purple-6: #722ed1;
+  --ant-cyan-1: #e6fffb;   --ant-cyan-6: #13c2c2;
+  --ant-magenta-1: #fff0f6; --ant-magenta-6: #eb2f96;
+
+  /* ---------- 3. 中性色（文字/边框/填充） ---------- */
+  --ant-color-text:            rgba(0, 0, 0, 0.88);
+  --ant-color-text-secondary:  rgba(0, 0, 0, 0.65);
+  --ant-color-text-tertiary:   rgba(0, 0, 0, 0.45);
+  --ant-color-text-quaternary: rgba(0, 0, 0, 0.25);
+
+  --ant-color-border:          #d9d9d9;
+  --ant-color-border-secondary:#f0f0f0;
+  --ant-color-split:           rgba(5, 5, 5, 0.06);
+
+  --ant-color-bg-container:    #ffffff;
+  --ant-color-bg-elevated:     #ffffff;
+  --ant-color-bg-layout:       #f5f5f5;
+  --ant-color-bg-spotlight:    rgba(0, 0, 0, 0.85);
+  --ant-color-fill-secondary:  rgba(0, 0, 0, 0.06);
+  --ant-color-fill-tertiary:   rgba(0, 0, 0, 0.04);
+  --ant-color-fill-quaternary: rgba(0, 0, 0, 0.02);
+
+  /* ---------- 4. 字体 ---------- */
+  --ant-font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
+                     "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei",
+                     "Helvetica Neue", Helvetica, Arial, sans-serif;
+  --ant-font-family-code: "SFMono-Regular", Consolas, "Liberation Mono", Menlo,
+                          Courier, monospace;
+  --ant-font-size: 14px;
+  --ant-font-size-sm: 12px;
+  --ant-font-size-lg: 16px;
+  --ant-font-size-xl: 20px;
+  --ant-font-size-heading-1: 38px;
+  --ant-font-size-heading-2: 30px;
+  --ant-font-size-heading-3: 24px;
+  --ant-font-size-heading-4: 20px;
+  --ant-font-size-heading-5: 16px;
+  --ant-line-height: 1.5714285714285714;
+
+  /* ---------- 5. 圆角 ---------- */
+  --ant-border-radius-sm: 4px;
+  --ant-border-radius:    6px;
+  --ant-border-radius-lg: 8px;
+  --ant-border-radius-xs: 2px;
+
+  /* ---------- 6. 间距（4px 网格） ---------- */
+  --ant-padding-xxs: 4px;  --ant-padding-xs: 8px;
+  --ant-padding-sm: 12px;  --ant-padding: 16px;
+  --ant-padding-md: 20px;  --ant-padding-lg: 24px;
+  --ant-padding-xl: 32px;  --ant-padding-xxl: 48px;
+  --ant-margin-xxs: 4px;   --ant-margin-xs: 8px;
+  --ant-margin-sm: 12px;   --ant-margin: 16px;
+  --ant-margin-md: 20px;   --ant-margin-lg: 24px;
+  --ant-margin-xl: 32px;
+
+  /* ---------- 7. 阴影（三档，克制） ---------- */
+  --ant-box-shadow:            0 1px 2px 0 rgba(0,0,0,0.03),
+                               0 1px 6px -1px rgba(0,0,0,0.02),
+                               0 2px 4px 0 rgba(0,0,0,0.02);
+  --ant-box-shadow-secondary:  0 6px 16px 0 rgba(0,0,0,0.08),
+                               0 3px 6px -4px rgba(0,0,0,0.12),
+                               0 9px 28px 8px rgba(0,0,0,0.05);
+  --ant-box-shadow-tertiary:   0 1px 2px 0 rgba(0,0,0,0.03),
+                               0 1px 6px -1px rgba(0,0,0,0.02);
+
+  /* ---------- 8. 动效 ---------- */
+  --ant-motion-duration-fast: 0.1s;
+  --ant-motion-duration-mid:  0.2s;
+  --ant-motion-duration-slow: 0.3s;
+  --ant-motion-ease: cubic-bezier(0.645, 0.045, 0.355, 1);
+  --ant-motion-ease-in-out: cubic-bezier(0.645, 0.045, 0.355, 1);
+}
+
+/* ============================================================
+   兼容层：把各历史项目常用的变量名映射到 AntD token
+   ============================================================ */
+:root {
+  /* 背景 */
+  --bg: var(--ant-color-bg-container);
+  --background: var(--ant-color-bg-container);
+  --bg-page: var(--ant-color-bg-container);
+  --bg-body: var(--ant-color-bg-container);
+  --bg-card: var(--ant-color-bg-container);
+  --paper: var(--ant-color-bg-container);
+  --panel: var(--ant-color-bg-container);
+  --surface: var(--ant-color-bg-container);
+  --card: var(--ant-color-bg-container);
+  --base: var(--ant-color-bg-container);
+
+  /* 文字 */
+  --text: var(--ant-color-text);
+  --text-1: var(--ant-color-text);
+  --text-primary: var(--ant-color-text);
+  --ink: var(--ant-color-text);
+  --fg: var(--ant-color-text);
+  --color: var(--ant-color-text);
+
+  --text-2: var(--ant-color-text-secondary);
+  --text-secondary: var(--ant-color-text-secondary);
+  --ink-2: var(--ant-color-text-secondary);
+  --muted: var(--ant-color-text-secondary);
+
+  --text-3: var(--ant-color-text-tertiary);
+  --text-tertiary: var(--ant-color-text-tertiary);
+  --ink-3: var(--ant-color-text-tertiary);
+  --muted-2: var(--ant-color-text-tertiary);
+  --light: var(--ant-color-text-tertiary);
+
+  /* 边框 */
+  --border: var(--ant-color-border);
+  --border-light: var(--ant-color-border-secondary);
+  --line: var(--ant-color-border-secondary);
+  --divider: var(--ant-color-border-secondary);
+  --stroke: var(--ant-color-border);
+
+  /* 主色 */
+  --accent: var(--ant-color-primary);
+  --primary: var(--ant-color-primary);
+  --brand: var(--ant-color-primary);
+  --blue: var(--ant-color-primary);
+  --accent-soft: var(--ant-blue-1);
+  --primary-soft: var(--ant-blue-1);
+
+  /* 功能色 */
+  --success: var(--ant-color-success);
+  --green: var(--ant-color-success);
+  --warning: var(--ant-color-warning);
+  --orange: var(--ant-color-warning);
+  --amber: var(--ant-color-warning);
+  --error: var(--ant-color-error);
+  --danger: var(--ant-color-error);
+  --red: var(--ant-color-error);
+  --purple: var(--ant-purple-6);
+  --cyan: var(--ant-cyan-6);
+
+  /* 圆角 */
+  --radius: var(--ant-border-radius-lg);
+  --radius-sm: var(--ant-border-radius);
+  --r: var(--ant-border-radius-lg);
+  --r-sm: var(--ant-border-radius);
+
+  /* 阴影 */
+  --shadow: var(--ant-box-shadow);
+  --shadow-sm: var(--ant-box-shadow-tertiary);
+  --shadow-md: var(--ant-box-shadow);
+  --shadow-lg: var(--ant-box-shadow-secondary);
+}
+
+/* ============================================================
+   基础重置：确保纯白底 + AntD 排版基线
+   ============================================================ */
+html, body {
+  background: var(--ant-color-bg-container) !important;
+  color: var(--ant-color-text);
+  font-family: var(--ant-font-family);
+  font-size: var(--ant-font-size);
+  line-height: var(--ant-line-height);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* 禁用莫兰迪/手账风遗留：纸质纹理与渐变底 */
+[style*="texture"], [style*="noise"] { background-image: none !important; }
+
+/* AntD 排版层级 */
+h1 { font-size: var(--ant-font-size-heading-2); font-weight: 600; line-height: 1.35; margin: 0 0 16px; }
+h2 { font-size: var(--ant-font-size-heading-3); font-weight: 600; line-height: 1.35; margin: 24px 0 12px; }
+h3 { font-size: var(--ant-font-size-heading-4); font-weight: 600; line-height: 1.4;  margin: 20px 0 10px; }
+h4 { font-size: var(--ant-font-size-heading-5); font-weight: 600; line-height: 1.4;  margin: 16px 0 8px; }
+h5 { font-size: var(--ant-font-size);          font-weight: 600; line-height: 1.5;  margin: 12px 0 6px; }
+
+/* 表格：AntD 风格 */
+table { border-collapse: collapse; width: 100%; background: var(--ant-color-bg-container); }
+thead › tr › th {
+  background: #fafafa;
+  color: var(--ant-color-text);
+  font-weight: 600;
+  font-size: var(--ant-font-size);
+  padding: 12px 16px;
+  border-bottom: 1px solid var(--ant-color-border-secondary);
+  text-align: left;
+  white-space: nowrap;
+}
+tbody › tr › td {
+  padding: 12px 16px;
+  border-bottom: 1px solid var(--ant-color-border-secondary);
+  color: var(--ant-color-text);
+  font-size: var(--ant-font-size);
+  vertical-align: top;
+}
+tbody › tr:hover › td { background: #fafafa; }
+table caption { caption-side: bottom; padding-top: 8px; color: var(--ant-color-text-tertiary); font-size: var(--ant-font-size-sm); }
+
+/* 代码 */
+code, pre, kbd, samp { font-family: var(--ant-font-family-code); font-size: 13px; }
+code { background: rgba(150,150,150,0.1); border: 1px solid rgba(100,100,100,0.2); border-radius: 4px; padding: 1px 4px; }
+pre { background: #fafafa; border: 1px solid var(--ant-color-border-secondary); border-radius: var(--ant-border-radius); padding: 16px; overflow: auto; }
+
+/* 链接 */
+a { color: var(--ant-color-primary); text-decoration: none; transition: color var(--ant-motion-duration-mid); }
+a:hover { color: var(--ant-blue-5); }
+
+/* 选中 */
+::selection { background: #bae0ff; color: var(--ant-color-text); }
+
+/* 滚动条（AntD 风） */
+::-webkit-scrollbar { width: 8px; height: 8px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: rgba(0,0,0,0.15); border-radius: 4px; }
+::-webkit-scrollbar-thumb:hover { background: rgba(0,0,0,0.3); }
+
+/* ============================================================
+   深色 Hero / 大面积色块 → AntD 白底规范
+   规则：AntD 不用大面积饱和底。Hero 一律白底 + 细边框 + 主色点缀
+   ============================================================ */
+[class*="hero"], [class*="banner"], [class*="cover"], [class*="masthead"] {
+  background-image: none !important;
+  background: #ffffff !important;
+  color: rgba(0, 0, 0, 0.88) !important;
+  border-bottom: 1px solid #f0f0f0 !important;
+}
+[class*="hero"] h1, [class*="hero"] h2, [class*="hero"] h3,
+[class*="hero"] h4, [class*="hero"] p,
+[class*="hero"] span, [class*="hero"] div {
+  color: inherit;
+}
+[class*="hero"] h1, [class*="hero"] h2 { color: rgba(0, 0, 0, 0.88) !important; }
+[class*="hero"] p, [class*="hero"] .sub, [class*="hero"] .subtitle {
+  color: rgba(0, 0, 0, 0.65) !important;
+}
+[class*="hero"] a { color: #1677ff !important; }
+
+/* KPI / 统计块：白底 + 主色数字（AntD Statistic 风格） */
+[class*="stat"], [class*="kpi"], [class*="metric"] {
+  background-image: none !important;
+}
+[class*="stat"] › *, [class*="kpi"] › * { color: inherit; }
+
+/* 页面顶部通栏禁止深色/彩色大底 */
+body › header, .page-header, .topbar, .site-header {
+  background-image: none !important;
+  background: #ffffff !important;
+  border-bottom: 1px solid #f0f0f0 !important;
+}
+
+/* 导航条：AntD Tabs 风格（白底 + 主色激活） */
+nav[class*="tab"], .tabs, [class*="navbar"] {
+  background: #ffffff !important;
+  border-bottom: 1px solid #f0f0f0 !important;
+}
+nav[class*="tab"] a, .tabs a { color: rgba(0, 0, 0, 0.65) !important; }
+nav[class*="tab"] a[class*="active"], .tabs a[class*="active"],
+nav[class*="tab"] .active, .tabs .active {
+  color: #1677ff !important;
+  border-bottom: 2px solid #1677ff !important;
+}
+
+/* ============================================================
+   可读性兜底：深底白字改白底后必须变深
+   覆盖 rgba(245,241,232,x) / rgba(255,255,255,x) 这类"浅色文字"
+   ============================================================ */
+[class*="hero"] [class*="stat"] [class*="lbl"],
+[class*="hero"] [class*="stat"] [class*="label"],
+[class*="hero"] [class*="stat"] [class*="desc"],
+[class*="hero"] [class*="stat"] small {
+  color: rgba(0, 0, 0, 0.65) !important;
+}
+[class*="hero"] [class*="stat"] [class*="num"],
+[class*="hero"] [class*="stat"] [class*="value"] {
+  color: #1677ff !important;
+}
+/* hero 内的浅色分割线 → AntD 分割线 */
+[class*="hero"] [class*="stat"]s,
+[class*="hero"] [class*="stat"]-stats {
+  background: #f0f0f0 !important;
+  border-color: #f0f0f0 !important;
+}
+
+/* hero 内的深色卡片底 → AntD 白底 + 细边框 */
+[class*="hero"] [class*="stat"],
+[class*="hero"] [class*="kpi"],
+[class*="hero"] [class*="metric"] {
+  background: #ffffff !important;
+  border: 1px solid #f0f0f0 !important;
+}
+[class*="hero"] [class*="stat"]s,
+[class*="hero"] [class*="stat"]-stats {
+  background: transparent !important;
+  border: none !important;
+  gap: 16px !important;
+}
+
+/* ============================================================
+   最终强制层（覆盖各文件自定义样式，保证 AntD 一致性）
+   ============================================================ */
+/* 1) 标题一律无衬线（AntD 不用装饰性衬线体） */
+h1, h2, h3, h4, h5, h6,
+[class*="hero"] h1, [class*="hero"] h2, [class*="hero"] h3,
+[class*="title"], [class*="heading"], .serif,
+[class*="hero"] [class*="title"] {
+  font-family: var(--ant-font-family) !important;
+  letter-spacing: normal !important;
+}
+/* 2) 导航/tab 白底 + AntD 文字层级 */
+.tabbar, [class*="tabbar"], [class*="tab-bar"] {
+  background: #ffffff !important;
+  border-bottom: 1px solid #f0f0f0 !important;
+}
+.tab-btn, [class*="tab-btn"], [class*="tab"] button {
+  color: rgba(0, 0, 0, 0.65) !important;
+  background: transparent !important;
+  border: none !important;
+}
+.tab-btn:hover, [class*="tab-btn"]:hover { color: #1677ff !important; }
+.tab-btn.active, [class*="tab-btn"].active, [class*="tab"] button.active {
+  color: #1677ff !important;
+  font-weight: 500 !important;
+}
+.tab-btn.active::after, [class*="tab-btn"].active::after,
+[class*="tab"] button.active::after {
+  background: #1677ff !important;
+}
+/* 3) 段落/说明文字确保可读 */
+[class*="hero"] p, [class*="hero"] .lead, [class*="hero"] .desc,
+[class*="hero"] .sub, [class*="hero"] .subtitle, [class*="hero"] .intro {
+  color: rgba(0, 0, 0, 0.65) !important;
+}
+/* 4) 深色小标签/徽章 → AntD Tag 风格 */
+[class*="eyebrow"], [class*="kicker"], [class*="overline"] {
+  color: #1677ff !important;
+  letter-spacing: 0.08em !important;
+}
+
+/* 顶栏/侧栏：深色导航 → AntD 白底 + 细边框 */
+.topnav, .topbar, .header, .app-header, .main-header,
+[class*="topnav"], [class*="top-nav"] {
+  background: #ffffff !important;
+  border-bottom: 1px solid #f0f0f0 !important;
+  box-shadow: none !important;
+}
+.topnav-logo span, .topnav-item, [class*="topnav"] span,
+[class*="topnav"] [class*="item"] {
+  color: rgba(0, 0, 0, 0.65) !important;
+}
+.topnav-item.active, [class*="topnav"] [class*="item"].active {
+  color: #1677ff !important;
+  background: #e6f4ff !important;
+  border-radius: 6px !important;
+}
+.topnav-item:hover, [class*="topnav"] [class*="item"]:hover {
+  color: #1677ff !important;
+  background: rgba(0, 0, 0, 0.04) !important;
+}
+
+/* 侧边栏 */
+.sidebar, .side-nav, [class*="sidebar"], [class*="side-nav"] {
+  background: #ffffff !important;
+  border-right: 1px solid #f0f0f0 !important;
+}
+.sidebar *, [class*="sidebar"] * { color: inherit; }
+.sidebar [class*="item"], [class*="side-nav"] [class*="item"] {
+  color: rgba(0, 0, 0, 0.65) !important;
+}
+.sidebar [class*="item"][class*="active"], [class*="side-nav"] [class*="active"] {
+  color: #1677ff !important;
+  background: #e6f4ff !important;
+  border-radius: 6px !important;
+}
+
+/* 表头强制 AntD 规范（防：表头被染成饱和色/深色） */
+/* 表头：同时覆盖 thead 本体（很多页面把渐变写在 thead 上） */
+thead,
+thead › tr,
+thead › tr › th,
+table › thead › tr › th,
+[class*="table"] thead,
+[class*="table"] thead th {
+  background: #fafafa !important;
+  background-image: none !important;
+  color: rgba(0, 0, 0, 0.88) !important;
+  font-weight: 600 !important;
+  border-bottom: 1px solid #f0f0f0 !important;
+}
+thead th, thead td { color: rgba(0, 0, 0, 0.88) !important; }
+
+</style>
+<meta name="design-system" content="antd5-white">
+</head><body><div class="wrap">
+<nav class="znav">
+  <a href="#z0">① 划重点</a><span class="sep"></span>
+  <a href="#z1">② 为什么要分层</a><span class="sep"></span>
+  <a href="#z2">③ 怎么做的</a><span class="sep"></span>
+  <a href="#z3">④ 权限怎么做</a><span class="sep"></span>
+  <a href="#z3b">⑤ 权限控制（详版）</a><span class="sep"></span>
+  <a href="#z4">⑥ 往哪去</a><span class="sep"></span>
+  <a href="#z4b">⑦ 建设路径</a><span class="sep"></span>
+  <a href="#z5">⑧ 走过的路</a><span class="sep"></span>
+  <a href="#z6">⑨ 附录</a>
+</nav>
+<!-- ============ ① 划重点 ============ -->
+<div class="zone" id="z0">
+  <div class="hd">
+    <h1>EP 采购 AI · 分层架构与场景<span class="sub">一条故事线：问题 → 方案 → 去向</span></h1>
+    <div class="guide"><b>一句话主线</b><span class="arrow">→</span>
+      我们要的不只是一个机器人，而是让 AI 能干活、但<b>权力收得回来</b>的一套分层架构：
+      <b>入口</b>（你在哪说话）<span class="arrow">→</span><b>协议</b>（怎么把话说进来）<span class="arrow">→</span>
+      <b>服务层</b>（实际干活的一层）<span class="arrow">→</span><b>通道</b>（连 EP 系统）。</div>
+    <div class="evo-cap">四阶段本质看两条线：<b>交互怎么变</b>（命令 → 对话 → 卡片 → 回系统）· <b>权限怎么收</b>（凭证随意 → AI 拿通道 → 白名单+闸 → 系统接管）</div>
+    <div class="evo"><div class="st"><span class="badge">过去</span><b>1 · 工具</b><div class="ia"><i>交互</i><span>人敲命令，系统执行</span></div><div class="pm"><i>权限</i><span>有凭证就能干 · 无确认 · 无留痕</span></div></div><div class="st"><span class="badge">过去</span><b>2 · 对话</b><div class="ia"><i>交互</i><span>大白话跟 AI 说，AI 帮你调命令</span></div><div class="pm"><i>权限</i><span>AI 拿着通道 · 写操作前先问你</span></div></div><div class="st cur"><span class="badge">当前</span><b>3 · 受控</b><div class="ia"><i>交互</i><span>对话 + 卡片按钮 + 确认页</span></div><div class="pm"><i>权限</i><span>白名单 + 权限闸 + 防冒名 + 留痕 · AI 仍拿通道</span></div></div><div class="st"><span class="badge">终局</span><b>4 · 内嵌</b><div class="ia"><i>交互</i><span>回到系统页面操作，AI 只填建议单</span></div><div class="pm"><i>权限</i><span>系统弹确认 · 系统执行 · AI 不碰通道</span></div></div></div>
+    <div class="hl"><div class="hl-t">📌 划重点 · 六个核心问题一句话答案</div><div class="hl-grid"><div class="hl-item"><span class="q">Q1</span><span class="qa">能力只写一遍、权限一道闸、<b>入口随便换，服务层不动</b></span></div><div class="hl-item"><span class="q">Q2</span><span class="qa">不是三条路，是<b>三种触达方式</b>——按调用方开，都收敛进服务层</span></div><div class="hl-item"><span class="q">Q3</span><span class="qa"><b>四层叠加</b>：CLI 防假冒 · 网关管路由 · GarageHub 管分发 · <b>gate 判动作</b></span></div><div class="hl-item"><span class="q">Q4</span><span class="qa"><b>崩回系统</b>：AI 只出建议单，系统弹确认、系统执行，AI 不拿钥匙</span></div><div class="hl-item"><span class="q">Q5</span><span class="qa">挂一个 <b>S2 新能力</b>，复用路由、权限、审计——<b>架构一行不改</b></span></div><div class="hl-item"><span class="q">Q6</span><span class="qa">价格只进 EP 系统，对话只回口径——<b>脱敏在回传前，敏感不出楼</b></span></div></div></div>
+  </div>
+</div>
+<!-- ============ ② 为什么要分层 ============ -->
+<div class="act-hd why"><span class="act-no">WHY</span><h2>为什么要分层——问题驱动</h2></div>
+<div class="zone" id="z1" style="border-top-left-radius:0;border-top-right-radius:0">
+  <div class="act-narr">AI 采购不是「做个机器人」。踩过的坑告诉我们：<span class="hl2">入口会换，能力不该重写；权限不能散；敏感数据不能跟着对话跑出去；每一次下单都要能追到人。</span>分层就是把这几件事各归各位。</div>
+  <div class="q3-wrap"><div class="q3-h"><span class="qn">A</span>究竟基于什么做建设？六条原则<span class="qd">架构理论的根：不是「做个机器人」，是「能力分层、权限单点、敏感锁死」</span></div><div class="q3-grid2"><div class="q3-p"><div class="p-h">能力唯一实现<span class="en">single-source</span></div><div class="p-d">业务逻辑只写一次放服务层。所有入口、协议、客户端都调同一份代码——「入口可以换，服务层不动」。</div></div><div class="q3-p"><div class="p-h">权限一道闸<span class="en">single-gate</span></div><div class="p-d">所有动作过同一个 gate(user_name, action)：白名单 + cron，加新入口零成本复用。</div></div><div class="q3-p"><div class="p-h">分层只向下依赖<span class="en">layered</span></div><div class="p-d">入口 → 协议 → 服务 → 通道。上层只依赖下层，入口换掉服务层一行不改。</div></div><div class="q3-p"><div class="p-h">确定性收进代码<span class="en">deterministic</span></div><div class="p-d">路由表、过滤、分组、口径全写死成代码，LLM 只做「听懂人话」兜底，绝不编造能力。</div></div><div class="q3-p"><div class="p-h">敏感数据不越层<span class="en">data-boundary</span></div><div class="p-d">价格等敏感值只进 EP 系统，对话/CLI 只回结论和口径，脱敏在回传前。</div></div><div class="q3-p"><div class="p-h">全程留痕<span class="en">audit</span></div><div class="p-d">谁/何时/指令/argv 单管道；CLI 原始日志与服务层审计双向对账。</div></div></div><div class="q3-h" style="margin-top:14px"><span class="qn">B</span>API / CLI / MCP 怎么触达？<span class="qd">三种方式收敛进同一个服务层——多一种通道只是多一种「发现能力的方式」</span></div><div class="q3-grid3"><div class="q3-c api"><div class="c-h">API · 已知的固定调用方</div><div class="c-b"><div class="row"><b>谁用</b>：飞书桥 / cron 定时 / EP 窗口</div><div class="row"><b>怎么触达</b>：HTTP 调 FastAPI：/handle 收消息、/callback 收卡片、/push 推送</div><div class="row"><b>鉴权</b>：BRAIN_TOKEN 服务间暗号</div><div><span class="st">已上线 · 主通道</span></div></div></div><div class="q3-c cli"><div class="c-h">CLI · 人 + 自动化脚本</div><div class="c-b"><div class="row"><b>谁用</b>：采购/管理员补数、脚本批处理、skill 内部</div><div class="row"><b>怎么触达</b>：dx-ep 命令：query-ready 查、create-order 下单、submit-list 统计</div><div class="row"><b>鉴权</b>：credentials.json 凭证 + 网关登录态（只验你是谁）</div><div><span class="st">已锁定 · channel=cli 不降级</span></div></div></div><div class="q3-c mcp"><div class="c-h">MCP · 未知的 AI 客户端</div><div class="c-b"><div class="row"><b>谁用</b>：未来第三客户端，无需硬编码即可发现能力</div><div class="row"><b>怎么触达</b>：把 L3 包成 MCP Server：暴露 tools + input schema</div><div class="row"><b>鉴权</b>：只许包服务层 → 过同一个 gate；按工具分级授权</div><div><span class="st">规划中 · 有异构客户端再上</span></div></div></div></div><div class="q3-h" style="margin-top:14px"><span class="qn">C</span>权限在 CLI / 网关 / GarageHub 如何控制？<span class="qd">三层各管一段，「该不该做」永远回到服务层 gate</span></div><div class="q3-grid3"><div class="q3-perm cli"><div class="p-h">CLI 层 · 凭证（你是谁）</div><div class="p-b"><div class="row"><b>credentials.json + 网关登录态</b>：本地凭证，登录一次所有命令可调</div><div class="row"><b>能力</b>：只能防「假身份」——防不住真人越权、复制凭证</div><div><span class="cap">防假冒 · 不防越权</span></div></div></div><div class="q3-perm gw"><div class="p-h">网关层 · 路由鉴权（能不能到）</div><div class="p-b"><div class="row"><b>n-cli-gateway</b>：所有请求先过网关：验凭证 + 路由到 EP 服务</div><div class="row"><b>能力</b>：管「这个凭证能不能通过」——不管「该不该做这个动作」</div><div><span class="cap">验身份 · 不判动作</span></div></div></div><div class="q3-perm gh"><div class="p-h">GarageHub 层 · 能力分发（能装什么）</div><div class="p-b"><div class="row"><b>ai-hub-marketplace</b>：skill 市场 MCP：发现、搜索、安装 skill</div><div class="row"><b>能力</b>：管「谁能发现和安装哪些能力」——管分发，不管执行</div><div><span class="cap">管分发 · 不管执行</span></div></div></div></div><div class="q3-concl"><b>结论</b>：CLI 管「你是谁」、网关管「你能不能到」、GarageHub 管「你能装什么」，「该不该做这个动作」只能由服务层 gate 判。权限必须组合：L4 凭证 + 网关路由 + L3 gate + 治理（轮换、绑定机器、双向对账）。任何单层放开，都会重演 R1-R6：凭证即权力、可复制、无操作级授权、敏感带出、不可追溯。</div></div>
+</div>
+<!-- ============ ③ 怎么做的 ============ -->
+<div class="act-hd how"><span class="act-no">HOW</span><h2>怎么做的——分层架构落地</h2></div>
+<div class="zone" id="z2" style="border-top-left-radius:0;border-top-right-radius:0">
+  <div class="act-narr">一张图讲清：每层一行，<span class="hl2">左=订单场景用了这层什么 · 中=这层架构理论 · 右=未来场景怎么用这层</span>。实线已有，虚线规划。</div>
+  <div class="lrow r1"><div class="side l"><div class="sh">🛒 订单场景 · <span class="shl">L1 入口层</span>用了什么</div><div class="use"><div class="u-h">飞书机器人</div><div class="u-d">你在飞书 @它下指令、收卡片</div></div><div class="use"><div class="u-h">卡片按钮</div><div class="u-d">「重新查询」「看日报」点一下回调</div></div><div class="use"><div class="u-h">身份</div><div class="u-d">域账号识别你是谁</div></div></div><div class="layer-wrap"><div class="layer l1"><div class="lh"><span class="ln">L1 · 入口层</span><span class="human">你在哪说话</span><span class="role">角色：用户触点——只做三件事：意图识别 · 会话编排 · 身份透传（只传不判）。理论定义：任何「人机对话界面」都属于这一层。</span></div><div class="bands"><div class="band"><div class="bt">▲ 顶 · 触点（对外窗口）</div><div class="talk"><div class="tk-t">飞书机器人<span class="tk-en">(feishu_bridge_v2.js)</span></div><div class="tk-d">聊天入口：@机器人 / 私聊 / 群消息</div></div><div class="talk"><div class="tk-t">A2A 助手窗口<span class="tk-en">(SendMessage)</span></div><div class="tk-d">EP 系统内嵌对话窗，同一大脑</div></div><div class="talk dashed"><div class="tk-t">系统内嵌界面<span class="tag tag-future">未来</span></div><div class="tk-d">AI 不单独开窗口，崩回系统页面内操作</div></div></div><div class="band"><div class="bt">◆ 中 · 编排（通用能力）</div><div class="talk"><div class="tk-t">会话编排<span class="tk-en">(session_store)</span></div><div class="tk-d">按人 / 群隔离，记住上下文</div></div><div class="talk"><div class="tk-t">交互抽象</div><div class="tk-d">卡片按钮 · 耗时 · 追溯凭据——与入口无关</div></div></div><div class="band"><div class="bt">▼ 底 · 身份（入口根基）</div><div class="talk"><div class="tk-t">身份解析</div><div class="tk-d">域账号 / open_id / X-User-Id 归一</div></div><div class="talk"><div class="tk-t">只传身份不传结论</div><div class="tk-d">权限结论永远不在这里下</div></div></div></div></div></div><div class="side r"><div class="sh">🚀 未来 · <span class="shl">L1 入口层</span>可以怎么用</div><div class="fut-card solid"><div class="f-h">EP 助手 A2A 全量<span class="f-tag now">现在</span></div><div class="f-d">EP 窗口做主力入口，飞书保留——入口换、服务层不动</div></div><div class="fut-card"><div class="f-h">系统内嵌（终局）<span class="f-tag plan">未来</span></div><div class="f-d">EP 页面直接调 L3 生成操作提案，AI 不持通道</div></div><div class="fut-card"><div class="f-h">更多对话入口<span class="f-tag plan">未来</span></div><div class="f-d">新入口只写身份解析 + 调路由，零新权限口子</div></div></div></div><div class="contract"><span class="arr">⬆</span><div class="body"><b>L1 → L2 契约</b>：统一入参（text / chat_id / user_name），统一出参（reply / actions / timing / trace）；入口不传权限结论、不直连数据通道。</div></div><div class="lrow r2"><div class="side l"><div class="sh">🛒 订单场景 · <span class="shl">L2 协议层</span>用了什么</div><div class="use"><div class="u-h">REST /handle</div><div class="u-d">飞书桥把消息转发给服务层</div></div><div class="use"><div class="u-h">A2A SendMessage</div><div class="u-d">EP 窗口直接调同一服务层</div></div><div class="use"><div class="u-h">BRAIN_TOKEN</div><div class="u-d">两扇门共用同一道暗号</div></div></div><div class="layer-wrap"><div class="layer l2"><div class="lh"><span class="ln">L2 · 协议层</span><span class="human">怎么把话说进来</span><span class="role">角色：能力暴露方式——把 L3 能力标准化暴露，不实现业务。理论定义：多一种协议 = 多一种「发现能力的方式」，不产生新权限口子。</span></div><div class="bands"><div class="band"><div class="bt">▲ 顶 · 触点协议</div><div class="talk"><div class="tk-t">A2A 协议<span class="tk-en">(SendMessage)</span></div><div class="tk-d">系统间任务式对话</div></div><div class="talk"><div class="tk-t">REST API<span class="tk-en">(/handle /callback /push)</span></div><div class="tk-d">已知固定调用方：飞书桥 / 定时任务</div></div><div class="talk dashed"><div class="tk-t">MCP 工具协议<span class="tag tag-future">可选</span></div><div class="tk-d">未知 AI 客户端自动发现工具</div></div></div><div class="band"><div class="bt">◆ 中 · 协议归一</div><div class="talk"><div class="tk-t">三协议 → 一调用</div><div class="tk-d">A2A 任务流 / REST JSON / MCP tool call 归一</div></div><div class="talk"><div class="tk-t">统一契约</div><div class="tk-d">出参 reply / actions / timing / trace</div></div></div><div class="band"><div class="bt">▼ 底 · 服务间信任</div><div class="talk"><div class="tk-t">BRAIN_TOKEN</div><div class="tk-d">入口→服务层内部鉴权，防绕过</div></div><div class="talk"><div class="tk-t">MCP 红线</div><div class="tk-d">只许包 L3；包 dx-ep = 重开类 CLI 通道，禁止</div></div></div></div></div></div><div class="side r"><div class="sh">🚀 未来 · <span class="shl">L2 协议层</span>可以怎么用</div><div class="fut-card"><div class="f-h">第三 AI 客户端上 MCP<span class="f-tag plan">未来</span></div><div class="f-d">把 L3 包成 MCP Server 放 L2——只多一种发现能力的方式</div></div><div class="fut-card"><div class="f-h">更多协议接入<span class="f-tag plan">未来</span></div><div class="f-d">协议归一后，新协议只写一层适配</div></div></div></div><div class="contract"><span class="arr">⬆</span><div class="body"><b>L2 → L3 契约</b>：三种协议归一成同一个服务层调用；服务层内部固定顺序 S1 路由 → S3 闸 → S2 执行。</div></div><div class="lrow r3"><div class="side l"><div class="sh">🛒 订单场景 · <span class="shl">L3 服务层</span>用了什么</div><div class="use"><div class="u-h">S1 路由</div><div class="u-d">「查可下单需求」「下单」分配到对应能力</div></div><div class="use"><div class="u-h">S2 五个能力</div><div class="u-d">查 / 下单 / 日报 / 升版 / 卡片选择</div></div><div class="use"><div class="u-h">S3 安全</div><div class="u-d">白名单 + 防冒名 + 全程留痕</div></div></div><div class="layer-wrap"><div class="layer l3"><div class="lh"><span class="ln">L3 · 服务层</span><span class="human">实际干活的一层</span><span class="role">角色：能力唯一实现点——业务只实现一次 · 授权单点 · 脱敏 · 审计。理论定义：S1 决定「想干什么」，S2 决定「怎么干」，S3 横切一切。</span></div><div class="bands"><div class="band"><div class="bt">▲ 顶 · S1 意图路由</div><div class="talk"><div class="tk-t">intent_router</div><div class="tk-d">声明式路由表，顺序即优先级</div></div><div class="talk"><div class="tk-t">fast_path</div><div class="tk-d">自然语言 → CLI 参数</div></div><div class="talk"><div class="tk-t">filter_engine</div><div class="tk-d">只看 / 排除 / 日期 → 本地过滤</div></div><div class="talk"><div class="tk-t">LLM 兜底</div><div class="tk-d">只做闲聊与参数提取，绝不编造能力</div></div></div><div class="band"><div class="bt">◆ 中 · S2 能力执行</div><div class="talk"><div class="tk-t">demand-query<span class="tag">订单</span></div><div class="tk-d">60 天窗口 · 分组 · 升版分流</div></div><div class="talk"><div class="tk-t">demand-order<span class="tag">订单</span></div><div class="tk-d">120 条拆单 · submitStatus 口径</div></div><div class="talk"><div class="tk-t">daily-report<span class="tag">订单</span></div><div class="tk-d">submit-list 统计 · 日报</div></div><div class="talk"><div class="tk-t">upgrade_check<span class="tag">订单</span></div><div class="tk-d">cantPoReason 权威判定</div></div><div class="talk"><div class="tk-t">card_actions<span class="tag">订单</span></div><div class="tk-d">供应商卡片选择</div></div><div class="talk dashed"><div class="tk-t">可扩展能力位<span class="tag tag-future">未来</span></div><div class="tk-d">合同 / 核价 / 寻源……挂进来即复用 S1/S3</div></div></div><div class="band"><div class="bt">▼ 底 · S3 安全控制</div><div class="talk"><div class="tk-t">auth_control.gate<span class="tag">横切</span></div><div class="tk-d">9 人白名单 + cron · 单点闸</div></div><div class="talk"><div class="tk-t">identity_guard<span class="tag">横切</span></div><div class="tk-d">登录人 == 操作人（10-20 事故根因）</div></div><div class="talk"><div class="tk-t">audit_log<span class="tag">横切</span></div><div class="tk-d">谁 / 何时 / 指令 / argv · 脱敏在回传前</div></div></div></div></div></div><div class="side r"><div class="sh">🚀 未来 · <span class="shl">L3 服务层</span>可以怎么用</div><div class="fut-card"><div class="f-h">合同审查<span class="f-tag plan">未来</span></div><div class="f-d">挂进 L3 新能力，复用 S1 路由 + S3 权限，零新增基础设施</div></div><div class="fut-card"><div class="f-h">核价 / 询价 RFQ<span class="f-tag plan">未来</span></div><div class="f-d">价格敏感——直接吃现成的 S3 脱敏 + R4 收口</div></div><div class="fut-card"><div class="f-h">寻源 / 供应商画像<span class="f-tag plan">未来</span></div><div class="f-d">supplier 域命令挂 S2；画像结果复用 card_actions</div></div></div></div><div class="contract"><span class="arr">⬆</span><div class="body"><b>L3 → L4 契约</b>：channel=cli 锁定；失败语义一致（exit 3 环境异常 ≠ 0 暂无数据）；fetch_error 非空必须说明不完整。</div></div><div class="lrow r4"><div class="side l"><div class="sh">🛒 订单场景 · <span class="shl">L4 通道层</span>用了什么</div><div class="use"><div class="u-h">dx-ep CLI</div><div class="u-d">query-ready / create-order / submit-list</div></div><div class="use"><div class="u-h">确认页</div><div class="u-d">FDS 生成，你勾选后回传 selections</div></div><div class="use"><div class="u-h">报错口径</div><div class="u-d">exit 3 环境坏 ≠ 0 没数据</div></div></div><div class="layer-wrap"><div class="layer l4"><div class="lh"><span class="ln">L4 · 通道层</span><span class="human">连 EP 系统的通道</span><span class="role">角色：EP 数据通道——凭证鉴权在 EP 侧 · 通道鉴权 ≠ 授权。理论定义：通道层只管「取数」，不管「该不该取」。</span></div><div class="bands"><div class="band"><div class="bt">▲ 顶 · 能力接口</div><div class="talk"><div class="tk-t">dx-ep CLI<span class="tag tag-now">R1–R6</span></div><div class="tk-d">存量通道：凭证即权力 · 可复制 · 无操作授权</div></div><div class="talk dashed"><div class="tk-t">直连 API<span class="tag tag-future">未来</span></div><div class="tk-d">服务层成熟后替代 CLI，对上层透明</div></div></div><div class="band"><div class="bt">◆ 中 · 能力命令</div><div class="talk"><div class="tk-t">query-ready</div><div class="tk-d">可下单需求查询</div></div><div class="talk"><div class="tk-t">create-order</div><div class="tk-d">建单（写操作）</div></div><div class="talk"><div class="tk-t">submit-list</div><div class="tk-d">已提交订单 / 统计</div></div><div class="talk dashed"><div class="tk-t">其他域命令<span class="tag tag-future">扩展</span></div><div class="tk-d">supplier / sor / rfq / nomi……同一条通道</div></div></div><div class="band"><div class="bt">▼ 底 · 通道边界</div><div class="talk"><div class="tk-t">鉴权 ≠ 授权</div><div class="tk-d">凭证只证明「你是谁」</div></div><div class="talk"><div class="tk-t">channel=cli 锁定</div><div class="tk-d">不降级不直连</div></div><div class="talk"><div class="tk-t">失败语义一致</div><div class="tk-d">exit 3 ≠ 0 暂无数据</div></div></div></div></div></div><div class="side r"><div class="sh">🚀 未来 · <span class="shl">L4 通道层</span>可以怎么用</div><div class="fut-card"><div class="f-h">直连 API 替换 CLI<span class="f-tag plan">未来</span></div><div class="f-d">服务层成熟后换通道，对上层透明</div></div><div class="fut-card"><div class="f-h">更多 EP 域命令<span class="f-tag plan">未来</span></div><div class="f-d">supplier / sor / rfq / nomi 同一条通道扩展</div></div></div></div><div class="cross"><span class="arr">＝</span><div class="body"><b>横切关注点（贯穿所有层）</b>：身份一致性 · 审计可追溯 · 敏感数据不越层 · 会话隔离（飞书 oc_id / A2A a2a:user）· 失败语义一致 · 权限单点 · CLI 权限组合</div></div>
+</div>
+<div class="zone" id="z3" style="margin-top:0">
+  <div class="zone-hd"><span class="no">④</span><h2>权限怎么做——组合控制</h2>
+  <div class="zsub">三个抓手：核心三问 C 讲了「谁来控」；这里讲「风险是什么、每一道怎么布」</div></div>
+  <div class="risks"><div class="risk"><div class="rn">R1</div><div class="rt">凭证即权力</div><div class="rd">只验「你是谁」，不验「该不该做」——登录一次所有命令可调</div><div class="rc">后果：越权调用</div></div><div class="risk"><div class="rn">R2</div><div class="rt">凭证可复制</div><div class="rd">credentials.json 可拷贝共享——装即得权</div><div class="rc">后果：权力扩散</div></div><div class="risk"><div class="rn">R3</div><div class="rt">无操作级授权</div><div class="rd">无二次确认，价格查询、下单直接执行</div><div class="rc">后果：误操作/越权写</div></div><div class="risk"><div class="rn">R4</div><div class="rt">敏感数据带出</div><div class="rd">价格进终端 stdout，可复制截图脚本抓取</div><div class="rc">后果：敏感泄漏</div></div><div class="risk"><div class="rn">R5</div><div class="rt">无审计上下文</div><div class="rd">只留服务端原始日志，无业务上下文</div><div class="rc">后果：不可追溯</div></div><div class="risk"><div class="rn">R6</div><div class="rt">权限粒度不足</div><div class="rd">只有「能不能用」，没有「能用哪个字段」</div><div class="rc">后果：脱敏失效</div></div></div>
+  <div class="risk-note"><b>结论</b>：通道层权限只能防「假身份」，防不住「真身份的越权、泄漏、误操作」。权限必须组合：身份靠 L4 凭证，授权靠 L3 gate，治理靠凭证轮换。</div>
+  <div class="ctl"><div class="c"><b>身份真实性</b><span class="l">L4 通道层</span><span class="d">凭证鉴权（你是谁）——保留，但仅此而已</span></div><div class="c"><b>操作授权</b><span class="l">L3 服务层</span><span class="d">gate(user_name, action)——通道层永远替代不了</span></div><div class="c"><b>敏感命令收口</b><span class="l">L3 服务层</span><span class="d">价格查询从 CLI 移除或改「只读+脱敏」</span></div><div class="c"><b>数据脱敏</b><span class="l">L3 服务层</span><span class="d">回传前处理：只给结论与口径</span></div><div class="c"><b>审计闭环</b><span class="l">L4 + L3</span><span class="d">CLI 原始日志 + 服务层业务审计，双向对账</span></div><div class="c"><b>凭证治理</b><span class="l">治理层</span><span class="d">定期轮换、绑定机器、服务账号隔离</span></div></div>
+</div>
+<!-- ============ ⑤ 往哪去 ============ -->
+<div class="act-hd where"><span class="act-no">WHERE</span><h2>往哪去——路线与终局</h2></div>
+<!-- ============ 权限控制（新增 · 2026-11-19） ============ -->
+<div class="zone" id="z3b">
+  <div class="zone-hd"><span class="no">④</span><h2>权限控制：五层各管一段，权威层唯一</h2><div class="zsub">层层不信任上一层</div></div>
+
+  <div class="act-narr">不是「Agent 管」或「CLI 管」二选一——<span class="hl2">garagehub 管身份凭证，Coordinator/Agent 管动作，CLI 只是执行通道不控权，MCP 管文档读取范围，EP 后端管数据行级过滤</span>。任何一层单独拿出来都不足以控权。</div>
+
+  <div class="pano"><div class="pano-h"><span class="qn">A</span>六层总览<span class="qd">从「谁在调接口」到「系统最终给多少」，每层只回答一个问题</span></div>
+    <table class="tbl"><thead><tr><th style="width:8%">层</th><th style="width:20%">组件</th><th style="width:34%">回答什么</th><th style="width:38%">为什么必须是这一层</th></tr></thead><tbody>
+      <tr><td><b>L0</b></td><td><b>通道层</b><br><code>BRAIN_TOKEN</code></td><td>谁在调接口（桥 ↔ 大脑服务间认证）</td><td>防内网任何人直连 7777 端口。<b>不承载任何用户权限</b></td></tr>
+      <tr><td><b>L1</b></td><td><b>身份层</b><br>飞书 open_id / A2A X-User-Id</td><td>你是谁（平台身份 → 域账号）</td><td>入口不可信（网关配置错误、header 伪造）。<b>只解析不授权，解析失败一律拒绝</b></td></tr>
+      <tr><td><b>L2</b></td><td><b>意图层</b><br>Coordinator 路由</td><td>你能做什么（意图 → Agent → 最小角色）</td><td><b>动作权限的权威层</b>。用户不直接调 Agent，用户调「意图」</td></tr>
+      <tr><td><b>L3</b></td><td><b>工具层</b><br>MCP / KB / CLI 分发</td><td>工具本身允许谁碰</td><td><b>兜底，不是重复</b>。防未来新入口或新路由绕过 L2</td></tr>
+      <tr><td><b>L4</b></td><td><b>凭证层</b><br>garagehub + profile</td><td>以谁的身份执行（凭证登录人 == 触发人）</td><td>只颁发/刷新凭证，证明「这个 token 是谁的」</td></tr>
+      <tr><td><b>L5</b></td><td><b>数据层</b><br>EP 后端 / WeKnora 分库</td><td>系统最终给多少（token 行级过滤 / KB 物理分库）</td><td><b>最终裁判</b>。EP 后端看到的是每个用户自己的 token</td></tr>
+    </tbody></table>
+  </div>
+
+  <div class="pano"><div class="pano-h"><span class="qn">B</span>L2 是权威层：意图 → Agent → 最小角色<span class="qd">「谁能用哪个 Agent」= 这一张表</span></div>
+    <table class="tbl"><thead><tr><th style="width:28%">意图</th><th style="width:22%">Agent</th><th style="width:22%">最小角色</th><th style="width:28%">额外约束</th></tr></thead><tbody>
+      <tr><td>查询 / 预演 / 日报</td><td>sample-order</td><td>buyer</td><td>—</td></tr>
+      <tr><td><b>下单</b></td><td>sample-order</td><td><b>ORDER_ALLOWED 名单</b></td><td><b>独立白名单，比 buyer 严</b></td></tr>
+      <tr><td>知识问答 / 文档 / 帮助</td><td>knowledge</td><td>buyer</td><td>只读公共 KB</td></tr>
+      <tr><td>报错诊断 / 库表 / SQL</td><td>diagnosis</td><td>dev</td><td>内部 KB</td></tr>
+    </tbody></table>
+    <div class="act-narr" style="margin-top:10px"><b>为什么 L3 还要再判一次</b>：internal KB 的 dev+ 检查既在 L2（路由时）也在 L3（工具内）——<b>两层同判</b>，防未来新入口或新路由绕过 L2。L3 的原则是：不重复「谁能用」的全量逻辑，只保留<b>关键约束的兜底</b>。</div>
+  </div>
+
+  <div class="pano"><div class="pano-h"><span class="qn">C</span>下单的四道闸<span class="qd">一个完整示例：从点按钮到 EP 落单，中间过了什么</span></div>
+    <div class="routes" style="margin:12px 0">
+      <div class="rt"><div class="rt-t ro">1 · 身份闸</div><div class="rt-c">点「确认下单」→ 校验<b>登录人 == 卡片所属人</b></div><div class="rt-n">别人点了直接拒（防冒名）</div></div>
+      <div class="rt"><div class="rt-t ro">2 · 在途闸</div><div class="rt-c">同 chat + action 在途时不启第二个线程</div><div class="rt-n">防重复点击出两单</div></div>
+      <div class="rt"><div class="rt-t ro">3 · 动作闸</div><div class="rt-c"><code>gate(user_name, "order")</code> → ORDER_ALLOWED 名单</div><div class="rt-n">服务层单点，通道层替代不了</div></div>
+      <div class="rt"><div class="rt-t rw">4 · 幂等闸</div><div class="rt-c">飞书重投回调 → 60 秒窗口内只执行一次</div><div class="rt-n">防飞书重投造成重复下单</div></div>
+    </div>
+    <div class="act-narr"><b>四道闸缺一不可</b>：身份闸管「是不是本人」，在途闸管「是不是重复操作」，动作闸管「有没有权限」，幂等闸管「是不是重复消息」。<b>每一道对应一类真实事故</b>，不是设计冗余。</div>
+  </div>
+
+  <div class="pano"><div class="pano-h"><span class="qn">D</span>通道层权限的六个风险（R1–R6）<span class="qd">通道层权限只能防「假身份」，防不住「真身份的越权、泄漏、误操作」</span></div>
+    <table class="tbl"><thead><tr><th style="width:7%">编号</th><th style="width:24%">风险</th><th style="width:44%">说明</th><th style="width:25%">后果</th></tr></thead><tbody>
+      <tr><td>R1</td><td>凭证即权力</td><td>只验「你是谁」，不验「该不该做」——登录一次所有命令可调</td><td>越权调用</td></tr>
+      <tr><td>R2</td><td>凭证可复制</td><td><code>credentials.json</code> 可拷贝共享——装即得权</td><td>权力扩散</td></tr>
+      <tr><td>R3</td><td>无操作级授权</td><td>无二次确认，价格查询、下单直接执行</td><td>误操作 / 越权写</td></tr>
+      <tr><td>R4</td><td>敏感数据带出</td><td>价格进终端 stdout，可复制截图脚本抓取</td><td>敏感泄漏</td></tr>
+      <tr><td>R5</td><td>无审计上下文</td><td>只留服务端原始日志，无业务上下文</td><td>不可追溯</td></tr>
+      <tr><td>R6</td><td>权限粒度不足</td><td>只有「能不能用」，没有「能用哪个字段」</td><td>脱敏失效</td></tr>
+    </tbody></table>
+    <div class="act-narr" style="margin-top:10px"><b>结论</b>：权限必须组合——<b>身份靠 L4 凭证，授权靠 L3 gate，治理靠凭证轮换</b>。三道缺一不可。</div>
+  </div>
+
+  <div class="pano"><div class="pano-h"><span class="qn">E</span>现状差距与已落地项<span class="qd">哪些是真做了，哪些还是规划</span></div>
+    <table class="tbl"><thead><tr><th style="width:22%">能力</th><th style="width:30%">设计</th><th style="width:48%">现状（2026-11-19）</th></tr></thead><tbody>
+      <tr><td>身份解析</td><td>open_id → 域账号，失败拒绝</td><td class="now"><b>已落地</b>，但仍有 default 兜底（应改为拒绝）</td></tr>
+      <tr><td>动作授权</td><td><code>gate(user_name, action)</code> 单点</td><td class="now"><b>已落地</b>（9 人白名单 + cron）</td></tr>
+      <tr><td>身份一致性</td><td>凭证登录人 == 触发人</td><td class="now"><b>已落地</b>（10-20 事故后的硬闸）</td></tr>
+      <tr><td>回调幂等</td><td>60 秒窗口去重</td><td class="now"><b>已落地</b></td></tr>
+      <tr><td>审计留痕</td><td>谁/何时/指令/argv</td><td class="now"><b>已落地</b>（<code>audit-YYYYMMDD.jsonl</code>，保留 30 天）</td></tr>
+      <tr><td>数据行级过滤</td><td>EP 后端按 token 过滤</td><td class="now">待验证。若 EP 不做，Agent 层要补 buyer_id 过滤（<b>临时方案</b>）</td></tr>
+      <tr><td>知识库隔离</td><td>public / internal 物理分库</td><td class="now"><b>已部署</b>，<b>未接通</b></td></tr>
+      <tr><td>系统角色接管</td><td>白名单 → EP 系统角色</td><td class="now">规划中</td></tr>
+      <tr><td>AI 不持通道</td><td>只出建议单，系统执行</td><td class="now">规划中（需 EP 前端改造）</td></tr>
+      <tr><td>工作台鉴权</td><td>内网页面 token + Cookie</td><td class="now"><b>已落地</b>（2026-11-19，7 天 Cookie）</td></tr>
+    </tbody></table>
+  </div>
+
+  <div class="pano"><div class="pano-h"><span class="qn">F</span>三个常见疑问<span class="qd">开会时最常被问到的</span></div>
+    <div class="q3-grid3">
+      <div class="q3-p"><div class="p-h">「garagehub 不是能管权限吗？」</div><div class="p-d">garagehub 只干一件事：<b>颁发/刷新凭证，证明「这个 token 是谁的」</b>。它不关心「这个人能不能查这个需求」。真正的身份一致性在 <code>identity_guard</code>。</div></div>
+      <div class="q3-p"><div class="p-h">「CLI 权限校验不够吗？」</div><div class="p-d">CLI 只能防「假身份」。防不住真人越权（有凭证就能调所有命令）、防不住复制凭证、防不住敏感数据带出。见上方 R1–R6。</div></div>
+      <div class="q3-p"><div class="p-h">「为什么不做在入口层？」</div><div class="p-d">入口不可信——网关配置错误、header 伪造都可能带来假身份。所以 L1 只做「解析」，<b>权限结论永远不在入口层下</b>。</div></div>
+    </div>
+  </div>
+</div>
+
+<div class="zone" id="z4" style="border-top-left-radius:0;border-top-right-radius:0">
+  <div class="act-narr">三条执行路径先跑稳，然后按 P0→P3 收敛：<span class="hl2">入口收敛（双入口 → 系统内嵌）、权限收敛（白名单 → 系统角色）、数据收敛（价格不出系统）</span>。最终目标：<span class="hl2">双入口 All-in-one——两个入口、一套大脑、一个服务层</span>。</div>
+  <div class="routes"><div class="rt"><div class="rt-t ro">查（只看不动）</div><div class="rt-c">你 → 入口 → 路由 → <span class="g">权限闸</span> → 查询能力 → dx-ep → EP</div><div class="rt-n">读操作，只过权限闸</div></div><div class="rt"><div class="rt-t rw">下单（动真格）</div><div class="rt-c">你 → 入口 → 路由 → <span class="g">权限闸</span> → 下单能力 → <span class="c">你确认</span> → dx-ep → EP</div><div class="rt-n">权限闸在前拦权限 · 确认在后拦误操作</div></div><div class="rt"><div class="rt-t rc">定时（自动跑）</div><div class="rt-c">cron → /push → 路由 → 查询/日报能力 → 飞书群</div><div class="rt-n">系统身份，只读永不写</div></div></div>
+  <div class="q3-wrap"><div class="q3-grid2" style="grid-template-columns:repeat(4,1fr)"><div class="q3-p"><div class="p-h">P0 · 现在<span class="en" style="color:var(--l3f);font-weight:700">✅ 已达成</span></div><div class="p-d"><b>双入口 + 白名单</b>：飞书 + A2A 双入口 ✅ · gate 单点 ✅ · 价格不进对话 ◐</div></div><div class="q3-p"><div class="p-h">P1<span class="en" style="color:var(--l3f);font-weight:700">规划</span></div><div class="p-d"><b>EP 窗口当主力</b>：飞书保留；白名单 → 系统角色；敏感字段清单化</div></div><div class="q3-p"><div class="p-h">P2<span class="en" style="color:var(--l3f);font-weight:700">规划</span></div><div class="p-d"><b>第三客户端上 MCP</b>：角色全面接管授权；价格锁路径：只系统内查、按角色脱敏</div></div><div class="q3-p"><div class="p-h">P3 · 终局<span class="en" style="color:var(--l3f);font-weight:700">规划</span></div><div class="p-d"><b>AI 嵌进系统</b>：AI 只出建议单：系统弹确认、系统执行；AI 不再拿通道</div></div></div></div>
+  <div class="pano"><div class="pano-h"><span class="qn">A</span>终局形态：双入口 → All-in-one<span class="qd">两个入口，一套大脑，一个服务层</span></div><div class="pano-flow"><div class="pano-ents"><div class="pano-ent primary"><div class="e-t">飞书机器人<span class="et">入口 1</span></div><div class="e-r">高频对话入口：自然语言下单、卡片确认、日报推送</div></div><div class="pano-ent primary"><div class="e-t">EP 助手窗口<span class="et">入口 2</span></div><div class="e-r">系统内入口：页面旁 AI 助手，随系统页面一起操作</div></div><div class="pano-ent"><div class="e-t">定时任务 cron<span class="et" style="background:var(--off)">系统身份</span></div><div class="e-r">工作日 9:30 需求 · 19:30 日报，只读推送</div></div></div><div class="pano-arrow">→</div><div class="pano-core"><div class="c-t">ONE SERVICE · 一个服务层<span class="ai">AI 唯一落点</span></div><div class="c-s"><b>两个入口共用一套大脑</b>：路由、五个能力、权限闸、留痕全部只实现一次。<br>加新入口 = 只写「身份解析 + 调路由」；加新能力 = 只写一个 S2 模块。<br><b>AI 不持通道</b>：只生成建议单，系统弹确认、系统执行。</div></div><div class="pano-arrow">→</div><div class="pano-ep"><div class="e-t">EP 系统</div><div class="e-r">订单 / 需求 / 日报数据源<br>凭证鉴权在 EP 侧</div></div></div><div class="pano-h"><span class="qn">B</span>底层依赖什么<span class="qd">全景依赖栈：协议骨架 / 数据通道 / 存储 / 平台 / 网关</span></div><div class="deps"><div class="dep"><div class="d-t">ep-agno 骨架<span class="d-role">执行与网关</span></div><div class="d-v">EP 助手窗口的协议接入层：SendMessage 任务流 + X-User-Id 身份透传</div></div><div class="dep"><div class="d-t">dx-ep CLI<span class="d-role">数据通道</span></div><div class="d-v">query-ready / create-order / submit-list，channel=cli 锁定</div></div><div class="dep"><div class="d-t">FDS 对象存储<span class="d-role">确认页载体</span></div><div class="d-v">查询结果生成确认页，勾选回传 selections</div></div><div class="dep"><div class="d-t">飞书开放平台<span class="d-role">入口与卡片</span></div><div class="d-v">机器人长连接 + 卡片按钮回调 + 权限可见性</div></div><div class="dep"><div class="d-t">GarageHub<span class="d-role">能力市场</span></div><div class="d-v">skill 发现 / 安装分发（ai-hub-marketplace）</div></div><div class="dep"><div class="d-t">EP AgentSpace<span class="d-role">平台备案</span></div><div class="d-v">skill 压缩包 + Agent 设定的上架通道</div></div><div class="dep"><div class="d-t">米研网关<span class="d-role">路由鉴权</span></div><div class="d-v">n-cli-gateway 验凭证 + 路由到 EP 服务</div></div><div class="dep"><div class="d-t">WeKnora 知识库<span class="d-role">知识层</span></div><div class="d-v">EP 助手知识资产（已部署，可接入）</div></div></div><div class="pano-h"><span class="qn">C</span>我们现在的问题是什么<span class="qd">终局目标 vs 现状差距</span></div><table class="gap-tbl"><thead><tr><th>维度</th><th>终局目标</th><th>现状</th></tr></thead><tbody><tr><td class="dim">入口</td><td class="end">双入口 All-in-one</td><td class="now">双入口已接同一服务层 ✅</td></tr><tr><td class="dim">协议</td><td class="end">A2A + REST 归一</td><td class="now">已归一 ✅</td></tr><tr><td class="dim">能力</td><td class="end">五个能力 + 新场景可挂载</td><td class="now">五个能力 ✅ · 新场景未接</td></tr><tr><td class="dim">权限</td><td class="end">系统角色接管授权</td><td class="now">白名单硬编码 <b>待升级</b></td></tr><tr><td class="dim">AI 位置</td><td class="end">不持通道 · 只出建议单</td><td class="now">AI 仍拿通道 <b>核心差距</b></td></tr><tr><td class="dim">数据</td><td class="end">价格只进系统内</td><td class="now">部分依赖对话链路 <b>部分缺口</b></td></tr><tr><td class="dim">会话</td><td class="end">多副本共享存储</td><td class="now">单实例本地 <b>待解</b></td></tr><tr><td class="dim">知识</td><td class="end">WeKnora 接入</td><td class="now">已部署 · <b>未接通</b></td></tr></tbody></table></div>
+</div>
+<!-- ============ 建设路径（新增 · 2026-11-19） ============ -->
+<div class="zone" id="z4b">
+  <div class="zone-hd"><span class="no">⑤</span><h2>建设路径：CLI → Skill → 低码 → 高码</h2><div class="zsub">四次形态演进 · 每次都是被逼的</div></div>
+
+  <div class="act-narr">这不是路线图，是<span class="hl2">踩过之后回看的路</span>。四种形态各自解决了什么、又卡在哪、什么条件下才该往下走一步。依据：样件订单助手 <span class="hl2">149 个提交 / 36k 行代码 / 3 个 Skill / 1079 项用例</span>。</div>
+
+  <div class="evo" style="margin:14px 0">
+    <div style="flex:1;border:1px solid var(--bd);border-radius:8px;padding:12px;background:#fafafa">
+      <div class="p-h">形态 1 · CLI</div><div style="font-size:10px;color:var(--ink3);margin-top:2px">2026-09 起</div>
+      <div class="p-d"><b>人敲命令</b> · 能力=脚本 · 边界=终端</div>
+    </div>
+    <div style="flex:0 0 24px;display:flex;align-items:center;justify-content:center;color:var(--ink3)">→</div>
+    <div style="flex:1;border:1px solid var(--bd);border-radius:8px;padding:12px;background:#fafafa">
+      <div class="p-h">形态 2 · Skill</div><div style="font-size:10px;color:var(--ink3);margin-top:2px">2026-10 起</div>
+      <div class="p-d"><b>封装成契约</b> · 可被任意入口调用</div>
+    </div>
+    <div style="flex:0 0 24px;display:flex;align-items:center;justify-content:center;color:var(--ink3)">→</div>
+    <div style="flex:1;border:1px solid var(--blue);border-radius:8px;padding:12px;background:#e6f4ff">
+      <div class="p-h">形态 3 · 低码·卡片</div><div style="font-size:10px;color:var(--blue);margin-top:2px;font-weight:600">2026-11 当前</div>
+      <div class="p-d"><b>对话+按钮+确认页</b> · 多维表格当 UI</div>
+    </div>
+    <div style="flex:0 0 24px;display:flex;align-items:center;justify-content:center;color:var(--ink3)">→</div>
+    <div style="flex:1;border:1px dashed var(--bd);border-radius:8px;padding:12px;background:#fff">
+      <div class="p-h">形态 4 · 高码·内嵌</div><div style="font-size:10px;color:var(--orange);margin-top:2px;font-weight:600">规划中</div>
+      <div class="p-d"><b>AI 只出建议单</b> · 系统确认、系统执行</div>
+    </div>
+  </div>
+
+  <div class="pano"><div class="pano-h"><span class="qn">A</span>四次形态：为什么选它 / 解决了什么 / 卡在哪<span class="qd">关键判断：这不是「技术越来越高级」，是「权限越来越收得回来」</span></div>
+    <table class="tbl"><thead><tr><th style="width:11%">形态</th><th style="width:22%">当时为什么选它</th><th style="width:30%">解决了什么</th><th style="width:37%">卡在哪（推动下一步）</th></tr></thead><tbody>
+      <tr><td><b>CLI</b></td><td>EP 已有 <code>dx-ep</code>，先跑通端到端</td><td>最快验证「AI 到底能不能把这个活干成」</td><td>只有懂命令行的人能用；业务方看到黑屏就退</td></tr>
+      <tr><td><b>Skill</b></td><td>能力不能只活在某个入口里</td><td>查询/下单/日报各自成契约，可被任意入口调用</td><td>能力有了，但<b>交互还是文档式的</b>——用户要读长文才知道下一步</td></tr>
+      <tr><td><b>低码·卡片</b></td><td>用户在飞书里，不该跳出去</td><td>对话触发、卡片确认、表格选供应商</td><td>卡片承载不了复杂结构（预算 9 字段、多条失败）；状态散在多处</td></tr>
+      <tr><td><b>高码·内嵌</b></td><td><b>AI 不该拿着写权限</b></td><td>（目标）系统弹确认、系统执行、AI 只出建议单</td><td>需要 EP 前端改造配合</td></tr>
+    </tbody></table>
+    <div class="act-narr" style="margin-top:10px"><b>一句话</b>：CLI 时代有凭证就能干一切；卡片时代要按钮确认；内嵌时代 AI 连通道都不碰。每一步都在把「权力」从 AI 手里收回系统。</div>
+  </div>
+
+  <div class="pano"><div class="pano-h"><span class="qn">B</span>CLI 与 Skill 的边界<span class="qd">最容易混淆：既然有 CLI，为什么还要 Skill？两者不是替代关系，是两种不同的东西</span></div>
+    <div class="q3-grid3">
+      <div class="q3-p"><div class="p-h">CLI（通道）</div><div class="p-d"><b>一次进程调用</b><br>输入：命令行参数<br>输出：stdout / 退出码<br><span class="hl2">回答「怎么连到 EP」</span></div></div>
+      <div class="q3-p"><div class="p-h">Skill（契约）</div><div class="p-d"><b>一段有语义的能力</b><br>输入：结构化意图<br>输出：结构化结果 + 人读文案<br><span class="hl2">回答「这件事怎么算做完」</span></div></div>
+      <div class="q3-p"><div class="p-h">Agent（编排）</div><div class="p-d"><b>决定「现在该做哪件」</b><br>输入：人话<br>输出：动作 + 卡片 + 留痕<br><span class="hl2">回答「用户到底要什么」</span></div></div>
+    </div>
+    <div class="act-narr" style="margin-top:12px;border-left:3px solid var(--red);background:#fff2f0;padding:10px 14px;border-radius:6px">
+      <b>踩坑实录：把 CLI 参数当成 Agent 的输入</b><br>
+      最初 Agent 直接拼 <code>dx-ep</code> 的命令行参数。结果：参数名一改，Agent 静默拼错，EP 返回 0 条，被当成「没有需求」；
+      <code>--br-line</code> ↔ <code>brLineNumber</code> 这类命名差异，两边各自维护。<br>
+      <b>现在</b>：<code>demand-order</code> 的 <code>--dry-run</code> 输出三份对照——<code>intent</code>（通道无关意图）· <code>cli_argv</code> · <code>api_body</code>，并给出 <code>equivalent</code> 判断两者是否语义等价。
+    </div>
+    <table class="tbl" style="margin-top:12px"><thead><tr><th style="width:16%">Skill</th><th style="width:22%">职责</th><th style="width:20%">契约规模</th><th style="width:42%">关键约束</th></tr></thead><tbody>
+      <tr><td><code>demand-query</code></td><td>只读查询 / 过滤 / 分组</td><td>418 行 SKILL.md</td><td>不写任何东西，5 分钟内同参复用</td></tr>
+      <tr><td><code>demand-order</code></td><td>下单（写，不可逆）</td><td>488 行 SKILL.md</td><td><b>必须真人触发且身份=触发人</b></td></tr>
+      <tr><td><code>daily-report</code></td><td>统计日报</td><td>197 行 SKILL.md</td><td>只读，系统身份可跑</td></tr>
+    </tbody></table>
+    <div class="act-narr" style="margin-top:8px">「必须真人触发且身份=触发人」不是文档口号，是代码里的硬闸门：<code>run_cli</code> 会校验 EP 令牌角色，不是 <code>editor</code> 级直接拒绝，<b>不白跑一次、不产生半成品订单</b>。</div>
+  </div>
+
+  <div class="pano"><div class="pano-h"><span class="qn">C</span>低码的正确用法<span class="qd">不是「少写代码」，是把「人做决定」的部分，放到人能看见的地方</span></div>
+    <table class="tbl"><thead><tr><th style="width:22%">决定事项</th><th style="width:26%">放哪</th><th style="width:52%">为什么</th></tr></thead><tbody>
+      <tr><td>选哪家供应商</td><td><b>多维表格</b>（人勾选）</td><td>涉及价格与关系，AI 不该替人判断</td></tr>
+      <tr><td>要不要下这一批</td><td><b>卡片按钮</b>（人点）</td><td>写操作不可逆，必须有一次明确确认</td></tr>
+      <tr><td>哪些需求要剔除</td><td><b>剔除需求表</b>（人维护）</td><td>业务判断，AI 只读不猜</td></tr>
+      <tr><td>预算不足怎么办</td><td><b>处置表</b>（人跟）</td><td>加额度是人的动作，AI 只能把「差多少、找谁」说清</td></tr>
+    </tbody></table>
+    <div class="hl-grid" style="margin-top:12px">
+      <div class="act-narr" style="border-left:3px solid var(--red);background:#fff2f0;padding:10px 14px;border-radius:6px"><b>踩坑：把「导出 JSON 再贴回」当成交互</b><br>一期确认页让用户导出一份 JSON、改完再贴回来。开发视角可行，业务视角不可行——<b>飞书里没有这个习惯</b>。现在：确认页只读展示，选择在多维表格里做。</div>
+      <div class="act-narr" style="border-left:3px solid var(--red);background:#fff2f0;padding:10px 14px;border-radius:6px"><b>踩坑：「一格里塞多家供应商」</b><br>最初按「需求」组织：一个需求一行，候选供应商放一列。但供应商是<b>按物料行</b>指定的。现在：拆原子候选行（一行一候选，勾「选择这家」），行主键 = <code>需求号|供应商组合</code>。</div>
+    </div>
+  </div>
+
+  <div class="pano"><div class="pano-h"><span class="qn">D</span>高码的方向：AI 不该拿钥匙<span class="qd">终局不是「AI 什么都能干」，是「AI 只出建议单」</span></div>
+    <table class="tbl"><thead><tr><th style="width:18%">阶段</th><th style="width:24%">AI 拿到什么</th><th style="width:20%">谁执行</th><th style="width:38%">风险</th></tr></thead><tbody>
+      <tr><td>CLI 时代</td><td>凭证（通道）</td><td>AI</td><td>有凭证就能干一切</td></tr>
+      <tr><td>卡片时代（当前）</td><td>通道 + 白名单 + 闸</td><td>AI，但要人点确认</td><td>确认被绕过 / 重复点击</td></tr>
+      <tr><td>内嵌时代（目标）</td><td>只出建议单</td><td>系统</td><td>系统自身权限模型</td></tr>
+    </tbody></table>
+    <div class="p-h" style="margin-top:14px">已经落地的权限控制（不是规划）</div>
+    <div class="hl-grid">
+      <div><b>身份闸</b>：下单前校验「登录人 == 卡片所属人」，别人点了直接拒</div>
+      <div><b>在途去重</b>：同 chat + action 在途时不启第二个线程</div>
+      <div><b>回调幂等</b>：飞书重投同一次点击，60 秒窗口内只执行一次</div>
+      <div><b>动作级授权</b>：<code>gate(user_name, action)</code> 在服务层，通道层替代不了</div>
+      <div><b>留痕</b>：每次下单写审计——谁、何时、哪些需求、什么结果</div>
+      <div><b>工作台鉴权</b>：内网页面需 token，Cookie 记住 7 天（2026-11-19 新增）</div>
+    </div>
+  </div>
+
+  <div class="pano"><div class="pano-h"><span class="qn">E</span>踩过的坑：按「根因类型」归类<span class="qd">149 个提交里 61 个是修复，按根因归类只有 8 类</span></div>
+    <table class="tbl"><thead><tr><th style="width:5%">#</th><th style="width:20%">根因类型</th><th style="width:40%">典型表现</th><th style="width:35%">本质</th></tr></thead><tbody>
+      <tr><td>1</td><td>用结果推断原因</td><td>EP 失败也返回「0 条」，被当成「没有需求」</td><td>只判断数量，没判断错误类型</td></tr>
+      <tr><td>2</td><td>共享可变状态未隔离</td><td>两个任务共用凭证文件，一个刷新把另一个顶成 401</td><td>把「凭证」当成无状态只读资源</td></tr>
+      <tr><td>3</td><td>把多态压成单态</td><td>EP 订单有建单/提交/审批多维状态，代码压成一个布尔</td><td>用简单模型描述复杂现实</td></tr>
+      <tr><td>4</td><td>口径未定义就开用</td><td>「说要选 35 条，表格只有 32 条」</td><td>需求号 / 物料行 / 入表行三个数混用</td></tr>
+      <tr><td>5</td><td>没有幂等的副作用</td><td>飞书重投回调，一次点击出两张结果卡</td><td>把「收到回调」等同于「用户点了一次」</td></tr>
+      <tr><td>6</td><td>同步模型套异步场景</td><td>飞书回调要求 3 秒，业务要 30~60 秒</td><td>把长任务塞进短响应里</td></tr>
+      <tr><td>7</td><td>别名解析优先级反了</td><td>金额写进自动建的同名列，用户看的真实主列恒为空。905 项测试全绿，因为只断言「写了某列」，没断言「写进了对的列」</td><td>验证断言停在「有副作用」，没到「副作用正确」</td></tr>
+      <tr><td>8</td><td>跨链路取数</td><td>查一品一点时读了多点待选表，卡片里冒出「待选供应商」</td><td>分链后仍有路径没隔离</td></tr>
+    </tbody></table>
+    <div class="act-narr" style="margin-top:10px">这 8 类的共同点：<b>都是在「用简单模型描述复杂现实」</b>——把会变的东西当不变、把未知当已知、把长任务当短任务。特征是：<b>平时不出错，一旦并发/异常/超时就集中爆发</b>。</div>
+  </div>
+
+  <div class="pano"><div class="pano-h"><span class="qn">F</span>验证方式本身的演进<span class="qd">这轮最有价值的不是修好了什么，是发现自己的验证方式有漏洞</span></div>
+    <table class="tbl"><thead><tr><th style="width:8%">阶段</th><th style="width:30%">做法</th><th style="width:62%">漏在哪</th></tr></thead><tbody>
+      <tr><td>1</td><td>写单测</td><td>只测想到的场景</td></tr>
+      <tr><td>2</td><td>历史 bug 转回归用例</td><td>有些断言是<b>源码字符串匹配</b>（<code>"_PHENOMENON" in src</code>），代码写反了也能过</td></tr>
+      <tr><td>3</td><td>真实数据跑一遍</td><td>「测试通过」≠「功能正确」</td></tr>
+      <tr><td>4（现在）</td><td>真实写入 → 回读核对 → 清理</td><td>需生产权限，操作要谨慎；用错身份也会误判（机器人 token 读不了多维表格 → 返回空 → 误以为「没写进去」）</td></tr>
+    </tbody></table>
+    <div class="act-narr" style="margin-top:10px"><b>2026-11-19 补充</b>：本轮把「回归不得污染生产」做成了代码级护栏——<code>run_tests.sh</code> 强制隔离 <code>SAMPLE_DATA_DIR</code>，且台账读写统一走 <code>_ledger_path()</code> 动态解析。全量 1079 项跑完后，生产台账 md5 保持不变（实测验证）。</div>
+  </div>
+
+  <div class="pano"><div class="pano-h"><span class="qn">G</span>如果要复制到别的业务，什么是可复用的</div>
+    <div class="hl-grid" style="grid-template-columns:1fr 1fr">
+      <div style="border:1px solid var(--green);border-radius:8px;padding:12px">
+        <div class="p-h" style="color:var(--green)">✅ 可复用（方法）</div>
+        <div class="p-d">· 四层分层 + 「能否独立测试」判断法<br>· 替代操作、不替代判断的边界<br>· 口径先定义再使用<br>· 副作用幂等 + 在途去重<br>· 慢任务异步化 + 话题承载<br>· 验证四阶段演进</div>
+      </div>
+      <div style="border:1px solid var(--bd);border-radius:8px;padding:12px;background:#fafafa">
+        <div class="p-h" style="color:var(--ink3)">❌ 不可复用（领域知识）</div>
+        <div class="p-d">· EP 的字段名与拆单规则<br>· 飞书卡片的具体结构<br>· 多维表格作为 UI 的具体用法<br>· 业务上的剔除/升版判断</div>
+      </div>
+    </div>
+    <div class="act-narr" style="margin-top:10px"><b>一个判断</b>：如果换一个业务场景，这条经验还成立吗？只写成立的。领域知识留在项目里，方法沉淀成规则。</div>
+  </div>
+</div>
+
+<!-- ============ ⑥ 走过的路 ============ -->
+<div class="zone" id="z5">
+  <div class="zone-hd"><span class="no">⑥</span><h2>走过的路：6 个阶段 · 9 个脚印</h2><div class="zsub">每一步都有产物</div></div>
+  <div class="hist"><p class="hsub">每一步都有产物 · 点开小步骤看细节</p><div class="phase-grid"><div class="phase"><div class="ph"><span class="num">①</span><span class="pt">蓝图</span><span class="pd">2026-04</span></div><details><summary>2026-04-27 · 数字化方案</summary><div class="sd">批量自动下单 / 订单更新 / 进度可视化三大功能定义</div></details></div><div class="phase"><div class="ph"><span class="num">②</span><span class="pt">平台探索</span><span class="pd">2026-09 上旬</span></div><details><summary>2026-09-08 · 五 Skill 流水线 v3.0</summary><div class="sd">导入 → 检查 → 查询 → 下单 → 确认，人工只做决策</div></details><details><summary>2026-09-08 · AgentSpace vs Mico 选型</summary><div class="sd">平台探索：运行 vs 协同，选型看阶段（后弃用：平台黑盒）</div></details></div><div class="phase"><div class="ph"><span class="num">③</span><span class="pt">架构定型</span><span class="pd">2026-09 中下旬</span></div><details><summary>2026-09-14 · 四层交互架构</summary><div class="sd">交互/编排/原子能力/沉淀，确认节点成为架构要素</div></details><details><summary>2026-09-24 · AgentSpace 三 Skill 上架</summary><div class="sd">跑通「查 → 确认 → 下单 → 日报」闭环</div></details></div><div class="phase"><div class="ph"><span class="num">④</span><span class="pt">验证与踩坑</span><span class="pd">2026-10 中旬</span></div><details><summary>2026-10-10 · 全流程验证</summary><div class="sd">流程定型五步；一品一点直接成组、一品多点人工选</div></details><details><summary>2026-10-21 · 小队 + 踩坑修复</summary><div class="sd">拆单/状态口径/来源口径沉淀进脚本</div></details></div><div class="phase"><div class="ph"><span class="num">⑤</span><span class="pt">自部署上线</span><span class="pd">2026-10-26</span></div><details><summary>2026-10-26 · 自部署双入口</summary><div class="sd">飞书 + A2A 同进程；41 回归测试；白名单</div></details></div><div class="phase"><div class="ph"><span class="num">⑥</span><span class="pt">方向收敛</span><span class="pd">2026-10-27</span></div><details><summary>2026-10-27 · 周例会方向确认</summary><div class="sd">CLI 崩回系统、系统内操作与确认（孟涛已动手，归属待定）</div></details></div></div></div>
+</div>
+  <div style="margin-top:18px">
+    <div class="pano-h"><span class="qn">⑦</span>第 7–9 阶段：10-28 → 11-19（本轮补充）<span class="qd">三周内发生的事，按「问题 → 动作 → 结果」记录</span></div>
+    <div class="phase-grid" style="grid-template-columns:1fr">
+      <div class="phase"><div class="ph"><span class="num">⑦</span><span class="pt">权限收紧 + 架构沉淀</span><span class="pd">2026-10-28 → 11-06</span></div>
+        <details open><summary>10-28 · 权限分层设计（六层）</summary><div class="sd">L0 通道 → L1 身份 → L2 意图 → L3 工具 → L4 凭证 → L5 数据。确立「动作权限权威层 = L2」，L3 只做兜底同判。</div></details>
+        <details><summary>11-04 · 交互踩坑：一品多点选不上</summary><div class="sd">「导出 JSON 再贴回」被业务否决；改为确认页只读、选择在多维表格做。行主键定为「需求号|供应商组合」。</div></details>
+        <details><summary>11-06 · 全流程审核 + 字段审计</summary><div class="sd">工作台字段审计、真实用户验收用例、使用指南成型。</div></details>
+      </div>
+      <div class="phase"><div class="ph"><span class="num">⑧</span><span class="pt">真实验证 · 暴露系统性缺陷</span><span class="pd">2026-11-07 → 11-15</span></div>
+        <details><summary>11-09 · 首次大批量真实下单</summary><div class="sd">86 单 / 21 个需求 / 4900048158。发现升版需求 EP 不回写 cantPoReason → 重复进池。催生「本地下单台账」。</div></details>
+        <details><summary>11-12 · 双实现漂移事故</summary><div class="sd">「读剔除表」在 sample_tools 和 demand_query 各写一份，签名不同 → 缓存指纹恒 None → 缓存从未命中，白跑 40s。直接促成 app/common 单一真源改造。</div></details>
+        <details><summary>11-13 · 低码形态确认</summary><div class="sd">多维表格当 UI 的边界被摸清：人选供应商、人点确认、人维护剔除表——AI 只读不猜。</div></details>
+      </div>
+      <div class="phase"><div class="ph"><span class="num">⑨</span><span class="pt">架构重构 + 全链路回归</span><span class="pd">2026-11-16 → 11-19</span></div>
+        <details><summary>11-17 · 排除需求表改版 + <code>json_path</code> 崩溃修复</summary><div class="sd">UnboundLocalError 'json_path' 把「优雅失败」变成崩栈 → 批次号与产物路径前移到所有失败分支之前。</div></details>
+        <details><summary>11-18 · 一品多点根因收敛（4 个断点）</summary><div class="sd">①空单号锁死需求 ②按表下单只认最新快照 ③一需求多行误判歧义 ④部分命中就跳过回源。逐一修复并加回归。</div></details>
+        <details><summary>11-19 · 台账空单号覆盖真实订单（P0）</summary><div class="sd">结果文件一旦清理，1086 个已下单需求会重进可下单池。修复：有凭证记录不得被无凭证覆盖；同修 backfill 绕过隔离路径。全量 1079 项 × 多轮，生产台账 md5 不变。</div></details>
+        <details><summary>11-19 · 两个静默瘫痪的功能被工作台照出来</summary><div class="sd">①提交巡检 42 个日志 40 个崩溃（details 混脏数据）②定时任务连续 7 天失败（node stdout 混日志致 JSON 解析失败）。均已修复并验证 launchd 退出码归 0。</div></details>
+        <details><summary>11-19 · 工作台 + 内网部署</summary><div class="sd">单文件 HTML 读真实文件生成；5 个 tab（总览/下单记录/定时任务/审计/异常）；EP 深链；内网 <code>/wb</code> + token 鉴权。</div></details>
+      </div>
+    </div>
+  </div>
+
+  <div style="margin-top:18px">
+    <div class="pano-h"><span class="qn">⑩</span>本轮量化（可核对）<span class="qd">不是估计，是跑出来的数</span></div>
+    <div class="hl-grid" style="grid-template-columns:repeat(4,1fr)">
+      <div style="border:1px solid var(--bd);border-radius:8px;padding:12px"><div class="p-h" style="font-size:20px;color:var(--blue)">1079</div><div class="p-d" style="font-size:11px;color:var(--ink3)">回归用例（连续多轮通过）</div></div>
+      <div style="border:1px solid var(--bd);border-radius:8px;padding:12px"><div class="p-h" style="font-size:20px;color:var(--green)">3922</div><div class="p-d" style="font-size:11px;color:var(--ink3)">台账已下单需求（去重）</div></div>
+      <div style="border:1px solid var(--bd);border-radius:8px;padding:12px"><div class="p-h" style="font-size:20px;color:var(--orange)">8</div><div class="p-d" style="font-size:11px;color:var(--ink3)">根因类型（61 次修复归并）</div></div>
+      <div style="border:1px solid var(--bd);border-radius:8px;padding:12px"><div class="p-h" style="font-size:20px;color:var(--blue)">4</div><div class="p-d" style="font-size:11px;color:var(--ink3)">形态演进（CLI→Skill→低码→高码）</div></div>
+    </div>
+  </div>
+
+<!-- ============ ⑦ 附录 ============ -->
+<div class="zone" id="z6">
+  <div class="zone-hd"><span class="no">⑦</span><h2>附录：契约与思考</h2><div class="zsub">细节归档，点击展开</div></div>
+  <div class="details"><details><summary>📋 层间接口契约——依赖只向下，不越层</summary><div class="qbody"><table class="tbl"><thead><tr><th>契约</th><th>内容</th></tr></thead><tbody><tr><td>入口 → 协议</td><td>统一入参 text/chat_id/user_name；出参 reply/actions/timing/trace；入口不传权限结论只传身份</td></tr><tr><td>协议 → 服务</td><td>A2A 任务流 / REST JSON / MCP tool call 归一成同一个服务层调用</td></tr><tr><td>服务内部</td><td>S1 路由 → S3 闸 → S2 执行；S3 是根基；gate 单点；脱敏在回传前</td></tr><tr><td>服务 → 通道</td><td>channel=cli 锁定；exit 3 环境异常 ≠ 0 暂无数据；fetch_error 非空必须说明</td></tr><tr><td>不越层</td><td>入口不直连 CLI；服务层不直连用户；敏感值不跨层外流</td></tr></tbody></table></div></details><details><summary>💭 十个开放问题（开会用）</summary><div class="qbody"><table class="tbl"><thead><tr><th>#</th><th>问题</th><th>为什么要想</th></tr></thead><tbody><tr><td>1</td><td>AI 的边界画在哪——系统角色还是数据脱敏？</td><td>角色管能不能做，脱敏管能看到多少——先落地哪个？</td></tr><tr><td>2</td><td>价格敏感锁到什么粒度？</td><td>只锁对话？还是 CLI 也收口？</td></tr><tr><td>3</td><td>系统内嵌后飞书机器人还要吗？</td><td>高频入口 vs 执行入口——并存还是收一个？</td></tr><tr><td>4</td><td>「AI 无写权限」是真无还是「必须系统确认」？</td><td>决定终局：AI 只出建议单 vs AI 代执行</td></tr><tr><td>5</td><td>MCP 开放后工具授权分多细？</td><td>按工具 / 角色 / 数据域？越细越贵</td></tr><tr><td>6</td><td>确定性逻辑都进代码后 AI 还剩什么价值？</td><td>AI 只做「听懂人话」，和规则引擎的边界在哪？</td></tr><tr><td>7</td><td>审计要记多细？</td><td>现在记谁/何时/指令；以后要记 AI 每一步推理吗？</td></tr><tr><td>8</td><td>单机版怎么升级？</td><td>会话记忆在本地——先共享存储还是直接系统内嵌？</td></tr><tr><td>9</td><td>AI 的操作单元是什么？</td><td>EP 最小操作单元不变；AI 按组/按单/按需求提？</td></tr><tr><td>10</td><td>「崩回系统」谁牵头？</td><td>EP 侧改系统，还是我们这侧改接入？</td></tr></tbody></table><div class="summary-box"><b>一句话总结</b>：AI 采购不是「做个机器人」，而是「能力分层、权限一道闸、敏感锁死」的系统工程。入口可以换，服务层不动；场景可以加，架构不变。</div></div></details></div>
+  <div style="padding:0 20px 14px"><div class="footnote">📊 <b>口径</b>：基于当前代码事实（feishu_bridge_v2.js / main.py / intent_router.py / fast_path.py / filter_engine.py / sample_tools.py / auth_control.py / identity_guard.py / audit_log.py）与 2026-10-27 EP 周例会文字记录；「系统内嵌 / MCP / 直连 API / 新业务场景」为规划口径，正式决策以业务与 EP 侧确认为准。</div></div>
+</div>
+<div class="foot">EP 采购 AI 形态 · 2026-10-27 周例会口径 · 三幕故事线版　|　<b>2026-11-19 增补</b>：权限控制详版（六层 + R1-R6 + 四道闸）、建设路径（CLI→Skill→低码→高码）、历史探索补至第 9 阶段</div>
+</div></body></html>
