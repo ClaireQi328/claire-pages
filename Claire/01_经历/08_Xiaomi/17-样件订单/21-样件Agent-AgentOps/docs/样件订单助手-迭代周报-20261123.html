@@ -1,0 +1,610 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>样件订单助手 · 迭代周报（10-24 ~ 11-23）</title>
+<style>
+:root{
+  --accent:#1677ff; --accent-soft:#eaf3ff; --accent-deep:#0e5fd8; --accent-border:#bcd6ff;
+  --ink:#1f2329; --ink-2:#646a73; --ink-3:#8f959e;
+  --bg:#ffffff; --bg-alt:#fafafa; --line:#f0f0f0; --border:#d9d9d9;
+  --ok:#52c41a; --ok-soft:#f6ffed; --warn:#faad14; --warn-soft:#fffbe6;
+  --bad:#ff4d4f; --bad-soft:#fff2f0;
+  --radius:6px; --radius-lg:8px;
+}
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"PingFang SC","Hiragino Sans GB","Microsoft YaHei",Arial,sans-serif;
+  background:var(--bg);color:var(--ink);font-size:14px;line-height:1.5714;-webkit-font-smoothing:antialiased}
+.page{max-width:1080px;margin:0 auto;padding:0 24px 80px}
+
+.nav{position:sticky;top:0;z-index:50;background:rgba(255,255,255,.92);backdrop-filter:blur(12px);border-bottom:1px solid var(--line)}
+.nav-in{max-width:1080px;margin:0 auto;padding:0 24px;height:56px;display:flex;align-items:center;gap:24px}
+.brand{display:flex;align-items:center;gap:8px;font-weight:600;font-size:14px;white-space:nowrap}
+.brand .dot{width:24px;height:24px;border-radius:var(--radius);background:var(--accent);display:grid;place-items:center;color:#fff;font-size:12px;font-weight:700}
+
+/* Tab */
+.tabs{display:flex;gap:4px;margin-left:auto;overflow-x:auto;scrollbar-width:none}
+.tabs::-webkit-scrollbar{display:none}
+.tab{color:var(--ink-2);font-size:13px;padding:7px 14px;border-radius:var(--radius);white-space:nowrap;
+  cursor:pointer;border:1px solid transparent;background:none;transition:.18s;font-weight:500}
+.tab:hover{background:var(--accent-soft);color:var(--accent-deep)}
+.tab.active{background:var(--accent);color:#fff;border-color:var(--accent)}
+.tab .n{opacity:.7;margin-right:4px;font-weight:400}
+
+.hero{padding:48px 0 36px;border-bottom:1px solid var(--line)}
+.eyebrow{display:inline-flex;align-items:center;gap:6px;font-size:12px;color:var(--accent-deep);
+  background:var(--accent-soft);padding:4px 12px;border-radius:var(--radius);font-weight:600}
+.hero h1{font-size:29px;line-height:1.35;margin:16px 0 12px;font-weight:600;letter-spacing:-.3px}
+.hero p{color:var(--ink-2);font-size:15px;max-width:780px}
+.stats{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-top:26px}
+.stat{background:var(--bg-alt);border:1px solid var(--line);border-radius:var(--radius-lg);padding:16px}
+.stat .v{font-size:25px;font-weight:600;color:var(--accent);line-height:1.2}
+.stat .k{font-size:12px;color:var(--ink-2);margin-top:4px}
+
+/* 周面板 */
+.week{display:none;padding-top:36px}
+.week.active{display:block}
+.week-head{margin-bottom:24px;padding-bottom:16px;border-bottom:1px solid var(--line)}
+.week-head .range{font-size:12.5px;color:var(--accent-deep);font-weight:600;background:var(--accent-soft);
+  padding:3px 10px;border-radius:var(--radius);display:inline-block;margin-bottom:10px}
+.week-head h2{font-size:22px;font-weight:600;letter-spacing:-.2px;margin-bottom:8px}
+.week-head p{color:var(--ink-2);font-size:14px;max-width:820px}
+
+/* 章节 */
+.sec{margin-bottom:30px}
+.sec-head{display:flex;align-items:center;gap:10px;margin-bottom:10px;flex-wrap:wrap}
+.sec-head .ico{width:24px;height:24px;border-radius:var(--radius);background:var(--accent-soft);
+  color:var(--accent-deep);display:grid;place-items:center;font-size:13px;flex-shrink:0}
+.sec-head h3{font-size:16px;font-weight:600}
+.tag{font-size:11.5px;padding:2px 8px;border-radius:var(--radius);background:var(--bg-alt);
+  color:var(--ink-2);border:1px solid var(--line)}
+.tag.blue{background:var(--accent-soft);color:var(--accent-deep);border-color:var(--accent-border)}
+.tag.gold{background:var(--warn-soft);color:#ad6800;border-color:#ffe58f}
+.tag.green{background:var(--ok-soft);color:#389e0d;border-color:#b7eb8f}
+.tag.red{background:var(--bad-soft);color:#cf1322;border-color:#ffccc7}
+
+.tbl{width:100%;border-collapse:collapse;border:1px solid var(--line);border-radius:var(--radius-lg);
+  overflow:hidden;margin-bottom:4px}
+.tbl th{background:var(--bg-alt);text-align:left;font-size:12.5px;font-weight:600;color:var(--ink-2);
+  padding:10px 14px;border-bottom:1px solid var(--line);white-space:nowrap}
+.tbl td{padding:11px 14px;border-bottom:1px solid var(--line);vertical-align:top;font-size:13.5px}
+.tbl tr:last-child td{border-bottom:none}
+.tbl td:first-child{font-weight:500;white-space:nowrap;color:var(--ink)}
+.tbl tbody tr:hover{background:#fcfcfd}
+.tbl .muted{color:var(--ink-3);font-size:12.5px}
+code{font-family:"SFMono-Regular",Consolas,Menlo,monospace;font-size:12.5px;background:var(--bg-alt);
+  padding:1px 6px;border-radius:4px;border:1px solid var(--line);color:var(--accent-deep)}
+.tbl-wrap{overflow-x:auto;margin-bottom:8px}
+
+ul.plain{list-style:none;margin:8px 0}
+ul.plain li{position:relative;padding-left:18px;color:var(--ink-2);font-size:13.5px;margin-bottom:7px;line-height:1.6}
+ul.plain li::before{content:"";position:absolute;left:2px;top:.65em;width:5px;height:5px;
+  border-radius:50%;background:var(--accent-border)}
+ul.plain li b{color:var(--ink);font-weight:600}
+
+.note{background:var(--bg-alt);border-left:3px solid var(--accent);border-radius:var(--radius);
+  padding:12px 16px;margin:14px 0;font-size:13.5px;color:var(--ink-2)}
+.note b{color:var(--ink)}
+.risk{background:var(--warn-soft);border-left-color:var(--warn)}
+.risk b{color:#ad6800}
+
+footer{padding:36px 0;color:var(--ink-3);font-size:12.5px;text-align:center;border-top:1px solid var(--line)}
+
+@media(max-width:820px){
+  .stats{grid-template-columns:repeat(2,1fr)}
+  .hero h1{font-size:24px}
+  .nav-in{gap:12px}
+  .tab{font-size:12px;padding:6px 10px}
+}
+</style>
+</head>
+<body>
+
+<div class="nav">
+  <div class="nav-in">
+    <div class="brand"><span class="dot">样</span>样件订单助手</div>
+    <div class="tabs">
+      <button class="tab active" data-week="w1"><span class="n">1</span>10-24 周</button>
+      <button class="tab" data-week="w2"><span class="n">2</span>10-31 周</button>
+      <button class="tab" data-week="w3"><span class="n">3</span>11-07 周</button>
+      <button class="tab" data-week="w4"><span class="n">4</span>11-14 周</button>
+      <button class="tab" data-week="w5"><span class="n">5</span>11-21 周</button>
+      <button class="tab" data-week="w6"><span class="n">★</span>根因总览</button>
+    </div>
+  </div>
+</div>
+
+<div class="page">
+  <div class="hero">
+    <span class="eyebrow">迭代周报 · 按周归档</span>
+    <h1>样件订单助手 · 迭代周报</h1>
+    <p>覆盖 2026-10-24 至 11-23 共 5 周。每周记录：做了什么、为什么做、影响了什么。点击顶部周的标签切换。</p>
+    <div class="stats">
+      <div class="stat"><div class="v">5</div><div class="k">周迭代</div></div>
+      <div class="stat"><div class="v">80+</div><div class="k">功能与修复项</div></div>
+      <div class="stat"><div class="v">1153</div><div class="k">自动化用例</div></div>
+      <div class="stat"><div class="v">100%</div><div class="k">回归通过率</div></div>
+    </div>
+  </div>
+
+  <!-- ========== W1: 10-24 ~ 10-30 ========== -->
+  <div class="week active" id="w1">
+    <div class="week-head">
+      <span class="range">2026-10-24 ~ 10-30</span>
+      <h2>第 1 周 · 从手工查表，到说一句话就能下单</h2>
+      <p>这一周把「人工搬运」变成了「机器跑腿」，也是整条链路第一次跑通。</p>
+    </div>
+
+    <div class="sec">
+      <div class="sec-head"><span class="ico">一</span><h3>下单：不再手工搬运</h3><span class="tag red">本周核心</span></div>
+      <ul class="plain">
+        <li><b>不再</b>去 EP 一条条查需求、抄到 Excel 再核对</li>
+        <li><b>不再</b>凭经验判断「这条能不能下」——系统按采购员 / 供应商 / 预算行自动归并</li>
+        <li><b>不再</b>手写命令下单——卡片上点一下按钮就行，单张、批量都可以</li>
+        <li><b>可以</b>：在飞书里说一句话，拿到「有多少单、分几组、该找谁」的结论</li>
+      </ul>
+    </div>
+
+    <div class="sec">
+      <div class="sec-head"><span class="ico">二</span><h3>结果：不再「说成功了其实没有」</h3><span class="tag gold">可靠性</span></div>
+      <ul class="plain">
+        <li><b>不再</b>把「登录失效」当成「没有需求」——两者现在分开报，环境异常会明确提示</li>
+        <li><b>不再</b>点击后干等没反应——秒回一句「收到，正在处理」，结果跑完主动推给你</li>
+        <li><b>不再</b>担心操作记在别人名下——下单前会校验「登录人 == 操作人」</li>
+      </ul>
+    </div>
+
+    <div class="sec">
+      <div class="sec-head"><span class="ico">三</span><h3>多维表格：供应商可以自己选</h3><span class="tag green">新能力</span></div>
+      <ul class="plain">
+        <li><b>可以</b>：一品多点的需求同步到「待选表」，候选供应商一行一个，你在表里选就行</li>
+        <li><b>可以</b>：选完回来说一句「按表下单」，不用重新查一遍</li>
+      </ul>
+    </div>
+
+    <div class="sec">
+      <div class="sec-head"><span class="ico">◆</span><h3>这一周的状态</h3></div>
+      <p style="padding:14px 16px;background:var(--warn-soft);border-radius:var(--radius-lg);font-size:13.5px;line-height:1.7">
+        骨架能跑了，但<b>一次查询把一品一点和一品多点混在一起</b>，用户分不清该看哪一段。这是下周要解决的事。
+      </p>
+    </div>
+  </div>
+
+  <!-- ========== W2: 10-31 ~ 11-06 ========== -->
+  <div class="week" id="w2">
+    <div class="week-head">
+      <span class="range">2026-10-31 ~ 11-06</span>
+      <h2>第 2 周 · 一点和多点分开，各看各的</h2>
+      <p>把两条链路彻底拆开，顺手把「在表里选供应商」这件事做顺。</p>
+    </div>
+
+    <div class="sec">
+      <div class="sec-head"><span class="ico">一</span><h3>查询：不再混着看</h3><span class="tag red">本周核心</span></div>
+      <ul class="plain">
+        <li><b>不再</b>一次查询里既有单供应商又有多供应商，看得眼花</li>
+        <li><b>不再</b>两条链路的确认卡互相顶掉——各自有各自的批次</li>
+        <li><b>不再</b>说「查询可下单需求」就跑全量——现在会先问你要查哪条</li>
+        <li><b>可以</b>：「查询一品一点」「查询一品多点」分开点，各看各的</li>
+      </ul>
+    </div>
+
+    <div class="sec">
+      <div class="sec-head"><span class="ico">二</span><h3>选供应商：不再导文件、填 JSON</h3><span class="tag gold">交互</span></div>
+      <ul class="plain">
+        <li><b>不再</b>从网页导出确认页、复制一大段内容再贴回对话框</li>
+        <li><b>不再</b>一格里塞好几家供应商、选着选着就选错</li>
+        <li><b>可以</b>：直接在飞书多维表格里选，一需求一行、一行选一家</li>
+      </ul>
+    </div>
+
+    <div class="sec">
+      <div class="sec-head"><span class="ico">三</span><h3>结果：不再一律「已下单」</h3><span class="tag green">说得清</span></div>
+      <ul class="plain">
+        <li><b>不再</b>成功、草稿、失败都显示成「已下单」</li>
+        <li><b>可以</b>：看到三种结果分开列，失败原因按需求号逐条给，带零件号和需求人</li>
+        <li><b>可以</b>：把不想要的需求放进「剔除表」，下次查询自动跳过</li>
+      </ul>
+    </div>
+  </div>
+
+  <!-- ========== W3: 11-07 ~ 11-13 ========== -->
+  <div class="week" id="w3">
+    <div class="week-head">
+      <span class="range">2026-11-07 ~ 11-13</span>
+      <h2>第 3 周 · 不再下重复单，也不再等半天</h2>
+      <p>用的人多起来后，暴露的全是真实问题。这一周集中修「不出错」和「不干等」。</p>
+    </div>
+
+    <div class="sec">
+      <div class="sec-head"><span class="ico">一</span><h3>不再重复下单</h3><span class="tag red">本周核心</span></div>
+      <ul class="plain">
+        <li><b>不再</b>点一次出两张结果卡——重复回调现在会被识别并忽略</li>
+        <li><b>不再</b>同一条需求被下两次单——升版需求若已有进行中订单，会拦下</li>
+        <li><b>不再</b>只靠本地记录判断「下过没」——执行前会回 EP 取最新状态，双重确认</li>
+      </ul>
+    </div>
+
+    <div class="sec">
+      <div class="sec-head"><span class="ico">二</span><h3>不再干等</h3><span class="tag blue">性能</span></div>
+      <ul class="plain">
+        <li><b>不再</b>一次查询等 7 分钟——写表改成批量，降到十几秒</li>
+        <li><b>不再</b>点了确认却没反应——现在会明确告诉你「正在执行」</li>
+        <li><b>可以</b>：查询过程中看到进度，知道卡在哪一步</li>
+      </ul>
+    </div>
+
+    <div class="sec">
+      <div class="sec-head"><span class="ico">三</span><h3>不再看不懂数字</h3><span class="tag gold">口径</span></div>
+      <ul class="plain">
+        <li><b>不再</b>「说要选 35 条，表格只有 32 条」——需求号数、物料行数、入表行数三个数字分开写清楚</li>
+        <li><b>不再</b>看到「已下单」却找不到订单号——订单号为空时不会标成已下单</li>
+        <li><b>可以</b>：拿着订单号直接去 EP 查进度</li>
+      </ul>
+    </div>
+
+    <div class="sec">
+      <div class="sec-head"><span class="ico">四</span><h3>这一周还做了什么</h3><span class="tag green">打底</span></div>
+      <ul class="plain">
+        <li>自动化用例从 32 条涨到 600 多条，历史 bug 逐个转成回归用例</li>
+        <li>补了一份「真实用户验收测试用例」，按风险高低分级</li>
+      </ul>
+    </div>
+  </div>
+
+  <!-- ========== W4: 11-14 ~ 11-16 ========== -->
+  <div class="week" id="w4">
+    <div class="week-head">
+      <span class="range">2026-11-14 ~ 11-16</span>
+      <h2>第 4 周 · 你看到的数字，和实际做的事对上了</h2>
+      <p>这一周只盯一件事：屏幕上显示的东西，是不是等于真实发生的事。</p>
+    </div>
+
+    <div class="sec">
+      <div class="sec-head"><span class="ico">一</span><h3>不再「选好了却说没有要下的」</h3><span class="tag red">本周核心</span></div>
+      <ul class="plain">
+        <li><b>不再</b>「表里明明选好了，机器人说没有要下单的」</li>
+        <li><b>不再</b>「重新查一次，下单按钮就不见了」</li>
+        <li><b>不再</b>「选了 7 条只下了 1 条」——已选的行不会再被清理逻辑删掉</li>
+        <li><b>可以</b>：选完供应商回来说「按表下单」，机器人读的是你表里最新的选择，不是你查询那一刻的快照</li>
+      </ul>
+    </div>
+
+    <div class="sec">
+      <div class="sec-head"><span class="ico">二</span><h3>不再被数字绕晕</h3><span class="tag gold">口径</span></div>
+      <ul class="plain">
+        <li><b>不再</b>「显示 2 条，实际只有 1 条」——按你理解的需求号计数，不再按物料行</li>
+        <li><b>不再</b>「一个需求两条一品多点没显示出来」——一个需求多组，各自占一行</li>
+        <li><b>可以</b>：同一需求的多组物料分别显示、分别选供应商、分别下单</li>
+      </ul>
+    </div>
+
+    <div class="sec">
+      <div class="sec-head"><span class="ico">三</span><h3>状态：从 9 个收敛到 5 个</h3><span class="tag blue">看得懂</span></div>
+      <ul class="plain">
+        <li><b>不再</b>看到一堆分不清的状态标签（待下单 / 待确认 / 草稿待提交 / 已提交待核实 / 已拦截…）</li>
+        <li><b>可以</b>：只剩 5 个状态——<b>待选择 → 已确认 → 已下单</b>，以及「下单失败」「剔除」</li>
+        <li><b>可以</b>：判断能不能下单，只看「选择供应商」这一列有没有值，不再被状态绕住</li>
+        <li><b>可以</b>：需要区分「已提交审批」还是「草稿待提交」，看单独的「下单形态」筛选列</li>
+      </ul>
+    </div>
+
+    <div class="sec">
+      <div class="sec-head"><span class="ico">◆</span><h3>这一周之后</h3></div>
+      <p style="padding:14px 16px;background:var(--accent-soft);border-radius:var(--radius-lg);font-size:13.5px;line-height:1.7">
+        卡片上写的、表里显示的、实际发生的，三者对得上了。<br>
+        但还有一个更隐蔽的问题没解决 —— <b>同一需求多个零件时，下单会漏</b>。这是下周的活。
+      </p>
+    </div>
+  </div>
+
+  <!-- ========== W5: 11-17 ~ 11-23 ========== -->
+  <div class="week" id="w5">
+    <div class="week-head">
+      <span class="range">2026-11-17 ~ 11-23</span>
+      <h2>第 5 周 · 选好的单，这次真的下出去了</h2>
+      <p>本周修的都是你实际卡住的地方。下面按「你以前遇到什么 → 现在不用了 / 现在可以了」来列。</p>
+    </div>
+
+    <div class="sec">
+      <div class="sec-head"><span class="ico">一</span><h3>下单：不再漏、不再跳错</h3><span class="tag red">本周核心</span></div>
+      <ul class="plain">
+        <li><b>不再「选了 7 条只下 1 条」</b> —— 一行零件对应一张单，选几条下几条。实测 6 条全部下出去，120 件一件不少。</li>
+        <li><b>不再「表里显示已确认，实际一张都没下」</b> —— 三行各选一家不再被当成"选错"，正常执行。</li>
+        <li><b>不再「去选供应商，结果跳回对话框」</b> —— 点了直接打开一品多点待选表。</li>
+        <li><b>不再「供应商名字复制过来，提示候选里没有」</b> —— 全角括号、半角括号、多余空格、换行都能认。</li>
+        <li><b>可以</b>：同一需求下多个零件，一次全部下单完成，不用分几次试。</li>
+      </ul>
+    </div>
+
+    <div class="sec">
+      <div class="sec-head"><span class="ico">二</span><h3>查看：订单号不再糊成一团</h3><span class="tag green">新功能</span></div>
+      <ul class="plain">
+        <li><b>不再「一个需求挂 29 个订单号，看不出哪个对应哪个零件」</b> —— 新增「订单明细」列，直接写 <code>P000031675001 → 4900049277</code>。</li>
+        <li><b>不再「要自己数一串数字有几张单」</b> —— 新增「订单号数量」列，一格就是 29。</li>
+        <li><b>可以</b>：按零件号反查订单号，能直接复制去 EP 查，也能拿去对账。</li>
+      </ul>
+      <div class="note" style="margin-top:12px">
+        覆盖 <b>71%</b>（4,240 个已下单需求中 3,008 个能追到零件级）。早期批次当时没记零件，查不到的会明写「历史批次未记录」，<b>不编造对应关系</b>。
+      </div>
+    </div>
+
+    <div class="sec">
+      <div class="sec-head"><span class="ico">三</span><h3>回写：下单后表格自己更新</h3><span class="tag blue">修好了</span></div>
+      <ul class="plain">
+        <li><b>不再「下完单，表里还停在已确认」</b> —— 下单后立即回写「已下单」和订单号。</li>
+        <li><b>不再「表里只有一个订单号，实际下了好几张」</b> —— 同一需求的多张单全部写进表，不再被覆盖成一张。</li>
+        <li><b>不再「历史已下单的需求，每次查询都跳出来提醒一遍」</b> —— 不再重复提示，它们本来就不在下单范围里。</li>
+        <li><b>可以</b>：下完单直接在表里看到结果，不用回群里翻消息。</li>
+      </ul>
+    </div>
+
+    <div class="sec">
+      <div class="sec-head"><span class="ico">四</span><h3>预算：不再一长串文字，改成能核对的表</h3><span class="tag gold">有边界</span></div>
+      <ul class="plain">
+        <li><b>不再「预算不足的提示有 8 行字，22 单时占满整屏」</b> —— 正文压到 3 行，明细改成表格：订单号 / 预算行 / 剩余 / 本单金额 / 差额 / 零件 / 供应商。</li>
+        <li><b>不再「预算占用情况只能靠猜」</b> —— 单独一张「预算占用待确认」表，给出订单号和预算行，你到 EP 看「预算占用」列就能核对。</li>
+        <li><b>不再「同一预算行几十单一起冲，抢不到预算」</b> —— 同一预算行超过 3 单就一张一张下、间隔翻倍。</li>
+        <li><b>做不到的如实说</b>：EP 建单返回里没有"预算是否占上"这个信息，成功和失败返回的内容一模一样。所以只能标"待确认"，不能替你判定。</li>
+      </ul>
+    </div>
+
+    <div class="sec">
+      <div class="sec-head"><span class="ico">五</span><h3>看得更清楚，也更安全</h3><span class="tag blue">体验 + 兜底</span></div>
+      <ul class="plain">
+        <li><b>不再「标题是『查询完成 · 批次 ORD2026...』」</b> —— 标题只写「一品一点查询完成」，批次降成灰色小字。</li>
+        <li><b>不再「预算不足和占用待确认混在一起」</b> —— 拆成两张表：一个是单没建出来，一个是建了但不确定预算。</li>
+        <li><b>不再「孟启迪打不开机器人」</b> —— 账号识别链路已修，可正常使用。</li>
+        <li><b>不再「工作台谁都能打开」</b> —— 加了令牌校验，采购数据不外泄。</li>
+        <li><b>不再「本地记着已下单，EP 里却查不到」</b> —— 已定位 487 条"幽灵订单"（会把能下的需求永久拦住），待确认后清理。</li>
+        <li><b>不再「清理数据后判断变了」</b> —— 972 条空订单号脏数据已清，清理前后"已下单"判断 0 差异。</li>
+        <li><b>可以</b>：先看结论（几单、卡在哪），需要细节再看表。</li>
+      </ul>
+    </div>
+
+    <div class="sec">
+      <div class="sec-head"><span class="ico">六</span><h3>收尾复核：三个「看起来正常、其实错了」的地方</h3><span class="tag red">11-23 追加</span></div>
+      <ul class="plain">
+        <li><b>不再「昨天已经下过单的行，今天又变回『待下单』」</b> —— 每次刷新待选表，程序都会把所有"选好供应商"的行重新标一遍状态，但漏掉了"已经下过单的不要动"。结果是已下单的行被拉回可操作状态，看着像还要再下一次。现场：两行的订单号（4900049276 / 4900049328）明明还在，状态却是"已确认"。</li>
+        <li><b>不再「标记匹配结果，把选好的行冲掉」</b> —— 判断"供应商有没有匹配上"时会顺手写一次状态，而写的是旧值「待下单」，落到表里等于「待选择」。于是表里出现「待选择 + 供应商已填」的割裂态，你看到会以为要重选一遍。</li>
+        <li><b>不再「预算表打不开，报『返回非 JSON』」</b> —— 预算表有 130 行、183KB，超过了程序一次性往外输出 64KB 的上限，后半截被截断。表现是自检永远失败，看着像飞书接口坏了，其实是本地没写完就退出。</li>
+      </ul>
+      <div class="note risk">
+        <b>共同点：</b>三个问题都不会报错，只会让数据"看起来对、实际不对"。这类问题比直接报错更难发现 —— 报错你会去查，不报错你会照着错的往下做。
+      </div>
+    </div>
+
+    <div class="sec">
+      <div class="sec-head"><span class="ico">七</span><h3>表格瘦身：20 行只剩 1 行</h3><span class="tag green">本周收尾</span></div>
+      <ul class="plain">
+        <li><b>以前：</b>待选表堆了 11 个批次共 20 行，真正还要你动手的只有 1 行，其余 19 行都是"已经下完了"的历史记录，把该处理的那行埋在最下面。</li>
+        <li><b>现在：</b>只留「还等你动手」的行（待选择 / 已确认），已下单和下单失败的历史行清掉。清完表里就 1 行，一眼看到要去选哪家。</li>
+        <li><b>删之前先核对：</b>这 19 行涉及的 65 个订单号，逐个去 EP 查了实际状态 —— 62 个查得到，且全部有效（27 张已生效 / 28 张审批通过 / 7 张审批中）。确认是真下过单，才清。</li>
+        <li><b>清的是什么：</b>只是待选表里的展示行，EP 里的订单一张没动。</li>
+      </ul>
+    </div>
+
+    <div class="sec">
+      <div class="sec-head"><span class="ico">八</span><h3>状态口径统一：草稿不再单独占一个状态</h3><span class="tag blue">口径</span></div>
+      <ul class="plain">
+        <li><b>以前：</b>「草稿待提交」是一个独立状态，和「已下单」并列。但草稿其实是"单已经建出来了、只是没自动进审批"，从"这条还要不要再下一次"看，和已提交是一回事。</li>
+        <li><b>现在：</b>草稿并入「已下单」，差异写在「下单结果」列（已提交审批 / 草稿待提交）。卡片上仍单独告诉你「其中 N 条是草稿，去 EP 我的草稿提交」。</li>
+        <li><b>为什么要改：</b>一个状态值就让"还要不要动手"多一层判断。状态只回答"能不能再下"，细节交给筛选列。</li>
+      </ul>
+    </div>
+
+    <div class="sec">
+      <div class="sec-head"><span class="ico">◆</span><h3>一句话记住这周</h3></div>
+      <p style="padding:16px 18px;background:var(--accent-soft);border-radius:var(--radius-lg);font-size:14px;line-height:1.8">
+        以前最难发现的问题是：<b>表格数字对、状态显示已确认，实际却只下了一条</b>。<br>
+        这周之后，选了几条就是几条，下完表里立刻能看到结果，看不明白的地方有表可查。<br>
+        收尾又补了一层：<b>已经下过的单不会被刷新改回"待下单"，待选表只留还要你动手的那几行。</b>
+      </p>
+    </div>
+  </div>
+
+  <div class="week" id="w6">
+    <div class="week-head">
+      <span class="range">跨 5 周归纳</span>
+      <h2>根因总览 · 七类可复用的教训</h2>
+      <p>把 5 周的问题按「为什么会发生」重新归类。不是按时间，是按模式 —— 同一类只要还留着，换个功能还会再犯。第 7 类是 11-23 收尾复核新补的。</p>
+    </div>
+
+    <div class="sec">
+      <div class="sec-head"><span class="ico">1</span><h3>把「用户刚输入的」降级成「程序缓存的」</h3><span class="tag red">损失最大</span><span class="tag">W1 · W3 · W4</span></div>
+      <div class="tbl-wrap"><table class="tbl">
+        <thead><tr><th style="width:32%">具体表现</th><th>违反了什么</th></tr></thead>
+        <tbody>
+          <tr><td>选了 7 条，只下快照里的 1 条</td><td>用户的实时输入被旧快照覆盖</td></tr>
+          <tr><td>重新查询把已选行删掉</td><td>把「不在本次清单」当成「该删」，忽略了它是资产</td></tr>
+          <tr><td>升版按本地下单记录判断</td><td>缓存会过期、订单会被撤销，缓存不是事实</td></tr>
+        </tbody>
+      </table></div>
+      <div class="note">
+        <b>规则：</b>用户刚手动输入的数据，优先级永远高于程序缓存。缓存只能做「加速」，不能做「真相」。
+      </div>
+    </div>
+
+    <div class="sec">
+      <div class="sec-head"><span class="ico">2</span><h3>口径未定义就开用</h3><span class="tag gold">最容易被当成小事</span><span class="tag">W3 · W4</span></div>
+      <div class="tbl-wrap"><table class="tbl">
+        <thead><tr><th style="width:32%">具体表现</th><th>三个口径混用在哪</th></tr></thead>
+        <tbody>
+          <tr><td>说要选 35 条，表格 32 条</td><td>需求号 / 物料行 / 入表行</td></tr>
+          <tr><td>显示 2 条，实际 1 条</td><td>物料行 vs 需求号</td></tr>
+          <tr><td>文本 3 行、按钮 2 条</td><td>入表行 vs 需求号</td></tr>
+        </tbody>
+      </table></div>
+      <div class="note">
+        <b>规则：</b>任何展示给用户的数字，先问「用户会怎么数」；同一类数量只能有一个口径，且写进字段名。
+      </div>
+    </div>
+
+    <div class="sec">
+      <div class="sec-head"><span class="ico">3</span><h3>拿不到证据就报「成功」</h3><span class="tag red">最危险</span><span class="tag">W1 · W2 · W3</span></div>
+      <div class="tbl-wrap"><table class="tbl">
+        <thead><tr><th style="width:32%">具体表现</th><th>危险在哪</th></tr></thead>
+        <tbody>
+          <tr><td>订单号空但状态显示已下单</td><td>字段名不一致取不到值，默认值恰好是「成功」</td></tr>
+          <tr><td>登录失效被当成「没需求」</td><td>环境故障伪装成正常结果</td></tr>
+          <tr><td>0 条不代表「没数据」</td><td>用结果推断原因，掩盖了真实问题</td></tr>
+        </tbody>
+      </table></div>
+      <div class="note risk">
+        <b>规则：</b>失败时绝不能回落到「好消息」。拿不到证据 → 标「待核实」，并告诉用户去哪核对。
+      </div>
+    </div>
+
+    <div class="sec">
+      <div class="sec-head"><span class="ico">4</span><h3>一个字段承担了两个语义</h3><span class="tag blue">复杂度根源</span><span class="tag">W2 · W4</span></div>
+      <div class="tbl-wrap"><table class="tbl">
+        <thead><tr><th style="width:32%">具体表现</th><th>拆开之后</th></tr></thead>
+        <tbody>
+          <tr><td>状态机 9 个还互相纠缠</td><td>「进度标签」与「能否下单」拆开：状态只管展示，准入看「选择供应商」</td></tr>
+          <tr><td>草稿/待核实/已下单三个状态</td><td>收敛成「已下单」+ 独立的「下单形态」筛选列</td></tr>
+          <tr><td>一格里选多家供应商</td><td>拆成「一需求 × 一组 = 一行」，每行独立选</td></tr>
+        </tbody>
+      </table></div>
+      <div class="note">
+        <b>规则：</b>一个字段只回答一个问题。需要第二个答案时，加字段，不要加状态值。
+      </div>
+    </div>
+
+    <div class="sec">
+      <div class="sec-head"><span class="ico">5</span><h3>把「改配置」当成「不碰数据」</h3><span class="tag gold">最隐蔽</span><span class="tag">W4</span></div>
+      <div class="tbl-wrap"><table class="tbl">
+        <thead><tr><th style="width:32%">具体表现</th><th>实际发生了什么</th></tr></thead>
+        <tbody>
+          <tr><td>删选项后 8 行状态全变空</td><td>选项编号变了，已填的值就找不到归属</td></tr>
+          <tr><td>同名函数定义两遍</td><td>后一个覆盖前一个，改了"看起来对"的那个却没生效</td></tr>
+        </tbody>
+      </table></div>
+      <div class="note">
+        <b>规则：</b>任何改枚举选项的操作，先 dry-run 出清单 + 备份受影响记录的值；
+        改完立刻验证「数据是否还在」。
+      </div>
+    </div>
+
+    <div class="sec">
+      <div class="sec-head"><span class="ico">6</span><h3>合并去重时，把「原始每一条」弄丢了</h3><span class="tag red">最不易发现</span><span class="tag">W5</span></div>
+      <div class="tbl-wrap"><table class="tbl">
+        <thead><tr><th style="width:36%">具体表现</th><th>违反了什么</th></tr></thead>
+        <tbody>
+          <tr><td>选了 7 条，只下 1 条</td><td>两行零件算成同一个"身份"，写表时合并成一行</td></tr>
+          <tr><td>表格数量对，实际下单少</td><td>下单前刷新，按「需求+零件」去重，同零件两条互相覆盖</td></tr>
+          <tr><td>三行各选一家，整条被拦</td><td>多行的选择被累加成一个集合，判成"一格勾了多家"</td></tr>
+          <tr><td>EP 下了 4 单，表里只更新 1 行</td><td>回写只认调用方传的需求号，EP 实际返回的被丢掉</td></tr>
+        </tbody>
+      </table></div>
+      <div class="note risk" style="margin-top:12px">
+        <b>这类问题的共同点：它不报错。</b>表格数字对、状态显示已确认、过程无异常 —— 
+        但实际只下了一条。用户发现不了，系统也不告警。<br><br>
+        <b>和第 1、2 类的区别（容易混）：</b><br>
+        · 第 1 类：用的是<b>旧的</b>数据（快照）<br>
+        · 第 2 类：数的是<b>不同的</b>东西（口径混用）<br>
+        · 第 6 类：数据是新的、口径也对，但<b>合并时把行吃掉了</b><br><br>
+        <b>检查方法：</b>凡是做「合并 / 去重」，都要问一句 —— <b>合并之后，还能还原出原始每一条吗？</b>
+      </div>
+    </div>
+
+    <div class="sec">
+      <div class="sec-head"><span class="ico">7</span><h3>刷新时「重算全部」，忘了「有些已经是最终结果」</h3><span class="tag red">最隐蔽</span><span class="tag">W5 收尾</span></div>
+      <div class="tbl-wrap"><table class="tbl">
+        <thead><tr><th style="width:34%">具体表现</th><th>错在哪</th></tr></thead>
+        <tbody>
+          <tr><td>已下单的行，刷新后变回「已确认」</td><td>刷新逻辑遍历所有"选好供应商"的行重写状态，没排除已下单</td></tr>
+          <tr><td>标记"供应商匹配上了"，把选好的行冲回「待选择」</td><td>只负责写标记的函数，顺手写了状态，且写的是过期值</td></tr>
+          <tr><td>草稿自成一个状态值，筛选时查不到</td><td>写入的值不在字段选项内，被归一成另一个值，两个口径打架</td></tr>
+        </tbody>
+      </table></div>
+      <div class="note risk">
+        <b>规则：</b>任何"重算"逻辑，第一步先问 —— <b>这条记录有没有已经定论的结果？</b>
+        有就跳过，不要重算。终态是历史事实，只能由新的事实覆盖，不能被推导覆盖。<br><br>
+        <b>和第 1 类的区别：</b>第 1 类是「用了旧数据」，第 7 类是「用新数据把正确结果算错了」——数据是新的，错在<b>不该重算</b>。
+      </div>
+    </div>
+
+    <div class="sec">
+      <div class="sec-head"><span class="ico">▦</span><h3>哪一类，在哪几周出现</h3><span class="tag blue">覆盖矩阵</span></div>
+      <p style="color:var(--ink-2);font-size:13.5px;margin-bottom:12px">
+        同一条根因会跨周重复出现 —— 这正是"只修现象不修模式"的证据。<b>带 ● 的是当周主因。</b>
+      </p>
+      <div class="tbl-wrap"><table class="tbl">
+        <thead><tr>
+          <th style="width:38%">根因</th>
+          <th style="text-align:center">W1</th>
+          <th style="text-align:center">W2</th>
+          <th style="text-align:center">W3</th>
+          <th style="text-align:center">W4</th>
+          <th style="text-align:center">W5</th>
+        </tr></thead>
+        <tbody>
+          <tr><td>1. 把「用户输入的」降级成「缓存的」</td>
+              <td style="text-align:center">●</td><td></td><td style="text-align:center">●</td><td style="text-align:center">●</td><td></td></tr>
+          <tr><td>2. 口径未定义就开用</td>
+              <td></td><td></td><td style="text-align:center">●</td><td style="text-align:center">●</td><td></td></tr>
+          <tr><td>3. 拿不到证据就报「成功」</td>
+              <td style="text-align:center">●</td><td style="text-align:center">●</td><td style="text-align:center">●</td><td></td><td></td></tr>
+          <tr><td>4. 一个字段承担两个语义</td>
+              <td></td><td style="text-align:center">●</td><td></td><td style="text-align:center">●</td><td></td></tr>
+          <tr><td>5. 把「改配置」当成「不碰数据」</td>
+              <td></td><td></td><td></td><td style="text-align:center">●</td><td></td></tr>
+          <tr><td>6. 合并去重丢掉「原始每一条」</td>
+              <td></td><td></td><td></td><td></td><td style="text-align:center">●</td></tr>
+          <tr><td>7. 重算时没排除终态</td>
+              <td></td><td></td><td></td><td></td><td style="text-align:center">●</td></tr>
+        </tbody>
+      </table></div>
+      <div class="note" style="margin-top:12px">
+        <b>读这张表的方法：</b>横着看是"一个毛病反复犯"，竖着看是"这一周踩了几个坑"。
+        <b>W4 一周就中了 4 条</b>，是问题最密集的一周；<br>
+        <b>W5 中 2 条（第 6、7 类），两条都是前 5 类没覆盖的</b> —— 说明这份清单不是万能的，
+        新场景会带出新的失效模式，根因表本身也要持续长。
+      </div>
+    </div>
+
+    <div class="sec">
+      <div class="sec-head"><span class="ico">✓</span><h3>一句话总结</h3><span class="tag green">贯穿 5 周</span></div>
+      <div class="note" style="border-left-width:4px">
+        <b>5 周下来，绝大多数问题都不是「代码写错了」，而是「程序的理解」与「用户的心智」错位。</b>
+        只有极少数是真正的值不匹配。<br><br>
+        所以优化重点从来不是"修更多 bug"，而是建立五条检查线（括号内是对应的根因编号）：<br>
+        <b>① 用户会怎么数 / 怎么理解？</b>（第 2、4 类）<br>
+        <b>② 我拿到的是实时真值还是缓存？</b>（第 1 类）<br>
+        <b>③ 失败时我会不会悄悄报成功？</b>（第 3 类）<br>
+        <b>④ 合并之后，还能还原出原始每一条吗？</b>（第 6 类）<br>
+        <b>⑤ 这条记录是不是已经有定论了？</b>（第 7 类）
+      </div>
+    </div>
+  </div>
+
+  <footer>
+    样件订单助手 · 迭代周报 · 覆盖 2026-10-24 ~ 11-23（5 周）· 更新于 2026-11-23<br>
+    数据来源：git 提交记录、审计日志、全量回归结果（1,182 条用例）、EP 提交列表实测
+  </footer>
+</div>
+
+<script>
+document.querySelectorAll('.tab').forEach(function(t){
+  t.addEventListener('click', function(){
+    document.querySelectorAll('.tab').forEach(function(x){ x.classList.remove('active'); });
+    document.querySelectorAll('.week').forEach(function(x){ x.classList.remove('active'); });
+    t.classList.add('active');
+    var el = document.getElementById(t.dataset.week);
+    if (el) el.classList.add('active');
+    if (location.hash !== '#' + t.dataset.week) {
+      history.replaceState(null, '', '#' + t.dataset.week);
+    }
+  });
+});
+// 支持用 URL hash 直接定位到某一周
+(function(){
+  var h = (location.hash || '').replace('#','');
+  if (h) {
+    var t = document.querySelector('.tab[data-week="' + h + '"]');
+    if (t) t.click();
+  }
+})();
+</script>
+</body>
+</html>
