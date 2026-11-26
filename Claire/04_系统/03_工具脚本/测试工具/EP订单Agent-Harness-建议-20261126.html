@@ -448,7 +448,7 @@ tr:last-child td{border-bottom:0}
   <h1>先把“能跑”变成“能证明”</h1>
   <p class="lead">现状不是能力不够，而是缺少一套能约束行为、保留证据、复现失败的运行时。页面按“现状差距 → 总体架构 → Harness 分层 → 交互/记忆/评测”展开。</p>
   <div class="hero-meta">
-    <span class="chip ok"><i></i>全量回归 1336 通过</span>
+    <span class="chip ok"><i></i>全量回归 1357 通过</span>
     <span class="chip ok"><i></i>Harness 4/4</span>
     <span class="chip warn"><i></i>工作树未合并 main</span>
     <span class="chip"><i></i>P0 已完成 · P1/P2 待做</span>
@@ -459,7 +459,7 @@ tr:last-child td{border-bottom:0}
   <div class="sec-head"><span class="sec-no">01</span><h2>现在的差距</h2><p>第一轮对话结论：不是模型问题，是运行时与证明机制问题。</p></div>
   <div class="grid">
     <div class="card stat c3"><div class="k">当前定位</div><div class="v sm">确定性业务 Agent</div><div class="n">关键词路由 + 工具执行，不是通用 LLM Agent</div></div>
-    <div class="card stat c3"><div class="k">全量回归</div><div class="v">1336</div><div class="n">通过 · 8 skipped（2026-11-26）</div></div>
+    <div class="card stat c3"><div class="k">全量回归</div><div class="v">1357</div><div class="n">通过 · 8 skipped（2026-11-26）</div></div>
     <div class="card stat c3"><div class="k">真实基线</div><div class="v sm">aaadd18</div><div class="n">工作树 codex/agent-harness-p0 · 未提交</div></div>
     <div class="card stat c3"><div class="k">Harness 门禁</div><div class="v sm">4 / 4</div><div class="n">真实 trace · P0 硬门禁通过</div></div>
   </div>
@@ -844,14 +844,14 @@ tr:last-child td{border-bottom:0}
       <div class="cell"><b>产物</b><code>eval/cases/manifest.json</code></div>
     </div></div>
     <div class="layer"><div class="lh"><div class="n">L2</div><div class="t">Fixture 层</div><div class="d">隔离外部依赖，固定 EP / 表 / 会话</div></div><div class="lb">
-      <div class="cell"><b>输入</b>脱敏后的查询结果、下单结果、表内已选</div>
-      <div class="cell"><b>约束</b>不连生产凭证；不允许手写 trace</div>
-      <div class="cell"><b>产物</b><code>eval/fixtures/traces/*.json</code></div>
+      <div class="cell"><b>已建</b>provenance 记录 commit / manifest / 输入指纹</div>
+      <div class="cell"><b>待补</b>真实数据未脱敏（user、需求号、订单号）</div>
+      <div class="cell"><b>产物</b><code>eval/fixtures/provenance.json</code></div>
     </div></div>
     <div class="layer"><div class="lh"><div class="n">L3</div><div class="t">Replay 层</div><div class="d">真实运行，记录 route / tool_calls / 副作用</div></div><div class="lb">
-      <div class="cell"><b>入口</b><code>eval/record.py</code> + <code>SampleAgent.run_traced</code></div>
-      <div class="cell"><b>观测</b><code>app/agent_trace.py</code> 请求级 trace</div>
-      <div class="cell"><b>产物</b>trace + reply，含 <code>source=runtime</code></div>
+      <div class="cell"><b>录制</b><code>eval/record.py</code> 跑真实路由，4/4 已重录</div>
+      <div class="cell"><b>缺口</b>runner 只读冻结 trace，不重跑 Agent</div>
+      <div class="cell"><b>产物</b><code>source=runtime</code> + commit 绑定</div>
     </div></div>
     <div class="layer"><div class="lh"><div class="n">L4</div><div class="t">Grader 层</div><div class="d">逐条比对期望与实际</div></div><div class="lb">
       <div class="cell"><b>判据</b>route、状态、写入、工具、文案事实</div>
@@ -859,16 +859,32 @@ tr:last-child td{border-bottom:0}
       <div class="cell"><b>产物</b><code>eval/grader.py</code> 结构化结果</div>
     </div></div>
     <div class="layer"><div class="lh"><div class="n">L5</div><div class="t">Gate 层</div><div class="d">P0 一票否决，阻断发布</div></div><div class="lb">
-      <div class="cell"><b>接入</b><code>run_tests.sh</code> 回归后自动跑</div>
-      <div class="cell"><b>失败</b>缺 trace / 手写样例 / 确认前写入</div>
-      <div class="cell"><b>产物</b>退出码 + <code>eval/reports/local.json</code></div>
+      <div class="cell"><b>接入</b><code>run_tests.sh</code> 自动跑，<code>--strict</code></div>
+      <div class="cell"><b>阻断</b>陈旧 fixture / 相对基线退步 / 六个禁止码</div>
+      <div class="cell"><b>绕过</b>必须给 <code>SKIP_EVAL_REASON</code>，否则 exit 2</div>
     </div></div>
     <div class="layer"><div class="lh"><div class="n">L6</div><div class="t">Baseline 层</div><div class="d">按 commit 记录通过率与失败项</div></div><div class="lb">
-      <div class="cell"><b>当前</b>report 已带 commit；对比/趋势待做</div>
-      <div class="cell"><b>下一步</b>baseline + CI 阻断</div>
-      <div class="cell"><b>产物</b>历史报告 / 差异清单</div>
+      <div class="cell"><b>已建</b><code>eval/baselines/latest.json</code> 逐案对比</div>
+      <div class="cell"><b>输出</b>regressed / fixed / new / removed</div>
+      <div class="cell"><b>待补</b>无远程 CI，只在本地门禁</div>
     </div></div>
   </div>
+  <h3 style="margin:18px 0 8px;font-size:13px">2026-11-26 逐层体检</h3>
+  <div class="tbl-wrap"><table>
+    <thead><tr><th style="width:88px">层</th><th style="width:86px">体检前</th><th style="width:78px">现状</th><th>主因 / 已修</th></tr></thead>
+    <tbody>
+      <tr><td><b>Case</b></td><td><span class="tag gold">半扎实</span></td><td><span class="tag gold">半扎实</span></td><td>4 条 P0 可用；仅覆盖 17 个 handler 中的 3 个，无多轮 / 改口 / 工具异常</td></tr>
+      <tr><td><b>Fixture</b></td><td><span class="tag red">不扎实</span></td><td><span class="tag green">已加固</span></td><td>已补 provenance + 4 条全部重录为 <code>runtime</code>；<b>仍未脱敏</b></td></tr>
+      <tr><td><b>Replay</b></td><td><span class="tag red">不扎实</span></td><td><span class="tag gold">受限</span></td><td>runner 仍只读冻结 trace；代码漂移靠 commit 绑定兜住，<b>不重跑</b></td></tr>
+      <tr><td><b>Grader</b></td><td><span class="tag gold">半扎实</span></td><td><span class="tag green">已加固</span></td><td>3 个死码全部落地真实发射点；<code>execution_status</code> 改由运行时判定，不再由录制器补</td></tr>
+      <tr><td><b>Gate</b></td><td><span class="tag gold">半扎实</span></td><td><span class="tag green">已加固</span></td><td>禁静默跳过；<code>--strict</code> 拦退步；脏区单独告警不阻断本地</td></tr>
+      <tr><td><b>Baseline</b></td><td><span class="tag red">不扎实</span></td><td><span class="tag green">已建</span></td><td>落盘 + 逐案 diff（regressed / fixed / new / removed）</td></tr>
+    </tbody>
+  </table></div>
+  <p style="margin-top:8px;font-size:11px;color:var(--text3)">
+    验证：1357 tests 全绿（skipped 8）+ eval 4/4。工作区脏时 <code>release_ready=false</code>，本地回归不阻断。
+  </p>
+
   <div class="grid" style="margin-top:10px">
     <div class="card c6"><h3>最小 Case 长什么样</h3>
       <p><code>id</code> · <code>risk</code> · <code>input</code> · <code>expected.route/status/write_allowed</code> · <code>must_not</code></p>
@@ -975,7 +991,7 @@ tr:last-child td{border-bottom:0}
       <tr><td><code>order.diagnose.readonly_001</code></td><td><span class="tag red">P0</span></td><td><code>handle_diagnose</code></td><td>成功</td><td>只读、台账 + EP 实时</td></tr>
     </tbody>
   </table></div>
-  <div class="callout" style="margin-top:10px"><b>当前结果：</b>4/4 通过，全部来自真实运行轨迹；报告见 <code>eval/reports/local.json</code>（已忽略入库）。</div>
+  <div class="callout" style="margin-top:10px"><b>当前结果：</b>4/4 通过，全部 <code>runtime</code> 重录并绑定 <code>aaadd18</code>；报告见 <code>eval/reports/local.json</code>（已忽略入库），基线见 <code>eval/baselines/latest.json</code>。</div>
 </section>
 
 <section id="roadmap">
@@ -985,7 +1001,7 @@ tr:last-child td{border-bottom:0}
       <li>Task / Execution 状态机</li>
       <li>统一 Tool Runtime</li>
       <li>安全门禁与幂等</li>
-      <li>已：1336 回归 + 4/4 Harness</li>
+      <li>已：1357 回归 + 4/4 Harness（runtime 绑定）</li>
     </ul></div>
     <div class="card c4"><span class="tag gold">P1</span><h3 style="margin-top:6px">评测闭环</h3><ul>
       <li>Case 六类场景补齐</li>
@@ -1011,7 +1027,7 @@ tr:last-child td{border-bottom:0}
       <li>Case 可脱离生产凭证重复执行</li>
       <li>报告能显示 route / tool / 状态 / 副作用</li>
       <li>安全硬门禁一票否决</li>
-      <li>待补：baseline、CI、线上失败回流</li>
+      <li>待补：远程 CI、线上失败回流、Agent 真重跑</li>
     </ul></div>
   </div>
 </section>
