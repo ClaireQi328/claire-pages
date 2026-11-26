@@ -80,7 +80,8 @@
     .tag.gray { background: #f5f5f5; color: var(--ant-secondary); }
     .callout { border-left: 3px solid var(--ant-primary); background: var(--ant-primary-bg); padding: 15px 18px; color: #0958d9; }
     .callout strong { color: #003eb3; }
-    table { width: 100%; border-collapse: collapse; border: 1px solid var(--ant-border); border-radius: var(--ant-radius); overflow: hidden; }
+    .table-wrap { width: 100%; overflow-x: auto; border: 1px solid var(--ant-border); border-radius: var(--ant-radius); }
+    table { width: 100%; border-collapse: collapse; overflow: hidden; }
     th, td { padding: 11px 13px; border-bottom: 1px solid var(--ant-divider); text-align: left; vertical-align: top; }
     th { background: var(--ant-fill); font-weight: 600; white-space: nowrap; }
     tr:last-child td { border-bottom: 0; }
@@ -138,9 +139,9 @@
     <section class="section">
       <div class="grid">
         <div class="card stat col-3"><div class="label">当前定位</div><div class="value" style="font-size:21px">确定性业务 Agent</div><div class="note">不是通用 LLM Agent</div></div>
-        <div class="card stat col-3"><div class="label">回归测试文件</div><div class="value">177</div><div class="note">覆盖函数、路由、契约、旅程</div></div>
-        <div class="card stat col-3"><div class="label">最新基线提交</div><div class="value" style="font-size:21px">aaadd18</div><div class="note">main 当前干净基线</div></div>
-        <div class="card stat col-3"><div class="label">最重要缺口</div><div class="value" style="font-size:21px">Harness</div><div class="note">缺少回放、评分、门禁</div></div>
+        <div class="card stat col-3"><div class="label">全量回归</div><div class="value">1332</div><div class="note">通过 · 8 skipped（2026-11-26）</div></div>
+        <div class="card stat col-3"><div class="label">最新基线提交</div><div class="value" style="font-size:21px">aaadd18</div><div class="note">工作树 codex/agent-harness-p0 · 未提交</div></div>
+        <div class="card stat col-3"><div class="label">Harness 门禁</div><div class="value" style="font-size:21px">4 / 4</div><div class="note">真实 trace · P0 硬门禁通过</div></div>
       </div>
     </section>
 
@@ -158,17 +159,17 @@
 
     <section class="section">
       <div class="section-head"><div><h2>当前差距</h2><p>不是能力清单，而是会影响可靠性的结构性缺口。</p></div></div>
-      <table>
+      <div class="table-wrap"><table>
         <thead><tr><th class="priority">优先级</th><th>问题</th><th>当前表现</th><th>影响</th><th>目标</th></tr></thead>
         <tbody>
           <tr><td><span class="tag red">P0</span></td><td><strong>没有显式 Task / Execution</strong></td><td>pending 藏在会话 JSON，靠优先级推断。</td><td>跨批次、过期、重启恢复困难。</td><td>独立任务对象 + `UNKNOWN` 状态。</td></tr>
           <tr><td><span class="tag red">P0</span></td><td><strong>慢任务不可恢复</strong></td><td>依赖后台 daemon thread 和进程内锁。</td><td>EP 已建单但回执丢失时可能重复执行。</td><td>durable execution + checkpoint + reconcile。</td></tr>
           <tr><td><span class="tag red">P0</span></td><td><strong>工具存在旁路</strong></td><td>fast_path / diagnose 不完全经过统一 runner。</td><td>审计、凭证、超时和错误口径不一致。</td><td>所有 EP 访问进入 Tool Runtime。</td></tr>
-          <tr><td><span class="tag red">P0</span></td><td><strong>有评测协议，没有评测闭环</strong></td><td>A2A 能接收 eval input，但没有评分和报告。</td><td>无法证明版本没有退化。</td><td>cases + runner + grader + baseline。</td></tr>
+          <tr><td><span class="tag green">已完成</span></td><td><strong>评测闭环</strong></td><td>runtime trace + record + runner + grader + P0 硬门禁。</td><td>能证明版本没有退化。</td><td>下一步接 baseline 对比与 CI。</td></tr>
           <tr><td><span class="tag gold">P1</span></td><td><strong>契约偏告警，不够阻断</strong></td><td>部分校验只 warning。</td><td>错误状态可能继续回写。</td><td>执行前/后分级校验，未知状态禁止冒充成功。</td></tr>
           <tr><td><span class="tag gold">P1</span></td><td><strong>线上失败没有自动回流</strong></td><td>发现问题后手工补测试。</td><td>问题依赖记忆，难持续积累。</td><td>audit → 脱敏 Case → replay → regression。</td></tr>
         </tbody>
-      </table>
+      </table></div>
     </section>
 
     <section class="section">
@@ -211,11 +212,11 @@
       <div class="section-head"><div><h2>验收标准</h2><p>完成标准从“测试通过”升级为“业务结果可证明”。</p></div></div>
       <div class="grid">
         <div class="card col-6"><h3>P0 完成定义</h3><ul class="checklist"><li>每次下单都有 task_id、execution_id、idempotency_key</li><li>服务重启后能恢复或明确标记 UNKNOWN</li><li>所有 EP 调用统一进入 Tool Runtime</li><li>确认前不会产生 EP、台账或工作台写入</li><li>结果契约失败时禁止写入“已下单”</li></ul></div>
-        <div class="card col-6"><h3>Harness 完成定义</h3><ul class="checklist"><li>Case 可脱离生产凭证重复执行</li><li>报告能显示 route、tool、状态和副作用</li><li>安全硬门禁一票否决</li><li>每次运行能和 baseline 对比</li><li>线上失败可以脱敏后回放</li></ul></div>
+        <div class="card col-6"><h3>Harness 完成定义</h3><ul class="checklist"><li>Case 可脱离生产凭证重复执行</li><li>报告能显示 route、tool、状态和副作用</li><li>安全硬门禁一票否决</li><li>待补：baseline 对比、CI、线上失败脱敏回流</li></ul></div>
       </div>
     </section>
 
-    <footer class="footer">事实基线：`21-样件Agent-AgentOps`，main，`aaadd18`（2026-11-26 核对）。本页是建设建议，不替代业务权限、EP 状态和飞书线上数据。</footer>
+    <footer class="footer">事实基线：`21-样件Agent-AgentOps`，main `aaadd18` + 工作树 `codex/agent-harness-p0`（2026-11-26 核对）。当前已完成 P0 运行时 + 评测门禁；P1/P2 仍待做。本页不替代业务权限、EP 状态和飞书线上数据。</footer>
   </main>
   <script>
     document.querySelectorAll('.tab').forEach(function (tab) {
